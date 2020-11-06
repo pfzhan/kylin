@@ -85,7 +85,7 @@ public class JdbcQueryHistoryStore {
     @VisibleForTesting
     @Getter
     private final SqlSessionFactory sqlSessionFactory;
-    private DataSource dataSource;
+    private final DataSource dataSource;
     String qhTableName;
     String qhRealizationTableName;
 
@@ -246,6 +246,26 @@ public class JdbcQueryHistoryStore {
                             .groupBy(queryHistoryRealizationTable.model) //
                             .build().render(RenderingStrategies.MYBATIS3);
             return mapper.selectMany(statementProvider);
+        }
+    }
+
+    public long queryQueryHistoryCountBeyondOffset(long offset, String project) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);
+            SelectStatementProvider statementProvider = select(count(queryHistoryTable.id)) //
+                    .from(queryHistoryTable) //
+                    .where(queryHistoryTable.id, isGreaterThan(offset)) //
+                    .and(queryHistoryTable.projectName, isEqualTo(project)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            return mapper.selectAsLong(statementProvider);
+        }
+    }
+
+    public QueryStatistics queryRecentQueryCount(long startTime, long endTime, String project) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            QueryStatisticsMapper mapper = session.getMapper(QueryStatisticsMapper.class);
+            SelectStatementProvider statementProvider = queryCountByTimeProvider(startTime, endTime, project);
+            return mapper.selectOne(statementProvider);
         }
     }
 
@@ -489,7 +509,8 @@ public class JdbcQueryHistoryStore {
 
         if (StringUtils.isNotEmpty(request.getLatencyFrom()) && StringUtils.isNotEmpty(request.getLatencyTo())) {
             filterSql = filterSql
-                    .and(queryHistoryTable.duration, isGreaterThanOrEqualTo(Long.parseLong(request.getLatencyFrom()) * 1000L))
+                    .and(queryHistoryTable.duration,
+                            isGreaterThanOrEqualTo(Long.parseLong(request.getLatencyFrom()) * 1000L))
                     .and(queryHistoryTable.duration, isLessThan(Long.parseLong(request.getLatencyTo()) * 1000L))
                     .and(queryHistoryTable.queryStatus, isEqualTo("SUCCEEDED"));
         }
@@ -536,10 +557,18 @@ public class JdbcQueryHistoryStore {
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
+    private SelectStatementProvider queryCountByTimeProvider(long startTime, long endTime, String project) {
+        return select(count(queryHistoryTable.id).as(COUNT)) //
+                .from(queryHistoryTable) //
+                .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
+                .and(queryHistoryTable.queryTime, isLessThan(endTime)) //
+                .and(queryHistoryTable.projectName, isEqualTo(project)) //
+                .build().render(RenderingStrategies.MYBATIS3);
+    }
+
     private SelectStatementProvider queryCountByTimeProvider(long startTime, long endTime, String timeDimension,
             String project) {
-        switch (timeDimension) {
-        case MONTH:
+        if (timeDimension.equalsIgnoreCase(MONTH)) {
             return select(queryHistoryTable.queryFirstDayOfMonth.as("time"), count(queryHistoryTable.id).as(COUNT)) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
@@ -547,7 +576,7 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .groupBy(queryHistoryTable.queryFirstDayOfMonth) //
                     .build().render(RenderingStrategies.MYBATIS3);
-        case WEEK:
+        } else if (timeDimension.equalsIgnoreCase(WEEK)) {
             return select(queryHistoryTable.queryFirstDayOfWeek.as("time"), count(queryHistoryTable.id).as(COUNT)) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
@@ -555,7 +584,7 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .groupBy(queryHistoryTable.queryFirstDayOfWeek) //
                     .build().render(RenderingStrategies.MYBATIS3);
-        default:
+        } else if (timeDimension.equalsIgnoreCase(DAY)) {
             return select(queryHistoryTable.queryDay.as("time"), count(queryHistoryTable.id).as(COUNT)) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
@@ -563,13 +592,14 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .groupBy(queryHistoryTable.queryDay) //
                     .build().render(RenderingStrategies.MYBATIS3);
+        } else {
+            throw new IllegalStateException("Unsupported time window!");
         }
     }
 
     private SelectStatementProvider queryAvgDurationByTimeProvider(long startTime, long endTime, String timeDimension,
             String project) {
-        switch (timeDimension) {
-        case MONTH:
+        if (timeDimension.equalsIgnoreCase(MONTH)) {
             return select(queryHistoryTable.queryFirstDayOfMonth.as("time"), avg(queryHistoryTable.duration).as("mean")) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
@@ -577,7 +607,7 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .groupBy(queryHistoryTable.queryFirstDayOfMonth) //
                     .build().render(RenderingStrategies.MYBATIS3);
-        case WEEK:
+        } else if (timeDimension.equalsIgnoreCase(WEEK)) {
             return select(queryHistoryTable.queryFirstDayOfWeek.as("time"), avg(queryHistoryTable.duration).as("mean")) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
@@ -585,7 +615,7 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .groupBy(queryHistoryTable.queryFirstDayOfWeek) //
                     .build().render(RenderingStrategies.MYBATIS3);
-        default:
+        } else if (timeDimension.equalsIgnoreCase(DAY)) {
             return select(queryHistoryTable.queryDay.as("time"), avg(queryHistoryTable.duration).as("mean")) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
@@ -593,6 +623,8 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .groupBy(queryHistoryTable.queryDay) //
                     .build().render(RenderingStrategies.MYBATIS3);
+        } else {
+            throw new IllegalStateException("Unsupported time window!");
         }
     }
 

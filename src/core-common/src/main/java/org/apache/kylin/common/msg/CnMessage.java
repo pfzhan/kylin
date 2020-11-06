@@ -301,6 +301,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getPROJECT_ONGOING_OPTIMIZATION() {
+        return "当前有进行中的优化任务。请稍后再试。";
+    }
+
+    @Override
     public String getEMPTY_NEW_MODEL_NAME() {
         return "新模型名称不可为空";
     }

@@ -447,7 +447,7 @@ exports.default = {
     signIn: 'Kyligence 帐号 | 登录'
   },
   menu: {
-    dashboard: '仪表盘',
+    dashboard: '首页',
     studio: '建模中心',
     insight: '分析',
     monitor: '监控',

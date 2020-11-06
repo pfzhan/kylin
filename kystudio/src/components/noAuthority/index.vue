@@ -57,13 +57,13 @@ import { Component } from 'vue-property-decorator'
       noModalAuthorityText2: ' in {time} seconds.',
       is404Tip: 'Sorry, the page doesn‘t exist. Will automatically redirect to ',
       is404Tip1: ' in {time} seconds.',
-      dashboard: 'Dashboard'
+      dashboard: 'Homepage'
     },
     'zh-cn': {
       noAuthorityText: '抱歉，您无权访问该页面。{time} 秒后系统将跳转到',
       noModalAuthorityText1: '当前项目未开启模型推荐及优化。请在设置中开启智能推荐后再试。{time} 秒后系统将跳转到',
       is404Tip: '抱歉，您访问的页面不存在。{time} 秒后将自动跳转至',
-      dashboard: '仪表盘页面'
+      dashboard: '首页'
     }
   }
 })

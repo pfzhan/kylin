@@ -61,8 +61,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
@@ -76,9 +74,11 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import lombok.Getter;
 import lombok.Setter;
@@ -114,8 +114,6 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
-    public static final String MODEL_OPTIMIZE_RECOMMENDATION = "/recommendation";
-    public static final String MODEL_OPTIMIZE_RECOMMENDATION_V2 = "/recommendation_v2";
     public static final String EXECUTABLE_JOB = "/execute";
     public static final String HISTORY_SOURCE_USAGE = GLOBAL_PROJECT + "/history_source_usage";
 
@@ -125,6 +123,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String QUERY_HISTORY_ID_OFFSET = "/query_history_id_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
+    public static final String ASYNC_TASK = "/async_task";
     public static final String COMPRESSED_FILE = "/metadata.zip";
 
     private static final String KYLIN_PROPS = "kylin.properties";
@@ -356,7 +355,8 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
      */
     public abstract RawResource checkAndPutResource(String resPath, ByteSource byteSource, long oldMvcc);
 
-    public abstract RawResource checkAndPutResource(String resPath, ByteSource byteSource,  long timeStamp, long oldMvcc);
+    public abstract RawResource checkAndPutResource(String resPath, ByteSource byteSource, long timeStamp,
+            long oldMvcc);
 
     /**
      * delete a resource, does nothing on a folder

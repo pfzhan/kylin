@@ -81,6 +81,10 @@ public interface QueryHistoryMapper extends IKeep {
     @ResultMap("QueryHistoryResult")
     QueryHistory selectOne(SelectStatementProvider selectStatement);
 
+
+    @SelectProvider(type = SqlProviderAdapter.class, method = "select")
+    long selectAsLong(SelectStatementProvider selectStatement);
+
     @UpdateProvider(type = SqlProviderAdapter.class, method = "update")
     int update(UpdateStatementProvider updateStatement);
 

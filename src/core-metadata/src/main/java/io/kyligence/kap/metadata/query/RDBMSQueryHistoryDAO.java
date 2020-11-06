@@ -171,6 +171,14 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         return jdbcQueryHisStore.queryCountByModel(startTime, endTime, project);
     }
 
+    public QueryStatistics getQueryCountByRange(long startTime, long endTime, String project) {
+        return jdbcQueryHisStore.queryRecentQueryCount(startTime, endTime, project);
+    }
+
+    public long getQueryHistoryCountBeyondOffset(long offset, String project) {
+        return jdbcQueryHisStore.queryQueryHistoryCountBeyondOffset(offset, project);
+    }
+
     public List<QueryStatistics> getQueryCountByTime(long startTime, long endTime, String timeDimension,
             String project) {
         return jdbcQueryHisStore.queryCountByTime(startTime, endTime, timeDimension, project);
@@ -187,10 +195,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
 
     public static void fillZeroForQueryStatistics(List<QueryStatistics> queryStatistics, long startTime, long endTime,
             String dimension) {
-        if (!dimension.equals(DAY) && !dimension.equals(WEEK)) {
+        if (!dimension.equalsIgnoreCase(DAY) && !dimension.equalsIgnoreCase(WEEK)) {
             return;
         }
-        if (dimension.equals(WEEK)) {
+        if (dimension.equalsIgnoreCase(WEEK)) {
             startTime = TimeUtil.getWeekStart(startTime);
             endTime = TimeUtil.getWeekStart(endTime);
         }
@@ -208,9 +216,9 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
                 zeroStatistics.setTime(startInstant);
                 queryStatistics.add(zeroStatistics);
             }
-            if (dimension.equals(DAY)) {
+            if (dimension.equalsIgnoreCase(DAY)) {
                 startInstant = startInstant.plus(Duration.ofDays(1));
-            } else if (dimension.equals(WEEK)) {
+            } else if (dimension.equalsIgnoreCase(WEEK)) {
                 startInstant = startInstant.plus(Duration.ofDays(7));
             }
         }

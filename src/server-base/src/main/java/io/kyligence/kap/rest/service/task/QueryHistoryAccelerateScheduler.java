@@ -47,7 +47,10 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
 import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
+import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -60,7 +63,6 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.RawRecService;
 import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -72,7 +74,7 @@ public class QueryHistoryAccelerateScheduler {
     @VisibleForTesting
     RDBMSQueryHistoryDAO queryHistoryDAO;
     AccelerateRuleUtil accelerateRuleUtil;
-    RawRecService rawRecommendation;
+    RawRecService rawRecService;
     @Getter
     private final String project;
     private long epochId;
@@ -83,7 +85,7 @@ public class QueryHistoryAccelerateScheduler {
         this.project = project;
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
-        rawRecommendation = new RawRecService();
+        rawRecService = new RawRecService();
         log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
@@ -102,15 +104,15 @@ public class QueryHistoryAccelerateScheduler {
 
         queryHistoryAccelerateScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("QueryHistoryAccelerateWorker(project:" + project + ")"));
-        queryHistoryAccelerateScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(), 0,
+        queryHistoryAccelerateScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(false), 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
-
         hasStarted = true;
+        AsyncTaskManager.resetAccelerationTagMap(project);
         log.info("Query history accelerate scheduler is started for [{}] ", project);
     }
 
-    public Future scheduleImmediately() {
-        return queryHistoryAccelerateScheduler.schedule(new QueryHistoryAccelerateRunner(), 10L, TimeUnit.SECONDS);
+    public Future<?> scheduleImmediately(QueryHistoryAccelerateRunner runner) {
+        return queryHistoryAccelerateScheduler.schedule(runner, 10L, TimeUnit.SECONDS);
     }
 
     public boolean hasStarted() {
@@ -132,12 +134,23 @@ public class QueryHistoryAccelerateScheduler {
         }
     }
 
+    public boolean isInterruptByUser() {
+        AsyncTaskManager instance = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        AbstractAsyncTask task = instance.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
+        return ((AsyncAccelerationTask) task).isAlreadyRunning();
+    }
+
     private static synchronized QueryHistoryAccelerateScheduler getInstanceByProject(String project) {
         return INSTANCE_MAP.get(project);
     }
 
-    @NoArgsConstructor
     public class QueryHistoryAccelerateRunner implements Runnable {
+        @Getter
+        private final boolean isManual;
+
+        public QueryHistoryAccelerateRunner(boolean isManual) {
+            this.isManual = isManual;
+        }
 
         @Override
         public void run() {
@@ -155,13 +168,19 @@ public class QueryHistoryAccelerateScheduler {
                         .getInstance(KylinConfig.getInstanceFromEnv(), project);
 
                 int accelerateBatchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
-                int accelerateMaxSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
+                int accelerateMaxSize = isManual() //
+                        ? KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize()
+                        : KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
                 int acceleratedCounts = 0;
 
                 while (true) {
                     List<QueryHistory> queryHistories = queryHistoryDAO.queryQueryHistoriesByIdOffset(
                             qhIdOffsetManager.get().getQueryHistoryIdOffset(), accelerateBatchSize, project);
                     acceleratedCounts = acceleratedCounts + queryHistories.size();
+                    if (!isManual() && QueryHistoryAccelerateScheduler.getInstance(project).isInterruptByUser()) {
+                        log.info("QueryHistory acceleration process of project({}) Interrupt by user", project);
+                        break;
+                    }
                     accelerateAndUpdateMetadata(queryHistories);
                     log.debug("handled 1000 query history, query history id offset is updated to: {}",
                             qhIdOffsetManager.get().getQueryHistoryIdOffset());
@@ -170,7 +189,7 @@ public class QueryHistoryAccelerateScheduler {
                     }
                 }
             } catch (Exception e) {
-                log.warn("Query History for project <{}> scan failed", project, e);
+                log.warn("QueryHistory acceleration process failed of project({})", project, e);
             }
         }
 
@@ -202,7 +221,7 @@ public class QueryHistoryAccelerateScheduler {
             List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
                     idToQHInfoList);
             queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
-            rawRecommendation.generateRawRecommendations(project, matchedCandidate);
+            rawRecService.generateRawRecommendations(project, matchedCandidate, isManual());
 
             // update metadata
             updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId);

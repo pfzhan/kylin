@@ -405,6 +405,18 @@ public class JdbcRawRecStore {
         }
     }
 
+    public int getRecItemCountByProject(String project, RawRecItem.RawRecType type) {
+        SelectStatementProvider statementProvider = select(count(table.id)) //
+                .from(table) //
+                .where(table.project, isEqualTo(project)) //
+                .and(table.type, isEqualTo(type)) //
+                .build().render(RenderingStrategies.MYBATIS3);
+        try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            return mapper.selectAsInt(statementProvider);
+        }
+    }
+
     public void updateAllCost(String project) {
         final int batchToUpdate = 1000;
         long currentTime = System.currentTimeMillis();

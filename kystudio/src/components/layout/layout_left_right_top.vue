@@ -74,6 +74,34 @@
           </template>
 
           <ul class="top-ul ksd-fright">
+            <li v-if="currentSelectedProject">
+              <div class="quota-top-bar">
+                <el-popover ref="quotaPopover" width="290" popper-class="quota-popover" v-model="showQuota">
+                  <div>
+                    <i class="el-icon-ksd-setting" v-if="dashboardActions.includes('viewSetting')" @click="gotoSetting"></i>
+                    <p class="ksd-fs-14">
+                      <span>{{$t('useageMana')}}: </span><span  v-if="quotaInfo.storage_quota_size !== -1" :class="['quota-status', getQuotaColor]">
+                        {{useageRatio*100 | fixed(2)}}%({{quotaInfo.total_storage_size | dataSize}}/{{quotaInfo.storage_quota_size | dataSize}})
+                      </span><span v-else>--</span>
+                    </p>
+                    <p class="ksd-fs-14 ksd-mt-5">
+                      <span>{{$t('trash')}}: </span><span v-if="quotaInfo.garbage_storage_size !== -1"><span>
+                        {{quotaInfo.garbage_storage_size | dataSize}}
+                        </span><common-tip placement="right" :content="$t('clear')" v-if="$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
+                        <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
+                        :class="{'is_no_quota': useageRatio >= 0.9, 'is-disabled': !quotaInfo.garbage_storage_size || quotaInfo.garbage_storage_size === -1}"
+                      @click="clearStorage"></i>
+                      </common-tip></span>
+                      <span v-else>--</span>
+                    </p>
+                  </div>
+                </el-popover>
+                <p class="quota-info" v-popover:quotaPopover @click="showQuota = !showQuota">
+                  <span class="quota-title">{{$t('storageQuota')}}</span>
+                  <span :class="['flag', getQuotaColor]"></span>
+                </p>
+              </div>
+            </li>
             <li>
               <capacity/>
             </li>
@@ -183,7 +211,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
-import { cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
+import { cacheSessionStorage, cacheLocalStorage, delayMs, handleSuccessAsync, handleSuccess } from '../../util/index'
 import { permissions, menusData, speedInfoTimer, pageRefTags } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
@@ -213,7 +241,9 @@ let MessageBox = ElementUI.MessageBox
       getAboutKap: 'GET_ABOUTKAP',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
-      getSpeedInfo: 'GET_SPEED_INFO'
+      getSpeedInfo: 'GET_SPEED_INFO',
+      getQuotaInfo: 'GET_QUOTA_INFO',
+      clearTrash: 'CLEAR_TRASH'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -259,7 +289,8 @@ let MessageBox = ElementUI.MessageBox
       'availableMenus',
       'isAutoProject',
       'isGuideMode',
-      'isOnlyQueryNode'
+      'isOnlyQueryNode',
+      'dashboardActions'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -297,6 +328,10 @@ let MessageBox = ElementUI.MessageBox
   },
   locales: {
     'en': {
+      storageQuota: 'Storage Quota: ',
+      useageMana: 'Used Storage',
+      trash: 'Low Usage Storage',
+      clear: 'Clear',
       resetPassword: 'Reset Password',
       confirmLoginOut: 'Are you sure to exit?',
       validPeriod: 'Valid Period: ',
@@ -320,9 +355,14 @@ let MessageBox = ElementUI.MessageBox
       disableAddProject: 'Can not create project in edit mode',
       systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
       onlyQueryNode: 'There\'s no active job node now. Metadata related operations are temporarily unavailable.',
-      viewDetails: 'View Details'
+      viewDetails: 'View Details',
+      quotaSetting: 'Storage Setting'
     },
     'zh-cn': {
+      storageQuota: '存储配额：',
+      useageMana: '已使用',
+      trash: '低效存储',
+      clear: '清除',
       resetPassword: '重置密码',
       confirmLoginOut: '确认退出吗？',
       validPeriod: '使用期限: ',
@@ -346,7 +386,8 @@ let MessageBox = ElementUI.MessageBox
       disableAddProject: '编辑模式下不可新建项目',
       systemUprade: '系统已进入维护模式，元数据相关操作暂不可用。',
       onlyQueryNode: '系统中暂无活跃的任务节点，元数据相关操作暂不可用。',
-      viewDetails: '查看详情'
+      viewDetails: '查看详情',
+      quotaSetting: '存储配额设置'
     }
   }
 })
@@ -384,6 +425,48 @@ export default class LayoutLeftRightTop extends Vue {
   showDiagnostic = false
   showChangePassword = false
   globalAlterTips = {}
+  quotaInfo = {
+    storage_quota_size: -1,
+    total_storage_size: -1,
+    garbage_storage_size: -1
+  }
+  useageRatio = 0
+  showQuota = false
+
+  gotoSetting () {
+    this.showQuota = false
+    this.$router.push('/setting')
+  }
+
+  async loadQuotaInfo () {
+    const res = await this.getQuotaInfo({project: this.currentSelectedProject})
+    const resData = await handleSuccessAsync(res)
+    this.quotaInfo = resData
+    this.useageRatio = (resData.total_storage_size / resData.storage_quota_size).toFixed(4)
+  }
+
+  get getQuotaColor () {
+    if (+this.useageRatio >= 1) {
+      return 'is-danger'
+    } else if (+this.useageRatio >= 0.8 && +this.useageRatio < 1) {
+      return 'is-warning'
+    } else {
+      return 'is-success'
+    }
+  }
+
+  clearStorage () {
+    if (!this.currentSelectedProject || !this.quotaInfo.garbage_storage_size || this.quotaInfo.garbage_storage_size === -1) {
+      return
+    }
+    this.clearTrash({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, () => {
+        this.loadQuotaInfo()
+      })
+    }, (res) => {
+      handleError(res)
+    })
+  }
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -543,6 +626,7 @@ export default class LayoutLeftRightTop extends Vue {
     }).catch((res) => {
       handleError(res)
     })
+    this.loadQuotaInfo()
   }
   changeRouteEvent (from) {
     if (this.showRevertPasswordDialog === 'true' && 'defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
@@ -903,6 +987,70 @@ export default class LayoutLeftRightTop extends Vue {
 
 <style lang="less">
   @import '../../assets/styles/variables.less';
+  .quota-popover {
+    position: relative;
+    .el-icon-ksd-setting {
+      position: absolute;
+      right: 10px;
+      &:hover {
+        color: @base-color;
+      }
+    }
+    .quota-status {
+      &.is-danger {
+        color: @error-color-1;
+      }
+      &.is-warning {
+        color: @warning-color-1;
+      }
+      &.is-success {
+        color: @text-normal-color;
+      }
+    }
+  }
+  .quota-top-bar {
+    position: relative;
+    min-width: 75px;
+    .quota-info {
+      font-size: 12px;
+      .quota-title {
+        font-weight: 500;
+        &:hover {
+          color: @base-color;
+        }
+      }
+      .flag {
+        width: 10px;
+        height: 10px;
+        // position: absolute;
+        display: inline-block;
+        border-radius: 100%;
+        &.is-danger {
+          background-color: @error-color-1;
+        }
+        &.is-warning {
+          background-color: @warning-color-1;
+        }
+        &.is-success {
+          background-color: @normal-color-1;
+        }
+      }
+    }
+    .clear-btn {
+      font-size: 16px;
+      color: @base-color;
+      &.is_no_quota {
+        font-size: 18px;
+      }
+      &:hover {
+        color: @base-color-2;
+      }
+      &.is-disabled {
+        color: @text-disabled-color;
+        cursor: not-allowed;
+      }
+    }
+  }
   #favo-menu-item {
     position:absolute;
     width:4px;
@@ -917,6 +1065,7 @@ export default class LayoutLeftRightTop extends Vue {
     position: fixed;
     top: 53px;
     width: 100%;
+    z-index: 1;
   }
   .speed_dialog {
     .animateImg {

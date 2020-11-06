@@ -139,6 +139,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @JsonProperty("layout_bucket_num")
     private Map<Long, Integer> layoutBucketNumMapping = Maps.newHashMap();
 
+    @Getter
+    @Setter
+    @JsonProperty("approved_additional_recs")
+    private int approvedAdditionalRecs;
+
+    @Getter
+    @Setter
+    @JsonProperty("approved_removal_recs")
+    private int approvedRemovalRecs;
+
     // computed fields below
     @Setter
     private String project;
@@ -184,7 +194,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return Lists.newArrayList(dataModelDesc != null ? dataModelDesc
                 : new MissingRootPersistentEntity(NDataModel.concatResourcePath(getId(), project)));
     }
-
 
     private void initConfig4IndexPlan(KylinConfig config) {
 
@@ -814,6 +823,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         Map<IndexEntity.IndexIdentifier, IndexEntity> allIndexesMap;
         AtomicLong nextAggregationIndexId;
         AtomicLong nextTableIndexId;
+        int approvedAdditionalRecs;
+        int approvedRemovalRecs;
 
         private IndexPlanUpdateHandler() {
             indexPlan = IndexPlan.this.isCachedAndShared ? JsonUtil.deepCopyQuietly(IndexPlan.this, IndexPlan.class)
@@ -857,6 +868,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                 indexEntity.setNextLayoutOffset(indexEntity.getNextLayoutOffset() + 1);
                 indexEntity.getLayouts().add(layout);
             }
+            approvedAdditionalRecs += 1;
             return true;
         }
 
@@ -880,6 +892,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                                     .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
                                             .remove(layoutInIndexPlan));
                         }
+                        this.approvedRemovalRecs += 1;
                         return true;
                     }
                     return false;
@@ -889,6 +902,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                         .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
                         .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
                                 .remove(layoutInIndexPlan));
+                this.approvedRemovalRecs += 1;
                 return true;
             } else {
                 return false;
@@ -898,6 +912,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         public IndexPlan complete() {
             indexPlan.setIndexes(whiteIndexesMap.values().stream().sorted(Comparator.comparingLong(IndexEntity::getId))
                     .collect(Collectors.toList()));
+            indexPlan.setApprovedAdditionalRecs(indexPlan.getApprovedAdditionalRecs() + approvedAdditionalRecs);
+            indexPlan.setApprovedRemovalRecs(indexPlan.getApprovedRemovalRecs() + approvedRemovalRecs);
             return indexPlan;
         }
     }

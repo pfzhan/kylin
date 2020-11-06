@@ -80,11 +80,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.acl.AclTCRDigest;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.tool.bisync.BISyncModel;
-import io.kyligence.kap.tool.bisync.BISyncTool;
-import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -161,6 +156,8 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
+import io.kyligence.kap.metadata.acl.AclTCRDigest;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -178,6 +175,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
@@ -238,6 +236,9 @@ import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.tool.bisync.BISyncModel;
+import io.kyligence.kap.tool.bisync.BISyncTool;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -248,6 +249,7 @@ public class ModelService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
     private static final String LAST_MODIFY = "last_modify";
+    private static final String REC_COUNT = "recommendations_count";
 
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
@@ -566,6 +568,7 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
+        AsyncTaskManager.cleanAccelerationTagByUser(projectName, aclEvaluate.getCurrentUserName());
         ProjectInstance prj = getProjectManager().getProject(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
@@ -610,9 +613,14 @@ public class ModelService extends BasicService {
         });
         if ("expansionrate".equalsIgnoreCase(sortBy)) {
             return sortExpansionRate(reverse, filterModels);
+        } else if (getProjectManager().getProject(projectName).isSemiAutoMode()) {
+            Comparator<NDataModelResponse> comparator = propertyComparator(
+                    StringUtils.isEmpty(sortBy) ? ModelService.REC_COUNT : sortBy, !reverse);
+            filterModels.sort(comparator);
+            return filterModels;
         } else {
             Comparator<NDataModelResponse> comparator = propertyComparator(
-                    StringUtils.isEmpty(sortBy) ? LAST_MODIFY : sortBy, !reverse);
+                    StringUtils.isEmpty(sortBy) ? ModelService.LAST_MODIFY : sortBy, !reverse);
             filterModels.sort(comparator);
             return filterModels;
         }
@@ -919,6 +927,7 @@ public class ModelService extends BasicService {
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
         aclEvaluate.checkProjectReadPermission(project);
+        AsyncTaskManager.cleanAccelerationTagByUser(project, aclEvaluate.getCurrentUserName());
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         val dataflowManager = getDataflowManager(project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
@@ -1475,6 +1484,7 @@ public class ModelService extends BasicService {
                         existingIndexMap.putIfAbsent(indexIdentifier, index);
                         copyForWrite.getIndexes().add(index);
                     }
+                    copyForWrite.setApprovedAdditionalRecs(copyForWrite.getApprovedAdditionalRecs() + 1);
                 }
             });
         }
@@ -3031,7 +3041,8 @@ public class ModelService extends BasicService {
         String jobId = getSourceUsageManager().licenseCheckWrap(project,
                 () -> getJobManager(project).addFullIndexJob(new JobParam(modelId, getUsername())));
 
-        return new BuildIndexResponse(StringUtils.isBlank(jobId) ? BuildIndexResponse.BuildIndexType.NO_LAYOUT
+        return new BuildIndexResponse(StringUtils.isBlank(jobId) //
+                ? BuildIndexResponse.BuildIndexType.NO_LAYOUT //
                 : BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }
 

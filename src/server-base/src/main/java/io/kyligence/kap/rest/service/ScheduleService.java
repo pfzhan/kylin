@@ -99,7 +99,7 @@ public class ScheduleService {
             Thread.currentThread().setName("UpdateTopNRecommendationsWorker");
             log.info("Routine task to update cost and topN recommendations");
 
-            rawRecService.updateCostsAndTopNCandidates();
+            RawRecService.updateCostsAndTopNCandidates();
 
             log.info("Updating cost and topN recommendations finished.");
         } finally {

@@ -9,7 +9,7 @@ import login from 'components/user/login'
 import Insight from 'components/query/insight'
 import queryHistory from 'components/query/query_history'
 // import Acceleration from 'components/studio/Acceleration/acceleration'  // 加速引擎界面整体隐藏
-import dashboard from 'components/dashboard'
+import dashboard from 'components/dashboard/homepage'
 import jobs from 'components/monitor/jobs'
 import { bindRouterGuard } from './routerGuard.js'
 

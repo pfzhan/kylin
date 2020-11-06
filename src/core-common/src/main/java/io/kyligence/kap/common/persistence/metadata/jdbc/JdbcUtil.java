@@ -74,11 +74,19 @@ public class JdbcUtil implements IKeep {
     }
 
     public static boolean isTableExists(Connection conn, String table) throws SQLException {
+        return isAnyTableExists(conn, table, table.toUpperCase());
+    }
+
+    private static boolean isAnyTableExists(Connection conn, String... tables) throws SQLException {
         try {
-            val resultSet = conn.getMetaData().getTables(null, null, table, null);
-            return resultSet.next();
+            for (String table : tables) {
+                val resultSet = conn.getMetaData().getTables(null, null, table, null);
+                if (resultSet.next()) {
+                    return true;
+                }
+            }
         } catch (Exception e) {
-            logger.error("Fail to know if table {} exists", table, e);
+            logger.error("Fail to know if table {} exists", tables, e);
         } finally {
             if (!conn.isClosed())
                 conn.close();

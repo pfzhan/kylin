@@ -42,37 +42,17 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
-import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
-import io.kyligence.kap.rest.request.JdbcRequest;
-import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
-import io.kyligence.kap.rest.request.OwnerChangeRequest;
-import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
-import io.kyligence.kap.rest.request.PushDownConfigRequest;
-import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
-import io.kyligence.kap.rest.request.SegmentConfigRequest;
-import io.kyligence.kap.rest.request.ShardNumConfigRequest;
-import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.source.file.S3KeyCredential;
-import io.kyligence.kap.source.file.S3KeyCredentialOperator;
-import lombok.val;
-import lombok.var;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -107,16 +87,39 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
+import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
+import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.source.file.S3KeyCredential;
+import io.kyligence.kap.source.file.S3KeyCredentialOperator;
+import lombok.val;
+import lombok.var;
 
 public class ProjectServiceTest extends ServiceTestBase {
     private static final String PROJECT = "default";
@@ -129,13 +132,13 @@ public class ProjectServiceTest extends ServiceTestBase {
     private final ProjectService projectService = Mockito.spy(ProjectService.class);
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
-    private AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
+    private final AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
 
     @Mock
-    private AccessService accessService = Mockito.spy(AccessService.class);
+    private final AccessService accessService = Mockito.spy(AccessService.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -162,7 +165,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testCreateProject_AutoMaintain_Pass() throws Exception {
+    public void testCreateProject_AutoMaintain_Pass() {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
@@ -256,7 +259,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetProjectsWrapWIthUserPermission() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         Mockito.doReturn(true).when(accessService).isGlobalAdmin(Mockito.anyString());
-        List<UserProjectPermissionResponse> projectInstances = projectService.getProjectsFilterByExactMatchAndPermissionWrapperUserPermission("default", true, AclPermissionEnum.READ);
+        List<UserProjectPermissionResponse> projectInstances = projectService
+                .getProjectsFilterByExactMatchAndPermissionWrapperUserPermission("default", true,
+                        AclPermissionEnum.READ);
         Assert.assertEquals(1, projectInstances.size());
         Assert.assertEquals("ADMINISTRATION", projectInstances.get(0).getPermission());
     }
@@ -481,7 +486,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         segmentConfigRequest.getRetentionRange().setRetentionRangeType(null);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention.");
+        thrown.expectMessage(
+                "No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention.");
         projectService.updateSegmentConfig(project, segmentConfigRequest);
     }
 
@@ -549,7 +555,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         pushDownProjectConfigRequest.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         pushDownProjectConfigRequest.setConverterClassNames("org.apache.kylin.query.util.PowerBIConverter");
         projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
-        String[] converterClassNames = new String[]{"org.apache.kylin.query.util.PowerBIConverter"};
+        String[] converterClassNames = new String[] { "org.apache.kylin.query.util.PowerBIConverter" };
         // response
         response = projectService.getProjectConfig(project);
         Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", response.getRunnerClassName());
@@ -870,6 +876,43 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
         Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
+    }
+
+    @Test
+    public void testGetProjectStatistics() {
+        ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics("gc_test");
+        Assert.assertEquals(1, projectStatistics.getDatabaseSize());
+        Assert.assertEquals(1, projectStatistics.getTableSize());
+        Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
+        Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
+        Assert.assertEquals(0, projectStatistics.getAdditionalRecPatternCount());
+        Assert.assertEquals(0, projectStatistics.getRemovalRecPatternCount());
+        Assert.assertEquals(0, projectStatistics.getRecPatternCount());
+        Assert.assertEquals(3, projectStatistics.getEffectiveRuleSize());
+        Assert.assertEquals(0, projectStatistics.getApprovedRecCount());
+        Assert.assertEquals(0, projectStatistics.getApprovedAdditionalRecCount());
+        Assert.assertEquals(0, projectStatistics.getApprovedRemovalRecCount());
+        Assert.assertEquals(2, projectStatistics.getModelSize());
+        Assert.assertEquals(0, projectStatistics.getAcceptableRecSize());
+        Assert.assertFalse(projectStatistics.isRefreshed());
+        Assert.assertEquals(20, projectStatistics.getMaxRecShowSize());
+
+        ProjectStatisticsResponse statisticsOfProjectDefault = projectService.getProjectStatistics(PROJECT);
+        Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
+        Assert.assertEquals(18, statisticsOfProjectDefault.getTableSize());
+        Assert.assertEquals(0, statisticsOfProjectDefault.getLastWeekQueryCount());
+        Assert.assertEquals(0, statisticsOfProjectDefault.getUnhandledQueryCount());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getAdditionalRecPatternCount());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getRemovalRecPatternCount());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getRecPatternCount());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getEffectiveRuleSize());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
+        Assert.assertEquals(6, statisticsOfProjectDefault.getModelSize());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
+        Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
+        Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());
     }
 
     @Test

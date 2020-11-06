@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_TYPE_MISMATCH;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.ONGOING_OPTIMIZATION;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
@@ -45,10 +46,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
-import com.google.common.base.Strings;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.rest.request.JdbcRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -60,6 +57,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
@@ -80,6 +78,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -88,16 +87,28 @@ import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
+import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
+import io.kyligence.kap.rest.request.JdbcRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -109,6 +120,7 @@ import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
+import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
@@ -183,24 +195,24 @@ public class ProjectService extends BasicService {
         return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionEnum.READ);
     }
 
-    private Predicate<ProjectInstance> getRequestFilter(final String projectName,
-                                                        boolean exactMatch, AclPermissionEnum permission) {
+    private Predicate<ProjectInstance> getRequestFilter(final String projectName, boolean exactMatch,
+            AclPermissionEnum permission) {
         Predicate<ProjectInstance> filter;
         switch (permission) {
-            case READ:
-                filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
-                break;
-            case OPERATION:
-                filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
-                break;
-            case MANAGEMENT:
-                filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
-                break;
-            case ADMINISTRATION:
-                filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
-                break;
-            default:
-                throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
+        case READ:
+            filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
+            break;
+        case OPERATION:
+            filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
+            break;
+        case MANAGEMENT:
+            filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
+            break;
+        case ADMINISTRATION:
+            filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
+            break;
+        default:
+            throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
         if (StringUtils.isNotBlank(projectName)) {
             Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch
@@ -218,13 +230,14 @@ public class ProjectService extends BasicService {
         return getProjectsWithFilter(filter);
     }
 
-    public List<UserProjectPermissionResponse> getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(final String projectName,
-                                                                                                               boolean exactMatch, AclPermissionEnum permission) {
+    public List<UserProjectPermissionResponse> getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(
+            final String projectName, boolean exactMatch, AclPermissionEnum permission) {
         Predicate<ProjectInstance> filter = getRequestFilter(projectName, exactMatch, permission);
         return getProjectsWithFilter(filter).stream().map(projectInstance -> {
             String userPermission = null;
             try {
-                userPermission = AclPermissionEnum.convertToAclPermission(accessService.getCurrentUserPermissionInProject(projectInstance.getName()));
+                userPermission = AclPermissionEnum.convertToAclPermission(
+                        accessService.getCurrentUserPermissionInProject(projectInstance.getName()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -257,6 +270,132 @@ public class ProjectService extends BasicService {
         thresholdResponse.setThreshold(config.getFavoriteQueryAccelerateThreshold());
         thresholdResponse.setTipsEnabled(config.getFavoriteQueryAccelerateTipsEnabled());
         return thresholdResponse;
+    }
+
+    public ProjectStatisticsResponse getProjectStatistics(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+
+        ProjectStatisticsResponse response = new ProjectStatisticsResponse();
+        int[] datasourceStatistics = getDatasourceStatistics(project);
+        response.setDatabaseSize(datasourceStatistics[0]);
+        response.setTableSize(datasourceStatistics[1]);
+
+        int[] recPatternCount = getRecPatternCount(project);
+        response.setAdditionalRecPatternCount(recPatternCount[0]);
+        response.setRemovalRecPatternCount(recPatternCount[1]);
+        response.setRecPatternCount(recPatternCount[2]);
+
+        response.setEffectiveRuleSize(getFavoriteRuleSize(project));
+
+        int[] approvedRecsCount = getApprovedRecsCount(project);
+        response.setApprovedAdditionalRecCount(approvedRecsCount[0]);
+        response.setApprovedRemovalRecCount(approvedRecsCount[1]);
+        response.setApprovedRecCount(approvedRecsCount[2]);
+
+        Map<String, Set<Integer>> modelToRecMap = getModelToRecMap(project);
+        response.setModelSize(modelToRecMap.size());
+        if (getProjectManager().getProject(project).isSemiAutoMode()) {
+            Set<Integer> allRecSet = Sets.newHashSet();
+            modelToRecMap.values().forEach(allRecSet::addAll);
+            response.setAcceptableRecSize(allRecSet.size());
+            response.setMaxRecShowSize(getRecommendationSizeToShow(project));
+        } else {
+            response.setAcceptableRecSize(-1);
+            response.setMaxRecShowSize(-1);
+        }
+
+        AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) AsyncTaskManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
+        Map<String, Boolean> userRefreshTag = asyncAcceleration.getUserRefreshedTagMap();
+        response.setRefreshed(userRefreshTag.getOrDefault(aclEvaluate.getCurrentUserName(), false));
+
+        return response;
+    }
+
+    private int getFavoriteRuleSize(String project) {
+        if (!getProjectManager().getProject(project).isSemiAutoMode()) {
+            return -1;
+        }
+        int effectiveRuleSize = 1;
+        Map<String, Object> favoriteRules = getFavoriteRules(project);
+        Object durationEnable = favoriteRules.get("duration_enable");
+        if (durationEnable instanceof Boolean && Boolean.TRUE.equals(durationEnable)) {
+            effectiveRuleSize++;
+        }
+        Object submitterEnable = favoriteRules.get("submitter_enable");
+        if (submitterEnable instanceof Boolean && Boolean.TRUE.equals(submitterEnable)) {
+            if (favoriteRules.containsKey("users")) {
+                effectiveRuleSize++;
+            }
+            if (favoriteRules.containsKey("user_groups")) {
+                effectiveRuleSize++;
+            }
+        }
+
+        return effectiveRuleSize;
+    }
+
+    private int[] getRecPatternCount(String project) {
+        if (!getProjectManager().getProject(project).isSemiAutoMode()) {
+            return new int[] { -1, -1, -1 };
+        }
+        int[] array = new int[3];
+        RawRecManager recManager = RawRecManager.getInstance(project);
+        Map<RawRecItem.RawRecType, Integer> recPatternCountMap = recManager.getCandidatesByProject(project);
+        array[0] = recPatternCountMap.get(RawRecItem.RawRecType.ADDITIONAL_LAYOUT);
+        array[1] = recPatternCountMap.get(RawRecItem.RawRecType.REMOVAL_LAYOUT);
+        array[2] = array[0] + array[1];
+        return array;
+    }
+
+    private int[] getDatasourceStatistics(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+        int[] arr = new int[2];
+        NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<TableDesc> tables = tblMgr.listAllTables();
+        Set<String> databaseSet = Sets.newHashSet();
+        tables.forEach(tableDesc -> databaseSet.add(tableDesc.getDatabase()));
+        arr[0] = databaseSet.size();
+        arr[1] = tables.size();
+        return arr;
+    }
+
+    private int[] getApprovedRecsCount(String project) {
+        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        if (!projectInstance.isSemiAutoMode()) {
+            return new int[] { -1, -1, -1 };
+        }
+
+        int[] allApprovedRecs = new int[3];
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        for (IndexPlan indexPlan : indexPlanManager.listAllIndexPlans()) {
+            if (!indexPlan.isBroken()) {
+                allApprovedRecs[0] += indexPlan.getApprovedAdditionalRecs();
+                allApprovedRecs[1] += indexPlan.getApprovedRemovalRecs();
+            }
+        }
+        allApprovedRecs[2] = allApprovedRecs[0] + allApprovedRecs[1];
+        return allApprovedRecs;
+    }
+
+    public Map<String, Set<Integer>> getModelToRecMap(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+
+        List<NDataModel> dataModels = getDataModelManager(project).listAllModels();
+        Map<String, Set<Integer>> map = Maps.newHashMap();
+        dataModels.forEach(model -> map.putIfAbsent(model.getId(), Sets.newHashSet()));
+        if (getProjectManager().getProject(project).isSemiAutoMode()) {
+            OptRecManagerV2 optRecManager = OptRecManagerV2.getInstance(project);
+            for (NDataModel model : dataModels) {
+                OptRecV2 optRecV2 = optRecManager.loadOptRecV2(model.getUuid());
+                map.get(model.getId()).addAll(optRecV2.getAdditionalLayoutRefs().keySet());
+                map.get(model.getId()).addAll(optRecV2.getRemovalLayoutRefs().keySet());
+            }
+        }
+        return map;
     }
 
     public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
@@ -333,10 +472,68 @@ public class ProjectService extends BasicService {
         asyncTaskService.cleanupStorage();
     }
 
+    private int getRecommendationSizeToShow(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+        return RawRecService.recommendationSize(project);
+    }
+
+    public Set<Integer> accelerateManually(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+        Map<String, Set<Integer>> modelToRecMap = getModelToRecMap(project);
+        AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) AsyncTaskManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
+        if (asyncAcceleration.isAlreadyRunning()) {
+            throw new KylinException(ONGOING_OPTIMIZATION, MsgPicker.getMsg().getPROJECT_ONGOING_OPTIMIZATION());
+        }
+
+        QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
+        if (scheduler.hasStarted()) {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                asyncAcceleration.setAlreadyRunning(true);
+                asyncAcceleration.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), false);
+                AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+                return null;
+            }, project);
+
+            val accelerateRunner = scheduler.new QueryHistoryAccelerateRunner(true);
+            Future<?> future = scheduler.scheduleImmediately(accelerateRunner);
+            try {
+                future.get();
+                RawRecService.updateCostsAndTopNCandidates();
+            } catch (Throwable e) {
+                logger.error("Accelerate failed", e);
+            }
+        }
+
+        Map<String, Set<Integer>> deltaRecsMap = getDeltaRecs(modelToRecMap, project);
+        Set<Integer> deltaRecSet = Sets.newHashSet();
+        deltaRecsMap.forEach((k, deltaRecs) -> deltaRecSet.addAll(deltaRecs));
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            asyncAcceleration.setAlreadyRunning(false);
+            asyncAcceleration.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), !deltaRecSet.isEmpty());
+            AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+            return null;
+        }, project);
+        return deltaRecSet;
+    }
+
+    private Map<String, Set<Integer>> getDeltaRecs(Map<String, Set<Integer>> modelToRecMap, String project) {
+        Map<String, Set<Integer>> updatedModelToRecMap = getModelToRecMap(project);
+        modelToRecMap.forEach((modelId, recSet) -> {
+            if (updatedModelToRecMap.containsKey(modelId)) {
+                updatedModelToRecMap.get(modelId).removeAll(recSet);
+            }
+        });
+        updatedModelToRecMap.entrySet().removeIf(pair -> pair.getValue().isEmpty());
+        return updatedModelToRecMap;
+    }
+
     public void accelerateImmediately(String project) {
         QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
-            Future future = scheduler.scheduleImmediately();
+            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
             try {
                 future.get();
             } catch (Exception e) {
@@ -516,7 +713,8 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest, ModelService modelService) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", scd2ConfigRequest.getScd2Enabled().toString());
+            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled",
+                    scd2ConfigRequest.getScd2Enabled().toString());
         });
 
         if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
@@ -576,7 +774,8 @@ public class ProjectService extends BasicService {
             copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(segmentConfigRequest.getAutoMergeTimeRanges());
             copyForWrite.getSegmentConfig().setVolatileRange(segmentConfigRequest.getVolatileRange());
             copyForWrite.getSegmentConfig().setRetentionRange(segmentConfigRequest.getRetentionRange());
-            copyForWrite.getSegmentConfig().setCreateEmptySegmentEnabled(segmentConfigRequest.getCreateEmptySegmentEnabled());
+            copyForWrite.getSegmentConfig()
+                    .setCreateEmptySegmentEnabled(segmentConfigRequest.getCreateEmptySegmentEnabled());
         });
     }
 

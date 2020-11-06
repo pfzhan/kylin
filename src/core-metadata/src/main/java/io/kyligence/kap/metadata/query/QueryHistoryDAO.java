@@ -28,27 +28,31 @@ import java.util.List;
 
 public interface QueryHistoryDAO {
 
-    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int page);
+    List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int page);
 
-    public QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime, String project);
+    QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime, String project);
 
-    public List<QueryStatistics> getQueryCountByModel(long startTime, long endTime, String project);
+    QueryStatistics getQueryCountByRange(long startTime, long endTime, String project);
 
-    public List<QueryStatistics> getQueryCountByTime(long startTime, long endTime, String timeDimension, String project);
+    long getQueryHistoryCountBeyondOffset(long offset, String project);
 
-    public List<QueryStatistics> getAvgDurationByModel(long startTime, long endTime, String project);
+    List<QueryStatistics> getQueryCountByModel(long startTime, long endTime, String project);
 
-    public List<QueryStatistics> getAvgDurationByTime(long startTime, long endTime, String timeDimension, String project);
+    List<QueryStatistics> getQueryCountByTime(long startTime, long endTime, String timeDimension, String project);
 
-    public String getQueryMetricMeasurement();
+    List<QueryStatistics> getAvgDurationByModel(long startTime, long endTime, String project);
 
-    public void deleteQueryHistoriesIfMaxSizeReached();
+    List<QueryStatistics> getAvgDurationByTime(long startTime, long endTime, String timeDimension, String project);
 
-    public void deleteQueryHistoriesIfProjectMaxSizeReached(String project);
+    String getQueryMetricMeasurement();
 
-    public void deleteQueryHistoriesIfRetainTimeReached();
+    void deleteQueryHistoriesIfMaxSizeReached();
 
-    public long getQueryHistoriesSize(QueryHistoryRequest request, String project);
+    void deleteQueryHistoriesIfProjectMaxSizeReached(String project);
 
-    public String getRealizationMetricMeasurement();
+    void deleteQueryHistoriesIfRetainTimeReached();
+
+    long getQueryHistoriesSize(QueryHistoryRequest request, String project);
+
+    String getRealizationMetricMeasurement();
 }

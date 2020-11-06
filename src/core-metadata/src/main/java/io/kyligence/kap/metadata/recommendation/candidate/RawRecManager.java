@@ -122,6 +122,17 @@ public class RawRecManager {
         rawRecManager.saveOrUpdate(topNCandidates);
     }
 
+    public Map<RawRecItem.RawRecType, Integer> getCandidatesByProject(String project) {
+        RawRecItem.RawRecType[] rawRecTypes = { RawRecItem.RawRecType.ADDITIONAL_LAYOUT,
+                RawRecItem.RawRecType.REMOVAL_LAYOUT };
+        int additionalCandidateCount = jdbcRawRecStore.getRecItemCountByProject(project, rawRecTypes[0]);
+        int removalCandidatesCount = jdbcRawRecStore.getRecItemCountByProject(project, rawRecTypes[1]);
+        Map<RawRecItem.RawRecType, Integer> map = Maps.newHashMap();
+        map.put(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, additionalCandidateCount);
+        map.put(RawRecItem.RawRecType.REMOVAL_LAYOUT, removalCandidatesCount);
+        return map;
+    }
+
     public List<RawRecItem> getCandidatesByProjectAndBenefit(String project, int limit) {
         throw new NotImplementedException("get candidate raw recommendations by project not implement!");
     }

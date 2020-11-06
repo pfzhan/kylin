@@ -43,6 +43,8 @@ import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
+import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
@@ -76,9 +78,9 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
     public void testUpdateMetadata() {
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
-        qhAccelerateScheduler.rawRecommendation = Mockito.mock(RawRecService.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(), Mockito.anyInt(),
-                Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
+        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
                 Mockito.anyList(), Mockito.anyList())).thenReturn(queryHistories());
 
@@ -100,7 +102,7 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
 
         // run update
         QueryHistoryAccelerateScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
-                qhAccelerateScheduler.new QueryHistoryAccelerateRunner();
+                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
         queryHistoryAccelerateRunner.run();
 
         // after update dataflow usage, layout usage and last query time
@@ -119,6 +121,56 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
 
         // after update id offset
         Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryIdOffset());
+    }
+
+    @Test
+    public void testNotUpdateMetadataForUserTriggered() {
+        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
+        Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
+                Mockito.anyList(), Mockito.anyList())).thenReturn(queryHistories());
+
+        // before update dataflow usage, layout usage and last query time
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(DATAFLOW);
+        Assert.assertEquals(3, dataflow.getQueryHitCount());
+        Assert.assertNull(dataflow.getLayoutHitCount().get(20000000001L));
+        Assert.assertNull(dataflow.getLayoutHitCount().get(1000001L));
+        Assert.assertEquals(0L, dataflow.getLastQueryTime());
+
+        // before update accelerate ratio
+        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
+        Assert.assertNull(accelerateRatioManager.get());
+
+        // before update id offset
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
+        Assert.assertEquals(0, idOffsetManager.get().getQueryHistoryIdOffset());
+
+        // update sync-acceleration-task to running, then check auto-run will fail
+        AsyncTaskManager manager = AsyncTaskManager.getInstance(getTestConfig(), PROJECT);
+        AsyncAccelerationTask asyncTask = (AsyncAccelerationTask) manager.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
+        asyncTask.setAlreadyRunning(true);
+        manager.save(asyncTask);
+        AsyncAccelerationTask update = (AsyncAccelerationTask) manager.get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
+        Assert.assertTrue(update.isAlreadyRunning());
+
+        // run update
+        QueryHistoryAccelerateScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
+                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
+        queryHistoryAccelerateRunner.run();
+
+        // after update dataflow usage, layout usage and last query time
+        dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).getDataflow(DATAFLOW);
+        Assert.assertEquals(3, dataflow.getQueryHitCount());
+        Assert.assertNull(dataflow.getLayoutHitCount().get(20000000001L));
+        Assert.assertNull(dataflow.getLayoutHitCount().get(1000001L));
+        Assert.assertEquals(0L, dataflow.getLastQueryTime());
+
+        // after update id offset
+        Assert.assertEquals(0, idOffsetManager.get().getQueryHistoryIdOffset());
     }
 
     private List<QueryHistory> queryHistories() {

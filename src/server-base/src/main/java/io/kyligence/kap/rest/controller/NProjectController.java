@@ -40,10 +40,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.request.JdbcRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -80,11 +80,15 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
+import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
+import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
+import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
+import io.kyligence.kap.rest.request.JdbcRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
@@ -100,9 +104,11 @@ import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
+import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -124,6 +130,10 @@ public class NProjectController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    @Qualifier("queryHistoryService")
+    private QueryHistoryService qhService;
 
     @ApiOperation(value = "getProjects", notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
@@ -192,7 +202,7 @@ public class NProjectController extends NBasicController {
     @ApiOperation(value = "updateDefaultDatabase", notes = "Add URL: {project}; Update Param: default_database;")
     @PutMapping(value = "/{project:.+}/default_database")
     @ResponseBody
-    public EnvelopeResponse updateDefaultDatabase(@PathVariable("project") String project,
+    public EnvelopeResponse<String> updateDefaultDatabase(@PathVariable("project") String project,
             @RequestBody DefaultDatabaseRequest defaultDatabaseRequest) {
         checkRequiredArg("default_database", defaultDatabaseRequest.getDefaultDatabase());
 
@@ -299,6 +309,36 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
     }
 
+    @GetMapping(value = "/{project:.+}/statistics")
+    @ResponseBody
+    public EnvelopeResponse<ProjectStatisticsResponse> getDashboardStatistics(@PathVariable("project") String project) {
+        checkProjectName(project);
+        ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics(project);
+        projectStatistics.setLastWeekQueryCount(qhService.getLastWeekQueryCount(project));
+        projectStatistics.setUnhandledQueryCount(qhService.getQueryCountToAccelerate(project));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectStatistics, "");
+    }
+
+    @GetMapping(value = "/{project:.+}/acceleration")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> isAccelerating(@PathVariable("project") String project) {
+        checkProjectName(project);
+        checkProjectNotSemiAuto(project);
+        AbstractAsyncTask asyncTask = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, ((AsyncAccelerationTask) asyncTask).isAlreadyRunning(),
+                "");
+    }
+
+    @PutMapping(value = "/{project:.+}/acceleration")
+    @ResponseBody
+    public EnvelopeResponse<Object> accelerate(@PathVariable("project") String project) {
+        checkProjectName(project);
+        checkProjectNotSemiAuto(project);
+        Set<Integer> deltaRecs = projectService.accelerateManually(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, deltaRecs.size(), "");
+    }
+
     @ApiOperation(value = "updateShardNumConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/shard_num_config")
     @ResponseBody
@@ -311,7 +351,7 @@ public class NProjectController extends NBasicController {
     @ApiOperation(value = "updateGarbageCleanupConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/garbage_cleanup_config")
     @ResponseBody
-    public EnvelopeResponse updateGarbageCleanupConfig(@PathVariable("project") String project,
+    public EnvelopeResponse<Boolean> updateGarbageCleanupConfig(@PathVariable("project") String project,
             @RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         checkRequiredArg("low_frequency_threshold", garbageCleanUpConfigRequest.getLowFrequencyThreshold());
         checkRequiredArg("frequency_time_window", garbageCleanUpConfigRequest.getFrequencyTimeWindow());
@@ -467,8 +507,8 @@ public class NProjectController extends NBasicController {
     @ApiOperation(value = "update jdbc config (update)", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project}/jdbc_config")
     @ResponseBody
-    public EnvelopeResponse updateJdbcConfig(@RequestBody JdbcRequest jdbcRequest,
-                                             @PathVariable(value = "project") String project) {
+    public EnvelopeResponse<Object> updateJdbcConfig(@RequestBody JdbcRequest jdbcRequest,
+            @PathVariable(value = "project") String project) {
         checkRequiredArg("project", project);
         projectService.updateJdbcConfig(project, jdbcRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");

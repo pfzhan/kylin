@@ -41,12 +41,9 @@
  */
 package io.kyligence.kap.reset.controller;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
-import io.kyligence.kap.rest.request.JdbcRequest;
-import io.kyligence.kap.rest.request.ProjectRequest;
-import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -57,8 +54,12 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
+import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 
 public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
 
@@ -78,8 +79,8 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
                 .perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andExpect(jsonPath("$.code").value("999"))
-                .andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("999")).andReturn();
         Assert.assertTrue(
                 result.getResponse().getContentAsString().contains("The project named 'test_PROJECT' already exists."));
     }
@@ -122,11 +123,37 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         JdbcRequest jdbcRequest = new JdbcRequest();
-        mockMvc.perform(MockMvcRequestBuilders
-                .put(String.format("/api/projects/%s/jdbc_config", projectName.toUpperCase()))
-                .content(JsonUtil.writeValueAsString(jdbcRequest)).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(
+                MockMvcRequestBuilders.put(String.format("/api/projects/%s/jdbc_config", projectName.toUpperCase()))
+                        .content(JsonUtil.writeValueAsString(jdbcRequest)).contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetDashboardStatistics() throws Exception {
+        String project = "gc_test";
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/statistics", project)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
+    @Test
+    public void testIsAccelerating() throws Exception {
+        String project = "gc_test";
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/acceleration", project)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testAccelerate() throws Exception {
+        String project = "gc_test";
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/acceleration", project)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
 }

@@ -24,11 +24,16 @@
 
 package io.kyligence.kap.newten.semi;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -44,6 +49,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -55,6 +61,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -68,7 +77,9 @@ import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
+import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -79,9 +90,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
     private static final long QUERY_TIME = 1595520000000L;
 
     private JdbcRawRecStore jdbcRawRecStore;
-    private RawRecService rawRecommendation;
+    private RawRecService rawRecService;
     private NDataModelManager modelManager;
     private NIndexPlanManager indexPlanManager;
+    private RDBMSQueryHistoryDAO queryHistoryDAO;
+    private ProjectService projectService;
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock
@@ -99,16 +112,21 @@ public class SemiV2CITest extends SemiAutoTestBase {
     public void setup() throws Exception {
         super.setup();
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
-        rawRecommendation = new RawRecService();
+        rawRecService = new RawRecService();
+        projectService = new ProjectService();
         modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         modelService.setSemanticUpdater(semanticService);
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
+        QueryHistoryAccelerateScheduler.getInstance(getProject()).init();
     }
 
     @After
     public void teardown() throws Exception {
+        queryHistoryDAO.deleteAllQueryHistory();
         super.tearDown();
+        QueryHistoryAccelerateScheduler.shutdownByProject(getProject());
     }
 
     private void prepareACL() {
@@ -116,8 +134,94 @@ public class SemiV2CITest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @Test
+    public void testAccelerateImmediately() throws IOException {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare an origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact " });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // assert origin model
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(12, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeGenerateRecItems.getAllMeasures().size());
+        Assert.assertTrue(modelBeforeGenerateRecItems.getComputedColumnDescs().isEmpty());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        List<QueryMetrics> queryMetrics = loadQueryHistoryList(
+                "../kap-it/src/test/resources/ut_meta/newten_query_history");
+        queryHistoryDAO.insert(queryMetrics);
+
+        // before accelerate
+        List<RawRecItem> rawRecItemBeforeAccelerate = jdbcRawRecStore.queryAll();
+        Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
+
+        // accelerate
+        projectService.accelerateImmediately(getProject());
+
+        // after accelerate
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(6, rawRecItems.size());
+        Assert.assertEquals(1, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.COMPUTED_COLUMN));
+        Assert.assertEquals(2, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.DIMENSION));
+        Assert.assertEquals(1, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.MEASURE));
+        Assert.assertEquals(2, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.ADDITIONAL_LAYOUT));
+    }
+
+    @Test
+    public void testAccelerateManually() throws IOException {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare an origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact " });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // assert origin model
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(12, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeGenerateRecItems.getAllMeasures().size());
+        Assert.assertTrue(modelBeforeGenerateRecItems.getComputedColumnDescs().isEmpty());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        List<QueryMetrics> queryMetrics = loadQueryHistoryList(
+                "../kap-it/src/test/resources/ut_meta/newten_query_history");
+        queryHistoryDAO.insert(queryMetrics);
+
+        // before accelerate
+        List<RawRecItem> rawRecItemBeforeAccelerate = jdbcRawRecStore.queryAll();
+        Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
+
+        // accelerate
+        projectService.accelerateManually(getProject());
+
+        // after accelerate
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(6, rawRecItems.size());
+        Assert.assertEquals(1, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.COMPUTED_COLUMN));
+        Assert.assertEquals(2, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.DIMENSION));
+        Assert.assertEquals(1, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.MEASURE));
+        Assert.assertEquals(2, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.ADDITIONAL_LAYOUT));
     }
 
     @Test
@@ -147,7 +251,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         qh1.setSql("select price+1, sum(price+1) from test_kylin_fact group by price+1");
         qh1.setQueryTime(QUERY_TIME);
         qh1.setId(1);
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(qh1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(qh1), false);
 
         // assert before apply recommendations
         NDataModel modelBeforeApplyRecItems = modelManager.getDataModelDesc(modelID);
@@ -307,6 +411,10 @@ public class SemiV2CITest extends SemiAutoTestBase {
         jdbcRawRecStore.update(recItems);
     }
 
+    private long getFilterRecCount(List<RawRecItem> rawRecItems, RawRecItem.RawRecType type) {
+        return rawRecItems.stream().filter(item -> item.getType() == type).count();
+    }
+
     private OptRecRequest mockOptRecRequest(String modelID, OptRecDetailResponse optRecDetailResponse) {
         Map<Integer, String> userDefinedNameMap = Maps.newHashMap();
         optRecDetailResponse.getCcItems().stream().filter(OptRecDepResponse::isAdd).forEach(item -> {
@@ -330,5 +438,62 @@ public class SemiV2CITest extends SemiAutoTestBase {
         recRequest.setRecItemsToRemoveLayout(optRecDetailResponse.getRecItemsToRemoveLayout());
         recRequest.setNames(userDefinedNameMap);
         return recRequest;
+    }
+
+    private static List<QueryMetrics> loadQueryHistoryList(String queryHistoryJsonFilePath) throws IOException {
+        List<QueryMetrics> allQueryMetrics = Lists.newArrayList();
+        File directory = new File(queryHistoryJsonFilePath);
+        File[] files = directory.listFiles();
+        for (File file : files) {
+            String recItemContent = FileUtils.readFileToString(file);
+            allQueryMetrics.addAll(parseQueryMetrics(recItemContent));
+        }
+        return allQueryMetrics;
+    }
+
+    private static List<QueryMetrics> parseQueryMetrics(String recItemContent) throws IOException {
+        List<QueryMetrics> recItems = Lists.newArrayList();
+        JsonNode jsonNode = JsonUtil.readValueAsTree(recItemContent);
+        final Iterator<JsonNode> elements = jsonNode.elements();
+        while (elements.hasNext()) {
+            JsonNode recItemNode = elements.next();
+            QueryMetrics item = parseQueryMetrics(recItemNode);
+            recItems.add(item);
+        }
+        return recItems;
+    }
+
+    private static QueryMetrics parseQueryMetrics(JsonNode recItemNode) throws IOException {
+        String queryId = recItemNode.get("query_id").asText();
+        String server = recItemNode.get("server").asText();
+        QueryMetrics queryMetrics = new QueryMetrics(queryId, server);
+        queryMetrics.setId(recItemNode.get("id").asInt());
+        queryMetrics.setSql(recItemNode.get("sql_text").asText());
+        queryMetrics.setSqlPattern(recItemNode.get("sql_pattern").asText());
+        queryMetrics.setQueryDuration(recItemNode.get("duration").asInt());
+        queryMetrics.setTotalScanBytes(recItemNode.get("total_scan_bytes").asInt());
+        queryMetrics.setTotalScanCount(recItemNode.get("total_scan_count").asInt());
+        queryMetrics.setResultRowCount(recItemNode.get("result_row_count").asInt());
+        queryMetrics.setSubmitter(recItemNode.get("submitter").asText());
+        queryMetrics.setRealizations(null);
+        queryMetrics.setServer(recItemNode.get("server").asText());
+        queryMetrics.setErrorType(recItemNode.get("error_type").asText());
+        queryMetrics.setEngineType(recItemNode.get("engine_type").asText());
+        queryMetrics.setCacheHit(recItemNode.get("cache_hit").asBoolean());
+        queryMetrics.setQueryStatus(recItemNode.get("query_status").asText());
+        queryMetrics.setIndexHit(recItemNode.get("index_hit").asBoolean());
+        queryMetrics.setQueryTime(recItemNode.get("query_time").asLong());
+        queryMetrics.setMonth(recItemNode.get("month").asText());
+        queryMetrics.setQueryFirstDayOfMonth(recItemNode.get("query_first_day_of_month").asLong());
+        queryMetrics.setQueryFirstDayOfWeek(recItemNode.get("query_first_day_of_week").asLong());
+        queryMetrics.setQueryDay(recItemNode.get("query_day").asLong());
+        queryMetrics.setTableIndexUsed(recItemNode.get("is_table_index_used").asBoolean());
+        queryMetrics.setAggIndexUsed(recItemNode.get("is_agg_index_used").asBoolean());
+        queryMetrics.setTableSnapshotUsed(recItemNode.get("is_table_snapshot_used").asBoolean());
+        queryMetrics.setProjectName(recItemNode.get("project_name").asText());
+        String queryHistoryInfoStr = recItemNode.get("reserved_field_3").asText();
+        QueryHistoryInfo queryHistoryInfo = JsonUtil.readValue(queryHistoryInfoStr, QueryHistoryInfo.class);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
+        return queryMetrics;
     }
 }

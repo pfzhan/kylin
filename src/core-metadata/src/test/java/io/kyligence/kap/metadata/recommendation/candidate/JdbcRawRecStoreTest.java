@@ -288,6 +288,13 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(7, allRawRecItems.get(6).getId(), 0.1);
         Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, allRawRecItems.get(6).getType());
         Assert.assertEquals(7, allRawRecItems.get(6).getCost(), 0.1);
+
+        // test semantic version of model not exist
+        RawRecItem recItem = jdbcRawRecStore.queryById(7);
+        recItem.setState(RawRecItem.RawRecState.RECOMMENDED);
+        jdbcRawRecStore.update(recItem);
+        List<RawRecItem> additionalLayoutRecItems = jdbcRawRecStore.queryNonAppliedLayoutRecItems("test", "abc", false);
+        Assert.assertTrue(additionalLayoutRecItems.isEmpty());
     }
 
     @Test

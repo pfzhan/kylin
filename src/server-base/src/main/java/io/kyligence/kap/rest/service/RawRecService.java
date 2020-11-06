@@ -56,6 +56,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -75,7 +76,7 @@ public class RawRecService {
         updateCostsAndTopNCandidates();
     }
 
-    public void generateRawRecommendations(String project, List<QueryHistory> queryHistories) {
+    public void generateRawRecommendations(String project, List<QueryHistory> queryHistories, boolean isManual) {
         if (queryHistories == null || queryHistories.isEmpty()) {
             return;
         }
@@ -113,6 +114,10 @@ public class RawRecService {
         }
 
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap, nonLayoutRecItemMap);
+        if (!isManual && QueryHistoryAccelerateScheduler.getInstance(project).isInterruptByUser()) {
+            throw new IllegalStateException(
+                    "Acceleration triggered by user terminate the process of generate recommendation automatically at present.");
+        }
         saveLayoutRawRecItems(layoutRecItems, project);
 
         markFailAccelerateMessageToQueryHistory(queryHistoryMap, semiContextV2);
@@ -148,7 +153,7 @@ public class RawRecService {
         RDBMSQueryHistoryDAO.getInstance().batchUpdateQueryHistoriesInfo(idToQHInfoList);
     }
 
-    public void updateCostsAndTopNCandidates() {
+    public static void updateCostsAndTopNCandidates() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
         List<ProjectInstance> projectInstances = NProjectManager.getInstance(kylinConfig) //
@@ -164,22 +169,26 @@ public class RawRecService {
                 log.info("Running update cost for project<{}>", project);
                 val rawRecManager = RawRecManager.getInstance(project);
                 rawRecManager.updateAllCost(project);
-                FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(kylinConfig, project)
-                        .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
+                int topN = recommendationSize(project);
                 for (String model : projectInstance.getModels()) {
                     long current = System.currentTimeMillis();
                     log.info("Running update topN raw recommendation for model({}/{}).", project, model);
-                    int topN = Integer.parseInt(((FavoriteRule.Condition) FavoriteRule
-                            .getDefaultRule(favoriteRule, FavoriteRule.REC_SELECT_RULE_NAME).getConds().get(0))
-                                    .getRightThreshold());
                     rawRecManager.updateRecommendedTopN(project, model, topN);
-                    log.info("Update topN raw recommendations for model({}/{}) takes {} ms", // 
+                    log.info("Update topN raw recommendations for model({}/{}) takes {} ms", //
                             project, model, System.currentTimeMillis() - current);
                 }
             } catch (Exception e) {
                 log.error("Update cost and update topN failed for project({})", project, e);
             }
         }
+    }
+
+    public static int recommendationSize(String project) {
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        FavoriteRule favoriteRule = FavoriteRule.getDefaultRule(
+                ruleManager.getByName(FavoriteRule.REC_SELECT_RULE_NAME), FavoriteRule.REC_SELECT_RULE_NAME);
+        FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
+        return Integer.parseInt(condition.getRightThreshold());
     }
 
     List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,

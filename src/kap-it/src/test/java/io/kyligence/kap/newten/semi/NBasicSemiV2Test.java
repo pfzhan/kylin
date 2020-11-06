@@ -53,6 +53,7 @@ import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
@@ -72,13 +73,15 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
 
     private JdbcRawRecStore jdbcRawRecStore;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
-    private RawRecService rawRecommendation;
+    private RawRecService rawRecService;
+    private ProjectService projectService;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
-        rawRecommendation = new RawRecService();
+        rawRecService = new RawRecService();
+        projectService = new ProjectService();
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
     }
 
@@ -429,7 +432,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory2.setDuration(200L);
         queryHistory2.setId(2);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1, queryHistory2));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1, queryHistory2), false);
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -444,7 +447,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 .newArrayList(layoutRawRecItem.getLayoutMetric().getLatencyMap().getMap().values()).get(0).longValue());
 
         // second batch
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
         rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.sort(Comparator.comparingInt(o -> o.getType().id()));
         Assert.assertEquals(4, rawRecItems.size());
@@ -467,7 +470,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         List<NDataModel> originModels = smartContext.getOriginModels();
 
         // generate raw recommendations for origin model
-        rawRecommendation.generateRawRecommendations(getProject(), queryHistories());
+        rawRecService.generateRawRecommendations(getProject(), queryHistories(), false);
 
         // check raw recommendations layoutMetric
         List<RawRecItem> recOfCountry = jdbcRawRecStore.listAll(getProject(), originModels.get(0).getUuid(), 0, 10);
@@ -544,7 +547,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory1.setSql("select sum(price+1),count(ORDER_ID+TRANS_ID) from test_kylin_fact group by price * 3");
         queryHistory1.setQueryTime(QUERY_TIME);
         queryHistory1.setId(1);
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -591,7 +594,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory1.setSql("select count(*) from test_kylin_fact group by price");
         queryHistory1.setQueryTime(QUERY_TIME);
         queryHistory1.setId(1);
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
 
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         Assert.assertEquals(1, rawRecItems.size());
@@ -599,7 +602,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
 
         // happy pass
         queryHistory1.setSql("select count(*) from test_kylin_fact group by cal_dt");
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
         rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.sort(Comparator.comparingInt(o -> o.getType().id()));
         Assert.assertEquals(0, rawRecItems.get(0).getDependIDs()[0]);
@@ -625,7 +628,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 "select sum(price),count(price),avg(price),min(ORDER_ID)," + "max(ORDER_ID) from test_kylin_fact");
         queryHistory1.setQueryTime(QUERY_TIME);
         queryHistory1.setId(1);
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -680,7 +683,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory1.setSql("select avg(price) from test_kylin_fact");
         queryHistory1.setQueryTime(QUERY_TIME);
         queryHistory1.setId(1);
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
 
         // count(*) answer avg only work on query
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -721,7 +724,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory1.setQueryTime(QUERY_TIME);
         queryHistory1.setDuration(30L);
         queryHistory1.setId(1);
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1), false);
 
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
@@ -758,7 +761,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory2.setSql("select country from test_country");
         queryHistory2.setId(2);
 
-        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1, queryHistory2));
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1, queryHistory2), false);
 
         // check if mark succeed
         List<QueryHistory> allQueryHistories = queryHistoryDAO.getAllQueryHistories();
@@ -831,13 +834,13 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory5.setDuration(70L);
         queryHistory5.setId(5);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
-        rawRecommendation.generateRawRecommendations(getProject(),
-                Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4, queryHistory5));
+        rawRecService.generateRawRecommendations(getProject(),
+                Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4, queryHistory5), false);
 
         // update and select top 2 candidate
         FavoriteRuleManager.getInstance(kylinConfig, getProject()).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition(null, "2")), true, FavoriteRule.REC_SELECT_RULE_NAME);
-        rawRecommendation.updateCostsAndTopNCandidates();
+        RawRecService.updateCostsAndTopNCandidates();
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();

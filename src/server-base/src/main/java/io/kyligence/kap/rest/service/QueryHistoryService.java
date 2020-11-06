@@ -40,15 +40,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.spark.sql.catalyst.util.DateTimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -69,6 +72,7 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
@@ -121,39 +125,38 @@ public class QueryHistoryService extends BasicService {
             request.setAdmin(true);
         }
 
-        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).stream()
-                .forEach(query -> {
-                    if (StringUtils.isEmpty(query.getQueryRealizations())) {
-                        queryHistories.add(query);
+        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).forEach(query -> {
+            if (StringUtils.isEmpty(query.getQueryRealizations())) {
+                queryHistories.add(query);
+                return;
+            }
+
+            List<NativeQueryRealization> realizations = Lists.newArrayList();
+            query.transformRealizations().forEach(realization -> {
+                if (modelAliasMap.containsValue(realization.getModelId())) {
+                    NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
+                    NDataModelResponse model = (NDataModelResponse) modelService
+                            .updateReponseAcl(new NDataModelResponse(nDataModel), request.getProject());
+                    realization.setModelAlias(model.getAlias());
+                    realization.setAclParams(model.getAclParams());
+                    realizations.add(realization);
+                } else {
+                    realization.setValid(false);
+                    val brokenModel = dataModelManager.getDataModelDesc(realization.getModelId());
+                    if (brokenModel == null) {
+                        realization.setModelAlias(DELETED_MODEL);
+                        realizations.add(realization);
                         return;
                     }
-
-                    List<NativeQueryRealization> realizations = Lists.newArrayList();
-                    query.transformRealizations().forEach(realization -> {
-                        if (modelAliasMap.containsValue(realization.getModelId())) {
-                            NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
-                            NDataModelResponse model = (NDataModelResponse) modelService
-                                    .updateReponseAcl(new NDataModelResponse(nDataModel), request.getProject());
-                            realization.setModelAlias(model.getAlias());
-                            realization.setAclParams(model.getAclParams());
-                            realizations.add(realization);
-                        } else {
-                            realization.setValid(false);
-                            val brokenModel = dataModelManager.getDataModelDesc(realization.getModelId());
-                            if (brokenModel == null) {
-                                realization.setModelAlias(DELETED_MODEL);
-                                realizations.add(realization);
-                                return;
-                            }
-                            if (brokenModel.isBroken()) {
-                                realization.setModelAlias(String.format("%s broken", brokenModel.getAlias()));
-                                realizations.add(realization);
-                            }
-                        }
-                    });
-                    query.setNativeQueryRealizations(realizations);
-                    queryHistories.add(query);
-                });
+                    if (brokenModel.isBroken()) {
+                        realization.setModelAlias(String.format("%s broken", brokenModel.getAlias()));
+                        realizations.add(realization);
+                    }
+                }
+            });
+            query.setNativeQueryRealizations(realizations);
+            queryHistories.add(query);
+        });
 
         data.put("query_histories", queryHistories);
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request, request.getProject()));
@@ -178,6 +181,26 @@ public class QueryHistoryService extends BasicService {
 
         QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(startTime, endTime, project);
         return new QueryStatisticsResponse(queryStatistics.getCount(), queryStatistics.getMeanDuration());
+    }
+
+    public long getLastWeekQueryCount(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        long endTime = TimeUtil.getDayStart(System.currentTimeMillis());
+        long startTime = endTime - 7 * DateTimeUtils.MILLIS_PER_DAY();
+        QueryStatistics statistics = queryHistoryDAO.getQueryCountByRange(startTime, endTime, project);
+        return statistics.getCount();
+    }
+
+    public long getQueryCountToAccelerate(String project) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        aclEvaluate.checkProjectReadPermission(project);
+        QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
+        long idOffset = queryHistoryIdOffset.getQueryHistoryIdOffset();
+        QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
+        return queryHistoryDao.getQueryHistoryCountBeyondOffset(idOffset, project);
     }
 
     public Map<String, Object> getQueryCount(String project, long startTime, long endTime, String dimension) {

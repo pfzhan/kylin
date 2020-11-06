@@ -47,6 +47,7 @@ import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.OptRecService;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -63,6 +64,9 @@ public class NRecommendationController extends NBasicController {
 
     @Autowired
     private RawRecService rawRecService;
+
+    @Autowired
+    private ProjectService projectService;
 
     @ApiOperation(value = "approveOptimizeRecommendations", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}")
@@ -166,7 +170,8 @@ public class NRecommendationController extends NBasicController {
     public EnvelopeResponse<String> accelerate(@RequestParam("project") String project) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
-        rawRecService.accelerate(project);
+        projectService.accelerateImmediately(project);
+        RawRecService.updateCostsAndTopNCandidates();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

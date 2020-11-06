@@ -50,6 +50,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     EMPTY_PARAMETER("KE-10000005"), //
     UNAUTHORIZED_ENTITY("KE-10000006"), //
     FAILED_DETECT_DATA_RANGE("KE-10000007"), //
+    ONGOING_OPTIMIZATION("KE-10000008"), //
 
     // 10001XXX project
     PROJECT_NOT_EXIST("KE-10001001"), //

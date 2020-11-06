@@ -522,6 +522,10 @@ public class Message {
         return "Model recommendation is not supported in current project, please enable recommendation mode and try again.";
     }
 
+    public String getPROJECT_ONGOING_OPTIMIZATION() {
+        return "System is optimizing historical queries at the moment. Please try again later. ";
+    }
+
     public String getDELETE_PROJECT_NOT_EMPTY() {
         return "Cannot modify non-empty project";
     }
@@ -1591,9 +1595,9 @@ public class Message {
     }
 
     public String getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF() {
-        return "This model can’t go online as it includes non-equal join conditions(≥, <)." +
-                " Please delete those join conditions," +
-                " or turn on 'Show non-equal join conditions for History table' in project settings.";
+        return "This model can’t go online as it includes non-equal join conditions(≥, <)."
+                + " Please delete those join conditions,"
+                + " or turn on 'Show non-equal join conditions for History table' in project settings.";
     }
 
     public String getCONNECT_DATABASE_ERROR() {

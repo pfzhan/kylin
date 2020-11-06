@@ -15,7 +15,8 @@ export default {
     isSemiAutomatic: false,
     projectPushdownConfig: true,
     scd2_enabled: false,
-    emptySegmentEnable: false
+    emptySegmentEnable: false,
+    projectConfig: null
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -94,6 +95,9 @@ export default {
     },
     [types.UPDATE_EMPTY_SEGMENT_ENABLE]: function (state, emptySegmentEnable) {
       state.emptySegmentEnable = emptySegmentEnable
+    },
+    [types.CACHE_PROJECT_CONFIG]: function (state, projectConfig) {
+      state.projectConfig = projectConfig
     }
   },
   actions: {
@@ -181,6 +185,7 @@ export default {
     [types.FETCH_PROJECT_SETTINGS]: function ({ commit }, para) {
       return api.project.fetchProjectSettings(para.projectName).then((response) => {
         // commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
+        commit(types.CACHE_PROJECT_CONFIG, {projectDefaultDB: response.data.data})
         commit(types.CACHE_PROJECT_DEFAULT_DB, {projectDefaultDB: response.data.data.default_database})
         commit(types.CACHE_PROJECT_PUSHDOWN_CONFIG, {projectPushdownConfig: response.data.data.push_down_enabled})
         // 更新是否是半自动档标志
@@ -256,6 +261,15 @@ export default {
     },
     [types.GET_SCD2_MODEL]: function ({ commit }, para) {
       return api.project.getSCDModel(para)
+    },
+    [types.LOAD_PROJECT_STATISTICS]: function ({ commit }, para) {
+      return api.project.loadStatistics(para)
+    },
+    [types.GET_ACCELERATION_STATUS]: function ({ commit }, para) {
+      return api.project.getAccelerationStatus(para)
+    },
+    [types.ACCELERATE_MODEL]: function ({ commit }, para) {
+      return api.project.accelerateModel(para)
     }
   },
   getters: {
