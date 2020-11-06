@@ -59,7 +59,7 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
     private final static String project = "calories";
     private final static String jobId = "9462fee8-e6cd-4d18-a5fc-b598a3c5edb5";
     private final static String DATA_DIR = "src/test/resources/ut_audit_log/";
-    private final static String YARN_APPLICATION_ID = "application_1554187389076_9294\napplication_1554187389076_9295\n";
+    private final static String YARN_APPLICATION_ID = "application_1554187389076_9294\napplication_1554187389076_9295\napplication_1554187389076_9296\n";
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -95,6 +95,7 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
         File yarnLogDir = new File(mainDir, "yarn_application_log");
         Assert.assertTrue(new File(yarnLogDir, "application_1554187389076_9294.log").exists());
         Assert.assertTrue(new File(yarnLogDir, "application_1554187389076_9295.log").exists());
+        Assert.assertTrue(new File(yarnLogDir, "application_1554187389076_9296.log").exists());
     }
 
     private void prepareData() throws Exception {

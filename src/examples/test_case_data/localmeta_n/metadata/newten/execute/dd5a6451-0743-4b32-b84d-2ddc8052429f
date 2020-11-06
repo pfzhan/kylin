@@ -114,6 +114,7 @@
     "log_path" : null,
     "status" : "SUCCEED",
     "info" : {
+      "yarn_application_ids": "application_1554187389076_9294,application_1554187389076_9295,application_1554187389076_9296",
       "dependentFiles" : "/c/parquet/0d565e71-66df-4100-b8fe-788d4b628a3d/0221f406-43ff-492b-9151-e8c48d93db19/20000000002_temp,/c/parquet/0d565e71-66df-4100-b8fe-788d4b628a3d/0221f406-43ff-492b-9151-e8c48d93db19/20000000002,/c/parquet/0d565e71-66df-4100-b8fe-788d4b628a3d/0221f406-43ff-492b-9151-e8c48d93db19/20000000001,/c/parquet/0d565e71-66df-4100-b8fe-788d4b628a3d/0221f406-43ff-492b-9151-e8c48d93db19/20000010001,/c/parquet/0d565e71-66df-4100-b8fe-788d4b628a3d/0221f406-43ff-492b-9151-e8c48d93db19/20000000001_temp,/c/parquet/0d565e71-66df-4100-b8fe-788d4b628a3d/0221f406-43ff-492b-9151-e8c48d93db19/20000010001_temp"
     },
     "last_modified" : 0,

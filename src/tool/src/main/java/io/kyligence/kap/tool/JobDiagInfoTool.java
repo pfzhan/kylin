@@ -30,7 +30,6 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.YARN;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -183,9 +182,9 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         Future eventLogTask = executorService.submit(() -> {
             if (job instanceof DefaultChainedExecutable) {
                 recordTaskStartTime(JOB_EVENTLOGS);
-                List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+                val appIds = NExecutableManager.getInstance(getKylinConfig(), project).getYarnApplicationJobs(jobId);
                 Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
-                KylinLogTool.extractJobEventLogs(exportDir, tasks, sparkConf);
+                KylinLogTool.extractJobEventLogs(exportDir, appIds, sparkConf);
                 recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
             }
         });

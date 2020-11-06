@@ -60,6 +60,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
+import lombok.var;
 
 /**
  *
@@ -580,5 +581,29 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
                 Assert.assertEquals("INFO: this is line " + (logLines - 1), logArray[logArray.length - 1]);
             }
         }
+    }
+
+    @Test
+    public void testUpdateYarnApplicationJob() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+
+        var appIds = manager.getYarnApplicationJobs(executable.getId());
+        Assert.assertEquals(0, appIds.size());
+
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_APP_ID, "test1");
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, extraInfo, null, null);
+        appIds = manager.getYarnApplicationJobs(executable.getId());
+        Assert.assertEquals(1, appIds.size());
+        Assert.assertTrue(appIds.contains("test1"));
+
+        extraInfo.put(ExecutableConstants.YARN_APP_ID, "test2");
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, extraInfo, null, null);
+        appIds = manager.getYarnApplicationJobs(executable.getId());
+        Assert.assertEquals(2, appIds.size());
+        Assert.assertTrue(appIds.contains("test1"));
+        Assert.assertTrue(appIds.contains("test2"));
+
     }
 }

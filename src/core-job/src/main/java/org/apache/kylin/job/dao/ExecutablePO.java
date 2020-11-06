@@ -42,12 +42,18 @@
 
 package org.apache.kylin.job.dao;
 
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
+
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -113,5 +119,14 @@ public class ExecutablePO extends RootPersistentEntity {
     public static String concatResourcePath(String name, String project) {
         return new StringBuilder().append("/").append(project).append(ResourceStore.EXECUTABLE_JOB).append("/")
                 .append(name).toString();
+    }
+
+    public void addYarnApplicationJob(String appId) {
+        String oldAppIds = output.getInfo().getOrDefault(ExecutableConstants.YARN_APP_IDS, "");
+        Set<String> appIds = new HashSet<>(Arrays.asList(oldAppIds.split(YARN_APP_IDS_DELIMITER)));
+        if (!appIds.contains(appId)) {
+            String newAppIds = oldAppIds + (StringUtils.isEmpty(oldAppIds) ? "" : YARN_APP_IDS_DELIMITER) + appId;
+            output.getInfo().put(ExecutableConstants.YARN_APP_IDS, newAppIds);
+        }
     }
 }

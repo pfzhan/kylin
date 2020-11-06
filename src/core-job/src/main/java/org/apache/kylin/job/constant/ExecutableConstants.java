@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,6 +50,8 @@ public final class ExecutableConstants {
     }
 
     public static final String YARN_APP_ID = "yarn_application_id";
+    public static final String YARN_APP_IDS = "yarn_application_ids";
+    public static final String YARN_APP_IDS_DELIMITER = ",";
     public static final String YARN_APP_URL = "yarn_application_tracking_url";
     public static final String YARN_JOB_WAIT_TIME = "yarn_job_wait_time";
     public static final String YARN_JOB_RUN_TIME = "yarn_job_run_time";

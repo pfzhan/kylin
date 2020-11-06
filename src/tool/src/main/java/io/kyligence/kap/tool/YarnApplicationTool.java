@@ -24,17 +24,13 @@
 
 package io.kyligence.kap.tool;
 
-import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
-import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
-
 import java.io.File;
-import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
@@ -43,11 +39,8 @@ import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.Output;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
 
 import lombok.val;
 
@@ -102,29 +95,12 @@ public class YarnApplicationTool extends ExecutableApplication {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         if (job instanceof ChainedExecutable) {
-            FileUtils.writeLines(new File(dir), extract((ChainedExecutable) job));
+            FileUtils.writeLines(new File(dir), extract(project, jobId));
         }
     }
 
-    private List<String> extract(ChainedExecutable job) {
-        final List<String> applications = Lists.newArrayList();
-        for (AbstractExecutable task : job.getTasks()) {
-            Output output = task.getOutput();
-            if (null == output || null == output.getExtra()) {
-                continue;
-            }
-            String applicationId = output.getExtra().get(YARN_APP_ID);
-            if (StringUtils.isEmpty(applicationId)) {
-                String trackingUrl = task.getOutput().getExtra().get(YARN_APP_URL);
-                if (StringUtils.isEmpty(trackingUrl)) {
-                    continue;
-                }
-                trackingUrl = StringUtils.stripEnd(trackingUrl, "/");
-                applicationId = trackingUrl.substring(trackingUrl.lastIndexOf("/") + 1);
-            }
-            applications.add(applicationId);
-        }
-        return applications;
+    private Set<String> extract(String project, String jobId) {
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getYarnApplicationJobs(jobId);
     }
 
     public void extractYarnLogs(File exportDir, String project, String jobId) {
@@ -138,8 +114,7 @@ public class YarnApplicationTool extends ExecutableApplication {
                 return;
             }
 
-            List<String> applicationIdList = extract((ChainedExecutable) job);
-
+            Set<String> applicationIdList = extract(project, jobId);
             if (CollectionUtils.isEmpty(applicationIdList)) {
                 String message = "Yarn task submission failed, please check whether yarn is running normally.";
                 logger.error(message);

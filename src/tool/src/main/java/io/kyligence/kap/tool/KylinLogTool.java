@@ -36,6 +36,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,8 +50,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -479,8 +478,7 @@ public class KylinLogTool {
 
     }
 
-    public static void extractJobEventLogs(File exportDir, List<AbstractExecutable> tasks,
-            Map<String, String> sparkConf) {
+    public static void extractJobEventLogs(File exportDir, Set<String> appIds, Map<String, String> sparkConf) {
         try {
             String logDir = sparkConf.get("spark.eventLog.dir").trim();
             boolean eventEnabled = Boolean.parseBoolean(sparkConf.get("spark.eventLog.enabled").trim());
@@ -491,14 +489,11 @@ public class KylinLogTool {
             File jobLogsDir = new File(exportDir, "job_history");
             FileUtils.forceMkdir(jobLogsDir);
             FileSystem fs = HadoopUtil.getFileSystem(logDir);
-            for (AbstractExecutable task : tasks) {
-                Map<String, String> info = task.getOutput().getExtra();
-                if (info != null) {
-                    String appId = info.get(ExecutableConstants.YARN_APP_ID);
+            for (String appId : appIds) {
+                if (StringUtils.isNotEmpty(appId)) {
                     copyJobEventLog(fs, appId, logDir, jobLogsDir);
                 }
             }
-
         } catch (Exception e) {
             logger.error("Failed to extract job eventLog.", e);
         }
@@ -512,6 +507,7 @@ public class KylinLogTool {
         if (Thread.currentThread().isInterrupted()) {
             throw new InterruptedException("Job eventLog task is interrupt");
         }
+        logger.info("Copy appId {}.", appId);
         String eventPath = logDir + "/" + appId;
         FileStatus fileStatus = fs.getFileStatus(new Path(eventPath));
         if (fileStatus != null) {

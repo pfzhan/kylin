@@ -2170,6 +2170,7 @@
         "content": null,
         "status": "SUCCEED",
         "info": {
+          "yarn_application_ids": "application_1554187389076_9294,application_1554187389076_9295,application_1554187389076_9296",
           "dependentFiles": "/calories/parquet/ed51468b-619b-4ccb-8279-8d888597b66f/23b28641-7550-48e9-8234-08366d8684da/1_temp,/calories/table_snapshot/CUSTOMER,/calories/table_snapshot/SUPPLIER,/calories/parquet/ed51468b-619b-4ccb-8279-8d888597b66f/23b28641-7550-48e9-8234-08366d8684da/20000040001,/calories/parquet/ed51468b-619b-4ccb-8279-8d888597b66f/23b28641-7550-48e9-8234-08366d8684da/20000040001_temp,/calories/parquet/ed51468b-619b-4ccb-8279-8d888597b66f/23b28641-7550-48e9-8234-08366d8684da/1"
         },
         "last_modified": 0,

@@ -25,6 +25,8 @@
 package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.BufferedReader;
@@ -36,6 +38,7 @@ import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -43,9 +46,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.MetricsGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -77,6 +80,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -244,6 +248,13 @@ public class NExecutableManager {
             logger.error(PARSE_ERROR_MSG, e);
             return null;
         }
+    }
+
+    public Set<String> getYarnApplicationJobs(String id) {
+        ExecutablePO executablePO = executableDao.getJobByUuid(id);
+        String appIds = executablePO.getOutput().getInfo().getOrDefault(YARN_APP_IDS, "");
+        return StringUtils.isEmpty(appIds) ? new TreeSet<>()
+                : new TreeSet<>(Arrays.asList(appIds.split(YARN_APP_IDS_DELIMITER)));
     }
 
     public long getCreateTime(String id) {
@@ -697,6 +708,11 @@ public class NExecutableManager {
             }
             info.put("node_info", newNodeInfo);
             jobOutput.setInfo(info);
+            String appId = info.get(ExecutableConstants.YARN_APP_ID);
+            if (StringUtils.isNotEmpty(appId)) {
+                logger.info("Add application id {} to {}.", appId, jobId);
+                job.addYarnApplicationJob(appId);
+            }
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
             jobOutput.setLastModified(System.currentTimeMillis());
 

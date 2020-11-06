@@ -25,7 +25,9 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
@@ -93,8 +95,14 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 if (!file2.getName().contains("job") || !file2.getName().endsWith(".zip")) {
                     Assert.fail();
                 }
+                HashSet<String> appFiles = new HashSet<>();
+                val zipFile = new ZipFile(file2);
+                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("job_history/application_")))
+                        .forEach(appFiles::add);
+                Assert.assertEquals(3, appFiles.size());
             }
         }
+
     }
 
     @Test
