@@ -355,7 +355,7 @@ public class LicenseInfoService extends BasicService {
         // set defaults
         setProperty(Constants.KE_LICENSE_ISEVALUATION, prefix, "false");
         setProperty(Constants.KE_LICENSE_CATEGORY, prefix, "4.x");
-        setProperty(Constants.KE_LICENSE_LEVEL, prefix, "professional");
+        setProperty(Constants.KE_LICENSE_LEVEL, prefix, "Professional");
 
         if (statement == null) {
             return;
