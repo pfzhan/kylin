@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -393,5 +394,29 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         result = manager.getAuthTablesAndColumns(projectDefault, user1, true);
         Assert.assertTrue(result.getTables().contains("DEFAULT.TEST_COUNTRY")
                 && result.getColumns().contains("DEFAULT.TEST_CATEGORY_GROUPINGS.BSNS_VRTCL_NAME"));
+    }
+
+    @Test
+    public void testGetSensitiveDataMaskInfo() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
+        // test authorized columns -- all
+        manager.updateAclTCR(new AclTCR(), "aaa", true);
+        manager.updateAclTCR(new AclTCR(), "bbb", false);
+        var columns = manager.getAuthorizedColumnsGroupByTable("aaa", Sets.newHashSet("bbb"));
+        Assert.assertTrue(columns.isEmpty());
+
+        AclTCR a1u1 = new AclTCR();
+        AclTCR.Table a1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
+        columnRow.setColumnSensitiveDataMask(Lists.newArrayList(new SensitiveDataMask("col1", SensitiveDataMask.MaskType.DEFAULT)));
+        a1t1.put("DEFAULT.TEST_ORDER", columnRow);
+        a1u1.setTable(a1t1);
+        manager.updateAclTCR(a1u1, "a1u1", true);
+        SensitiveDataMaskInfo maskInfo = manager.getSensitiveDataMaskInfo("a1u1", Sets.newHashSet("a1g1"));
+        Assert.assertEquals(SensitiveDataMask.MaskType.DEFAULT, maskInfo.getMask("DEFAULT", "TEST_ORDER", "col1").getType());
+        Assert.assertEquals("col1", maskInfo.getMask("DEFAULT", "TEST_ORDER", "col1").getColumn());
+
+        List<AclTCR> aclTCRS = manager.getAclTCRs("a1u1", Sets.newHashSet("a1g1"));
+        Assert.assertNotNull(aclTCRS.get(0).getTable().get("DEFAULT.TEST_ORDER").getColumnSensitiveDataMaskMap().get("col1"));
     }
 }

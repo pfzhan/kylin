@@ -1603,4 +1603,14 @@ public class Message {
     public String getCONNECT_DATABASE_ERROR() {
         return "Failed to connect database.Please check if the database connection is healthy.";
     }
+
+
+    // acl
+    public String getInvalidColumnAccess() {
+        return "The current user/group does not have permission of column %s.";
+    }
+
+    public String getInvalidSensitiveDataMaskColumnType() {
+        return "Boolean, Map, and Array data types do not support data masking.";
+    }
 }

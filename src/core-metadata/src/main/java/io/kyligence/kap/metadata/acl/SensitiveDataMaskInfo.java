@@ -22,57 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.metadata.acl;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+public class SensitiveDataMaskInfo {
 
-import io.kyligence.kap.metadata.acl.SensitiveDataMask;
-import lombok.Data;
+    private Map<String, Map<String, SensitiveDataMask>> infos = new HashMap<>();
 
-@Data
-public class AclTCRRequest {
-    @JsonProperty("database_name")
-    private String databaseName;
-
-    @JsonProperty
-    private List<Table> tables;
-
-    @Data
-    public static class Table {
-        @JsonProperty("table_name")
-        private String tableName;
-
-        @JsonProperty
-        private boolean authorized;
-
-        @JsonProperty
-        private List<Column> columns;
-
-        @JsonProperty
-        private List<Row> rows;
+    public void addMasks(String dbName, String tableName, Collection<SensitiveDataMask> masks) {
+        infos.putIfAbsent(dbName + "." + tableName, new HashMap<>());
+        for (SensitiveDataMask mask : masks) {
+            infos.get(dbName + "." + tableName).put(mask.column, mask);
+        }
     }
 
-    @Data
-    public static class Column {
-        @JsonProperty("column_name")
-        private String columnName;
-
-        @JsonProperty
-        private boolean authorized;
-
-        @JsonProperty("data_mask_type")
-        private SensitiveDataMask.MaskType dataMaskType;
+    public SensitiveDataMask getMask(String dbName, String tableName, String columnName) {
+        if (infos.containsKey(dbName + "." + tableName)) {
+            return infos.get(dbName + "." + tableName).get(columnName);
+        }
+        return null;
     }
 
-    @Data
-    public static class Row {
-        @JsonProperty("column_name")
-        private String columnName;
-
-        @JsonProperty
-        private List<String> items;
-
-    }
 }

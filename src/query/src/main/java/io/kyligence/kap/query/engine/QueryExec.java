@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
 import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -77,23 +78,18 @@ public class QueryExec {
     private final SimpleDataContext dataContext;
 
     public QueryExec(String project, KylinConfig kylinConfig) {
-        this(kylinConfig, new ProjectSchemaFactory(project, kylinConfig));
-     }
-
-     @VisibleForTesting
-     public QueryExec(KylinConfig kylinConfig, ProjectSchemaFactory projectSchemaFactory){
-         this.kylinConfig = kylinConfig;
-         config = KECalciteConfig.fromKapConfig(kylinConfig);
-         schemaFactory =  projectSchemaFactory;
-         CalciteSchema rootSchema = schemaFactory.createProjectRootSchema();
-         String defaultSchemaName = schemaFactory.getDefaultSchema();
-         catalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
-         planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
-         sqlConverter = new SQLConverter(config, planner, catalogReader);
-         dataContext = createDataContext(rootSchema);
-         planner.setExecutor(new RexExecutorImpl(dataContext));
-         queryOptimizer = new QueryOptimizer(planner);
-     }
+        this.kylinConfig = kylinConfig;
+        config = KECalciteConfig.fromKapConfig(kylinConfig);
+        schemaFactory =  new ProjectSchemaFactory(project, kylinConfig);
+        CalciteSchema rootSchema = schemaFactory.createProjectRootSchema();
+        String defaultSchemaName = schemaFactory.getDefaultSchema();
+        catalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
+        planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
+        sqlConverter = new SQLConverter(config, planner, catalogReader);
+        dataContext = createDataContext(rootSchema);
+        planner.setExecutor(new RexExecutorImpl(dataContext));
+        queryOptimizer = new QueryOptimizer(planner);
+    }
 
     /**
      * parse, optimize sql and execute the sql physically
@@ -113,6 +109,7 @@ public class QueryExec {
                 return new QueryResult();
             }
 
+            QuerySensitiveDataMask.setRootRelNode(node);
             return new QueryResult(executeQueryPlan(postOptimize(node)), resultFields);
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg

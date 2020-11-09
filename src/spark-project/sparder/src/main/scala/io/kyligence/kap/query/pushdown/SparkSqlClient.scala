@@ -30,6 +30,7 @@ import java.util.{UUID, List => JList}
 import io.kyligence.kap.guava20.shaded.common.collect.Lists
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
+import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import io.kyligence.kap.query.runtime.plan.ResultPlan.saveAsyncQueryResult
 import org.apache.commons.lang3.StringUtils
@@ -78,7 +79,7 @@ object SparkSqlClient {
       logger.info(msg)
 
       Trace.addTimelineAnnotation(msg)
-      DFToList(ss, sql, uuid, df)
+      dfToList(ss, sql, uuid, df)
     } finally {
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, null)
     }
@@ -102,7 +103,7 @@ object SparkSqlClient {
     }
   }
 
-  private def DFToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
+  private def dfToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
@@ -112,7 +113,10 @@ object SparkSqlClient {
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
         return Pair.newPair(Lists.newArrayList(), fieldList)
       }
-      val rowList = df.collect().map(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
+      val rowList = df.collect().map(
+        _.toSeq.map(v => rawValueToString(v))
+          .zipWithIndex.map{case(value, idx) => QuerySensitiveDataMask.maskResult(value, idx)}.asJava
+      ).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)

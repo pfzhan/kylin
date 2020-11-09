@@ -57,9 +57,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
@@ -77,6 +75,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -207,13 +206,6 @@ public class QueryService extends BasicService {
         slowQueryDetector.start();
     }
 
-    protected static void close(ResultSet resultSet, Statement stat, Connection conn) {
-        OLAPContext.clearParameter();
-        DBUtils.closeQuietly(resultSet);
-        DBUtils.closeQuietly(stat);
-        DBUtils.closeQuietly(conn);
-    }
-
     private static String getQueryKeyById(String project, String creator) {
         return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
     }
@@ -255,7 +247,6 @@ public class QueryService extends BasicService {
     public SQLResponse update(SQLRequest sqlRequest) throws Exception {
         // non select operations, only supported when enable pushdown
         logger.debug("Query pushdown enabled, redirect the non-select query to pushdown engine.");
-        Connection conn = null;
         try {
             QueryExec queryExec = newQueryExec(sqlRequest.getProject());
             QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlRequest.getSql(),
@@ -273,8 +264,6 @@ public class QueryService extends BasicService {
         } catch (Exception e) {
             logger.info("pushdown engine failed to finish current non-select query");
             throw e;
-        } finally {
-            close(null, null, conn);
         }
     }
 
@@ -676,6 +665,10 @@ public class QueryService extends BasicService {
                 OLAPContext.setParameters(parameters);
                 // force clear the query context before a new query
                 clearThreadLocalContexts();
+
+                QuerySensitiveDataMask.THREAD_LOCAL.set(new QuerySensitiveDataMask(sqlRequest.getProject(),
+                        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()) .getProject(sqlRequest.getProject()).getConfig()));
+
                 return execute(correctedSql, sqlRequest, queryExec);
             }, sqlRequest.getProject());
         } catch (TransactionException e) {
@@ -686,6 +679,8 @@ public class QueryService extends BasicService {
             }
         } catch (SQLException e) {
             return pushDownQuery(e, sqlRequest, queryExec.getSchema());
+        } finally {
+            QuerySensitiveDataMask.THREAD_LOCAL.remove();
         }
     }
 
@@ -1034,44 +1029,36 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse execute(String correctedSql, SQLRequest sqlRequest, QueryExec queryExec) throws Exception {
-        Statement stat = null;
-        ResultSet resultSet = null;
         boolean isPushDown = false;
 
         List<List<String>> results = Lists.newArrayList();
         List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
 
-        try {
+        // special case for prepare query.
+        if (BackdoorToggles.getPrepareOnly()) {
+            return getPrepareOnlySqlResponse(correctedSql, queryExec, isPushDown, results, columnMetas);
+        }
 
-            // special case for prepare query.
-            if (BackdoorToggles.getPrepareOnly()) {
-                return getPrepareOnlySqlResponse(correctedSql, queryExec, isPushDown, results, columnMetas);
+        if (isPrepareStatementWithParams(sqlRequest)) {
+            for (int i = 0; i < ((PrepareSqlRequest) sqlRequest).getParams().length; i++) {
+                setParam(queryExec, i, ((PrepareSqlRequest) sqlRequest).getParams()[i]);
             }
+        }
+        // special case for prepare query.
+        QueryResult queryResult = queryExec.executeQuery(correctedSql);
 
-            if (isPrepareStatementWithParams(sqlRequest)) {
-                for (int i = 0; i < ((PrepareSqlRequest) sqlRequest).getParams().length; i++) {
-                    setParam(queryExec, i, ((PrepareSqlRequest) sqlRequest).getParams()[i]);
-                }
-            }
-            // special case for prepare query.
-            QueryResult queryResult = queryExec.executeQuery(correctedSql);
+        int columnCount = queryResult.getColumns().size();
+        List<StructField> fieldList = queryResult.getColumns();
 
-            int columnCount = queryResult.getColumns().size();
-            List<StructField> fieldList = queryResult.getColumns();
+        results.addAll(queryResult.getRows());
 
-            results.addAll(queryResult.getRows());
-
-            // fill in selected column meta
-            for (int i = 0; i < columnCount; ++i) {
-                int nullable = fieldList.get(i).isNullable() ? 1 : 0;
-                columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true,
-                        fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null,
-                        null, null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(),
-                        fieldList.get(i).getDataType(), fieldList.get(i).getDataTypeName(), false, false, false));
-            }
-
-        } finally {
-            close(resultSet, stat, null); //conn is passed in, not my duty to close
+        // fill in selected column meta
+        for (int i = 0; i < columnCount; ++i) {
+            int nullable = fieldList.get(i).isNullable() ? 1 : 0;
+            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true,
+                    fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null,
+                    null, null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(),
+                    fieldList.get(i).getDataType(), fieldList.get(i).getDataTypeName(), false, false, false));
         }
 
         return buildSqlResponse(isPushDown, results, columnMetas, sqlRequest.getProject());

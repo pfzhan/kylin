@@ -1819,4 +1819,15 @@ public class CnMessage extends Message {
     public String getCONNECT_DATABASE_ERROR() {
         return "连接数据库异常。请检查数据库连接是否正常。";
     }
+
+    // acl
+    @Override
+    public String getInvalidColumnAccess() {
+        return "当前用户/组对 %s 列没有访问权限。";
+    }
+
+    @Override
+    public String getInvalidSensitiveDataMaskColumnType() {
+        return "Boolean、Map、Array 数据类型暂不支持脱敏。";
+    }
 }

@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
+import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
@@ -51,7 +54,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -194,6 +196,22 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         return false;
     }
 
+    private SensitiveDataMask.MaskType getColumnDataMask(AclTCRRequest acl, String database, String table, String column) {
+        if (acl.getDatabaseName().equals(database)) {
+            for (val tb : acl.getTables()) {
+                if (tb.getTableName().equals(table)) {
+                    if (!tb.isAuthorized())
+                        return null;
+                    for (val cn : tb.getColumns()) {
+                        if (cn.getColumnName().equals(column))
+                            return cn.getDataMaskType();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private List<AclTCRRequest> fillAclTCRRequest(AclTCRRequest origin) {
         val allTables = NTableMetadataManager.getInstance(getTestConfig(), projectDefault).listAllTables();
         Map<String, AclTCRRequest> requests = new HashMap<>();
@@ -211,7 +229,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             List<AclTCRRequest.Column> columns = new ArrayList<>();
             Arrays.stream(table.getColumns()).forEach(columnDesc -> {
                 AclTCRRequest.Column column = new AclTCRRequest.Column();
-                column.setAuthorized(getColumnAuthorized(origin, database, table.getName(), column.getColumnName()));
+                column.setAuthorized(getColumnAuthorized(origin, database, table.getName(), columnDesc.getName()));
+                column.setDataMaskType(getColumnDataMask(origin, database, table.getName(), columnDesc.getName()));
                 column.setColumnName(columnDesc.getName());
                 columns.add(column);
             });
@@ -266,8 +285,12 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         AclTCRRequest.Column u1c2 = new AclTCRRequest.Column();
         u1c2.setColumnName("BUYER_ID");
         u1c2.setAuthorized(false);
+        AclTCRRequest.Column u1c3 = new AclTCRRequest.Column();
+        u1c3.setColumnName("TEST_DATE_ENC");
+        u1c3.setAuthorized(true);
+        u1c3.setDataMaskType(SensitiveDataMask.MaskType.DEFAULT);
         // add columns
-        u1t1.setColumns(Arrays.asList(u1c1, u1c2));
+        u1t1.setColumns(Arrays.asList(u1c1, u1c2, u1c3));
 
         AclTCRRequest.Row u1r1 = new AclTCRRequest.Row();
         u1r1.setColumnName("ORDER_ID");
@@ -282,6 +305,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         aclTCRService.updateAclTCR(projectDefault, user1, true, fillAclTCRRequest(request));
         tables = manager.getAuthorizedTables(user1, null);
         Assert.assertFalse(tables.contains("DEFAULT.TEST_COUNTRY"));
+        SensitiveDataMaskInfo maskInfo = manager.getSensitiveDataMaskInfo(user1, null);
+        Assert.assertNotNull(maskInfo.getMask("DEFAULT", "TEST_ORDER", "TEST_DATE_ENC"));
 
         // test revoke AclTCR
         tables = manager.getAuthorizedTables(user1, null);
@@ -365,6 +390,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         columnRow1.setRow(row1);
         column1.addAll(Arrays.asList("ORDER_ID", "BUYER_ID", "TEST_DATE_ENC"));
         columnRow1.setColumn(column1);
+        columnRow1.setColumnSensitiveDataMask(Lists.newArrayList(new SensitiveDataMask("ORDER_ID", SensitiveDataMask.MaskType.AS_NULL)));
         table.put("DEFAULT.TEST_ORDER", columnRow1);
         table.put("DEFAULT.TEST_ACCOUNT", null);
 
@@ -407,6 +433,9 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                 .anyMatch(resp -> resp.getTables().stream()
                         .anyMatch(t -> t.getRows().stream().anyMatch(r -> "COUNTRY".equals(r.getColumnName())
                                 && "country_a,country_b".equals(String.join(",", r.getItems()))))));
+
+        Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream().anyMatch(t -> t.getColumns()
+                .stream().anyMatch(c -> "ORDER_ID".equals(c.getColumnName()) && c.getDataMaskType() == SensitiveDataMask.MaskType.AS_NULL))));
     }
 
     @Test

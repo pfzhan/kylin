@@ -31,7 +31,9 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +43,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -326,6 +329,8 @@ public class AclTCRService extends BasicService {
             return Lists.newArrayList();
         }
         boolean isNull = Objects.isNull(authorizedColumnRow);
+        final Map<String, SensitiveDataMask> maskMap = isNull ?
+                new HashMap<>() : authorizedColumnRow.getColumnSensitiveDataMaskMap();
         return columnRow.getColumn().stream().map(colName -> {
             AclTCRResponse.Column col = new AclTCRResponse.Column();
             col.setColumnName(colName);
@@ -334,6 +339,9 @@ public class AclTCRService extends BasicService {
                 col.setAuthorized(true);
             } else if (!isNull && Objects.nonNull(authorizedColumnRow.getColumn())) {
                 col.setAuthorized(authorizedColumnRow.getColumn().contains(colName));
+            }
+            if (maskMap.get(colName) != null) {
+                col.setDataMaskType(maskMap.get(colName).getType());
             }
             return col;
         }).collect(Collectors.toList());
@@ -383,6 +391,8 @@ public class AclTCRService extends BasicService {
             response.setAuthorizedTableNum(de.getValue().size());
             response.setTotalTableNum(de.getValue().size());
             response.setTables(de.getValue().entrySet().stream().map(te -> {
+                final Map<String, SensitiveDataMask> maskMap =
+                        te.getValue() == null ? new HashMap<>() : te.getValue().getColumnSensitiveDataMaskMap();
                 AclTCRResponse.Table tbl = new AclTCRResponse.Table();
                 tbl.setTableName(te.getKey());
                 tbl.setAuthorized(true);
@@ -392,6 +402,9 @@ public class AclTCRService extends BasicService {
                     AclTCRResponse.Column col = new AclTCRResponse.Column();
                     col.setColumnName(colName);
                     col.setAuthorized(true);
+                    if (maskMap.get(colName) != null) {
+                        col.setDataMaskType(maskMap.get(colName).getType());
+                    }
                     return col;
                 }).collect(Collectors.toList()));
                 tbl.setRows(transformResponseRow(te.getValue().getRow()));
@@ -435,7 +448,7 @@ public class AclTCRService extends BasicService {
             if (Objects.nonNull(columnRow.getColumn())
                     && Optional.ofNullable(getTableManager(project).getTableDesc(dbTblName).getColumns())
                             .map(Arrays::stream).orElseGet(Stream::empty).map(ColumnDesc::getName)
-                            .allMatch(colName -> columnRow.getColumn().contains(colName))) {
+                            .allMatch(colName -> columnRow.getColumn().contains(colName) && columnRow.getColumnSensitiveDataMask() == null)) {
                 columnRow.setColumn(null);
             }
 
@@ -461,7 +474,7 @@ public class AclTCRService extends BasicService {
                     AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
                     AclTCR.Column aclColumn;
                     if (Optional.ofNullable(t.getColumns()).map(List::stream).orElseGet(Stream::empty)
-                            .allMatch(AclTCRRequest.Column::isAuthorized)) {
+                            .allMatch(col -> col.isAuthorized() && col.getDataMaskType() == null)) {
                         aclColumn = null;
                     } else {
                         aclColumn = new AclTCR.Column();
@@ -470,6 +483,14 @@ public class AclTCRService extends BasicService {
                                 .collect(Collectors.toSet()));
                     }
                     columnRow.setColumn(aclColumn);
+
+                    List<SensitiveDataMask> masks = new LinkedList<>();
+                    for (AclTCRRequest.Column column : t.getColumns()) {
+                        if (column.getDataMaskType() != null) {
+                            masks.add(new SensitiveDataMask(column.getColumnName(), column.getDataMaskType()));
+                        }
+                    }
+                    columnRow.setColumnSensitiveDataMask(masks);
 
                     AclTCR.Row aclRow;
                     if (Optional.ofNullable(t.getRows()).map(List::stream).orElseGet(Stream::empty)
@@ -516,22 +537,36 @@ public class AclTCRService extends BasicService {
                     TableDesc tableDesc = tableManager.getTableDesc(tableName);
                     table.getRows().stream()
                             .filter(r -> CollectionUtils.isNotEmpty(r.getItems()))
-                            .forEach(column -> {
-                                ColumnDesc columnDesc = tableDesc.findColumnByName(column.getColumnName());
+                            .forEach(rows -> {
+                                ColumnDesc columnDesc = tableDesc.findColumnByName(rows.getColumnName());
                                 if (!columnDesc.getType().isNumberFamily()) {
                                     return;
                                 }
-                                String columnName = tableName + "." + column.getColumnName();
-                                column.getItems().forEach(item -> {
+                                String columnName = tableName + "." + rows.getColumnName();
+                                rows.getItems().forEach(item -> {
                                     try {
                                         Double.parseDouble(item);
                                     } catch (Exception e) {
                                         throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getCOLUMN_PARAMETER_INVALID(columnName));
                                     }
                                 });
+
                             });
 
+                    checkSensitiveDataMaskRequest(table, tableDesc);
                 }));
+    }
+
+    private void checkSensitiveDataMaskRequest(AclTCRRequest.Table table, TableDesc tableDesc) {
+        for (AclTCRRequest.Column column : table.getColumns()) {
+            if (column.getDataMaskType() != null && !column.isAuthorized()) {
+                throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getInvalidColumnAccess(), column.getColumnName()));
+            }
+
+            if (column.getDataMaskType() != null && !SensitiveDataMask.isValidDataType(tableDesc.findColumnByName(column.getColumnName()).getDatatype())) {
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidColumnAccess());
+            }
+        }
     }
 
     private Map<String, Map<String, Integer>> getDbTblColNum(String project) {

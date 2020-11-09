@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -112,6 +115,9 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         @JsonProperty
         private Row row = null;
 
+        @JsonProperty
+        private List<SensitiveDataMask> columnSensitiveDataMask = null;
+
         public Column getColumn() {
             return column;
         }
@@ -126,6 +132,24 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
 
         public void setRow(Row row) {
             this.row = row;
+        }
+
+        public Map<String, SensitiveDataMask> getColumnSensitiveDataMaskMap() {
+            Map<String, SensitiveDataMask> maskMap = new HashMap<>();
+            if (columnSensitiveDataMask != null) {
+                for (SensitiveDataMask mask : columnSensitiveDataMask) {
+                    maskMap.put(mask.getColumn(), mask);
+                }
+            }
+            return maskMap;
+        }
+
+        public List<SensitiveDataMask> getColumnSensitiveDataMask() {
+            return columnSensitiveDataMask;
+        }
+
+        public void setColumnSensitiveDataMask(List<SensitiveDataMask> columnSensitiveDataMask) {
+            this.columnSensitiveDataMask = columnSensitiveDataMask;
         }
     }
 

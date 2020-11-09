@@ -26,6 +26,7 @@ import java.util.UUID
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
+import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
@@ -96,13 +97,14 @@ object ResultPlan extends LogEx {
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
       QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
-
       val dt = rows.map { row =>
         if (Thread.interrupted()) {
           throw new InterruptedException
         }
-        row.toSeq.zip(resultTypes).map{
-          case(value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
+        row.toSeq.zip(resultTypes).zipWithIndex.map{
+          case ((value, relField), idx) =>
+            val converted = SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType);
+            QuerySensitiveDataMask.maskResult(converted, idx);
         }.asJava
       }.toSeq.asJava
       QueryContext.current.record("transform_result")
@@ -162,6 +164,7 @@ object ResultPlan extends LogEx {
   def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {
     SparderEnv.getResultRef.set(true)
     SparderEnv.setDF(df)
+    val maskedDf = QuerySensitiveDataMask.maskResult(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
     val queryExecutionId = UUID.randomUUID.toString

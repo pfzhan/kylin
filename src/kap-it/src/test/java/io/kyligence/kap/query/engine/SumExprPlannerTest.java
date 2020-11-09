@@ -140,8 +140,7 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
                 .collect(Collectors.toList());
     }
     private static RelNode toCalcitePlan(String project, String SQL) {
-        ProjectSchemaFactory ps = new ProjectSchemaFactory(project, KylinConfig.getInstanceFromEnv());
-        QueryExec qe = new QueryExec(KylinConfig.getInstanceFromEnv(), ps);
+        QueryExec qe = new QueryExec(project, KylinConfig.getInstanceFromEnv());
         try {
             return qe.parseAndOptimize(SQL);
         } catch (SqlParseException e) {

@@ -28,6 +28,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import lombok.Data;
 
 @Data
@@ -73,6 +74,9 @@ public class AclTCRResponse {
 
         @JsonProperty("column_name")
         private String columnName;
+
+        @JsonProperty("data_mask_type")
+        private SensitiveDataMask.MaskType dataMaskType;
     }
 
     @Data
