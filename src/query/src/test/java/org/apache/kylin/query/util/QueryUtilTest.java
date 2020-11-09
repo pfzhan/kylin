@@ -375,4 +375,26 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testLimitOffsetMatch() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String sql1 = "select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID";
+        QueryParams queryParams1 = new QueryParams(config, sql1, "default", 5, 2, "DEFAULT", true);
+        String newSql1 = QueryUtil.massageSql(queryParams1);
+        Assert.assertEquals("select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID\n" +
+                "LIMIT 5\n" +
+                "OFFSET 2", newSql1);
+
+        String sql2 = "select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID limit 10 offset 3";
+        QueryParams queryParams2 = new QueryParams(config, sql2, "cc_test", 5, 2, "ssb", true);
+        String newSql2 = QueryUtil.massageSql(queryParams2);
+        Assert.assertEquals("select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID " +
+                "limit 10 offset 3", newSql2);
+
+        String sql3 = "(select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID)limit 10 offset 3";
+        QueryParams queryParams3 = new QueryParams(config, sql3, "cc_test", 5, 2, "ssb", true);
+        String newSql3 = QueryUtil.massageSql(queryParams3);
+        Assert.assertEquals("(select TRANS_ID as test_limit, ORDER_ID as test_offset from TEST_KYLIN_FACT group by TRANS_ID, ORDER_ID)" +
+                "limit 10 offset 3", newSql3);
+    }
 }

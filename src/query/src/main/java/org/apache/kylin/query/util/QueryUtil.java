@@ -125,11 +125,13 @@ public class QueryUtil {
         while (sql.endsWith(";"))
             sql = sql.substring(0, sql.length() - 1);
 
-        if (limit > 0 && !sql.toLowerCase().contains("limit")) {
+        //Split keywords and variables from sql by punctuation and whitespace character
+        List<String> sqlElements = Lists.newArrayList(sql.toLowerCase().split("(?![\\._])\\p{P}|\\s+"));
+        if (limit > 0 && !sqlElements.contains("limit")) {
             sql += ("\nLIMIT " + limit);
         }
 
-        if (offset > 0 && !sql.toLowerCase().contains("offset")) {
+        if (offset > 0 && !sqlElements.contains("offset")) {
             sql += ("\nOFFSET " + offset);
         }
 
