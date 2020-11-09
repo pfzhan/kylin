@@ -167,7 +167,7 @@ public class OpenModelController extends NBasicController {
     @PutMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model_name") String modelAlias,
-                                                                    @RequestBody SegmentsRequest request) {
+            @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.refreshOrMergeSegments(modelId, request);
@@ -242,18 +242,19 @@ public class OpenModelController extends NBasicController {
             } else {
                 SQLValidateResult validateResult = entry.getValue();
                 errorSqls.add(sql);
-                errorSqlDetailSet.add(new OpenModelValidationResponse.ErrorSqlDetail(sql, validateResult.getSqlAdvices()));
+                errorSqlDetailSet
+                        .add(new OpenModelValidationResponse.ErrorSqlDetail(sql, validateResult.getSqlAdvices()));
             }
         }
 
         Map<String, List<NDataModel>> answeredModels = modelService.answeredByExistedModels(project, normalSqls);
-        Map<String, List<String>> validSqls = answeredModels.keySet().stream().collect(Collectors.toMap(sql -> sql,
-                sql -> answeredModels.get(sql).stream()
-                        .map(NDataModel::getAlias)
-                        .collect(Collectors.toList()),
-                (a, b) -> b));
+        Map<String, List<String>> validSqls = answeredModels.keySet().stream()
+                .collect(Collectors.toMap(sql -> sql,
+                        sql -> answeredModels.get(sql).stream().map(NDataModel::getAlias).collect(Collectors.toList()),
+                        (a, b) -> b));
 
-        return new OpenModelValidationResponse(validSqls, Lists.newArrayList(errorSqls), Lists.newArrayList(errorSqlDetailSet));
+        return new OpenModelValidationResponse(validSqls, Lists.newArrayList(errorSqls),
+                Lists.newArrayList(errorSqlDetailSet));
     }
 
     @PostMapping(value = "/model_validation")
@@ -335,6 +336,10 @@ public class OpenModelController extends NBasicController {
             result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getNewModels());
         } else {
             result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getReusedModels());
+        }
+
+        if (request.isAcceptRecommendation()) {
+            modelService.saveRecResult(modelSuggestionResponse, request.getProject());
         }
 
         Set<String> normalRecommendedSqlSet = Sets.newHashSet();

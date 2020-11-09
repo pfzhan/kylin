@@ -1490,6 +1490,20 @@ public class ModelService extends BasicService {
         }
     }
 
+    @Transaction(project = 1)
+    public void saveRecResult(ModelSuggestionResponse modelSuggestionResponse, String project) {
+        for (NRecommendedModelResponse response : modelSuggestionResponse.getReusedModels()) {
+            NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            modelMgr.updateDataModel(response.getId(), copyForWrite -> {
+                copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
+                copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
+                copyForWrite.setAllMeasures(response.getAllMeasures());
+            });
+            NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            indexMgr.updateIndexPlan(response.getIndexPlan());
+        }
+    }
+
     public NDataModel createModel(String project, ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         validatePartitionDateColumn(modelRequest);

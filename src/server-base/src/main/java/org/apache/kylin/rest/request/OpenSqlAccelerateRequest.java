@@ -46,6 +46,8 @@ public class OpenSqlAccelerateRequest implements Serializable, ProjectInsensitiv
     private List<String> sqls;
     @JsonProperty("force")
     private Boolean force2CreateNewModel;
+    @JsonProperty("accept_recommendation")
+    private boolean acceptRecommendation = true;
     @JsonProperty("with_segment")
     private boolean withEmptySegment = true;
     @JsonProperty("with_model_online")

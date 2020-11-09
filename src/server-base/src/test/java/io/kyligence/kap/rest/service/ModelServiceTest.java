@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 import static org.awaitility.Awaitility.await;
 
 import java.io.ByteArrayInputStream;
@@ -201,6 +202,7 @@ import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
+import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -213,6 +215,8 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -1103,6 +1107,54 @@ public class ModelServiceTest extends CSVSourceTestCase {
         response2.getReusedModels().forEach(recommendedModelResponse -> {
             List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
             Assert.assertTrue(indexes.isEmpty());
+        });
+    }
+
+    @Test
+    public void testSuggestOrOptimizeModels() throws Exception {
+        String project = "newten";
+        // prepare initial model
+        AbstractContext smartContext = NSmartMaster.proposeForAutoMode(getTestConfig(), project,
+                new String[] { "select price from test_kylin_fact" }, null);
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        NDataModel targetModel = modelContexts.get(0).getTargetModel();
+
+        transferProjectToSemiAutoMode(getTestConfig(), project);
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        dfManager.updateDataflow(targetModel.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
+        long dimensionCount = allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(1L, dimensionCount);
+        Assert.assertEquals(1, dataModel.getAllMeasures().size());
+
+        List<String> sqlList = Lists.newArrayList();
+        sqlList.add("select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name");
+        ModelSuggestionResponse modelSuggestionResponse = modelService.suggestModel(project, sqlList, true);
+        modelService.saveRecResult(modelSuggestionResponse, project);
+
+        NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(2L, dimensionCountRefreshed);
+        Assert.assertEquals(2, modelAfterSuggestModel.getAllMeasures().size());
+    }
+
+    public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        projectManager.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kylin.metadata.semi-automatic-mode", "true");
+            copyForWrite.setOverrideKylinProps(properties);
         });
     }
 
