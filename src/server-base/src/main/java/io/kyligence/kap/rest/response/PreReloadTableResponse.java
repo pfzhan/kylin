@@ -59,6 +59,9 @@ public class PreReloadTableResponse {
     @JsonProperty("refresh_layouts_count")
     private long refreshLayoutsCount;
 
+    @JsonProperty("snapshot_deleted")
+    private boolean snapshotDeleted = false;
+
     public PreReloadTableResponse() {
     }
 
@@ -72,5 +75,6 @@ public class PreReloadTableResponse {
         this.removeLayoutsCount = otherResponse.removeLayoutsCount;
         this.addLayoutsCount = otherResponse.addLayoutsCount;
         this.refreshLayoutsCount = otherResponse.refreshLayoutsCount;
+        this.snapshotDeleted = otherResponse.snapshotDeleted;
     }
 }

@@ -73,6 +73,11 @@ public class JobManager {
         return new JobManager(conf, project);
     }
 
+    public String addSnapshotJob(JobParam jobParam) {
+        jobParam.setJobTypeEnum(JobTypeEnum.SNAPSHOT_BUILD);
+        return addJob(jobParam);
+    }
+
     public String addSegmentJob(JobParam jobParam) {
         jobParam.setJobTypeEnum(JobTypeEnum.INC_BUILD);
         return addJob(jobParam);

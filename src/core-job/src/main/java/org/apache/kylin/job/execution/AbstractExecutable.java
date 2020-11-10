@@ -230,10 +230,12 @@ public abstract class AbstractExecutable implements Executable {
         MetricsGroup.hostTagCounterInc(MetricsName.JOB_STEP_ATTEMPTED, MetricsCategory.PROJECT, project, retry);
         if (result.succeed()) {
             wrapWithCheckQuit(() -> {
-                updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
+                updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(),
+                        null);
             });
         } else {
-            MetricsGroup.hostTagCounterInc(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, project, retry);
+            MetricsGroup.hostTagCounterInc(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, project,
+                    retry);
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
                         this::onExecuteErrorHook);
@@ -256,7 +258,7 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
-                                String output, String logPath, Consumer<String> hook) {
+            String output, String logPath, Consumer<String> hook) {
         long epochId = context == null ? -1 : context.getEpochId();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
@@ -505,7 +507,8 @@ public abstract class AbstractExecutable implements Executable {
         if (this instanceof DefaultChainedExecutable) {
             MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
         } else {
-            MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()), users);
+            MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()),
+                    users);
         }
     }
 
@@ -651,9 +654,18 @@ public abstract class AbstractExecutable implements Executable {
         return config.getSparkEngineDriverMemoryTableSampling();
     }
 
+    private static int computeSnapshotAnalyzeMemory() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        return config.getSparkEngineDriverMemorySnapshotBuilding();
+    }
+
     public int computeStepDriverMemory() {
         if (getJobType() == JobTypeEnum.TABLE_SAMPLING) {
             return computeTableAnalyzeMemory();
+        }
+
+        if (getJobType() == JobTypeEnum.SNAPSHOT_BUILD || getJobType() == JobTypeEnum.SNAPSHOT_REFRESH) {
+            return computeSnapshotAnalyzeMemory();
         }
 
         String layouts = getParam(NBatchConstants.P_LAYOUT_IDS);

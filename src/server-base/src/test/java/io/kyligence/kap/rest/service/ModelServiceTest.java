@@ -180,7 +180,6 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
@@ -1616,106 +1615,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         testChangePartitionDesc_OriginModelNoPartition();
         testChangePartitionDesc_NewModelNoPartitionColumn();
         cleanPushdownEnv();
-    }
-
-    @Test
-    public void testCreateModel_SelfJoinementBuildIncr() throws Exception {
-        val modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_self_join_increment.json"),
-                ModelRequest.class);
-        modelRequest.setProject("default");
-        modelRequest.setUuid(null);
-        modelRequest.setLastModified(0L);
-        thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. "
-                + "Please set another dimension table, or adjust other models using this table.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-    }
-
-    @Test
-    public void testCreateModel_IncrementBuildFactTableConflictIncrement() throws Exception {
-        setupPushdownEnv();
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        modelManager.listAllModels().forEach(modelManager::dropModel);
-        var modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
-                ModelRequest.class);
-        addModelInfo(modelRequest);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
-                ModelRequest.class);
-        addModelInfo(modelRequest);
-        thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The fact table of this model has been used as dimension table in other models. "
-                + "Please set another fact table, or adjust other models using this table.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-    }
-
-    @Test
-    public void testCreateModel_IncrementBuildFactTableConflictFull() throws Exception {
-        setupPushdownEnv();
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        modelManager.listAllModels().forEach(modelManager::dropModel);
-        var modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
-                ModelRequest.class);
-        modelRequest.setProject("default");
-        modelRequest.setUuid(null);
-        modelRequest.setLastModified(0L);
-        modelRequest.setPartitionDesc(null);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
-                ModelRequest.class);
-        addModelInfo(modelRequest);
-        thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The fact table of this model has been used as dimension table in other models. "
-                + "Please set another fact table, or adjust other models using this table.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-    }
-
-    @Test
-    public void testCreateModel_IncrementBuildLookupTableConflictIncrement() throws Exception {
-        setupPushdownEnv();
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        modelManager.listAllModels().forEach(modelManager::dropModel);
-        var modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
-                ModelRequest.class);
-        addModelInfo(modelRequest);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
-                ModelRequest.class);
-        addModelInfo(modelRequest);
-        thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. "
-                + "Please set another dimension table, or adjust other models using this table.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-    }
-
-    @Test
-    public void testCreateModel_FullBuildLookupTableConflictIncrement() throws Exception {
-        setupPushdownEnv();
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        modelManager.listAllModels().forEach(modelManager::dropModel);
-        var modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
-                ModelRequest.class);
-        addModelInfo(modelRequest);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        modelRequest = JsonUtil.readValue(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
-                ModelRequest.class);
-        modelRequest.setProject("default");
-        modelRequest.setUuid(null);
-        modelRequest.setLastModified(0L);
-        modelRequest.setPartitionDesc(null);
-        thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. "
-                + "Please set another dimension table, or adjust other models using this table.");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
     @Test

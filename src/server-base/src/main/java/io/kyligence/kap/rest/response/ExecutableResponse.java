@@ -31,11 +31,13 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.TableDesc;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -120,6 +122,17 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             if (NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
                     .getTableDesc(executableResponse.getTargetSubject()) == null) {
                 executableResponse.setTargetSubject(executableResponse.getTargetSubject() + " deleted");
+                executableResponse.setTargetSubjectError(true);
+            }
+        } else if (abstractExecutable instanceof NSparkSnapshotJob) {
+            NSparkSnapshotJob snapshotJob = (NSparkSnapshotJob) abstractExecutable;
+            executableResponse.setDataRangeEnd(Long.MAX_VALUE);
+            executableResponse.setTargetSubject(snapshotJob.getParam(NBatchConstants.P_TABLE_NAME));
+            TableDesc tableDesc = NTableMetadataManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
+                    .getTableDesc(executableResponse.getTargetSubject());
+            if (snapshotJob.getStatus().isFinalState() && (tableDesc == null || tableDesc.getLastSnapshotPath() == null)) {
+                executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
         } else {

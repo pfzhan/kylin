@@ -42,6 +42,6 @@ public class NLookupCandidate implements IRealizationCandidate {
 
     @Override
     public double getCost() {
-        return Double.MAX_VALUE;
+        return 0d;
     }
 }

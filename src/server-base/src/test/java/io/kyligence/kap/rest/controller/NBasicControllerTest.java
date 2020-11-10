@@ -125,7 +125,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckRequiredArgException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("model is required");
+        thrown.expectMessage("'model' is required");
         nBasicController.checkRequiredArg("model", "");
     }
 

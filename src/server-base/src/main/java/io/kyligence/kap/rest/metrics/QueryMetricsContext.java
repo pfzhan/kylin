@@ -26,11 +26,13 @@ package io.kyligence.kap.rest.metrics;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
@@ -171,7 +173,19 @@ public class QueryMetricsContext extends QueryMetrics {
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().isExactlyMatch(),
                 context.getMetrics().getSegCount(),
                 Objects.nonNull(this.errorType) && !this.errorType.equals(QueryHistory.NO_REALIZATION_FOUND_ERROR));
-        this.queryHistoryInfo = queryHistoryInfo;
+
+        if (response.getNativeRealizations() != null) {
+            List<List<String>> querySnapshots = Lists.newArrayList();
+            for (NativeQueryRealization realization : response.getNativeRealizations()) {
+                if (CollectionUtils.isEmpty(realization.getSnapshots())) {
+                    continue;
+                }
+                querySnapshots.add(realization.getSnapshots());
+            }
+
+            queryHistoryInfo.setQuerySnapshots(querySnapshots);
+            this.queryHistoryInfo = queryHistoryInfo;
+        }
     }
 
     private void collectErrorType(final QueryContext context) {

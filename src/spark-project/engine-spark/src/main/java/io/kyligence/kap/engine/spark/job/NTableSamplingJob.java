@@ -28,11 +28,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
-import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnTable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -52,11 +50,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NTableSamplingJob extends DefaultChainedExecutable {
-
-    public String getTableIdentity() {
-        return getParam(NBatchConstants.P_TABLE_NAME);
-    }
+public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
 
     @Override
     public Set<String> getMetadataDumpList(KylinConfig config) {
@@ -84,15 +78,12 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         job.setParam(NBatchConstants.P_TABLE_NAME, tableDesc.getIdentity());
         job.setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
 
-        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT);
-        JobStepFactory.addStep(job, JobStepType.SAMPLING);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        JobStepType.RESOURCE_DETECT.createStep(job, config);
+        JobStepType.SAMPLING.createStep(job, config);
+
         log.info("sampling job create success on table {}", tableDesc.getIdentity());
         return job;
-    }
-
-    @Override
-    public String getTargetSubjectAlias() {
-        return getTableIdentity();
     }
 
     @Override
@@ -132,9 +123,9 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
             }
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 if (checkSuicide()) {
-                        log.info(
-                                "This Table Sampling job seems meaningless now, quit before mergeRemoteMetaAfterSampling()");
-                        return null;
+                    log.info(
+                            "This Table Sampling job seems meaningless now, quit before mergeRemoteMetaAfterSampling()");
+                    return null;
                 }
                 mergeRemoteMetaAfterSampling();
                 return null;
@@ -180,17 +171,6 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
 
             return dumpList;
         }
-    }
-
-    @Override
-    protected void afterUpdateOutput(String jobId) {
-        val job = getExecutableManager(getProject()).getJob(jobId);
-        long duration = job.getDuration();
-        long endTime = job.getEndTime();
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        long startOfDay = TimeUtil.getDayStart(endTime);
-        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, getProject());
-        jobStatisticsManager.updateStatistics(startOfDay, duration, 0, 0);
     }
 
 }

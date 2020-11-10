@@ -1442,7 +1442,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getTABLE_NOT_FOUND() {
-        return "找不到表[%s]";
+        return "找不到表 '%s'";
     }
 
     @Override
@@ -1641,13 +1641,8 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
-        return "此模型事实表已被其他模型设置为维度表。请重新设置事实表或修改使用此表的其他模型。";
-    }
-
-    @Override
-    public String getDIMENSION_TABLE_USED_IN_OTHER_MODEL() {
-        return "此模型维度表已被其他模型设置为事实表。请重新设置维度表或修改使用此表的其他模型。";
+    public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
+        return "此模型维度表已被设置为事实表。请重新设置维度表。";
     }
 
     @Override
@@ -1829,5 +1824,21 @@ public class CnMessage extends Message {
     @Override
     public String getInvalidSensitiveDataMaskColumnType() {
         return "Boolean、Map、Array 数据类型暂不支持脱敏。";
+    }
+
+    // Snapshots
+    @Override
+    public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
+        return "没有获取如下表信息的权限：'%s'。";
+    }
+
+    @Override
+    public String getSNAPSHOT_NOT_FOUND() {
+        return "获取不到如下快照：'%s'。";
+    }
+
+    @Override
+    public String getSNAPSHOT_MANAGEMENT_NOT_ENABLED() {
+        return "快照管理模式未开启";
     }
 }

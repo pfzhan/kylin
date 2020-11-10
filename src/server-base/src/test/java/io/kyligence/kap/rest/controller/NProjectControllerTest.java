@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
@@ -300,6 +301,19 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nProjectController).updatePushDownProjectConfig("default", request);
+    }
+
+    @Test
+    public void testUpdateSnapshotConfig() throws Exception {
+        val request = new SnapshotConfigRequest();
+        request.setSnapshotManualManagementEnabled(true);
+
+        Mockito.doNothing().when(projectService).updateSnapshotConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/snapshot_config", "default")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateSnapshotConfig("default", request);
     }
 
     @Test

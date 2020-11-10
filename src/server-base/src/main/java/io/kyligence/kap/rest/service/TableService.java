@@ -36,6 +36,8 @@ import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
+import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
+import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 
 import java.io.File;
 import java.io.IOException;
@@ -123,10 +125,12 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -232,7 +236,7 @@ public class TableService extends BasicService {
         return getTablesResponse(tables, project, withExt);
     }
 
-    private int compareTableDesc(TableDesc table1, TableDesc table2) {
+    public int compareTableDesc(TableDesc table1, TableDesc table2) {
         if (table1.isTop() == table2.isTop()) {
             if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
                 return table1.getName().compareToIgnoreCase(table2.getName());
@@ -512,13 +516,26 @@ public class TableService extends BasicService {
         return getAclTCRManager(project).getAuthorizedTableDesc(originTable, aclTCRS);
     }
 
-    private long getSnapshotSize(String project, String table, FileSystem fs) throws IOException {
+    public long getSnapshotSize(String project, String table, FileSystem fs) {
         val tableDesc = getTableManager(project).getTableDesc(table);
         if (tableDesc != null && tableDesc.getLastSnapshotPath() != null) {
             try {
                 val path = new Path(KapConfig.wrap(KylinConfig.getInstanceFromEnv()).getMetadataWorkingDirectory(),
                         tableDesc.getLastSnapshotPath());
                 return HadoopUtil.getContentSummary(fs, path).getLength();
+            } catch (Exception e) {
+                logger.warn("cannot get snapshot path {}", tableDesc.getLastSnapshotPath(), e);
+            }
+        }
+        return 0;
+    }
+
+    public long getSnapshotModificationTime(TableDesc tableDesc) {
+        if (tableDesc != null && tableDesc.getLastSnapshotPath() != null) {
+            try {
+                val path = new Path(KapConfig.wrap(KylinConfig.getInstanceFromEnv()).getMetadataWorkingDirectory(),
+                        tableDesc.getLastSnapshotPath());
+                return HDFSUtils.getFileStatus(path).getModificationTime();
             } catch (Exception e) {
                 logger.warn("cannot get snapshot path {}", tableDesc.getLastSnapshotPath(), e);
             }
@@ -860,6 +877,18 @@ public class TableService extends BasicService {
             throw new KylinException(INVALID_TABLE_NAME, String.format(msg.getTABLE_NOT_FOUND(), table));
         }
 
+        val execManager = getExecutableManager(project);
+        val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
+                SNAPSHOT_REFRESH);
+
+        List<AbstractExecutable> conflictJobs = executables.stream()
+                .filter(exec -> table.equalsIgnoreCase(exec.getParam(NBatchConstants.P_TABLE_NAME)))
+                .collect(Collectors.toList());
+
+        conflictJobs.forEach(job -> {
+            execManager.cancelJob(job.getId());
+        });
+
         val dataflowManager = getDataflowManager(project);
         if (cascade) {
             for (NDataModel tableRelatedModel : dataflowManager.getModelsUsingTable(tableDesc)) {
@@ -904,14 +933,16 @@ public class TableService extends BasicService {
 
         val rootTableModels = dataflowManager.getModelsUsingRootTable(tableDesc);
         val fs = HadoopUtil.getWorkingFileSystem();
+        long storageSize = 0;
         if (CollectionUtils.isNotEmpty(rootTableModels)) {
-            response.setStorageSize(getStorageSize(project, rootTableModels, fs));
-        } else if (CollectionUtils.isNotEmpty(models)) {
-            response.setStorageSize(getSnapshotSize(project, tableIdentity, fs));
+            storageSize += getStorageSize(project, rootTableModels, fs);
         }
+        storageSize += getSnapshotSize(project, tableIdentity, fs);
+        response.setStorageSize(storageSize);
 
         response.setHasJob(
                 execManager.countByModelAndStatus(tableIdentity, state -> state == ExecutableState.RUNNING) > 0);
+        response.setHasSnapshot(tableDesc.getLastSnapshotPath() != null);
 
         return response;
     }
@@ -1109,6 +1140,9 @@ public class TableService extends BasicService {
         result.setRemoveDimCount(context.getRemoveAffectedModels().values().stream()
                 .map(AffectedModelContext::getDimensions).mapToLong(Set::size).sum());
         result.setDataTypeChangeColumnCount(context.getChangeTypeColumns().size());
+        val schemaChanged = result.getAddColumnCount() > 0 || result.getRemoveColumnCount() > 0 ||
+                result.getDataTypeChangeColumnCount() > 0;
+        result.setSnapshotDeleted(schemaChanged);
         val projectInstance = getProjectManager().getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());

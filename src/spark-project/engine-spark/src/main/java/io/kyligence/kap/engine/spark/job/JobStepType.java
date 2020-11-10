@@ -24,12 +24,84 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+
 public enum JobStepType {
-    RESOURCE_DETECT,
 
-    CLEAN_UP_AFTER_MERGE, CUBING, MERGING,
+    RESOURCE_DETECT {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new NResourceDetectStep(parent);
+        }
+    },
 
-    SAMPLING,
+    CLEAN_UP_AFTER_MERGE {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            AbstractExecutable step = new NSparkCleanupAfterMergeStep();
+            return step;
 
-    UPDATE_METADATA
+        }
+    },
+    CUBING {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new NSparkCubingStep(config.getSparkBuildClassName());
+        }
+    },
+    MERGING {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new NSparkMergingStep(config.getSparkMergeClassName());
+        }
+    },
+
+    BUILD_SNAPSHOT {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new NSparkSnapshotBuildingStep(config.getSnapshotBuildClassName());
+        }
+    },
+
+    SAMPLING {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new NTableSamplingJob.SamplingStep(config.getSparkTableSamplingClassName());
+        }
+    },
+
+    UPDATE_METADATA {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            if (!(parent instanceof DefaultChainedExecutableOnModel)) {
+                throw new IllegalArgumentException();
+            }
+            ((DefaultChainedExecutableOnModel) parent).setHandler(
+                    ExecutableHandlerFactory.createExecutableHandler((DefaultChainedExecutableOnModel) parent));
+            return new NSparkUpdateMetadataStep();
+        }
+    };
+
+    protected abstract AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config);
+
+    public AbstractExecutable createStep(DefaultChainedExecutable parent, KylinConfig config) {
+        AbstractExecutable step = create(parent, config);
+        addParam(parent, step, config);
+        return step;
+    }
+
+    protected void addParam(DefaultChainedExecutable parent, AbstractExecutable step, KylinConfig config) {
+        step.setParams(parent.getParams());
+        step.setProject(parent.getProject());
+        step.setTargetSubject(parent.getTargetSubject());
+        step.setJobType(parent.getJobType());
+        parent.addTask(step);
+        if (step instanceof NSparkExecutable) {
+            ((NSparkExecutable) step).setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
+        }
+    }
+
 }

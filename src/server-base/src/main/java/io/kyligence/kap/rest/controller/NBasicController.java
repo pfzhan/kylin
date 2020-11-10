@@ -264,7 +264,27 @@ public class NBasicController {
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(INVALID_PARAMETER, fieldName + " is required");
+            throw new KylinException(INVALID_PARAMETER, String.format("'%s' is required.", fieldName));
+        }
+    }
+
+    protected void checkNonNegativeIntegerArg(String fieldName, Object fieldValue) {
+        checkRequiredArg(fieldName, fieldValue);
+        try {
+            Integer i = Integer.parseInt(String.valueOf(fieldValue));
+            if (i < 0) {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException e) {
+            throw new KylinException(INVALID_PARAMETER, String.format("'%s' must be a non-negative integer.", fieldName));
+        }
+    }
+
+    protected void checkBooleanArg(String fieldName, Object fieldValue) {
+        checkRequiredArg(fieldName, fieldValue);
+        String booleanString = String.valueOf(fieldValue);
+        if (!"true".equalsIgnoreCase(booleanString) && !"false".equalsIgnoreCase(booleanString)) {
+            throw new KylinException(INVALID_PARAMETER, String.format("'%s' must be boolean type.", fieldName));
         }
     }
 

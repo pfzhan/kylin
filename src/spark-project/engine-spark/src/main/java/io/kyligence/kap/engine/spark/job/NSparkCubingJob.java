@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecuteResult;
@@ -132,10 +133,11 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         if (CollectionUtils.isNotEmpty(ignoredSnapshotTables)) {
             job.setParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES, String.join(",", ignoredSnapshotTables));
         }
+        KylinConfigExt config = df.getConfig();
 
-        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments);
-        JobStepFactory.addStep(job, JobStepType.CUBING, segments);
-        JobStepFactory.addStep(job, JobStepType.UPDATE_METADATA, segments);
+        JobStepType.RESOURCE_DETECT.createStep(job, config);
+        JobStepType.CUBING.createStep(job, config);
+        JobStepType.UPDATE_METADATA.createStep(job, config);
         return job;
     }
 

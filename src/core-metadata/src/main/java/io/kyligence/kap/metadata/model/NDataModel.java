@@ -509,6 +509,10 @@ public class NDataModel extends RootPersistentEntity {
         return false;
     }
 
+    public boolean isLookupTable(TableDesc tableDesc) {
+        return isLookupTable(tableDesc.getIdentity());
+    }
+
     public boolean isFactTable(TableRef t) {
         if (t == null)
             return false;
@@ -978,27 +982,11 @@ public class NDataModel extends RootPersistentEntity {
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(getProject());
         if (Objects.nonNull(projectInstance)
                 && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            if (isIncrementBuildOnExpertMode()) {
-                val incrementLookupTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
-                        .flatMap(model -> model.getJoinTables().stream()
-                                .filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
-                                .map(JoinTableDesc::getTable))
-                        .collect(Collectors.toSet());
-
-                if (incrementLookupTables.contains(getRootFactTableName())) {
-                    throw new LookupTableException(MsgPicker.getMsg().getFACT_TABLE_USED_IN_OTHER_MODEL());
-                }
-            }
-
-            val incrementRootFactTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
-                    .filter(NDataModel::isIncrementBuildOnExpertMode).map(NDataModel::getRootFactTable)
-                    .map(TableRef::getTableIdentity).collect(Collectors.toSet());
-            incrementRootFactTables.add(getRootFactTableName());
             val lookups = getJoinTables().stream().filter(joinTableDesc -> joinTableDesc.getKind() == TableKind.LOOKUP)
                     .map(JoinTableDesc::getTable).collect(Collectors.toSet());
 
-            if (!Collections.disjoint(incrementRootFactTables, lookups)) {
-                throw new LookupTableException(MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_OTHER_MODEL());
+            if (lookups.contains(getRootFactTableName())) {
+                throw new LookupTableException(MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_THIS_MODEL());
             }
         }
     }

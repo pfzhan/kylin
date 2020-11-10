@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -74,7 +75,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -345,8 +345,14 @@ public class NExecutableManager {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> predicate.apply(e.getStatus()))
+                .filter(e -> predicate.test(e.getStatus()))
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).collect(Collectors.toList());
+    }
+
+    public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate, JobTypeEnum... jobTypes) {
+        return getAllExecutables().stream() //
+                .filter(e -> e.getJobType() != null && (Lists.newArrayList(jobTypes).contains(e.getJobType())))
+                .filter(e -> predicate.test(e.getStatus())).collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> listExecBySegmentAndStatus(String model, Predicate<ExecutableState> predicate,
@@ -355,7 +361,7 @@ public class NExecutableManager {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> predicate.apply(e.getStatus()))
+                .filter(e -> predicate.test(e.getStatus()))
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType())))
                 .filter(e -> e.getTargetSegments().stream().anyMatch(relatedSegmentSet::contains))
                 .collect(Collectors.toList());
@@ -365,7 +371,7 @@ public class NExecutableManager {
         Map<String, List<String>> result = getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> models.contains(e.getTargetSubject())) //
-                .filter(e -> predicate.apply(e.getStatus()))
+                .filter(e -> predicate.test(e.getStatus()))
                 .collect(Collectors.toMap(AbstractExecutable::getTargetSubject,
                         executable -> Lists.newArrayList(executable.getId()), (one, other) -> {
                             one.addAll(other);

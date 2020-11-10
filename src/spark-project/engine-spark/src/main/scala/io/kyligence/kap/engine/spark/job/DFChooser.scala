@@ -75,9 +75,10 @@ class DFChooser(toBuildTree: NSpanningTree,
             if (needEncoding) {
               if (seg.isSnapshotReady) {
                 logInfo(s"Skip already built snapshot, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
+              } else if (config.isSnapshotManualManagementEnabled()) {
+                logInfo(s"Skip snapshot build in snapshot manual mode, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
               } else {
-                val snapshotBuilder = new DFSnapshotBuilder(seg, ss, ignoredSnapshotTables)
-                snapshotBuilder.buildSnapshot
+                new SnapshotBuilder().buildSnapshot(seg, ss, ignoredSnapshotTables)
               }
             }
             flatTableSource = getFlatTable()

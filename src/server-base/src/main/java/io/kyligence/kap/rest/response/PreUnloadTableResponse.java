@@ -37,6 +37,9 @@ public class PreUnloadTableResponse {
     @JsonProperty("has_model")
     private boolean hasModel;
 
+    @JsonProperty("has_snapshot")
+    private boolean hasSnapshot;
+
     @JsonProperty("storage_size")
     private long storageSize = -1;
 

@@ -58,6 +58,8 @@ public class ProjectConfigResponse {
     private boolean pushDownEnabled;
     @JsonProperty("scd2_enabled")
     private boolean scd2Enabled;
+    @JsonProperty("snapshot_manual_management_enabled")
+    private boolean snapshotManualManagementEnabled;
     @JsonProperty("runner_class_name")
     private String runnerClassName;
     @JsonProperty("converter_class_names")

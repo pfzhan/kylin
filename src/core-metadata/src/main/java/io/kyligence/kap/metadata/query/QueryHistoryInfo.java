@@ -25,6 +25,8 @@
 package io.kyligence.kap.metadata.query;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -51,6 +53,8 @@ public class QueryHistoryInfo implements Serializable {
     private boolean executionError;
     @JsonProperty("error_msg")
     private String errorMsg;
+    @JsonProperty("query_snapshots")
+    private List<List<String>> querySnapshots = new ArrayList<>();
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;

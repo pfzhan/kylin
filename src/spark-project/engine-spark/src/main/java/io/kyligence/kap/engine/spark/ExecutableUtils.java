@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -66,5 +67,6 @@ public class ExecutableUtils {
         // register jobFactory in static function
         new NSparkCubingJob();
         new NSparkMergingJob();
+        new NSparkSnapshotJob();
     }
 }

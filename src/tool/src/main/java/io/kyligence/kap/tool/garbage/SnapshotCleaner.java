@@ -61,21 +61,28 @@ public class SnapshotCleaner implements MetadataCleaner {
         for (NDataflow dataFlow : dfMgr.listAllDataflows()) {
             for (NDataSegment segment : dataFlow.getSegments()) {
                 Set<String> stalePaths = segment.getSnapshots().values().stream()
-                        .filter(snapshotPath -> !snapshotExist(segment, snapshotPath)).collect(Collectors.toSet());
+                        .filter(snapshotPath -> !snapshotExist(snapshotPath, KapConfig.wrap(segment.getConfig())))
+                        .collect(Collectors.toSet());
                 if (!stalePaths.isEmpty()) {
                     staleDataFlowIds.add(dataFlow.getId());
                     staleSnapshotPaths.addAll(stalePaths);
                 }
             }
         }
+        NTableMetadataManager tMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        tMgr.listAllTables().forEach(tableDesc -> {
+            if (!snapshotExist(tableDesc.getLastSnapshotPath(), KapConfig.getInstanceFromEnv())) {
+                staleSnapshotPaths.add(tableDesc.getLastSnapshotPath());
+            }
+        });
     }
 
-    private boolean snapshotExist(NDataSegment segment, String snapshotPath) {
+    private boolean snapshotExist(String snapshotPath, KapConfig config) {
         if (staleSnapshotPaths.contains(snapshotPath)) {
             return false;
         }
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        String baseDir = KapConfig.wrap(segment.getConfig()).getMetadataWorkingDirectory();
+        String baseDir = config.getMetadataWorkingDirectory();
         String resourcePath = baseDir + "/" + snapshotPath;
         try {
             return fs.exists(new Path(resourcePath));

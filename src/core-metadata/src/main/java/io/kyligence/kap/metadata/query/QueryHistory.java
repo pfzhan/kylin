@@ -52,6 +52,7 @@ public class QueryHistory implements IKeep {
     public static final String REALIZATION_MEASUREMENT_SURFIX = "query_history_realization";
 
     public static final String QUERY_HISTORY_ID = "id";
+    public static final String QUERY_HISTORY_INFO = "query_history_info";
     public static final String PROJECT_NAME = "project_name";
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";
@@ -142,7 +143,7 @@ public class QueryHistory implements IKeep {
     @JsonProperty(PROJECT_NAME)
     private String projectName;
 
-    @JsonProperty("realizations")
+    @JsonProperty(REALIZATIONS)
     private List<NativeQueryRealization> nativeQueryRealizations;
 
     private int count;
@@ -150,6 +151,7 @@ public class QueryHistory implements IKeep {
     @JsonProperty(ERROR_TYPE)
     private String errorType;
 
+    @JsonProperty(QUERY_HISTORY_INFO)
     private QueryHistoryInfo queryHistoryInfo;
     // only for test
     private transient long insertTime;

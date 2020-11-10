@@ -31,10 +31,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
@@ -107,10 +109,15 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_DATA_RANGE_START, mergedSegment.getSegRange().getStart().toString());
         job.setParam(NBatchConstants.P_DATA_RANGE_END, mergedSegment.getSegRange().getEnd().toString());
 
-        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, Sets.newHashSet(mergedSegment));
-        JobStepFactory.addStep(job, JobStepType.MERGING, Sets.newHashSet(mergedSegment));
-        JobStepFactory.addStep(job, JobStepType.CLEAN_UP_AFTER_MERGE, Sets.newHashSet(mergedSegment));
-        JobStepFactory.addStep(job, JobStepType.UPDATE_METADATA, Sets.newHashSet(mergedSegment));
+        KylinConfig config = df.getConfig();
+        JobStepType.RESOURCE_DETECT.createStep(job, config);
+        JobStepType.MERGING.createStep(job, config);
+        AbstractExecutable cleanStep = JobStepType.CLEAN_UP_AFTER_MERGE.createStep(job, config);
+        final Segments<NDataSegment> mergingSegments = df.getMergingSegments(mergedSegment);
+        cleanStep.setParam(NBatchConstants.P_SEGMENT_IDS,
+                String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
+
+        JobStepType.UPDATE_METADATA.createStep(job, config);
 
         return job;
     }

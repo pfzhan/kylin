@@ -32,11 +32,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -223,12 +225,16 @@ public class QueryHistoryAccelerateScheduler {
             queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
             rawRecService.generateRawRecommendations(project, matchedCandidate, isManual());
 
+            // count snapshot hit
+            val hitSnapshotCountMap = collectSnapshotHitCount(queryHistories);
+
             // update metadata
-            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId);
+            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId, hitSnapshotCountMap);
         }
 
         private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,
-                Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime, Long maxId) {
+                                    Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime,
+                                    Long maxId, Map<TableDesc, Integer> hitSnapshotCountMap) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -249,6 +255,10 @@ public class QueryHistoryAccelerateScheduler {
                         .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
                 queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
                 QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
+
+                // update snpashot hit count
+                incQueryHitSnapshotCount(hitSnapshotCountMap, project);
+
                 return 0;
             }, project);
         }
@@ -275,6 +285,23 @@ public class QueryHistoryAccelerateScheduler {
             return result;
         }
 
+        private Map<TableDesc, Integer> collectSnapshotHitCount(List<QueryHistory> queryHistories) {
+            val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val results = Maps.<TableDesc, Integer> newHashMap();
+            for (QueryHistory queryHistory : queryHistories) {
+                if (queryHistory.getQueryHistoryInfo() == null) {
+                    continue;
+                }
+                val snapshotsInRealization = queryHistory.getQueryHistoryInfo().getQuerySnapshots();
+                for (val snapshots : snapshotsInRealization) {
+                    snapshots.stream().forEach(tableIdentify -> {
+                        results.merge(tableManager.getTableDesc(tableIdentify), 1, Integer::sum);
+                    });
+                }
+            }
+            return results;
+        }
+
         private void collectModelLastQueryTime(QueryHistory queryHistory, Map<String, Long> modelsLastQueryTime) {
             List<NativeQueryRealization> realizations = queryHistory.transformRealizations();
             long queryTime = queryHistory.getQueryTime();
@@ -298,6 +325,18 @@ public class QueryHistoryAccelerateScheduler {
                                 FrequencyMap::merge);
                     }
                 });
+            }
+        }
+
+        private void incQueryHitSnapshotCount(Map<TableDesc, Integer> hitSnapshotCountMap, String project) {
+            val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            for (val entry : hitSnapshotCountMap.entrySet()) {
+                if (tableManager.getTableDesc(entry.getKey().getIdentity()) == null) {
+                    continue;
+                }
+                val tableCopy = tableManager.copyForWrite(entry.getKey());
+                tableCopy.setSnapshotHitCount(tableCopy.getSnapshotHitCount() + entry.getValue());
+                tableManager.updateTableDesc(tableCopy);
             }
         }
 

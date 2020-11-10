@@ -131,6 +131,9 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonProperty("last_snapshot_path")
     private String lastSnapshotPath;
 
+    @JsonProperty("query_hit_count")
+    private int snapshotHitCount = 0;
+
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
@@ -461,6 +464,14 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getLastSnapshotPath() {
         return lastSnapshotPath;
+    }
+
+    public void setSnapshotHitCount(int hitCount) {
+        this.snapshotHitCount = hitCount;
+    }
+
+    public int getSnapshotHitCount() {
+        return snapshotHitCount;
     }
 
 }

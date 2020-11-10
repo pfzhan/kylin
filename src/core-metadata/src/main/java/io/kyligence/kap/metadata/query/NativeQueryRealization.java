@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.query;
 
 import java.io.Serializable;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
@@ -45,6 +46,7 @@ public class NativeQueryRealization implements Serializable {
     private String indexType;
     private boolean isPartialMatchModel;
     private boolean isValid = true;
+    private List<String> snapshots;
 
     @JsonUnwrapped
     @Getter
@@ -52,12 +54,13 @@ public class NativeQueryRealization implements Serializable {
     private NDataModelAclParams aclParams;
 
     public NativeQueryRealization(String modelId, String modelAlias, Long layoutId, String indexType,
-            boolean isPartialMatchModel) {
+            boolean isPartialMatchModel, List<String> snapshots) {
         this.modelId = modelId;
         this.modelAlias = modelAlias;
         this.layoutId = layoutId;
         this.indexType = indexType;
         this.isPartialMatchModel = isPartialMatchModel;
+        this.snapshots = snapshots;
     }
 
     public NativeQueryRealization(String modelId, Long layoutId, String indexType) {

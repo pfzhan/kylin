@@ -97,6 +97,7 @@ import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
+import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import io.kyligence.kap.rest.request.SCD2ConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
@@ -401,6 +402,16 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("runner_class_name", pushDownProjectConfigRequest.getRunnerClassName());
         checkRequiredArg("converter_class_names", pushDownProjectConfigRequest.getConverterClassNames());
         projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateSnapshotConfig", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/snapshot_config")
+    @ResponseBody
+    public EnvelopeResponse<String> updateSnapshotConfig(@PathVariable("project") String project,
+            @RequestBody SnapshotConfigRequest snapshotConfigRequest) {
+        checkBooleanArg("snapshot_manual_management_enabled", snapshotConfigRequest.getSnapshotManualManagementEnabled());
+        projectService.updateSnapshotConfig(project, snapshotConfigRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

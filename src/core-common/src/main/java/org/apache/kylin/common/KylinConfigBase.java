@@ -622,6 +622,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.snapshot.shard-size-mb", "128"));
     }
 
+    public boolean isSnapshotManualManagementEnabled() {
+        return Boolean.valueOf(getOptional("kylin.snapshot.manual-management-enabled", FALSE));
+    }
+
     public int getGlobalDictV2MinHashPartitions() {
         return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "1"));
     }
@@ -1075,6 +1079,9 @@ public abstract class KylinConfigBase implements Serializable {
         return getFileName(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
     }
 
+    public String getSnapshotBuildClassName(){
+        return getOptional("kylin.engine.spark.snapshot-build-class-name", "io.kyligence.kap.engine.spark.job.SnapshotBuildingJob");
+    }
     public String getSparkBuildClassName() {
         return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
     }
@@ -1140,6 +1147,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getSparkEngineDriverMemoryTableSampling() {
         return Integer.parseInt(getOptional("kylin.engine.driver-memory-table-sampling", "1024"));
+    }
+
+    public int getSparkEngineDriverMemorySnapshotBuilding() {
+        return Integer.parseInt(getOptional("kylin.engine.driver-memory-snapshot-building", "1024"));
     }
 
     public int getSparkEngineDriverMemoryBase() {

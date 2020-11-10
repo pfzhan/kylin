@@ -24,8 +24,10 @@
 package io.kyligence.kap.rest.response;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 
 import lombok.Data;
 
@@ -33,6 +35,14 @@ import lombok.Data;
 public class JobInfoResponse {
     @JsonProperty("jobs")
     private List<JobInfo> jobs;
+
+    public static JobInfoResponse of(List<String> jobIds, String jobName) {
+        Preconditions.checkNotNull(jobIds);
+        JobInfoResponse jobInfoResponse = new JobInfoResponse();
+        jobInfoResponse.setJobs(
+                jobIds.stream().map(id -> new JobInfoResponse.JobInfo(jobName, id)).collect(Collectors.toList()));
+        return jobInfoResponse;
+    }
 
     @Data
     public static class JobInfo {

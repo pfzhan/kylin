@@ -178,7 +178,7 @@ public class SourceUsageManager {
             }
             return originalSize;
         } else {
-            return 0;
+            return getLookupTableSourceByScale(table, projectName);
         }
     }
 
@@ -195,7 +195,11 @@ public class SourceUsageManager {
                 long recordCount = 0;
                 long columnBytes = 0;
                 for (String dataflow : column.getSourceBytesMap().keySet()) {
-                    recordCount += dataflowManager.getDataflow(dataflow).getLastSegment().getSourceCount();
+                    val sourceCount = dataflowManager.getDataflow(dataflow).getLastSegment().getSourceCount();
+                    if (sourceCount == -1)
+                        continue;
+
+                    recordCount += sourceCount;
                     columnBytes += column.getDataflowSourceBytes(dataflow);
                 }
 
@@ -206,13 +210,9 @@ public class SourceUsageManager {
             }
             long tableTotalRows = tableExtDesc.getTotalRows();
             if (tableTotalRows == 0L) {
-                //TODO currently, table total rows is always zero
                 logger.debug("Total rows for table: {} is zero.", tableName);
             }
             tableBytes = (long) (rowBytes * tableTotalRows);
-            if (!TableExtDesc.RowCountStatus.OK.equals(tableExtDesc.getRowCountStatus())) {
-                table.setStatus(SourceUsageRecord.CapacityStatus.TENTATIVE);
-            }
         } catch (Exception e) {
             logger.error("Failed to calculate lookup table: {} source usage.", tableName, e);
             table.setStatus(SourceUsageRecord.CapacityStatus.ERROR);

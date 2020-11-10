@@ -855,12 +855,10 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableDescs.add(Mockito.mock(TableDesc.class));
 
         Mockito.doReturn(tableDescs).when(tableService).getTablesOfModel(project, modelName);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/model_tables")
-                .param("project", project)
-                .param("model_name", modelName)
-                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andReturn();
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/model_tables").param("project", project)
+                .param("model_name", modelName).contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nTableController).getModelTables(project, modelName);
     }
 }

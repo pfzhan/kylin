@@ -626,5 +626,4 @@ public class NTableController extends NBasicController {
             throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_INVALID(), false);
         }
     }
-
 }

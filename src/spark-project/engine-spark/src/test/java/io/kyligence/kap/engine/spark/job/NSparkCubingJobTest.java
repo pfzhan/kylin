@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -81,7 +82,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
@@ -171,8 +171,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataSegment seg = df.copy().getLastSegment();
         seg.setSnapshots(null);
         Assert.assertEquals(0, seg.getSnapshots().size());
-        DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss);
-        seg = builder.buildSnapshot();
+        seg = new SnapshotBuilder().buildSnapshot(seg, ss, Sets.newHashSet());
         Assert.assertEquals(7, seg.getSnapshots().size());
     }
 
@@ -188,8 +187,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         seg.setSnapshots(null);
         Assert.assertEquals(0, seg.getSnapshots().size());
         //snapshot building cannot be skip when it is null
-        DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss, ignoredSnapshotTableSet);
-        final NDataSegment segBuilded = builder.buildSnapshot();
+        final NDataSegment segBuilded = new SnapshotBuilder().buildSnapshot(seg, ss, ignoredSnapshotTableSet);
         Assert.assertEquals(7, segBuilded.getOriSnapshotSize().size());
         Assert.assertEquals(7, segBuilded.getSnapshots().size());
 
@@ -215,8 +213,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         });
 
         //snapshot building can be skip when it is not null
-        DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss, ignoredSnapshotTableSet);
-        final NDataSegment segBuilded = builder.buildSnapshot();
+        final NDataSegment segBuilded = new SnapshotBuilder().buildSnapshot(seg, ss, ignoredSnapshotTableSet);
         Assert.assertTrue(ignoredSnapshotTableSet.stream()
                 .allMatch(tableName -> !segBuilded.getOriSnapshotSize().keySet().contains(tableName)));
         Assert.assertEquals(5, segBuilded.getOriSnapshotSize().size());
@@ -383,17 +380,21 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         List<LayoutEntity> round1 = new ArrayList<>();
         round1.add(df.getIndexPlan().getCuboidLayout(10002L));
-        NDataSegment seg1 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange("2012-01-01", "2012-02-01"), SegmentStatusEnum.READY);
-        NDataSegment seg2 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange("2012-02-01", "2012-03-01"), SegmentStatusEnum.READY);
+        NDataSegment seg1 = dsMgr.appendSegment(df,
+                new SegmentRange.TimePartitionedSegmentRange("2012-01-01", "2012-02-01"), SegmentStatusEnum.READY);
+        NDataSegment seg2 = dsMgr.appendSegment(df,
+                new SegmentRange.TimePartitionedSegmentRange("2012-02-01", "2012-03-01"), SegmentStatusEnum.READY);
 
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(seg1, seg2), Sets.newLinkedHashSet(round1), "ADMIN");
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(seg1, seg2), Sets.newLinkedHashSet(round1),
+                "ADMIN");
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         execMgr.addJob(job);
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         val merger = new AfterBuildResourceMerger(config, getProject());
-        merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(seg1.getId(), seg2.getId()), Sets.newHashSet(10002L), ExecutableUtils.getRemoteStore(config, sparkStep));
+        merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(seg1.getId(), seg2.getId()), Sets.newHashSet(10002L),
+                ExecutableUtils.getRemoteStore(config, sparkStep));
 
         List<NDataSegment> segs = dsMgr.getDataflow(dataflowId).getSegments();
         Assert.assertEquals(2, segs.size());

@@ -75,7 +75,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -147,6 +146,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
@@ -164,6 +164,7 @@ import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.query.engine.data.TableSchema;
+import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -1105,6 +1106,12 @@ public class QueryService extends BasicService {
         return false;
     }
 
+    private void addTableSnapshots(Set<String> tableSets, OLAPContext ctx) {
+        for (val entry : ctx.storageContext.getCandidate().getDerivedToHostMap().keySet()) {
+            tableSets.add(entry.getTable());
+        }
+    }
+
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
             List<SelectedColumnMeta> columnMetas, String project) {
         boolean isPartialResult = false;
@@ -1117,20 +1124,25 @@ public class QueryService extends BasicService {
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
                     logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
                     final String realizationType;
+                    Set<String> tableSets = Sets.newHashSet();
                     if (ctx.storageContext.isEmptyLayout()) {
                         realizationType = null;
                     } else if (ctx.storageContext.isUseSnapshot()) {
                         realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
+                        tableSets.add(ctx.getFirstTableIdentity());
                     } else if (ctx.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
                         realizationType = QueryMetricsContext.TABLE_INDEX;
+                        addTableSnapshots(tableSets, ctx);
                     } else {
                         realizationType = QueryMetricsContext.AGG_INDEX;
+                        addTableSnapshots(tableSets, ctx);
                     }
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
+                    List<String> snapshots = Lists.newArrayList(tableSets);
                     realizations
                             .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
-                                    realizationType, ctx.storageContext.isPartialMatchModel()));
+                                    realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
                 }
             }
         }

@@ -149,6 +149,10 @@ public class DFBuildJob extends SparkApplication {
                     logger.info("FlatTable persisted, compute column size");
                     persistedFlatTable.add(path);
                     computeColumnBytes(datasetChooser, seg, dataflowId, path);
+                } else {
+                    logger.info("FlatTable not persisted, only compute row count");
+                    long rowCount = buildFromFlatTable.getFlattableDS().count();
+                    updateColumnBytesInseg(dataflowId, new HashMap<>(), seg.getId(), rowCount);
                 }
                 if (!StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
                     persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());

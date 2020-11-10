@@ -80,7 +80,9 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         toUpdateSegments.add(mergedSegment);
         if (JobTypeEnum.INDEX_REFRESH.equals(jobType)) {
-            updateSnapshotTableIfNeed(mergedSegment);
+
+            updateSnapshotTableIfNeed(distDataflow, remoteResourceStore);
+
             NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
             for (Map.Entry<String, Long> entry : mergedSegment.getOriSnapshotSize().entrySet()) {
                 TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());

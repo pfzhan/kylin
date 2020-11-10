@@ -1397,12 +1397,8 @@ public class Message {
         return "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.";
     }
 
-    public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
-        return "The fact table of this model has been used as dimension table in other models. Please set another fact table, or adjust other models using this table.";
-    }
-
-    public String getDIMENSION_TABLE_USED_IN_OTHER_MODEL() {
-        return "The dimension table of this model has been used as fact table in other models. Please set another dimension table, or adjust other models using this table.";
+    public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
+        return "The dimension table of this model has been used as fact table. Please set another dimension table.";
     }
 
     public String getNO_DATA_IN_TABLE() {
@@ -1604,7 +1600,6 @@ public class Message {
         return "Failed to connect database.Please check if the database connection is healthy.";
     }
 
-
     // acl
     public String getInvalidColumnAccess() {
         return "The current user/group does not have permission of column %s.";
@@ -1612,5 +1607,18 @@ public class Message {
 
     public String getInvalidSensitiveDataMaskColumnType() {
         return "Boolean, Map, and Array data types do not support data masking.";
+    }
+
+    // Snapshots
+    public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
+        return "Have no permission for table(s) '%s'.";
+    }
+
+    public String getSNAPSHOT_NOT_FOUND() {
+        return "Snapshot(s) '%s' not found.";
+    }
+
+    public String getSNAPSHOT_MANAGEMENT_NOT_ENABLED() {
+        return "Snapshot management is not enabled.";
     }
 }

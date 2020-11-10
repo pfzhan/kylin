@@ -218,7 +218,11 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_OBTAIN_QUERY_RESULT("KE-10031001"),
 
     // 10032xxx add job result
-    FAILED_CREATE_JOB("KE-10032001"); //
+    FAILED_CREATE_JOB("KE-10032001"),
+
+    // 10033xx snapshot
+    SNAPSHOT_NOT_EXIST("KE-10033001"), //
+    SNAPSHOT_MANAGEMENT_NOT_ENABLED("KE-10033002");
 
     private final ErrorCode errorCode;
 

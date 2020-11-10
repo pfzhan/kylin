@@ -118,6 +118,7 @@ import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SCD2ConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
+import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
@@ -664,6 +665,8 @@ public class ProjectService extends BasicService {
 
         response.setScd2Enabled(config.isQueryNonEquiJoinModelEnabled());
 
+        response.setSnapshotManualManagementEnabled(config.isSnapshotManualManagementEnabled());
+
         return response;
     }
 
@@ -706,6 +709,15 @@ public class ProjectService extends BasicService {
             } else {
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", KylinConfig.FALSE);
             }
+        });
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction(project = 0)
+    public void updateSnapshotConfig(String project, SnapshotConfigRequest snapshotConfigRequest) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.snapshot.manual-management-enabled",
+                    snapshotConfigRequest.getSnapshotManualManagementEnabled().toString());
         });
     }
 
