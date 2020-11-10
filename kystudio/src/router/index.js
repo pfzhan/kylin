@@ -83,6 +83,10 @@ let routerOptions = {
         meta: {},
         component: () => import('../components/studio/StudioModel/ModelTabs/index.vue')
       }, {
+        name: 'Snapshot',
+        path: 'studio/snapshot',
+        component: () => import('../components/studio/snapshot/snapshot.vue')
+      }, {
         name: 'Project',
         path: 'admin/project',
         component: projectList

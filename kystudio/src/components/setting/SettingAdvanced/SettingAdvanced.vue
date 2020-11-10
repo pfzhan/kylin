@@ -182,6 +182,23 @@
         </div>
       </el-form>
     </EditableBlock>
+    <!-- Snapshot -->
+    <EditableBlock
+      :header-content="$t('snapshotTitle')"
+      :isEditable="false">
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('snapshotManagment')}}</span><span class="setting-value fixed">
+          <el-switch
+            size="small"
+            v-model="form.snapshot_manual_management_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSnapshotSwitch(value)">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('snapshotDesc')}}</div>
+      </div>
+    </EditableBlock>
     <!-- 可计算列 -->
     <EditableBlock
       :header-content="$t('computedColumns')"
@@ -231,7 +248,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { handleError, handleSuccessAsync } from '../../../util'
 import { kapConfirm } from 'util/business'
 import { apiUrl } from '../../../config'
-import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getKerberosSettings } from './handler'
+import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getSnapshotSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   components: {
@@ -252,6 +269,7 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       fetchDatabases: 'FETCH_DATABASES',
       updateYarnQueue: 'UPDATE_YARN_QUEUE',
       updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG',
+      updateSnapshotConfig: 'UPDATE_SNAPSHOT_CONFIG',
       updateKerberosConfig: 'UPDATE_KERBEROS_CONFIG',
       reloadHiveDBAndTables: 'RELOAD_HIVE_DB_TABLES',
       toggleEnableSCD: 'TOGGLE_ENABLE_SCD',
@@ -290,6 +308,7 @@ export default class SettingAdvanced extends Vue {
     principal: '',
     fileList: [],
     file: null,
+    snapshot_manual_management_enabled: this.project.snapshot_manual_management_enabled,
     scd2_enabled: this.project.scd2_enabled
   }
   // 这里是为了适配lighting 嵌套的KE 要隐藏 yarn队列部分
@@ -389,6 +408,30 @@ export default class SettingAdvanced extends Vue {
         }
         break
       }
+    }
+  }
+  async handleSnapshotSwitch (value) {
+    try {
+      const submitData = _getSnapshotSetting(this.project)
+      const msg = value ? this.$t('openManualTips') : this.$t('closeManualTips')
+      const confirmButtonText = value ? this.$t('confirmOpen') : this.$t('confirmClose')
+      const title = value ? this.$t('openSnapshotTitle') : this.$t('closeSnapshotTitle')
+      try {
+        await kapConfirm(msg, {confirmButtonText, dangerouslyUseHTMLString: true, type: 'warning'}, title)
+        submitData.snapshot_manual_management_enabled = value
+        try {
+          await this.updateSnapshotConfig(submitData)
+          this.$emit('reload-setting')
+          this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+        } catch (e) {
+          this.form.snapshot_manual_management_enabled = !value
+          handleError(e)
+        }
+      } catch (e) {
+        this.form.snapshot_manual_management_enabled = !value
+      }
+    } catch (e) {
+      handleError(e)
     }
   }
   async handleSwitch (value) {

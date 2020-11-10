@@ -470,6 +470,7 @@ exports.default = {
     datasource: '数据源',
     source: '数据源',
     modelList: '模型',
+    snapshot: '快照',
     index: '索引',
     modeledit: '编辑模型',
     refresh: '刷新',

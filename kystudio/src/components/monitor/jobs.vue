@@ -86,8 +86,12 @@
             show-overflow-tooltip
             prop="target_subject">
             <template slot-scope="scope">
-              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="scope.row.job_name === 'TABLE_SAMPLING' || scope.row.target_subject_error">{{scope.row.target_subject}}</span>
-              <a class="link" v-else @click="gotoModelList(scope.row)">{{scope.row.target_subject}}</a>
+              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope)}}</span>
+              <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && !scope.row.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
+                <span class="is-disabled">{{scope.row.target_subject}}</span>
+              </common-tip>
+              <a class="link" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && $store.state.project.snapshot_manual_management_enabled&&!scope.row.target_subject_error" @click="gotoSnapshotList(scope.row)">{{scope.row.target_subject}}</a>
+              <a class="link" v-if="!tableJobTypes.includes(scope.row.job_name)&&!scope.row.target_subject_error" @click="gotoModelList(scope.row)">{{scope.row.target_subject}}</a>
             </template>
           </el-table-column>
           <el-table-column
@@ -441,6 +445,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       INDEX_BUILD: 'Build Index',
       INC_BUILD: 'Load Data',
       TABLE_SAMPLING: 'Sample Table',
+      SNAPSHOT_BUILD: 'Build Snapshot',
+      SNAPSHOT_REFRESH: 'Refresh Snapshot',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
@@ -449,7 +455,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pleaseSearch: 'Search Target Subject or Job ID',
       diagnosis: 'Diagnosis',
       jobNodes: 'Job Node',
-      unknow: 'Unknown'
+      unknow: 'Unknown',
+      snapshotDisableTips: 'Snapshot management is not enabled.',
+      snapshotIsDeleted: 'The snapshot is deleted',
+      modelIsDeleted: 'The model is deleted'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -522,6 +531,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       INDEX_BUILD: '构建索引',
       INC_BUILD: '加载数据',
       TABLE_SAMPLING: '抽样表数据',
+      SNAPSHOT_BUILD: '构建快照',
+      SNAPSHOT_REFRESH: '刷新快照',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
@@ -530,7 +541,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pleaseSearch: '搜索任务对象或任务 ID',
       diagnosis: '诊断包',
       jobNodes: '节点信息',
-      unknow: '未知'
+      unknow: '未知',
+      snapshotDisableTips: '管理快照未开启',
+      snapshotIsDeleted: '该快照已被删除',
+      modelIsDeleted: '该模型已被删除'
     }
   }
 })
@@ -577,7 +591,8 @@ export default class JobsList extends Vue {
   jobsList = []
   jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
-  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING']
+  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH']
+  tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH']
   targetId = ''
   searchLoading = false
   batchBtnsEnabled = {
@@ -633,6 +648,15 @@ export default class JobsList extends Vue {
   //     })
   //   })
   // }
+  getTargetSubject (scope) {
+    if (scope.row.target_subject === 'The snapshot is deleted') {
+      return this.$t('snapshotIsDeleted')
+    } else if (scope.row.target_subject === 'The model is deleted') {
+      return this.$t('modelIsDeleted')
+    } else {
+      return this.$t(scope.row.target_subject)
+    }
+  }
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
       resume: ['ERROR', 'STOPPED'],
@@ -665,6 +689,20 @@ export default class JobsList extends Vue {
       postCloudUrlMessage(this.$route, { name: 'ModelList', params: { item } })
     } else {
       this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
+    }
+  }
+  gotoSnapshotList (item) {
+    // 暂停轮询，清掉计时器
+    clearTimeout(this.stCycle)
+    this.isPausePolling = true
+    // 如果是全 project 模式，需要先改变当前 project 选中值
+    if (this.$store.state.project.isAllProject) {
+      this.setProject(item.project)
+    }
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'Snapshot', params: { item } })
+    } else {
+      this.$router.push({name: 'Snapshot', params: { table: item.target_subject }})
     }
   }
   // 清除所有的tags

@@ -14,6 +14,7 @@ export default {
     projectDefaultDB: '',
     isSemiAutomatic: false,
     projectPushdownConfig: true,
+    snapshot_manual_management_enabled: false,
     scd2_enabled: false,
     emptySegmentEnable: false,
     projectConfig: null
@@ -89,6 +90,9 @@ export default {
     },
     [types.CACHE_PROJECT_PUSHDOWN_CONFIG]: function (state, { projectPushdownConfig }) {
       state.projectPushdownConfig = projectPushdownConfig
+    },
+    [types.UPDATE_SNAPSHOT_MANUAL_ENABLE] (state, type) {
+      state.snapshot_manual_management_enabled = type
     },
     [types.UPDATE_SCD2_ENABLE] (state, type) {
       state.scd2_enabled = type
@@ -192,6 +196,7 @@ export default {
         let notAutoProjectFlag = !speedProjectTypes.includes(response.data.data.maintain_model_type)
         commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, notAutoProjectFlag && response.data.data.semi_automatic_mode)
         commit(types.UPDATE_SCD2_ENABLE, response.data.data.scd2_enabled || false)
+        commit(types.UPDATE_SNAPSHOT_MANUAL_ENABLE, response.data.data.snapshot_manual_management_enabled || false)
         commit(types.UPDATE_EMPTY_SEGMENT_ENABLE, response.data.data.create_empty_segment_enabled || false)
         return response
       })
@@ -231,6 +236,9 @@ export default {
     },
     [types.UPDATE_YARN_QUEUE]: function (_, para) {
       return api.project.updateYarnQueue(para)
+    },
+    [types.UPDATE_SNAPSHOT_CONFIG]: function ({ commit }, para) {
+      return api.project.updateSnapshotConfig(para)
     },
     [types.UPDATE_EXPOSE_CC_CONFIG]: function ({ commit }, para) {
       return api.project.updateExposeCCConfig(para)

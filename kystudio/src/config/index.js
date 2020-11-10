@@ -57,7 +57,8 @@ export const menusData = [
     children: [
       { name: 'source', path: '/studio/source' },
       {name: 'acceleration', path: '/studio/acceleration'},
-      { name: 'modelList', path: '/studio/model' }
+      { name: 'modelList', path: '/studio/model' },
+      { name: 'snapshot', path: '/studio/snapshot' }
     ]
   },
   {
@@ -127,7 +128,8 @@ export const pageRefTags = {
   tableIndexPager: 'tableIndexPager',
   tableColumnsPager: 'tableColumnsPager',
   statisticsPager: 'statisticsPager',
-  recommendationsPager: 'recommendationsPager'
+  recommendationsPager: 'recommendationsPager',
+  snapshotPager: 'snapshotPager'
 }
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
 export const permissions = {

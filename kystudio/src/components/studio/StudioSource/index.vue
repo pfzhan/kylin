@@ -86,8 +86,11 @@
         </el-alert>
         <span slot="footer" class="dialog-footer ky-no-br-space">
           <el-button plain size="medium" @click="isDelAllDepVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button plain size="medium" :loading="delAllLoading" @click="handelDeleteTable(true)">{{$t('deleteAll')}}</el-button>
-          <el-button type="primary" size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('deleteTable')}}</el-button>
+          <el-button v-if="isOnlySnapshot" type="primary" size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('kylinLang.common.delete')}}</el-button>
+          <template v-else>
+            <el-button plain size="medium" :loading="delAllLoading" @click="handelDeleteTable(true)">{{$t('deleteAll')}}</el-button>
+            <el-button type="primary" size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('deleteTable')}}</el-button>
+          </template>
         </span>
       </el-dialog>
     </div>
@@ -160,6 +163,7 @@ export default class StudioSource extends Vue {
   delTabelConfirmMessage = ''
   delLoading = false
   delAllLoading = false
+  isOnlySnapshot = false
   get selectedTable () {
     return this.selectedTableData ? getFormattedTable(this.selectedTableData) : null
   }
@@ -256,8 +260,8 @@ export default class StudioSource extends Vue {
     const projectName = this.currentSelectedProject
     const databaseName = this.selectedTable.database
     const tableName = this.selectedTable.name
-    const { hasModel, hasJob, modelSize } = await this._getAffectedModelCountAndSize()
-    if (!hasModel) {
+    const { hasModel, hasJob, hasSnapshot, modelSize } = await this._getAffectedModelCountAndSize()
+    if (!hasModel && !hasSnapshot) {
       this.delBtnLoading = true
       try {
         await this.showDeleteTableConfirm(hasModel, hasJob)
@@ -272,7 +276,14 @@ export default class StudioSource extends Vue {
     } else {
       const storageSize = Vue.filter('dataSize')(modelSize)
       const contentVal = { tableName, storageSize }
-      this.delTabelConfirmMessage = this.$t('dropTabelDepen', contentVal)
+      if (hasModel && !hasSnapshot) {
+        this.delTabelConfirmMessage = this.$t('dropTabelDepen', contentVal)
+      } else if (hasModel && hasSnapshot) {
+        this.delTabelConfirmMessage = this.$t('dropTabelDepen2', contentVal)
+      } else if (!hasModel && hasSnapshot) {
+        this.isOnlySnapshot = true
+        this.delTabelConfirmMessage = this.$t('dropTabelDepen3', contentVal)
+      }
       this.isDelAllDepVisible = true
     }
   }
@@ -375,7 +386,7 @@ export default class StudioSource extends Vue {
     const tableName = this.selectedTable.name
     const response = await this.prepareUnload({projectName, databaseName, tableName})
     const result = await handleSuccessAsync(response)
-    return { hasModel: result.has_model, hasJob: result.has_job, modelSize: result.storage_size }
+    return { hasModel: result.has_model, hasJob: result.has_job, hasSnapshot: result.has_snapshot, modelSize: result.storage_size }
   }
   mounted () {
     if (!this.isAutoProject) {

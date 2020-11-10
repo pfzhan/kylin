@@ -80,6 +80,27 @@ export default {
     }
   },
   actions: {
+    [types.FETCH_SNAPSHOT_LIST]: function ({ commit }, para) {
+      return api.datasource.fetchSnapshotList(para)
+    },
+    [types.FETCH_UNBUILD_SNAPSHOT_TABLES]: function ({ commit }, para) {
+      return api.datasource.fetchUnbuildSnapshotTables(para)
+    },
+    [types.FETCH_DATABASE_MORE_TABLES]: function ({ commit }, para) {
+      return api.datasource.fetchDatabaseMoreTables(para)
+    },
+    [types.BUILD_SNAPSHOT_TABLES]: function ({ commit }, para) {
+      return api.datasource.buildSnapshotTables(para)
+    },
+    [types.REFRESH_SNAPSHOT_TABLE]: function ({ commit }, para) {
+      return api.datasource.refreshSnapshotTable(para)
+    },
+    [types.DELETE_SNAPSHOT_CHECK]: function ({ commit }, para) {
+      return api.datasource.deleteSnapshotCheck(para)
+    },
+    [types.DELETE_SNAPSHOT]: function ({ commit }, para) {
+      return api.datasource.deleteSnapshot(para)
+    },
     [types.LOAD_DATASOURCE_OF_MODEL]: function ({ comit }, para) {
       return api.datasource.loadDataSourceOfModel(para)
     },

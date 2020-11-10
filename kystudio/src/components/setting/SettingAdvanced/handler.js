@@ -63,6 +63,13 @@ export function _getYarnNameSetting (data) {
   }
 }
 
+export function _getSnapshotSetting (data) {
+  return {
+    project: data.project,
+    snapshot_manual_management_enabled: data.snapshot_manual_management_enabled
+  }
+}
+
 export function _getExposeCCSetting (data) {
   return {
     project: data.project,

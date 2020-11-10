@@ -5,6 +5,27 @@ import { apiUrl } from '../config'
 Vue.use(VueResource)
 
 export default {
+  fetchSnapshotList: (para) => {
+    return Vue.resource(apiUrl + 'snapshots{?status}').get(para)
+  },
+  fetchUnbuildSnapshotTables: (para) => {
+    return Vue.resource(apiUrl + 'snapshots/tables').get(para)
+  },
+  buildSnapshotTables: (para) => {
+    return Vue.resource(apiUrl + 'snapshots').save(para)
+  },
+  fetchDatabaseMoreTables: (para) => {
+    return Vue.resource(apiUrl + 'snapshots/tables/more').get(para)
+  },
+  refreshSnapshotTable: (para) => {
+    return Vue.resource(apiUrl + 'snapshots').update(para)
+  },
+  deleteSnapshotCheck: (para) => {
+    return Vue.resource(apiUrl + 'snapshots/check_before_delete').save(para)
+  },
+  deleteSnapshot: (para) => {
+    return Vue.resource(apiUrl + 'snapshots').delete(para)
+  },
   loadDataSourceOfModel: (data) => {
     return Vue.resource(apiUrl + 'tables/model_tables').get({ project: data.project, model_name: data.model_name })
   },

@@ -639,11 +639,11 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
   showMenuByRole (menuName) {
-    let isSemiAutoModeShowAcce = true
-    if (menuName === 'acceleration' && !this.isAutoProject) {
-      isSemiAutoModeShowAcce = this.$store.state.project.isSemiAutomatic
+    let isShowSnapshot = true
+    if (menuName === 'snapshot') {
+      isShowSnapshot = this.$store.state.project.snapshot_manual_management_enabled
     }
-    return this.availableMenus.includes(menuName.toLowerCase()) && isSemiAutoModeShowAcce
+    return this.availableMenus.includes(menuName.toLowerCase()) && isShowSnapshot
   }
   getLicense () {
     location.href = 'mailto:g-ent-lic@kyligence.io'

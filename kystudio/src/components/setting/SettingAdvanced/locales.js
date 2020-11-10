@@ -53,7 +53,14 @@ export default {
     confirmOpen: 'Turn On',
     closeSCDTip: 'With this switch OFF, non-equal join conditions (≥, <) couldn\'t be used when editing model. The following models will go offline automatically as they include non-equal join conditions:',
     closeSCDTip1: 'To make these models online, please delete the non-equal join conditions, or turn this switch ON. Do you want to continue?',
-    confirmClose: 'Turn Off'
+    confirmClose: 'Turn Off',
+    snapshotTitle: 'Snapshot Management',
+    snapshotManagment: 'Support Snapshot Management',
+    snapshotDesc: 'The snapshot is a read-only static view of a source table.',
+    openSnapshotTitle: 'Turn On Snapshot Management',
+    openManualTips: 'After turning on this option, the system will no longer automatically build, refresh, delete snapshots. You could manage them in Snapshot page under Studio.<br/>If a snapshot is being built at this time, it will show in the snapshot list after the job is completed.<br/>Do you want to continue?',
+    closeSnapshotTitle: 'Turn Off Snapshot Management',
+    closeManualTips: 'After turning off, you cannot manually manage snapshots. The system will build, refresh, and delete snapshots as needed. <br/>The running jobs of building or refreshing snapshot will not be affected.<br/>Do you want to continue?'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -108,6 +115,13 @@ export default {
     confirmOpen: '确定开启',
     closeSCDTip: '关闭后，编辑模型时不再支持选择 ≥，< 的连接条件。以下模型会因包含上述条件自动下线：',
     closeSCDTip1: '若需重新上线模型，需删除模型中相应的连接条件，或将此选项开启。确认关闭吗？',
-    confirmClose: '确定关闭'
+    confirmClose: '确定关闭',
+    snapshotTitle: '快照管理',
+    snapshotManagment: '支持管理快照',
+    snapshotDesc: '快照（Snapshot）是原始表的只读静态视图',
+    openSnapshotTitle: '开启管理快照',
+    openManualTips: '开启该开关后系统将不再自动构建、刷新、删除快照。您可至建模中心下的快照管理页面进行手动管理。<br/>若此时有快照正在构建，任务完成后该快照将显示在快照列表中。<br/>确认要开启吗？',
+    closeSnapshotTitle: '关闭管理快照',
+    closeManualTips: '关闭后您无法手动管理快照，系统将根据需要自行构建、刷新和删除快照。<br/>正在运行的构建快照和刷新快照任务将不受影响。<br/>确定关闭吗？'
   }
 }

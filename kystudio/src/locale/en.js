@@ -476,6 +476,7 @@ exports.default = {
     modelList: 'Model',
     index: 'Index',
     modeledit: 'Model Edit',
+    snapshot: 'Snapshot',
     refresh: 'Refresh',
     systemcapacity: 'Capacity'
   },

@@ -689,13 +689,15 @@ Vue.directive('custom-tooltip', {
     setTimeout(() => {
       // 当元素在table中，使用 MutationObserver 方法监听 table 宽度 style 的改变（这里监听的是 el-table__body dom 的宽度）
       if (binding.value.tableClassName) {
-        let element = document.querySelector(`.${binding.value.tableClassName}`).querySelector('.el-table__body')
+        let element = document.querySelector(`.${binding.value.tableClassName}`) && document.querySelector(`.${binding.value.tableClassName}`).querySelector('.el-table__body')
         let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver
-        let observer = new MutationObserver(parentList[id][`resizeFn-${id}`])
-        parentList[id].observer = observer
-        observer.observe(element, {
-          attributes: true  // 监听 table 的 attributes 的改变
-        })
+        if (parentList[id]) {
+          let observer = new MutationObserver(parentList[id][`resizeFn-${id}`])
+          parentList[id].observer = observer
+          observer.observe(element, {
+            attributes: true  // 监听 table 的 attributes 的改变
+          })
+        }
       } else {
         window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
       }

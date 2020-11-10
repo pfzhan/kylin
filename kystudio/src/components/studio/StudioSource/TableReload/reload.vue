@@ -11,10 +11,10 @@
       :closable="false"
       show-icon>
       <div class="lh20" v-if="!hasColumnInfluence" v-html="$t('reloadNoEffectTip', {tableName: this.tableName})"></div>
-      <div class="detail lh20" v-else-if="checkData && checkData.broken_model_count">
+      <div class="detail lh20" v-else-if="checkData && (checkData.broken_model_count || checkData.snapshot_deleted)">
         <p>{{brokenMsg}}
-          <el-button type="primary" text v-if="!showDetail" @click="showDetail = true">{{$t('checkDetail')}}<i class="el-icon-arrow-down"></i></el-button>
-          <el-button type="primary" text v-else @click="showDetail = false">{{$t('closeDetail')}}<i class="el-icon-arrow-up"></i></el-button>
+          <el-button type="primary" size="mini" class="ksd-fs-14" text v-if="!showDetail" @click="showDetail = true">{{$t('checkDetail')}}<i class="el-icon-arrow-down"></i></el-button>
+          <el-button type="primary" size="mini" class="ksd-fs-14" text v-else @click="showDetail = false">{{$t('closeDetail')}}<i class="el-icon-arrow-up"></i></el-button>
         </p>
       </div>
       <div class="detail-text lh20" v-else>
@@ -25,7 +25,7 @@
         <div class="detail-text-item" v-if="addLayout"><span class="dot">·</span>{{addLayout}}</div>
       </div>
     </el-alert>
-    <div class="broken-detail lh20" v-if="checkData && checkData.broken_model_count && showDetail">
+    <div class="broken-detail lh20" v-if="checkData && (checkData.broken_model_count || checkData.snapshot_deleted) && showDetail">
       <div class="detail-text">
         <div class="table-title">{{$t("sourceTable", {tableName: this.tableName})}}</div>
         <div class="detail-text-item" v-if="reduceMsg"><span class="dot">·</span>{{reduceMsg}}</div>
@@ -170,11 +170,18 @@ export default class ReloadTableModal extends Vue {
     }
   }
   get tipType () {
-    return this.checkData && this.checkData.broken_model_count ? 'warning' : 'tip'
+    return this.checkData && (this.checkData.broken_model_count || this.checkData.snapshot_deleted) ? 'warning' : 'tip'
   }
   get brokenMsg () {
     let delModelCount = this.checkData.broken_model_count
-    return this.$t('modelchangeTip', { modelCount: delModelCount })
+    let msg = this.$t('reloadTips')
+    if (this.checkData.broken_model_count > 0) {
+      msg += this.$t('modelchangeTip', { modelCount: delModelCount })
+    }
+    if (this.checkData.snapshot_deleted) {
+      msg += this.$t('snapshotDelTip')
+    }
+    return msg
   }
   get addMsg () {
     let addColumnCount = this.checkData.add_column_count
