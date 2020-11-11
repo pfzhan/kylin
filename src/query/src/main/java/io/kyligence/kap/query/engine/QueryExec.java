@@ -36,6 +36,7 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
@@ -89,6 +90,18 @@ public class QueryExec {
         dataContext = createDataContext(rootSchema);
         planner.setExecutor(new RexExecutorImpl(dataContext));
         queryOptimizer = new QueryOptimizer(planner);
+    }
+
+    public void plannerRemoveRules(List<RelOptRule> rules) {
+        for (RelOptRule rule : rules) {
+            planner.removeRule(rule);
+        }
+    }
+
+    public void plannerAddRules(List<RelOptRule> rules) {
+        for (RelOptRule rule : rules) {
+            planner.addRule(rule);
+        }
     }
 
     /**
@@ -148,6 +161,11 @@ public class QueryExec {
             node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
         }
         return node;
+    }
+
+    @VisibleForTesting
+    public RelRoot sqlToRelRoot(String sql) throws SqlParseException {
+        return sqlConverter.convertSqlToRelNode(sql);
     }
 
     /**

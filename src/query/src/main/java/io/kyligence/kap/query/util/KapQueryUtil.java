@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -160,10 +161,22 @@ public class KapQueryUtil {
     }
 
     public static boolean isJoinOnlyOneAggChild(KapJoinRel joinRel) {
-        final RelSubset joinLeftChildSub = (RelSubset)joinRel.getLeft();
-        final RelSubset joinRightChildSub = (RelSubset)joinRel.getRight();
-        final RelNode joinLeftChild = Util.first(joinLeftChildSub.getBest(), joinLeftChildSub.getOriginal());
-        final RelNode joinRightChild = Util.first(joinRightChildSub.getBest(), joinRightChildSub.getOriginal());
+        RelNode joinLeftChild;
+        RelNode joinRightChild;
+        final RelNode joinLeft = joinRel.getLeft();
+        final RelNode joinRight = joinRel.getRight();
+        if (joinLeft instanceof RelSubset && joinRight instanceof RelSubset) {
+            final RelSubset joinLeftChildSub =(RelSubset) joinLeft;
+            final RelSubset joinRightChildSub =(RelSubset) joinRight;
+            joinLeftChild = Util.first(joinLeftChildSub.getBest(), joinLeftChildSub.getOriginal());
+            joinRightChild = Util.first(joinRightChildSub.getBest(), joinRightChildSub.getOriginal());
+
+        } else if (joinLeft instanceof HepRelVertex && joinRight instanceof HepRelVertex){
+            joinLeftChild = ((HepRelVertex) joinLeft).getCurrentRel();
+            joinRightChild = ((HepRelVertex) joinRight).getCurrentRel();
+        } else {
+            return false;
+        }
 
         if (!(joinLeftChild instanceof Aggregate) && !(joinRightChild instanceof Aggregate)) {
             return false;
