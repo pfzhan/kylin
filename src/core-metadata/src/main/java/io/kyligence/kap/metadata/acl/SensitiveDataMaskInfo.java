@@ -32,10 +32,21 @@ public class SensitiveDataMaskInfo {
 
     private Map<String, Map<String, SensitiveDataMask>> infos = new HashMap<>();
 
+    public boolean hasMask() {
+        return !infos.isEmpty();
+    }
+
     public void addMasks(String dbName, String tableName, Collection<SensitiveDataMask> masks) {
         infos.putIfAbsent(dbName + "." + tableName, new HashMap<>());
         for (SensitiveDataMask mask : masks) {
-            infos.get(dbName + "." + tableName).put(mask.column, mask);
+            SensitiveDataMask originalMask = infos.get(dbName + "." + tableName).get(mask.column);
+            if (originalMask != null) {
+                infos.get(dbName + "." + tableName).put(
+                        mask.column,
+                        new SensitiveDataMask(mask.column, mask.getType().merge(originalMask.getType())));
+            } else {
+                infos.get(dbName + "." + tableName).put(mask.column, mask);
+            }
         }
     }
 

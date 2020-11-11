@@ -31,6 +31,7 @@ import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.relnode.KapTableScan;
+import io.kyligence.kap.query.relnode.KapWindowRel;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -40,6 +41,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
@@ -92,13 +94,6 @@ public class QuerySensitiveDataMask {
         this.maskInfo = maskInfo;
     }
 
-    public static String maskResult(String value, int columnIdx) {
-        if (THREAD_LOCAL.get() == null) {
-            return value;
-        }
-        return THREAD_LOCAL.get().doMaskResult(value, columnIdx);
-    }
-
     public static Dataset<Row> maskResult(Dataset<Row> df) {
         if (THREAD_LOCAL.get() == null) {
             return df;
@@ -122,7 +117,7 @@ public class QuerySensitiveDataMask {
     }
 
     public Dataset<Row> doMaskResult(Dataset<Row> df) {
-        if (maskInfo == null || rootRelNode == null) {
+        if (maskInfo == null || rootRelNode == null || !maskInfo.hasMask()) {
             return df;
         }
         if (resultMasks == null) {
@@ -140,10 +135,10 @@ public class QuerySensitiveDataMask {
                 case DEFAULT:
                     columns[i] = new Column(new Cast(
                             new Literal(UTF8String.fromString(defaultMaskResultToString(i)), DataTypes.StringType),
-                            df.schema().fields()[i].dataType())).as("masked_" + df.columns()[i]);
+                            df.schema().fields()[i].dataType())).as(df.columns()[i]);
                     break;
                 case AS_NULL:
-                    columns[i] = new Column(new Literal(null, df.schema().fields()[i].dataType())).as("masked_" + df.columns()[i]);
+                    columns[i] = new Column(new Literal(null, df.schema().fields()[i].dataType())).as(df.columns()[i]);
                     break;
                 default:
                     columns[i] = df.col(df.columns()[i]);
@@ -151,27 +146,6 @@ public class QuerySensitiveDataMask {
             }
         }
         return df.select(columns);
-    }
-
-    public String doMaskResult(String value, int columnIdx) {
-        if (maskInfo == null || rootRelNode == null) {
-            return value;
-        }
-        if (resultMasks == null) {
-            init();
-        }
-
-        if (resultMasks.get(columnIdx) == null || !SensitiveDataMask.isValidDataType(getResultColumnDataType(columnIdx).getSqlTypeName().getName())) {
-            return value;
-        }
-        switch (resultMasks.get(columnIdx)) {
-            case DEFAULT:
-                return defaultMaskResultToString(columnIdx);
-            case AS_NULL:
-                return null;
-            default:
-                return value;
-        }
     }
 
     private RelDataType getResultColumnDataType(int columnIdx) {
@@ -222,6 +196,8 @@ public class QuerySensitiveDataMask {
             return getProjectSensitiveCols((Project) relNode);
         } else if (relNode instanceof SetOp) {
             return getUnionSensitiveCols((SetOp) relNode);
+        } else if (relNode instanceof KapWindowRel) {
+            return getWindowSensitiveCols((Window) relNode);
         } else {
             List<SensitiveDataMask.MaskType> masks = new ArrayList<>();
             for (RelNode input : relNode.getInputs()) {
@@ -229,6 +205,26 @@ public class QuerySensitiveDataMask {
             }
             return masks;
         }
+    }
+
+    private List<SensitiveDataMask.MaskType> getWindowSensitiveCols(Window window) {
+        List<SensitiveDataMask.MaskType> inputMasks = getSensitiveCols(window.getInput(0));
+        SensitiveDataMask.MaskType[] masks = new SensitiveDataMask.MaskType[window.getRowType().getFieldList().size()];
+        int i = 0;
+        for (; i < inputMasks.size(); i++) {
+            masks[i] = inputMasks.get(i);
+        }
+        List<RexNode> aggCalls = window.groups.stream().flatMap(group -> group.aggCalls.stream()).collect(Collectors.toList());
+        for (RexNode aggCall : aggCalls) {
+            SensitiveDataMask.MaskType mask = null;
+            for (Integer bit : RelOptUtil.InputFinder.bits(aggCall)) {
+                if (bit < inputMasks.size() && inputMasks.get(bit) != null) { // skip constants
+                    mask = mask == null ? inputMasks.get(bit) : inputMasks.get(bit).merge(mask);
+                }
+            }
+            masks[i++] = mask;
+        }
+        return Lists.newArrayList(masks);
     }
 
     private List<SensitiveDataMask.MaskType> getUnionSensitiveCols(SetOp setOp) {

@@ -101,10 +101,8 @@ object ResultPlan extends LogEx {
         if (Thread.interrupted()) {
           throw new InterruptedException
         }
-        row.toSeq.zip(resultTypes).zipWithIndex.map{
-          case ((value, relField), idx) =>
-            val converted = SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType);
-            QuerySensitiveDataMask.maskResult(converted, idx);
+        row.toSeq.zip(resultTypes).map{
+          case(value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
         }.asJava
       }.toSeq.asJava
       QueryContext.current.record("transform_result")

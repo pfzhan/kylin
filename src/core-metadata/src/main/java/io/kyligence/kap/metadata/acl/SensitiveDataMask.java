@@ -62,7 +62,7 @@ public class SensitiveDataMask {
             if (other == null) {
                 return this;
             }
-            return this.priority > other.priority ? this : other;
+            return this.priority < other.priority ? this : other;
         }
     }
 

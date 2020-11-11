@@ -71,7 +71,7 @@ object SparkSqlClient {
         null
       }
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, db)
-      val df = ss.sql(sql)
+      val df = QuerySensitiveDataMask.maskResult(ss.sql(sql))
 
       autoSetShufflePartitions(ss, df)
 
@@ -113,10 +113,7 @@ object SparkSqlClient {
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
         return Pair.newPair(Lists.newArrayList(), fieldList)
       }
-      val rowList = df.collect().map(
-        _.toSeq.map(v => rawValueToString(v))
-          .zipWithIndex.map{case(value, idx) => QuerySensitiveDataMask.maskResult(value, idx)}.asJava
-      ).toSeq.asJava
+      val rowList = df.collect().map(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)

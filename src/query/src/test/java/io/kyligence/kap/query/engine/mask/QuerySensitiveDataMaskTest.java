@@ -78,35 +78,16 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSimpleMask() throws SqlParseException {
-        String sql = "SELECT ID1, ID4, PRICE1, PRICE2, PRICE3, PRICE5, PRICE6, PRICE7, NAME1, NAME2, TIME1, TIME2, FLAG FROM TEST_MEASURE";
-
-        QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
-        RelNode relNode = queryExec.parseAndOptimize(sql);
-
-        mask.doSetRootRelNode(relNode);
-        String[] before = new String[] {"1", "123", "1.2", "2.3", "3.4", "1", "2", "3", "CN", "FOO", "1992-01-01", "1992-01-01 00:10:12", "true"};
-        String[] expected = new String[] {"0", "0", "0.0", "0.0", "0.0", "0", "0", "0", "****", "****", "1970-01-01", "1970-01-01 00:00:00", "true"};
-        for (int i = 0; i < before.length; i++) {
-            Assert.assertEquals(expected[i], mask.doMaskResult(before[i], i));
-        }
+    public void testSetMultiMask() {
+        SensitiveDataMaskInfo maskInfo = new SensitiveDataMaskInfo();
+        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT", Lists.newArrayList(
+                new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.AS_NULL)
+        ));
+        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT", Lists.newArrayList(
+                new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.DEFAULT)
+        ));
+        Assert.assertEquals(SensitiveDataMask.MaskType.DEFAULT, maskInfo.getMask("DEFAULT", "TEST_KYLIN_FACT", "PRICE").getType());
     }
-
-    @Test
-    public void testMaskUnsupportedDataType() throws SqlParseException {
-        String sql = "SELECT case when ID1 > 100 then false else true end FROM TEST_MEASURE";
-
-        QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
-        RelNode relNode = queryExec.parseAndOptimize(sql);
-
-        mask.doSetRootRelNode(relNode);
-        String[] before = new String[] {"true"};
-        String[] expected = new String[] {"true"};
-        for (int i = 0; i < before.length; i++) {
-            Assert.assertEquals(expected[i], mask.doMaskResult(before[i], i));
-        }
-    }
-
 
     @Test
     public void testMaskWithJoin() throws SqlParseException {
@@ -173,4 +154,18 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 
+    @Test
+    public void testWindow() throws SqlParseException {
+        String sql = "SELECT SUM(PRICE) OVER (PARTITION BY SELLER_ID ORDER BY TRANS_ID) AS ROW_NUM, " +
+                "COUNT(1) OVER (PARTITION BY CAL_DT ORDER BY TRANS_ID) AS ROW_NUM, TRANS_ID, SELLER_ID " +
+                "FROM TEST_KYLIN_FACT";
+
+        QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
+        RelNode relNode = queryExec.parseAndOptimize(sql);
+
+        mask.doSetRootRelNode(relNode);
+        mask.init();
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, null, null, null};
+        Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
+    }
 }
