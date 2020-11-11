@@ -51,6 +51,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler;
 import io.kyligence.kap.metadata.cube.model.validation.NIndexPlanValidator;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
 public class NIndexPlanManager implements IKeepNames {
@@ -251,7 +252,9 @@ public class NIndexPlanManager implements IKeepNames {
         }
 
         // validate columns of table index
-        Set<Integer> selectedColumnIds = indexPlan.getModel().getAllSelectedColumns().stream()
+        Set<Integer> selectedColumnIds = NDataModelManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), indexPlan.getProject())
+                .getDataModelDesc(indexPlan.getUuid()).getAllSelectedColumns().stream()
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
         for (IndexEntity index : indexPlan.getAllIndexes(false)) {
             if (index.isTableIndex()) {

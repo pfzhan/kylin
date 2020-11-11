@@ -35,5 +35,6 @@ public class StopQueryBroadcastEventNotifier extends BroadcastEventReadyNotifier
 
     public StopQueryBroadcastEventNotifier(String id) {
         this.id = id;
+        this.subject = id;
     }
 }

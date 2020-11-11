@@ -22,22 +22,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.common.scheduler;
+package io.kyligence.kap.common.persistence.transaction;
 
-import io.kyligence.kap.common.obf.IKeep;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
-public class SchedulerEventNotifier implements IKeep {
+public class AsyncAccelerateBroadcastEventNotifier extends BroadcastEventReadyNotifier {
+    private String user;
 
-    protected String project;
-    protected String subject;
+    public AsyncAccelerateBroadcastEventNotifier(String project, String user) {
+        this.project = project;
+        this.user = user;
+        this.subject = user;
+    }
 }

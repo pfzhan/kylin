@@ -153,8 +153,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.AsyncAccelerateBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -175,7 +177,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
@@ -568,7 +569,8 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
-        AsyncTaskManager.cleanAccelerationTagByUser(projectName, aclEvaluate.getCurrentUserName());
+        EventBusFactory.getInstance()
+                .postAsync(new AsyncAccelerateBroadcastEventNotifier(projectName, aclEvaluate.getCurrentUserName()));
         ProjectInstance prj = getProjectManager().getProject(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
@@ -927,7 +929,8 @@ public class ModelService extends BasicService {
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
         aclEvaluate.checkProjectReadPermission(project);
-        AsyncTaskManager.cleanAccelerationTagByUser(project, aclEvaluate.getCurrentUserName());
+        EventBusFactory.getInstance()
+                .postAsync(new AsyncAccelerateBroadcastEventNotifier(project, aclEvaluate.getCurrentUserName()));
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         val dataflowManager = getDataflowManager(project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);

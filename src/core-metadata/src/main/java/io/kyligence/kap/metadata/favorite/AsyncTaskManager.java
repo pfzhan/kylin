@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.extern.slf4j.Slf4j;
 
@@ -102,6 +103,10 @@ public class AsyncTaskManager {
     }
 
     public static void cleanAccelerationTagByUser(String project, String userName) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!EpochManager.getInstance(kylinConfig).checkEpochOwner(project) && !kylinConfig.isUTEnv()) {
+            return;
+        }
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
                     KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
