@@ -29,7 +29,7 @@ export default {
     errorEmailFormat: 'Please input vaild email.',
     noEmail: 'Please input email',
     failApi: 'Failed to Fetch',
-    serverStatus: 'Service Status：',
+    serverStatus: 'Service Status: ',
     lastUpdateTime: 'Last Updated Time',
     noNodesTip1: 'There\'s no active All node now. The build jobs and metadata operations is unavailable temporarily.',
     excess: 'Over Capacity',

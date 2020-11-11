@@ -86,7 +86,7 @@
             show-overflow-tooltip
             prop="target_subject">
             <template slot-scope="scope">
-              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope)}}</span>
+              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
               <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && !scope.row.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
                 <span class="is-disabled">{{scope.row.target_subject}}</span>
               </common-tip>
@@ -184,8 +184,12 @@
                 <tr>
                   <td>{{$t('TargetSubject')}}</td>
                   <td>
-                    <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || selectedJob.target_subject_error">{{selectedJob.target_subject}}</span>
-                    <a class="link" v-else @click="gotoModelList(selectedJob)">{{selectedJob.target_subject}}</a>
+                    <span class="is-disabled" v-if="selectedJob.job_name === 'TABLE_SAMPLING' || selectedJob.target_subject_error">{{getTargetSubject(selectedJob)}}</span>
+                    <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(selectedJob.job_name) && !selectedJob.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
+                      <span class="is-disabled">{{selectedJob.target_subject}}</span>
+                    </common-tip>
+                    <a class="link" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(selectedJob.job_name) && $store.state.project.snapshot_manual_management_enabled&&!selectedJob.target_subject_error" @click="gotoSnapshotList(selectedJob)">{{selectedJob.target_subject}}</a>
+                    <a class="link" v-if="!tableJobTypes.includes(selectedJob.job_name)&&!selectedJob.target_subject_error" @click="gotoModelList(selectedJob)">{{selectedJob.target_subject}}</a>
                   </td>
                 </tr>
                 <tr>
@@ -648,13 +652,13 @@ export default class JobsList extends Vue {
   //     })
   //   })
   // }
-  getTargetSubject (scope) {
-    if (scope.row.target_subject === 'The snapshot is deleted') {
+  getTargetSubject (row) {
+    if (row.target_subject === 'The snapshot is deleted') {
       return this.$t('snapshotIsDeleted')
-    } else if (scope.row.target_subject === 'The model is deleted') {
+    } else if (row.target_subject === 'The model is deleted') {
       return this.$t('modelIsDeleted')
     } else {
-      return this.$t(scope.row.target_subject)
+      return this.$t(row.target_subject)
     }
   }
   getBatchBtnStatus (statusArr) {
@@ -1433,6 +1437,9 @@ export default class JobsList extends Vue {
       // position: absolute;
       // top: 0;
       // right: 0;
+      .is-disabled {
+        color: @text-disabled-color;
+      }
       &.is-admin-tips {
         min-height: calc(~'100vh - 181px');
       }

@@ -80,7 +80,7 @@
                     :title="$t('pattern')"
                     width="460"
                     popper-class="recommend-popover"
-                    v-if="isOpenSemiAutomatic&&datasourceActions.includes('modelActions')"
+                    v-if="isOpenSemiAutomatic"
                     trigger="click">
                       <div v-html="$t('patternDsec', {
                         rec_pattern_count: infoData.rec_pattern_count,
@@ -109,7 +109,7 @@
                     :title="$t('rule')"
                     width="460"
                     popper-class="recommend-popover"
-                    v-if="isOpenSemiAutomatic&&datasourceActions.includes('modelActions')"
+                    v-if="isOpenSemiAutomatic"
                     trigger="click">
                     <div v-html="$t('ruleDsec')"></div>
                     <div class="ksd-mt-5" style="text-align: right; margin: 0" v-if="isOpenSemiAutomatic&&datasourceActions.includes('accelerationActions')">
@@ -136,7 +136,7 @@
                     :title="$t('recommendation')"
                     width="260"
                     popper-class="recommend-popover"
-                    v-if="isOpenSemiAutomatic&&datasourceActions.includes('modelActions')"
+                    v-if="isOpenSemiAutomatic"
                     trigger="click">
                     <div v-html="$t('recommendationDsec', {
                       approved_rec_count: infoData.approved_rec_count,

@@ -691,6 +691,7 @@ export default class LayoutLeftRightTop extends Vue {
         var currentPathName = this.$router.currentRoute.name
         var currentPath = this.$router.currentRoute.path
         this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPathName, currentPath)
+        this.loadQuotaInfo()
       }).catch(() => {
         this.$nextTick(() => {
           let preProject = this.$store.state.project.selected_project // 恢复上一次的project
@@ -702,6 +703,7 @@ export default class LayoutLeftRightTop extends Vue {
       var currentPathName = this.$router.currentRoute.name
       var currentPath = this.$router.currentRoute.path
       this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPathName, currentPath)
+      this.loadQuotaInfo()
     }
   }
   async addProject () {
