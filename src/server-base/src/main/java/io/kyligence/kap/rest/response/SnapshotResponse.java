@@ -81,6 +81,14 @@ public class SnapshotResponse implements Comparable<SnapshotResponse> {
 
     @Override
     public int compareTo(SnapshotResponse o) {
+        if (this.lastModifiedTime == 0) {
+            return -1;
+        }
+
+        if (o.lastModifiedTime == 0) {
+            return 1;
+        }
+
         int nonNegative = o.lastModifiedTime > this.lastModifiedTime ? 1 : 0;
         return o.lastModifiedTime < this.lastModifiedTime ? -1 : nonNegative;
     }

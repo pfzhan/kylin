@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_MANAGEMENT_NOT_ENABLED;
@@ -98,6 +99,12 @@ public class SnapshotService extends BasicService {
 
         NTableMetadataManager tableManager = getTableManager(project);
         val databases = buildDatabases.stream().map(String::toUpperCase).collect(Collectors.toSet());
+        val databasesNotExist = databases.stream().filter(database -> !tableManager.listDatabases().contains(database))
+                .collect(Collectors.toSet());
+        if (!databasesNotExist.isEmpty()) {
+            throw new KylinException(DATABASE_NOT_EXIST, String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(),
+                    StringUtils.join(databasesNotExist, ", ")));
+        }
         Set<String> tablesOfDatabases = tableManager.listAllTables().stream().filter(tableDesc ->
                 databases.contains(tableDesc.getDatabase())).map(TableDesc::getIdentity).collect(Collectors.toSet());
         needBuildSnapshotTables.addAll(tablesOfDatabases);
@@ -108,6 +115,8 @@ public class SnapshotService extends BasicService {
     public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables, boolean isRefresh) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectOperationPermission(project);
+        Set<TableDesc> tables = getTableDescs(project, needBuildSnapshotTables);
+        checkTablePermission(tables);
         if (isRefresh) {
             checkTableSnapshotExist(project, getTableDescs(project, needBuildSnapshotTables));
         }
@@ -115,8 +124,6 @@ public class SnapshotService extends BasicService {
         List<String> jobIds = new ArrayList<>();
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            Set<TableDesc> tables = getTableDescs(project, needBuildSnapshotTables);
-            checkTablePermission(tables);
             checkRunningSnapshotTask(project, needBuildSnapshotTables);
             getSourceUsageManager().licenseCheckWrap(project, () -> {
                 for (TableDesc tableDesc : tables) {
@@ -332,9 +339,14 @@ public class SnapshotService extends BasicService {
             response.removeIf(res -> !upperCaseFilter.contains(res.getStatus()));
         }
 
-        Comparator<SnapshotResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(sortBy) ? "last_modified_time" : sortBy, !isReversed);
-        response.sort(comparator);
+        sortBy = StringUtils.isEmpty(sortBy) ? "last_modified_time" : sortBy;
+        if ("last_modified_time".equalsIgnoreCase(sortBy) && isReversed) {
+            response.sort(SnapshotResponse::compareTo);
+        } else {
+            Comparator<SnapshotResponse> comparator = propertyComparator(sortBy, !isReversed);
+            response.sort(comparator);
+        }
+
         return response;
     }
 
@@ -343,6 +355,9 @@ public class SnapshotService extends BasicService {
         int lookupCount = 0;
         val manager = NDataModelManager.getInstance(getConfig(), tableDesc.getProject());
         for (val model : manager.listAllModels()) {
+            if (model.isBroken()) {
+                continue;
+            }
             if (model.isRootFactTable(tableDesc)) {
                 factCount ++;
             } else if (model.isLookupTable(tableDesc)) {

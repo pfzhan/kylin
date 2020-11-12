@@ -867,16 +867,7 @@ public class TableService extends BasicService {
         }
     }
 
-    @Transaction(project = 0)
-    public void unloadTable(String project, String table, Boolean cascade) {
-        aclEvaluate.checkProjectWritePermission(project);
-        NTableMetadataManager tableMetadataManager = getTableManager(project);
-        val tableDesc = tableMetadataManager.getTableDesc(table);
-        if (tableDesc == null) {
-            val msg = MsgPicker.getMsg();
-            throw new KylinException(INVALID_TABLE_NAME, String.format(msg.getTABLE_NOT_FOUND(), table));
-        }
-
+    private void stopSnapshotJobs(String project, String table) {
         val execManager = getExecutableManager(project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
@@ -888,6 +879,19 @@ public class TableService extends BasicService {
         conflictJobs.forEach(job -> {
             execManager.cancelJob(job.getId());
         });
+    }
+
+    @Transaction(project = 0)
+    public void unloadTable(String project, String table, Boolean cascade) {
+        aclEvaluate.checkProjectWritePermission(project);
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        val tableDesc = tableMetadataManager.getTableDesc(table);
+        if (tableDesc == null) {
+            val msg = MsgPicker.getMsg();
+            throw new KylinException(INVALID_TABLE_NAME, String.format(msg.getTABLE_NOT_FOUND(), table));
+        }
+
+        stopSnapshotJobs(project, table);
 
         val dataflowManager = getDataflowManager(project);
         if (cascade) {
@@ -1449,6 +1453,7 @@ public class TableService extends BasicService {
                     });
                 }
             }
+            stopSnapshotJobs(projectName, tableIdentity);
         } else {
             targetTable.setLastSnapshotPath(originTable.getLastSnapshotPath());
         }
