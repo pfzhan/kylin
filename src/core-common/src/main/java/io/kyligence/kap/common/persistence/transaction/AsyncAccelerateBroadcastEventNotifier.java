@@ -25,10 +25,12 @@
 package io.kyligence.kap.common.persistence.transaction;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class AsyncAccelerateBroadcastEventNotifier extends BroadcastEventReadyNotifier {
     private String user;
 
