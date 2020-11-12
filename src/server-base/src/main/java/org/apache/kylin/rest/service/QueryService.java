@@ -185,6 +185,8 @@ public class QueryService extends BasicService {
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     public static final String UNKNOWN = "Unknown";
     private static final String JDBC_METADATA_SCHEMA = "metadata";
+    // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
+    public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
@@ -643,7 +645,7 @@ public class QueryService extends BasicService {
         return "http://" + hostname + ":" + port + "/zipkin/traces/" + Long.toHexString(scope.getSpan().getTraceId());
     }
 
-    private SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
+    protected SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
         QueryExec queryExec = newQueryExec(sqlRequest.getProject(), sqlRequest.getExecuteAs());
 
         if (sqlRequest.isForcedToPushDown()) {
@@ -684,12 +686,15 @@ public class QueryService extends BasicService {
                 return execute(correctedSql, sqlRequest, queryExec);
             }, sqlRequest.getProject());
         } catch (TransactionException e) {
-            if (e.getCause() instanceof SQLException) {
+            if (e.getCause() instanceof SQLException && !e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)) {
                 return pushDownQuery((SQLException) e.getCause(), sqlRequest, queryExec.getSchema());
             } else {
                 throw e;
             }
         } catch (SQLException e) {
+            if (e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)) {
+                throw e;
+            }
             return pushDownQuery(e, sqlRequest, queryExec.getSchema());
         } finally {
             QueryResultMasks.remove();
@@ -733,7 +738,7 @@ public class QueryService extends BasicService {
         return new QueryExec(project, projectKylinConfig);
     }
 
-    private QueryContext.AclInfo getExecuteAclInfo(String project, String executeAs) {
+    protected QueryContext.AclInfo getExecuteAclInfo(String project, String executeAs) {
         if (executeAs == null)
             return AclPermissionUtil.prepareQueryContextACLInfo(project,
                     userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername()));
@@ -1040,7 +1045,7 @@ public class QueryService extends BasicService {
         }
     }
 
-    private SQLResponse execute(String correctedSql, SQLRequest sqlRequest, QueryExec queryExec) throws Exception {
+    protected SQLResponse execute(String correctedSql, SQLRequest sqlRequest, QueryExec queryExec) throws Exception {
         boolean isPushDown = false;
 
         List<List<String>> results = Lists.newArrayList();

@@ -62,7 +62,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -90,7 +89,6 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Ignore
 public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
 
     private static final String PROJECT = "default";

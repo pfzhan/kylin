@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.service.QueryService.SPARK_MEM_LIMIT_EXCEEDED;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -60,7 +62,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -93,6 +94,7 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.apache.spark.SparkException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -127,6 +129,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
@@ -1288,5 +1291,32 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Access is denied.");
         queryService.doQueryWithCache(request, false);
+    }
+
+    @Test
+    public void testThrowExceptionWhenSparkOOM() throws Exception {
+        QueryService queryService = Mockito.spy(new QueryService());
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setExecuteAs("ADMIN");
+        sqlRequest.setProject("default");
+        sqlRequest.setSql("select 1");
+        QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
+
+        Mockito.doReturn(queryExec).when(queryService).newQueryExec("default", "ADMIN");
+        Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true)).when(queryService)
+                .getExecuteAclInfo("default", "ADMIN");
+        Mockito.when(queryService.execute("select 1", sqlRequest, queryExec)).thenThrow(new SparkException(
+                "Job aborted due to stage failure: Task 40 in stage 888.0 failed 1 times, most recent failure: "
+                        + "Lost task 40.0 in stage 888.0 (TID 79569, hrbd-73, executor 5): ExecutorLostFailure (executor 5 exited "
+                        + "caused by one of the running tasks) Reason: Container killed by YARN for exceeding memory limits.  6.5 GB "
+                        + "of 6.5 GB physical memory used. Consider boosting spark.yarn.executor.memoryOverhead or disabling "
+                        + "yarn.nodemanager.vmem-check-enabled because of YARN-4714."));
+        try {
+            queryService.queryWithSqlMassage(sqlRequest);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof SparkException || e.getCause() instanceof SparkException);
+            Assert.assertTrue(e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)
+                    || e.getCause().getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED));
+        }
     }
 }

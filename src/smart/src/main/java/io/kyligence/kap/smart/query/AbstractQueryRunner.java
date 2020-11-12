@@ -123,6 +123,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                     olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
                 }
             } finally {
+                NProjectLoader.removeCache();
                 counter.countDown();
             }
         });
