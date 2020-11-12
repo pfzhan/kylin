@@ -69,7 +69,7 @@ export default {
     importSuccess: 'Imported successfully',
     uploadRule1: 'Please upload .txt or .sql file',
     uploadRule2: 'Valid SQLs shall be included in the file',
-    uploadRule3: 'The total file size can’t be larger than 5 MB',
+    uploadRule3: 'The total file size can\'t be larger than 5 MB',
     uploadRule4: 'Up to {size} SQLs could be uploaded at a time'
   },
   'zh-cn': {

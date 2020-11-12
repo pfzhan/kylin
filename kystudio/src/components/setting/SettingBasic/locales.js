@@ -67,7 +67,7 @@ export default {
     suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated everyday be default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">user manual</a> for details.',
     emptySegmentEnable: 'Creating Empty Segments',
     emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index. Please note that queries would be answered by pushdown engine when they hit empty segments.',
-    overTimeLimitTip: 'The upper limit of the latency range can’t exceed 3600 seconds',
+    overTimeLimitTip: 'The upper limit of the latency range can\'t exceed 3600 seconds',
     prevGreaterThanNext: 'The upper limit of the latency range should be greater than the lower limit'
   },
   'zh-cn': {

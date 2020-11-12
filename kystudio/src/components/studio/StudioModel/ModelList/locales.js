@@ -115,8 +115,8 @@ export default {
     exportTDSOptions3: 'Include all columns for dimension or measure, even if they are not included in any aggregate or table index',
     connectODBC: 'Other ODBC data sources（default）',
     connectTableau: 'Tableau Kyligence Connector',
-    exportTDSOfflineTips: 'The exported TDS file can’t be used for queries if the model is OFFLINE. Please make sure that the model goes online when using this TDS file.',
-    bokenModelExportTDSTip: 'Can’t export TDS file at the moment as the model is BROKEN'
+    exportTDSOfflineTips: 'The exported TDS file can\'t be used for queries if the model is OFFLINE. Please make sure that the model goes online when using this TDS file.',
+    bokenModelExportTDSTip: 'Can\'t export TDS file at the moment as the model is BROKEN'
   },
   'zh-cn': {
     capbility: '加速比例',

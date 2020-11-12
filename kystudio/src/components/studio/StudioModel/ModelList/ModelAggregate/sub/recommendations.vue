@@ -4,7 +4,7 @@
       <p>{{$t('recommendations')}}</p>
     </div>
     <div class="detail-content">
-      <p class="title-tip">{{$t('recommendationsTip1')}}<a href="javascript:void();" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en'">{{$t('recommendationsTip2')}}</span></p>
+      <p class="title-tip">{{$t('recommendationsTip1')}}<span v-if="$lang !== 'en'&&datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span><a href="javascript:void();" v-if="datasourceActions.includes('acceRuleSettingActions')" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en'">{{$t('recommendationsTip2')}}</span></p>
       <div class="ksd-mb-10 ksd-mt-10 ksd-fs-12" >
         <el-button size="mini" :disabled="!selectedList.length" type="primary" @click="betchAccept" icon="el-icon-ksd-accept">{{$t('accept')}}</el-button><el-button plain size="mini" :disabled="!selectedList.length" @click="betchDelete" icon="el-icon-ksd-table_delete">{{$t('delete')}}</el-button>
       </div>
@@ -231,7 +231,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { transToGmtTime } from 'util/business'
-import { mapActions, mapState } from 'vuex'
+import { mapActions, mapState, mapGetters } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../../../../../util'
 import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
 import filterElements from '../../../../../../filter/index'
@@ -248,7 +248,10 @@ import filterElements from '../../../../../../filter/index'
   computed: {
     ...mapState({
       currentProject: state => state.project.selected_project
-    })
+    }),
+    ...mapGetters([
+      'datasourceActions'
+    ])
   },
   methods: {
     ...mapActions({
@@ -328,7 +331,8 @@ import filterElements from '../../../../../../filter/index'
     },
     'zh-cn': {
       recommendations: '优化建议',
-      recommendationsTip1: '以下为系统根据您的查询历史及使用情况对模型生成的优化建议。可在项目设置中',
+      recommendationsTip1: '以下为系统根据您的查询历史及使用情况对模型生成的优化建议。',
+      recommendationsTip2: '可在项目设置中',
       modifyRules: '配置规则',
       th_recommendType: '建议类型',
       th_name: '名称',

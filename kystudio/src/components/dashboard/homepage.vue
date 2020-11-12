@@ -3,7 +3,7 @@
     <div class="homepage-content">
       <div class="ksd-title-label ksd-fs-24">{{$t('aiAugmented')}}</div>
       <div class="ksd-mt-10">{{$t('aiAugmentedDesc')}}</div>
-      <div class="ksd-mt-40 ksd-mb-10 combination-block clearfix">
+      <div class="ksd-mb-10 combination-block clearfix">
         <div class="left-block">
           <div class="card ksd-fright clearfix">
             <div class="ksd-fleft card-img">
@@ -52,7 +52,13 @@
                 <img src="../../assets/img/AItitle_CN@2x.png" v-else alt="">
                 <div v-if="!isOpenSemiAutomatic">
                   <div class="circle-desc" :class="{'en': $lang === 'en'}">{{$t('openRecommendationDesc')}}</div>
-                  <div class="circle-btn" @click="turnOnRecommendation">
+                  <common-tip :content="$t('noPermissionTips')" v-if="!datasourceActions.includes('acceRuleSettingActions')" placement="top">
+                    <div class="circle-btn disabled">
+                      <i class="ksd-fs-20 el-icon-ksd-project_status"></i>
+                      {{$t('turnOnRecommendation')}}
+                    </div>
+                  </common-tip>
+                  <div class="circle-btn" v-else @click="turnOnRecommendation">
                     <i class="ksd-fs-20 el-icon-ksd-project_status"></i>
                     {{$t('turnOnRecommendation')}}
                   </div>
@@ -112,7 +118,7 @@
                     v-if="isOpenSemiAutomatic"
                     trigger="click">
                     <div v-html="$t('ruleDsec')"></div>
-                    <div class="ksd-mt-5" style="text-align: right; margin: 0" v-if="isOpenSemiAutomatic&&datasourceActions.includes('accelerationActions')">
+                    <div class="ksd-mt-5" style="text-align: right; margin: 0" v-if="isOpenSemiAutomatic&&datasourceActions.includes('acceRuleSettingActions')">
                       <el-button type="primary" text size="mini" @click="gotoSettingRules">{{$t('modifySettings')}}</el-button>
                     </div>
                     <div class="recommend-content" slot="reference">
@@ -333,24 +339,28 @@ export default class Homepage extends Vue {
     }
   }
   async turnOnRecommendation () {
-    await this.callGlobalDetailDialog({
-      msg: this.$t('turnOnTips'),
-      title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
-      dialogType: 'warning',
-      isBeta: true,
-      showDetailBtn: false,
-      dangerouslyUseHTMLString: true,
-      needConcelReject: true,
-      submitText: this.$t('confirmOpen')
-    })
-    await this.updateProjectGeneralInfo({
-      alias: this.currentSelectedProject,
-      project: this.currentSelectedProject,
-      description: this.$store.state.project.projectConfig && this.$store.state.project.projectConfig.description,
-      maintain_model_type: this.$store.state.project.projectConfig && this.$store.state.project.projectConfig.maintain_model_type,
-      semi_automatic_mode: true
-    })
-    await this.fetchProjectSettings({projectName: this.currentSelectedProject})
+    try {
+      await this.callGlobalDetailDialog({
+        msg: this.$t('turnOnTips'),
+        title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
+        dialogType: 'warning',
+        isBeta: true,
+        showDetailBtn: false,
+        dangerouslyUseHTMLString: true,
+        needConcelReject: true,
+        submitText: this.$t('confirmOpen')
+      })
+      await this.updateProjectGeneralInfo({
+        alias: this.currentSelectedProject,
+        project: this.currentSelectedProject,
+        description: this.$store.state.project.projectConfig && this.$store.state.project.projectConfig.description,
+        maintain_model_type: this.$store.state.project.projectConfig && this.$store.state.project.projectConfig.maintain_model_type,
+        semi_automatic_mode: true
+      })
+      await this.fetchProjectSettings({projectName: this.currentSelectedProject})
+    } catch (e) {
+      handleError(e)
+    }
     this.init()
   }
   showGenerateModelDialog () {
@@ -417,8 +427,10 @@ export default class Homepage extends Vue {
   }
   handleResizeWindow () {
     const homepage = document.getElementsByClassName('combination-block')[0]
-    const homepageWidth = homepage.clientWidth
-    homepage.style.fontSize = homepageWidth + 'px'
+    if (homepage) {
+      const homepageWidth = homepage.clientWidth
+      homepage.style.fontSize = homepageWidth + 'px'
+    }
   }
   mounted () {
     this.$nextTick(() => {

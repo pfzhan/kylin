@@ -40,7 +40,7 @@ export default {
     acceSuccess: 'Successfully optimized. {acceNum} new recommendations are generated.',
     acceSuccessZero: 'Successfully optimized, while no recommendation has been generated. Make sure that the model used for answering the queries exists. <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">Learn more</a>',
     isAcce: 'Ongoing Optimization',
-    noPermissionTips: 'Don’t have permission to operate. Please contact administrator.',
+    noPermissionTips: 'Don\'t have permission to operate. Please contact administrator.',
     manualUrl: 'https://docs.kyligence.io/books/v4.2/en/integration/',
     turnOnTips: 'With recommendation mode turned on, the system will generate recommendations for existing models by analyzing the query history and model usage. You may set the related rules in settings.<br/><br/>Please note that this feature is still in BETA phase. Potential risks or known limitations might exist. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">user manual</a> for details.<br/><br/>Do you want to continue?',
     turnOn: 'Turn On ',
