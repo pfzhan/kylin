@@ -116,6 +116,7 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
@@ -221,8 +222,10 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<ModelSuggestionResponse> suggestModel(@RequestBody SqlAccelerateRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
+        AbstractContext proposeContext = modelService.suggestModel(request.getProject(), request.getSqls(),
+                request.getReuseExistedModel());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                modelService.suggestModel(request.getProject(), request.getSqls(), request.getReuseExistedModel()), "");
+                modelService.buildModelSuggestionResponse(proposeContext), "");
     }
 
     @ApiOperation(value = "suggestModel", notes = "")

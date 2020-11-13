@@ -88,7 +88,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OptRecService extends BasicService implements ModelUpdateListener {
 
     public static final int V2 = 2;
-    public static final String OPTIMIZE_REASON = "index_opt_reason";
+    public static final String RECOMMENDATION_SOURCE = "recommendation_source";
     public static final String OPERATION_ERROR_MSG = "The operation types of recommendation includes: add_index, removal_index and both(by default)";
 
     @Autowired
@@ -709,13 +709,13 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 response.setType(rawRecItem.getLayoutRecType());
                 response.setCreateTime(rawRecItem.getCreateTime());
                 response.setLastModified(rawRecItem.getUpdateTime());
+                HashMap<String, String> memoInfo = Maps.newHashMap();
+                memoInfo.put(OptRecService.RECOMMENDATION_SOURCE, rawRecItem.getRecSource());
+                response.setMemoInfo(memoInfo);
                 if (!isAdd) {
                     long layoutId = RawRecUtil.getLayout(rawRecItem).getId();
                     response.setIndexId(layoutId);
                     response.setDataSize(dataflow.getByteSize(layoutId));
-                    HashMap<String, String> memoInfo = Maps.newHashMap();
-                    memoInfo.put(OptRecService.OPTIMIZE_REASON, rawRecItem.getIndexOptStrategy());
-                    response.setMemoInfo(memoInfo);
                 }
                 layoutRecResponseList.add(response);
             }

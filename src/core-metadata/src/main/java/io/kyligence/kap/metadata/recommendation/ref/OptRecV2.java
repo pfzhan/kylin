@@ -116,6 +116,7 @@ public class OptRecV2 {
         initModelColumnRefs(getModel());
         initModelMeasureRefs(getModel());
         initLayoutRefs(queryBestLayoutRecItems());
+        initLayoutRefs(queryImportedRawRecItems());
         initRemovalLayoutRefs(queryBestRemovalLayoutRecItems());
 
         autoNameForMeasure();
@@ -229,6 +230,10 @@ public class OptRecV2 {
                 ((FavoriteRule.Condition) FavoriteRule.getDefaultRule(favoriteRule, FavoriteRule.REC_SELECT_RULE_NAME)
                         .getConds().get(0)).getRightThreshold());
         return RawRecSelection.getInstance().selectBestLayout(topN, uuid, project);
+    }
+
+    private List<RawRecItem> queryImportedRawRecItems() {
+        return RawRecManager.getInstance(project).queryImportedRawRecItems(project, uuid);
     }
 
     private List<RawRecItem> queryBestRemovalLayoutRecItems() {
@@ -446,7 +451,7 @@ public class OptRecV2 {
             if (ccRef.isIdentical(anotherCCRef)) {
                 logDuplicateRawRecItem(recItem, -entry.getId());
                 ccRef.setExisted(true);
-                ccRefs.put(entry.getId(), ccRefs.get(entry.getId()));
+                ccRefs.put(negRecItemId, ccRefs.get(entry.getId()));
                 return;
             }
         }
@@ -508,7 +513,7 @@ public class OptRecV2 {
             if (Objects.equals(entry, dimensionRef)) {
                 logDuplicateRawRecItem(recItem, -entry.getId());
                 dimensionRef.setExisted(true);
-                dimensionRefs.put(entry.getId(), dimensionRefs.get(entry.getId()));
+                dimensionRefs.put(negRecItemId, dimensionRefs.get(entry.getId()));
                 return;
             }
         }

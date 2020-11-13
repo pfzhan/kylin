@@ -232,6 +232,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         item.setState(RawRecItem.toRecState((byte) recItemNode.get("state").asInt()));
         item.setUpdateTime(recItemNode.get("update_time").asLong());
         item.setCreateTime(recItemNode.get("create_time").asLong());
+        item.setRecSource(recItemNode.get("reserved_field_1").asText());
         return item;
     }
 

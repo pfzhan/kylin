@@ -167,8 +167,8 @@ public class JdbcRawRecStore {
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
-                    .and(table.state, isEqualTo(RawRecItem.RawRecState.RECOMMENDED)).build()
-                    .render(RenderingStrategies.MYBATIS3);
+                    .and(table.state, isEqualTo(RawRecItem.RawRecState.RECOMMENDED)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
             log.info("Query raw recommendations can add indexes to model({}/{}, semanticVersion: {}) takes {} ms.", //
                     project, model, semanticVersion, System.currentTimeMillis() - startTime);
@@ -192,12 +192,40 @@ public class JdbcRawRecStore {
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
                     .and(table.state, isEqualTo(state)) //
+                    .and(table.recSource, isNotEqualTo(RawRecItem.IMPORTED)) //
                     .orderBy(table.cost.descending(), table.hitCount.descending(), table.id.descending()) //
                     .limit(topN) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
             log.info("Query topN({}) recommendations for adding to model({}/{}, semanticVersion: {}) takes {} ms.", //
                     topN, project, model, semanticVersion, System.currentTimeMillis() - startTime);
+            return rawRecItems;
+        }
+    }
+
+    public List<RawRecItem> queryImportedRawRecItems(String project, String model, RawRecItem.RawRecState state) {
+        int semanticVersion = getSemanticVersion(project, model);
+        if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
+            log.debug("model({}/{}) does not exist.", project, model);
+            return Lists.newArrayList();
+        }
+        long startTime = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+                    .from(table) //
+                    .where(table.project, isEqualTo(project)) //
+                    .and(table.semanticVersion, isEqualTo(semanticVersion)) //
+                    .and(table.modelID, isEqualTo(model)) //
+                    .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
+                    .and(table.state, isEqualTo(state)) //
+                    .and(table.recSource, isEqualTo(RawRecItem.IMPORTED)) //
+                    .orderBy(table.id.descending()) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
+            log.info("Query recommendations "
+                    + "generated from imported sql for adding to model({}/{}, semanticVersion: {}) takes {} ms.", //
+                    project, model, semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
     }
@@ -449,6 +477,10 @@ public class JdbcRawRecStore {
         }
 
         oneBatch.forEach(recItem -> {
+            if (recItem.getRecSource().equalsIgnoreCase(RawRecItem.IMPORTED)) {
+                recItem.setUpdateTime(currentTime);
+                return;
+            }
             LayoutMetric.LatencyMap latencyMap = recItem.getLayoutMetric().getLatencyMap();
             recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - MILLIS_PER_DAY));
             recItem.setCost((recItem.getCost() + recItem.getTotalLatencyOfLastDay()) / Math.E);
@@ -511,8 +543,8 @@ public class JdbcRawRecStore {
                 .map(table.maxTime).toPropertyWhenPresent("maxTime", recItem::getMinTime) //
                 .map(table.minTime).toPropertyWhenPresent("minTime", recItem::getMinTime) //
                 .map(table.queryHistoryInfo).toPropertyWhenPresent("queryHistoryInfo", recItem::getQueryHistoryInfo) //
-                .map(table.indexOptStrategy).toPropertyWhenPresent("indexOptStrategy", recItem::getIndexOptStrategy)
-                .build().render(RenderingStrategies.MYBATIS3);
+                .map(table.recSource).toPropertyWhenPresent("recSource", recItem::getRecSource).build()
+                .render(RenderingStrategies.MYBATIS3);
     }
 
     UpdateStatementProvider changeRecStateProvider(int id, RawRecItem.RawRecState state, long updateTime) {
@@ -540,7 +572,7 @@ public class JdbcRawRecStore {
                 .set(table.maxTime).equalToWhenPresent(recItem::getMaxTime) //
                 .set(table.minTime).equalToWhenPresent(recItem::getMinTime) //
                 .set(table.queryHistoryInfo).equalToWhenPresent(recItem::getQueryHistoryInfo) //
-                .set(table.indexOptStrategy).equalToWhenPresent(recItem::getIndexOptStrategy) //
+                .set(table.recSource).equalToWhenPresent(recItem::getRecSource) //
                 .where(table.id, isEqualTo(recItem::getId)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
@@ -568,6 +600,6 @@ public class JdbcRawRecStore {
                 recItemTable.maxTime, //
                 recItemTable.minTime, //
                 recItemTable.queryHistoryInfo, //
-                recItemTable.indexOptStrategy);
+                recItemTable.recSource);
     }
 }

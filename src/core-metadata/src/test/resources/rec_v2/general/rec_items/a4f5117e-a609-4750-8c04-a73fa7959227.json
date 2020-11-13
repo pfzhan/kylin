@@ -67,7 +67,7 @@
     "state": 1,
     "create_time": 1595905437684,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -139,7 +139,7 @@
     "state": 1,
     "create_time": 1595905690548,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -211,7 +211,7 @@
     "state": 1,
     "create_time": 1595905810571,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -307,7 +307,7 @@
     "state": 1,
     "create_time": 1595905931002,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -331,7 +331,7 @@
     "state": 1,
     "create_time": 1595906530522,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -427,7 +427,7 @@
     "state": 1,
     "create_time": 1595906650635,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -475,7 +475,7 @@
     "state": 1,
     "create_time": 1595906770786,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -571,7 +571,7 @@
     "state": 1,
     "create_time": 1595906890575,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -619,7 +619,7 @@
     "state": 1,
     "create_time": 1595907370531,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -667,7 +667,7 @@
     "state": 1,
     "create_time": 1595907611669,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -691,7 +691,7 @@
     "state": 1,
     "create_time": 1595905931002,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   },
@@ -715,11 +715,10 @@
     "state": 1,
     "create_time": 1595905931002,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
-  }
-,
+  },
   {
     "id": 31,
     "project": "ssb",
@@ -740,7 +739,7 @@
     "state": 1,
     "create_time": 1595905931002,
     "update_time": 1595907720012,
-    "reserved_field_1": null,
+    "reserved_field_1": "QUERY_HISTORY",
     "reserved_field_2": null,
     "reserved_field_3": null
   }

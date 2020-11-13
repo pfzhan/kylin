@@ -98,7 +98,9 @@ public class RawRecManager {
         long updateTime = System.currentTimeMillis();
         existingCandidates.forEach(rawRecItem -> {
             rawRecItem.setUpdateTime(updateTime);
-            rawRecItem.setState(RawRecItem.RawRecState.INITIAL);
+            if (!rawRecItem.getRecSource().equalsIgnoreCase(RawRecItem.IMPORTED)) {
+                rawRecItem.setState(RawRecItem.RawRecState.INITIAL);
+            }
         });
         jdbcRawRecStore.update(existingCandidates);
         log.info("clear all existing candidate recommendations of model({}/{}) takes {} ms.", //
@@ -109,6 +111,10 @@ public class RawRecManager {
         return jdbcRawRecStore.chooseTopNCandidates(project, model, limit, RawRecItem.RawRecState.RECOMMENDED);
     }
 
+    public List<RawRecItem> queryImportedRawRecItems(String project, String model) {
+        return jdbcRawRecStore.queryImportedRawRecItems(project, model, RawRecItem.RawRecState.RECOMMENDED);
+    }
+
     public void updateRecommendedTopN(String project, String model, int topN) {
         long current = System.currentTimeMillis();
         RawRecManager rawRecManager = RawRecManager.getInstance(project);
@@ -117,6 +123,7 @@ public class RawRecManager {
                 RawRecItem.RawRecState.INITIAL);
         topNCandidates.forEach(rawRecItem -> {
             rawRecItem.setUpdateTime(current);
+            rawRecItem.setRecSource(RawRecItem.QUERY_HISTORY);
             rawRecItem.setState(RawRecItem.RawRecState.RECOMMENDED);
         });
         rawRecManager.saveOrUpdate(topNCandidates);

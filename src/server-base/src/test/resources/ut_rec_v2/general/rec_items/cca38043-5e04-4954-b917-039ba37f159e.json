@@ -67,7 +67,7 @@
     "state" : 1,
     "create_time" : 1599622991045,
     "update_time" : 1599627720064,
-    "reserved_field_1" : null,
+    "reserved_field_1" : "QUERY_HISTORY",
     "reserved_field_2" : null,
     "reserved_field_3" : null
   },
@@ -139,7 +139,7 @@
     "state" : 1,
     "create_time" : 1599627250715,
     "update_time" : 1599627720064,
-    "reserved_field_1" : null,
+    "reserved_field_1" : "QUERY_HISTORY",
     "reserved_field_2" : null,
     "reserved_field_3" : null
   },
@@ -163,7 +163,7 @@
     "state" : 2,
     "create_time" : 1599627370588,
     "update_time" : 1599627611243,
-    "reserved_field_1" : null,
+    "reserved_field_1" : "QUERY_HISTORY",
     "reserved_field_2" : null,
     "reserved_field_3" : null
   },

@@ -66,6 +66,7 @@ import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -82,6 +83,7 @@ import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
@@ -293,6 +295,47 @@ public class SemiV2CITest extends SemiAutoTestBase {
     }
 
     @Test
+    public void testTransferAndSaveRecommendations() {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare initial model
+        String query1 = "select sum(item_count*price) from test_kylin_fact";
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { query1 });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // assertion of the model
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        AbstractContext.NModelContext modelContext = modelContexts.get(0);
+        NDataModel targetModel = modelContext.getTargetModel();
+        List<RawRecItem> rawRecItemsBefore = jdbcRawRecStore.queryAll();
+        Assert.assertTrue(rawRecItemsBefore.isEmpty());
+
+        // mock propose with suggest model with saving recommendation to raw-rec-table
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+        String query2 = "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name";
+        AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
+                new String[] { query2 }, null);
+        rawRecService.transferAndSaveRecommendations(semiContextV2);
+
+        // assert result
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(3, rawRecItems.size());
+        List<RawRecItem> layoutRecs = rawRecItems.stream()
+                .filter(item -> item.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT).collect(Collectors.toList());
+        Assert.assertEquals(1, layoutRecs.size());
+        Assert.assertEquals(RawRecItem.IMPORTED, layoutRecs.get(0).getRecSource());
+
+        // assert the method of `queryImportedRawRecItems`
+        List<RawRecItem> recItems = RawRecManager.getInstance(getProject()).queryImportedRawRecItems(getProject(),
+                targetModel.getUuid());
+        Assert.assertEquals(1, recItems.size());
+        Assert.assertEquals(RawRecItem.IMPORTED, layoutRecs.get(0).getRecSource());
+    }
+
+    @Test
     public void testSuggestModel() {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
@@ -322,7 +365,8 @@ public class SemiV2CITest extends SemiAutoTestBase {
                         + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt group by price, item_count",
                 "select lstg_format_name, item_count, sum(price+1), sum(price+2) "
                         + "from test_kylin_fact group by lstg_format_name, item_count");
-        ModelSuggestionResponse suggestionResp = modelService.suggestModel(getProject(), sqlList, true);
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true);
+        ModelSuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
         List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResp.getReusedModels();
         Assert.assertEquals(1, reusedModels.size());
         ModelSuggestionResponse.NRecommendedModelResponse recommendedModelResponse = reusedModels.get(0);

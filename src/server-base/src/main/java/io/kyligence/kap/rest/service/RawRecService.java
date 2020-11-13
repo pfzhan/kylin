@@ -59,6 +59,7 @@ import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
@@ -68,12 +69,30 @@ import lombok.extern.slf4j.Slf4j;
 @Component("rawRecService")
 public class RawRecService {
 
+    private static final String ACCELERATION_INTERRUPT_BY_USER = "Acceleration triggered by user terminate the process of generate recommendation automatically at present.";
+
     @Autowired
     ProjectService projectService;
 
     public void accelerate(String project) {
         projectService.accelerateImmediately(project);
         updateCostsAndTopNCandidates();
+    }
+
+    public void transferAndSaveRecommendations(AbstractContext proposeContext) {
+        if (!(proposeContext instanceof ModelReuseContextOfSemiV2)) {
+            return;
+        }
+        ModelReuseContextOfSemiV2 semiContextV2 = (ModelReuseContextOfSemiV2) proposeContext;
+        Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
+        transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
+
+        List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, ArrayListMultimap.create(),
+                nonLayoutRecItemMap);
+        if (QueryHistoryAccelerateScheduler.getInstance(semiContextV2.getProject()).isInterruptByUser()) {
+            throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
+        }
+        saveLayoutRawRecItems(layoutRecItems, semiContextV2.getProject());
     }
 
     public void generateRawRecommendations(String project, List<QueryHistory> queryHistories, boolean isManual) {
@@ -94,16 +113,7 @@ public class RawRecService {
                 project, sqlList.toArray(new String[0]), null);
 
         Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
-
-        List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContextV2, nonLayoutRecItemMap);
-        saveCCRawRecItems(ccRawRecItems, project);
-        ccRawRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
-
-        List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContextV2, nonLayoutRecItemMap);
-        List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContextV2, nonLayoutRecItemMap);
-        saveDimensionAndMeasure(dimensionRecItems, measureRecItems, project);
-        dimensionRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
-        measureRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+        transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
 
         ArrayListMultimap<String, QueryHistory> layoutToQHMap = ArrayListMultimap.create();
         for (AccelerateInfo accelerateInfo : semiContextV2.getAccelerateInfoMap().values()) {
@@ -115,8 +125,7 @@ public class RawRecService {
 
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap, nonLayoutRecItemMap);
         if (!isManual && QueryHistoryAccelerateScheduler.getInstance(project).isInterruptByUser()) {
-            throw new IllegalStateException(
-                    "Acceleration triggered by user terminate the process of generate recommendation automatically at present.");
+            throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
         }
         saveLayoutRawRecItems(layoutRecItems, project);
 
@@ -124,6 +133,19 @@ public class RawRecService {
 
         log.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
                 System.currentTimeMillis() - startTime);
+    }
+
+    private void transferAndSaveModelRelatedRecItems(AbstractSemiContextV2 semiContext,
+            Map<String, RawRecItem> nonLayoutRecItemMap) {
+        List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContext, nonLayoutRecItemMap);
+        saveCCRawRecItems(ccRawRecItems, semiContext.getProject());
+        ccRawRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+
+        List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContext, nonLayoutRecItemMap);
+        List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContext, nonLayoutRecItemMap);
+        saveDimensionAndMeasure(dimensionRecItems, measureRecItems, semiContext.getProject());
+        dimensionRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+        measureRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
     }
 
     public void markFailAccelerateMessageToQueryHistory(ArrayListMultimap<String, QueryHistory> queryHistoryMap,
@@ -195,6 +217,7 @@ public class RawRecService {
             ArrayListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> recItemMap) {
         RawRecManager recManager = RawRecManager.getInstance(semiContextV2.getProject());
         List<RawRecItem> rawRecItems = Lists.newArrayList();
+        String recSource = layoutToQHMap.isEmpty() ? RawRecItem.IMPORTED : RawRecItem.QUERY_HISTORY;
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
             if (targetModel == null) {
@@ -220,9 +243,8 @@ public class RawRecService {
                 if (uniqueFlagToUuid.containsKey(uniqueString)) {
                     recItem = layoutRecItems.get(uuid);
                     recItem.setUpdateTime(System.currentTimeMillis());
-                    if (recItem.getState() == RawRecItem.RawRecState.DISCARD) {
-                        recItem.setState(RawRecItem.RawRecState.INITIAL);
-                    }
+                    recItem.setRecSource(recSource);
+                    recItem.restoreIfNeed();
                 } else {
                     recItem = new RawRecItem(semiContextV2.getProject(), //
                             targetModel.getUuid(), //
@@ -234,9 +256,14 @@ public class RawRecService {
                     recItem.setState(RawRecItem.RawRecState.INITIAL);
                     recItem.setUniqueFlag(layoutItem.getUuid());
                     recItem.setDependIDs(layoutItem.genDependIds());
+                    recItem.setRecSource(recSource);
+                }
+                if (recSource.equalsIgnoreCase(RawRecItem.IMPORTED)) {
+                    recItem.cleanLayoutStatistics();
+                    recItem.setState(RawRecItem.RawRecState.RECOMMENDED);
                 }
                 updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout());
-                if (recItem.getLayoutMetric() != null) {
+                if (recItem.isAdditionalRecItemSavable()) {
                     rawRecItems.add(recItem);
                 }
             });
@@ -246,6 +273,9 @@ public class RawRecService {
 
     private void updateLayoutStatistic(RawRecItem recItem, ArrayListMultimap<String, QueryHistory> layoutToQHMap,
             LayoutEntity layout) {
+        if (layoutToQHMap.isEmpty()) {
+            return;
+        }
         List<QueryHistory> queryHistories = layoutToQHMap.get(layout.getModel().getId() + "_" + layout.getId());
         if (CollectionUtils.isEmpty(queryHistories)) {
             return;

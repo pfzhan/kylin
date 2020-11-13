@@ -69,7 +69,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
             RecStateHandler.class.getName());
     public final SqlColumn<Long> createTime = column("create_time", JDBCType.BIGINT);
     public final SqlColumn<Long> updateTime = column("update_time", JDBCType.BIGINT);
-    public final SqlColumn<String> indexOptStrategy = column("reserved_field_1", JDBCType.VARCHAR);
+    public final SqlColumn<String> recSource = column("reserved_field_1", JDBCType.VARCHAR);
     // public final SqlColumn<String> reserveField2 = column("reserved_field2", JDBCType.BLOB);
     // public final SqlColumn<String> reserveField3 = column("reserved_field3", JDBCType.BLOB);
 

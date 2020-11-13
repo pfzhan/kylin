@@ -124,9 +124,9 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -217,6 +217,7 @@ import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -284,7 +285,7 @@ public class ModelService extends BasicService {
     private IndexPlanService indexPlanService;
 
     @Autowired
-    private QueryService queryService;
+    private RawRecService rawRecService;
 
     @Setter
     @Autowired
@@ -1507,6 +1508,53 @@ public class ModelService extends BasicService {
         }
     }
 
+    public OpenModelSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
+        AbstractContext proposeContext = suggestModel(request.getProject(), request.getSqls(),
+                !request.getForce2CreateNewModel());
+        ModelSuggestionResponse modelSuggestionResponse = buildModelSuggestionResponse(proposeContext);
+
+        OpenModelSuggestionResponse result;
+        if (request.getForce2CreateNewModel()) {
+            List<ModelRequest> modelRequests = modelSuggestionResponse.getNewModels().stream().map(modelResponse -> {
+                ModelRequest modelRequest = new ModelRequest(modelResponse);
+                modelRequest.setIndexPlan(modelResponse.getIndexPlan());
+                modelRequest.setWithEmptySegment(request.isWithEmptySegment());
+                modelRequest.setWithModelOnline(request.isWithModelOnline());
+                return modelRequest;
+            }).collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(modelRequests)) {
+                batchCreateModel(request.getProject(), modelRequests, Lists.newArrayList());
+            }
+
+            result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getNewModels());
+        } else {
+            result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getReusedModels());
+        }
+
+        if (request.isAcceptRecommendation()) {
+            saveRecResult(modelSuggestionResponse, request.getProject());
+        } else {
+            rawRecService.transferAndSaveRecommendations(proposeContext);
+        }
+
+        Set<String> normalRecommendedSqlSet = Sets.newHashSet();
+        for (OpenModelSuggestionResponse.RecommendationsResponse modelResponse : result.getModels()) {
+            modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
+                List<String> sqlList = layoutRecDetailResponse.getSqlList();
+                normalRecommendedSqlSet.addAll(sqlList);
+            });
+        }
+
+        result.setErrorSqlList(Lists.newArrayList());
+        for (String sql : request.getSqls()) {
+            if (!normalRecommendedSqlSet.contains(sql)) {
+                result.getErrorSqlList().add(sql);
+            }
+        }
+
+        return result;
+    }
+
     public NDataModel createModel(String project, ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         validatePartitionDateColumn(modelRequest);
@@ -1568,7 +1616,7 @@ public class ModelService extends BasicService {
         }
     }
 
-    public ModelSuggestionResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
+    public AbstractContext suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
@@ -1580,10 +1628,10 @@ public class ModelService extends BasicService {
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();
-        return buildModelSuggestionResponse(smartMaster.getContext());
+        return smartMaster.getContext();
     }
 
-    private ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
+    public ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
         List<NRecommendedModelResponse> responseOfNewModels = Lists.newArrayList();
         List<NRecommendedModelResponse> responseOfReusedModels = Lists.newArrayList();
 
@@ -1618,14 +1666,16 @@ public class ModelService extends BasicService {
             LayoutEntity layout = layoutRecItemV2.getLayout();
             ImmutableList<Integer> colOrder = layout.getColOrder();
             Map<ComputedColumnDesc, Boolean> ccStateMap = Maps.newHashMap();
+            Map<Integer, NDataModel.NamedColumn> colsOfTargetModelMap = Maps.newHashMap();
+            targetModel.getAllNamedColumns().forEach(col -> colsOfTargetModelMap.put(col.getId(), col));
             colOrder.forEach(idx -> {
                 if (idx < NDataModel.MEASURE_ID_BASE && originModel.getEffectiveDimensions().containsKey(idx)) {
-                    NDataModel.NamedColumn col = targetModel.getAllNamedColumns().get(idx);
+                    NDataModel.NamedColumn col = colsOfTargetModelMap.get(idx);
                     String dataType = originModel.getEffectiveDimensions().get(idx).getDatatype();
                     response.getDimensions().add(new LayoutRecDetailResponse.RecDimension(col, false, dataType));
                 } else if (idx < NDataModel.MEASURE_ID_BASE) {
-                    NDataModel.NamedColumn col = targetModel.getAllNamedColumns().get(idx);
-                    TblColRef tblColRef = targetModel.getEffectiveDimensions().get(idx);
+                    NDataModel.NamedColumn col = colsOfTargetModelMap.get(idx);
+                    TblColRef tblColRef = targetModel.getEffectiveCols().get(idx);
                     String colRefAliasDotName = tblColRef.getAliasDotName();
                     if (tblColRef.getColumnDesc().isComputedColumn() && !oriCCMap.containsKey(colRefAliasDotName)) {
                         ccStateMap.putIfAbsent(ccMap.get(colRefAliasDotName), true);

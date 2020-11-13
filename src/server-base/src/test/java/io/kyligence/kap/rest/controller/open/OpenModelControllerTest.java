@@ -76,6 +76,10 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.RawRecService;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import lombok.val;
 import lombok.var;
 
@@ -95,6 +99,9 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private ProjectService projectService;
 
+    @Mock
+    private RawRecService rawRecService;
+
     @InjectMocks
     private OpenModelController openModelController = Mockito.spy(new OpenModelController());
 
@@ -111,6 +118,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.doReturn(true).when(aclEvaluate).hasProjectWritePermission(Mockito.any());
         Mockito.doReturn(true).when(aclEvaluate).hasProjectOperationPermission(Mockito.any());
+        Mockito.doNothing().when(rawRecService).transferAndSaveRecommendations(Mockito.any());
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("default");
         Mockito.doReturn(Lists.newArrayList(projectInstance)).when(projectService)
@@ -233,8 +241,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).refreshOrMergeSegments(eq(modelName),
-                Mockito.any(SegmentsRequest.class));
+        Mockito.verify(openModelController).refreshOrMergeSegments(eq(modelName), Mockito.any(SegmentsRequest.class));
     }
 
     @Test
@@ -245,7 +252,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
 
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, true, false, null , null);
+                .deleteSegments(modelId, project, true, false, null, null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -263,7 +270,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = new SegmentsRequest();
         request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, false, false, request.getIds() , null);
+                .deleteSegments(modelId, project, false, false, request.getIds(), null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "false").param("ids", request.getIds())
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -313,8 +320,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
-        Mockito.doReturn(new OpenModelValidationResponse()).when(openModelController)
-                .batchSqlValidate("default", sqls);
+        Mockito.doReturn(new OpenModelValidationResponse()).when(openModelController).batchSqlValidate("default", sqls);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_validation")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -344,8 +350,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
+        AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+                sqls.toArray(new String[0]));
         val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(result).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false);
+        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false);
+        Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -360,8 +369,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
+        AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+                sqls.toArray(new String[0]));
         val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(result).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true);
+        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true);
+        Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))

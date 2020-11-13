@@ -39,9 +39,4 @@ public class CostBasedRecSelectStrategy implements RecSelectStrategy {
         RawRecManager rawRecManager = RawRecManager.getInstance(project);
         return rawRecManager.getCandidatesByProjectAndBenefit(project, topN);
     }
-
-    public void update(RawRecItem recItem, long time) {
-        double latencyOfTheDay = recItem.getLayoutMetric().getLatencyMap().getLatencyByDate(time);
-        recItem.setCost((recItem.getCost() + latencyOfTheDay) / Math.E);
-    }
 }

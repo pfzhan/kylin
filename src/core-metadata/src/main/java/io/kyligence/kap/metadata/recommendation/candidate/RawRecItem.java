@@ -44,6 +44,9 @@ import lombok.ToString;
 @Setter
 @ToString
 public class RawRecItem implements IKeep {
+    public static final String IMPORTED = "IMPORTED";
+    public static final String QUERY_HISTORY = "QUERY_HISTORY";
+
     private static final String TYPE_ERROR_FORMAT = "incorrect raw recommendation type(%d), type value must from 1 to 4 included";
     private static final String STATE_ERROR_FORMAT = "incorrect raw recommendation state(%d), type value must from 0 to 4 included";
 
@@ -68,7 +71,7 @@ public class RawRecItem implements IKeep {
     private double maxTime;
     private double minTime;
     private String queryHistoryInfo;
-    private String indexOptStrategy;
+    private String recSource;
 
     // reserved fields
     private String reservedField2;
@@ -104,6 +107,31 @@ public class RawRecItem implements IKeep {
 
     public boolean isRemoveLayoutRec() {
         return getType() == RawRecType.REMOVAL_LAYOUT;
+    }
+
+    public boolean isAdditionalRecItemSavable() {
+        Preconditions.checkState(isAddLayoutRec());
+        if (recSource.equalsIgnoreCase(RawRecItem.IMPORTED)) {
+            return true;
+        }
+        return getLayoutMetric() != null;
+    }
+
+    public void cleanLayoutStatistics() {
+        this.setLayoutMetric(null);
+        this.setHitCount(0);
+        this.setCost(0);
+        this.setTotalLatencyOfLastDay(0);
+        this.setTotalTime(0);
+        this.setMaxTime(0);
+        this.setMinTime(0);
+        this.setQueryHistoryInfo(null);
+    }
+
+    public void restoreIfNeed() {
+        if (state == RawRecState.DISCARD) {
+            state = RawRecState.INITIAL;
+        }
     }
 
     /**

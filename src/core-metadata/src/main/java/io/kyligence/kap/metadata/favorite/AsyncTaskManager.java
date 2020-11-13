@@ -92,6 +92,7 @@ public class AsyncTaskManager {
     }
 
     public static void resetAccelerationTagMap(String project) {
+        log.info("reset acceleration tag for project({})", project);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
                     KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
@@ -100,6 +101,7 @@ public class AsyncTaskManager {
             getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
             return null;
         }, project);
+        log.info("rest acceleration tag successfully for project({})", project);
     }
 
     public static void cleanAccelerationTagByUser(String project, String userName) {
@@ -107,6 +109,8 @@ public class AsyncTaskManager {
         if (!EpochManager.getInstance(kylinConfig).checkEpochOwner(project) && !kylinConfig.isUTEnv()) {
             return;
         }
+
+        log.info("start to clean acceleration tag by user");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) getInstance(
                     KylinConfig.getInstanceFromEnv(), project).get(ASYNC_ACCELERATION_TASK);
@@ -114,5 +118,6 @@ public class AsyncTaskManager {
             getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
             return null;
         }, project);
+        log.info("clean acceleration tag successfully for project({}: by user {})", project, userName);
     }
 }

@@ -189,7 +189,7 @@ public class OptRecManagerV2 {
             if (uniqueFlagToUuid.containsKey(uniqueString)) {
                 recItem = layoutRecommendations.get(uuid);
                 recItem.setUpdateTime(System.currentTimeMillis());
-                recItem.setIndexOptStrategy(type.name());
+                recItem.setRecSource(type.name());
                 if (recItem.getState() == RawRecItem.RawRecState.DISCARD) {
                     recItem.setState(RawRecItem.RawRecState.INITIAL);
                     LayoutMetric layoutMetric = recItem.getLayoutMetric();
@@ -215,7 +215,7 @@ public class OptRecManagerV2 {
                 recItem.setUniqueFlag(item.getUuid());
                 recItem.setDependIDs(item.genDependIds());
                 recItem.setLayoutMetric(new LayoutMetric(frequencyMap, new LayoutMetric.LatencyMap()));
-                recItem.setIndexOptStrategy(type.name());
+                recItem.setRecSource(type.name());
             }
 
             if (recItem.getLayoutMetric() != null) {
