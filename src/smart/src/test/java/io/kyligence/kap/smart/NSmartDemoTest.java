@@ -126,7 +126,7 @@ public class NSmartDemoTest {
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
             AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, projectName,
                     sqlList.toArray(new String[0]));
-            NSmartMaster smartMaster = new NSmartMaster(context);
+            SmartMaster smartMaster = new SmartMaster(context);
             smartMaster.runUtWithContext(smartUtHook);
 
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, projectName);

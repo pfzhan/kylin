@@ -25,7 +25,7 @@ package org.apache.kylin.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.common.constant.Constants;
 import lombok.Data;
 
 @Data

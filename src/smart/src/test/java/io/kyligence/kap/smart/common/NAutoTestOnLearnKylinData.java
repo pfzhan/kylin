@@ -45,6 +45,7 @@ import com.google.common.io.Files;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.smart.AbstractContext;
+import lombok.val;
 
 public abstract class NAutoTestOnLearnKylinData {
 
@@ -56,11 +57,14 @@ public abstract class NAutoTestOnLearnKylinData {
     public void setUp() throws Exception {
         System.setProperty("spark.local", "true");
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
-        tmpMeta = Files.createTempDir();
+        val tmpHome = Files.createTempDir();
+        tmpMeta = new File(tmpHome, "meta");
+        System.setProperty("KYLIN_HOME", tmpHome.getAbsolutePath());
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
         Properties props = new Properties();
         props.setProperty("kylin.metadata.url", tmpMeta.getCanonicalPath());
+        props.setProperty("kylin.smart.conf.propose-runner-type", "in-memory");
 
         KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
@@ -79,6 +83,7 @@ public abstract class NAutoTestOnLearnKylinData {
         ResourceStore.clearCache(localConfig.get());
         localConfig.close();
         System.clearProperty("spark.local");
+        System.clearProperty("KYLIN_HOME");
     }
 
     protected List<LayoutEntity> collectAllLayouts(List<IndexEntity> indexEntities) {
@@ -92,7 +97,7 @@ public abstract class NAutoTestOnLearnKylinData {
     protected Set<OLAPContext> collectAllOlapContexts(AbstractContext smartContext) {
         Preconditions.checkArgument(smartContext != null);
         Set<OLAPContext> olapContexts = Sets.newHashSet();
-        final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        final List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         modelContexts.forEach(modelCtx -> olapContexts.addAll(modelCtx.getModelTree().getOlapContexts()));
 
         return olapContexts;

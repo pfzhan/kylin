@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller.v3;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V3_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V3_JSON;
 
 import java.io.IOException;
 import java.util.Map;

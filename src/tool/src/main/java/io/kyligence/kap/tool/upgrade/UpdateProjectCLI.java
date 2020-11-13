@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.tool.OptionBuilder;
+import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;

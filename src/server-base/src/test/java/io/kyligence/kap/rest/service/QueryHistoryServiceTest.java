@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.ProcessUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -54,7 +55,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.ProcessUtil;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -340,8 +340,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         List<String> projects = Lists.newArrayList(PROJECT, "newten");
         Map<String, String> tableMap = queryHistoryService.getQueryHistoryTableMap(projects);
         Assert.assertEquals(2, tableMap.size());
-        Assert.assertEquals("_examples_test_data_" + ProcessUtil.getProcessId("0") + "_metadata_query_history", tableMap.get("newten"));
-        Assert.assertEquals("_examples_test_data_" + ProcessUtil.getProcessId("0") + "_metadata_query_history", tableMap.get(PROJECT));
+        Assert.assertEquals("_examples_test_data_" + ProcessUtils.getCurrentId("0") + "_metadata_query_history", tableMap.get("newten"));
+        Assert.assertEquals("_examples_test_data_" + ProcessUtils.getCurrentId("0") + "_metadata_query_history", tableMap.get(PROJECT));
 
         // get all tables
         tableMap = queryHistoryService.getQueryHistoryTableMap(null);

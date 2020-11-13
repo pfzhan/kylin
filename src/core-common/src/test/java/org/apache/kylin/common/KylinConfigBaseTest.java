@@ -50,7 +50,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.util.ProcessUtil;
+import io.kyligence.kap.common.util.ProcessUtils;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -114,8 +114,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMetadataAuditLogMaxSize",
                 new PropertiesEntity("kylin.metadata.audit-log.max-size", "3000000", 3000000L));
-
-        map.put("isMetadataWaitSyncEnabled", new PropertiesEntity("kylin.metadata.wait-sync-enabled", "true", true));
 
         map.put("getHdfsMetaStoreFileSystemSchemas",
                 new PropertiesEntity("kylin.metadata.hdfs-compatible-schemas",
@@ -817,7 +815,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("test");
         String dir = config.getHdfsWorkingDirectory();
-        Assert.assertTrue(dir.endsWith("examples/test_data/" + ProcessUtil.getProcessId("0") + "/working-dir/test/"));
+        Assert.assertTrue(dir.endsWith("examples/test_data/" + ProcessUtils.getCurrentId("0") + "/working-dir/test/"));
     }
 
     @Test

@@ -44,22 +44,21 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractContext.NModelContext;
+import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NComputedColumnProposer extends NAbstractModelProposer {
 
-    NComputedColumnProposer(NModelContext modelContext) {
+    NComputedColumnProposer(ModelContext modelContext) {
         super(modelContext);
     }
 
@@ -81,7 +80,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 (System.currentTimeMillis() - startTime) / 1000, dataModel.getId(), dataModel.getComputedColumnNames());
     }
 
-    private Set<String> collectLatentCCSuggestions(AbstractContext.NModelContext modelContext, NDataModel dataModel) {
+    private Set<String> collectLatentCCSuggestions(ModelContext modelContext, NDataModel dataModel) {
         Set<String> ccSuggestions = Sets.newHashSet();
         ModelTree modelTree = modelContext.getModelTree();
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
@@ -295,15 +294,15 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     }
 
     private List<NDataModel> getOtherModels(NDataModel dataModel) {
-        List<NDataModel> otherModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project) //
-                .listUnderliningDataModels().stream() //
+        List<NDataModel> otherModels = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project) //
+                .listAllModels().stream() //
                 .filter(m -> !m.getUuid().equals(dataModel.getUuid())) //
                 .collect(Collectors.toList());
         otherModels.addAll(//
                 getModelContext().getProposeContext() //
                         .getModelContexts().stream() //
                         .filter(modelContext -> modelContext != getModelContext()) //
-                        .map(AbstractContext.NModelContext::getTargetModel) //
+                        .map(ModelContext::getTargetModel) //
                         .filter(Objects::nonNull) //
                         .collect(Collectors.toList()) //
         );
@@ -312,7 +311,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
     public static class NComputedColumnProposerOfModelReuseContext extends NComputedColumnProposer {
 
-        NComputedColumnProposerOfModelReuseContext(AbstractContext.NModelContext modelContext) {
+        NComputedColumnProposerOfModelReuseContext(ModelContext modelContext) {
             super(modelContext);
         }
 

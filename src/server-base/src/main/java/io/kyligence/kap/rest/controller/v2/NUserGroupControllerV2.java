@@ -48,7 +48,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 @Controller
 @RequestMapping(value = "/api/user_group")

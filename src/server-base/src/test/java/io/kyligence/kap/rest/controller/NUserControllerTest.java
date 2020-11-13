@@ -42,7 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultCommitFile;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultLicenseFile;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultVersionFile;
@@ -93,7 +93,7 @@ import org.springframework.web.accept.ContentNegotiationManager;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;

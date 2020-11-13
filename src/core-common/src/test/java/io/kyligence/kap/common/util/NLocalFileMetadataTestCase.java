@@ -144,6 +144,11 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public void createTestMetadata() {
         staticCreateTestMetadata();
+        val kylinHomePath = new File(getTestConfig().getMetadataUrl().toString()).getParentFile().getAbsolutePath();
+        overwriteSystemProp("KYLIN_HOME", kylinHomePath);
+        val jobJar = io.kyligence.kap.common.util.FileUtils.findFile(
+                new File(kylinHomePath, "../../../assembly/target/").getAbsolutePath(), "kap-assembly(.?)\\.jar");
+        getTestConfig().setProperty("kylin.engine.spark.job-jar", jobJar == null ? "" : jobJar.getAbsolutePath());
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 

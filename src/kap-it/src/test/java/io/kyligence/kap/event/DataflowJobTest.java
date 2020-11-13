@@ -66,7 +66,7 @@ import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
@@ -272,7 +272,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 "and BUYER_ID>=SELLER_ID and BUYER_ID<LEAF_CATEG_ID " +
                 "group by TEST_ORDER.ORDER_ID,BUYER_ID"};
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sql1);
-        val smartMaster = new NSmartMaster(context);
+        val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());

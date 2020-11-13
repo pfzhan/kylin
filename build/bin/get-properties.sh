@@ -48,8 +48,6 @@ fi
 
 export SPARK_HOME=$KYLIN_HOME/spark
 
-tool_jar=$(ls $KYLIN_HOME/tool/kap-tool-*.jar)
-
 if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
     kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties"
     else
@@ -57,6 +55,6 @@ if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
 fi
 
 mkdir -p ${KYLIN_HOME}/logs
-result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:$tool_jar:${SPARK_HOME}/jars/*" io.kyligence.kap.tool.KylinConfigCLI $@ 2>>${KYLIN_HOME}/logs/shell.stderr`
+result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" io.kyligence.kap.tool.KylinConfigCLI $@ 2>>${KYLIN_HOME}/logs/shell.stderr`
 
 echo "$result"

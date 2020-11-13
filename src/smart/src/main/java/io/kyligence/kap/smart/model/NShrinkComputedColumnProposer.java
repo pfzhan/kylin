@@ -38,7 +38,7 @@ import io.kyligence.kap.smart.AbstractContext;
 
 public class NShrinkComputedColumnProposer extends NAbstractModelProposer {
 
-    public NShrinkComputedColumnProposer(AbstractContext.NModelContext modelCtx) {
+    public NShrinkComputedColumnProposer(AbstractContext.ModelContext modelCtx) {
         super(modelCtx);
     }
 

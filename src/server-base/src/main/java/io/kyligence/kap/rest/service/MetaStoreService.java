@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.common.license.Constants.KE_VERSION;
+import static io.kyligence.kap.common.constant.Constants.KE_VERSION;
 import static io.kyligence.kap.metadata.model.schema.ImportModelContext.MODEL_REC_PATH;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_EXPORT_ERROR;

@@ -33,7 +33,7 @@ import org.junit.Test;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
@@ -65,7 +65,7 @@ public class NAutoLookupTest extends NAutoTestBase {
                     + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { modelQuery });
-            NSmartMaster smartMaster = new NSmartMaster(context);
+            SmartMaster smartMaster = new SmartMaster(context);
             smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
@@ -84,7 +84,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { lookupQuery });
-            NSmartMaster smartMaster = new NSmartMaster(context);
+            SmartMaster smartMaster = new SmartMaster(context);
             smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
@@ -126,7 +126,7 @@ public class NAutoLookupTest extends NAutoTestBase {
                     + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { modelQuery });
-            NSmartMaster smartMaster = new NSmartMaster(context);
+            SmartMaster smartMaster = new SmartMaster(context);
             smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
@@ -142,7 +142,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { lookupQuery });
-            NSmartMaster smartMaster = new NSmartMaster(context);
+            SmartMaster smartMaster = new SmartMaster(context);
             smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
@@ -180,7 +180,7 @@ public class NAutoLookupTest extends NAutoTestBase {
         String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { modelQuery, lookupQuery });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
 

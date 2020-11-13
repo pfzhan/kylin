@@ -39,7 +39,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.Data;
 import lombok.val;
@@ -87,7 +87,7 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
         String sql = "select ID1, ".concat(String.join(", ", measures)).concat(" from test_measure group by ID1");
         log.info("random generated sql is:{}", sql);
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(getTestConfig(), getProject());
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());

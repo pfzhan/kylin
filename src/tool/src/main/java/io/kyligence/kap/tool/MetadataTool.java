@@ -39,7 +39,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -61,6 +61,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;

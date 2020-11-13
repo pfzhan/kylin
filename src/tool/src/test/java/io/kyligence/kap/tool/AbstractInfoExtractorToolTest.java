@@ -24,6 +24,7 @@
 package io.kyligence.kap.tool;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;

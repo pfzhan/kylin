@@ -55,8 +55,7 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
                 + "GROUP BY SELLER_ACCOUNT.ACCOUNT_COUNTRY, CAL_DT";
 
-        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(), new String[] { sumSql, maxSql },
-                null);
+        val context = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(), new String[] { sumSql, maxSql });
 
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());
@@ -90,8 +89,8 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
 
-        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(),
-                new String[] { sumSql, maxSql, rawQuery }, null);
+        val context = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(),
+                new String[] { sumSql, maxSql, rawQuery });
 
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());
@@ -111,8 +110,8 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
                 + "GROUP BY SELLER_ACCOUNT.ACCOUNT_COUNTRY, CAL_DT";
-        val initalContext = NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(), new String[] { prepareSql },
-                null);
+        val initalContext = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(), new String[] { prepareSql });
+        initalContext.saveMetadata();
         AccelerationContextUtil.onlineModel(initalContext);
 
         Assert.assertFalse(initalContext.getAccelerateInfoMap().get(prepareSql).isNotSucceed());
@@ -146,8 +145,7 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
 
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
-                new String[] { sumSql, maxSql, rawQuery }, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), new String[] { sumSql, maxSql, rawQuery });
         AccelerationContextUtil.onlineModel(context);
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());

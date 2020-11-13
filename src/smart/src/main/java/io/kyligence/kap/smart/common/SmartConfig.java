@@ -104,4 +104,8 @@ public class SmartConfig {
     public boolean needProposeCcIfNoSampling() {
         return getOptional("computed-column.suggestion.enabled-if-no-sampling", false);
     }
+
+    public String getProposeRunnerImpl() {
+        return getOptional("propose-runner-type", "fork");
+    }
 }

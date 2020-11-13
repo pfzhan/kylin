@@ -36,7 +36,7 @@ import org.junit.Test;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 
 public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
@@ -46,12 +46,12 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         final int TEST_SQL_CNT = 3;
         for (int i = 0; i < TEST_SQL_CNT; i++) {
             List<Pair<String, String>> queries = fetchQueries("query/sql_join/sql_right_join", i, i + 1);
-            NSmartMaster master = proposeWithSmartMaster(queries);
+            SmartMaster master = proposeWithSmartMaster(queries);
 
-            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<AbstractContext.ModelContext> modelContexts = master.getContext().getModelContexts();
             // ensure only one model is created for right join
             Assert.assertEquals(1, modelContexts.size());
-            AbstractContext.NModelContext modelContext = modelContexts.get(0);
+            AbstractContext.ModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
             Assert.assertFalse(dataModel.getJoinTables().isEmpty());
@@ -76,7 +76,7 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         String query2 = "select sum(test_kylin_fact.price) from test_kylin_fact";
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                 new String[] { query1, query2 });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(kylinConfig, getProject());
 
@@ -90,10 +90,10 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         Assert.assertEquals(862.69, Double.parseDouble(queryResult.getRows().get(0).get(0)), 0.01);
     }
 
-    private NSmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {
+    private SmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {
         String[] sqls = queries.stream().map(Pair::getSecond).toArray(String[]::new);
         AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
-        NSmartMaster master = new NSmartMaster(context);
+        SmartMaster master = new SmartMaster(context);
         master.runUtWithContext(smartUtHook);
         return master;
     }

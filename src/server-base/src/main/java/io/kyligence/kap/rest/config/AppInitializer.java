@@ -47,7 +47,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.date.Constant;
+import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;

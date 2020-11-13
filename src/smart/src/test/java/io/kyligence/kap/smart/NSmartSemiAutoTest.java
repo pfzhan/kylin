@@ -85,18 +85,18 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
         val sql1 = "select sum(TEST_KYLIN_FACT.ITEM_COUNT) from TEST_KYLIN_FACT group by TEST_KYLIN_FACT.CAL_DT;";
         val sql2 = "select LEAF_CATEG_ID from TEST_KYLIN_FACT;";
 
-        AbstractSemiContextV2 context1 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), project,
-                new String[] { sql1 }, null);
-        List<AbstractContext.NModelContext> modelContexts1 = context1.getModelContexts();
+        AbstractSemiContextV2 context1 = (AbstractSemiContextV2) ProposerJob.genOptRec(getTestConfig(), project,
+                new String[] { sql1 });
+        List<AbstractContext.ModelContext> modelContexts1 = context1.getModelContexts();
         Assert.assertEquals(1, modelContexts1.size());
-        AbstractContext.NModelContext modelContext1 = modelContexts1.get(0);
+        AbstractContext.ModelContext modelContext1 = modelContexts1.get(0);
         Assert.assertEquals(1, modelContext1.getIndexRexItemMap().size());
 
-        AbstractSemiContextV2 context2 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), project,
-                new String[] { sql2 }, null);
-        List<AbstractContext.NModelContext> modelContexts2 = context2.getModelContexts();
+        AbstractSemiContextV2 context2 = (AbstractSemiContextV2) ProposerJob.genOptRec(getTestConfig(), project,
+                new String[] { sql2 });
+        List<AbstractContext.ModelContext> modelContexts2 = context2.getModelContexts();
         Assert.assertEquals(1, modelContexts2.size());
-        AbstractContext.NModelContext modelContext2 = modelContexts2.get(0);
+        AbstractContext.ModelContext modelContext2 = modelContexts2.get(0);
         Assert.assertEquals(1, modelContext2.getIndexRexItemMap().size());
     }
 }

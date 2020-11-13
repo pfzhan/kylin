@@ -39,11 +39,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class NAbstractModelProposer {
 
-    protected AbstractContext.NModelContext modelContext;
+    protected AbstractContext.ModelContext modelContext;
     final String project;
     final NDataModelManager dataModelManager;
 
-    NAbstractModelProposer(AbstractContext.NModelContext modelCtx) {
+    NAbstractModelProposer(AbstractContext.ModelContext modelCtx) {
         this.modelContext = modelCtx;
 
         project = modelCtx.getProposeContext().getProject();
@@ -51,7 +51,7 @@ public abstract class NAbstractModelProposer {
         dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
-    public AbstractContext.NModelContext getModelContext() {
+    public AbstractContext.ModelContext getModelContext() {
         return modelContext;
     }
 

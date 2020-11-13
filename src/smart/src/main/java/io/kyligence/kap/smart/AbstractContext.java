@@ -32,6 +32,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -58,10 +59,15 @@ public abstract class AbstractContext {
     private final String[] sqlArray;
     private final ChainedProposer preProcessProposers;
     private final ChainedProposer processProposers;
+    @Setter
+    protected boolean canCreateNewModel;
 
     @Setter
-    private List<AbstractContext.NModelContext> modelContexts;
-    private final Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
+    private List<AbstractContext.ModelContext> modelContexts = Lists.newArrayList();
+
+    @Setter
+    private Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
+
     @Getter(lazy = true)
     private final Map<String, RawRecItem> recItemMap = Maps.newHashMap();
 
@@ -78,8 +84,8 @@ public abstract class AbstractContext {
         this.partialMatch = false;
     }
 
-    public NModelContext createModelContext(ModelTree modelTree) {
-        return new NModelContext(this, modelTree);
+    public ModelContext createModelContext(ModelTree modelTree) {
+        return new ModelContext(this, modelTree);
     }
 
     public abstract IndexPlan getOriginIndexPlan(String modelId);
@@ -96,7 +102,7 @@ public abstract class AbstractContext {
 
     public abstract String getIdentifier();
 
-    public void recordException(AbstractContext.NModelContext modelCtx, Exception e) {
+    public void recordException(ModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
             String sql = olapCtx.sql;
             final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sql);
@@ -113,8 +119,25 @@ public abstract class AbstractContext {
         // default do nothing 
     }
 
+    public List<NDataModel> getProposedModels() {
+        if (CollectionUtils.isEmpty(modelContexts)) {
+            return Lists.newArrayList();
+        }
+
+        List<NDataModel> models = Lists.newArrayList();
+        for (ModelContext modelContext : modelContexts) {
+            NDataModel model = modelContext.getTargetModel();
+            if (model == null)
+                continue;
+
+            models.add(modelContext.getTargetModel());
+        }
+
+        return models;
+    }
+
     @Getter
-    public static class NModelContext {
+    public static class ModelContext {
         @Setter
         private ModelTree modelTree; // query
 
@@ -141,7 +164,7 @@ public abstract class AbstractContext {
         private boolean snapshotSelected;
 
         private final AbstractContext proposeContext;
-        private final Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
+        private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
         @Setter
         private boolean needUpdateCC = false;
         @Getter(lazy = true)
@@ -162,7 +185,7 @@ public abstract class AbstractContext {
             return result;
         }
 
-        public NModelContext(AbstractContext proposeContext, ModelTree modelTree) {
+        public ModelContext(AbstractContext proposeContext, ModelTree modelTree) {
             this.proposeContext = proposeContext;
             this.modelTree = modelTree;
         }

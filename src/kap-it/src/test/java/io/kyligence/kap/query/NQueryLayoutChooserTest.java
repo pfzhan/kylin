@@ -58,7 +58,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
@@ -315,7 +315,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 + "on test_kylin_fact.seller_id = test_account.account_id "
                 + "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
-        val smartMaster = new NSmartMaster(context);
+        val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
         val model = modelManager
@@ -344,7 +344,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                         + "group by test_kylin_fact.cal_dt, test_account.account_id" };
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
-        val smartMaster = new NSmartMaster(context);
+        val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
         val model = modelManager
@@ -371,7 +371,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 + "on test_kylin_fact.seller_id = test_account.account_id "
                 + "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
-        val smartMaster = new NSmartMaster(context);
+        val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
         val model = modelManager
@@ -404,7 +404,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
     private List<OLAPContext> prepareOlapContext(String sql) {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), PROJECT, new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.analyzeSQLs();
         List<OLAPContext> ctxs = Lists.newArrayList();
         smartMaster.getContext().getModelContexts()

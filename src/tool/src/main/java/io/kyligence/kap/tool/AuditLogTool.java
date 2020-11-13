@@ -43,6 +43,7 @@ import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.List;
 
+import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
@@ -62,7 +63,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.date.Constant;
+import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import lombok.val;

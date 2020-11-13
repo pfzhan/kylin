@@ -29,11 +29,8 @@ import org.apache.kylin.common.KylinConfig;
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import lombok.Getter;
 
 public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
-    @Getter
-    private boolean canCreateNewModel;
 
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
@@ -54,14 +51,14 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
     @Override
     public ChainedProposer createPreProcessProposers() {
         return new ChainedProposer(this, ImmutableList.of(//
-                new NSQLAnalysisProposer(this), //
-                new NModelSelectProposer(this), //
-                new NModelOptProposer(this), //
-                new NModelInfoAdjustProposer(this), //
-                new NModelRenameProposer(this), //
-                new NIndexPlanSelectProposer(this), //
-                new NIndexPlanOptProposer(this), //
-                new NIndexPlanShrinkProposer(this) //
+                new SQLAnalysisProposer(this), //
+                new ModelSelectProposer(this), //
+                new ModelOptProposer(this), //
+                new ModelInfoAdjustProposer(this), //
+                new ModelRenameProposer(this), //
+                new IndexPlanSelectProposer(this), //
+                new IndexPlanOptProposer(this), //
+                new IndexPlanShrinkProposer(this) //
         ));
     }
 
@@ -80,7 +77,7 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
             if (modelCtx.isTargetModelMissing()) {
                 modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
                     AccelerateInfo accelerateInfo = getAccelerateInfoMap().get(olapContext.sql);
-                    accelerateInfo.setPendingMsg(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG);
+                    accelerateInfo.setPendingMsg(ModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG);
                 });
             }
         });

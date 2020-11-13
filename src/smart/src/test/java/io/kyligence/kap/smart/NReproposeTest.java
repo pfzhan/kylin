@@ -65,7 +65,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
                 + "limit 10;";
         // init a reusable model and build indexes
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
 
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
@@ -81,7 +81,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
                 + "order by item_count, lstg_format_name\n" //
                 + "limit 10;";
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, new String[] { sql1 });
-        NSmartMaster smartMaster1 = new NSmartMaster(context1);
+        SmartMaster smartMaster1 = new SmartMaster(context1);
         smartMaster1.runUtWithContext(smartUtHook);
         val modelContext1 = smartMaster1.getContext().getModelContexts().get(0);
         val allLayouts1 = modelContext1.getTargetIndexPlan().getAllLayouts();
@@ -96,7 +96,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
                 + "order by item_count\n" //
                 + "limit 10;";
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, new String[] { sql2 });
-        NSmartMaster smartMaster2 = new NSmartMaster(context2);
+        SmartMaster smartMaster2 = new SmartMaster(context2);
         smartMaster2.runUtWithContext(smartUtHook);
         val modelContext2 = smartMaster2.getContext().getModelContexts().get(0);
         val allLayouts2 = modelContext2.getTargetIndexPlan().getAllLayouts();
@@ -120,7 +120,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
                 + "order by seller_id, lstg_format_name\n" //
                 + "limit 20";
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
         val allLayouts = modelContext.getTargetIndexPlan().getAllLayouts();
@@ -144,7 +144,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
 
         // 3. re-propose with table stats
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, new String[] { sql });
-        NSmartMaster smartMaster1 = new NSmartMaster(context1);
+        SmartMaster smartMaster1 = new SmartMaster(context1);
         smartMaster1.runUtWithContext(smartUtHook);
         val modelContexts1 = smartMaster1.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts1.size());
@@ -181,7 +181,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
         );
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                 sqlList.toArray(new String[0]));
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         final Map<String, AccelerateInfo> secondRoundMap = smartMaster.getContext().getAccelerateInfoMap();
         final Set<String> secondRoundProposedColOrders = collectColOrders(secondRoundMap.values());
@@ -191,7 +191,7 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
             Collections.shuffle(sqlList); // shuffle and propose
             val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                     sqlList.toArray(new String[0]));
-            smartMaster = new NSmartMaster(context1);
+            smartMaster = new SmartMaster(context1);
             smartMaster.runUtWithContext(smartUtHook);
             final Map<String, AccelerateInfo> thirdRoundMap = smartMaster.getContext().getAccelerateInfoMap();
             final Set<String> thirdRoundProposedColOrders = collectColOrders(thirdRoundMap.values());
@@ -203,14 +203,14 @@ public class NReproposeTest extends NAutoTestOnLearnKylinData {
             List<String> batchOne = sqlList.subList(0, sqlList.size() / 2);
             val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                     batchOne.toArray(new String[0]));
-            smartMaster = new NSmartMaster(context1);
+            smartMaster = new SmartMaster(context1);
             smartMaster.runUtWithContext(smartUtHook);
             final Map<String, AccelerateInfo> batchOneMap = smartMaster.getContext().getAccelerateInfoMap();
 
             List<String> batchTwo = sqlList.subList(sqlList.size() / 2, sqlList.size());
             val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                     batchTwo.toArray(new String[0]));
-            smartMaster = new NSmartMaster(context2);
+            smartMaster = new SmartMaster(context2);
             smartMaster.runUtWithContext(smartUtHook);
             final Map<String, AccelerateInfo> batchTwoMap = smartMaster.getContext().getAccelerateInfoMap();
 

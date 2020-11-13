@@ -78,7 +78,7 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
             sqls.add(new String(Files.readAllBytes(Paths.get(sqlFile.getAbsolutePath())), StandardCharsets.UTF_8));
         }
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls.toArray(new String[0]));
-        NSmartMaster master = new NSmartMaster(context);
+        SmartMaster master = new SmartMaster(context);
         master.runUtWithContext(smartUtHook);
 
         getTestConfig().clearManagers();

@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.tool.general;
 
-import io.kyligence.kap.tool.OptionBuilder;
+import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.ExecutableApplication;

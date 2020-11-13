@@ -27,6 +27,7 @@ package io.kyligence.kap.tool;
 import java.io.File;
 import java.util.Set;
 
+import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;

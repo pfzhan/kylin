@@ -27,13 +27,12 @@ package io.kyligence.kap.smart;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 
 public abstract class AbstractSemiContextV2 extends AbstractContext {
@@ -45,8 +44,8 @@ public abstract class AbstractSemiContextV2 extends AbstractContext {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
-                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .listAllModels();
     }
 
     @Override

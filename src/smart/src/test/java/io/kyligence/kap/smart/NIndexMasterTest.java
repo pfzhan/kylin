@@ -41,7 +41,7 @@ public class NIndexMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void test() {
-        AbstractContext.NModelContext mdCtx = getModelContext();
+        AbstractContext.ModelContext mdCtx = getModelContext();
         Assert.assertNotNull(mdCtx);
 
         NIndexMaster indexMaster = new NIndexMaster(mdCtx);
@@ -119,7 +119,7 @@ public class NIndexMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(cp2, indexPlan);
     }
 
-    private AbstractContext.NModelContext getModelContext() {
+    private AbstractContext.ModelContext getModelContext() {
         String[] sqls = new String[] { //
                 "select 1", // not effective olap_context
                 "create table a", // not effective olap_context
@@ -132,16 +132,16 @@ public class NIndexMasterTest extends NAutoTestOnLearnKylinData {
                 "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
                 "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
 
-        NSmartContext context = new NSmartContext(getTestConfig(), proj, sqls) {
+        SmartContext context = new SmartContext(getTestConfig(), proj, sqls) {
             @Override
             public ChainedProposer createTransactionProposers() {
-                ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
-                        new NSQLAnalysisProposer(this), //
-                        new NModelOptProposer(this));
+                ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
+                        new SQLAnalysisProposer(this), //
+                        new ModelOptProposer(this));
                 return new ChainedProposer(this, proposers);
             }
         };
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.executePropose();
         return context.getModelContexts().get(0);
     }

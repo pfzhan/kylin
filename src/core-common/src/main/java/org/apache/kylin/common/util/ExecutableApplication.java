@@ -29,11 +29,8 @@ import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_PARSE_SHE
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.kylin.common.exception.KylinException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class ExecutableApplication implements Application {
-    private static final Logger log = LoggerFactory.getLogger(ExecutableApplication.class);
 
     protected abstract Options getOptions();
 

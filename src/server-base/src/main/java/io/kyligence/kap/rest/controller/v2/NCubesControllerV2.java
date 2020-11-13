@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_PARSE_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;

@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
@@ -56,6 +55,7 @@ import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

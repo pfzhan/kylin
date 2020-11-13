@@ -54,8 +54,8 @@ import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartContext;
+import io.kyligence.kap.smart.SmartMaster;
 import lombok.val;
 
 public class NTopNTest extends NLocalWithSparkSessionTest {
@@ -218,8 +218,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     }
 
     private List<OLAPContext> getOlapContext(String sql) {
-        val context = new NSmartContext(KylinConfig.getInstanceFromEnv(), getProject(), new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        val context = new SmartContext(KylinConfig.getInstanceFromEnv(), getProject(), new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.analyzeSQLs();
         List<OLAPContext> ctxs = Lists.newArrayList();
         smartMaster.getContext().getModelContexts()

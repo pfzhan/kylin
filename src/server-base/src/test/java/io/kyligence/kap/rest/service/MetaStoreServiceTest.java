@@ -42,7 +42,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.common.license.Constants.KE_VERSION;
+import static io.kyligence.kap.common.constant.Constants.KE_VERSION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

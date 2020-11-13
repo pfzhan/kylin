@@ -24,14 +24,10 @@
 
 package io.kyligence.kap.query.engine.mask;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.acl.SensitiveDataMask;
-import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.relnode.KapTableScan;
-import io.kyligence.kap.query.relnode.KapWindowRel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -56,9 +52,15 @@ import org.apache.spark.sql.catalyst.expressions.Literal;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.unsafe.types.UTF8String;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
+import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.relnode.KapTableScan;
+import io.kyligence.kap.query.relnode.KapWindowRel;
 
 public class QuerySensitiveDataMask implements QueryResultMask {
 

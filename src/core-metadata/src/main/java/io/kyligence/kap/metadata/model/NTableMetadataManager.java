@@ -24,10 +24,18 @@
 
 package io.kyligence.kap.metadata.model;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import static java.util.stream.Collectors.groupingBy;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -43,17 +51,11 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import static java.util.stream.Collectors.groupingBy;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 /**
  */
@@ -354,7 +356,7 @@ public class NTableMetadataManager {
     public void updateTableDesc(TableDesc tableDesc) {
         if (!srcTableCrud.contains(tableDesc.getIdentity())) {
             throw new IllegalStateException("tableDesc " + tableDesc.getName() + "does not exist");
-    }
+        }
         saveSourceTable(tableDesc);
     }
 
