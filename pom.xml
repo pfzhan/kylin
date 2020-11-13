@@ -140,6 +140,9 @@
         <aspectj.version>1.8.9</aspectj.version>
         <unboundid-ldapsdk.version>3.1.1</unboundid-ldapsdk.version>
 
+        <!-- Maven -->
+        <maven.surefire.version>2.22.2</maven.surefire.version>
+
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
@@ -1892,7 +1895,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.19.1</version>
+                        <version>${maven.surefire.version}</version>
                         <configuration>
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports</reportsDirectory>
                             <argLine>-Xms1G -Xmx8G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current
@@ -1923,7 +1926,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-report-plugin</artifactId>
-                        <version>2.19.1</version>
+                        <version>${maven.surefire.version}</version>
                         <configuration>
                             <linkXRef>false</linkXRef>
                             <aggregate>true</aggregate>

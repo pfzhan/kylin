@@ -50,10 +50,12 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 
 import java.io.FileInputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -67,6 +69,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ldap.test.unboundid.LdapTestUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -84,7 +87,9 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
         @ContextConfiguration(locations = { "classpath:kylinSecurity.xml" }) })
@@ -126,13 +131,12 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         String password = ldapConfig.getProperty("kylin.security.ldap.connection-password");
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig("dc=example,dc=com");
         config.addAdditionalBindCredentials(dn, password);
-        config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 0));
+        config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 8389));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);
         directoryServer = new InMemoryDirectoryServer(config);
         directoryServer.startListening();
-        System.setProperty("kylin.security.ldap.connection-server",
-                "ldap://127.0.0.1:" + directoryServer.getListenPort());
+        log.info("current directory server listen on {}", directoryServer.getListenPort());
         LdapTestUtils.loadLdif(directoryServer, new ClassPathResource(LDAP_SERVER));
     }
 
@@ -140,8 +144,6 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
     public static void cleanupResource() throws Exception {
         directoryServer.shutDown(true);
         staticCleanupTestMetadata();
-        System.setProperty("kylin.security.ldap.connection-server",
-                "ldap://127.0.0.1:" + directoryServer.getListenPort());
     }
 
     @Before
@@ -250,5 +252,52 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
                 "sn: rick gan", "mail: rick@example.io", "ou: Modeler", "userPassword:: ZXhhbXBsZTEyMw==");
         ldapUserService.onUserAuthenticated("rick");
         Assert.assertTrue(ldapUserService.userExists("rick"));
+    }
+
+    @Test
+    public void testAddGroup() {
+        thrown.expect(UnsupportedOperationException.class);
+        userGroupService.addGroup("gg");
+    }
+
+    @Test
+    public void testUpdateUserGroup() {
+        thrown.expect(UnsupportedOperationException.class);
+        userGroupService.modifyGroupUsers("gg", Lists.emptyList());
+    }
+
+    @Test
+    public void testDeleteUserGroup() {
+        thrown.expect(UnsupportedOperationException.class);
+        userGroupService.deleteGroup("gg");
+    }
+
+    @Test
+    public void testGetAllUserGroups() {
+        List<String> groups = userGroupService.getAllUserGroups();
+        Assert.assertTrue(groups.contains("admin"));
+        Assert.assertTrue(groups.contains("itpeople"));
+    }
+
+    @Test
+    public void testGetUserAndUserGroup() {
+        Map<String, List<String>> groupUsers = userGroupService.getUserAndUserGroup();
+        Assert.assertTrue(groupUsers.containsKey("admin"));
+        Assert.assertTrue(groupUsers.containsKey("itpeople"));
+        Assert.assertTrue(groupUsers.get("admin").contains("jenny"));
+        Assert.assertTrue(groupUsers.get("itpeople").contains("johnny"));
+        Assert.assertTrue(groupUsers.get("itpeople").contains("oliver"));
+    }
+
+    @Test
+    public void testGetGroupMembersByName() throws Exception {
+        Set<String> users = userGroupService.getGroupMembersByName("itpeople").stream().map(x -> x.getUsername())
+                .collect(toSet());
+        Assert.assertTrue(users.contains("johnny"));
+        Assert.assertTrue(users.contains("oliver"));
+        List<ManagedUser> managedUsers = userGroupService.getGroupMembersByName("itpeople");
+        for (val user : managedUsers) {
+            Assert.assertTrue(user.getAuthorities().contains(new SimpleGrantedAuthority("itpeople")));
+        }
     }
 }
