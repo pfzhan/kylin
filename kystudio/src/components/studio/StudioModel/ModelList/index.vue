@@ -1598,7 +1598,7 @@ export default class ModelList extends Vue {
     }
   }
   .alias {
-    font-weight: 500;
+    font-weight: bold;
     line-height: 20px;
     width: 100%;
     height: 20px;
@@ -1632,7 +1632,7 @@ export default class ModelList extends Vue {
     color: white;
     padding: 1px 5px;
     line-height: 16px;
-    font-weight: 500;
+    font-weight: bold;
     margin-left: 2px;
     cursor: pointer;
     b {

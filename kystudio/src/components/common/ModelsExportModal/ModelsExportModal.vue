@@ -246,7 +246,7 @@ export default class ModelsExportModal extends Vue {
   }
   .title {
     line-height: 24px;
-    font-weight: 500;
+    font-weight: bold;
     color: #1A1A1A;
   }
   .model-tree {

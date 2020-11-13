@@ -310,7 +310,7 @@ export default class ModelsImportModal extends Vue {
     display: block;
     padding: 0 10px;
     margin-left: 0;
-    font-weight: 500;
+    font-weight: bold;
     .el-checkbox__label {
       float: left;
       color: @text-normal-color;
@@ -331,7 +331,7 @@ export default class ModelsImportModal extends Vue {
     }
   }
   .model-name {
-    font-weight: 500;
+    font-weight: bold;
     display: inline-block;
     width: calc(~'100% - 25px');
     white-space: nowrap;

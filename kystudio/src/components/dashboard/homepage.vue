@@ -517,7 +517,7 @@ export default class Homepage extends Vue {
             margin-top: 0.8em;
             line-height: 1.4em;
             span {
-              font-weight: 500;
+              font-weight: bold;
               font-size: 1.1em;
               color: @text-title-color;
             }
@@ -588,7 +588,7 @@ export default class Homepage extends Vue {
               align-items: flex-end;
               justify-content: center;
               span {
-                font-weight: 500;
+                font-weight: bold;
                 font-size: 1.1em;
                 color: @text-title-color;
               }
@@ -637,7 +637,7 @@ export default class Homepage extends Vue {
                   top: -0.2em;
                 }
                 .re-count {
-                  font-weight: 500;
+                  font-weight: bold;
                   font-size: 1.1em;
                   color: @text-title-color;
                   margin-top: 0.25em;

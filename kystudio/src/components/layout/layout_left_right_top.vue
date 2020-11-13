@@ -1016,7 +1016,7 @@ export default class LayoutLeftRightTop extends Vue {
     .quota-info {
       font-size: 12px;
       .quota-title {
-        font-weight: 500;
+        font-weight: bold;
         &:hover {
           color: @base-color;
         }

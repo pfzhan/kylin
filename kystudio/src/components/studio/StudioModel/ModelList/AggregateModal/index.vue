@@ -2128,7 +2128,7 @@ export default class AggregateModal extends Vue {
         line-height: 32px;
         text-align: left;
         font-size: 12px;
-        font-weight: 500;
+        font-weight: bold;
       }
       .el-checkbox {
         cursor: pointer;

@@ -691,7 +691,7 @@ export default class SystemCapacity extends Vue {
     font-size: @text-assist-size;
     .used-data-number {
       color: @text-title-color;
-      font-weight: 500;
+      font-weight: bold;
       .is-danger {
         color: @error-color-1;
       }
@@ -706,7 +706,7 @@ export default class SystemCapacity extends Vue {
     .used-nodes {
       .num {
         color: @text-title-color;
-        font-weight: 500;
+        font-weight: bold;
       }
     }
     .el-icon-ksd-restart {

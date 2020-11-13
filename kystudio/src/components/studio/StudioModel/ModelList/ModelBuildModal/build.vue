@@ -856,7 +856,7 @@
       color: @text-disabled-color;
     }
     .add-title {
-      font-weight: 500;
+      font-weight: bold;
       color: @text-title-color;
     }
     .item-desc {
