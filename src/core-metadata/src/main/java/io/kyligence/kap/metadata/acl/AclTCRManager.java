@@ -594,7 +594,7 @@ public class AclTCRManager {
                 for (Map.Entry<String, AclTCR.ColumnRow> entry : aclTCR.getTable().entrySet()) {
                     String dbTableName = entry.getKey();
                     AclTCR.ColumnRow columnRow = entry.getValue();
-                    if (columnRow != null && columnRow.getColumnSensitiveDataMask() != null) {
+                    if (columnRow != null && columnRow.getDependentColumns() != null) {
                         int sepIdx = dbTableName.indexOf('.');
                         assert sepIdx > -1;
                         String dbName = dbTableName.substring(0, sepIdx);

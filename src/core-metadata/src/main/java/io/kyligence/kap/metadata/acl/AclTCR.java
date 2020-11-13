@@ -123,10 +123,10 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         @JsonProperty
         private Row row = null;
 
-        @JsonProperty
+        @JsonProperty("column_sensitive_data_mask")
         private List<SensitiveDataMask> columnSensitiveDataMask = null;
 
-        @JsonProperty
+        @JsonProperty("dependent_columns")
         private List<DependentColumn> dependentColumns = null;
 
         public Column getColumn() {
