@@ -458,10 +458,10 @@ export default class Homepage extends Vue {
     width: 100%;
     height: 100%;
     overflow: auto;
+    min-width: 1250px;
     .homepage-content {
       margin: 20px;
       box-sizing: border-box;
-      min-width: 1250px;
       overflow-y: auto;
       .combination-block {
         transform: translate(-50%, -50%);

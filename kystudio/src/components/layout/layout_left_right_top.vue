@@ -1110,6 +1110,7 @@ export default class LayoutLeftRightTop extends Vue {
       .main-content {
         box-sizing: border-box;
         background: white;
+        position: relative;
       }
     }
     .linsencebox {
