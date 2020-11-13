@@ -32,7 +32,6 @@ import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.relnode.KapTableScan;
 import io.kyligence.kap.query.relnode.KapWindowRel;
-import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -45,16 +44,9 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exception.CommonErrorCode;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -68,9 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class QuerySensitiveDataMask {
-
-    public static final ThreadLocal<QuerySensitiveDataMask> THREAD_LOCAL = new ThreadLocal<>();
+public class QuerySensitiveDataMask implements QueryResultMask {
 
     private RelNode rootRelNode;
 
@@ -94,19 +84,6 @@ public class QuerySensitiveDataMask {
         this.maskInfo = maskInfo;
     }
 
-    public static Dataset<Row> maskResult(Dataset<Row> df) {
-        if (THREAD_LOCAL.get() == null) {
-            return df;
-        }
-        return THREAD_LOCAL.get().doMaskResult(df);
-    }
-
-    public static void setRootRelNode(RelNode relNode) {
-        if (THREAD_LOCAL.get() != null) {
-            THREAD_LOCAL.get().doSetRootRelNode(relNode);
-        }
-    }
-
     public void doSetRootRelNode(RelNode relNode) {
         this.rootRelNode = relNode;
     }
@@ -125,9 +102,11 @@ public class QuerySensitiveDataMask {
         }
 
         Column[] columns = new Column[df.columns().length];
-        for (int i = 0; i < df.columns().length; i++) {
+        boolean masked = false;
+        Dataset<Row> dfWithIndexedCol = MaskUtil.dFToDFWithIndexedColumns(df);
+        for (int i = 0; i < dfWithIndexedCol.columns().length; i++) {
             if (resultMasks.get(i) == null || !SensitiveDataMask.isValidDataType(getResultColumnDataType(i).getSqlTypeName().getName())) {
-                columns[i] = df.col(df.columns()[i]);
+                columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
                 continue;
             }
 
@@ -135,17 +114,19 @@ public class QuerySensitiveDataMask {
                 case DEFAULT:
                     columns[i] = new Column(new Cast(
                             new Literal(UTF8String.fromString(defaultMaskResultToString(i)), DataTypes.StringType),
-                            df.schema().fields()[i].dataType())).as(df.columns()[i]);
+                            dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
+                    masked = true;
                     break;
                 case AS_NULL:
-                    columns[i] = new Column(new Literal(null, df.schema().fields()[i].dataType())).as(df.columns()[i]);
+                    columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
+                    masked = true;
                     break;
                 default:
-                    columns[i] = df.col(df.columns()[i]);
+                    columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
                     break;
             }
         }
-        return df.select(columns);
+        return masked ? dfWithIndexedCol.select(columns).toDF(df.columns()) : df;
     }
 
     private RelDataType getResultColumnDataType(int columnIdx) {
@@ -158,7 +139,7 @@ public class QuerySensitiveDataMask {
             case CHAR:
                 return "****";
             case VARCHAR:
-                return (type.getScale() > 0 && type.getScale() < 4) ? Strings.repeat("*", type.getScale()) : "****";
+                return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision()) : "****";
             case INTEGER:
             case BIGINT:
             case TINYINT:
@@ -302,7 +283,7 @@ public class QuerySensitiveDataMask {
      * @return
      */
     private SensitiveDataMask.MaskType getCCMask(String ccExpr) {
-        List<SqlIdentifier> ids = getCCCols(ccExpr);
+        List<SqlIdentifier> ids = MaskUtil.getCCCols(ccExpr);
         SensitiveDataMask.MaskType mask = null;
         for (SqlIdentifier id : ids) {
             SensitiveDataMask inputMask = null;
@@ -316,30 +297,6 @@ public class QuerySensitiveDataMask {
             }
         }
         return mask;
-    }
-
-    private List<SqlIdentifier> getCCCols(String ccExpr) {
-        SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder().setQuoting(Quoting.BACK_TICK);
-        SqlParser sqlParser = SqlParser.create("select " + ccExpr, parserBuilder.build());
-        SqlSelect select;
-        try {
-            select = (SqlSelect) sqlParser.parseQuery();
-        } catch (SqlParseException e) {
-            throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "Failed to parse computed column expr " + ccExpr, e);
-        }
-        return select.getSelectList().getList().stream().flatMap(op -> getSqlIdentifiers(op).stream()).collect(Collectors.toList());
-    }
-
-    private List<SqlIdentifier> getSqlIdentifiers(SqlNode sqlNode) {
-        List<SqlIdentifier> ids = new ArrayList<>();
-        if (sqlNode instanceof SqlIdentifier) {
-            ids.add((SqlIdentifier) sqlNode);
-            return ids;
-        } else if (sqlNode instanceof SqlCall) {
-            return ((SqlCall) sqlNode).getOperandList().stream().flatMap(op -> getSqlIdentifiers(op).stream()).collect(Collectors.toList());
-        } else {
-            return ids;
-        }
     }
 
     List<SensitiveDataMask.MaskType> getResultMasks() {

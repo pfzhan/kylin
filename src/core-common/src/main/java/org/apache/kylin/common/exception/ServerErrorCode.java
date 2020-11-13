@@ -222,7 +222,10 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10033xx snapshot
     SNAPSHOT_NOT_EXIST("KE-10033001"), //
-    SNAPSHOT_MANAGEMENT_NOT_ENABLED("KE-10033002");
+    SNAPSHOT_MANAGEMENT_NOT_ENABLED("KE-10033002"),
+
+    // 10034xx acl
+    ACL_DEPENDENT_COLUMN_PARSE_ERROR("KE-10034001");
 
     private final ErrorCode errorCode;
 

@@ -31,6 +31,7 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -43,6 +44,8 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.acl.DependentColumn;
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -63,7 +66,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.clearspring.analytics.util.Lists;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -313,6 +315,7 @@ public class AclTCRService extends BasicService {
     }
 
     private void updateAclTCR(String project, String sid, boolean principal, AclTCR aclTCR) {
+        checkDependentColumnUpdate(aclTCR, getAclTCRManager(project), sid, principal);
         getAclTCRManager(project).updateAclTCR(aclTCR, sid, principal);
     }
 
@@ -331,6 +334,8 @@ public class AclTCRService extends BasicService {
         boolean isNull = Objects.isNull(authorizedColumnRow);
         final Map<String, SensitiveDataMask> maskMap = isNull ?
                 new HashMap<>() : authorizedColumnRow.getColumnSensitiveDataMaskMap();
+        final Map<String, Collection<DependentColumn>> dependentColumnMap =
+                isNull ? new HashMap<>() : authorizedColumnRow.getDependentColMap();
         return columnRow.getColumn().stream().map(colName -> {
             AclTCRResponse.Column col = new AclTCRResponse.Column();
             col.setColumnName(colName);
@@ -342,6 +347,9 @@ public class AclTCRService extends BasicService {
             }
             if (maskMap.get(colName) != null) {
                 col.setDataMaskType(maskMap.get(colName).getType());
+            }
+            if (dependentColumnMap.get(col.getColumnName()) != null) {
+                col.setDependentColumns(dependentColumnMap.get(col.getColumnName()));
             }
             return col;
         }).collect(Collectors.toList());
@@ -393,6 +401,8 @@ public class AclTCRService extends BasicService {
             response.setTables(de.getValue().entrySet().stream().map(te -> {
                 final Map<String, SensitiveDataMask> maskMap =
                         te.getValue() == null ? new HashMap<>() : te.getValue().getColumnSensitiveDataMaskMap();
+                final Map<String, Collection<DependentColumn>> dependentColumnMap =
+                        te.getValue() == null ? new HashMap<>() : te.getValue().getDependentColMap();
                 AclTCRResponse.Table tbl = new AclTCRResponse.Table();
                 tbl.setTableName(te.getKey());
                 tbl.setAuthorized(true);
@@ -404,6 +414,9 @@ public class AclTCRService extends BasicService {
                     col.setAuthorized(true);
                     if (maskMap.get(colName) != null) {
                         col.setDataMaskType(maskMap.get(colName).getType());
+                    }
+                    if (dependentColumnMap.get(col.getColumnName()) != null) {
+                        col.setDependentColumns(dependentColumnMap.get(col.getColumnName()));
                     }
                     return col;
                 }).collect(Collectors.toList()));
@@ -448,7 +461,8 @@ public class AclTCRService extends BasicService {
             if (Objects.nonNull(columnRow.getColumn())
                     && Optional.ofNullable(getTableManager(project).getTableDesc(dbTblName).getColumns())
                             .map(Arrays::stream).orElseGet(Stream::empty).map(ColumnDesc::getName)
-                            .allMatch(colName -> columnRow.getColumn().contains(colName) && columnRow.getColumnSensitiveDataMask() == null)) {
+                            .allMatch(colName -> columnRow.getColumn().contains(colName) &&
+                                    columnRow.getColumnSensitiveDataMask() == null && columnRow.getDependentColumns() == null)) {
                 columnRow.setColumn(null);
             }
 
@@ -470,50 +484,7 @@ public class AclTCRService extends BasicService {
         checkAclRequestParam(project, requests);
         requests.stream().filter(d -> StringUtils.isNotEmpty(d.getDatabaseName())).forEach(d -> d.getTables().stream()
                 .filter(t -> t.isAuthorized() && StringUtils.isNotEmpty(t.getTableName())).forEach(t -> {
-                    String dbTblName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), t.getTableName());
-                    AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
-                    AclTCR.Column aclColumn;
-                    if (Optional.ofNullable(t.getColumns()).map(List::stream).orElseGet(Stream::empty)
-                            .allMatch(col -> col.isAuthorized() && col.getDataMaskType() == null)) {
-                        aclColumn = null;
-                    } else {
-                        aclColumn = new AclTCR.Column();
-                        aclColumn.addAll(Optional.ofNullable(t.getColumns()).map(List::stream).orElseGet(Stream::empty)
-                                .filter(AclTCRRequest.Column::isAuthorized).map(AclTCRRequest.Column::getColumnName)
-                                .collect(Collectors.toSet()));
-                    }
-                    columnRow.setColumn(aclColumn);
-
-                    List<SensitiveDataMask> masks = new LinkedList<>();
-                    for (AclTCRRequest.Column column : t.getColumns()) {
-                        if (column.getDataMaskType() != null) {
-                            masks.add(new SensitiveDataMask(column.getColumnName(), column.getDataMaskType()));
-                        }
-                    }
-                    columnRow.setColumnSensitiveDataMask(masks);
-
-                    AclTCR.Row aclRow;
-                    if (Optional.ofNullable(t.getRows()).map(List::stream).orElseGet(Stream::empty)
-                            .allMatch(r -> CollectionUtils.isEmpty(r.getItems()))) {
-                        aclRow = null;
-                    } else {
-                        aclRow = new AclTCR.Row();
-                        t.getRows().stream().filter(r -> CollectionUtils.isNotEmpty(r.getItems())).map(
-                                r -> new AbstractMap.SimpleEntry<>(r.getColumnName(), Sets.newHashSet(r.getItems())))
-                                .collect(Collectors.<Map.Entry<String, HashSet<String>>, String, Set<String>> toMap(
-                                        Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> {
-                                            v1.addAll(v2);
-                                            return v1;
-                                        }))
-                                .forEach((colName, rows) -> {
-                                    AclTCR.RealRow realRow = new AclTCR.RealRow();
-                                    realRow.addAll(rows);
-                                    aclRow.put(colName, realRow);
-                                });
-                    }
-                    columnRow.setRow(aclRow);
-
-                    aclTable.put(dbTblName, columnRow);
+                    setColumnRow(aclTable, d, t);
                 }));
 
         if (requests.stream().allMatch(d -> Optional.ofNullable(d.getTables()).map(List::stream)
@@ -523,7 +494,114 @@ public class AclTCRService extends BasicService {
         }
         aclTCR.setTable(aclTable);
         slim(project, aclTCR);
+        checkDependentColumnUpdate(aclTCR);
         return aclTCR;
+    }
+
+    private void setColumnRow(AclTCR.Table aclTable, AclTCRRequest req, AclTCRRequest.Table table) {
+        String dbTblName = String.format(IDENTIFIER_FORMAT, req.getDatabaseName(), table.getTableName());
+        AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
+        AclTCR.Column aclColumn;
+        if (Optional.ofNullable(table.getColumns()).map(List::stream).orElseGet(Stream::empty)
+                .allMatch(col -> col.isAuthorized() && col.getDataMaskType() == null && col.getDependentColumns() == null)) {
+            aclColumn = null;
+        } else {
+            aclColumn = new AclTCR.Column();
+            aclColumn.addAll(Optional.ofNullable(table.getColumns()).map(List::stream).orElseGet(Stream::empty)
+                    .filter(AclTCRRequest.Column::isAuthorized).map(AclTCRRequest.Column::getColumnName)
+                    .collect(Collectors.toSet()));
+        }
+        columnRow.setColumn(aclColumn);
+
+        List<SensitiveDataMask> masks = new LinkedList<>();
+        for (AclTCRRequest.Column column : table.getColumns()) {
+            if (column.getDataMaskType() != null) {
+                masks.add(new SensitiveDataMask(column.getColumnName(), column.getDataMaskType()));
+            }
+        }
+        columnRow.setColumnSensitiveDataMask(masks);
+
+        List<DependentColumn> dependentColumns = new LinkedList<>();
+        for (AclTCRRequest.Column column : table.getColumns()) {
+            if (column.getDependentColumns() != null) {
+                for (AclTCRRequest.DependentColumnData dependentColumn : column.getDependentColumns()) {
+                    dependentColumns.add(new DependentColumn(column.getColumnName(), dependentColumn.getColumnIdentity(), dependentColumn.getValues()));
+                }
+            }
+        }
+        columnRow.setDependentColumns(dependentColumns);
+
+        AclTCR.Row aclRow;
+        if (Optional.ofNullable(table.getRows()).map(List::stream).orElseGet(Stream::empty)
+                .allMatch(r -> CollectionUtils.isEmpty(r.getItems()))) {
+            aclRow = null;
+        } else {
+            aclRow = new AclTCR.Row();
+            table.getRows().stream().filter(r -> CollectionUtils.isNotEmpty(r.getItems())).map(
+                    r -> new AbstractMap.SimpleEntry<>(r.getColumnName(), Sets.newHashSet(r.getItems())))
+                    .collect(Collectors.<Map.Entry<String, HashSet<String>>, String, Set<String>> toMap(
+                            Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> {
+                                v1.addAll(v2);
+                                return v1;
+                            }))
+                    .forEach((colName, rows) -> {
+                        AclTCR.RealRow realRow = new AclTCR.RealRow();
+                        realRow.addAll(rows);
+                        aclRow.put(colName, realRow);
+                    });
+        }
+        columnRow.setRow(aclRow);
+
+        aclTable.put(dbTblName, columnRow);
+    }
+
+    private void checkDependentColumnUpdate(AclTCR aclTCR, AclTCRManager aclTCRManager, String sid, boolean principal) {
+        if (!principal) {
+            return;
+        }
+
+        Set<String> groups = userGroupService.listUserGroups(sid);
+        List<AclTCR> aclTCRs = aclTCRManager.getAclTCRs(sid, groups);
+        aclTCRs.add(aclTCR);
+        checkDependentColumnUpdate(aclTCRs);
+    }
+
+    private void checkDependentColumnUpdate(AclTCR aclTCR) {
+        checkDependentColumnUpdate(Lists.newArrayList(aclTCR));
+    }
+
+    private void checkDependentColumnUpdate(List<AclTCR> aclTCRList) {
+        Set<String> dependentColumnIdentities = aclTCRList.stream()
+                .filter(acl -> acl != null && acl.getTable() != null)
+                .flatMap(acl -> acl.getTable().values().stream())
+                .filter(cr -> cr != null && cr.getDependentColumns() != null)
+                .flatMap(cr -> cr.getDependentColumns().stream())
+                .map(DependentColumn::getDependentColumnIdentity)
+                .collect(Collectors.toSet());
+
+        for (AclTCR acl : aclTCRList) {
+            if (acl == null || acl.getTable() == null) {
+                continue;
+            }
+            acl.getTable().forEach(
+                    (tableName, cr) -> {
+                        if (cr != null && cr.getDependentColumns() != null) {
+                            for (DependentColumn dependentColumn : cr.getDependentColumns()) {
+                                if (dependentColumnIdentities.contains(tableName + "." + dependentColumn.getColumn())) {
+                                    throw new KylinException(INVALID_PARAMETER, tableName + "." + dependentColumn.getColumn() + " is already defined as dependent column");
+                                }
+                            }
+                        }
+                    }
+
+            );
+        }
+
+        for (String dependentColumnIdentity : dependentColumnIdentities) {
+            if (aclTCRList.stream().noneMatch(acl -> acl.isColumnAuthorized(dependentColumnIdentity))) {
+                throw new KylinException(INVALID_PARAMETER, "Dependent column " + dependentColumnIdentity + " is not authorized");
+            }
+        }
     }
 
     public void checkAclRequestParam(String project, List<AclTCRRequest> requests) {

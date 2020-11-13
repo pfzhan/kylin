@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
+import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -109,7 +109,7 @@ public class QueryExec {
                 return new QueryResult();
             }
 
-            QuerySensitiveDataMask.setRootRelNode(node);
+            QueryResultMasks.setRootRelNode(node);
             return new QueryResult(executeQueryPlan(postOptimize(node)), resultFields);
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg

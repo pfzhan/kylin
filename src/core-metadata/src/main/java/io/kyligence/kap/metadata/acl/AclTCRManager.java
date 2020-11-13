@@ -586,4 +586,25 @@ public class AclTCRManager {
         return maskInfo;
     }
 
+    public DependentColumnInfo getDependentColumns(String username, Set<String> groups) {
+        DependentColumnInfo info = new DependentColumnInfo();
+        List<AclTCR> aclTCRS = getAclTCRs(username, groups);
+        for (AclTCR aclTCR : aclTCRS) {
+            if (aclTCR.getTable() != null) {
+                for (Map.Entry<String, AclTCR.ColumnRow> entry : aclTCR.getTable().entrySet()) {
+                    String dbTableName = entry.getKey();
+                    AclTCR.ColumnRow columnRow = entry.getValue();
+                    if (columnRow != null && columnRow.getColumnSensitiveDataMask() != null) {
+                        int sepIdx = dbTableName.indexOf('.');
+                        assert sepIdx > -1;
+                        String dbName = dbTableName.substring(0, sepIdx);
+                        String tableName = dbTableName.substring(sepIdx + 1);
+                        info.add(dbName, tableName, entry.getValue().getDependentColumns());
+                    }
+                }
+            }
+        }
+        info.validate();
+        return info;
+    }
 }

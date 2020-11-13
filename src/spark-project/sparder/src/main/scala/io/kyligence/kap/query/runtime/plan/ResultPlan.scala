@@ -162,7 +162,6 @@ object ResultPlan extends LogEx {
   def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {
     SparderEnv.getResultRef.set(true)
     SparderEnv.setDF(df)
-    val maskedDf = QuerySensitiveDataMask.maskResult(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
     val queryExecutionId = UUID.randomUUID.toString

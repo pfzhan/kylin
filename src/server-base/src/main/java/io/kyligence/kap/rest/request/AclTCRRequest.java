@@ -64,6 +64,9 @@ public class AclTCRRequest {
 
         @JsonProperty("data_mask_type")
         private SensitiveDataMask.MaskType dataMaskType;
+
+        @JsonProperty("dependent_columns")
+        private List<DependentColumnData> dependentColumns;
     }
 
     @Data
@@ -74,5 +77,14 @@ public class AclTCRRequest {
         @JsonProperty
         private List<String> items;
 
+    }
+
+    @Data
+    public static class DependentColumnData {
+        @JsonProperty("column_identity")
+        private String columnIdentity;
+
+        @JsonProperty("values")
+        private String[] values;
     }
 }

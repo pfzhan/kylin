@@ -24,10 +24,13 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.acl.DependentColumn;
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import lombok.Data;
 
@@ -77,6 +80,15 @@ public class AclTCRResponse {
 
         @JsonProperty("data_mask_type")
         private SensitiveDataMask.MaskType dataMaskType;
+
+        @JsonProperty("dependent_columns")
+        private List<DependentColumnData> dependentColumns;
+
+        public void setDependentColumns(Collection<DependentColumn> dependentColumns) {
+            this.dependentColumns = dependentColumns.stream()
+                    .map(col -> new DependentColumnData(col.getDependentColumnIdentity(), col.getDependentValues()))
+                    .collect(Collectors.toList());
+        }
     }
 
     @Data
@@ -88,4 +100,20 @@ public class AclTCRResponse {
         private List<String> items;
     }
 
+    @Data
+    public static class DependentColumnData {
+        @JsonProperty("column_identity")
+        private String columnIdentity;
+
+        @JsonProperty("values")
+        private String[] values;
+
+        public DependentColumnData(String columnIdentity, String[] values) {
+            this.columnIdentity = columnIdentity;
+            this.values = values;
+        }
+
+        public DependentColumnData() {
+        }
+    }
 }

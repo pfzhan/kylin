@@ -26,7 +26,6 @@ package io.kyligence.kap.query.runtime;
 
 import java.util.List;
 
-import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
@@ -37,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
 import io.kyligence.kap.query.runtime.plan.ResultPlan;
+import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 
 public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);
@@ -54,7 +54,7 @@ public class SparkEngine implements QueryEngine {
 
     @Override
     public List<List<String>> compute(DataContext dataContext, RelNode relNode) {
-        Dataset<Row> sparkPlan = QuerySensitiveDataMask.maskResult(toSparkPlan(dataContext, relNode));
+        Dataset<Row> sparkPlan = QueryResultMasks.maskResult(toSparkPlan(dataContext, relNode));
         log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
         return ResultPlan.getResult(sparkPlan, relNode.getRowType());
     }

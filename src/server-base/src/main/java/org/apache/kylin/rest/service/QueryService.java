@@ -163,8 +163,8 @@ import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.engine.data.TableSchema;
-import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -667,9 +667,9 @@ public class QueryService extends BasicService {
                 // force clear the query context before a new query
                 clearThreadLocalContexts();
 
-                QuerySensitiveDataMask.THREAD_LOCAL.set(new QuerySensitiveDataMask(sqlRequest.getProject(),
-                        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()) .getProject(sqlRequest.getProject()).getConfig()));
-
+                if (!AclPermissionUtil.canUseACLGreenChannelInQuery(queryParams.getProject(), queryParams.getAclInfo().getGroups())) {
+                    QueryResultMasks.init(sqlRequest.getProject(), NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(sqlRequest.getProject()).getConfig());
+                }
                 return execute(correctedSql, sqlRequest, queryExec);
             }, sqlRequest.getProject());
         } catch (TransactionException e) {
@@ -681,7 +681,7 @@ public class QueryService extends BasicService {
         } catch (SQLException e) {
             return pushDownQuery(e, sqlRequest, queryExec.getSchema());
         } finally {
-            QuerySensitiveDataMask.THREAD_LOCAL.remove();
+            QueryResultMasks.remove();
         }
     }
 

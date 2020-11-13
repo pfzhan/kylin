@@ -30,7 +30,7 @@ import java.util.{UUID, List => JList}
 import io.kyligence.kap.guava20.shaded.common.collect.Lists
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
-import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask
+import io.kyligence.kap.query.engine.mask.QueryResultMasks
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import io.kyligence.kap.query.runtime.plan.ResultPlan.saveAsyncQueryResult
 import org.apache.commons.lang3.StringUtils
@@ -71,7 +71,7 @@ object SparkSqlClient {
         null
       }
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, db)
-      val df = QuerySensitiveDataMask.maskResult(ss.sql(sql))
+      val df = QueryResultMasks.maskResult(ss.sql(sql));
 
       autoSetShufflePartitions(ss, df)
 

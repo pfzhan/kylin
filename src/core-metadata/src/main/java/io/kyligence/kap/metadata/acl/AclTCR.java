@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -91,6 +93,12 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         return table.get(dbTblName).getColumn().contains(columnName);
     }
 
+
+    public boolean isColumnAuthorized(String columnIdentity) {
+        int sepIdx = columnIdentity.lastIndexOf('.');
+        return isAuthorized(columnIdentity.substring(0, sepIdx), columnIdentity.substring(sepIdx+1));
+    }
+
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
             getterVisibility = JsonAutoDetect.Visibility.NONE, //
             isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
@@ -117,6 +125,9 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
 
         @JsonProperty
         private List<SensitiveDataMask> columnSensitiveDataMask = null;
+
+        @JsonProperty
+        private List<DependentColumn> dependentColumns = null;
 
         public Column getColumn() {
             return column;
@@ -150,6 +161,25 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
 
         public void setColumnSensitiveDataMask(List<SensitiveDataMask> columnSensitiveDataMask) {
             this.columnSensitiveDataMask = columnSensitiveDataMask;
+        }
+
+        public void setDependentColumns(List<DependentColumn> dependentColumns) {
+            this.dependentColumns = dependentColumns;
+        }
+
+        public List<DependentColumn> getDependentColumns() {
+            return dependentColumns;
+        }
+
+        public Map<String, Collection<DependentColumn>> getDependentColMap() {
+            Map<String, Collection<DependentColumn>> map = new HashMap<>();
+            if (dependentColumns != null) {
+                for (DependentColumn dependentColumn : dependentColumns) {
+                    map.putIfAbsent(dependentColumn.getColumn(), new LinkedList<>());
+                    map.get(dependentColumn.getColumn()).add(dependentColumn);
+                }
+            }
+            return map;
         }
     }
 

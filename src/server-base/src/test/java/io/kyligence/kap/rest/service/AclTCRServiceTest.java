@@ -38,6 +38,7 @@ import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -99,6 +100,9 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private UserService userService = Mockito.spy(UserService.class);
 
+    @Mock
+    private IUserGroupService userGroupService = Mockito.spy(IUserGroupService.class);
+
     @Before
     public void setUp() {
         createTestMetadata();
@@ -106,6 +110,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
+        ReflectionTestUtils.setField(aclTCRService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
 
 
