@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
 
 public class Broadcaster implements Closeable {
 
-
     private ClusterManager clusterManager;
 
     private static final Logger logger = LoggerFactory.getLogger(Broadcaster.class);
@@ -73,8 +72,8 @@ public class Broadcaster implements Closeable {
 
     private Broadcaster(final KylinConfig config) {
         this.config = config;
-        this.announceThreadPool = new ThreadPoolExecutor(1, 10, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingDeque<>(), new DaemonThreadFactory(), new ThreadPoolExecutor.DiscardPolicy());
+        this.announceThreadPool = new ThreadPoolExecutor(1, 10, 60L, TimeUnit.SECONDS, new LinkedBlockingDeque<>(),
+                new DaemonThreadFactory(), new ThreadPoolExecutor.DiscardPolicy());
     }
 
     private Set<String> getCurNodes() {
@@ -92,7 +91,8 @@ public class Broadcaster implements Closeable {
     }
 
     public void announce(BroadcastEvent event, BroadcastEventReadyNotifier notifier) {
-        if (!eventBlockingQueue.offer(event)) return;
+        if (!eventBlockingQueue.offer(event))
+            return;
         try {
             String identity = AddressUtil.getLocalInstance();
             Set<String> curNodes = getCurNodes();
@@ -108,17 +108,14 @@ public class Broadcaster implements Closeable {
                     restClientMap.put(node, client);
                 }
                 RestClient finalClient = client;
-                announceThreadPool.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            logger.info("Broadcast to notify catch up.");
-                            finalClient.notifyCatchUp(notifier);
-                        } catch (IOException e) {
-                            logger.warn("Failed to notify catch up.");
-                        } finally {
-                            latch.countDown();
-                        }
+                announceThreadPool.submit(() -> {
+                    try {
+                        logger.info("Broadcast to notify catch up.");
+                        finalClient.notifyCatchUp(notifier);
+                    } catch (IOException e) {
+                        logger.warn("Failed to notify catch up.");
+                    } finally {
+                        latch.countDown();
                     }
                 });
             }
@@ -132,12 +129,10 @@ public class Broadcaster implements Closeable {
         }
     }
 
-
     @Override
     public void close() throws IOException {
         //do nothing
     }
-
 
     public static class BroadcastEvent {
     }

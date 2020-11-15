@@ -42,17 +42,22 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.util.AddressUtil;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import lombok.Synchronized;
 
 /**
  */
@@ -60,10 +65,11 @@ public class EpochOrchestrator implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochOrchestrator.class);
 
-    private KylinConfig kylinConfig;
-    private EpochManager epochMgr;
+    private final EpochManager epochMgr;
 
     private ScheduledExecutorService checkerPool;
+
+    private volatile boolean isCheckerRunning = true;
 
     private static final String OWNER_IDENTITY;
 
@@ -76,11 +82,10 @@ public class EpochOrchestrator implements IKeep {
     }
 
     public EpochOrchestrator(KylinConfig kylinConfig) {
-        this.kylinConfig = kylinConfig;
         epochMgr = EpochManager.getInstance(kylinConfig);
         String serverMode = kylinConfig.getServerMode();
         if (!kylinConfig.isJobNode()) {
-            logger.info("server mode: " + serverMode + ", no need to run EventOrchestrator");
+            logger.info("server mode: {},  no need to run EventOrchestrator", serverMode);
             return;
         }
 
@@ -89,18 +94,8 @@ public class EpochOrchestrator implements IKeep {
         EpochChecker checker = new EpochChecker();
         checkerPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("EpochChecker"));
         checkerPool.scheduleWithFixedDelay(checker, 1, pollSecond, TimeUnit.SECONDS);
-    }
 
-    protected class EpochChecker implements Runnable {
-
-        @Override
-        public synchronized void run() {
-            try {
-                epochMgr.updateAllEpochs();
-            } catch (Exception e) {
-                logger.error("Failed to update epochs");
-            }
-        }
+        EventBusFactory.getInstance().register(new ReloadMetadataListener(), true);
     }
 
     public void shutdown() {
@@ -113,6 +108,41 @@ public class EpochOrchestrator implements IKeep {
         logger.info("Shutting down EpochOrchestrator ....");
         if (checkerPool != null)
             ExecutorServiceUtil.forceShutdown(checkerPool);
+    }
+
+    @Synchronized
+    void updateCheckerStatus(boolean isRunning) {
+        logger.info("Change epoch checker status from {} to {}", isCheckerRunning, isRunning);
+        isCheckerRunning = isRunning;
+    }
+
+    protected class EpochChecker implements Runnable {
+
+        @Override
+        public synchronized void run() {
+            try {
+                if (!isCheckerRunning) {
+                    return;
+                }
+                epochMgr.updateAllEpochs();
+            } catch (Exception e) {
+                logger.error("Failed to update epochs");
+            }
+        }
+    }
+
+    class ReloadMetadataListener {
+
+        @Subscribe
+        public void onStart(AuditLogReplayWorker.StartReloadEvent start) {
+            updateCheckerStatus(false);
+            epochMgr.releaseOwnedEpochs();
+        }
+
+        @Subscribe
+        public void onEnd(AuditLogReplayWorker.EndReloadEvent end) {
+            updateCheckerStatus(true);
+        }
     }
 
 }

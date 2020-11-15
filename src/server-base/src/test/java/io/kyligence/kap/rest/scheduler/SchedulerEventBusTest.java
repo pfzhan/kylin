@@ -110,14 +110,14 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()));
         NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()));
 
-        EventBusFactory.getInstance().register(jobSchedulerListener);
+        EventBusFactory.getInstance().register(jobSchedulerListener, false);
     }
 
     @After
     public void cleanup() {
         logger.info("SchedulerEventBusTest cleanup");
-        EventBusFactory.getInstance().unRegister(jobSchedulerListener);
-        EventBusFactory.restart();
+        EventBusFactory.getInstance().unregister(jobSchedulerListener);
+        EventBusFactory.getInstance().restart();
 
         jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);

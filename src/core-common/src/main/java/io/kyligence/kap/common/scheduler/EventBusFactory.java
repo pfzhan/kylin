@@ -33,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.NamedThreadFactory;
 
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.eventbus.AsyncEventBus;
 import io.kyligence.kap.guava20.shaded.common.eventbus.EventBus;
@@ -42,13 +43,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EventBusFactory {
     private final KylinConfig kylinConfig;
-    private static EventBus eventBus;
-    private static ExecutorService executor;
-
-    static {
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
-        eventBus = new AsyncEventBus(executor);
-    }
+    private ExecutorService executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
+    private EventBus asyncEventBus = new AsyncEventBus(executor);
+    private EventBus syncEventBus = new EventBus();
 
     private final Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
 
@@ -60,12 +57,25 @@ public class EventBusFactory {
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
     }
 
-    public void register(Object listener) {
-        eventBus.register(listener);
+    public void register(Object listener, boolean isSync) {
+        if (isSync) {
+            syncEventBus.register(listener);
+        } else {
+            asyncEventBus.register(listener);
+        }
     }
 
-    public void unRegister(Object listener) {
-        eventBus.unregister(listener);
+    public void unregister(Object listener) {
+        try {
+            asyncEventBus.unregister(listener);
+        } catch (IllegalArgumentException ignore) {
+            // ignore it
+        }
+        try {
+            syncEventBus.unregister(listener);
+        } catch (IllegalArgumentException ignore) {
+            // ignore it
+        }
     }
 
     public void postWithLimit(SchedulerEventNotifier event) {
@@ -73,16 +83,20 @@ public class EventBusFactory {
         RateLimiter rateLimiter = rateLimiters.get(event.toString());
 
         if (rateLimiter.tryAcquire())
-            eventBus.post(event);
+            asyncEventBus.post(event);
     }
 
     public void postAsync(Object event) {
         log.debug("Post event {}", event);
-        eventBus.post(event);
+        asyncEventBus.post(event);
     }
 
-    //for ut
-    public static void restart() {
+    public void postSync(Object event) {
+        syncEventBus.post(event);
+    }
+
+    @VisibleForTesting
+    public void restart() {
         executor.shutdown();
         try {
             if (!executor.awaitTermination(6000, TimeUnit.SECONDS)) {
@@ -93,6 +107,6 @@ public class EventBusFactory {
             Thread.currentThread().interrupt();
         }
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
-        eventBus = new AsyncEventBus(executor);
+        asyncEventBus = new AsyncEventBus(executor);
     }
 }

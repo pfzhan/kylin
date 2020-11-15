@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import lombok.val;
@@ -42,10 +44,24 @@ public class AddInstanceColumnCLI {
             String auditLogTable = auditLogStore.getTable();
             String checkSql = String.format(SHOW_COLUMNS_FROM_SQL, auditLogTable, INSTANCE);
             String upgradeSql = String.format(ADD_COL_TO_TABLE_SQL, auditLogTable, INSTANCE, "varchar(100)");
-            auditLogStore.checkAndUpgrade(checkSql, upgradeSql);
+            checkAndUpgrade(auditLogStore.getJdbcTemplate(), checkSql, upgradeSql);
         }
         log.info("Add instance column finished!");
         System.exit(0);
+    }
+
+    public static void checkAndUpgrade(JdbcTemplate jdbcTemplate, String checkSql, String upgradeSql) {
+        val list = jdbcTemplate.queryForList(checkSql, String.class);
+        if (CollectionUtils.isEmpty(list)) {
+            log.info("Result of {} is empty, will execute {}", checkSql, upgradeSql);
+            try {
+                jdbcTemplate.execute(upgradeSql);
+            } catch (Exception e) {
+                log.error("Failed to execute upgradeSql: {}", upgradeSql, e);
+            }
+        } else {
+            log.info("Result of {} is not empty, no need to upgrade.", checkSql);
+        }
     }
 
 }

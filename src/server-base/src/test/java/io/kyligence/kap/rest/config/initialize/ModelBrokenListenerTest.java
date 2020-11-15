@@ -81,7 +81,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         System.setProperty("HADOOP_USER_NAME", "root");
         System.setProperty("kylin.job.event.poll-interval-second", "3");
         super.setup();
-        EventBusFactory.getInstance().register(modelBrokenListener);
+        EventBusFactory.getInstance().register(modelBrokenListener, false);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableExtService, "aclEvaluate", aclEvaluate);
@@ -92,8 +92,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @After
     public void cleanup() {
         logger.info("ModelBrokenListenerTest cleanup");
-        EventBusFactory.getInstance().unRegister(modelBrokenListener);
-        EventBusFactory.restart();
+        EventBusFactory.getInstance().unregister(modelBrokenListener);
+        EventBusFactory.getInstance().restart();
         System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
         super.cleanup();
     }

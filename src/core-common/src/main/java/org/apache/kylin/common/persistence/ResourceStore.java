@@ -366,6 +366,12 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
         deleteResourceImpl(resPath);
     }
 
+    public final void deleteResourceRecursively(String resPath) {
+        for (String path : listResourcesRecursively(resPath)) {
+            deleteResource(path);
+        }
+    }
+
     protected abstract void deleteResourceImpl(String resPath);
 
     /**
@@ -405,7 +411,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
                 val imageDesc = JsonUtil.readValue(raw.getByteSource().read(), ImageDesc.class);
                 offset = imageDesc.getOffset();
             }
-            auditLogStore.restore(this, offset);
+            auditLogStore.restore(offset);
         } catch (IOException ignore) {
         }
     }
@@ -413,7 +419,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public void leaderCatchup() {
         val auditLogStore = getAuditLogStore();
         try {
-            auditLogStore.restore(this, offset);
+            auditLogStore.restore(offset);
         } catch (Throwable ignore) {
         }
     }

@@ -387,7 +387,7 @@ public class EpochManager implements IKeep {
 
     // when shutdown
     public void releaseOwnedEpochs() {
-        logger.debug("Release owned epochs");
+        logger.info("Release owned epochs");
         epochStore.list().stream().filter(epoch -> Objects.equals(epoch.getCurrentEpochOwner(), identity))
                 .forEach(epoch -> {
                     epoch.setCurrentEpochOwner("");

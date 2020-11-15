@@ -301,14 +301,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
             //
         }
 
-        EventBusFactory.getInstance().register(modelBrokenListener);
+        EventBusFactory.getInstance().register(modelBrokenListener, false);
     }
 
     @After
     public void tearDown() {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
-        EventBusFactory.getInstance().unRegister(modelBrokenListener);
-        EventBusFactory.restart();
+        EventBusFactory.getInstance().unregister(modelBrokenListener);
+        EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
     }
 

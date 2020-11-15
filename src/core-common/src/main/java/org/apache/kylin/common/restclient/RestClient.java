@@ -512,7 +512,7 @@ public class RestClient {
     private void tryCatchUp() {
         try {
             ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+            store.getAuditLogStore().catchupWithTimeout();
         } catch (Exception e) {
             logger.error("Failed to catchup manually.", e);
         }

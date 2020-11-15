@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import lombok.val;
@@ -35,7 +34,6 @@ import lombok.experimental.Delegate;
 
 public class TransactionLock {
 
-    @VisibleForTesting
     static Map<String, ReentrantReadWriteLock> projectLocks = Maps.newConcurrentMap();
 
     public static TransactionLock getLock(String project, boolean readonly) {

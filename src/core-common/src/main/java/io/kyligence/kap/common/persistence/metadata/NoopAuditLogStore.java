@@ -26,7 +26,6 @@ package io.kyligence.kap.common.persistence.metadata;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.UnitMessages;
-import org.apache.kylin.common.persistence.ResourceStore;
 
 import java.io.IOException;
 import java.util.List;
@@ -53,12 +52,12 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
-    public long getStartId() {
+    public long getLogOffset() {
         return 0;
     }
 
     @Override
-    public void restore(ResourceStore store, long currentId) {
+    public void restore(long currentId) {
         // just implement it
     }
 
@@ -68,22 +67,17 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
-    public void catchupManuallyWithTimeOut(ResourceStore store) throws Exception {
+    public void catchupWithTimeout() throws Exception {
         //do nothing
     }
 
     @Override
-    public void catchupManually(ResourceStore store) {
+    public void catchup() {
         //do nothing
     }
 
     @Override
     public void setInstance(String instance) {
-        //do nothing
-    }
-
-    @Override
-    public void setStartId(long offset) {
         //do nothing
     }
 

@@ -25,8 +25,15 @@
 package org.apache.kylin.common.persistence;
 
 public class VersionConflictException extends RuntimeException {
-    public VersionConflictException(String msg) {
+
+    private final RawResource resource;
+
+    public VersionConflictException(RawResource resource, String msg) {
         super(msg);
+        this.resource = resource;
     }
 
+    public RawResource getResource() {
+        return resource;
+    }
 }

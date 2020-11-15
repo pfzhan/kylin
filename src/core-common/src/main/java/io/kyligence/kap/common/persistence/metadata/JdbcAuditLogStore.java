@@ -35,25 +35,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.TransactionException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
@@ -64,8 +53,10 @@ import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
+import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -107,14 +98,11 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Getter
     private final String table;
 
+    private final AuditLogReplayWorker replayWorker;
+
     private String instance;
     @Getter
     private final DataSourceTransactionManager transactionManager;
-    private ScheduledExecutorService consumeExecutor = new ScheduledThreadPoolExecutor(1);
-    private AtomicBoolean stop = new AtomicBoolean(false);
-    private BlockingQueue<Object> blockingQueue = new LinkedBlockingDeque<>(1);
-
-    private volatile AtomicLong startId = new AtomicLong();
 
     public JdbcAuditLogStore(KylinConfig config) throws Exception {
         this(config, -1);
@@ -129,8 +117,10 @@ public class JdbcAuditLogStore implements AuditLogStore {
         jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.setQueryTimeout(timeout);
         table = url.getIdentifier() + AUDIT_LOG_SUFFIX;
+
         instance = AddressUtil.getLocalInstance();
         createIfNotExist();
+        replayWorker = new AuditLogReplayWorker(config, this::catchupToMaxId);
     }
 
     public JdbcAuditLogStore(KylinConfig config, JdbcTemplate jdbcTemplate,
@@ -142,6 +132,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         instance = AddressUtil.getLocalInstance();
 
         createIfNotExist();
+        replayWorker = new AuditLogReplayWorker(config, this::catchupToMaxId);
     }
 
     public void save(UnitMessages unitMessages) {
@@ -200,20 +191,6 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 .orElse(0L);
     }
 
-    public void checkAndUpgrade(String checkSql, String upgradeSql) {
-        val list = jdbcTemplate.queryForList(checkSql, String.class);
-        if (CollectionUtils.isEmpty(list)) {
-            log.info("Result of {} is empty, will execute {}", checkSql, upgradeSql);
-            try {
-                jdbcTemplate.execute(upgradeSql);
-            } catch (Exception e) {
-                log.error("Failed to execute upgradeSql: {}", upgradeSql, e);
-            }
-        } else {
-            log.info("Result of {} is not empty, no need to upgrade.", checkSql);
-        }
-    }
-
     @Override
     public long getMinId() {
         return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MIN_ID_SQL, table), Long.class))
@@ -221,41 +198,32 @@ public class JdbcAuditLogStore implements AuditLogStore {
     }
 
     @Override
-    public void restore(ResourceStore store, long currentId) {
-        val replayer = MessageSynchronization.getInstance(config);
-        startId.set(Math.max(startId.get(), currentId));
+    public void restore(long currentId) {
+        replayWorker.updateOffset(currentId);
         val interval = config.getCatchUpInterval();
         if (config.isJobNode() && !config.isUTEnv()) {
             log.info("current maxId is {}", currentId);
-            consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
+            replayWorker.startSchedule(interval);
             return;
         }
-        withTransaction(transactionManager, () -> {
-            val step = 1000L;
-            val maxId = getMaxId();
-            log.debug("start restore, current max_id is {}", maxId);
-            var start = currentId;
-            while (start < maxId) {
-                val logs = fetch(start, Math.min(step, maxId - start));
-                replayLogs(replayer, logs);
-                start += step;
-            }
-            startId.set(Math.max(startId.get(), maxId));
-            consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
-            return null;
-        });
+        val newOffset = catchupToMaxId(currentId);
+        replayWorker.updateOffset(newOffset);
+        replayWorker.startSchedule(interval);
     }
 
-    public void catchupManuallyWithTimeOut(ResourceStore store) throws Exception {
-        startId.set(Math.max(startId.get(), store.getOffset()));
-        FutureTask<Void> futureTask = new FutureTask<Void>(createFetcher(store.getChecker()), null);
-        consumeExecutor.submit(futureTask);
-        futureTask.get(config.getCatchUpTimeout(), TimeUnit.SECONDS);
+    @Override
+    public void catchupWithTimeout() throws Exception {
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayWorker.updateOffset(store.getOffset());
+        replayWorker.catchup();
+        replayWorker.waitForCatchup(getMaxId(), config.getCatchUpTimeout());
     }
 
-    public void catchupManually(ResourceStore store) {
-        startId.set(Math.max(startId.get(), store.getOffset()));
-        consumeExecutor.submit(createFetcher(store.getChecker()));
+    @Override
+    public void catchup() {
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayWorker.updateOffset(store.getOffset());
+        replayWorker.catchup();
     }
 
     @Override
@@ -274,50 +242,22 @@ public class JdbcAuditLogStore implements AuditLogStore {
         });
     }
 
-    private synchronized Runnable createFetcher(ResourceStore.Callback<Boolean> checker) {
-        return () -> {
-            if (stop.get()) {
-                blockingQueue.clear();
-                consumeExecutor.shutdownNow();
-                return;
+    private long catchupToMaxId(final long currentId) {
+        val replayer = MessageSynchronization.getInstance(config);
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayer.setChecker(store.getChecker());
+        return withTransaction(transactionManager, () -> {
+            val step = 1000L;
+            val maxId = getMaxId();
+            log.debug("start restore, current max_id is {}", maxId);
+            var start = currentId;
+            while (start < maxId) {
+                val logs = fetch(start, Math.min(step, maxId - start));
+                replayLogs(replayer, logs);
+                start += step;
             }
-            if (!blockingQueue.offer(new Object())) {
-                return;
-            }
-            val replayer = MessageSynchronization.getInstance(config);
-            replayer.setChecker(checker);
-            try {
-                withTransaction(transactionManager, () -> {
-                    long finalStartId = startId.get();
-                    val step = 1000L;
-                    val maxId = getMaxId();
-                    log.debug("start replay log, current max_id is {}", maxId);
-                    while (finalStartId < maxId) {
-                        val logs = fetch(finalStartId, Math.min(step, maxId - finalStartId));
-                        replayLogs(replayer, logs);
-                        finalStartId += step;
-                    }
-                    startId.set(Math.max(startId.get(), maxId));
-                    return null;
-                });
-
-            } catch (TransactionException e) {
-                log.warn("cannot create transaction, ignore it", e);
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                }
-            } catch (Exception e) {
-                log.error("unknown exception, exit ", e);
-                stop.set(true);
-                if (!config.isUTEnv()) {
-                    System.exit(-2);
-                }
-            } finally {
-                blockingQueue.clear();
-            }
-        };
+            return maxId;
+        });
     }
 
     private void replayLogs(MessageSynchronization replayer, List<AuditLog> logs) {
@@ -334,6 +274,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
             }
         }
         for (UnitMessages message : messagesMap.values()) {
+            log.debug("replay {} event for project:{}", message.getMessages().size(), message.getKey());
             replayer.replay(message);
         }
     }
@@ -360,21 +301,15 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
     @Override
     public void close() throws IOException {
-        stop.set(true);
-        ExecutorServiceUtil.forceShutdown(consumeExecutor);
+        replayWorker.close(false);
     }
 
-    // only for test
+    @VisibleForTesting
     public void forceClose() {
-        stop.set(true);
-        ExecutorServiceUtil.shutdownGracefully(consumeExecutor, 60);
+        replayWorker.close(true);
     }
 
-    public long getStartId() {
-        return startId.get();
-    }
-
-    public void setStartId(long offset) {
-        startId.set(offset);
+    public long getLogOffset() {
+        return replayWorker.getLogOffset();
     }
 }

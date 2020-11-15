@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.tool;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.common.exception.ToolErrorCode.FILE_ALREADY_EXIST;
 import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
 
@@ -35,8 +34,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
@@ -59,12 +56,7 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
@@ -323,7 +315,7 @@ public class MetadataTool extends ExecutableApplication {
         if (kylinConfig.isUTEnv())
             offset = auditLogStore.getMaxId();
         else
-            offset = auditLogStore.getStartId() == 0 ? resourceStore.getOffset() : auditLogStore.getStartId();
+            offset = auditLogStore.getLogOffset() == 0 ? resourceStore.getOffset() : auditLogStore.getLogOffset();
         return offset;
     }
 
@@ -340,24 +332,6 @@ public class MetadataTool extends ExecutableApplication {
                 throw new InterruptedException("metadata task is interrupt");
             }
         }
-    }
-
-    private Map remoteBackup(String address, String backupPath, String project, boolean compress) throws Exception {
-        val restTemplate = new RestTemplate();
-
-        Map<String, String> map = new HashMap<>();
-        map.put("backup_path", backupPath);
-        map.put("project", project);
-        map.put("compress", compress + "");
-        ObjectMapper objectMapper = new ObjectMapper();
-        byte[] body = objectMapper.writeValueAsBytes(map);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.put(HttpHeaders.CONTENT_TYPE, Lists.newArrayList(HTTP_VND_APACHE_KYLIN_JSON));
-
-        val response = restTemplate.postForEntity("http://" + address + "/kylin/api/system/backup",
-                new HttpEntity<>(body, headers), Map.class);
-        return response.getBody();
     }
 
     private void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.tool;
 
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -106,12 +105,11 @@ public class MaintainModeTool extends ExecutableApplication {
         }
     }
 
-    public void init() throws UnknownHostException {
+    public void init() {
         config = KylinConfig.getInstanceFromEnv();
         String ipAndPort = AddressUtil.getMockPortAddress();
         ResourceStore metaStore = ResourceStore.getKylinMetaStore(config);
         metaStore.getAuditLogStore().setInstance(ipAndPort);
-        setAuditlogStartId(metaStore);
         if (CollectionUtils.isEmpty(projects)) {
             projects = NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                     .collect(Collectors.toList());
@@ -120,11 +118,6 @@ public class MaintainModeTool extends ExecutableApplication {
         projects.add(UnitOfWork.GLOBAL_UNIT);
         epochManager = EpochManager.getInstance(config);
         epochManager.setIdentity(owner);
-    }
-
-    private void setAuditlogStartId(ResourceStore resourceStore) {
-        val auditLogStore = resourceStore.getAuditLogStore();
-        auditLogStore.setStartId(resourceStore.getOffset());
     }
 
     public void markEpochs() {
@@ -138,7 +131,7 @@ public class MaintainModeTool extends ExecutableApplication {
         System.setProperty(LEADER_RACE_KEY, "false");
         ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         try {
-            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+            store.getAuditLogStore().catchupWithTimeout();
             for (String prj : projects) {
                 markOwnerWithRetry(config.getTurnMaintainModeRetryTimes(), store, prj);
             }
@@ -152,7 +145,7 @@ public class MaintainModeTool extends ExecutableApplication {
         }
 
         try {
-            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+            store.getAuditLogStore().catchupWithTimeout();
         } catch (Exception e) {
             log.error("Catchup audit log failed, try to release epochs", e);
             System.out.println(StorageCleaner.ANSI_RED
@@ -172,7 +165,7 @@ public class MaintainModeTool extends ExecutableApplication {
         if (!updateEpoch) {
             if (retryTimes > 0) {
                 TimeUnit.SECONDS.sleep(2);
-                store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+                store.getAuditLogStore().catchupWithTimeout();
                 markOwnerWithRetry(retryTimes - 1, store, prj);
             } else {
                 throw new IllegalStateException("Failed to turn on maintain mode due to project " + prj);

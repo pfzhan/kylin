@@ -54,17 +54,17 @@ public class MessageSynchronization {
         eventListener = EventListenerRegistry.getInstance(config);
     }
 
-    public void replay(UnitMessages event) {
-        if (event.isEmpty()) {
+    public void replay(UnitMessages messages) {
+        if (messages.isEmpty()) {
             return;
         }
         UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().processor(() -> {
-            if (checker != null && checker.check(event)) {
+            if (checker != null && checker.check(messages)) {
                 return null;
             }
-            replayInTransaction(event);
+            replayInTransaction(messages);
             return null;
-        }).maxRetry(1).unitName(event.getKey()).useSandbox(false).build());
+        }).maxRetry(1).unitName(messages.getKey()).useSandbox(false).build());
     }
 
     void replayInTransaction(UnitMessages messages) {

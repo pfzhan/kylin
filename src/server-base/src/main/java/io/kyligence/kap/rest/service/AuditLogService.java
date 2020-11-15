@@ -39,7 +39,7 @@ public class AuditLogService {
     public void notifyCatchUp() {
         ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         logger.info("Start to catchup manually");
-        store.getAuditLogStore().catchupManually(store);
+        store.getAuditLogStore().catchup();
         logger.info("End to catchup manually");
     }
 }

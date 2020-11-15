@@ -129,7 +129,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             setupPushdownEnv();
         } catch (Exception ignore) {
         }
-        EventBusFactory.getInstance().register(modelBrokenListener);
+        EventBusFactory.getInstance().register(modelBrokenListener, false);
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         indexManager.updateIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream().peek(i -> {
@@ -149,8 +149,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             cleanPushdownEnv();
         } catch (Exception ignore) {
         }
-        EventBusFactory.getInstance().unRegister(modelBrokenListener);
-        EventBusFactory.restart();
+        EventBusFactory.getInstance().unregister(modelBrokenListener);
+        EventBusFactory.getInstance().restart();
         super.cleanup();
     }
 

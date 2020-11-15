@@ -29,7 +29,6 @@ import java.util.List;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.UnitMessages;
-import org.apache.kylin.common.persistence.ResourceStore;
 
 public interface AuditLogStore extends Closeable, IKeep {
 
@@ -41,18 +40,16 @@ public interface AuditLogStore extends Closeable, IKeep {
 
     long getMinId();
 
-    long getStartId();
+    long getLogOffset();
 
-    void restore(ResourceStore store, long currentId);
+    void restore(long currentId);
 
     void rotate();
 
-    void catchupManuallyWithTimeOut(ResourceStore store) throws Exception;
+    void catchupWithTimeout() throws Exception;
 
-    void catchupManually(ResourceStore store);
+    void catchup();
 
     void setInstance(String instance);
-
-    void setStartId(long offset);
 
 }

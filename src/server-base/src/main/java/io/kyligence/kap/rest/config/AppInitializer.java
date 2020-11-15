@@ -131,11 +131,11 @@ public class AppInitializer {
             });
 
             // register scheduler listener
-            EventBusFactory.getInstance().register(new JobSchedulerListener());
-            EventBusFactory.getInstance().register(new ModelBrokenListener());
-            EventBusFactory.getInstance().register(epochChangedListener);
-            EventBusFactory.getInstance().register(broadcastListener);
-            EventBusFactory.getInstance().register(sourceUsageUpdateListener);
+            EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
+            EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
+            EventBusFactory.getInstance().register(epochChangedListener, false);
+            EventBusFactory.getInstance().register(broadcastListener, false);
+            EventBusFactory.getInstance().register(sourceUsageUpdateListener, false);
 
             ExecutableUtils.initJobFactory();
         } else {

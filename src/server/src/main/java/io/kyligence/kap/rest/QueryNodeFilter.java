@@ -267,7 +267,7 @@ public class QueryNodeFilter implements Filter {
     private void tryCatchUp() {
         try {
             ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+            store.getAuditLogStore().catchupWithTimeout();
         } catch (Exception e) {
             log.error("Failed to catchup manually.", e);
         }
