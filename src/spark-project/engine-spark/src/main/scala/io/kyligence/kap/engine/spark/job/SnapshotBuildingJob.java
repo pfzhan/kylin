@@ -24,14 +24,17 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.engine.spark.application.SparkApplication;
-import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
+import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class SnapshotBuildingJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(SnapshotBuildingJob.class);
@@ -40,7 +43,12 @@ public class SnapshotBuildingJob extends SparkApplication {
     protected void doExecute() throws Exception {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        new SnapshotBuilder().buildSnapshot(ss,Sets.newHashSet(tableDesc));
+        new SnapshotBuilder().buildSnapshot(ss, Sets.newHashSet(tableDesc));
+    }
+
+    @Override
+    protected void chooseContentSize(SparkConfHelper helper) {
+        return;
     }
 
     public static void main(String[] args) {

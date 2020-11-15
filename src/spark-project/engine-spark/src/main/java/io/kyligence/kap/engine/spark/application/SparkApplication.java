@@ -366,11 +366,9 @@ public abstract class SparkApplication implements Application, IKeep {
             Arrays.stream(sparkConf.getAll()).forEach(config -> helper.setConf(config._1, config._2));
         }
         helper.setClusterManager(KylinBuildEnv.get().clusterManager());
-        Path shareDir = config.getJobTmpShareDir(project, jobId);
-        String contentSize = chooseContentSize(shareDir);
 
-        // add content size with unit
-        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, contentSize);
+        chooseContentSize(helper);
+
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, Integer.toString(layoutSize));
         Map<String, String> configOverride = config.getSparkConfigOverride();
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE));
@@ -389,21 +387,25 @@ public abstract class SparkApplication implements Application, IKeep {
             try {
                 while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
                     long waitTime = (long) (Math.random() * 10 * 60);
-                    logger.info("Current available resource in cluster is not sufficient, wait {} seconds.",
-                            waitTime);
+                    logger.info("Current available resource in cluster is not sufficient, wait {} seconds.", waitTime);
                     Thread.sleep(waitTime * 1000L);
                 }
             } catch (NoRetryException e) {
                 throw e;
             } catch (Exception e) {
-                logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
-                        e);
+                logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ", e);
             }
             infos.endWait();
         }
     }
 
-    protected String chooseContentSize(Path shareDir) throws IOException {
+    protected void chooseContentSize(SparkConfHelper helper) {
+        Path shareDir = config.getJobTmpShareDir(project, jobId);
+        // add content size with unit
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, chooseContentSize(shareDir));
+    }
+
+    protected String chooseContentSize(Path shareDir) {
         // return size with unit
         return ResourceDetectUtils.getMaxResourceSize(shareDir) + "b";
     }
@@ -450,7 +452,8 @@ public abstract class SparkApplication implements Application, IKeep {
         if (sparkConfigOverride.containsKey(sparkExecutorExtraJavaOptionsKey)) {
             sb.append(sparkConfigOverride.get(sparkExecutorExtraJavaOptionsKey));
         }
-        sb.append(String.format(" -Dkylin.dictionary.globalV2-store-class-name=%s ", config.getGlobalDictV2StoreImpl()));
+        sb.append(
+                String.format(" -Dkylin.dictionary.globalV2-store-class-name=%s ", config.getGlobalDictV2StoreImpl()));
         sparkConfigOverride.put(sparkExecutorExtraJavaOptionsKey, sb.toString());
         return sparkConfigOverride;
     }
