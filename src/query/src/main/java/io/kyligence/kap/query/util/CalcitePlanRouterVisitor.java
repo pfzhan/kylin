@@ -23,40 +23,33 @@
  */
 package io.kyligence.kap.query.util;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-
-import java.util.Optional;
-
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.type.NotConstant;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+
+import java.util.Optional;
+
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 
 /**
  * In constant query,
  * visit RexNode to find if any udf implement {@link org.apache.calcite.sql.type.NotConstant}
+ *
+ * Calcite does not support floor function properly, so route constant query with floor() to Sparder
  */
-public class RexHasConstantUdfVisitor extends RexVisitorImpl<Boolean> {
-
-    public RexHasConstantUdfVisitor() {
+public class CalcitePlanRouterVisitor extends RexVisitorImpl<Boolean> {
+    public CalcitePlanRouterVisitor() {
         super(true);
     }
 
     @Override
     public Boolean visitCall(RexCall call) {
-        if ((call.getOperator() instanceof SqlUserDefinedFunction)
-                && (((SqlUserDefinedFunction) (call.getOperator())).getFunction() instanceof ScalarFunctionImpl)) {
-
-            SqlUserDefinedFunction sqlUserDefinedFunction = (SqlUserDefinedFunction) (call.getOperator());
-
-            ScalarFunctionImpl scalarFunction = (ScalarFunctionImpl) (sqlUserDefinedFunction.getFunction());
-
-            if (NotConstant.class.isAssignableFrom(scalarFunction.method.getDeclaringClass())) {
-                return TRUE;
-            }
-        }
+        if (isConstantUdfContained(call) || isFloorFunctionContained(call))
+            return TRUE;
 
         return call.getOperands().stream().anyMatch(operand -> defaultForEmpty(operand.accept(this)));
     }
@@ -66,4 +59,23 @@ public class RexHasConstantUdfVisitor extends RexVisitorImpl<Boolean> {
 
     }
 
+    private boolean isConstantUdfContained(RexCall call) {
+        if ((call.getOperator() instanceof SqlUserDefinedFunction)
+                && (((SqlUserDefinedFunction) (call.getOperator())).getFunction() instanceof ScalarFunctionImpl)) {
+
+            SqlUserDefinedFunction sqlUserDefinedFunction = (SqlUserDefinedFunction) (call.getOperator());
+
+            ScalarFunctionImpl scalarFunction = (ScalarFunctionImpl) (sqlUserDefinedFunction.getFunction());
+
+            if (NotConstant.class.isAssignableFrom(scalarFunction.method.getDeclaringClass())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isFloorFunctionContained(RexCall call) {
+        return call.getOperator() instanceof SqlFloorFunction;
+    }
 }

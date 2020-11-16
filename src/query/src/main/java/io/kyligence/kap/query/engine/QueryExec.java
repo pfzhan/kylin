@@ -30,6 +30,7 @@ import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.kyligence.kap.query.engine.mask.QueryResultMasks;
+import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
 import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -61,7 +62,6 @@ import io.kyligence.kap.query.engine.exec.QueryPlanExec;
 import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
-import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
 
 /**
  * Entrance for query execution
@@ -81,7 +81,7 @@ public class QueryExec {
     public QueryExec(String project, KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
         config = KECalciteConfig.fromKapConfig(kylinConfig);
-        schemaFactory =  new ProjectSchemaFactory(project, kylinConfig);
+        schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
         CalciteSchema rootSchema = schemaFactory.createProjectRootSchema();
         String defaultSchemaName = schemaFactory.getDefaultSchema();
         catalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
@@ -112,7 +112,7 @@ public class QueryExec {
     public QueryResult executeQuery(String sql) throws SQLException {
         magicDirts(sql);
         try {
-            beforeQuery();         
+            beforeQuery();
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
             RelNode node = queryOptimizer.optimize(relRoot).rel;
 
@@ -129,8 +129,8 @@ public class QueryExec {
             throw newSqlException(sql, "parse failed: " + e.getMessage(), e);
         } catch (Exception e) {
             // retry query if switched to backup read FS
-            if (ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(e, KapConfig.wrap(kylinConfig).
-                    getSwitchBackupFsExceptionAllowString())) {
+            if (ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(e,
+                    KapConfig.wrap(kylinConfig).getSwitchBackupFsExceptionAllowString())) {
                 logger.info("Retry sql after hitting allowed exception and turn on backup read FS", e);
                 return executeQuery(sql);
             }
@@ -152,7 +152,7 @@ public class QueryExec {
     @VisibleForTesting
     public RelNode parseAndOptimize(String sql) throws SqlParseException {
         RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-        return  queryOptimizer.optimize(relRoot).rel;
+        return queryOptimizer.optimize(relRoot).rel;
     }
 
     @VisibleForTesting
@@ -227,9 +227,10 @@ public class QueryExec {
     private List<List<String>> executeQueryPlan(RelNode rel) {
         QueryPlanExec planExec;
 
-        dataContext.setContentQuery(isConstantQuery(rel));
+        boolean routeToCalcite = routeToCalciteEngine(rel);
+        dataContext.setContentQuery(routeToCalcite);
         if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()
-                && KapConfig.wrap(kylinConfig).runConstantQueryLocally() && isConstantQuery(rel)) {
+                && KapConfig.wrap(kylinConfig).runConstantQueryLocally() && routeToCalcite) {
             planExec = new CalciteQueryPlanExec(); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
             planExec = new SparderQueryPlanExec();
@@ -238,20 +239,19 @@ public class QueryExec {
     }
 
     private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig,
-                                                      CalciteSchema rootSchema, String defaultSchemaName) {
+            CalciteSchema rootSchema, String defaultSchemaName) {
         RelDataTypeSystem relTypeSystem = new KylinRelDataTypeSystem();
         JavaTypeFactory javaTypeFactory = new JavaTypeFactoryImpl(relTypeSystem);
-        return new CalciteCatalogReader(rootSchema,
-                Collections.singletonList(defaultSchemaName), javaTypeFactory, connectionConfig);
+        return new CalciteCatalogReader(rootSchema, Collections.singletonList(defaultSchemaName), javaTypeFactory,
+                connectionConfig);
     }
 
     private SimpleDataContext createDataContext(CalciteSchema rootSchema) {
-        return new SimpleDataContext(rootSchema.plus(), sqlConverter.javaTypeFactory(),
-                kylinConfig);
+        return new SimpleDataContext(rootSchema.plus(), sqlConverter.javaTypeFactory(), kylinConfig);
     }
 
-    private boolean isConstantQuery(RelNode rel) {
-        return !hasTableScanNode(rel) && !hasNotConstantUDF(rel);
+    private boolean routeToCalciteEngine(RelNode rel) {
+        return isConstantQuery(rel) && isCalciteEngineCapable(rel);
     }
 
     /**
@@ -259,37 +259,35 @@ public class QueryExec {
      * @param rel
      * @return
      */
-    private boolean hasTableScanNode(RelNode rel) {
+    private boolean isConstantQuery(RelNode rel) {
         if (TableScan.class.isAssignableFrom(rel.getClass())) {
-            return true;
+            return false;
         }
         for (RelNode input : rel.getInputs()) {
-            if (hasTableScanNode(input)) {
-                return true;
+            if (!isConstantQuery(input)) {
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 
     /**
-     * In constant query,
-     * visit RelNode tree to see if any UDF implement {@link org.apache.calcite.sql.type.NotConstant}
+     * Calcite is not capable for some constant queries, need to route to Sparder
      *
      * @param rel
-     * @return true if any UDF implement {@link org.apache.calcite.sql.type.NotConstant},otherwise false
+     * @return
      */
-    private boolean hasNotConstantUDF(RelNode rel) {
-
+    private boolean isCalciteEngineCapable(RelNode rel) {
         if (rel instanceof Project) {
             Project projectRelNode = (Project) rel;
             if (projectRelNode.getChildExps().stream().filter(pRelNode -> pRelNode instanceof RexCall)
-                    .anyMatch(pRelNode -> pRelNode.accept(new RexHasConstantUdfVisitor()))) {
-                return true;
+                    .anyMatch(pRelNode -> pRelNode.accept(new CalcitePlanRouterVisitor()))) {
+                return false;
             }
         }
 
-        return rel.getInputs().stream().anyMatch(this::hasNotConstantUDF);
+        return rel.getInputs().stream().allMatch(this::isCalciteEngineCapable);
     }
 
     private SQLException newSqlException(String sql, String msg, Throwable e) {

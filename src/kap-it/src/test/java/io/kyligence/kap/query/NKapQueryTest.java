@@ -28,6 +28,7 @@ import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
 
+import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.Shell;
@@ -145,4 +146,18 @@ public class NKapQueryTest extends NKylinTestBase {
     //        verifyResultRowColCount(KYLIN_SQL_BASE_DIR + File.separator + "sql_verifyCount");
     //    }
 
+    @Test
+    public void testFloorConstantQuery() throws Exception {
+        val query0 = "select {FN WEEK(CEIL( FLOOR(date'2020-11-10' TO week  ) TO DAY    )) }";
+        val query1 = "select floor(date'2020-11-10' to week)";
+        val query2 = "select ceil(date'2020-11-10' to month)";
+        val queries = Lists.newArrayList(query0, query1, query2);
+        val expectedAnswers = Lists.newArrayList("46", "2020-11-09 00:00:00", "2020-12-01 00:00:00");
+
+        for (int i = 0; i < queries.size(); i++) {
+            val query = queries.get(i);
+            val queryResult = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv()).executeQuery(query);
+            Assert.assertEquals(expectedAnswers.get(i), queryResult.getRows().get(0).get(0));
+        }
+    }
 }
