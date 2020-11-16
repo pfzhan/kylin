@@ -1624,7 +1624,7 @@ public class ModelService extends BasicService {
         checkBatchSqlSize(sqls);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         AbstractContext proposeContext = reuseExistedModel
-                ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), true)
+                ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), false)
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();
