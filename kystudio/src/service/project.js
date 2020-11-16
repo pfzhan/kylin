@@ -134,12 +134,12 @@ export default {
     return Vue.resource(apiUrl + 'models/name/scd2').get(data)
   },
   loadStatistics (para) {
-    return Vue.resource(apiUrl + `projects/${para.project}/statistics`).get()
+    return Vue.resource(apiUrl + `projects/statistics`).get(para)
   },
   getAccelerationStatus (para) {
-    return Vue.resource(apiUrl + `projects/${para.project}/acceleration`).get()
+    return Vue.resource(apiUrl + `projects/acceleration`).get(para)
   },
   accelerateModel (para) {
-    return Vue.resource(apiUrl + `projects/${para.project}/acceleration`).update()
+    return Vue.resource(apiUrl + `projects/acceleration?project=${para.project}`).update(para)
   }
 }
