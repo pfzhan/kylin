@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.acl;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.metadata.datatype.DataType;
 
 import java.util.Set;
@@ -35,7 +36,7 @@ import java.util.Set;
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class SensitiveDataMask {
+public class SensitiveDataMask implements IKeep {
 
     private static final Set<String> VALID_DATA_TYPES = Sets.newHashSet(
         DataType.STRING, DataType.VARCHAR, DataType.CHAR,
@@ -45,10 +46,12 @@ public class SensitiveDataMask {
     );
 
     public static boolean isValidDataType(String dataType) {
-        return VALID_DATA_TYPES.contains(dataType.toLowerCase());
+        int parenthesesIdx = dataType.indexOf('(');
+        return VALID_DATA_TYPES.contains(parenthesesIdx > -1 ?
+                dataType.substring(0, parenthesesIdx).trim().toLowerCase() : dataType.trim().toLowerCase());
     }
 
-    public enum MaskType {
+    public enum MaskType implements IKeep {
         DEFAULT(0),  // mask sensitive data by type with default values
         AS_NULL(1);  // mask all sensitive data as NULL
 

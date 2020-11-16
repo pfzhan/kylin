@@ -1826,6 +1826,10 @@ public class CnMessage extends Message {
         return "Boolean、Map、Array 数据类型暂不支持脱敏。";
     }
 
+    public String getNotSupportNestedDependentCol() {
+        return "不支持在关联列上设置关联规则";
+    }
+
     // Snapshots
     @Override
     public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {

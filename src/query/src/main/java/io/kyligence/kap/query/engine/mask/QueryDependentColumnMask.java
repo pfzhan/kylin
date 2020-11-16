@@ -159,7 +159,7 @@ public class QueryDependentColumnMask implements QueryResultMask {
             }
             columns[i] = new Column(expr).as(dfWithIndexedCol.columns()[i]);
         }
-        return dfWithIndexedCol.select(columns);
+        return dfWithIndexedCol.select(columns).toDF(df.columns());
     }
 
     private List<ResultColumnMaskInfo> buildResultColumnMaskInfo(List<ColumnReferences> resultColRefs) {

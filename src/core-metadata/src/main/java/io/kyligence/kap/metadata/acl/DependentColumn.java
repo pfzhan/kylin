@@ -26,12 +26,13 @@ package io.kyligence.kap.metadata.acl;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.common.obf.IKeep;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class DependentColumn {
+public class DependentColumn implements IKeep {
 
     @JsonProperty
     String column;

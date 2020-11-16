@@ -588,7 +588,7 @@ public class AclTCRService extends BasicService {
                         if (cr != null && cr.getDependentColumns() != null) {
                             for (DependentColumn dependentColumn : cr.getDependentColumns()) {
                                 if (dependentColumnIdentities.contains(tableName + "." + dependentColumn.getColumn())) {
-                                    throw new KylinException(INVALID_PARAMETER, tableName + "." + dependentColumn.getColumn() + " is already defined as dependent column");
+                                    throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getNotSupportNestedDependentCol());
                                 }
                             }
                         }
@@ -599,7 +599,7 @@ public class AclTCRService extends BasicService {
 
         for (String dependentColumnIdentity : dependentColumnIdentities) {
             if (aclTCRList.stream().noneMatch(acl -> acl.isColumnAuthorized(dependentColumnIdentity))) {
-                throw new KylinException(INVALID_PARAMETER, "Dependent column " + dependentColumnIdentity + " is not authorized");
+                throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getInvalidColumnAccess(), dependentColumnIdentity));
             }
         }
     }
@@ -642,7 +642,7 @@ public class AclTCRService extends BasicService {
             }
 
             if (column.getDataMaskType() != null && !SensitiveDataMask.isValidDataType(tableDesc.findColumnByName(column.getColumnName()).getDatatype())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidColumnAccess());
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidSensitiveDataMaskColumnType());
             }
         }
     }

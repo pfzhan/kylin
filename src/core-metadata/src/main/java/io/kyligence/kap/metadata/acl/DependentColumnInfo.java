@@ -26,11 +26,14 @@ package io.kyligence.kap.metadata.acl;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 public class DependentColumnInfo {
 
@@ -49,9 +52,9 @@ public class DependentColumnInfo {
     }
 
     public void validate() {
-        infos.values().stream().flatMap(cols -> cols.stream()).forEach(col -> {
+        infos.values().stream().flatMap(Collection::stream).forEach(col -> {
             if (!get(col.getDependentColumnIdentity()).isEmpty()) {
-                throw new KylinException(ServerErrorCode.INVALID_PARAMETER, "Not Supported setting association rules on association columns.");
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getNotSupportNestedDependentCol());
             }
         });
     }

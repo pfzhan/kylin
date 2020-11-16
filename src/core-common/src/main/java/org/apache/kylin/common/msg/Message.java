@@ -1609,6 +1609,10 @@ public class Message {
         return "Boolean, Map, and Array data types do not support data masking.";
     }
 
+    public String getNotSupportNestedDependentCol() {
+        return "Not Supported setting association rules on association columns.";
+    }
+
     // Snapshots
     public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
         return "Have no permission for table(s) '%s'.";
