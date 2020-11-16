@@ -711,7 +711,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Path getFlatTableDir(String project, String dataFlowId, String segmentId) {
-        String path = getHdfsWorkingDirectoryWithoutScheme() + project + "/flat_table/" + dataFlowId + PATH_DELIMITER
+        String path = getHdfsWorkingDirectory() + project + "/flat_table/" + dataFlowId + PATH_DELIMITER
                 + segmentId;
         return new Path(path);
     }
