@@ -1092,7 +1092,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
                         + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
                         + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, true);
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, true, true);
         val response = modelService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(3, response.getReusedModels().size());
         Assert.assertEquals(0, response.getNewModels().size());
@@ -1101,7 +1101,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(indexes.isEmpty());
         });
 
-        AbstractContext proposeContext2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true);
+        AbstractContext proposeContext2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true, true);
         val response2 = modelService.buildModelSuggestionResponse(proposeContext2);
         Assert.assertEquals(2, response2.getReusedModels().size());
         Assert.assertEquals(0, response2.getNewModels().size());
@@ -1136,7 +1136,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<String> sqlList = Lists.newArrayList();
         sqlList.add("select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name");
-        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true);
+        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true, true);
         ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
         modelService.saveRecResult(modelSuggestionResponse, project);
 

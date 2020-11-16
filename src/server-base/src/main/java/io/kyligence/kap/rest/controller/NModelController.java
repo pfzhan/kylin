@@ -223,7 +223,7 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         AbstractContext proposeContext = modelService.suggestModel(request.getProject(), request.getSqls(),
-                request.getReuseExistedModel());
+                request.getReuseExistedModel(), true);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 modelService.buildModelSuggestionResponse(proposeContext), "");
     }

@@ -353,7 +353,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false);
+        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false, false);
         Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
@@ -372,7 +372,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
         val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
-        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true);
+        Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
         Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))

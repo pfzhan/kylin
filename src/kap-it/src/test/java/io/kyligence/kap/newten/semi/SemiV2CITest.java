@@ -84,7 +84,9 @@ import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
+import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
@@ -336,6 +338,49 @@ public class SemiV2CITest extends SemiAutoTestBase {
     }
 
     @Test
+    public void testSuggestModelWithoutCreateNewModel() {
+        // prepare an origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name" });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // assert origin model
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeOptimization = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(12, modelBeforeOptimization.getAllNamedColumns().size());
+        Assert.assertEquals(2, modelBeforeOptimization.getAllMeasures().size());
+        IndexPlan indexPlanBeforeOptimization = modelContexts.get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, indexPlanBeforeOptimization.getAllLayouts().size());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        // suggest model without create new model
+        List<String> sqlList = ImmutableList.of(
+                "select price, item_count from test_kylin_fact join edw.test_cal_dt "
+                        + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt group by price, item_count",
+                "select lstg_format_name, item_count, count(item_count), sum(price) "
+                        + "from test_kylin_fact group by lstg_format_name, item_count");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, false);
+        AccelerateInfo failedInfo = proposeContext.getAccelerateInfoMap().get(sqlList.get(0));
+        Assert.assertTrue(failedInfo.isNotSucceed());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG, failedInfo.getPendingMsg());
+
+        rawRecService.transferAndSaveRecommendations(proposeContext);
+
+        // assert result
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(3, rawRecItems.size());
+        List<RawRecItem> layoutRecs = rawRecItems.stream()
+                .filter(item -> item.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT).collect(Collectors.toList());
+        Assert.assertEquals(1, layoutRecs.size());
+        Assert.assertEquals(RawRecItem.IMPORTED, layoutRecs.get(0).getRecSource());
+    }
+
+    @Test
     public void testSuggestModel() {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
@@ -365,7 +410,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
                         + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt group by price, item_count",
                 "select lstg_format_name, item_count, sum(price+1), sum(price+2) "
                         + "from test_kylin_fact group by lstg_format_name, item_count");
-        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true);
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, true);
         ModelSuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
         List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResp.getReusedModels();
         Assert.assertEquals(1, reusedModels.size());

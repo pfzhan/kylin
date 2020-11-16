@@ -348,7 +348,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, false,
-                null , null);
+                null, null);
     }
 
     @Test
@@ -371,13 +371,15 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRefreshSegmentsById() throws Exception {
         List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
-        jobInfos.add(new JobInfoResponse.JobInfo("78847556-2cdb-4b07-b39e-4c29856309aa", "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        jobInfos.add(new JobInfoResponse.JobInfo("78847556-2cdb-4b07-b39e-4c29856309aa",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         SegmentsRequest request = mockSegmentRequest();
         Mockito.doAnswer(x -> jobInfos).when(modelService).refreshSegmentById(Mockito.any());
         Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
-        String mvcResult = mockMvc.perform(
-                MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+        String mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders
+                        .put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
@@ -391,12 +393,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
         request.setIds(new String[] { "0", "1" });
-        Mockito.doAnswer(x -> new JobInfoResponse.JobInfo("0312bcc1-092e-42b1-ab0e-27807cf54f16", "79c27a68-343c-4b73-b406-dd5af0add951"))
-                .when(modelService).mergeSegmentsManually(Mockito.any());
+        Mockito.doAnswer(x -> new JobInfoResponse.JobInfo("0312bcc1-092e-42b1-ab0e-27807cf54f16",
+                "79c27a68-343c-4b73-b406-dd5af0add951")).when(modelService).mergeSegmentsManually(Mockito.any());
         Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
-        val mvcResult = mockMvc.perform(
-                MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+        val mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders
+                        .put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
@@ -710,7 +713,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         SqlAccelerateRequest favoriteRequest = new SqlAccelerateRequest("gc_test", sqls, true);
         // reuse existed model
-        Mockito.doReturn(null).when(modelService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls), true);
+        Mockito.doReturn(null).when(modelService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls), true,
+                true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -726,8 +730,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 + "GROUP BY lstg_format_name, test_cal_dt.week_beg_dt";
         List<String> sqls = Lists.newArrayList(sql);
         SqlAccelerateRequest accerelateRequest = new SqlAccelerateRequest("gc_test", sqls, false);
-        Mockito.doReturn(null).when(modelService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls),
-                false);
+        Mockito.doReturn(null).when(modelService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls), false,
+                true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(accerelateRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

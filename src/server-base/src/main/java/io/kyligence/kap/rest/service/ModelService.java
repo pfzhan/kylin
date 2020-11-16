@@ -1510,7 +1510,7 @@ public class ModelService extends BasicService {
 
     public OpenModelSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
         AbstractContext proposeContext = suggestModel(request.getProject(), request.getSqls(),
-                !request.getForce2CreateNewModel());
+                !request.getForce2CreateNewModel(), false);
         ModelSuggestionResponse modelSuggestionResponse = buildModelSuggestionResponse(proposeContext);
 
         OpenModelSuggestionResponse result;
@@ -1616,7 +1616,8 @@ public class ModelService extends BasicService {
         }
     }
 
-    public AbstractContext suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
+    public AbstractContext suggestModel(String project, List<String> sqls, boolean reuseExistedModel,
+            boolean createNewModel) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
@@ -1624,7 +1625,7 @@ public class ModelService extends BasicService {
         checkBatchSqlSize(sqls);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         AbstractContext proposeContext = reuseExistedModel
-                ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), false)
+                ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), createNewModel)
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();
