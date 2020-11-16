@@ -37,6 +37,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class QueryDependentColumnMaskTest extends NLocalFileMetadataTestCase {
@@ -76,6 +77,21 @@ public class QueryDependentColumnMaskTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+    }
+
+    @Test
+    public void testSetMultiMask() {
+        DependentColumnInfo dependentColumnInfo = new DependentColumnInfo();
+        dependentColumnInfo.add("DEFAULT", "TEST_KYLIN_FACT1", Lists.newArrayList(
+                new DependentColumn("PRICE", "DEFAULT.TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL", new String[]{"1"})
+        ));
+        dependentColumnInfo.add("DEFAULT", "TEST_KYLIN_FACT1", Lists.newArrayList(
+                new DependentColumn("PRICE", "DEFAULT.TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL", new String[]{"2", "3"})
+        ));
+        Assert.assertEquals(1, dependentColumnInfo.get("DEFAULT.TEST_KYLIN_FACT1.PRICE").size());
+        String[] values = dependentColumnInfo.get("DEFAULT.TEST_KYLIN_FACT1.PRICE").iterator().next().getDependentValues();
+        Arrays.sort(values);
+        Assert.assertArrayEquals(new String[] {"1", "2", "3"}, values);
     }
 
     @Test

@@ -631,11 +631,21 @@ public class AclTCRService extends BasicService {
 
                             });
 
+                }));
+
+        requests.forEach(d -> d.getTables().stream()
+                .filter(AclTCRRequest.Table::isAuthorized)
+                .forEach(table -> {
+                    String tableName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), table.getTableName());
+                    TableDesc tableDesc = tableManager.getTableDesc(tableName);
                     checkSensitiveDataMaskRequest(table, tableDesc);
                 }));
     }
 
     private void checkSensitiveDataMaskRequest(AclTCRRequest.Table table, TableDesc tableDesc) {
+        if (table.getColumns() == null) {
+            return;
+        }
         for (AclTCRRequest.Column column : table.getColumns()) {
             if (column.getDataMaskType() != null && !column.isAuthorized()) {
                 throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getInvalidColumnAccess(), column.getColumnName()));

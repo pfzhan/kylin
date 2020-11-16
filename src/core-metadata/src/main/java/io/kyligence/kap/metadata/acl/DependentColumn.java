@@ -26,7 +26,12 @@ package io.kyligence.kap.metadata.acl;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
+
+import java.util.Arrays;
+import java.util.Set;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
@@ -62,5 +67,14 @@ public class DependentColumn implements IKeep {
 
     public String[] getDependentValues() {
         return dependentValues;
+    }
+
+    public DependentColumn merge(DependentColumn other) {
+        Preconditions.checkArgument(other != null);
+        Preconditions.checkArgument(other.column.equalsIgnoreCase(this.column));
+        Preconditions.checkArgument(other.dependentColumnIdentity.equalsIgnoreCase(this.dependentColumnIdentity));
+        Set<String> values = Sets.newHashSet(dependentValues);
+        values.addAll(Arrays.asList(other.dependentValues));
+        return new DependentColumn(column, dependentColumnIdentity, values.toArray(new String[0]));
     }
 }

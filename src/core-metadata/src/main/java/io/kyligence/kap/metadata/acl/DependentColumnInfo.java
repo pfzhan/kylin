@@ -25,19 +25,18 @@
 package io.kyligence.kap.metadata.acl;
 
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 public class DependentColumnInfo {
 
-    Map<String, Collection<DependentColumn>> infos = new HashMap<>();
+    // map<col -> map<depCol, depColInfo>>
+    Map<String, Map<String, DependentColumn>> infos = new HashMap<>();
 
     public boolean needMask() {
         return !infos.isEmpty();
@@ -45,14 +44,21 @@ public class DependentColumnInfo {
 
     public void add(String dbName, String tableName, Collection<DependentColumn> columnInfos) {
         for (DependentColumn info : columnInfos) {
-            infos.putIfAbsent(dbName + "." + tableName + "." + info.getColumn(), new HashSet<>());
-            infos.get(dbName + "." + tableName + "." + info.getColumn()).add(info);
+            infos.putIfAbsent(dbName + "." + tableName + "." + info.getColumn(), new HashMap<>());
 
+            DependentColumn dependentColumn = infos.get(dbName + "." + tableName + "." + info.getColumn()).get(info.getDependentColumnIdentity());
+            if (dependentColumn != null) {
+                infos.get(dbName + "." + tableName + "." + info.getColumn()).put(info.getDependentColumnIdentity(), dependentColumn.merge(info));
+            } else {
+                infos.get(dbName + "." + tableName + "." + info.getColumn()).put(info.getDependentColumnIdentity(), info);
+            }
         }
     }
 
     public void validate() {
-        infos.values().stream().flatMap(Collection::stream).forEach(col -> {
+        infos.values().stream()
+                .flatMap(map -> map.values().stream())
+                .forEach(col -> {
             if (!get(col.getDependentColumnIdentity()).isEmpty()) {
                 throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getNotSupportNestedDependentCol());
             }
@@ -61,7 +67,7 @@ public class DependentColumnInfo {
 
 
     public Collection<DependentColumn> get(String columnIdentity) {
-        return infos.getOrDefault(columnIdentity, new HashSet<>());
+        return infos.getOrDefault(columnIdentity, new HashMap<>()).values();
     }
 
 }
