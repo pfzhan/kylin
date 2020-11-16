@@ -133,27 +133,24 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testGetDashboardStatistics() throws Exception {
         String project = "gc_test";
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/statistics", project)
-                .contentType(MediaType.APPLICATION_JSON).param("project", project)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/statistics").contentType(MediaType.APPLICATION_JSON)
+                .param("project", project).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
     public void testIsAccelerating() throws Exception {
         String project = "gc_test";
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/acceleration", project)
-                .contentType(MediaType.APPLICATION_JSON).param("project", project)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/acceleration").contentType(MediaType.APPLICATION_JSON)
+                .param("project", project).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
     public void testAccelerate() throws Exception {
         String project = "gc_test";
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/acceleration", project)
-                .contentType(MediaType.APPLICATION_JSON).param("project", project)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/acceleration").contentType(MediaType.APPLICATION_JSON)
+                .param("project", project).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 }

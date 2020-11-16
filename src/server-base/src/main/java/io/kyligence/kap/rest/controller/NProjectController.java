@@ -97,10 +97,10 @@ import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
-import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import io.kyligence.kap.rest.request.SCD2ConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
+import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
@@ -148,8 +148,9 @@ public class NProjectController extends NBasicController {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
             throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
-        List<UserProjectPermissionResponse> projects = projectService.getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(project, exactMatch,
-                AclPermissionEnum.valueOf(permission));
+        List<UserProjectPermissionResponse> projects = projectService
+                .getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(project, exactMatch,
+                        AclPermissionEnum.valueOf(permission));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
     }
 
@@ -310,9 +311,9 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
     }
 
-    @GetMapping(value = "/{project:.+}/statistics")
+    @GetMapping(value = "/statistics")
     @ResponseBody
-    public EnvelopeResponse<ProjectStatisticsResponse> getDashboardStatistics(@PathVariable("project") String project) {
+    public EnvelopeResponse<ProjectStatisticsResponse> getDashboardStatistics(@RequestParam("project") String project) {
         checkProjectName(project);
         ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics(project);
         projectStatistics.setLastWeekQueryCount(qhService.getLastWeekQueryCount(project));
@@ -320,9 +321,9 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectStatistics, "");
     }
 
-    @GetMapping(value = "/{project:.+}/acceleration")
+    @GetMapping(value = "/acceleration")
     @ResponseBody
-    public EnvelopeResponse<Boolean> isAccelerating(@PathVariable("project") String project) {
+    public EnvelopeResponse<Boolean> isAccelerating(@RequestParam("project") String project) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         AbstractAsyncTask asyncTask = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
@@ -331,9 +332,9 @@ public class NProjectController extends NBasicController {
                 "");
     }
 
-    @PutMapping(value = "/{project:.+}/acceleration")
+    @PutMapping(value = "/acceleration")
     @ResponseBody
-    public EnvelopeResponse<Object> accelerate(@PathVariable("project") String project) {
+    public EnvelopeResponse<Object> accelerate(@RequestParam("project") String project) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         Set<Integer> deltaRecs = projectService.accelerateManually(project);
@@ -410,7 +411,8 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateSnapshotConfig(@PathVariable("project") String project,
             @RequestBody SnapshotConfigRequest snapshotConfigRequest) {
-        checkBooleanArg("snapshot_manual_management_enabled", snapshotConfigRequest.getSnapshotManualManagementEnabled());
+        checkBooleanArg("snapshot_manual_management_enabled",
+                snapshotConfigRequest.getSnapshotManualManagementEnabled());
         projectService.updateSnapshotConfig(project, snapshotConfigRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
