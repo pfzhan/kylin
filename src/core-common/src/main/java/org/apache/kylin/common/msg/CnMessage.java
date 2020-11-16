@@ -1450,6 +1450,7 @@ public class CnMessage extends Message {
         return "找不到表 '%s'";
     }
 
+
     @Override
     public String getILLEGAL_JOB_STATE() {
         return "非法的任务状态:%s";
@@ -1757,6 +1758,16 @@ public class CnMessage extends Message {
     @Override
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
         return "添加任务失败，segment的索引未对齐。";
+    }
+
+    @Override
+    public String getEMPTY_DATABASE() {
+        return "database 参数为空";
+    }
+
+    @Override
+    public String getEMPTY_TABLE_LIST() {
+        return "table 参数为空";
     }
 
     @Override

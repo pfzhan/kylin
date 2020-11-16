@@ -45,7 +45,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.rest.request.DDLRequest;
+import io.kyligence.kap.rest.request.ExportTableRequest;
 import io.kyligence.kap.rest.response.DDLResponse;
+import io.kyligence.kap.rest.response.ExportTablesResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.SparkSourceService;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +58,7 @@ import lombok.extern.slf4j.Slf4j;
         HTTP_VND_APACHE_KYLIN_JSON })
 @Slf4j
 public class SparkSourceController extends NBasicController {
+
     @Autowired
     private SparkSourceService sparkSourceService;
 
@@ -66,9 +69,17 @@ public class SparkSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, ddlResponse, "");
     }
 
+    @PostMapping(value = "/export_table_structure")
+    @ResponseBody
+    public EnvelopeResponse<ExportTablesResponse> exportTableStructure(@RequestBody ExportTableRequest request) {
+        ExportTablesResponse tableResponse = sparkSourceService.exportTables(request.getDatabases(),
+                request.getTables());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableResponse, "");
+    }
+
     @DeleteMapping(value = "/{database}/tables/{table}")
     public EnvelopeResponse<String> dropTable(@PathVariable("database") String database,
-                                              @PathVariable("table") String table) throws AnalysisException {
+            @PathVariable("table") String table) throws AnalysisException {
         sparkSourceService.dropTable(database, table);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -80,25 +91,25 @@ public class SparkSourceController extends NBasicController {
 
     @GetMapping(value = "/{database}/tables")
     public EnvelopeResponse<List<TableNameResponse>> listTables(@PathVariable("database") String database,
-                                                                @RequestParam("project") String project) throws Exception {
+            @RequestParam("project") String project) throws Exception {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listTables(database, project), "");
     }
 
     @GetMapping(value = "/{database}/{table}/columns")
     public EnvelopeResponse listColumns(@PathVariable("database") String database,
-                                        @PathVariable("table") String table) {
+            @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listColumns(database, table), "");
     }
 
     @GetMapping(value = "/{database}/{table}/desc")
     public EnvelopeResponse<String> getTableDesc(@PathVariable("database") String database,
-                                                 @PathVariable("table") String table) {
+            @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.getTableDesc(database, table), "");
     }
 
     @GetMapping(value = "{database}/{table}/has_partition")
     public EnvelopeResponse<Boolean> hasPartition(@PathVariable("database") String database,
-                                                  @PathVariable("table") String table) {
+            @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.hasPartition(database, table), "");
     }
 
@@ -109,7 +120,7 @@ public class SparkSourceController extends NBasicController {
 
     @GetMapping(value = "/{database}/{table}/exists")
     public EnvelopeResponse<Boolean> tableExists(@PathVariable("database") String database,
-                                                 @PathVariable("table") String table) {
+            @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.tableExists(database, table), "");
     }
 
@@ -120,7 +131,7 @@ public class SparkSourceController extends NBasicController {
 
     @GetMapping(value = "/{database}/{table}/msck")
     public EnvelopeResponse<List<String>> msck(@PathVariable("database") String database,
-                                               @PathVariable("table") String table) {
+            @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.msck(database, table), "");
     }
 

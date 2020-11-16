@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.request.DDLRequest;
-import io.kyligence.kap.rest.service.SparkSourceService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -44,7 +44,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.rest.request.DDLRequest;
+import io.kyligence.kap.rest.request.ExportTableRequest;
+import io.kyligence.kap.rest.service.SparkSourceService;
 
 public class SparkSourceControllerTest {
     private MockMvc mockMvc;
@@ -81,6 +83,18 @@ public class SparkSourceControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).executeSQL(ddlRequest);
+    }
+
+    @Test
+    public void testExportTableStructuree() throws Exception {
+        ExportTableRequest request = new ExportTableRequest();
+        request.setDatabases("SSB");
+        request.setTables(new String[] { "LINEORDER", "DATES" });
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/spark_source/export_table_structure")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(sparkSourceController).exportTableStructure(request);
     }
 
     @Test

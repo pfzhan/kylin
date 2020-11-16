@@ -1464,6 +1464,10 @@ public class Message {
         return "Invalid value for parameter ‘database_name’ which should not be empty.";
     }
 
+    public String getEMPTY_DATABASE() {
+        return "Invalid value for parameter ‘database’ which should not be empty.";
+    }
+
     public String getEMPTY_TABLE_LIST() {
         return "Invalid value for parameter ‘tables’ which should not be empty.";
     }

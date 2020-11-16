@@ -23,19 +23,19 @@
  */
 package io.kyligence.kap.rest.service;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.rest.request.DDLRequest;
-import io.kyligence.kap.rest.response.DDLResponse;
-import io.kyligence.kap.rest.response.TableNameResponse;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.rest.service.BasicService;
@@ -55,19 +55,26 @@ import org.apache.spark.sql.catalyst.catalog.CatalogTable;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.rest.request.DDLRequest;
+import io.kyligence.kap.rest.response.DDLResponse;
+import io.kyligence.kap.rest.response.ExportTablesResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
+import lombok.Data;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 import scala.Option;
 import scala.collection.Iterator;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class SparkSourceService extends BasicService {
+
     //key in hive metadata map
     private static final String HIVE_TYPE_STRING = "HIVE_TYPE_STRING";
     private static final String HIVE_COMMENT = "comment";
@@ -174,6 +181,31 @@ public class SparkSourceService extends BasicService {
         return DdlOperation.getTableDesc(database, table);
     }
 
+    public ExportTablesResponse exportTables(String database, String[] tables) {
+        if (database == null || database.equals("")) {
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_DATABASE());
+        }
+        if (tables.length == 0) {
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_TABLE_LIST());
+        }
+        if (!databaseExists(database)) {
+            throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+                    String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(), database));
+        }
+        val tableResponse = new ExportTablesResponse();
+        Map<String, String> tableDesc = Maps.newHashMap();
+        for (String table : tables) {
+            if (!tableExists(database, table)) {
+                throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
+                        String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+            }
+            tableDesc.put(table, DdlOperation.getTableDesc(database, table));
+        }
+        tableResponse.setDatabases(database);
+        tableResponse.setTables(tableDesc);
+        return tableResponse;
+    }
+
     public boolean databaseExists(String database) {
         SparkSession sparkSession = SparderEnv.getSparkSession();
         return sparkSession.catalog().databaseExists(database);
@@ -191,7 +223,6 @@ public class SparkSourceService extends BasicService {
     public List<String> msck(String database, String table) {
         return DdlOperation.msck(database, table);
     }
-
 
     public List<String> loadSamples(SparkSession ss, SaveMode mode) throws IOException {
         //list samples and use file-name as table name
@@ -251,6 +282,7 @@ public class SparkSourceService extends BasicService {
 
     @Data
     static class ColumnModel {
+
         @JsonProperty("name")
         private String name;
         @JsonProperty("description")
