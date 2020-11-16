@@ -27,16 +27,24 @@ package io.kyligence.kap.query;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.KylinTestBase;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.StaticSQLConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+import java.util.UUID;
 
 /**
  */
 public class NKylinTestBase extends KylinTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(NKylinTestBase.class);
+    protected static SparkConf sparkConf;
+    protected static SparkSession ss;
 
     protected static void setupAll() throws Exception {
         //setup env
@@ -46,6 +54,14 @@ public class NKylinTestBase extends KylinTestBase {
 
         //setup cube conn
         String project = ProjectInstance.DEFAULT_PROJECT_NAME;
+
+        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
+        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
+        sparkConf.set("spark.sql.shuffle.partitions", "1");
+
+        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        SparderEnv.setSparkSession(ss);
 //        cubeConnection = QueryConnection.getConnection(project);
     }
     
