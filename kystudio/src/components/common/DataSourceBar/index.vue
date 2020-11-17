@@ -18,7 +18,7 @@
         </el-button>
       </div>
       <div v-if="showTreeFilter" class="ksd-mb-10">
-        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleFilter()"></el-input>
+        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
       </div>
       <div v-scroll style="height:calc(100% - 51px)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList
@@ -37,7 +37,9 @@
           :ignore-column-tree="ignoreColumnTree"
           @click="handleClick"
           @drag="handleDrag"
-          @load-more="handleLoadMore">
+          @load-more="handleLoadMore"
+          @node-expand="handleNodeExpand"
+          @node-collapse="handleNodeCollapse">
           <template>
             <kap-nodata :content="emptyText" v-if="databaseArray.length <= 0 || tableArray.length <= 0" size="small"></kap-nodata>
           </template>
@@ -221,6 +223,7 @@ export default class DataSourceBar extends Vue {
   sourceTypes = sourceTypes
   allWords = []
   defaultExpandedKeys = []
+  cacheDefaultExpandedKeys = []
   draggableNodeKeys = []
   isSwitchSource = false
   loadedTables = []
@@ -304,13 +307,6 @@ export default class DataSourceBar extends Vue {
   onLanguageChange () {
     this.freshDatasourceTitle()
   }
-  @Watch('tableArray')
-  onTreeDataChange () {
-    this.freshAutoCompleteWords()
-    this.defaultExpandedKeys = this.allWords
-      .filter(word => this.expandNodeTypes.includes(word.meta))
-      .map(word => word.id)
-  }
   @Watch('projectName')
   @Watch('currentSourceTypes')
   onProjectChange (oldValue, newValue) {
@@ -349,6 +345,7 @@ export default class DataSourceBar extends Vue {
       // 有加载数据源的情况，才去加载db 和 table，否则就处理loading字段
       if (this.datasources.length > 0) {
         await this.loadTreeData()
+        this.freshAutoCompleteWords()
       } else {
         this.isLoadingTreeData = false
       }
@@ -456,7 +453,11 @@ export default class DataSourceBar extends Vue {
   handleDrag (data, node) {
     this.$emit('drag', data, node)
   }
-  handleFilter (filterText) {
+  async handleClear () {
+    await this.handleFilter('', true)
+    this.defaultExpandedKeys = this.cacheDefaultExpandedKeys
+  }
+  async handleFilter (filterText, isNotResetDefaultExpandedKeys) {
     this.isSearchIng = true
     const scrollDom = this.$el.querySelector('.scroll-content')
     const scrollBarY = this.$el.querySelector('.scrollbar-thumb.scrollbar-thumb-y')
@@ -464,14 +465,20 @@ export default class DataSourceBar extends Vue {
     scrollBarY && (scrollBarY.style.transform = null)
     return new Promise(async resolve => {
       await this.loadTreeData(filterText)
+      !isNotResetDefaultExpandedKeys && this.resetDefaultExpandedKeys()
       this.filterText = filterText
       freshTreeOrder(this)
       this.selectFirstTable()
       resolve()
     })
   }
-  reloadTables () {
-    this.handleFilter(this.filterText)
+  // 过滤搜索重置为展开搜索结果的树结构，缓存一下以便清除搜索时回复树结构展开情况
+  resetDefaultExpandedKeys () {
+    this.cacheDefaultExpandedKeys = this.defaultExpandedKeys
+    this.freshAutoCompleteWords()
+  }
+  reloadTables (isNotResetDefaultExpandedKeys) {
+    this.handleFilter(this.filterText, isNotResetDefaultExpandedKeys)
   }
   // 表数据变化，需要刷新，且保持之前的选中项 3016 临时修改方案
   async refreshTables () {
@@ -501,6 +508,15 @@ export default class DataSourceBar extends Vue {
         this.setSelectedTable(data)
       }
       this.$emit('click', data, node)
+    }
+  }
+  handleNodeExpand (data, node) {
+    this.defaultExpandedKeys.push(data.id)
+  }
+  handleNodeCollapse (data, node) {
+    const index = this.defaultExpandedKeys.indexOf(data.id)
+    if (index !== -1) {
+      this.defaultExpandedKeys.splice(index, 1)
     }
   }
   async handleToggleTop (data, node, event) {
@@ -546,7 +562,13 @@ export default class DataSourceBar extends Vue {
   }
   selectFirstTable () {
     if (this.isShowSelected && this.tableArray.length) {
-      this.handleClick(getFirstTableData(this.datasources))
+      const firstTable = getFirstTableData(this.datasources)
+      this.handleClick(firstTable)
+      // 展开默认选中的database
+      const index = this.defaultExpandedKeys.indexOf(firstTable.parent.id)
+      if (index === -1) {
+        this.defaultExpandedKeys.push(firstTable.parent.id)
+      }
       return true
     } else {
       return null // 当前数据为空，不存在第一张表
@@ -560,6 +582,9 @@ export default class DataSourceBar extends Vue {
     const columnWords = this.columnArray.map(column => getWordsData(column))
     this.allWords = [...datasourceWords, ...databaseWords, ...tableWords, ...columnWords]
     this.$emit('autoComplete', [...databaseWords, ...tableWords, ...databaseTableWords, ...columnWords])
+    this.defaultExpandedKeys = this.allWords
+      .filter(word => this.expandNodeTypes.includes(word.meta))
+      .map(word => word.id)
   }
   async toImportDataSource (editType, project) {
     const result = await this.callDataSourceModal({ editType, project, databaseSizeObj: this.databaseSizeObj })
@@ -621,7 +646,14 @@ export default class DataSourceBar extends Vue {
   async handleResultModalClosed () {
     try {
       await this.loadDataBases()
-      await this.reloadTables()
+      await this.reloadTables(true) // true 表示不改变树开合情况
+      // 展开新增database
+      this.loadedTables.forEach((item) => {
+        const database = item.split('.')[0]
+        if (database && this.defaultExpandedKeys.indexOf(this.datasources[0].sourceType + '.' + database) === -1) {
+          this.defaultExpandedKeys.push(this.datasources[0].sourceType + '.' + database)
+        }
+      })
       freshTreeOrder(this)
       this.loadedTables.length && this.$emit('tables-loaded')
       this.loadedTables = []

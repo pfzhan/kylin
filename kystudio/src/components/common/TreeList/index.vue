@@ -30,7 +30,8 @@
       :filter-node-method="handleNodeFilter"
       @check-change="handleNodeClick"
       @node-click="handleNodeClick"
-      @node-expand="handleNodeExpand">
+      @node-expand="handleNodeExpand"
+      @node-collapse="handleNodeCollapse">
     </el-tree>
     <slot :renderData="data"></slot>
     <div class="resize-bar" v-show="isShowResizeBar" ref="resize-bar">
@@ -274,6 +275,9 @@ export default class TreeList extends Vue {
   }
   handleNodeExpand (data, node) {
     this.$emit('node-expand', data, node)
+  }
+  handleNodeCollapse (data, node) {
+    this.$emit('node-collapse', data, node)
   }
   handleMouseDown (event, data, node) {
     event.stopPropagation()

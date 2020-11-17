@@ -8,7 +8,7 @@
           :is-show-load-table="datasourceActions.includes('loadSource') && $store.state.config.platform !== 'iframe'"
           :is-expand-on-click-node="false"
           :is-show-drag-width-bar="true"
-          :expand-node-types="['datasource']"
+          :expand-node-types="['datasource', 'database']"
           :hide-bar-title="$store.state.config.platform === 'iframe'"
           :custom-tree-title="$store.state.config.platform !== 'iframe' ? '' : 'kylinLang.common.dataDirectory'"
           @autoComplete="handleAutoComplete"

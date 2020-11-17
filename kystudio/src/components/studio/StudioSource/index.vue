@@ -343,7 +343,7 @@ export default class StudioSource extends Vue {
       let isHaveFirstTable = true
       // 3016 临时修复方案，sprint1 修复后，以修复后的代码为准
       if (isSetToDefault) {
-        await this.$refs['datasource-bar'].reloadTables()
+        await this.$refs['datasource-bar'].reloadTables(true) // true 表示不改变树开合情况
       } else {
         await this.$refs['datasource-bar'].refreshTables()
       }
