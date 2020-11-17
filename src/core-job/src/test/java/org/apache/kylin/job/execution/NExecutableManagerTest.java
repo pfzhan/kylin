@@ -41,7 +41,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.NExecutableDao;
-import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.util.Lists;
@@ -261,7 +260,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
     }
 
-    @Test(expected = IllegalStateTranferException.class)
+    @Test(expected = KylinException.class)
     public void testInvalidStateTransfer() {
         SucceedTestExecutable job = new SucceedTestExecutable();
         manager.addJob(job);

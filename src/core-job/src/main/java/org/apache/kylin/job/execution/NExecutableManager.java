@@ -25,6 +25,7 @@
 package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
+import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATE_TRANSFER;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
@@ -69,7 +70,6 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
-import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -693,8 +693,8 @@ public class NExecutableManager {
                     logger.warn(
                             "[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer! There is no valid state transfer from: {} to: {}, job id: {}",
                             oldStatus, newStatus, taskOrJobId);
-                    throw new IllegalStateTranferException(
-                            "UNEXPECTED_THINGS_HAPPENED, job " + taskOrJobId + " couldn't be continued.");
+                    throw new KylinException(ILLEGAL_JOB_STATE_TRANSFER,
+                            String.format(MsgPicker.getMsg().getILLEGAL_STATE_TRANSFER(), jobId, oldStatus.toJobStatus(), newStatus.toJobStatus()));
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
                 updateJobStatus(jobOutput, oldStatus, newStatus);

@@ -421,6 +421,11 @@ public class CnMessage extends Message {
         return "非法任务类型, id: %s.";
     }
 
+    @Override
+    public String getILLEGAL_STATE_TRANSFER() {
+        return "非法的任务状态转移, id: [%s], 转移前: [%s], 转移后: [%s]";
+    }
+
     // Acl
     @Override
     public String getUSER_NOT_EXIST() {

@@ -122,7 +122,7 @@ public class JobService extends BasicService {
     @VisibleForTesting
     public ExecutableResponse convert(AbstractExecutable executable) {
         ExecutableResponse executableResponse = ExecutableResponse.create(executable);
-        executableResponse.setStatus(parseToJobStatus(executable.getStatus()));
+        executableResponse.setStatus(executable.getStatus().toJobStatus());
         return executableResponse;
     }
 
@@ -145,7 +145,7 @@ public class JobService extends BasicService {
                     }
                     ExecutableState state = abstractExecutable.getStatus();
                     return matchedExecutableStates.contains(state)
-                            || matchedJobStatusEnums.contains(parseToJobStatus(state));
+                            || matchedJobStatusEnums.contains(state.toJobStatus());
                 })).and(abstractExecutable -> {
                     String subject = StringUtils.trim(jobFilter.getKey());
                     if (StringUtils.isEmpty(subject)) {
@@ -189,7 +189,7 @@ public class JobService extends BasicService {
                 return true;
             }
             ExecutableState state = abstractExecutable.getStatus();
-            return matchedExecutableStates.contains(state) || matchedJobStatusEnums.contains(parseToJobStatus(state));
+            return matchedExecutableStates.contains(state) || matchedJobStatusEnums.contains(state.toJobStatus());
         })).and(abstractExecutable -> {
             String subject = jobFilter.getKey();
             if (StringUtils.isEmpty(subject)) {
@@ -329,26 +329,6 @@ public class JobService extends BasicService {
         }
     }
 
-    private JobStatusEnum parseToJobStatus(ExecutableState state) {
-        switch (state) {
-        case READY:
-            return JobStatusEnum.PENDING;
-        case RUNNING:
-            return JobStatusEnum.RUNNING;
-        case ERROR:
-            return JobStatusEnum.ERROR;
-        case SUCCEED:
-            return JobStatusEnum.FINISHED;
-        case PAUSED:
-            return JobStatusEnum.STOPPED;
-        case SUICIDAL:
-        case DISCARDED:
-            return JobStatusEnum.DISCARDED;
-        default:
-            throw new RuntimeException("invalid state:" + state);
-        }
-    }
-
     private void dropJob(String project, String jobId) {
         NExecutableManager executableManager = getExecutableManager(project);
         executableManager.deleteJob(jobId);
@@ -485,7 +465,7 @@ public class JobService extends BasicService {
             return result;
         }
 
-        result.setStatus(parseToJobStatus(stepOutput.getState()));
+        result.setStatus(stepOutput.getState().toJobStatus());
         for (Map.Entry<String, String> entry : stepOutput.getExtra().entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
                 result.putInfo(entry.getKey(), entry.getValue());

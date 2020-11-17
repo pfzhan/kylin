@@ -345,6 +345,10 @@ public class Message {
         return "Illegal job type, id: %s.";
     }
 
+    public String getILLEGAL_STATE_TRANSFER() {
+        return "Illegal job state transfer, id: [%s], from: [%s], to: [%s]";
+    }
+
     // Acl
     public String getUSER_NOT_EXIST() {
         return "User '%s' does not exist. Please make sure the user exists.";

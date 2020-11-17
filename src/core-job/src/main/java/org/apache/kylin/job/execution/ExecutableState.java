@@ -50,6 +50,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import org.apache.kylin.job.constant.JobStatusEnum;
 
 /**
  */
@@ -117,5 +118,25 @@ public enum ExecutableState {
 
     public static boolean isValidStateTransfer(ExecutableState from, ExecutableState to) {
         return VALID_STATE_TRANSFER.containsEntry(from, to);
+    }
+
+    public JobStatusEnum toJobStatus() {
+        switch (this) {
+            case READY:
+                return JobStatusEnum.PENDING;
+            case RUNNING:
+                return JobStatusEnum.RUNNING;
+            case ERROR:
+                return JobStatusEnum.ERROR;
+            case SUCCEED:
+                return JobStatusEnum.FINISHED;
+            case PAUSED:
+                return JobStatusEnum.STOPPED;
+            case SUICIDAL:
+            case DISCARDED:
+                return JobStatusEnum.DISCARDED;
+            default:
+                throw new RuntimeException("invalid state:" + this);
+        }
     }
 }
