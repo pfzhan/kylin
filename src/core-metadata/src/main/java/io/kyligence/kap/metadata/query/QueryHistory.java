@@ -186,7 +186,9 @@ public class QueryHistory implements IKeep {
 
             realizations.add(new NativeQueryRealization(info[0],
                     info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
-                    info[2].equalsIgnoreCase("null") ? null : info[2]));
+                    info[2].equalsIgnoreCase("null") ? null : info[2],
+                    info[3].equalsIgnoreCase("null") ? null :
+                            Lists.newArrayList(info[3].substring(1, info[3].length()-1).split(",\\s*"))));
         }
 
         return realizations;

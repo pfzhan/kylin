@@ -329,6 +329,10 @@ public class QueryService extends BasicService {
         if (StringUtils.isEmpty(sql))
             sql = request.getSql();
 
+        Collection<String> snapShots = response.getNativeRealizations().stream()
+                .flatMap(nativeQueryRealization -> nativeQueryRealization.getSnapshots().stream())
+                .distinct().collect(Collectors.toList());
+
         LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
                 .put(LogReport.SQL, sql).put(LogReport.USER, user)
                 .put(LogReport.SUCCESS, null == response.getExceptionMessage()).put(LogReport.DURATION, duration)
@@ -336,6 +340,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.INDEX_LAYOUT_IDS, layoutIds).put(LogReport.IS_PARTIAL_MATCH_MODEL, isPartialMatchModel)
                 .put(LogReport.SCAN_ROWS, response.getScanRows())
                 .put(LogReport.TOTAL_SCAN_ROWS, response.getTotalScanRows())
+                .put(LogReport.SNAPSHOTS, snapShots)
                 .put(LogReport.SCAN_BYTES, response.getScanBytes())
                 .put(LogReport.TOTAL_SCAN_BYTES, response.getTotalScanBytes())
                 .put(LogReport.RESULT_ROW_COUNT, resultRowCount)
@@ -1324,6 +1329,7 @@ public class QueryService extends BasicService {
         static final String PROJECT = "project";
         static final String REALIZATION_NAMES = "realization";
         static final String INDEX_LAYOUT_IDS = "layout";
+        static final String SNAPSHOTS = "snapshots";
         static final String IS_PARTIAL_MATCH_MODEL = "is_partial_match";
         static final String SCAN_ROWS = "scan_rows";
         static final String TOTAL_SCAN_ROWS = "total_scan_rows";
@@ -1348,7 +1354,7 @@ public class QueryService extends BasicService {
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
                 .put(DURATION, "Duration: ").put(PROJECT, "Project: ").put(REALIZATION_NAMES, "Realization Names: ")
-                .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ").put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ")
+                .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ").put(SNAPSHOTS, "Snapshot Names: ").put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ")
                 .put(SCAN_ROWS, "Scan rows: ").put(TOTAL_SCAN_ROWS, "Total Scan rows: ").put(SCAN_BYTES, "Scan bytes: ")
                 .put(TOTAL_SCAN_BYTES, "Total Scan Bytes: ").put(RESULT_ROW_COUNT, "Result Row Count: ")
                 .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ").put(ACCEPT_PARTIAL, "Accept Partial: ")
@@ -1386,7 +1392,8 @@ public class QueryService extends BasicService {
                     + O2N.get(QUERY_ID) + get(QUERY_ID) + newLine + O2N.get(SQL) + get(SQL) + newLine + O2N.get(USER)
                     + get(USER) + newLine + O2N.get(SUCCESS) + get(SUCCESS) + newLine + O2N.get(DURATION)
                     + get(DURATION) + newLine + O2N.get(PROJECT) + get(PROJECT) + newLine + O2N.get(REALIZATION_NAMES)
-                    + get(REALIZATION_NAMES) + newLine + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine
+                    + get(REALIZATION_NAMES) + newLine + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS)  + newLine
+                    + O2N.get(SNAPSHOTS) + get(SNAPSHOTS) + newLine
                     + O2N.get(IS_PARTIAL_MATCH_MODEL) + get(IS_PARTIAL_MATCH_MODEL) + newLine + O2N.get(SCAN_ROWS)
                     + get(SCAN_ROWS) + newLine + O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine
                     + O2N.get(SCAN_BYTES) + get(SCAN_BYTES) + newLine + O2N.get(TOTAL_SCAN_BYTES)

@@ -126,10 +126,13 @@ public class QueryMetrics implements IKeep {
 
         protected String projectName;
 
-        public RealizationMetrics(String layoutId, String indexType, String modelId) {
+        protected List<String> snapshots;
+
+        public RealizationMetrics(String layoutId, String indexType, String modelId, List<String> snapshots) {
             this.layoutId = layoutId;
             this.indexType = indexType;
             this.modelId = modelId;
+            this.snapshots = snapshots;
         }
     }
 }

@@ -229,7 +229,7 @@ public class QueryMetricsContext extends QueryMetrics {
 
         for (NativeQueryRealization realization : response.getNativeRealizations()) {
             RealizationMetrics realizationMetrics = new RealizationMetrics(String.valueOf(realization.getLayoutId()),
-                    realization.getIndexType(), realization.getModelId());
+                    realization.getIndexType(), realization.getModelId(), realization.getSnapshots());
             realizationMetrics.setQueryId(queryId);
             realizationMetrics.setDuration(queryDuration);
             realizationMetrics.setSuite(suite);
@@ -238,7 +238,7 @@ public class QueryMetricsContext extends QueryMetrics {
             this.realizationMetrics.add(realizationMetrics);
             // example: modelId#layoutid#indexType
             realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
-                    + realizationMetrics.getIndexType() + ",");
+                    + realizationMetrics.getIndexType() + "#" + realizationMetrics.getSnapshots() + ",");
 
             if (realization.getIndexType() == null)
                 continue;

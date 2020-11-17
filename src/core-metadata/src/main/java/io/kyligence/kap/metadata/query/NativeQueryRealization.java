@@ -70,6 +70,14 @@ public class NativeQueryRealization implements Serializable {
         this.isPartialMatchModel = false;
     }
 
+    public NativeQueryRealization(String modelId, Long layoutId, String indexType, List<String> snapshots) {
+        this.modelId = modelId;
+        this.layoutId = layoutId;
+        this.indexType = indexType;
+        this.snapshots = snapshots;
+        this.isPartialMatchModel = false;
+    }
+
     public NativeQueryRealization(String modelId, String modelAlias, Long layoutId, String indexType) {
         this.modelId = modelId;
         this.layoutId = layoutId;
