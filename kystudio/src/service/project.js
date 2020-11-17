@@ -141,5 +141,8 @@ export default {
   },
   accelerateModel (para) {
     return Vue.resource(apiUrl + `projects/acceleration?project=${para.project}`).update(para)
+  },
+  refreshAccelerationTag (para) {
+    return Vue.http.post(apiUrl + `projects/acceleration_tag?project=${para.project}&user=${para.user}`, para)
   }
 }

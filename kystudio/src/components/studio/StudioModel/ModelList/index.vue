@@ -431,7 +431,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapGetters, mapMutations } from 'vuex'
+import { mapActions, mapState, mapGetters, mapMutations } from 'vuex'
 import dayjs from 'dayjs'
 import { NamedRegex, apiUrl, pageRefTags } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
@@ -501,6 +501,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       const order = 'descending'
       vm.onSortChange({ prop, order })
       vm.collectOtherColumns([])
+      vm.refreshHomepageTag()
     })
   },
   computed: {
@@ -513,7 +514,10 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       'modelActions',
       'metadataActions',
       'isOnlyQueryNode'
-    ])
+    ]),
+    ...mapState({
+      currentUser: state => state.user.currentUser
+    })
   },
   methods: {
     ...mapActions({
@@ -531,7 +535,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA',
       downloadModelsMetadataBlob: 'DOWNLOAD_MODELS_METADATA_BLOB',
       getAvailableModelOwners: 'GET_AVAILABLE_MODEL_OWNERS',
-      updateModelOwner: 'UPDATE_MODEL_OWNER'
+      updateModelOwner: 'UPDATE_MODEL_OWNER',
+      refreshAccelerationTag: 'ACCELERATE_TAG'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -696,6 +701,10 @@ export default class ModelList extends Vue {
       this.changeLoading = false
       this.changeOwnerVisible = false
     }
+  }
+  // 刷新首页 new 标签
+  refreshHomepageTag () {
+    this.refreshAccelerationTag({project: this.currentSelectedProject, user: this.currentUser.username})
   }
   resetModelOwner () {
     this.modelOwner = {

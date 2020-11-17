@@ -278,6 +278,9 @@ export default {
     },
     [types.ACCELERATE_MODEL]: function ({ commit }, para) {
       return api.project.accelerateModel(para)
+    },
+    [types.ACCELERATE_TAG]: function ({ commit }, para) {
+      return api.project.refreshAccelerationTag(para)
     }
   },
   getters: {
