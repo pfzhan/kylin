@@ -89,34 +89,38 @@ export default class Setting extends Vue {
   } */
   beforeRouteLeave (to, from, next) {
     const [ tabName ] = Object.entries(this.changedForm).find(([tabName, isFormChanged]) => isFormChanged) || []
-    if (!to.params.ignoreIntercept && tabName) {
-      next(false)
-      setTimeout(() => {
-        this.$confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
-          confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
-          cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
-          type: 'warning'
-        }).then(() => {
-          if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
-            next()
-            this.$nextTick(() => {
-              this.$router.replace({name: 'Setting', params: { refresh: true }})
-            })
-            return
-          }
-          next()
-        }).catch(() => {
-          if (to.name === 'refresh') { // 取消刷新逻辑，所有上一个project相关的要撤回
-            let preProject = cacheSessionStorage('preProjectName') // 恢复上一次的project
-            this.setProject(preProject)
-            this.getUserAccess({project: preProject})
-          }
-          this.viewType = tabName
-          next(false)
-        })
-      })
-    } else {
+    if (this.$store.state.config.platform === 'iframe') {
       next()
+    } else {
+      if (!to.params.ignoreIntercept && tabName) {
+        next(false)
+        setTimeout(() => {
+          this.$confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
+            confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
+            cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
+            type: 'warning'
+          }).then(() => {
+            if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
+              next()
+              this.$nextTick(() => {
+                this.$router.replace({name: 'Setting', params: { refresh: true }})
+              })
+              return
+            }
+            next()
+          }).catch(() => {
+            if (to.name === 'refresh') { // 取消刷新逻辑，所有上一个project相关的要撤回
+              let preProject = cacheSessionStorage('preProjectName') // 恢复上一次的project
+              this.setProject(preProject)
+              this.getUserAccess({project: preProject})
+            }
+            this.viewType = tabName
+            next(false)
+          })
+        })
+      } else {
+        next()
+      }
     }
   }
   async getCurrentSettings () {
