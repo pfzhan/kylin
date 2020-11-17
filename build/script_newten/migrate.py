@@ -102,7 +102,7 @@ DATAFLOW_TEMPLATE = '''
   "description" : null,
   "owner" : null,
   "create_time_utc" : 1554807337664,
-  "status" : "ONLINE",
+  "status" : "OFFLINE",
   "query_hit_count" : 0,
   "segments" : []
 }
