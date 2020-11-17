@@ -38,12 +38,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.common.persistence.transaction.AsyncAccelerateBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNotifier;
-import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.rest.service.AuditLogService;
 import io.kyligence.kap.rest.service.KapQueryService;
 
@@ -71,8 +69,6 @@ public class BroadcastController extends NBasicController {
             queryService.stopQuery(notifier.getSubject());
         } else if (notifier instanceof RefreshVolumeBroadcastEventNotifier) {
             licenseInfoService.refreshLicenseVolume();
-        } else if (notifier instanceof AsyncAccelerateBroadcastEventNotifier) {
-            AsyncTaskManager.cleanAccelerationTagByUser(notifier.getProject(), notifier.getSubject());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

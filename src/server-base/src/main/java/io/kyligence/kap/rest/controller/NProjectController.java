@@ -341,6 +341,17 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, deltaRecs.size(), "");
     }
 
+    @PostMapping(value = "/acceleration_tag")
+    @ResponseBody
+    public EnvelopeResponse<Object> cleanAsyncAccelerateTag(@RequestParam("project") String project,
+            @RequestParam("user") String user) {
+        checkProjectName(project);
+        checkProjectNotSemiAuto(project);
+        checkRequiredArg("user", user);
+        AsyncTaskManager.cleanAccelerationTagByUser(project, user);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
     @ApiOperation(value = "updateShardNumConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/shard_num_config")
     @ResponseBody

@@ -153,10 +153,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.AsyncAccelerateBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -570,8 +568,6 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
-        EventBusFactory.getInstance()
-                .postAsync(new AsyncAccelerateBroadcastEventNotifier(projectName, aclEvaluate.getCurrentUserName()));
         ProjectInstance prj = getProjectManager().getProject(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
@@ -930,8 +926,6 @@ public class ModelService extends BasicService {
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
         aclEvaluate.checkProjectReadPermission(project);
-        EventBusFactory.getInstance()
-                .postAsync(new AsyncAccelerateBroadcastEventNotifier(project, aclEvaluate.getCurrentUserName()));
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         val dataflowManager = getDataflowManager(project);
         val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
