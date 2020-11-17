@@ -88,7 +88,7 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       trace: 'Trace',
       queryBox: 'Query Box',
       linkToSpark: 'Jump to Spark Web UI',
-      resetTips: 'Are you sure to reset the SQL Editor?',
+      resetTips: 'Are you sure to clear the SQL Editor?',
       queryTips: 'You can enter SQL query in the SQL editor, and the results will be displayed here after the query is run.',
       clear: 'Clear',
       runQuery: 'Run Query',
@@ -99,7 +99,7 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       trace: '追踪',
       queryBox: '查询窗口',
       linkToSpark: '跳转至 Spark 任务详情',
-      resetTips: '你确认要重置查询编辑器吗？',
+      resetTips: '你确认要清空查询编辑器吗？',
       queryTips: '您可在查询编辑器中输入 SQL 查询，待查询运行完成后，将在此显示结果。',
       clear: '清空',
       runQuery: '运行',
@@ -197,7 +197,7 @@ export default class QueryTab extends Vue {
     })
   }
   async resetQuery () {
-    await kapConfirm(this.$t('resetTips'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.query.clear'), type: 'warning'})
+    await kapConfirm(this.$t('resetTips'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('clear'), type: 'warning'})
     this.$emit('resetQuery')
     this.$nextTick(() => {
       this.sourceSchema = ''
