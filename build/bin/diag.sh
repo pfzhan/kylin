@@ -123,7 +123,7 @@ if ([[ ${DIAG_OPTS} != *"-project"* ]] && [[ ${DIAG_OPTS} != *"-job"* ]]); then
     DIAG_OPTS="${DIAG_OPTS} -project ${project}"
 fi
 
-if [[ "$1" == *"-job"* ]]; then
+if [[ ${DIAG_OPTS} == *"-job"* ]]; then
     runTool io.kyligence.kap.tool.JobDiagInfoCLI ${DIAG_OPTS}
 else
     runTool io.kyligence.kap.tool.DiagClientCLI ${DIAG_OPTS}
