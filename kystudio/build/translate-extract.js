@@ -3,41 +3,77 @@ const path = require('path');
 const npmPath = process.env.PWD;
 
 const configs = parseArgConfig([
-  '--rootPath'
-])
+  '--rootPath',
+  '--output',
+  '--configFile',
+  '--dismissNull'
+]);
 
 let cacheResult = null;
 const translateMap = {};
 
-travellingFiles(path.resolve(npmPath, configs.rootPath), (filePath) => {
+travellingFiles(resolvePath(configs.rootPath), (filePath) => {
   process.stdout.write(`Start translating ${filePath}... `);
   // 翻译文件，输出翻译后的object
   const tranlsateResult = translateFile(filePath);
   // 非.vue和.js的文件会输出undefined，所以过滤掉
   if (tranlsateResult !== undefined) {
-    translateMap[filePath] = tranlsateResult;
+    if (!(configs.dismissNull && tranlsateResult === null)) {
+      translateMap[filePath] = tranlsateResult;
+    }
   }
   process.stdout.write(`Done.\n`);
 });
 
-process.stdout.write(`Writing translating file... `);
-fs.writeFileSync(path.resolve(npmPath, './message.json'), JSON.stringify(translateMap, null, 2));
-process.stdout.write(`Done.\n`);
-
+if (!configs.bundles) {
+  process.stdout.write(`Writing translating file... `);
+  fs.writeFileSync(resolvePath(`${configs.output}.json`), JSON.stringify(translateMap, null, 2));
+  process.stdout.write(`Done.\n`);
+} else {
+  process.stdout.write(`Writing translating file... `);
+  outputBundleFiles(translateMap, configs.bundles);
+  process.stdout.write(`Done.\n`);
+}
 
 
 
 
 // Functions
 function parseArgConfig(argumentKeys = []) {
-  let config = {};
-
+  let config = {
+    rootPath: './src',
+    output: './message',
+    configFile: null,
+    bundles: null,
+    dismissNull: false,
+  };
+  // 读取arguments里面的配置
   for (const key of argumentKeys) {
-    const keyIndex = process.argv.findIndex(arg => arg === key);
-    const value = process.argv[keyIndex + 1];
-    config = { ...config, [key.replace('--', '')]: value };
+    if (typeof config[key.replace('--', '')] === 'boolean') {
+      const keyIndex = process.argv.findIndex(arg => arg === key);
+      config = { ...config, [key.replace('--', '')]: keyIndex !== -1 };
+    } else {
+      const keyIndex = process.argv.findIndex(arg => arg === key);
+      const value = process.argv[keyIndex + 1];
+      if (value && keyIndex !== -1) {
+        config = { ...config, [key.replace('--', '')]: value };
+      }
+    }
+  }
+  // 如果arguments里面有配置文件，则用文件的配置覆盖arguments里面的配置
+  if (config.configFile) {
+    const fileConfig = readConfigFile(config.configFile);
+    config = { ...config, ...fileConfig };
   }
   return config;
+}
+
+function resolvePath(filePath) {
+  return path.resolve(npmPath, filePath);
+}
+
+function readConfigFile(filePath) {
+  return require(resolvePath(filePath))
 }
 
 function travellingFiles(filePath, callback) {
@@ -101,5 +137,71 @@ function findLocalesObj(string = '') {
   } catch {
     const removedString = removeLastChar(string, '}');
     return removedString ? findLocalesObj(removedString) : null;
+  }
+}
+
+function travellingBundles(currentBundle = {}, parentPath = '') {
+  let bundleMap = {};
+
+  for (const folder in currentBundle) {
+    const folderRule = currentBundle[folder];
+
+    if (Object.prototype.toString.call(folderRule) === '[object Object]') {
+      const subBundleMap = travellingBundles(folderRule, parentPath ? `${parentPath}/${folder}` : folder);
+      bundleMap = { ...bundleMap, ...subBundleMap };
+    } else {
+      bundleMap[parentPath ? `${parentPath}/${folder}` : folder] = folderRule;
+    }
+  }
+  return bundleMap;
+}
+
+function parseBundleConfigs(bundleConfigs) {
+  return Object
+    .entries(travellingBundles(bundleConfigs, configs.output))
+    .reduce((bundleMap, [bundlePath, bundleRule]) => ({
+      ...bundleMap,
+      [resolvePath(bundlePath)]: bundleRule,
+    }), {});
+}
+
+function validateBundleRule(bundleRule, filePath) {
+  if (Object.prototype.toString.call(bundleRule) === '[object Array]') {
+    for (const itemRule of bundleRule) {
+      if (itemRule.test(filePath)) return true;
+    }
+    return false;
+  } else if (Object.prototype.toString.call(bundleRule) === '[object RegExp]') {
+    return bundleRule.test(filePath);
+  } else if (bundleRule === '*') {
+    return true;
+  }
+  return false;
+}
+
+function outputBundleFiles(translationMap, bundleConfigs) {
+  let outputBundleMap = {};
+  const bundleMap = parseBundleConfigs(bundleConfigs);
+  for (const [translatedFilePath, translateContent] of Object.entries(translationMap)) {
+    const [bundlePath] = Object.entries(bundleMap)
+      .find(([, rule]) => validateBundleRule(rule, translatedFilePath));
+
+    outputBundleMap = {
+      ...outputBundleMap,
+      [`${bundlePath}.json`]: {
+        ...outputBundleMap[`${bundlePath}.json`],
+        [translatedFilePath]: translateContent,
+      }
+    };
+  }
+
+  console.log(outputBundleMap);
+
+  for (const [bundlePath, bundleContent] of Object.entries(outputBundleMap)) {
+    const dirpath = path.dirname(bundlePath)
+    if (!fs.existsSync(dirpath)) {
+      fs.mkdirSync(dirpath);
+    }
+    fs.writeFileSync(bundlePath, JSON.stringify(bundleContent, null, 2));
   }
 }

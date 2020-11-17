@@ -8,7 +8,8 @@
     "dev": "node build/dev-server.js mock",
     "devproxy": "node build/dev-server.js proxy",
     "build": "node build/build.js",
-    "translate-extract": "node build/translate-extract.js --rootPath ./src",
+    "translate-extract": "node build/translate-extract.js --rootPath ./src --configFile ./config/translate-extract.config.js --dismissNull",
+    "explore-chinese": "node build/explore-chinese --rootPath ./src --configFile ./config/explore-chinese.config.js",
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs",
     "test": "BABEL_ENV=test && jest --config test/jest.conf.js --ci"
   },
