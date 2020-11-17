@@ -54,6 +54,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.query.util.ILogExtractor;
@@ -78,9 +79,23 @@ public class KylinLogTool {
     private static final String ROLL_LOG_FILE_NAME_PREFIX = "events";
 
     // 2019-11-11 03:24:52,342 DEBUG [JobWorker(prj:doc_smart,jobid:8a13964c)-965] job.NSparkExecutable : Copied metadata to the target metaUrl, delete the temp dir: /tmp/kylin_job_meta204633716010108932
-    private static String getJobLogPattern(String jobId) {
+    @VisibleForTesting
+    public static String getJobLogPattern(String jobId) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(jobId));
-        return String.format("%s(.*JobWorker.*jobid:%s.*)", LOG_TIME_PATTERN, jobId.substring(0, 8));
+        return String.format("%s(.*JobWorker.*jobid:%s.*)|%s.*%s", LOG_TIME_PATTERN, jobId.substring(0, 8),
+                LOG_TIME_PATTERN, jobId);
+    }
+
+    // group(1) is first  ([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})
+    // group(2) is (.*JobWorker.*jobid:%s.*)
+    // group(3) is second ([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})
+    @VisibleForTesting
+    public static String getJobTimeString(Matcher matcher) {
+        String result = matcher.group(1);
+        if (StringUtils.isEmpty(result)) {
+            result = matcher.group(3);
+        }
+        return result;
     }
 
     // 2019-11-11 09:30:04,004 INFO  [Query 4e3350d5-1cd9-450f-ac7e-5859939bedf1-125] service.QueryService : The original query: select * from ssb.SUPPLIER
@@ -224,12 +239,12 @@ public class KylinLogTool {
                 Matcher matcher = pattern.matcher(log);
                 if (matcher.find()) {
                     if (Objects.isNull(dateStart)) {
-                        dateStart = matcher.group(1);
+                        dateStart = getJobTimeString(matcher);
                         if (onlyStartTime) {
                             return new Pair<>(dateStart, dateStart);
                         }
                     }
-                    dateEnd = matcher.group(1);
+                    dateEnd = getJobTimeString(matcher);
                 }
             }
         } catch (Exception e) {

@@ -25,6 +25,8 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.SetAndUnsetSystemProp;
@@ -43,6 +45,8 @@ import io.kyligence.kap.tool.util.ToolUtil;
 public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
     private static final String logs1 = "2019-09-02 02:35:19,868 INFO [dag-scheduler-event-loop] scheduler.DAGScheduler : Got job 459 (countAsync at SparkContextCanary.java:126) with 2 output partitions\n"
+            + "2019-09-02 02:38:16,868 INFO  [FetchJobWorker(project:a_test)-p-9-t-9] runners.FetcherRunner : fetcher schedule d0f45b72-db2f-407b-9d6f-7cfe6f6624e8 tttt\n"
+            + "2019-09-02 02:39:17,868 INFO  test1\n" + "2019-09-02 02:39:18,868 INFO  test2\n"
             + "2019-09-02 02:40:06,220 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8_00 from RUNNING to SUCCEED\n"
             + "2019-09-02 02:40:06,619 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction 1c2792bd-448e-4450-9944-32229523895d updates 1 metadata items\n"
             + "2019-09-02 02:40:07,635 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 1c2792bd-448e-4450-9944-32229523895d takes 422ms to complete";
@@ -178,6 +182,10 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
         Assert.assertFalse(
                 FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02 02:35:19,868"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1"))
+                .contains("runners.FetcherRunner : fetcher schedule d0f45b72-db2f-407b-9d6f-7cfe6f6624e8"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("test1"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("test2"));
         Assert.assertTrue(
                 FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02 02:40:07,635"));
         Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log"))
@@ -362,5 +370,24 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
                 .contains("2020-06-08 05:25:22,838"));
         Assert.assertFalse(
                 FileUtils.readFileToString(new File(mainDir, "logs/guardian.log")).contains("2020-06-08 05:23:22,410"));
+    }
+
+    @Test
+    public void testGetJobLogPatternAndJobTimeString() {
+        String jobId = "d0f45b72-db2f-407b-9d6f-7cfe6f6624e8";
+        String patternString = KylinLogTool.getJobLogPattern(jobId);
+        String log;
+        Assert.assertEquals(
+                "^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})(.*JobWorker.*jobid:d0f45b72.*)|^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}).*d0f45b72-db2f-407b-9d6f-7cfe6f6624e8",
+                patternString);
+        Pattern pattern = Pattern.compile(patternString);
+        log = "2019-09-02 02:38:16,868 INFO  [FetchJobWorker(project:a_test)-p-9-t-9] runners.FetcherRunner : fetcher schedule d0f45b72-db2f-407b-9d6f-7cfe6f6624e8";
+        Matcher matcher = pattern.matcher(log);
+        Assert.assertTrue(matcher.find());
+        Assert.assertEquals("2019-09-02 02:38:16", KylinLogTool.getJobTimeString(matcher));
+        log = "2019-09-02 02:40:07,635 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 1c2792bd-448e-4450-9944-32229523895d takes 422ms to complete";
+        matcher = pattern.matcher(log);
+        Assert.assertTrue(matcher.find());
+        Assert.assertEquals("2019-09-02 02:40:07", KylinLogTool.getJobTimeString(matcher));
     }
 }
