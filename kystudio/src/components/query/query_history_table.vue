@@ -535,11 +535,12 @@ export default class QueryHistoryTable extends Vue {
     }
   }
   resetLatency () {
-    this.startSec = null
-    this.endSec = null
-    this.filterData.latencyFrom = this.startSec
-    this.filterData.latencyTo = this.endSec
+    this.startSec = 0
+    this.endSec = 10
+    this.filterData.latencyFrom = null
+    this.filterData.latencyTo = null
     this.latencyFilterPopoverVisible = false
+    this.clearLatencyRange()
     this.filterList()
   }
   saveLatencyRange () {
@@ -578,7 +579,7 @@ export default class QueryHistoryTable extends Vue {
               <span>&nbsp;S&nbsp;&nbsp;To</span>
               <el-input-number
                 size="small"
-                min={0}
+                min={this.startSec}
                 class="ksd-ml-10"
                 value={this.endSec}
                 onInput={val2 => (this.endSec = val2)}></el-input-number>
@@ -613,7 +614,7 @@ export default class QueryHistoryTable extends Vue {
               size="small"
               class="ksd-ml-10"
               value={this.endSec}
-              min={0}
+              min={this.startSec}
               onInput={val2 => (this.endSec = val2)}></el-input-number>
             <span>&nbsp;S</span>
           </div>
