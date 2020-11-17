@@ -95,7 +95,7 @@ public class SystemService extends BasicService {
             .expireAfterAccess(1, TimeUnit.DAYS).build();
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    //used in io.kyligence.kap.tool.MetadataTool.remoteBackup , do not use aclEvalute
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#backupRequest.getProject(), 'ADMINISTRATION')")
     public void backup(BackupRequest backupRequest) throws Exception {
         String[] args = createBackupArgs(backupRequest);
         val metadataTool = new MetadataTool(getConfig());
