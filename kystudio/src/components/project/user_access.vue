@@ -115,7 +115,7 @@
     </el-row>
     <div class="expand-footer ky-no-br-space ksd-right" v-if="isEdit">
       <el-button plain size="small" @click="cancelAccess">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" plain size="small" class="ksd-ml-10" :loading="submitLoading" @click="submitAccess">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" :disabled="disabledSubmitBtn" plain size="small" class="ksd-ml-10" :loading="submitLoading" @click="submitAccess">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
 
     <el-dialog :title="rowAuthorTitle" width="720px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
@@ -225,6 +225,7 @@ export default class UserAccess extends Vue {
   defaultExpandedKeys = ['0']
   catchDefaultExpandedKeys = ['0']
   allTables = []
+  copyOriginTables = []
   databaseIndex = -1
   tableIndex = -1
   editRowIndex = -1
@@ -248,6 +249,9 @@ export default class UserAccess extends Vue {
   }
   get emptyText3 () {
     return this.rowFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+  get disabledSubmitBtn () {
+    return JSON.stringify(this.copyOriginTables) === JSON.stringify(this.allTables)
   }
   showLoading () {
     this.loading = true
@@ -598,6 +602,7 @@ export default class UserAccess extends Vue {
     const result = await handleSuccessAsync(response)
     if (result.length) {
       this.allTables = objectClone(result)
+      this.copyOriginTables = objectClone(result)
       this.tableAuthorizedNum = 0
       this.totalNum = 0
       this.currentTableId = ''

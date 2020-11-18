@@ -149,7 +149,7 @@
       </div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="cancelAuthor" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" @click="submitAuthor" :loading="submitLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" :disabled="disabledSubmit" @click="submitAuthor" :loading="submitLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -301,6 +301,7 @@ export default class ProjectAuthority extends Vue {
     64: 'OPERATION'
   }
   accessMetas = [{permission: 1, principal: true, sids: []}]
+  originAccessMetas = [{permission: 1, principal: true, sids: []}]
   userList = []
   groupList = []
   userTotalSize = 0
@@ -362,6 +363,23 @@ export default class ProjectAuthority extends Vue {
       return {label: u, value: u}
     })
     return result
+  }
+  get disabledSubmit () {
+    if (this.isEditAuthor) {
+      if (this.accessMetas[0].permission !== this.originAccessMetas[0].permission) {
+        return false
+      } else {
+        return true
+      }
+    } else {
+      let flag = true
+      this.accessMetas.forEach((item) => {
+        if (item.sids.length > 0) {
+          flag = false
+        }
+      })
+      return flag
+    }
   }
   showLimitTips (val) {
     return val ? this.userTotalSize > 100 : this.groupTotalSize > 100
@@ -484,6 +502,7 @@ export default class ProjectAuthority extends Vue {
     this.authorizationVisible = true
     const sids = row.sid.grantedAuthority ? [row.sid.grantedAuthority] : [row.sid.principal]
     this.accessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sids: sids, access_entry_id: row.id}]
+    this.originAccessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sids: sids, access_entry_id: row.id}]
   }
   submitAuthor () {
     const accessMetas = objectClone(this.accessMetas)
