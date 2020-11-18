@@ -12,7 +12,7 @@
     <el-form ref="form" :model="form" :rules="rules" v-loading="isSubmiting" v-if="isBodyShow && !isFinishParse">
       <el-form-item class="file-upload" prop="file" :label="$t('selectFile')">
         <el-input :value="form.file && form.file.name" :placeholder="$t('placeholder')" />
-        <input class="file-input" type="file" accept="application/zip" @change="handleSelectFile" />
+        <input class="file-input" type="file" accept="application/zip" title="" @change="handleSelectFile" />
       </el-form-item>
     </el-form>
     <!-- 解析zip元数据包界面 -->
