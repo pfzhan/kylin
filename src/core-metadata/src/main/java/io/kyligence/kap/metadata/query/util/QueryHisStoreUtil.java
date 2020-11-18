@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.query.util;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -46,6 +47,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import io.kyligence.kap.common.logging.LogOutputStream;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -105,6 +107,7 @@ public class QueryHisStoreUtil {
             Properties properties = JdbcUtil.getProperties(dataSource);
 
             ScriptRunner sr = new ScriptRunner(connection);
+            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(
                     String.format(properties.getProperty(CREATE_QUERY_HISTORY_TABLE), qhTableName).getBytes())));
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(
@@ -139,6 +142,7 @@ public class QueryHisStoreUtil {
             Properties properties = JdbcUtil.getProperties(dataSource);
 
             ScriptRunner sr = new ScriptRunner(connection);
+            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(String
                     .format(properties.getProperty(CREATE_QUERY_HISTORY_REALIZATION_TABLE), qhRealizationTableName)
                     .getBytes())));

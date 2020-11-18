@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.recommendation.util;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -43,6 +44,7 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.Singletons;
 
+import io.kyligence.kap.common.logging.LogOutputStream;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItemMapper;
 import io.kyligence.kap.metadata.transaction.SpringManagedTransactionFactory;
@@ -83,6 +85,7 @@ public class RawRecStoreUtil {
         String crateIndexStmt = String.format(properties.getProperty(CREATE_INDEX), tableName, tableName);
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
+            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
             log.debug("start to create table({})", tableName);
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
             log.debug("create table finished");

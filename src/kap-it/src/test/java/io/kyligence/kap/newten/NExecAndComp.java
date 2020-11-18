@@ -220,7 +220,7 @@ public class NExecAndComp {
                 }
             } else {
                 cubeResult.persist();
-                System.out.println(
+                logger.debug(
                         "result comparision is not available, part of the cube results: " + cubeResult.count());
                 cubeResult.show();
                 cubeResult.unpersist();
@@ -496,9 +496,9 @@ public class NExecAndComp {
     }
 
     private static void printRows(String source, List<Row> rows) {
-        System.out.println("***********" + source + " start**********");
+        logger.debug("***********" + source + " start**********");
         rows.forEach(row -> System.out.println(row.mkString(" | ")));
-        System.out.println("***********" + source + " end**********");
+        logger.debug("***********" + source + " end**********");
     }
 
     private static void compareResults(Dataset<Row> expectedResult, Dataset<Row> actualResult,

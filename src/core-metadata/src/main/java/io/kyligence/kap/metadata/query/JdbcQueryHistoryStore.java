@@ -36,6 +36,7 @@ import static org.mybatis.dynamic.sql.SqlBuilder.select;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -64,6 +65,7 @@ import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.logging.LogOutputStream;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
@@ -103,6 +105,7 @@ public class JdbcQueryHistoryStore {
     public void dropQueryHistoryTable() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
+            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
             sr.runScript(new InputStreamReader(
                     new ByteArrayInputStream(String.format("drop table %s;", qhTableName).getBytes())));
         }

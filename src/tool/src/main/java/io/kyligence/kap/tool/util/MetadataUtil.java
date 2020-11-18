@@ -23,24 +23,31 @@
  */
 package io.kyligence.kap.tool.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import lombok.val;
-import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.ibatis.jdbc.ScriptRunner;
-import org.apache.kylin.common.KylinConfig;
-
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.ibatis.jdbc.ScriptRunner;
+import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.logging.LogOutputStream;
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class MetadataUtil {
 
     private MetadataUtil() {
@@ -79,7 +86,7 @@ public class MetadataUtil {
                 .collect(Collectors.toList());
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
-            sr.setLogWriter(null);
+            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
             sr.setStopOnError(true);
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
             crateIndexStmtList.forEach(crateIndexStmt -> sr
@@ -96,7 +103,7 @@ public class MetadataUtil {
 
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
-            sr.setLogWriter(null);
+            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
             sr.setStopOnError(true);
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
 

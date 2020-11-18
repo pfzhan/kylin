@@ -39,7 +39,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kyligence.kap.reset.controller;
+package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
