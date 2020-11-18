@@ -1568,7 +1568,8 @@ export default class AggregateModal extends Vue {
     this.editMeasure = false
     const { aggregateIdx } = this.currentAggregateInfo
     let measures = this.getSelectedMeasures
-    !measures.includes('COUNT_ALL') && measures.unshift('COUNT_ALL')
+    const constantMeasure = this.measureList.filter(it => it.expression === 'COUNT' && it.parameter_value && it.parameter_value[0].type === 'constant')
+    !constantMeasure.length && !measures.includes('COUNT_ALL') && measures.unshift('COUNT_ALL')
     this.$set(this.form.aggregateArray[aggregateIdx], 'measures', measures)
   }
 
