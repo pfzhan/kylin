@@ -96,6 +96,11 @@
     showNodeDetails = false
     filterElements = filterElements
     nodesTimer = null
+    modelObj = {
+      all: 'All',
+      job: 'Job',
+      query: 'Query'
+    }
 
     get getDataFails () {
       return !this.systemCapacityInfo.fail && !this.systemNodeInfo.fail
@@ -151,6 +156,9 @@
         }
         this.isNodeLoadingSuccess = true
         this.$set(this, 'nodeList', res.servers)
+        this.nodeList.forEach((v) => {
+          v.mode = this.modelObj[v.mode]
+        })
         this.isNodeLoading = false
         clearTimeout(this.nodesTimer)
         this.nodesTimer = setTimeout(() => {
