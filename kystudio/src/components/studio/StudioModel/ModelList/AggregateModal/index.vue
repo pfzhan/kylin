@@ -15,7 +15,7 @@
       </div>
       <!-- <div class="loading" v-if="isLoading" v-loading="isLoading"></div> -->
       <div class="agg-group-layout">
-        <div v-if="model" class="agg-list">
+        <div v-if="model" class="agg-list" ref="aggListLayout">
           <!-- 聚合组按钮 -->
           <div v-loading="calcLoading || isSubmit"
                 element-loading-text=" "
@@ -618,6 +618,13 @@ export default class AggregateModal extends Vue {
   backUpDimensions = []
   pageOffset = 0
   pageSize = 50
+
+  @Watch('$lang')
+  changeCurrentLang (newVal, oldVal) {
+    this.$nextTick(() => {
+      this.$refs.aggListLayout && this.$refs.aggListLayout.click()
+    })
+  }
 
   get clearTips () {
     return this.form.isDimClearable ? this.$t('clearDimTips') : this.$t('disableClear')
