@@ -71,7 +71,14 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(TableauDataSourceConverter.class);
 
-    public TableauDatasource getTdsTemplate(SyncContext.BI targetBI) {
+    @Override
+    public TableauDatasourceModel convert(SyncModel sourceSyncModel, SyncContext syncContext) {
+        TableauDatasource tds = getTdsTemplate(syncContext.getTargetBI());
+        fillTemplate(tds, sourceSyncModel, syncContext);
+        return new TableauDatasourceModel(tds);
+    }
+
+    private TableauDatasource getTdsTemplate(SyncContext.BI targetBI) {
         String templatePath;
         switch (targetBI) {
             case TABLEAU_CONNECTOR_TDS:
@@ -92,13 +99,6 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             logger.error("can not find file : {}", templatePath, e);
             return null;
         }
-    }
-
-    @Override
-    public TableauDatasourceModel convert(SyncModel sourceSyncModel, SyncContext syncContext) {
-        TableauDatasource tds = getTdsTemplate(syncContext.getTargetBI());
-        fillTemplate(tds, sourceSyncModel, syncContext);
-        return new TableauDatasourceModel(tds);
     }
 
     protected void fillTemplate(TableauDatasource tds, SyncModel syncModel, SyncContext syncContext) {

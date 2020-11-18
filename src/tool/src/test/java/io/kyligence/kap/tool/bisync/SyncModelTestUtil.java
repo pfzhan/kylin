@@ -22,18 +22,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.tool.bisync;
 
-public class ModelExport {
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.common.KylinConfig;
 
-    public enum EXPORT_TARGET {
-        TDS
+public class SyncModelTestUtil {
+
+    public static SyncContext createSyncContext(String project, String modelId, KylinConfig kylinConfig) {
+        SyncContext syncContext = new SyncContext();
+        syncContext.setProjectName(project);
+        syncContext.setModelId(modelId);
+        syncContext.setTargetBI(SyncContext.BI.TABLEAU_CONNECTOR_TDS);
+        syncContext.setModelElement(SyncContext.ModelElement.AGG_INDEX_COL);
+        syncContext.setHost("localhost");
+        syncContext.setPort(7070);
+        syncContext.setDataflow(NDataflowManager.getInstance(kylinConfig, project).getDataflow(modelId));
+        syncContext.setKylinConfig(kylinConfig);
+        return syncContext;
     }
-
-    public enum MODEL_ELEMENT {
-        AGG_INDEX_COL,
-        AGG_INDEX_AND_TABLE_INDEX_COL,
-        ALL_COLS
-    }
-
 }
