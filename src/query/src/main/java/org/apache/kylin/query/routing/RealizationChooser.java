@@ -163,6 +163,7 @@ public class RealizationChooser {
                             Preconditions.checkNotNull(ctx.realization);
                         }
                     } finally {
+                        NProjectLoader.removeCache();
                         latch.countDown();
                     }
                 });
