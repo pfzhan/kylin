@@ -79,6 +79,7 @@
             text
             type="info"
             icon="el-icon-ksd-table_resure"
+            class="reset-filters-btn"
             :disabled="isResetFilterDisabled"
             @click="handleResetFilters">{{$t('reset')}}</el-button>
         </div>
@@ -1603,6 +1604,11 @@ export default class ModelList extends Vue {
       float: right;
       .el-button.is-text {
         padding: 0;
+      }
+      .reset-filters-btn.is-disabled {
+        i {
+          cursor: not-allowed;
+        }
       }
     }
   }
