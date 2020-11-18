@@ -48,7 +48,7 @@ echo "Checking spark home..."
 
 # check SPARK_HOME
 
-[[ -z ${SPARK_HOME} ]] || [[ ${SPARK_HOME} == ${KYLIN_HOME}/spark ]] || echo "${CHECKENV_REPORT_PFX}`setColor 32 Important!` Current SPARK_HOME is set: ${SPARK_HOME}, please don't risk it, more info: http://manual.kyligence.io/books/v2.5/en/install/check_env.en.html"
+[[ -z ${SPARK_HOME} ]] || [[ ${SPARK_HOME} == ${KYLIN_HOME}/spark ]] || echo "${CHECKENV_REPORT_PFX}`setColor 32 Important!` Current SPARK_HOME is set: ${SPARK_HOME}, please don't risk it."
 
 # prepare spark
 source ${KYLIN_HOME}/sbin/do-check-and-prepare-spark.sh
