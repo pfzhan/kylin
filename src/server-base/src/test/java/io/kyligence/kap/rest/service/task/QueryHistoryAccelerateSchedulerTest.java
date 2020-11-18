@@ -212,7 +212,7 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
         queryHistory5.setDuration(1000L);
         queryHistory5.setQueryTime(QUERY_TIME);
         queryHistory5.setEngineType("NATIVE");
-        queryHistory5.setQueryRealizations(DATAFLOW + "#" + LAYOUT1 + "#Table Index");
+        queryHistory5.setQueryRealizations(DATAFLOW + "#" + LAYOUT1 + "#Table Index#[]");
         queryHistory5.setId(5);
 
         QueryHistory queryHistory6 = new QueryHistory();
@@ -221,7 +221,7 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
         queryHistory6.setDuration(1000L);
         queryHistory6.setQueryTime(QUERY_TIME);
         queryHistory6.setEngineType("NATIVE");
-        queryHistory6.setQueryRealizations(DATAFLOW + "#" + LAYOUT1 + "#Table Index");
+        queryHistory6.setQueryRealizations(DATAFLOW + "#" + LAYOUT1 + "#Table Index#[]");
         queryHistory6.setId(6);
 
         QueryHistory queryHistory7 = new QueryHistory();
@@ -230,7 +230,7 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
         queryHistory7.setDuration(1000L);
         queryHistory7.setQueryTime(QUERY_TIME);
         queryHistory7.setEngineType("NATIVE");
-        queryHistory7.setQueryRealizations(DATAFLOW + "#" + LAYOUT2 + "#Agg Index");
+        queryHistory7.setQueryRealizations(DATAFLOW + "#" + LAYOUT2 + "#Agg Index#[]");
         queryHistory7.setId(7);
 
         QueryHistory queryHistory8 = new QueryHistory();
@@ -239,7 +239,7 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
         queryHistory8.setDuration(1000L);
         queryHistory8.setQueryTime(QUERY_TIME);
         queryHistory8.setEngineType("NATIVE");
-        queryHistory8.setQueryRealizations(DATAFLOW + "#null" + "#null");
+        queryHistory8.setQueryRealizations(DATAFLOW + "#null" + "#null#[]");
         queryHistory8.setId(8);
 
         return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4, queryHistory5,

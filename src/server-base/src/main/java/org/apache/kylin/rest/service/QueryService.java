@@ -329,9 +329,14 @@ public class QueryService extends BasicService {
         if (StringUtils.isEmpty(sql))
             sql = request.getSql();
 
-        Collection<String> snapShots = response.getNativeRealizations().stream()
-                .flatMap(nativeQueryRealization -> nativeQueryRealization.getSnapshots().stream())
-                .distinct().collect(Collectors.toList());
+        Collection<String> snapShots;
+        if (response.getNativeRealizations() == null) {
+            snapShots = Lists.newArrayList();
+        } else {
+            snapShots = response.getNativeRealizations().stream()
+                    .flatMap(nativeQueryRealization -> nativeQueryRealization.getSnapshots().stream())
+                    .distinct().collect(Collectors.toList());
+        }
 
         LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
                 .put(LogReport.SQL, sql).put(LogReport.USER, user)

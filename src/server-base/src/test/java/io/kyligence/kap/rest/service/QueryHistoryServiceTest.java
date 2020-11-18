@@ -140,7 +140,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
         acceleratedQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[]");
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO)
@@ -370,13 +370,13 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         layoutNullQuery.setSql("select * from test_table_1");
         layoutNullQuery.setEngineType("NATIVE");
         layoutNullQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#null#null,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#null#null#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[]");
 
         // accelerated query
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
         acceleratedQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[]");
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(layoutNullQuery, acceleratedQuery)).when(queryHistoryDAO)

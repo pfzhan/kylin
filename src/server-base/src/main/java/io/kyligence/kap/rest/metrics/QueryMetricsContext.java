@@ -237,8 +237,10 @@ public class QueryMetricsContext extends QueryMetrics {
             realizationMetrics.setProjectName(projectName);
             this.realizationMetrics.add(realizationMetrics);
             // example: modelId#layoutid#indexType
+            List<String> snapshots = realizationMetrics.getSnapshots() == null ?
+                    Lists.newArrayList() : realizationMetrics.getSnapshots();
             realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
-                    + realizationMetrics.getIndexType() + "#" + realizationMetrics.getSnapshots() + ",");
+                    + realizationMetrics.getIndexType() + "#" + snapshots + ",");
 
             if (realization.getIndexType() == null)
                 continue;
