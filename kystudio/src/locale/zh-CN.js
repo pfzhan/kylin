@@ -379,6 +379,7 @@ exports.default = {
     cache_hit: '是否击中缓存',
     query_id: '查询 ID',
     index_id: '索引 ID',
+    snapshot: '快照',
     to: '至',
     startTime_th: '查询开始时间',
     latency_th: '响应时间',

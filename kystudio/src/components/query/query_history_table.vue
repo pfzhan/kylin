@@ -73,9 +73,13 @@
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
                   </tr>
-                  <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length">
+                  <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length && getLayoutIds(props.row.realizations)">
                     <th class="label">{{$t('kylinLang.query.index_id')}}</th>
                     <td>{{getLayoutIds(props.row.realizations)}}</td>
+                  </tr>
+                  <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
+                    <th class="label">{{$t('kylinLang.query.snapshot')}}</th>
+                    <td>{{getSnapshots(props.row.realizations)}}</td>
                   </tr>
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.total_scan_count')}}</th>
@@ -439,17 +443,27 @@ export default class QueryHistoryTable extends Vue {
   // }
   getLayoutIds (realizations) {
     if (realizations && realizations.length) {
-      let firstSnapshot = false
       let filterIds = []
       for (let i of realizations) {
-        if (i.layoutId === -1 && !firstSnapshot) {
-          filterIds.push('Snapshot')
-          firstSnapshot = true
-        } else if (i.layoutId !== -1 && i.layoutId !== null) {
+        if (i.layoutId !== -1 && i.layoutId !== null) {
           filterIds.push(i.layoutId)
         }
       }
       return filterIds.join(', ')
+    } else {
+      return ''
+    }
+  }
+  getSnapshots (realizations) {
+    if (realizations && realizations.length) {
+      let filterSnapshot = []
+      for (let i of realizations) {
+        if (i.snapshots && i.snapshots.length) {
+          filterSnapshot = [...filterSnapshot, ...i.snapshots]
+        }
+      }
+      filterSnapshot = [...new Set(filterSnapshot)]
+      return filterSnapshot.join(', ')
     } else {
       return ''
     }

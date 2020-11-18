@@ -33,6 +33,10 @@
           <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
           <span class="text" :title="layoutIds">{{layoutIds}}</span>
         </p>
+        <p class="resultText query-obj" v-if="snapshots">
+          <span class="label">{{$t('kylinLang.query.snapshot')}}: </span>
+          <span class="text" :title="snapshots">{{snapshots}}</span>
+        </p>
         <el-button plain size="mini" @click="toggleDetail" class="show-more-btn">
           {{$t('kylinLang.common.seeDetail')}}
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
@@ -253,17 +257,27 @@ export default class queryResult extends Vue {
   }
   get layoutIds () {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
-      let firstSnapshot = false
       let filterIds = []
       for (let i of this.extraoption.realizations) {
-        if (i.layoutId === -1 && !firstSnapshot) {
-          filterIds.push('Snapshot')
-          firstSnapshot = true
-        } else if (i.layoutId !== -1 && i.layoutId !== null) {
+        if (i.layoutId !== -1 && i.layoutId !== null) {
           filterIds.push(i.layoutId)
         }
       }
       return filterIds.join(', ')
+    } else {
+      return ''
+    }
+  }
+  get snapshots () {
+    if (this.extraoption.realizations && this.extraoption.realizations.length) {
+      let filterSnapshot = []
+      for (let i of this.extraoption.realizations) {
+        if (i.snapshots && i.snapshots.length) {
+          filterSnapshot = [...filterSnapshot, ...i.snapshots]
+        }
+      }
+      filterSnapshot = [...new Set(filterSnapshot)]
+      return filterSnapshot.join(', ')
     } else {
       return ''
     }

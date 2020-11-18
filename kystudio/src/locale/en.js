@@ -382,6 +382,7 @@ exports.default = {
     cache_hit: 'If Hit Cache',
     query_id: 'Query ID',
     index_id: 'Index ID',
+    snapshot: 'Snapshot',
     to: 'To',
     type: 'Type',
     original: 'Original',
