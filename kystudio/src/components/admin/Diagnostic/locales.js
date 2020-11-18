@@ -52,7 +52,7 @@ export default {
     systemDiagnosis: '下载系统诊断包',
     generateBtn: '生成并下载诊断包',
     timeRange: '时间范围',
-    timeRangeTip: '您所选择的时间范围应包含故障发生的时间，以实例所在服务器的时间为准',
+    timeRangeTip: '您所选择的时间范围应包含故障发生的时间，以实例所在服务器的时间为准。',
     lastHour: '最近一小时',
     lastDay: '最近一天',
     lastThreeDay: '最近三天',
