@@ -475,11 +475,9 @@ public class DFBuildJob extends SparkApplication {
 
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
-        try {
-            SparkSubmitter.getInstance().setSparkSession(ss); // in order to use build spark session to query
+        try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance().overrideSparkSession(ss)) {
             String dateString = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn,
                     project);
-            SparkSubmitter.getInstance().setSparkSession(null); // clear build spark session
             val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat());
             val date = sdf.parse(dateString);
             if (date == null || !dateString.equals(sdf.format(date))) {

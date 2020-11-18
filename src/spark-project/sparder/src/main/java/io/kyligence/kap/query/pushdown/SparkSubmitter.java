@@ -45,10 +45,19 @@ public class SparkSubmitter {
         return Singletons.getInstance(SparkSubmitter.class);
     }
 
-    private SparkSession ss;
+    private OverriddenSparkSession overriddenSparkSession;
 
-    public void setSparkSession(SparkSession ss) {
-        this.ss = ss;
+    public OverriddenSparkSession overrideSparkSession(SparkSession ss) {
+        this.overriddenSparkSession = new OverriddenSparkSession(ss);
+        return overriddenSparkSession;
+    }
+
+    public void clearOverride() {
+        this.overriddenSparkSession = null;
+    }
+
+    private SparkSession getSparkSession() {
+        return overriddenSparkSession != null ? overriddenSparkSession.ss : SparderEnv.getSparkSession();
     }
 
     public PushdownResponse submitPushDownTask(String sql, String project) {
@@ -56,12 +65,23 @@ public class SparkSubmitter {
             logger.warn("execute spark job with transaction lock");
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
-        if (ss == null) {
-            ss = SparderEnv.getSparkSession();
-        }
+        SparkSession ss = getSparkSession();
         CredentialUtils.wrap(ss, project);
         Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
         return new PushdownResponse(pair.getSecond(), pair.getFirst());
     }
 
+    public class OverriddenSparkSession implements AutoCloseable {
+
+        private SparkSession ss;
+
+        public OverriddenSparkSession(SparkSession ss) {
+            this.ss = ss;
+        }
+
+        @Override
+        public void close() throws Exception {
+            SparkSubmitter.this.clearOverride();
+        }
+    }
 }
