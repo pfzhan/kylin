@@ -39,6 +39,8 @@ public class AddressUtil implements IKeep {
     @Setter
     private static HostInfoFetcher hostInfoFetcher = new DefaultHostInfoFetcher();
 
+    public static String MAINTAIN_MODE_MOCK_PORT ="0000";
+
     public static String getLocalInstance() {
         String serverIp = "127.0.0.1";
         try {
@@ -71,7 +73,7 @@ public class AddressUtil implements IKeep {
     }
 
     public static String getMockPortAddress() {
-        return getLocalInstance().split(":")[0] + ":" + "0000";
+        return getLocalInstance().split(":")[0] + ":" + MAINTAIN_MODE_MOCK_PORT;
     }
 
     public static String getLocalServerInfo() {

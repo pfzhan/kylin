@@ -23,40 +23,44 @@
  */
 package io.kyligence.kap.tool.routine;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class RoutineToolTest extends MaintainModeToolTest {
+import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.tool.MaintainModeTool;
 
-    @Test
-    public void testExecuteRoutine() {
-        RoutineTool routineTool = new RoutineTool();
-        routineTool.execute(new String[] { "--cleanup" });
-        Assert.assertTrue(routineTool.isStorageCleanup());
-        routineTool.execute(new String[] {});
-        Assert.assertFalse(routineTool.isStorageCleanup());
-        routineTool.execute(new String[] {});
-        Assert.assertFalse(routineTool.isStorageCleanup());
+public class MaintainModeToolTest extends AbstractJdbcMetadataTestCase {
+
+    @Before
+    public void setup() {
+        super.setup();
+    }
+
+    @After
+    public void destroy() throws Exception {
+        super.destroy();
     }
 
     @Test
-    public void testExecuteRoutineWithOptionProjects() {
-        RoutineTool routineTool = new RoutineTool();
-        routineTool.execute(new String[] {});
+    public void testForceToExit() {
+        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        maintainModeTool.execute(new String[] { "-off", "--force" });
+    }
 
-        Assert.assertFalse(routineTool.isStorageCleanup());
-        Assert.assertArrayEquals(new String[]{}, routineTool.getProjects());
+    @Test
+    public void testEnterMaintainMode() {
+        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        maintainModeTool.execute(new String[] { "-on", "-reason", "test" });
+    }
 
-        routineTool.execute(new String[] {"--projects=ssb"});
+    @Test
+    public void testCleanProject() {
+        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        maintainModeTool.execute(new String[] { "-on", "-reason", "test", "-p", "notExistP1" });
 
-        Assert.assertFalse(routineTool.isStorageCleanup());
-        Assert.assertArrayEquals(new String[]{"ssb"}, routineTool.getProjects());
-
-        routineTool.execute(new String[] {"--projects=ssb,default"});
-
-        Assert.assertFalse(routineTool.isStorageCleanup());
-        Assert.assertArrayEquals(new String[]{"ssb", "default"}, routineTool.getProjects());
-
+        Assert.assertEquals(getEpochStore().list().size(), 2);
     }
 
 }

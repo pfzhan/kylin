@@ -26,14 +26,21 @@ package io.kyligence.kap.common.persistence.metadata;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_UPDATE_METADATA;
 
 import java.io.InputStream;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.exception.KylinException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
@@ -123,30 +130,105 @@ public class JdbcEpochStore extends EpochStore {
     }
 
     @Override
-    public void saveOrUpdate(Epoch epoch) {
-        withTransaction(transactionManager, () -> {
-            if (getEpoch(epoch.getEpochTarget()) != null) {
-                return jdbcTemplate.update(String.format(UPDATE_SQL, table), ps -> {
-                    ps.setLong(1, epoch.getEpochId());
-                    ps.setString(2, epoch.getCurrentEpochOwner());
-                    ps.setLong(3, epoch.getLastEpochRenewTime());
-                    ps.setString(4, epoch.getServerMode());
-                    ps.setString(5, epoch.getMaintenanceModeReason());
-                    ps.setLong(6, epoch.getMvcc() + 1);
-                    ps.setString(7, epoch.getEpochTarget());
-                    ps.setLong(8, epoch.getMvcc());
-                });
-            } else {
-                return jdbcTemplate.update(String.format(INSERT_SQL, table), epoch.getEpochId(), epoch.getEpochTarget(),
-                        epoch.getCurrentEpochOwner(), epoch.getLastEpochRenewTime(), epoch.getServerMode(),
-                        epoch.getMaintenanceModeReason(), epoch.getMvcc());
+    public void update(Epoch epoch) {
+        if (Objects.isNull(epoch)) {
+            return;
+        }
+        executeWithTransaction(() -> {
+            int affectedRow = jdbcTemplate.update(String.format(UPDATE_SQL, table), ps -> {
+                genUpdateEpochStatement(ps, epoch);
+            });
+            if (affectedRow == 0) {
+                throw new KylinException(FAILED_UPDATE_METADATA,
+                        String.format("Failed to update or save epoch:%s", epoch.toString()));
+            }
+            return affectedRow;
+        });
+    }
+
+    @Override
+    public void insert(Epoch epoch) {
+        if (Objects.isNull(epoch)) {
+            return;
+        }
+        executeWithTransaction(() -> {
+            int affectedRow = jdbcTemplate.update(String.format(INSERT_SQL, table), ps -> {
+                genInsertEpochStatement(ps, epoch);
+            });
+            if (affectedRow == 0) {
+                throw new KylinException(FAILED_UPDATE_METADATA,
+                        String.format("Failed to update or save epoch:%s", epoch.toString()));
+            }
+            return affectedRow;
+        });
+    }
+
+    @Override
+    public void updateBatch(List<Epoch> epochs) {
+        if (CollectionUtils.isEmpty(epochs)) {
+            return;
+        }
+
+        jdbcTemplate.batchUpdate(String.format(UPDATE_SQL, table), new BatchPreparedStatementSetter() {
+
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                val epoch = epochs.get(i);
+                genUpdateEpochStatement(ps, epoch);
+            }
+
+            @Override
+            public int getBatchSize() {
+                return epochs.size();
             }
         });
     }
 
     @Override
+    public void insertBatch(List<Epoch> epochs) {
+        if (CollectionUtils.isEmpty(epochs)) {
+            return;
+        }
+
+        jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), new BatchPreparedStatementSetter() {
+
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                val epoch = epochs.get(i);
+                genInsertEpochStatement(ps, epoch);
+            }
+
+            @Override
+            public int getBatchSize() {
+                return epochs.size();
+            }
+        });
+    }
+
+    private void genInsertEpochStatement(final PreparedStatement ps, final Epoch epoch) throws SQLException {
+        ps.setLong(1, epoch.getEpochId());
+        ps.setString(2, epoch.getEpochTarget());
+        ps.setString(3, epoch.getCurrentEpochOwner());
+        ps.setLong(4, epoch.getLastEpochRenewTime());
+        ps.setString(5, epoch.getServerMode());
+        ps.setString(6, epoch.getMaintenanceModeReason());
+        ps.setLong(7, epoch.getMvcc());
+    }
+
+    private void genUpdateEpochStatement(final PreparedStatement ps, final Epoch epoch) throws SQLException {
+        ps.setLong(1, epoch.getEpochId());
+        ps.setString(2, epoch.getCurrentEpochOwner());
+        ps.setLong(3, epoch.getLastEpochRenewTime());
+        ps.setString(4, epoch.getServerMode());
+        ps.setString(5, epoch.getMaintenanceModeReason());
+        ps.setLong(6, epoch.getMvcc() + 1);
+        ps.setString(7, epoch.getEpochTarget());
+        ps.setLong(8, epoch.getMvcc());
+    }
+
+    @Override
     public Epoch getEpoch(String epochTarget) {
-        return withTransaction(transactionManager, () -> {
+        return executeWithTransaction(() -> {
             List<Epoch> result = jdbcTemplate.query(String.format(SELECT_BY_EPOCH_TARGET_SQL, table, epochTarget),
                     new EpochRowMapper());
             if (result.isEmpty()) {
@@ -158,12 +240,16 @@ public class JdbcEpochStore extends EpochStore {
 
     @Override
     public List<Epoch> list() {
-        return withTransaction(transactionManager,
-                () -> jdbcTemplate.query(String.format(SELECT_SQL, table), new EpochRowMapper()));
+        return executeWithTransaction(() -> jdbcTemplate.query(String.format(SELECT_SQL, table), new EpochRowMapper()));
     }
 
     @Override
     public void delete(String epochTarget) {
         withTransaction(transactionManager, () -> jdbcTemplate.update(String.format(DELETE_SQL, table), epochTarget));
+    }
+
+    @Override
+    public <T> T executeWithTransaction(Callback<T> callback) {
+        return withTransaction(transactionManager, callback::handle);
     }
 }

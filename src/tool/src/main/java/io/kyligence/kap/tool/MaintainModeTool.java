@@ -25,7 +25,6 @@
 package io.kyligence.kap.tool;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -34,7 +33,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -47,7 +45,6 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Setter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -60,6 +57,7 @@ public class MaintainModeTool extends ExecutableApplication {
     private KylinConfig config;
     private EpochManager epochManager;
     private boolean hiddenOutput;
+    private boolean forceToTurnOff;
 
     public MaintainModeTool() {
     }
@@ -77,7 +75,10 @@ public class MaintainModeTool extends ExecutableApplication {
             "specify projects to turn on or turn off maintain mode.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
     private static final String LEADER_RACE_KEY = "kylin.server.leader-race.enabled";
-    private static final Option OPTION_HIDDEN_OUTPUT = new Option("hidden", "hidden-output", true, "only show output in logs");
+    private static final Option OPTION_HIDDEN_OUTPUT = new Option("hidden", "hidden-output", true,
+            "only show output in logs");
+    private static final Option OPTION_FORCE_TURN_OFF = new Option("f", "force", false,
+            "force to turn maintain mode off");
 
     @Override
     protected Options getOptions() {
@@ -88,6 +89,7 @@ public class MaintainModeTool extends ExecutableApplication {
         options.addOption(OPTION_HELP);
         options.addOption(OPTION_MaintainMode_OFF);
         options.addOption(OPTION_HIDDEN_OUTPUT);
+        options.addOption(OPTION_FORCE_TURN_OFF);
         return options;
     }
 
@@ -108,51 +110,49 @@ public class MaintainModeTool extends ExecutableApplication {
     public void init() {
         config = KylinConfig.getInstanceFromEnv();
         String ipAndPort = AddressUtil.getMockPortAddress();
-        ResourceStore metaStore = ResourceStore.getKylinMetaStore(config);
-        metaStore.getAuditLogStore().setInstance(ipAndPort);
+
+        tryCatchupAuditLog(ipAndPort);
+
+        //init project
         if (CollectionUtils.isEmpty(projects)) {
             projects = NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                     .collect(Collectors.toList());
         }
-        owner = ipAndPort + "|" + Long.MAX_VALUE;
         projects.add(UnitOfWork.GLOBAL_UNIT);
+
+        owner = ipAndPort + "|" + Long.MAX_VALUE;
         epochManager = EpochManager.getInstance(config);
         epochManager.setIdentity(owner);
     }
 
+    private void tryCatchupAuditLog(String ipAndPort) {
+        ResourceStore metaStore = ResourceStore.getKylinMetaStore(config);
+        metaStore.getAuditLogStore().setInstance(ipAndPort);
+        try {
+            metaStore.getAuditLogStore().catchupWithTimeout();
+        } catch (Exception e) {
+            log.error("Catchup audit log failed, try to release epochs", e);
+            System.out.println("Catchup audit log failed, try to release epochs when init");
+            System.exit(1);
+        }
+    }
+
     public void markEpochs() {
         print("Start to mark epoch with reason: " + reason);
-        Pair<Boolean, String> maintenanceModeDetail = checkMaintenanceMode(false);
-        if (maintenanceModeDetail.getFirst()) {
-            System.out.println(String.format("The system is under maintenance mode for [%s]. Please try again later.", maintenanceModeDetail.getSecond()));
-            log.warn("The system is under maintenance mode for [{}]. Please try again later.", maintenanceModeDetail.getSecond());
+        if (epochManager.isMaintenanceMode()) {
+            System.out.println(String.format("The system is under maintenance mode. Please try again later."));
+            log.warn("The system is under maintenance mode. Please try again later.");
             System.exit(1);
         }
         System.setProperty(LEADER_RACE_KEY, "false");
-        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         try {
-            store.getAuditLogStore().catchupWithTimeout();
-            for (String prj : projects) {
-                markOwnerWithRetry(config.getTurnMaintainModeRetryTimes(), store, prj);
-            }
+
+            enterMaintenanceModeWithRetry(config.getTurnMaintainModeRetryTimes(), reason, projects);
         } catch (Exception e) {
             log.error("Mark epoch failed", e);
             System.out.println(StorageCleaner.ANSI_RED
                     + "Turn on maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                     + StorageCleaner.ANSI_RESET);
-            System.clearProperty(LEADER_RACE_KEY);
-            System.exit(1);
-        }
-
-        try {
-            store.getAuditLogStore().catchupWithTimeout();
-        } catch (Exception e) {
-            log.error("Catchup audit log failed, try to release epochs", e);
-            System.out.println(StorageCleaner.ANSI_RED
-                    + "Turn on maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
-                    + StorageCleaner.ANSI_RESET);
-            System.clearProperty(LEADER_RACE_KEY);
-            releaseEpochs();
             System.exit(1);
         } finally {
             System.clearProperty(LEADER_RACE_KEY);
@@ -160,39 +160,55 @@ public class MaintainModeTool extends ExecutableApplication {
         print("Mark epoch success with reason: " + reason);
     }
 
-    private void markOwnerWithRetry(int retryTimes, ResourceStore store, String prj) throws Exception {
-        boolean updateEpoch = epochManager.forceUpdateEpoch(prj, reason);
-        if (!updateEpoch) {
-            if (retryTimes > 0) {
-                TimeUnit.SECONDS.sleep(2);
-                store.getAuditLogStore().catchupWithTimeout();
-                markOwnerWithRetry(retryTimes - 1, store, prj);
-            } else {
-                throw new IllegalStateException("Failed to turn on maintain mode due to project " + prj);
-            }
+    private void enterMaintenanceModeWithRetry(int retryTimes, String reason, List<String> prj)
+            throws IllegalStateException {
+        boolean updateEpoch = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(prj, false, reason, false);
+        boolean checkMaintOwner = epochManager.isMaintenanceMode()
+                && epochManager.checkEpochOwner(UnitOfWork.GLOBAL_UNIT);
+
+        if (updateEpoch && checkMaintOwner && retryTimes > 0) {
+            log.info("finished enter maintenance mode...retry:{},reason:{}", retryTimes, reason);
+        } else if (retryTimes > 0) {
+            log.warn("retry enter maintenance mode...retry:{},reason:{}", retryTimes, reason);
+            enterMaintenanceModeWithRetry(retryTimes - 1, reason, prj);
+        } else {
+            throw new IllegalStateException("Failed to turn on maintain mode!");
+        }
+    }
+
+    private void exitMaintenanceModeWithRetry(int retryTimes, String reason, List<String> prj,
+            boolean skipCheckMaintMode) throws IllegalStateException {
+        boolean updateEpoch = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(prj, skipCheckMaintMode, reason,
+                true);
+
+        if (updateEpoch && (!epochManager.checkExpectedIsMaintenance(true) || skipCheckMaintMode) && retryTimes > 0) {
+            log.info("finished exited maintenance mode...retry:{},reason:{}", retryTimes, reason);
+        } else if (retryTimes > 0) {
+            log.warn("retry exited maintenance mode...retry:{},reason:{}", retryTimes, reason);
+            exitMaintenanceModeWithRetry(retryTimes - 1, reason, prj, skipCheckMaintMode);
+        } else {
+            throw new IllegalStateException("Failed to turn on maintain mode!");
+
         }
     }
 
     public void releaseEpochs() {
         try {
             print("Start to release epoch");
-            Pair<Boolean, String> maintenanceModeDetail = checkMaintenanceMode(true);
-            if (!maintenanceModeDetail.getFirst()) {
+
+            if (!epochManager.isMaintenanceMode() && !forceToTurnOff) {
                 System.out.println("System is not in maintenance mode.");
                 log.warn("System is not in maintenance mode.");
                 System.exit(1);
             }
             System.setProperty(LEADER_RACE_KEY, "true");
             epochManager.setIdentity("");
-            for (val prj : projects) {
-                epochManager.forceUpdateEpoch(prj, null);
-            }
+            exitMaintenanceModeWithRetry(config.getTurnMaintainModeRetryTimes(), null, projects, forceToTurnOff);
         } catch (Exception e) {
             log.error("Release epoch failed， try to turn off maintain mode manually.", e);
             System.out.println(StorageCleaner.ANSI_RED
                     + "Turn off maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                     + StorageCleaner.ANSI_RESET);
-            System.clearProperty(LEADER_RACE_KEY);
             System.exit(1);
         } finally {
             System.clearProperty(LEADER_RACE_KEY);
@@ -220,6 +236,7 @@ public class MaintainModeTool extends ExecutableApplication {
         if (optionsHelper.hasOption(OPTION_HIDDEN_OUTPUT)) {
             this.hiddenOutput = Boolean.parseBoolean(optionsHelper.getOptionValue(OPTION_HIDDEN_OUTPUT));
         }
+        this.forceToTurnOff = optionsHelper.hasOption(OPTION_FORCE_TURN_OFF);
         this.reason = optionsHelper.getOptionValue(OPTION_MaintainMode_ON_REASON);
         if (maintainModeOn && StringUtils.isEmpty(reason)) {
             log.warn("You need to use the argument -reason to explain why you turn on maintenance mode");
@@ -232,19 +249,6 @@ public class MaintainModeTool extends ExecutableApplication {
         print(String.format("MaintainModeTool has option maintain mode on: %s%s%s", maintainModeOn,
                 (StringUtils.isEmpty(reason) ? "" : " reason: " + reason),
                 (projects.size() > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : "")));
-    }
-
-    private Pair<Boolean, String> checkMaintenanceMode(boolean needInMaintenanceMode) {
-        for (String project : projects) {
-            if (epochManager.getEpoch(project) != null) {
-                Pair<Boolean, String> maintenanceModeDetail = epochManager.getMaintenanceModeDetail(project);
-                if (maintenanceModeDetail.getFirst() != needInMaintenanceMode) {
-                    return maintenanceModeDetail;
-                }
-            }
-        }
-
-        return Pair.newPair(needInMaintenanceMode, null);
     }
 
     private void print(String output) {

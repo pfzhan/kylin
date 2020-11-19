@@ -24,33 +24,23 @@
 
 package io.kyligence.kap.metadata.epoch;
 
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.persistence.metadata.Epoch;
+import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class EpochManagerTest extends NLocalFileMetadataTestCase {
-
-    @Before
-    public void setUp() throws Exception {
-        this.createTestMetadata();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        this.cleanupTestMetadata();
-    }
+public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
     @Test
     public void testUpdateGlobalEpoch() throws Exception {
@@ -67,7 +57,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testKeepGlobalEpoch() throws Exception {
+    public void testKeepGlobalEpoch() {
         System.setProperty("kylin.server.leader-race.enabled", "false");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
@@ -82,7 +72,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testKeepProjectEpochWhenOwnerChanged() throws Exception {
+    public void testKeepProjectEpochWhenOwnerChanged() {
         System.setProperty("kylin.server.leader-race.enabled", "false");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
@@ -108,7 +98,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateProjectEpoch() throws Exception {
+    public void testUpdateProjectEpoch() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
@@ -122,7 +112,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testEpochExpired() throws Exception {
+    public void testEpochExpired() {
         System.setProperty("kylin.server.leader-race.heart-beat-timeout", "-1");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
@@ -170,7 +160,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSetMaintenanceMode() throws Exception {
+    public void testSetAndUnSetMaintenanceMode_Single() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
@@ -181,4 +171,49 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         epochManager.unsetMaintenanceMode("MODE1");
         Assert.assertFalse(epochManager.isMaintenanceMode());
     }
+
+    @Test
+    public void testSetAndUnSetMaintenanceMode_Batch() {
+
+        Epoch e1 = new Epoch();
+        e1.setEpochTarget("test1");
+        e1.setCurrentEpochOwner("owner1");
+        e1.setEpochId(1);
+        e1.setLastEpochRenewTime(System.currentTimeMillis());
+
+        Epoch e2 = new Epoch();
+        e2.setEpochTarget("test2");
+        e2.setCurrentEpochOwner("owner2");
+        e2.setEpochId(1);
+        e2.setLastEpochRenewTime(System.currentTimeMillis());
+
+        getEpochStore().insertBatch(Arrays.asList(e1, e2));
+
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
+
+        epochManager.setMaintenanceMode("mode1");
+        Assert.assertTrue(epochManager.isMaintenanceMode());
+    }
+
+    @Test
+    public void testReleaseOwnedEpochs() {
+
+        String testIdentity = "testIdentity";
+
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+
+        epochManager.setIdentity(testIdentity);
+        epochManager.tryUpdateEpoch("test1", false);
+        epochManager.tryUpdateEpoch("test2", false);
+
+        //check owner
+        getEpochStore().list().forEach(epoch -> {
+            Assert.assertEquals(epoch.getCurrentEpochOwner(), testIdentity);
+        });
+
+        epochManager.releaseOwnedEpochs();
+
+    }
+
 }

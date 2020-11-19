@@ -35,11 +35,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -49,27 +46,14 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
+public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
 
     private static final String LOCAL_INSTANCE = "127.0.0.1";
-
-    @Before
-    public void setup() {
-        createTestMetadata();
-        getTestConfig().setMetadataUrl("test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
-    }
-
-    @After
-    public void destroy() throws Exception {
-        val jdbcTemplate = getJdbcTemplate();
-        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
-        cleanupTestMetadata();
-    }
 
     @Test
     public void testUpdateResourceWithLog() throws Exception {
@@ -246,12 +230,5 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
         System.clearProperty("kylin.metadata.audit-log.max-size");
 
         auditLogStore.close();
-    }
-
-    JdbcTemplate getJdbcTemplate() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
-        val props = datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
-        return new JdbcTemplate(dataSource);
     }
 }

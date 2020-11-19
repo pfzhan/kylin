@@ -29,7 +29,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
@@ -60,7 +62,15 @@ public class FileEpochStore extends EpochStore {
     }
 
     @Override
-    public void saveOrUpdate(Epoch epoch) {
+    public void update(Epoch epoch) {
+        insert(epoch);
+    }
+
+    @Override
+    public void insert(Epoch epoch) {
+        if (Objects.isNull(epoch)) {
+            return;
+        }
         if (!root.exists()) {
             root.mkdirs();
         }
@@ -70,6 +80,22 @@ public class FileEpochStore extends EpochStore {
         } catch (IOException e) {
             log.warn("Save or update epoch {} failed", epoch, e);
         }
+    }
+
+    @Override
+    public void updateBatch(List<Epoch> epochs) {
+        if (CollectionUtils.isEmpty(epochs)) {
+            return;
+        }
+        epochs.forEach(this::update);
+    }
+
+    @Override
+    public void insertBatch(List<Epoch> epochs) {
+        if (CollectionUtils.isEmpty(epochs)) {
+            return;
+        }
+        epochs.forEach(this::insert);
     }
 
     @Override
@@ -119,5 +145,22 @@ public class FileEpochStore extends EpochStore {
         if (!root.exists()) {
             root.mkdirs();
         }
+    }
+
+    /**
+     * file store don't support transaction, so execute directly
+     * @param callback
+     * @param <T>
+     * @return
+     */
+    @Override
+    public <T> T executeWithTransaction(Callback<T> callback) {
+        try {
+            return callback.handle();
+        } catch (Exception e) {
+            log.warn("execute failed in call back", e);
+        }
+
+        return null;
     }
 }

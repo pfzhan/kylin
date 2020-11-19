@@ -27,14 +27,20 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 
 import io.kyligence.kap.common.obf.IKeep;
-import org.apache.kylin.common.Singletons;
 
 public abstract class EpochStore implements IKeep {
     public static final String EPOCH_SUFFIX = "_epoch";
 
-    public abstract void saveOrUpdate(Epoch epoch);
+    public abstract void update(Epoch epoch);
+
+    public abstract void insert(Epoch epoch);
+
+    public abstract void updateBatch(List<Epoch> epochs);
+
+    public abstract void insertBatch(List<Epoch> epochs);
 
     public abstract Epoch getEpoch(String epochTarget);
 
@@ -43,6 +49,8 @@ public abstract class EpochStore implements IKeep {
     public abstract void delete(String epochTarget);
 
     public abstract void createIfNotExist() throws Exception;
+
+    public abstract <T> T executeWithTransaction(Callback<T> callback);
 
     public Epoch getGlobalEpoch() {
         return getEpoch("_global");
@@ -61,5 +69,13 @@ public abstract class EpochStore implements IKeep {
             epochStore.createIfNotExist();
         }
         return epochStore;
+    }
+
+    public interface Callback<T> {
+        T handle() throws Exception;
+
+        default void onError() {
+            // do nothing by default
+        }
     }
 }
