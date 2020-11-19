@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.SnapshotRequest;
@@ -49,6 +50,7 @@ import io.kyligence.kap.rest.service.SnapshotService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -60,6 +62,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -115,6 +118,24 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testBuildSnapshotFail() throws Exception {
+        String project = "default";
+        Set<String> needBuildSnapshotTables = Sets.newHashSet();
+        SnapshotRequest request = new SnapshotRequest();
+        request.setProject(project);
+        request.setTables(needBuildSnapshotTables);
+        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false);
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
+        String errorMsg = "KE-10000005(Empty Parameter):You should select at least one table or database to load!!";
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
+
+    @Test
     public void testRefreshSnapshot() throws Exception {
         String project = "default";
         Set<String> needBuildSnapshotTables = Sets.newHashSet("TEST_ACCOUNT");
@@ -128,6 +149,24 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
+    }
+
+    @Test
+    public void testRefreshSnapshotFail() throws Exception {
+        String project = "default";
+        Set<String> needBuildSnapshotTables = Sets.newHashSet();
+        SnapshotRequest request = new SnapshotRequest();
+        request.setProject(project);
+        request.setTables(needBuildSnapshotTables);
+        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false);
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
+        String errorMsg = "KE-10000005(Empty Parameter):You should select at least one table or database to load!!";
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
     @Test
@@ -160,5 +199,64 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSnapshotController).deleteSnapshots(project, deleteSnapshot);
+    }
+
+    @Test
+    public void testGetSnapshots() throws Exception {
+        String project = "default";
+        String table = "";
+        Set<String > statusFilter = Sets.newHashSet();
+        String sortBy = "last_modified_time";
+        boolean isReversed = true;
+        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, sortBy, isReversed);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, sortBy, isReversed);
+    }
+
+    @Test
+    public void testGetSnapshotsWithInvalidSortBy() throws Exception {
+        String project = "default";
+        String table = "";
+        Set<String > statusFilter = Sets.newHashSet();
+        String sortBy = "UNKNOWN";
+        boolean isReversed = true;
+        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, sortBy, isReversed);
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots")
+                .param("project", project).param("sort_by", sortBy)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, sortBy, isReversed);
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        String errorMsg = "KE-10000003(Invalid Parameter):No field called 'UNKNOWN'.";
+        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
+
+    @Test
+    public void testTables() throws Exception {
+        String project = "default";
+        Mockito.doAnswer(x -> null).when(snapshotService).getTables(project, "", 0, 10);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots/tables").param("project", project)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSnapshotController).getTables(project, "", 0, 10);
+    }
+
+    @Test
+    public void testLoadMoreTables() throws Exception {
+        String project = "default";
+        String database = "SSB";
+        String table = "";
+        Mockito.doAnswer(x -> null).when(snapshotService).getTableNameResponses(project, database, table);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots/tables/more")
+                .param("project", project).param("database", database)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSnapshotController).loadMoreTables(project, table, database, 0, 10);
     }
 }

@@ -160,7 +160,7 @@ public class NSnapshotController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableNameResponse>>> loadMoreTables(
             @RequestParam(value = "project") String project,
-            @RequestParam(value = "table", required = false) String table,
+            @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "database") String database,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
