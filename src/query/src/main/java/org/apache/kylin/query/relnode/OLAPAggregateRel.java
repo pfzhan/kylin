@@ -215,8 +215,8 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         buildAggregations();
 
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
-        List<TblColRef> columns = new ArrayList<TblColRef>(this.rowType.getFieldCount());
-        columns.addAll(this.groups);
+        List<TblColRef> columns = Lists.newArrayListWithCapacity(this.rowType.getFieldCount());
+        columns.addAll(getGroupColsOfColumnRowType());
 
         // Add group column indicators
         if (indicator) {
@@ -254,6 +254,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             aggOutCol.getColumnDesc().setId("" + (i + 1)); // mark the index of aggregation
             columns.add(aggOutCol);
         }
+        Preconditions.checkState(columns.size() == this.rowType.getFieldCount());
         return new ColumnRowType(columns);
     }
 
@@ -275,6 +276,16 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             Set<TblColRef> columns = inputColumnRowType.getSourceColumnsByIndex(i);
             this.groups.addAll(columns);
         }
+    }
+
+    public List<TblColRef> getGroupColsOfColumnRowType() {
+        List<TblColRef> allColumns = Lists.newArrayList();
+        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        for (int i = getGroupSet().nextSetBit(0); i >= 0; i = getGroupSet().nextSetBit(i + 1)) {
+            TblColRef tblColRef = inputColumnRowType.getColumnByIndex(i);
+            allColumns.add(tblColRef);
+        }
+        return allColumns;
     }
 
     void buildAggregations() {

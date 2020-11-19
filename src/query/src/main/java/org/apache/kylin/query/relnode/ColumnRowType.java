@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,7 +42,7 @@
 
 package org.apache.kylin.query.relnode;
 
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -106,13 +105,11 @@ public class ColumnRowType {
     }
 
     public Set<TblColRef> getSourceColumnsByIndex(int i) {
-        Set<TblColRef> result = null;
         if (sourceColumns != null) {
-            result = sourceColumns.get(i);
+            return sourceColumns.get(i);
         }
-        if (result == null || result.isEmpty()) {
-            result = Collections.singleton(getColumnByIndex(i));
-        }
+        Set<TblColRef> result = new HashSet<>();
+        TblColRef.collectSourceColumns(getColumnByIndex(i), result);
         return result;
     }
 
