@@ -99,6 +99,7 @@ export default class SourceSelect extends Vue {
     // 设置默认数据源
     // this.clickHandler(this.globalDefaultDatasource)
     // for newten 设置CSV为默认数据源
+    document.activeElement && document.activeElement.blur()
     this.clickHandler(this.sourceTypes.HIVE)
   }
 }
