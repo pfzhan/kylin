@@ -74,7 +74,7 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(afterCreateAdminManager.exists("ADMIN"));
 
         // assert output on console
-        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "The username of initialized user is [" +
+        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "Create default user finished. The username of initialized user is [" +
                 StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "], which password is "));
         Assert.assertTrue(output.toString().endsWith("Please keep the password properly. " +
                 "And if you forget the password, you can reset it according to user manual." + StorageCleaner.ANSI_RESET + "\n"));

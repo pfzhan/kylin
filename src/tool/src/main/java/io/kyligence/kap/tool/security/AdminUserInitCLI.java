@@ -73,7 +73,6 @@ public class AdminUserInitCLI {
             logger.error("Create Admin user failed.", e);
             System.exit(1);
         }
-        System.out.println("Create admin user finished.");
         System.exit(0);
     }
 
@@ -102,7 +101,7 @@ public class AdminUserInitCLI {
 
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + ADMIN_USER_NAME + StorageCleaner.ANSI_RED;
             String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;
-            String info = String.format("The username of initialized user is [%s], which password is [%s].\n"
+            String info = String.format("Create default user finished. The username of initialized user is [%s], which password is [%s].\n"
                     + "Please keep the password properly. And if you forget the password, you can reset it according to user manual.",
                     blackColorUsernameForPrint, blackColorPasswordForPrint);
             System.out.println(StorageCleaner.ANSI_RED + info + StorageCleaner.ANSI_RESET);
