@@ -143,7 +143,7 @@ trait JobSupport
     val manager = NDataflowManager.getInstance(conf, project)
     val workingDirectory = KapConfig.wrap(conf).getMetadataWorkingDirectory
 
-    val dataflow = manager.getDataflow(id)
+    val dataflow = manager.getDataflow(dfId)
     val model = dataflow.getModel;
     model.getLookupTables.asScala.foreach({
       table =>
