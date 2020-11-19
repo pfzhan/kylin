@@ -39,7 +39,7 @@ export default {
     loadTableTips1_3: 'from it were selected as well.',
     loadTableTips2_1: 'You may ',
     loadTableTips2_2: 'manually input the database or table name',
-    loadTableTips2_3: '; User ENTER to complete and comma to separate multiple values.',
+    loadTableTips2_3: '; use ENTER to complete and comma to separate multiple values.',
     loadTableTips3_1: 'Up to ',
     loadTableTips3_2: '1000 tables',
     loadTableTips3_3: ' could be loaded at a time.'
