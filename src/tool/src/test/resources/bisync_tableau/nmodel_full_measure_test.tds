@@ -6,7 +6,7 @@
         <connection class="kyligence_odbc" dbname="default" odbc-connect-string-extras="PROJECT=default" port="7070" schema="DEFAULT" server="localhost" username="ADMIN"/>
       </named-connection>
     </named-connections>
-    <relation join="LEFT" type="join">
+    <relation join="left" type="join">
       <clause type="join">
         <expression op="=">
           <expression op="[TEST_MEASURE].[ID1]"/>
@@ -71,32 +71,32 @@
   <column caption="PRICE2" datatype="real" name="[PRICE2 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="FLAG" datatype="boolean" name="[FLAG (TEST_MEASURE1)]" role="dimension" type="nominal" hidden="true"/>
   <column caption="ID4" datatype="integer" name="[ID4 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="PRICE3" name="[PRICE3 (TEST_MEASURE)]" role="dimension" hidden="true"/>
+  <column caption="PRICE3" datatype="real" name="[PRICE3 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID3" datatype="integer" name="[ID3 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="CC_CROSSTABLE_PRICE1" datatype="integer" name="[CC_PRICE8]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="CC_PRICE7" datatype="integer" name="[CC_PRICE7]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="PRICE3" name="[PRICE3 (TEST_MEASURE1)]" role="dimension" hidden="true"/>
+  <column caption="PRICE3" datatype="real" name="[PRICE3 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="PRICE6" datatype="integer" name="[PRICE6 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="CC_CROSSTABLE_PRICE2" datatype="integer" name="[CC_PRICE9]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="PRICE5" datatype="integer" name="[PRICE5 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="PRICE2" datatype="real" name="[PRICE2 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="PRICE1-2" datatype="real" name="[PRICE1 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="NAME3" name="[NAME3 (TEST_MEASURE1)]" role="dimension" hidden="true"/>
+  <column caption="NAME3" datatype="string" name="[NAME3 (TEST_MEASURE1)]" role="dimension" type="nominal" hidden="true"/>
   <column caption="PRICE5" datatype="integer" name="[PRICE5 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="NAME4" datatype="integer" name="[NAME4 (TEST_MEASURE1)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="PRICE6" datatype="integer" name="[PRICE6 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="NAME1" name="[NAME1 (TEST_MEASURE1)]" role="dimension" hidden="true"/>
+  <column caption="NAME1" datatype="string" name="[NAME1 (TEST_MEASURE1)]" role="dimension" type="nominal" hidden="true"/>
   <column caption="PRICE7" datatype="integer" name="[PRICE7 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="NAME2" name="[NAME2 (TEST_MEASURE1)]" role="dimension" hidden="true"/>
-  <column caption="NAME2" name="[NAME2 (TEST_MEASURE)]" role="dimension" hidden="true"/>
+  <column caption="NAME2" datatype="string" name="[NAME2 (TEST_MEASURE1)]" role="dimension" type="nominal" hidden="true"/>
+  <column caption="NAME2" datatype="string" name="[NAME2 (TEST_MEASURE)]" role="dimension" type="nominal" hidden="true"/>
   <column caption="ID3" datatype="integer" name="[ID3 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="NAME2" name="[NAME3 (TEST_MEASURE)]" role="dimension" hidden="true"/>
+  <column caption="NAME2" datatype="string" name="[NAME3 (TEST_MEASURE)]" role="dimension" type="nominal" hidden="true"/>
   <column caption="ID2" datatype="integer" name="[ID2 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID1" datatype="integer" name="[ID1 (TEST_MEASURE)]" role="dimension" type="ordinal"/>
-  <column caption="NAME1" name="[NAME1 (TEST_MEASURE)]" role="dimension" hidden="true"/>
+  <column caption="NAME1" datatype="string" name="[NAME1 (TEST_MEASURE)]" role="dimension" type="nominal" hidden="true"/>
   <column caption="NAME4" datatype="integer" name="[NAME4 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="ID4" datatype="integer" name="[ID4 (TEST_MEASURE)]" role="dimension" type="ordinal" hidden="true"/>
-  <column caption="CC_PRICE3" name="[CC_PRICE3]" role="dimension" hidden="true"/>
+  <column caption="CC_PRICE3" datatype="real" name="[CC_PRICE3]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="CC_PRICE6" datatype="integer" name="[CC_PRICE6]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="CC_PRICE5" datatype="integer" name="[CC_PRICE5]" role="dimension" type="ordinal" hidden="true"/>
   <column caption="CC_PRICE2" datatype="real" name="[CC_PRICE2]" role="dimension" type="ordinal" hidden="true"/>
@@ -115,7 +115,7 @@
   <column caption="SUM_2" datatype="real" name="[SUM_2]" role="measure" type="quantitative">
     <calculation class="tableau" formula="SUM(1.0)"/>
   </column>
-  <column caption="SUM_3" name="[SUM_3]" role="measure" type="quantitative">
+  <column caption="SUM_3" datatype="real" name="[SUM_3]" role="measure" type="quantitative">
     <calculation class="tableau" formula="SUM(1.0)"/>
   </column>
   <drill-paths/>

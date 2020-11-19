@@ -302,7 +302,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             Relation joinRelation = new Relation();
             List<Relation> relations = new LinkedList<>();
             JoinDesc joinDesc = rightJoin.getJoin();
-            String joinType = joinDesc.getType();
+            String joinType = joinDesc.getType().toLowerCase();
             joinRelation.setType(TdsConstant.JOIN_TYPE_JOIN);
             joinRelation.setJoin(joinType);
             relations.add(leftTable);
@@ -416,12 +416,12 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             }
         }
 
-        public static String convertKylinType(int type) {
-            return TYPE_MAP.get(type);
-        }
-
         public static String convertKylinType(String typeName) {
-            return TYPE_NAME_MAP.get(typeName.toUpperCase());
+            String trimmedTypeName = typeName.trim().toUpperCase();
+            if (typeName.indexOf('(') > -1) {
+                trimmedTypeName = trimmedTypeName.substring(0, trimmedTypeName.indexOf('(')); // strip off brackets
+            }
+            return TYPE_NAME_MAP.get(trimmedTypeName);
         }
 
         public static String convertKylinFunction(String funcName) {

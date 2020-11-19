@@ -78,6 +78,26 @@ public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"), outStream.toString());
     }
 
+    @Test
+    public void testDataTypeConversion() {
+        Assert.assertEquals("real", TableauDataSourceConverter.TypeConverter.convertKylinType(" deciMAL(18,2) "));
+        Assert.assertEquals("real", TableauDataSourceConverter.TypeConverter.convertKylinType("decimal(18,2)"));
+        Assert.assertEquals("real", TableauDataSourceConverter.TypeConverter.convertKylinType("double"));
+        Assert.assertEquals("real", TableauDataSourceConverter.TypeConverter.convertKylinType("float"));
+        Assert.assertEquals("real", TableauDataSourceConverter.TypeConverter.convertKylinType("real"));
+        Assert.assertEquals("integer", TableauDataSourceConverter.TypeConverter.convertKylinType("integer"));
+        Assert.assertEquals("integer", TableauDataSourceConverter.TypeConverter.convertKylinType("bigint"));
+        Assert.assertEquals("integer", TableauDataSourceConverter.TypeConverter.convertKylinType("smallint"));
+        Assert.assertEquals("integer", TableauDataSourceConverter.TypeConverter.convertKylinType("tinyint"));
+        Assert.assertEquals("string", TableauDataSourceConverter.TypeConverter.convertKylinType("char(12)"));
+        Assert.assertEquals("string", TableauDataSourceConverter.TypeConverter.convertKylinType("varchar(12)"));
+        Assert.assertEquals("string", TableauDataSourceConverter.TypeConverter.convertKylinType("string"));
+        Assert.assertEquals("date", TableauDataSourceConverter.TypeConverter.convertKylinType("date"));
+        Assert.assertEquals("datetime", TableauDataSourceConverter.TypeConverter.convertKylinType("datetime"));
+        Assert.assertEquals("boolean", TableauDataSourceConverter.TypeConverter.convertKylinType("boolean"));
+        Assert.assertEquals("integer", TableauDataSourceConverter.TypeConverter.convertKylinType("hllc(12)"));
+    }
+
     private String getExpectedTds(String path) throws IOException {
         return CharStreams.toString(new InputStreamReader(
                 getClass().getResourceAsStream(path), Charsets.UTF_8));
