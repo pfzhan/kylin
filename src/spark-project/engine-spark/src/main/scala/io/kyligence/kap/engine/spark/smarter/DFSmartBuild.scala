@@ -99,9 +99,9 @@ class DFSmartBuild extends DFBuildJob with Logging {
       logDebug("Encoding data skew , set it to true")
       KylinBuildEnv.get.setEncodingDataSkew(true)
     }
-
+    buildSnapshot()
     // choose source
-    val dfChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true, getIgnoredSnapshotTables)
+    val dfChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true)
     dfChooser.decideSources()
     infos.clearCuboidsNumPerLayer(segId)
 

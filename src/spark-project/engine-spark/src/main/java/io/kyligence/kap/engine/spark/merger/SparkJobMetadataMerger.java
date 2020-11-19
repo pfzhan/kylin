@@ -25,15 +25,8 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import lombok.val;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -43,19 +36,15 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.engine.spark.utils.FileNames;
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.Getter;
+import lombok.val;
 
 public abstract class SparkJobMetadataMerger extends MetadataMerger {
     private static final Logger log = LoggerFactory.getLogger(SparkJobMetadataMerger.class);
@@ -103,46 +92,27 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize, 0);
     }
 
-    protected void updateSnapshotTableIfNeed(NDataflow dataflow, ResourceStore configStore) {
-        if (isSnapshotManualManagementEnabled(configStore)) {
-            return;
+    protected void mergeSnapshotMeta(NDataflow dataflow, ResourceStore remoteResourceStore) {
+        if (!isSnapshotManualManagementEnabled(remoteResourceStore)) {
+
+            val remoteTblMgr = NTableMetadataManager.getInstance(remoteResourceStore.getConfig(), getProject());
+            val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+            dataflow.getModel().getLookupTables().stream().forEach(remoteTableRef -> {
+                val tableName = remoteTableRef.getTableIdentity();
+                val localTbDesc = localTblMgr.getTableDesc(tableName);
+                val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
+
+                val copy = localTblMgr.copyForWrite(localTbDesc);
+                copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
+                val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
+                copyExt.setOriginalSize(remoteTblMgr.getOrCreateTableExt(remoteTbDesc).getOriginalSize());
+                localTblMgr.saveTableExt(copyExt);
+                localTblMgr.updateTableDesc(copy);
+            });
         }
-        long start = System.currentTimeMillis();
-        log.info("Check snapshot for dataflow: {}", dataflow);
-        try {
-            KylinConfig config = getConfig();
-            String workingDir = KapConfig.wrap(config).getMetadataWorkingDirectory();
-            NTableMetadataManager manager = NTableMetadataManager.getInstance(config, dataflow.getProject());
-            Set<String> tables = dataflow.getModel().getLookupTables().stream().map(TableRef::getTableIdentity)
-                    .collect(Collectors.toSet());
-            List<TableDesc> needUpdateTables = new ArrayList<>();
-            for (String table : tables) {
-                TableDesc tableDesc = manager.getTableDesc(table);
-                Path path = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDir);
-                if (!HDFSUtils.exists(path) && config.isUTEnv()) {
-                    continue;
-                }
-                FileStatus lastFile = HDFSUtils.findLastFile(path);
-                TableDesc copyDesc = manager.copyForWrite(tableDesc);
-                copyDesc.setLastSnapshotPath(FileNames.snapshotFile(tableDesc) + "/" + lastFile.getPath().getName());
-                needUpdateTables.add(copyDesc);
-            }
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                NTableMetadataManager updateManager = NTableMetadataManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), dataflow.getProject());
-                for (TableDesc tableDesc : needUpdateTables) {
-                    updateManager.updateTableDesc(tableDesc);
-                }
-                return null;
-            }, dataflow.getProject(), 1);
-        } catch (Throwable th) {
-            log.error("Error for update snapshot table", th);
-        }
-        log.info("Update snapshot table for dataflow {} cost: {} ms.", dataflow.getUuid(),
-                (System.currentTimeMillis() - start));
     }
 
-    private boolean isSnapshotManualManagementEnabled(ResourceStore configStore) {
+    protected boolean isSnapshotManualManagementEnabled(ResourceStore configStore) {
         try {
             val projectConfig = getProjectConfig(configStore);
             if (!projectConfig.isSnapshotManualManagementEnabled()) {

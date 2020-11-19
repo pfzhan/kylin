@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,8 +33,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -52,7 +49,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -86,15 +82,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
                     abstractExecutable.getJobType());
             NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dataFlowId);
-            NDataSegment segment = dataflow.getSegment(segmentIds.iterator().next());
-            NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
-            for (Map.Entry<String, Long> entry : segment.getOriSnapshotSize().entrySet()) {
-                TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
-                TableExtDesc originTableExt = metadataManager.getOrCreateTableExt(tableDesc);
-                TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
-                tableExtDescCopy.setOriginalSize(entry.getValue());
-                metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
-            }
+            mergeSnapshotMeta(dataflow, buildResourceStore);
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
             KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -115,8 +103,6 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
 
         val dfUpdate = new NDataflowUpdate(flowName);
         val theSeg = remoteDataflow.getSegment(segmentId);
-
-        updateSnapshotTableIfNeed(remoteDataflow, remoteStore);
 
         theSeg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(theSeg);
@@ -161,8 +147,6 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             }
             segsToUpdate.add(remoteSeg);
         }
-
-        updateSnapshotTableIfNeed(remoteDataflow, remoteStore);
 
         dfUpdate.setToUpdateSegs(segsToUpdate.toArray(new NDataSegment[0]));
         dfUpdate.setToAddOrUpdateLayouts(addCuboids.toArray(new NDataLayout[0]));

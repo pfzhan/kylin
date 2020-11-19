@@ -21,15 +21,15 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import java.util.concurrent.{Callable, Executors, ExecutorService, Future, TimeoutException}
+import java.util.concurrent.{ExecutorService, Executors, Future, TimeoutException}
 
-import com.google.common.collect.{Lists, Maps, Sets}
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager, NDataSegment}
+import com.google.common.collect.Lists
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.SparkException
+import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.junit.Assert
 
 import scala.collection.JavaConverters._
@@ -124,9 +124,11 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   private def roundTestBuildSnap(): Unit = {
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
+    val fs = HadoopUtil.getWorkingFileSystem
     val threadPool: ExecutorService = Executors.newFixedThreadPool(10)
     try {
-      val futureList = Lists.newArrayList[Future[NDataSegment]]()
+      val futureList = Lists.newArrayList[Future[_]]()
       for (dfName <- DF_NAME_SEQ) {
         futureList.add(threadPool.submit(new BuildSnapshotThread(dfName)))
       }
@@ -138,32 +140,25 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
         }
       }
 
-      val snapSet = Sets.newHashSet[String]()
-      var snapCount = 0
-      for (future <- futureList.asScala) {
-        snapSet.addAll(future.get().getSnapshots.values())
-        snapCount = snapCount + future.get().getSnapshots.size()
-      }
+      val statuses = fs.listStatus(new Path(snapPath))
 
-      Assert.assertTrue((21 > snapSet.size()) && (snapSet.size() >= 7))
+      Assert.assertTrue((21 > statuses.size) && (statuses.size >= 7))
 
     } finally {
       threadPool.shutdown()
     }
   }
 
-  class BuildSnapshotThread(dfName: String) extends Callable[NDataSegment] {
-    override def call(): NDataSegment = {
+  class BuildSnapshotThread(dfName: String) extends Runnable {
+    override def run(): Unit = {
       var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
       var df = dsMgr.getDataflow(dfName)
       df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "false"))
       val seg = df.getFirstSegment
       val dfCopy = df.copy
       val segCopy = dfCopy.getSegment(seg.getId)
-      segCopy.setSnapshots(Maps.newHashMap())
-      val snapshot = new SnapshotBuilder().buildSnapshot(segCopy, spark, null)
+      new SnapshotBuilder().buildSnapshot(df.getModel, spark, null)
       df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
-      snapshot
     }
   }
 
@@ -174,13 +169,12 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     for (segment <- df.getSegments.asScala) {
       val dfCopy = segment.getDataflow.copy
       val segCopy = dfCopy.getSegment(segment.getId)
-      segCopy.setSnapshots(Maps.newHashMap())
       var snapshotBuilder = new SnapshotBuilder()
       if (isMock) {
         snapshotBuilder = new MockSnapshotBuilder()
       }
-      snapshotBuilder.buildSnapshot(segCopy, spark, ignoredSnapshotTables)
-      Assert.assertEquals(snapshotBuilder.distinctTableDesc(df.getModel, segCopy, ignoredSnapshotTables).size, 7)
+      snapshotBuilder.buildSnapshot(dfCopy.getModel, spark, ignoredSnapshotTables)
+      Assert.assertEquals(snapshotBuilder.distinctTableDesc(df.getModel, ignoredSnapshotTables).size, 7)
     }
 
     val statuses = fs.listStatus(new Path(snapPath))
@@ -195,9 +189,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     val fs = HadoopUtil.getWorkingFileSystem
     for (segment <- df.getSegments.asScala) {
       val dfCopy = segment.getDataflow.copy
-      val segCopy = dfCopy.getSegment(segment.getId)
-      segCopy.setSnapshots(Maps.newHashMap())
-      new SnapshotBuilder().buildSnapshot(segCopy, spark, null);
+      new SnapshotBuilder().buildSnapshot(dfCopy.getModel, spark, null);
     }
     val statuses = fs.listStatus(new Path(snapPath))
     Assert.assertEquals(statuses.size, 7)

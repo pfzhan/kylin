@@ -24,25 +24,22 @@
 
 package io.kyligence.kap.tool.garbage;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.directory.api.util.Strings;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Map;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
 
@@ -50,9 +47,7 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
     private String dataflowId;
     private NTableMetadataManager tableMetadataManager;
     private NDataflowManager dataflowManager;
-    private String segmentId;
     private String tableName;
-    private NDataSegment segment;
 
     @Before
     public void init() {
@@ -65,16 +60,18 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
         dataflowManager = NDataflowManager.getInstance(kylinConfig, DEFAULT_PROJECT);
 
         // assert that snapshot exists
-        segment = dataflowManager.getDataflow(dataflowId).getSegments().get(0);
-        segmentId = segment.getId();
-        final Map<String, String> snapshotMappingsBefore = segment.getSnapshots();
-        tableName = snapshotMappingsBefore.keySet().iterator().next();
-        if (Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath())) {
-            TableDesc toUpdate = tableMetadataManager.getTableDesc(tableName);
-            toUpdate.setLastSnapshotPath(snapshotMappingsBefore.get(tableName));
-            tableMetadataManager.updateTableDesc(toUpdate);
-        }
-        Assert.assertTrue(snapshotMappingsBefore.size() > 0);
+        NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
+        Set<TableDesc> tables = dataflow.getModel().getLookupTables().stream().map(tableRef -> tableRef.getTableDesc())
+                .collect(Collectors.toSet());
+
+        String stalePath = "default/table_snapshot/mock";
+        tables.forEach(tableDesc -> {
+            tableDesc.setLastSnapshotPath(stalePath);
+            tableMetadataManager.updateTableDesc(tableDesc);
+        });
+        tableName = tables.iterator().next().getIdentity();
+
+        Assert.assertTrue(tables.size() > 0);
         Assert.assertFalse(Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
 
     }
@@ -94,31 +91,7 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
         }, DEFAULT_PROJECT);
 
         // assert that snapshots are cleared
-        Assert.assertTrue(dataflowManager.getDataflow(dataflowId).getSegment(segmentId).getSnapshots().isEmpty());
         Assert.assertTrue(Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
     }
 
-    @Test
-    public void testSnapshotCleanerKeepValidSnapshots() {
-        // mkdir for a snapshot table path
-        FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        String baseDir = KapConfig.wrap(segment.getConfig()).getReadHdfsWorkingDirectory();
-        String resourcePath = baseDir + "/" + tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath();
-        try {
-            fs.mkdirs(new Path(resourcePath));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(DEFAULT_PROJECT);
-        snapshotCleaner.checkStaleSnapshots();
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            snapshotCleaner.cleanup(DEFAULT_PROJECT);
-            return 0;
-        }, DEFAULT_PROJECT);
-
-        // assert that snapshots are cleared
-        Assert.assertEquals(1, dataflowManager.getDataflow(dataflowId).getSegment(segmentId).getSnapshots().size());
-        Assert.assertFalse(Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
-    }
 }

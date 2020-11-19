@@ -24,9 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
@@ -91,18 +89,12 @@ public class NSparkMergingStep extends NSparkExecutable {
 
         Set<String> result = Sets.newHashSet();
 
-        val lastSeg = mergingSegments.get(mergingSegments.size() - 1);
-        for (Map.Entry<String, String> entry : lastSeg.getSnapshots().entrySet()) {
-            val path = Paths.get(entry.getValue()).getParent().toString();
-            result.add("/" + path);
-        }
-
         val allSegments = Lists.newArrayList(mergingSegments);
         allSegments.add(mergedSeg);
         for (NDataSegment seg : allSegments) {
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
-                String path = "/" +  NSparkCubingUtil.getStoragePathWithoutPrefix(project,
-                        dataflowId, seg.getId(), layout.getId());
+                String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(project, dataflowId, seg.getId(),
+                        layout.getId());
                 result.add(new Path(path).getParent().toString());
             }
         }

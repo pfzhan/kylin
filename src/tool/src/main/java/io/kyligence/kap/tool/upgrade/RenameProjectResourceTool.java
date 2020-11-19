@@ -64,7 +64,6 @@ import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -80,7 +79,6 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -324,20 +322,6 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             String srcResourcePath = dataflow.getResourcePath();
             dataflow.setProject(destProjectName);
             String destResourcePath = dataflow.getResourcePath();
-
-            Segments<NDataSegment> segments = dataflow.getSegments();
-            for (NDataSegment segment : segments) {
-                Map<String, String> snapshots = segment.getSnapshots();
-                for (Map.Entry<String, String> entry : snapshots.entrySet()) {
-                    String value = entry.getValue();
-                    value = value.replace(String.format("%s/", originProjectName),
-                            String.format("%s/", destProjectName));
-                    snapshots.put(entry.getKey(), value);
-
-                }
-                segment.setSnapshots(snapshots);
-            }
-
             results.add(new RenameEntity(srcResourcePath, destResourcePath, dataflow, NDataflow.class));
 
             // dataflow_details

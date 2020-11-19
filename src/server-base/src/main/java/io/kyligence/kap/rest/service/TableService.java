@@ -1441,19 +1441,7 @@ public class TableService extends BasicService {
     void cleanSnapshot(ReloadTableContext context, TableDesc targetTable, TableDesc originTable, String projectName) {
         if (context.isChanged(originTable)) {
             targetTable.setLastSnapshotPath(null);
-            val dataflowManager = getDataflowManager(projectName);
-            val dataflows = dataflowManager.listAllDataflows();
-            val tableIdentity = targetTable.getIdentity();
-            for (NDataflow dataflow : dataflows) {
-                if (dataflow.getModel().containsTable(targetTable)) {
-                    dataflowManager.updateDataflow(dataflow.getUuid(), copyForWrite -> {
-                        for (NDataSegment segment : copyForWrite.getSegments()) {
-                            segment.getSnapshots().remove(tableIdentity);
-                        }
-                    });
-                }
-            }
-            stopSnapshotJobs(projectName, tableIdentity);
+            stopSnapshotJobs(projectName, targetTable.getIdentity());
         } else {
             targetTable.setLastSnapshotPath(originTable.getLastSnapshotPath());
         }

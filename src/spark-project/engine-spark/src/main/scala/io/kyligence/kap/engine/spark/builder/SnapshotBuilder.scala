@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.builder
 
 import java.io.IOException
+import java.util
 import java.util.UUID
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, Executors}
 
@@ -33,7 +34,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.{DFChooser, KylinBuildEnv}
 import io.kyligence.kap.engine.spark.utils.{FileNames, LogUtils}
-import io.kyligence.kap.metadata.cube.model.NDataSegment
 import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
@@ -73,19 +73,10 @@ class SnapshotBuilder extends Logging with Serializable {
     }
   }
 
-
-  @throws[IOException]
-  def buildSnapshot(ss: SparkSession, t: java.util.Set[TableDesc]): Unit = {
-    val tables = t.asScala.toSet
-    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
-    val toBuildTableDesc = tables
-    val kylinConf = KylinConfig.getInstanceFromEnv
-    // scalastyle:off
-    val (newSnapMap, snapSizeMap) = executeBuildSnapshot(ss, toBuildTableDesc, baseDir, kylinConf.isSnapshotParallelBuildEnabled, kylinConf.isUTEnv, kylinConf.snapshotParallelBuildTimeoutSeconds)
-
-    // update metadata
+  // scalastyle:off
+  def updateMeta(toBuildTableDesc: Set[TableDesc], newSnapMap: util.Map[String, String], snapSizeMap: ConcurrentHashMap[String, Long]): Unit = {
     val project = toBuildTableDesc.iterator.next.getProject
-    val tableMetadataManager = NTableMetadataManager.getInstance(kylinConf, project)
+    val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
     toBuildTableDesc.foreach(table => {
       val copy = tableMetadataManager.copyForWrite(table);
       copy.setLastSnapshotPath(newSnapMap.get(copy.getIdentity))
@@ -109,28 +100,33 @@ class SnapshotBuilder extends Logging with Serializable {
   }
 
   @throws[IOException]
-  def buildSnapshot(seg: NDataSegment, ss: SparkSession, ignoredSnapshotTables: java.util.Set[String]): NDataSegment = {
-    logInfo(s"Building snapshots for: $seg")
-    val model = seg.getDataflow.getModel
+  def buildSnapshot(ss: SparkSession, toBuildTables: java.util.Set[TableDesc]): Unit = {
+    buildSnapshot(ss, toBuildTables.asScala.toSet)
+  }
 
-    val baseDir = KapConfig.wrap(seg.getConfig).getMetadataWorkingDirectory
-    val toBuildTableDesc = distinctTableDesc(model, seg, ignoredSnapshotTables)
+  @throws[IOException]
+  def buildSnapshot(ss: SparkSession, tables: Set[TableDesc]): Unit = {
+    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
+    val toBuildTables = tables
+    val kylinConf = KylinConfig.getInstanceFromEnv
+    if (toBuildTables.isEmpty) {
+      return
+    }
+
     // scalastyle:off
-    val (newSnapMap, snapSizeMap) = executeBuildSnapshot(ss, toBuildTableDesc, baseDir, seg.getConfig.isSnapshotParallelBuildEnabled, seg.getConfig.isUTEnv, seg.getConfig.snapshotParallelBuildTimeoutSeconds);
-    // be careful
-    // make a copy of the changing segment, avoid changing the cached object
-    DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
-      copied.getSnapshots.putAll(newSnapMap)
-      copied.setSnapshotReady(true)
-      for ((k: String, v: Long) <- snapSizeMap.asScala) {
-        logInfo(s"Snapshot size is: $k : $v")
-        copied.getOriSnapshotSize.put(k, v)
-      }
-    })
+    val (newSnapMap, snapSizeMap) = executeBuildSnapshot(ss, toBuildTables, baseDir, kylinConf.isSnapshotParallelBuildEnabled, kylinConf.snapshotParallelBuildTimeoutSeconds)
+    // update metadata
+    updateMeta(toBuildTables, newSnapMap, snapSizeMap)
+  }
+
+  @throws[IOException]
+  def buildSnapshot(model: NDataModel, ss: SparkSession, ignoredSnapshotTables: java.util.Set[String]): Unit = {
+    val toBuildTableDesc = distinctTableDesc(model, ignoredSnapshotTables)
+    buildSnapshot(ss, toBuildTableDesc)
   }
 
   // scalastyle:off
-  def executeBuildSnapshot(ss: SparkSession, toBuildTableDesc: Set[TableDesc], baseDir: String, isParallelBuild: Boolean, isUT: Boolean, snapshotParallelBuildTimeoutSeconds: Int): (java.util.Map[String, String], ConcurrentHashMap[String, Long]) = {
+  def executeBuildSnapshot(ss: SparkSession, toBuildTableDesc: Set[TableDesc], baseDir: String, isParallelBuild: Boolean, snapshotParallelBuildTimeoutSeconds: Int): (java.util.Map[String, String], ConcurrentHashMap[String, Long]) = {
     val newSnapMap = Maps.newHashMap[String, String]
     val snapSizeMap = new ConcurrentHashMap[String, Long]
     val fs = HadoopUtil.getWorkingFileSystem
@@ -190,12 +186,12 @@ class SnapshotBuilder extends Logging with Serializable {
 
   }
 
-  def distinctTableDesc(model: NDataModel, seg: NDataSegment, ignoredSnapshotTables: java.util.Set[String]): Set[TableDesc] = {
+  def distinctTableDesc(model: NDataModel, ignoredSnapshotTables: java.util.Set[String]): Set[TableDesc] = {
     val toBuildTableDesc = model.getJoinTables.asScala
       .filter(lookupDesc => {
         val tableDesc = lookupDesc.getTableRef.getTableDesc
         val isLookupTable = model.isLookupTable(lookupDesc.getTableRef)
-        isLookupTable && seg.getSnapshots.get(tableDesc.getIdentity) == null && !isIgnoredSnapshotTable(tableDesc, ignoredSnapshotTables)
+        isLookupTable && !isIgnoredSnapshotTable(tableDesc, ignoredSnapshotTables)
       })
       .map(_.getTableRef.getTableDesc)
       .toSet

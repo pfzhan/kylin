@@ -28,5 +28,4 @@ package org.apache.kylin.job.factory;
 public class JobFactoryConstant {
     final public static String CUBE_JOB_FACTORY = "CUBE_JOB_FACTORY";
     final public static String MERGE_JOB_FACTORY = "MERGE_JOB_FACTORY";
-    final public static String SNAPSHOT_JOB_FACTORY = "SNAPSHOT_JOB_FACTORY";
 }

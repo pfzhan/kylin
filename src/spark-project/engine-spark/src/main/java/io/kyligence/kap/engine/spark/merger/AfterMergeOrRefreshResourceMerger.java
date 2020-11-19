@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.merger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -35,8 +34,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 
 import com.clearspring.analytics.util.Lists;
 
@@ -51,7 +48,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 
 public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
@@ -72,7 +68,6 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         List<NDataSegment> toUpdateSegments = Lists.newArrayList();
         List<NDataLayout> toUpdateCuboids = Lists.newArrayList();
-
         NDataSegment mergedSegment = distDataflow.getSegment(segmentIds.iterator().next());
 
         if (mergedSegment.getStatus() == SegmentStatusEnum.NEW)
@@ -80,18 +75,9 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         toUpdateSegments.add(mergedSegment);
         if (JobTypeEnum.INDEX_REFRESH.equals(jobType)) {
-
-            updateSnapshotTableIfNeed(distDataflow, remoteResourceStore);
-
-            NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
-            for (Map.Entry<String, Long> entry : mergedSegment.getOriSnapshotSize().entrySet()) {
-                TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
-                TableExtDesc originTableExt = metadataManager.getTableExtIfExists(tableDesc);
-                TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
-                tableExtDescCopy.setOriginalSize(entry.getValue());
-                metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
-            }
+            mergeSnapshotMeta(distDataflow, remoteResourceStore);
         }
+
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
         if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
@@ -123,6 +109,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         });
         return update.getToAddOrUpdateLayouts();
     }
+
 
     @Override
     public void merge(AbstractExecutable abstractExecutable) {

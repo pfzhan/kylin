@@ -24,28 +24,22 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.engine.spark.application.SparkApplication;
-import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.query.pushdown.SparkSubmitter;
-import lombok.val;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -67,23 +61,32 @@ import org.apache.spark.sql.datasource.storage.WriteTaskStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.JavaConversions;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
+import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.pushdown.SparkSubmitter;
+import lombok.val;
+import scala.collection.JavaConversions;
 
 public class DFBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
@@ -114,6 +117,8 @@ public class DFBuildJob extends SparkApplication {
         Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream().filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
+        buildSnapshot();
+
         //TODO: what if a segment is deleted during building?
         for (String segId : segmentIds) {
             NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
@@ -127,8 +132,7 @@ public class DFBuildJob extends SparkApplication {
             }
 
             // choose source
-            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true,
-                    getIgnoredSnapshotTables());
+            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
@@ -168,6 +172,17 @@ public class DFBuildJob extends SparkApplication {
         updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
 
         tailingCleanups(segmentIds, persistedFlatTable, persistedViewFactTable);
+    }
+
+    protected void buildSnapshot() throws IOException {
+        String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
+        if (!config.isSnapshotManualManagementEnabled()) {
+            //snapshot building
+            SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
+            snapshotBuilder.buildSnapshot(dfMgr.getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
+        } else {
+            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}", dataflowId);
+        }
     }
 
     private void computeColumnBytes(DFChooser datasetChooser, NDataSegment seg, String dataflowId, String path) {
@@ -356,9 +371,9 @@ public class DFBuildJob extends SparkApplication {
 
     // decided and construct the next layer.
     protected List<NBuildSourceInfo> constructTheNextLayerBuildInfos( //
-                                                                      NSpanningTree st, //
-                                                                      NDataSegment seg, //
-                                                                      Collection<IndexEntity> allIndexesInCurrentLayer) { //
+            NSpanningTree st, //
+            NDataSegment seg, //
+            Collection<IndexEntity> allIndexesInCurrentLayer) { //
 
         val childrenBuildSourceInfos = new ArrayList<NBuildSourceInfo>();
         for (IndexEntity index : allIndexesInCurrentLayer) {
@@ -500,7 +515,6 @@ public class DFBuildJob extends SparkApplication {
             NDataSegment segCopy = dfCopy.getSegment(readOnlySeg.getId());
 
             // reset
-            segCopy.setSnapshotReady(false);
             segCopy.setDictReady(false);
             if (resetFlatTable) {
                 segCopy.setFlatTableReady(false);

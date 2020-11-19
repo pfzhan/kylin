@@ -38,8 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -82,6 +82,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
@@ -168,11 +169,13 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
-        NDataSegment seg = df.copy().getLastSegment();
-        seg.setSnapshots(null);
-        Assert.assertEquals(0, seg.getSnapshots().size());
-        seg = new SnapshotBuilder().buildSnapshot(seg, ss, Sets.newHashSet());
-        Assert.assertEquals(7, seg.getSnapshots().size());
+        new SnapshotBuilder().buildSnapshot(ss, getLookTables(df));
+        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+    }
+
+    private Set<TableDesc> getLookTables(NDataflow df) {
+        return df.getModel().getLookupTables().stream().map(tableRef -> tableRef.getTableDesc())
+                .collect(Collectors.toSet());
     }
 
     @Test
@@ -183,14 +186,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
-        NDataSegment seg = df.copy().getLastSegment();
-        seg.setSnapshots(null);
-        Assert.assertEquals(0, seg.getSnapshots().size());
         //snapshot building cannot be skip when it is null
-        final NDataSegment segBuilded = new SnapshotBuilder().buildSnapshot(seg, ss, ignoredSnapshotTableSet);
-        Assert.assertEquals(7, segBuilded.getOriSnapshotSize().size());
-        Assert.assertEquals(7, segBuilded.getSnapshots().size());
 
+        new SnapshotBuilder().buildSnapshot(df.getModel(), ss, ignoredSnapshotTableSet);
+        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
     }
 
     @Test
@@ -202,22 +201,20 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NDataSegment seg = df.copy().getLastSegment();
-        final Map<String, String> snapshotMappingsBefore = seg.getSnapshots();
-        seg.setSnapshots(null);
-        Assert.assertEquals(0, seg.getSnapshots().size());
+        final Set<TableDesc> lookupTables = df.getModel().getLookupTables().stream()
+                .map(tableRef -> tableRef.getTableDesc()).collect(Collectors.toSet());
         //assert snapshot already exists
+        String mockPath = "default/table_snapshot/mock";
         NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
         ignoredSnapshotTableSet.forEach(ignoredSnapshotTable -> {
-            nTableMetadataManager.getTableDesc(ignoredSnapshotTable)
-                    .setLastSnapshotPath(snapshotMappingsBefore.get(ignoredSnapshotTable));
+            nTableMetadataManager.getTableDesc(ignoredSnapshotTable).setLastSnapshotPath(mockPath);
         });
 
         //snapshot building can be skip when it is not null
-        final NDataSegment segBuilded = new SnapshotBuilder().buildSnapshot(seg, ss, ignoredSnapshotTableSet);
-        Assert.assertTrue(ignoredSnapshotTableSet.stream()
-                .allMatch(tableName -> !segBuilded.getOriSnapshotSize().keySet().contains(tableName)));
-        Assert.assertEquals(5, segBuilded.getOriSnapshotSize().size());
-        Assert.assertEquals(7, segBuilded.getSnapshots().size());
+        new SnapshotBuilder().buildSnapshot(df.getModel(), ss, ignoredSnapshotTableSet);
+        Assert.assertTrue(ignoredSnapshotTableSet.stream().allMatch(
+                tableName -> nTableMetadataManager.getTableDesc(tableName).getLastSnapshotPath().equals(mockPath)));
+        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
 
     }
 
@@ -807,7 +804,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, remoteDf.getSegments().size());
         NDataSegment remoteSegment = remoteDf.getSegments().getFirstSegment();
         Assert.assertTrue(remoteSegment.isFlatTableReady());
-        Assert.assertTrue(remoteSegment.isSnapshotReady());
         Assert.assertTrue(remoteSegment.isDictReady());
         Assert.assertTrue(remoteSegment.isFactViewReady());
         Assert.assertTrue(remoteSegment.getLayout(normalLayoutId).isReady());
@@ -834,7 +830,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, remoteDf.getSegments().size());
         remoteSegment = remoteDf.getSegments().getFirstSegment();
         Assert.assertTrue(remoteSegment.isFlatTableReady());
-        Assert.assertTrue(remoteSegment.isSnapshotReady());
         Assert.assertTrue(remoteSegment.isDictReady());
         Assert.assertTrue(remoteSegment.isFactViewReady());
         Assert.assertTrue(remoteSegment.getLayout(normalLayoutId).isReady());
@@ -855,7 +850,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflow remoteOutDf = NDataflowManager.getInstance(metaOutConf, project).getDataflow(dfId);
         NDataSegment remoteOutSegment = remoteOutDf.getSegments().getFirstSegment();
         Assert.assertFalse(remoteOutSegment.isFlatTableReady());
-        Assert.assertFalse(remoteOutSegment.isSnapshotReady());
         Assert.assertFalse(remoteOutSegment.isDictReady());
         Assert.assertFalse(remoteOutSegment.isFactViewReady());
 

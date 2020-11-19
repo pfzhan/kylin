@@ -24,32 +24,25 @@
 
 package io.kyligence.kap.tool.garbage;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class SnapshotCleaner implements MetadataCleaner {
     private static final Logger logger = LoggerFactory.getLogger(SnapshotCleaner.class);
 
     private String project;
-    private Set<String> staleDataFlowIds = new HashSet<>();
     private Set<String> staleSnapshotPaths = new HashSet<>();
 
     public SnapshotCleaner(String project) {
@@ -57,18 +50,6 @@ public class SnapshotCleaner implements MetadataCleaner {
     }
 
     public void checkStaleSnapshots() {
-        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        for (NDataflow dataFlow : dfMgr.listAllDataflows()) {
-            for (NDataSegment segment : dataFlow.getSegments()) {
-                Set<String> stalePaths = segment.getSnapshots().values().stream()
-                        .filter(snapshotPath -> !snapshotExist(snapshotPath, KapConfig.wrap(segment.getConfig())))
-                        .collect(Collectors.toSet());
-                if (!stalePaths.isEmpty()) {
-                    staleDataFlowIds.add(dataFlow.getId());
-                    staleSnapshotPaths.addAll(stalePaths);
-                }
-            }
-        }
         NTableMetadataManager tMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         tMgr.listAllTables().forEach(tableDesc -> {
             if (!snapshotExist(tableDesc.getLastSnapshotPath(), KapConfig.getInstanceFromEnv())) {
@@ -94,28 +75,6 @@ public class SnapshotCleaner implements MetadataCleaner {
     @Override
     public void cleanup(String project) {
         logger.info("Start to clean snapshot in project {}", project);
-        // remove stale table snapshots from dataflow segments
-        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        for (String staleDataFlowId : staleDataFlowIds) {
-            dfMgr.updateDataflow(staleDataFlowId, copyForWrite -> {
-                Segments<NDataSegment> segments = copyForWrite.getSegments();
-                for (NDataSegment segment : segments) {
-
-                    Map<String, String> validSnapshots = new HashMap<>();
-                    for (Map.Entry<String, String> snapshot : segment.getSnapshots().entrySet()) {
-                        if (staleSnapshotPaths.contains(snapshot.getValue())) {
-                            continue;
-                        }
-                        validSnapshots.put(snapshot.getKey(), snapshot.getValue());
-                    }
-
-                    segment.setSnapshots(validSnapshots);
-                }
-
-                copyForWrite.setSegments(segments);
-            });
-        }
-
         // remove stale snapshot path from tables
         NTableMetadataManager tblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (TableDesc tableDesc : tblMgr.listAllTables()) {

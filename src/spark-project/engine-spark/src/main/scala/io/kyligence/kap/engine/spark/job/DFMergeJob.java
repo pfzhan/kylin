@@ -76,7 +76,7 @@ public class DFMergeJob extends SparkApplication {
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         String newSegmentId = getParam(NBatchConstants.P_SEGMENT_IDS);
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
-        mergeSnapshot(dataflowId, newSegmentId);
+        mergeColumnSize(dataflowId, newSegmentId);
 
         //merge flat table
         try {
@@ -88,7 +88,7 @@ public class DFMergeJob extends SparkApplication {
         mergeSegments(dataflowId, newSegmentId, layoutIds);
     }
 
-    private void mergeSnapshot(String dataflowId, String segmentId) {
+    private void mergeColumnSize(String dataflowId, String segmentId) {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowId);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
@@ -101,7 +101,6 @@ public class DFMergeJob extends SparkApplication {
         NDataflow flowCopy = dataflow.copy();
         NDataSegment segCopy = flowCopy.getSegment(segmentId);
 
-        makeSnapshotForNewSegment(segCopy, mergingSegments);
         mergeColumnSizeForNewSegment(segCopy, mergingSegments);
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
         update.setToUpdateSegs(segCopy);
@@ -127,14 +126,6 @@ public class DFMergeJob extends SparkApplication {
             result.put(entry.getKey(), oriSize + entry.getValue());
         }
     }
-
-    private void makeSnapshotForNewSegment(NDataSegment newSeg, List<NDataSegment> mergingSegments) {
-        NDataSegment lastSeg = mergingSegments.get(mergingSegments.size() - 1);
-        for (Map.Entry<String, String> entry : lastSeg.getSnapshots().entrySet()) {
-            newSeg.putSnapshotResPath(entry.getKey(), entry.getValue());
-        }
-    }
-
     protected List<NDataSegment> getMergingSegments(NDataflow dataflow, NDataSegment mergedSeg) {
         return dataflow.getMergingSegments(mergedSeg);
     }

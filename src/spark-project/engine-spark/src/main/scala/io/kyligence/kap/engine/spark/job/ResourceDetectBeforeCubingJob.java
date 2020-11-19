@@ -79,7 +79,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 logger.info("Skip empty segment {}", segId);
                 continue;
             }
-            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, false, getIgnoredSnapshotTables());
+            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, false);
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             if (buildFromFlatTable != null) {

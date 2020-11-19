@@ -808,6 +808,12 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReload_AddColumn() throws Exception {
+        String mockPath = "default/table_snapshot/mock";
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_COUNTRY");
+        tableDesc.setLastSnapshotPath(mockPath);
+        tableMetadataManager.updateTableDesc(tableDesc);
+
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
 
@@ -817,7 +823,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val dataflow1 = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
-        Assert.assertNotNull(dataflow1.getLatestReadySegment().getSnapshots().get("DEFAULT.TEST_COUNTRY"));
+        Assert.assertNotNull(NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getTableDesc("DEFAULT.TEST_COUNTRY").getLastSnapshotPath());
 
         val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getTableDesc("DEFAULT.TEST_COUNTRY");
@@ -830,7 +837,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(originMaxId + 2, maxId);
 
         val dataflow2 = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
-        Assert.assertNull(dataflow2.getLatestReadySegment().getSnapshots().get("DEFAULT.TEST_COUNTRY"));
+        Assert.assertNull(NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
+                .getTableDesc("DEFAULT.TEST_COUNTRY").getLastSnapshotPath());
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");
@@ -843,7 +851,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         addColumn("DEFAULT.TEST_KYLIN_FACT", true, new ColumnDesc("", "DEAL_YEAR", "int", "", "", "", null));
 
-        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT,
+                "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertTrue(response.isHasDatasourceChanged());
         Assert.assertTrue(response.isHasDuplicatedColumns());
         Assert.assertEquals(1, response.getDuplicatedColumns().size());
@@ -868,7 +877,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         job1.setJobType(JobTypeEnum.TABLE_SAMPLING);
         executableManager.addJob(job1);
 
-        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT, "DEFAULT.TEST_ORDER");
+        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT,
+                "DEFAULT.TEST_ORDER");
         Assert.assertTrue(response.isHasEffectedJobs());
         Assert.assertEquals(1, response.getEffectedJobs().size());
 

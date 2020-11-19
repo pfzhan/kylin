@@ -47,8 +47,7 @@ class DFChooser(toBuildTree: NSpanningTree,
                 jobId: String,
                 ss: SparkSession,
                 config: KylinConfig,
-                needEncoding: Boolean,
-                ignoredSnapshotTables: java.util.Set[String])
+                needEncoding: Boolean)
   extends Logging {
   var reuseSources: java.util.Map[java.lang.Long, NBuildSourceInfo] =
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
@@ -72,15 +71,6 @@ class DFChooser(toBuildTree: NSpanningTree,
           }
         } else {
           if (flatTableSource == null) {
-            if (needEncoding) {
-              if (seg.isSnapshotReady) {
-                logInfo(s"Skip already built snapshot, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
-              } else if (config.isSnapshotManualManagementEnabled()) {
-                logInfo(s"Skip snapshot build in snapshot manual mode, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
-              } else {
-                new SnapshotBuilder().buildSnapshot(seg, ss, ignoredSnapshotTables)
-              }
-            }
             flatTableSource = getFlatTable()
           }
           flatTableSource.addCuboid(desc)
@@ -268,8 +258,7 @@ object DFChooser extends Logging {
       jobId,
       ss: SparkSession,
       config: KylinConfig,
-      needEncoding,
-        ignoredSnapshotTables)
+      needEncoding)
 
   val FLAT_TABLE_FLAG: Long = -1L
 

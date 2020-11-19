@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -50,6 +48,8 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -130,7 +130,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     private transient NDataSegDetails segDetails; // transient, not required by spark cubing
     private transient Map<Long, NDataLayout> layoutsMap = Collections.emptyMap(); // transient, not required by spark cubing
-    
 
     public NDataSegment() {
     }
@@ -143,7 +142,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.segmentRange = other.segmentRange;
         this.timeRange = other.timeRange;
         this.dictionaries = other.dictionaries;
-        this.snapshots = other.snapshots;
         this.lastBuildTime = other.lastBuildTime;
         this.sourceCount = other.sourceCount;
         this.additionalInfo = other.additionalInfo;
@@ -185,7 +183,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     @Override
     public SegmentRange.KafkaOffsetPartitionedSegmentRange getKSRange() {
-        if (segmentRange instanceof  SegmentRange.KafkaOffsetPartitionedSegmentRange) {
+        if (segmentRange instanceof SegmentRange.KafkaOffsetPartitionedSegmentRange) {
             return (SegmentRange.KafkaOffsetPartitionedSegmentRange) segmentRange;
         }
         return null;
@@ -364,18 +362,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.dictionaries = dictionaries;
     }
 
-    public Map<String, String> getSnapshots() {
-        if (snapshots == null)
-            snapshots = Maps.newConcurrentMap();
-
-        return isCachedAndShared() ? ImmutableMap.copyOf(snapshots) : snapshots;
-    }
-
-    public void setSnapshots(Map<String, String> snapshots) {
-        checkIsNotCachedAndShared();
-        this.snapshots = snapshots;
-    }
-
     public long getCreateTimeUTC() {
         return createTimeUTC;
     }
@@ -450,10 +436,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
             throw new IllegalStateException();
     }
 
-    public void putSnapshotResPath(String table, String snapshotResPath) {
-        getSnapshots().put(table, snapshotResPath);
-    }
-
     public long getStorageBytesSize() {
         if (storageSize == null) {
             long size = 0;
@@ -478,8 +460,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         return storageFileCount;
     }
 
-    public boolean isAlreadyBuilt(long layoutId){
-        if (Objects.nonNull(layoutsMap) && layoutsMap.containsKey(layoutId)){
+    public boolean isAlreadyBuilt(long layoutId) {
+        if (Objects.nonNull(layoutsMap) && layoutsMap.containsKey(layoutId)) {
             return layoutsMap.get(layoutId).isReady();
         }
         return false;
@@ -554,7 +536,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         return "NDataSegment [" + dataflow.getUuid() + "," + id + "," + segmentRange + "]";
     }
 
-    public String displayIdName(){
+    public String displayIdName() {
         return String.format("[id:%s,name:%s]", id, name);
     }
 }

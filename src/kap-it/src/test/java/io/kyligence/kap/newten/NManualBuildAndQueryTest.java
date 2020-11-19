@@ -27,6 +27,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -34,6 +35,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -41,6 +43,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
@@ -344,7 +347,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
                 SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
         //Assert.assertEquals(27, firstSegment.getDictionaries().size());
-        Assert.assertEquals(7, firstSegment.getSnapshots().size());
+
+        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+    }
+    private Set<TableDesc> getLookTables(NDataflow df) {
+        return df.getModel().getLookupTables().stream().map(tableRef -> tableRef.getTableDesc()).collect(Collectors.toSet());
     }
 
     private void buildFourSegementAndMerge(String dfName) throws Exception {
@@ -448,8 +455,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
         //Assert.assertEquals(31, firstSegment.getDictionaries().size());
         //Assert.assertEquals(31, secondSegment.getDictionaries().size());
-        Assert.assertEquals(7, firstSegment.getSnapshots().size());
-        Assert.assertEquals(7, secondSegment.getSnapshots().size());
+        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+
     }
 
     private void verifyCuboidMetrics(Map<Long, NDataLayout> cuboidsMap, Map<Long, Long[]> compareTuples) {

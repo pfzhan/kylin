@@ -369,10 +369,6 @@ public class StorageCleaner {
                 activeDictTableDir.add(getDictDir(project) + "/" + table.getIdentity());
             });
 
-            val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream()
-                    .flatMap(segment -> segment.getSnapshots().values().stream()).forEach(activeSnapshotDir::add));
-
             for (StorageCleaner.StorageItem item : allFileSystems) {
                 item.getProject(project).getGlobalDictTables()
                         .removeIf(node -> activeDictTableDir.contains(node.getRelativePath()));
