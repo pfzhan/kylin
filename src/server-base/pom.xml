@@ -195,6 +195,10 @@
                     <groupId>xerces</groupId>
                     <artifactId>xercesImpl</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-ext-jdk15on</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -255,6 +259,12 @@
             <version>${poi.version}</version>
         </dependency>
 
+        <!--   spring security     -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-ext-jdk15on</artifactId>
+            <version>${bcprov-ext-jdk15on.version}</version>
+        </dependency>
 
         <!-- Test & Env -->
         <dependency>
