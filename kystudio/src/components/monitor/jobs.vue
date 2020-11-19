@@ -245,7 +245,7 @@
 
               <div class="timeline-item timer-line">
                 <div class="timeline-header ">
-                  <p class="stepname single-line">{{step.name}}</p>
+                  <p class="stepname single-line">{{getStepLineName(step.name)}}</p>
                 </div>
                 <div class="timeline-body">
                   <span class="steptime jobActivityLabel" v-if="step.exec_start_time && step.exec_end_time">
@@ -462,7 +462,14 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       unknow: 'Unknown',
       snapshotDisableTips: 'Snapshot management is not enabled.',
       snapshotIsDeleted: 'The snapshot is deleted',
-      modelIsDeleted: 'The model is deleted'
+      modelIsDeleted: 'The model is deleted',
+      detectResource: 'Detect Resource',
+      loadDataToIndex: 'Load Data To Index',
+      updateMetadata: 'Update Metadata',
+      mergeSegmentData: 'Merge Segment Data',
+      cleanUpOldSegment: 'Clean Up Old Segment',
+      tableSampling: 'Table Sampling',
+      buildSnapshot: 'Build Snapshot'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -548,10 +555,18 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       unknow: '未知',
       snapshotDisableTips: '管理快照未开启',
       snapshotIsDeleted: '该快照已被删除',
-      modelIsDeleted: '该模型已被删除'
+      modelIsDeleted: '该模型已被删除',
+      detectResource: '检测资源',
+      loadDataToIndex: '加载数据到索引',
+      updateMetadata: '更新元数据',
+      mergeSegmentData: '合并 Segment 数据',
+      cleanUpOldSegment: '清理旧 Segment',
+      tableSampling: '表抽样',
+      buildSnapshot: '构建快照'
     }
   }
 })
+
 export default class JobsList extends Vue {
   pageRefTags = pageRefTags
   project = localStorage.getItem('selected_project')
@@ -644,14 +659,20 @@ export default class JobsList extends Vue {
     this.waitingJob.modelName = this.waittingJobModels.data[uuid].model_alias
     // this.getWaittingJobs()
   }
-  // getWaittingJobs () {
-  //   this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
-  //     handleSuccess(res, (data) => {
-  //       this.waitingJob.jobsList = data.value
-  //       this.waitingJob.jobsSize = data.total_size
-  //     })
-  //   })
-  // }
+
+  getStepLineName (name) {
+    const stepMap = {
+      'Detect Resource': this.$t('detectResource'),
+      'Load Data To Index': this.$t('loadDataToIndex'),
+      'Merge Segment Data': this.$t('mergeSegmentData'),
+      'Clean Up Old Segment': this.$t('cleanUpOldSegment'),
+      'Update Metadata': this.$t('updateMetadata'),
+      'Table Sampling': this.$t('tableSampling'),
+      'Build Snapshot': this.$t('buildSnapshot')
+    }
+    return stepMap[name]
+  }
+
   getTargetSubject (row) {
     if (row.target_subject === 'The snapshot is deleted') {
       return this.$t('snapshotIsDeleted')
