@@ -34,6 +34,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +53,9 @@ public class SnapshotCleaner implements MetadataCleaner {
     public void checkStaleSnapshots() {
         NTableMetadataManager tMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         tMgr.listAllTables().forEach(tableDesc -> {
-            if (!snapshotExist(tableDesc.getLastSnapshotPath(), KapConfig.getInstanceFromEnv())) {
-                staleSnapshotPaths.add(tableDesc.getLastSnapshotPath());
+            String snapshotPath = tableDesc.getLastSnapshotPath();
+            if (snapshotPath != null && !snapshotExist(snapshotPath, KapConfig.getInstanceFromEnv())) {
+                staleSnapshotPaths.add(snapshotPath);
             }
         });
     }
@@ -80,6 +82,12 @@ public class SnapshotCleaner implements MetadataCleaner {
         for (TableDesc tableDesc : tblMgr.listAllTables()) {
             if (staleSnapshotPaths.contains(tableDesc.getLastSnapshotPath())) {
                 TableDesc copy = tblMgr.copyForWrite(tableDesc);
+                TableExtDesc ext = tblMgr.getTableExtIfExists(tableDesc);
+                if (ext != null) {
+                    TableExtDesc extCopy = tblMgr.copyForWrite(ext);
+                    extCopy.setOriginalSize(-1);
+                    tblMgr.mergeAndUpdateTableExt(ext, extCopy);
+                }
                 copy.setLastSnapshotPath(null);
                 tblMgr.updateTableDesc(copy);
             }

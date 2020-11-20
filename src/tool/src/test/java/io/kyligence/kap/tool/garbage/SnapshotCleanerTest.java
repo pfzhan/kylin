@@ -92,6 +92,8 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
 
         // assert that snapshots are cleared
         Assert.assertTrue(Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
+        Assert.assertEquals(-1, tableMetadataManager.getOrCreateTableExt(tableName).getOriginalSize());
     }
+
 
 }
