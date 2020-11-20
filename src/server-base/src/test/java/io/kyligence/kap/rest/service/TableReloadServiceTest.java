@@ -807,6 +807,24 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testReload_addColumn_blacklistNotEmpty() throws Exception {
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        val dataflow1 = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
+        int layoutSize = dataflow1.getIndexPlan().getRuleBaseLayouts().size();
+
+        NIndexPlanManager indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        indexManager.updateIndexPlan(dataflow1.getIndexPlan().getId(), copyForWrite -> {
+            copyForWrite.addRuleBasedBlackList(Lists.newArrayList(1070001L));
+        });
+        addColumn("DEFAULT.TEST_KYLIN_FACT", true, new ColumnDesc("", "newColumn", "int", "", "", "", null));
+
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+
+        Assert.assertEquals(layoutSize - 1, dataflowManager.getDataflowByModelAlias("nmodel_basic_inner").getIndexPlan()
+                .getRuleBaseLayouts().size());
+    }
+
+    @Test
     public void testReload_AddColumn() throws Exception {
         String mockPath = "default/table_snapshot/mock";
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);

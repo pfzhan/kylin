@@ -1144,8 +1144,8 @@ public class TableService extends BasicService {
         result.setRemoveDimCount(context.getRemoveAffectedModels().values().stream()
                 .map(AffectedModelContext::getDimensions).mapToLong(Set::size).sum());
         result.setDataTypeChangeColumnCount(context.getChangeTypeColumns().size());
-        val schemaChanged = result.getAddColumnCount() > 0 || result.getRemoveColumnCount() > 0 ||
-                result.getDataTypeChangeColumnCount() > 0;
+        val schemaChanged = result.getAddColumnCount() > 0 || result.getRemoveColumnCount() > 0
+                || result.getDataTypeChangeColumnCount() > 0;
         result.setSnapshotDeleted(schemaChanged);
         val projectInstance = getProjectManager().getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
@@ -1174,15 +1174,16 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows,
-            boolean needBuild) {
+    public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
+            int maxRows, boolean needBuild) {
         aclEvaluate.checkProjectWritePermission(projectName);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Pair<String, List<String>> pair = new Pair<>();
             List<String> buildingJobs = innerReloadTable(projectName, tableIdentity, needBuild);
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
-                List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows);
+                List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName,
+                        maxRows);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     pair.setFirst(jobIds.get(0));
                 }
@@ -1238,8 +1239,8 @@ public class TableService extends BasicService {
                 .map(TableRef::getTableIdentity).anyMatch(tableIdentity::equalsIgnoreCase)).collect(Collectors.toSet());
     }
 
-    List<String> updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context, boolean needBuild)
-            throws Exception {
+    List<String> updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context,
+            boolean needBuild) throws Exception {
         val removeAffectedModel = context.getRemoveAffectedModel(project.getName(), model.getId());
         val changeTypeAffectedModel = context.getChangeTypeAffectedModel(project.getName(), model.getId());
 
@@ -1251,7 +1252,8 @@ public class TableService extends BasicService {
             return Lists.newArrayList();
         }
 
-        List<String> jobs = cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel), needBuild);
+        List<String> jobs = cleanIndexPlan(projectName, model,
+                Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel), needBuild);
 
         getOptRecManagerV2(projectName).discardAll(model.getId());
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
@@ -1271,7 +1273,11 @@ public class TableService extends BasicService {
             return Lists.newArrayList();
         }
 
-        List<String> jobs = cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel), needBuild);
+        List<String> jobs = Lists.newArrayList();
+        if (!(context.getRemoveColumns().isEmpty() && context.getChangeTypeColumns().isEmpty())) {
+            jobs.addAll(cleanIndexPlan(projectName, model,
+                    Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel), needBuild));
+        }
 
         getOptRecManagerV2(projectName).discardAll(model.getId());
 
@@ -1337,7 +1343,8 @@ public class TableService extends BasicService {
         request.setProject(projectName);
     }
 
-    List<String> cleanIndexPlan(String projectName, NDataModel model, List<AffectedModelContext> affectedModels, boolean needBuild) {
+    List<String> cleanIndexPlan(String projectName, NDataModel model, List<AffectedModelContext> affectedModels,
+            boolean needBuild) {
         List<String> buildIndexResponseList = Lists.newArrayList();
         for (AffectedModelContext context : affectedModels) {
             BuildIndexResponse buildIndexResponse = cleanIndexPlan(projectName, model, context, needBuild);
@@ -1348,7 +1355,8 @@ public class TableService extends BasicService {
         return buildIndexResponseList;
     }
 
-    private BuildIndexResponse cleanIndexPlan(String projectName, NDataModel model, AffectedModelContext affectedModel, boolean needBuild) {
+    private BuildIndexResponse cleanIndexPlan(String projectName, NDataModel model, AffectedModelContext affectedModel,
+            boolean needBuild) {
         val indexManager = getIndexPlanManager(projectName);
         val indexPlan = indexManager.getIndexPlan(model.getId());
 
