@@ -38,17 +38,23 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.rest.util;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 @Component("aclEvaluate")
 public class AclEvaluate {
@@ -56,7 +62,18 @@ public class AclEvaluate {
     private AclUtil aclUtil;
 
     private ProjectInstance getProjectInstance(String projectName) {
-        return NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(projectName);
+        Message msg = MsgPicker.getMsg();
+        if (StringUtils.isEmpty(projectName)) {
+            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
+        }
+
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance prjInstance = projectManager.getProject(projectName);
+        if (prjInstance == null) {
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), projectName));
+        }
+        return prjInstance;
     }
 
     //for raw project

@@ -336,7 +336,10 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGlobalBasic() throws IOException {
-        Mockito.doReturn(mockProjects()).when(jobService).getReadableProjects();
+        ProjectInstance defaultProject = new ProjectInstance();
+        defaultProject.setName("default");
+        defaultProject.setMvcc(0);
+        Mockito.doReturn(Lists.newArrayList(defaultProject)).when(jobService).getReadableProjects();
 
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
