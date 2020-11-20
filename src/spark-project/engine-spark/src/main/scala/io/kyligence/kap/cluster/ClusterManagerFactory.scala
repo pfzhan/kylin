@@ -34,7 +34,7 @@ object ClusterManagerFactory {
   val pool: ExecutorService = Executors.newCachedThreadPool
 
   def create(kylinConfig: KylinConfig): IClusterManager = {
-    val timeLimiter = new SimpleTimeLimiter(pool)
+    val timeLimiter = SimpleTimeLimiter.create(pool)
     val target = KylinReflectUtils.createObject(kylinConfig.getClusterManagerClassName)._1.asInstanceOf[IClusterManager]
 
     timeLimiter.newProxy(target, classOf[IClusterManager], kylinConfig.getClusterManagerTimeoutThreshold, TimeUnit.SECONDS);

@@ -112,10 +112,11 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <scope>compile</scope>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-external-guava20</artifactId>
+            <version>${project.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
@@ -180,7 +181,6 @@
                                     <include>org.apache.commons:commons-dbcp2</include>
                                     <include>org.apache.commons:commons-lang3</include>
                                     <include>org.apache.commons:commons-pool2</include>
-                                    <include>com.google.guava:guava</include>
                                     <include>org.postgresql:postgresql</include>
                                     <include>com.fasterxml.jackson.core:*</include>
                                     <include>org.springframework:*</include>
@@ -197,10 +197,6 @@
                                 </includes>
                             </artifactSet>
                             <relocations>
-                                <relocation>
-                                    <pattern>com.google.common</pattern>
-                                    <shadedPattern>${shadeBase}.com.google.common</shadedPattern>
-                                </relocation>
                                 <relocation>
                                     <pattern>org.apache.commons.cli</pattern>
                                     <shadedPattern>${shadeBase}.org.apache.commons.cli</shadedPattern>
