@@ -2136,6 +2136,7 @@ public class ModelService extends BasicService {
                 new IncrementBuildSegmentParams(project, modelId, start, end, partitionDesc, segmentHoles, true));
     }
 
+    @Transaction(project = 0)
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds, boolean parallelBuildBySegment) {
         aclEvaluate.checkProjectOperationPermission(project);
