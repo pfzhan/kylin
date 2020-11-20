@@ -22,5 +22,5 @@
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
-select ifnull(sum(ID4),0)
+select ifnull(sum(ID4),0), nvl(sum(ID4),0)
 from TEST_MEASURE

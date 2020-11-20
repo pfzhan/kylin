@@ -181,6 +181,8 @@ object ExpressionConverter {
             isnull(k_lit(children.head))
           case "ifnull" =>
             new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
+          case "nvl" =>
+            new Column(new IfNull(k_lit(children.head).expr, k_lit(children.apply(1)).expr))
           // string_funcs
           case "lower" => lower(k_lit(children.head))
           case "upper" => upper(k_lit(children.head))

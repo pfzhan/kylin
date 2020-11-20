@@ -22,6 +22,6 @@
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
-select ifnull(ID2,123)
+select ifnull(ID2,123), nvl(ID2,123)
 from TEST_MEASURE
 group by ID2
