@@ -201,7 +201,7 @@ public class SparkSourceService extends BasicService {
             }
             tableDesc.put(table, DdlOperation.getTableDesc(database, table));
         }
-        tableResponse.setDatabases(database);
+        tableResponse.setDatabase(database);
         tableResponse.setTables(tableDesc);
         return tableResponse;
     }

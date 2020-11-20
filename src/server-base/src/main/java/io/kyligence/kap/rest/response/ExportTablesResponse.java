@@ -34,8 +34,8 @@ import lombok.Data;
 @Data
 public class ExportTablesResponse {
 
-    @JsonProperty("databases")
-    private String databases;
+    @JsonProperty("database")
+    private String database;
 
     @JsonProperty("tables")
     private Map<String, String> tables = Maps.newHashMap();
