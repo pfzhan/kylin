@@ -2059,12 +2059,25 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-batch-size", "1000"));
     }
 
+    public int getQueryHistoryStatMetaUpdateBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.query.query-history-stat-batch-size", "1000"));
+    }
+
     public int getQueryHistoryAccelerateMaxSize() {
         return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-max-size", "100000"));
     }
 
+    public int getQueryHistoryStatMetaUpdateMaxSize() {
+        return Integer.parseInt(this.getOptional("kylin.query.query-history-stat-update-max-size", "100000"));
+    }
+
     public long getQueryHistoryAccelerateInterval() {
         return TimeUtil.timeStringAs(this.getOptional("kylin.favorite.query-history-accelerate-interval", "60m"),
+                TimeUnit.MINUTES);
+    }
+
+    public long getQueryHistoryStatMetaUpdateInterval() {
+        return TimeUtil.timeStringAs(this.getOptional("kylin.query.query-history-stat-interval", "30m"),
                 TimeUnit.MINUTES);
     }
 

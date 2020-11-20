@@ -44,7 +44,7 @@ import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import io.kyligence.kap.rest.util.InitUserGroupUtils;
 import lombok.val;
@@ -79,7 +79,7 @@ public class EpochChangedListener implements IKeep {
                     throw new RuntimeException("Scheduler for " + project + " has not been started");
                 }
 
-                QueryHistoryAccelerateScheduler qhAccelerateScheduler = QueryHistoryAccelerateScheduler
+                QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler
                         .getInstance(project);
                 qhAccelerateScheduler.init();
 
@@ -109,7 +109,7 @@ public class EpochChangedListener implements IKeep {
             log.info("Shutdown related thread: {}", project);
             try {
                 NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
-                QueryHistoryAccelerateScheduler.shutdownByProject(project);
+                QueryHistoryTaskScheduler.shutdownByProject(project);
                 NDefaultScheduler.shutdownByProject(project);
             } catch (Exception e) {
                 log.warn("error when shutdown " + project + " thread", e);

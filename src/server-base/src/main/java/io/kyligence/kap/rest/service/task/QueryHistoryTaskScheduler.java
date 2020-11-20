@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -69,9 +70,9 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class QueryHistoryAccelerateScheduler {
+public class QueryHistoryTaskScheduler {
 
-    private ScheduledExecutorService queryHistoryAccelerateScheduler;
+    private ScheduledExecutorService taskScheduler;
     private boolean hasStarted;
     @VisibleForTesting
     RDBMSQueryHistoryDAO queryHistoryDAO;
@@ -81,9 +82,9 @@ public class QueryHistoryAccelerateScheduler {
     private final String project;
     private long epochId;
 
-    private static final Map<String, QueryHistoryAccelerateScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
+    private static final Map<String, QueryHistoryTaskScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
-    public QueryHistoryAccelerateScheduler(String project) {
+    public QueryHistoryTaskScheduler(String project) {
         this.project = project;
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
@@ -91,8 +92,8 @@ public class QueryHistoryAccelerateScheduler {
         log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
-    public static QueryHistoryAccelerateScheduler getInstance(String project) {
-        return INSTANCE_MAP.computeIfAbsent(project, QueryHistoryAccelerateScheduler::new);
+    public static QueryHistoryTaskScheduler getInstance(String project) {
+        return INSTANCE_MAP.computeIfAbsent(project, QueryHistoryTaskScheduler::new);
     }
 
     public void init() {
@@ -104,17 +105,20 @@ public class QueryHistoryAccelerateScheduler {
             this.epochId = epochManager.getEpoch(projectInstance.getName()).getEpochId();
         }
 
-        queryHistoryAccelerateScheduler = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("QueryHistoryAccelerateWorker(project:" + project + ")"));
-        queryHistoryAccelerateScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(false), 0,
+        taskScheduler = Executors.newScheduledThreadPool(1,
+                new NamedThreadFactory("QueryHistoryWorker(project:" + project + ")"));
+        taskScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(false), 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
+        taskScheduler.scheduleWithFixedDelay(new QueryHistoryMetaUpdateRunner(), 0,
+                KylinConfig.getInstanceFromEnv().getQueryHistoryStatMetaUpdateInterval(), TimeUnit.MINUTES);
+
         hasStarted = true;
         AsyncTaskManager.resetAccelerationTagMap(project);
-        log.info("Query history accelerate scheduler is started for [{}] ", project);
+        log.info("Query history task scheduler is started for [{}] ", project);
     }
 
-    public Future<?> scheduleImmediately(QueryHistoryAccelerateRunner runner) {
-        return queryHistoryAccelerateScheduler.schedule(runner, 10L, TimeUnit.SECONDS);
+    public Future scheduleImmediately(QueryHistoryTask runner) {
+        return taskScheduler.schedule(runner, 10L, TimeUnit.SECONDS);
     }
 
     public boolean hasStarted() {
@@ -123,8 +127,8 @@ public class QueryHistoryAccelerateScheduler {
 
     private void shutdown() {
         log.info("Shutting down QueryHistoryAccelerateScheduler ....");
-        if (queryHistoryAccelerateScheduler != null) {
-            ExecutorServiceUtil.forceShutdown(queryHistoryAccelerateScheduler);
+        if (taskScheduler != null) {
+            ExecutorServiceUtil.forceShutdown(taskScheduler);
         }
     }
 
@@ -142,63 +146,35 @@ public class QueryHistoryAccelerateScheduler {
         return ((AsyncAccelerationTask) task).isAlreadyRunning();
     }
 
-    private static synchronized QueryHistoryAccelerateScheduler getInstanceByProject(String project) {
+    private static synchronized QueryHistoryTaskScheduler getInstanceByProject(String project) {
         return INSTANCE_MAP.get(project);
     }
 
-    public class QueryHistoryAccelerateRunner implements Runnable {
-        @Getter
-        private final boolean isManual;
+    public class QueryHistoryMetaUpdateRunner extends QueryHistoryTask {
 
-        public QueryHistoryAccelerateRunner(boolean isManual) {
-            this.isManual = isManual;
+        @Override
+        protected String name() {
+            return "metaUpdate";
         }
 
         @Override
-        public void run() {
-            try {
-                if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-                    return;
-                }
-                if (!KylinConfig.getInstanceFromEnv().isUTEnv()
-                        && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
-                    shutdownByProject(project);
-                    return;
-                }
+        protected List<QueryHistory> getQueryHistories(int batchSize) {
+            QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
+            return queryHistoryDAO.queryQueryHistoriesByIdOffset(
+                    qhIdOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset(), batchSize, project);
 
-                QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), project);
-
-                int accelerateBatchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
-                int accelerateMaxSize = isManual() //
-                        ? KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize()
-                        : KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
-                int acceleratedCounts = 0;
-
-                while (true) {
-                    List<QueryHistory> queryHistories = queryHistoryDAO.queryQueryHistoriesByIdOffset(
-                            qhIdOffsetManager.get().getQueryHistoryIdOffset(), accelerateBatchSize, project);
-                    acceleratedCounts = acceleratedCounts + queryHistories.size();
-                    if (!isManual() && QueryHistoryAccelerateScheduler.getInstance(project).isInterruptByUser()) {
-                        log.info("QueryHistory acceleration process of project({}) Interrupt by user", project);
-                        break;
-                    }
-                    accelerateAndUpdateMetadata(queryHistories);
-                    log.debug("handled 1000 query history, query history id offset is updated to: {}",
-                            qhIdOffsetManager.get().getQueryHistoryIdOffset());
-                    if (queryHistories.size() < accelerateBatchSize || acceleratedCounts >= accelerateMaxSize) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("QueryHistory acceleration process failed of project({})", project, e);
-            }
         }
 
-        private void accelerateAndUpdateMetadata(List<QueryHistory> queryHistories) {
-            if (CollectionUtils.isEmpty(queryHistories)) {
-                return;
-            }
+        @Override
+        public void work() {
+            int maxSize = KylinConfig.getInstanceFromEnv().getQueryHistoryStatMetaUpdateMaxSize();
+            int batchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryStatMetaUpdateBatchSize();
+            batchHandle(batchSize, maxSize, this::updateStatMeta);
+        }
+
+        private void updateStatMeta(List<QueryHistory> queryHistories) {
+
             int numOfQueryHitIndex = 0;
             int overallQueryNum = 0;
             long maxId = 0;
@@ -217,14 +193,6 @@ public class QueryHistoryAccelerateScheduler {
                     maxId = queryHistory.getId();
                 }
             }
-
-            // accelerate
-            List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
-            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
-                    idToQHInfoList);
-            queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
-            rawRecService.generateRawRecommendations(project, matchedCandidate, isManual());
-
             // count snapshot hit
             val hitSnapshotCountMap = collectSnapshotHitCount(queryHistories);
 
@@ -254,7 +222,7 @@ public class QueryHistoryAccelerateScheduler {
                 // update id offset
                 QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
                         .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-                queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
+                queryHistoryIdOffset.setQueryHistoryStatMetaUpdateIdOffset(maxId);
                 QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
 
                 // update snpashot hit count
@@ -351,8 +319,137 @@ public class QueryHistoryAccelerateScheduler {
 
     }
 
+    public class QueryHistoryAccelerateRunner extends QueryHistoryTask {
+        @Getter
+        private final boolean isManual;
+
+        public QueryHistoryAccelerateRunner(boolean isManual) {
+            this.isManual = isManual;
+        }
+
+        @Override
+        protected String name() {
+            return "queryAcc";
+        }
+
+        @Override
+        protected boolean isInterrupted() {
+            if (!isManual() && QueryHistoryTaskScheduler.getInstance(project).isInterruptByUser()) {
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        protected List<QueryHistory> getQueryHistories(int batchSize) {
+            QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
+            return queryHistoryDAO.queryQueryHistoriesByIdOffset(qhIdOffsetManager.get().getQueryHistoryIdOffset(),
+                    batchSize, project);
+        }
+
+        @Override
+        public void work() {
+            if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
+                return;
+            }
+
+            int batchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
+            int maxSize = isManual() //
+                    ? KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize()
+                    : KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
+            batchHandle(batchSize, maxSize, this::accelerateAndUpdateMetadata);
+
+        }
+
+        private void accelerateAndUpdateMetadata(List<QueryHistory> queryHistories) {
+            if (CollectionUtils.isEmpty(queryHistories)) {
+                return;
+            }
+            // accelerate
+            List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
+            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
+                    idToQHInfoList);
+            queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
+            rawRecService.generateRawRecommendations(project, matchedCandidate, isManual());
+
+            long maxId = 0;
+            for (QueryHistory queryHistory : queryHistories) {
+                if (queryHistory.getId() > maxId) {
+                    maxId = queryHistory.getId();
+                }
+            }
+            updateIdOffset(maxId);
+        }
+
+        private void updateIdOffset(long maxId) {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                KylinConfig config = KylinConfig.getInstanceFromEnv();
+
+                // update id offset
+                QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
+                queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
+                QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
+                return 0;
+            }, project);
+
+        }
+
+    }
+
+    private abstract class QueryHistoryTask implements Runnable {
+
+        protected abstract String name();
+
+        public void batchHandle(int batchSize, int maxSize, Consumer<List<QueryHistory>> consumer) {
+            if (!(maxSize > 0 && batchSize > 0 && maxSize >= batchSize)) {
+                throw new IllegalArgumentException(
+                        String.format("%s task, batch size: %d , maxsize: %d is illegal", name(), batchSize, maxSize));
+            }
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv()
+                    && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                shutdownByProject(project);
+                return;
+            }
+            int finishNum = 0;
+            while (true) {
+                List<QueryHistory> queryHistories = getQueryHistories(batchSize);
+                finishNum = finishNum + queryHistories.size();
+                if (isInterrupted()) {
+                    break;
+                }
+                if (!queryHistories.isEmpty()) {
+                    consumer.accept(queryHistories);
+                }
+                log.debug("{} handled  {} query history", name(), queryHistories.size());
+                if (queryHistories.size() < batchSize || finishNum >= maxSize) {
+                    break;
+                }
+            }
+        }
+
+        protected boolean isInterrupted() {
+            return false;
+        }
+
+        protected abstract List<QueryHistory> getQueryHistories(int batchSize);
+
+        @Override
+        public void run() {
+            try {
+                work();
+            } catch (Exception e) {
+                log.warn("QueryHistory {}  process failed of project({})", name(), project, e);
+            }
+        }
+
+        protected abstract void work();
+
+    }
+
     @Data
-    static class DataflowHitCount {
+    private static class DataflowHitCount {
 
         Map<Long, FrequencyMap> layoutHits = Maps.newHashMap();
 

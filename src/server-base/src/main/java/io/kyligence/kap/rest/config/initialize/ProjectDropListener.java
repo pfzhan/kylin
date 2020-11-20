@@ -36,7 +36,7 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,7 +52,7 @@ public class ProjectDropListener {
             NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             RawRecManager.getInstance(project).deleteByProject(project);
-            QueryHistoryAccelerateScheduler.shutdownByProject(project);
+            QueryHistoryTaskScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);
 
             MetricsGroup.removeProjectMetrics(project);

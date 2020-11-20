@@ -56,7 +56,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
-import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
@@ -89,7 +89,7 @@ public class RawRecService {
 
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, ArrayListMultimap.create(),
                 nonLayoutRecItemMap);
-        if (QueryHistoryAccelerateScheduler.getInstance(semiContextV2.getProject()).isInterruptByUser()) {
+        if (QueryHistoryTaskScheduler.getInstance(semiContextV2.getProject()).isInterruptByUser()) {
             throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
         }
         saveLayoutRawRecItems(layoutRecItems, semiContextV2.getProject());
@@ -124,7 +124,8 @@ public class RawRecService {
         }
 
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap, nonLayoutRecItemMap);
-        if (!isManual && QueryHistoryAccelerateScheduler.getInstance(project).isInterruptByUser()) {
+
+        if (!isManual && QueryHistoryTaskScheduler.getInstance(project).isInterruptByUser()) {
             throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
         }
         saveLayoutRawRecItems(layoutRecItems, project);

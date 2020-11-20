@@ -39,6 +39,9 @@ public class QueryHistoryIdOffset extends RootPersistentEntity {
     @JsonProperty("query_history_id_offset")
     private long queryHistoryIdOffset;
 
+    @JsonProperty("query_history_stat_id_offset")
+    private long queryHistoryStatMetaUpdateIdOffset;
+
     public QueryHistoryIdOffset(long queryHistoryIdOffset) {
         this.queryHistoryIdOffset = queryHistoryIdOffset;
     }

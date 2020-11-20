@@ -80,7 +80,7 @@ import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
-import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
@@ -123,14 +123,14 @@ public class SemiV2CITest extends SemiAutoTestBase {
         modelService.setSemanticUpdater(semanticService);
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
-        QueryHistoryAccelerateScheduler.getInstance(getProject()).init();
+        QueryHistoryTaskScheduler.getInstance(getProject()).init();
     }
 
     @After
     public void teardown() throws Exception {
         queryHistoryDAO.deleteAllQueryHistory();
         super.tearDown();
-        QueryHistoryAccelerateScheduler.shutdownByProject(getProject());
+        QueryHistoryTaskScheduler.shutdownByProject(getProject());
     }
 
     private void prepareACL() {

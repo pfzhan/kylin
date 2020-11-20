@@ -124,7 +124,7 @@ import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
-import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
@@ -427,6 +427,7 @@ public class ProjectService extends BasicService {
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
                     accelerateImmediately(project.getName());
+                    updateStatMetaImmediately(project.getName());
                     GarbageCleaner.cleanupMetadataAtScheduledTime(project.getName());
                     asyncQueryService.cleanOldQueryResult(project.getName(),
                             KylinConfig.getInstanceFromEnv().getAsyncQueryResultRetainDays());
@@ -469,6 +470,7 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) throws Exception {
         accelerateImmediately(project);
+        updateStatMetaImmediately(project);
         GarbageCleaner.cleanupMetadataManually(project);
         asyncTaskService.cleanupStorage();
     }
@@ -489,7 +491,7 @@ public class ProjectService extends BasicService {
             throw new KylinException(ONGOING_OPTIMIZATION, MsgPicker.getMsg().getPROJECT_ONGOING_OPTIMIZATION());
         }
 
-        QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
+        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 asyncAcceleration.setAlreadyRunning(true);
@@ -499,7 +501,7 @@ public class ProjectService extends BasicService {
             }, project);
 
             val accelerateRunner = scheduler.new QueryHistoryAccelerateRunner(true);
-            Future<?> future = scheduler.scheduleImmediately(accelerateRunner);
+            Future future = scheduler.scheduleImmediately(accelerateRunner);
             try {
                 future.get();
                 RawRecService.updateCostsAndTopNCandidates();
@@ -532,13 +534,25 @@ public class ProjectService extends BasicService {
     }
 
     public void accelerateImmediately(String project) {
-        QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
+        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
-            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
+            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
             try {
                 future.get();
             } catch (Exception e) {
                 logger.error("Accelerate failed", e);
+            }
+        }
+    }
+
+    public void updateStatMetaImmediately(String project) {
+        QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
+        if (scheduler.hasStarted()) {
+            Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+            try {
+                future.get();
+            } catch (Exception e) {
+                logger.error("updateStatMeta failed", e);
             }
         }
     }
