@@ -33,9 +33,10 @@
             <span class="icon el-icon-ksd-more_02 node-list-icon"></span></p>
         </div>
       </div>
-      <div class="nodes" v-if="showNodeDetails">
+      <div class="nodes" v-if="showNodeDetails && isNodeLoadingSuccess && !isNodeLoading">
         <!-- <p class="error-text" v-if="!nodeList.filter(it => it.mode === 'all').length">{{$t('noNodesTip1')}}</p> -->
-        <ul v-if="isNodeLoadingSuccess && !isNodeLoading" class="node-details"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
+        <ul class="node-details" v-if="nodeList.length > 0"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
+        <div class="node-details nodata" v-else>{{$t('kylinLang.common.noData')}}</div>
       </div>
     </el-popover>
     <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes"><span class="server-status">{{$t('serverStatus')}}</span>
@@ -318,6 +319,10 @@
       box-shadow: 0 0px 6px 0px #E5E5E5;
       .node-details {
         text-align: left;
+        &.nodata {
+          color: @text-disabled-color;
+          text-align: center;
+        }
       }
       .node-list {
         color: @text-normal-color;

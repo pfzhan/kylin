@@ -86,6 +86,7 @@
           <div class="col-title"><span>{{$t('nodeList')}}</span></div>
           <div class="table-bg">
             <el-table
+              ref="nodeListTable"
               :data="nodes"
               size="small"
               border
@@ -346,6 +347,7 @@ export default class SystemCapacity extends Vue {
   @Watch('nodeList')
   changeNodes (newVal, oldVal) {
     if (newVal.length && !this.nodes.length) this.nodes = newVal
+    this.renderNodeListTable()
   }
 
   created () {
@@ -362,6 +364,12 @@ export default class SystemCapacity extends Vue {
   getTreeMapProjectList () {
     this.getProjectCapacityList({project_names: this.filterProject, page_offset: 0, page_size: 110, sort_by: this.projectCapacity.sort_by, reverse: this.projectCapacity.reverse}).then(data => {
       this.initTreeMapCharts(data.capacity_detail)
+    })
+  }
+
+  renderNodeListTable () {
+    this.$nextTick(() => {
+      this.$refs.nodeListTable && this.$refs.nodeListTable.doLayout()
     })
   }
 
@@ -637,6 +645,7 @@ export default class SystemCapacity extends Vue {
     // this.initCharts()
     // this.initTreeMapCharts()
     this.lisenceEvent()
+    this.renderNodeListTable()
   }
 
   beforeDestroy () {
