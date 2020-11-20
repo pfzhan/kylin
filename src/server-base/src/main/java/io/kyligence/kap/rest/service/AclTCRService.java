@@ -686,7 +686,12 @@ public class AclTCRService extends BasicService {
 
     @VisibleForTesting
     boolean canUseACLGreenChannel(String project) {
-        return AclPermissionUtil.canUseACLGreenChannel(project, getCurrentUserGroups());
+        return AclPermissionUtil.canUseACLGreenChannel(project, getCurrentUserGroups(), false);
+    }
+
+    @VisibleForTesting
+    boolean canUseACLGreenChannelForShowTable(String project) {
+        return AclPermissionUtil.canUseACLGreenChannel(project, getCurrentUserGroups(), true);
     }
 
     @VisibleForTesting

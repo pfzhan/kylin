@@ -371,7 +371,7 @@ public class SnapshotService extends BasicService {
         String project = tableDesc.getProject();
         Set<String> forbiddenColumns = Sets.newHashSet();
         Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.canUseACLGreenChannel(project, groups)) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project, groups, false)) {
             return forbiddenColumns;
         }
 
@@ -422,7 +422,7 @@ public class SnapshotService extends BasicService {
     private boolean isAuthorizedTableAndColumn(TableDesc originTable) {
         String project = originTable.getProject();
         Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.canUseACLGreenChannel(project, groups)) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project, groups, false)) {
             return true;
         }
 
@@ -449,7 +449,7 @@ public class SnapshotService extends BasicService {
     private boolean isAuthorizedTable(TableDesc originTable) {
         String project = originTable.getProject();
         Set<String> groups = getCurrentUserGroups();
-        if (AclPermissionUtil.canUseACLGreenChannel(project, groups)) {
+        if (AclPermissionUtil.canUseACLGreenChannel(project, groups, false)) {
             return true;
         }
 

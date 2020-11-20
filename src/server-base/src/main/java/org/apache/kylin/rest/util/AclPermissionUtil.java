@@ -154,11 +154,10 @@ public class AclPermissionUtil {
                 .anyMatch(Constant.ROLE_ADMIN::equals);
     }
 
-    public static boolean canUseACLGreenChannel(String project, Set<String> groups) {
-        return canUseACLGreenChannelInQuery(project, groups);
-    }
-
-    public static boolean canUseACLGreenChannelInQuery(String project, Set<String> groups) {
+    public static boolean canUseACLGreenChannel(String project, Set<String> groups, boolean showTable) {
+        if (showTable) {
+            return !KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin();
+        }
         return !KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin() || isAdminInProject(project, groups);
     }
 

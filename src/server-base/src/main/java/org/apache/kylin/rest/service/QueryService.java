@@ -680,7 +680,7 @@ public class QueryService extends BasicService {
                 // force clear the query context before a new query
                 clearThreadLocalContexts();
 
-                if (!AclPermissionUtil.canUseACLGreenChannelInQuery(queryParams.getProject(), queryParams.getAclInfo().getGroups())) {
+                if (!AclPermissionUtil.canUseACLGreenChannel(queryParams.getProject(), queryParams.getAclInfo().getGroups(), false)) {
                     QueryResultMasks.init(sqlRequest.getProject(), NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(sqlRequest.getProject()).getConfig());
                 }
                 return execute(correctedSql, sqlRequest, queryExec);

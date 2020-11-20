@@ -410,7 +410,7 @@ public class TableService extends BasicService {
         val groups = getCurrentUserGroups();
         final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
                 groups);
-        final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups);
+        final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups, true);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         List<NDataModel> healthyModels = projectManager.listHealthyModels(project);
         for (val originTable : tables) {

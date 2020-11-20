@@ -477,7 +477,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(nTableMetadataManager).when(aclTCRService).getTableMetadataManager("default");
         Mockito.doReturn(Lists.newArrayList()).when(nTableMetadataManager).listAllTables();
         Mockito.doReturn(false).when(aclTCRService).canUseACLGreenChannel("default");
-
+        Mockito.doReturn(false).when(aclTCRService).canUseACLGreenChannelForShowTable("default");
         Assert.assertEquals(0, aclTCRService.getAuthorizedTables("default", userName, groups).size());
     }
 
