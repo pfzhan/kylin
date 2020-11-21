@@ -42,7 +42,6 @@ import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
@@ -56,7 +55,6 @@ import org.apache.spark.sql.types.StructType;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
-import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class CsvSource implements ISource {
 
@@ -64,78 +62,80 @@ public class CsvSource implements ISource {
     public CsvSource(KylinConfig config) {
     }
 
+    private class LocalSourceMetadataExplorer implements ISourceMetadataExplorer {
+
+        @Override
+        public List<String> listDatabases() {
+            Set<String> databases = new TreeSet<>();
+            String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+            String path = resPath + "/../data/tableDesc";
+            File[] files = new File(path).listFiles();
+            for (File file : files) {
+                if (!file.isDirectory()) {
+                    String fileName = file.getName();
+                    String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+                    if ("json".equals(suffix)) {
+                        databases.add(fileName.substring(0, fileName.indexOf(".")));
+                    }
+                }
+            }
+            return new ArrayList<>(databases);
+        }
+
+        @Override
+        public List<String> listTables(String database) {
+            Set<String> tables = new TreeSet<>();
+            String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+            String path = resPath + "/../data/tableDesc";
+            File[] files = new File(path).listFiles();
+            for (File file : files) {
+                if (!file.isDirectory()) {
+                    String fileName = file.getName();
+                    String[] strings = fileName.split("\\.");
+                    if (strings.length >= 1 && database.equals(strings[0])
+                            && "json".equals(strings[strings.length - 1])) {
+                        tables.add(strings[1]);
+                    }
+                }
+            }
+            return new ArrayList<>(tables);
+        }
+
+        @Override
+        public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
+                throws IOException {
+            String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+            String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
+            TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
+            for (ColumnDesc column : tableDesc.getColumns()) {
+                column.setName(column.getName().toUpperCase());
+            }
+            tableDesc.setTableType("defaultTable");
+            tableDesc.init(prj);
+            TableExtDesc tableExt = new TableExtDesc();
+            tableExt.setIdentity(tableDesc.getIdentity());
+            return Pair.newPair(tableDesc, tableExt);
+        }
+
+        @Override
+        public List<String> getRelatedKylinResources(TableDesc table) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean checkDatabaseAccess(String database) {
+            return true;
+        }
+
+        @Override
+        public boolean checkTablesAccess(Set<String> tables) {
+            return true;
+        }
+    }
+
     @Override
     public ISourceMetadataExplorer getSourceMetadataExplorer() {
-        return new ISourceMetadataExplorer() {
-
-            List<ProjectInstance> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .listAllProjects();
-
-            @Override
-            public List<String> listDatabases() {
-                Set<String> databases = new TreeSet<>();
-                String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-                String path = resPath + "/../data/tableDesc";
-                File[] files = new File(path).listFiles();
-                for (File file : files) {
-                    if (!file.isDirectory()) {
-                        String fileName = file.getName();
-                        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
-                        if ("json".equals(suffix)) {
-                            databases.add(fileName.substring(0, fileName.indexOf(".")));
-                        }
-                    }
-                }
-                return new ArrayList<String>(databases);
-            }
-
-            @Override
-            public List<String> listTables(String database) {
-                Set<String> tables = new TreeSet<>();
-                String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-                String path = resPath + "/../data/tableDesc";
-                File[] files = new File(path).listFiles();
-                for (File file : files) {
-                    if (!file.isDirectory()) {
-                        String fileName = file.getName();
-                        String[] strings = fileName.split("\\.");
-                        if (strings.length >= 1 && database.equals(strings[0])
-                                && "json".equals(strings[strings.length - 1])) {
-                            tables.add(strings[1]);
-                        }
-                    }
-                }
-                return new ArrayList<String>(tables);
-            }
-
-            @Override
-            public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
-                    throws IOException {
-                String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-                String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
-                TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
-                tableDesc.setTableType("defaultTable");
-                tableDesc.init(prj);
-                TableExtDesc tableExt = new TableExtDesc();
-                tableExt.setIdentity(tableDesc.getIdentity());
-                return Pair.newPair(tableDesc, tableExt);
-            }
-
-            @Override
-            public List<String> getRelatedKylinResources(TableDesc table) {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public boolean checkDatabaseAccess(String database) throws Exception {
-                return true;
-            }
-
-            @Override
-            public boolean checkTablesAccess(Set<String> tables) {
-                return true;
-            }
-        };
+        return new LocalSourceMetadataExplorer();
     }
 
     @SuppressWarnings("unchecked")
