@@ -1861,4 +1861,9 @@ public class CnMessage extends Message {
     public String getSNAPSHOT_MANAGEMENT_NOT_ENABLED() {
         return "快照管理模式未开启";
     }
+
+    @Override
+    public String getINVALID_DIAG_TIME_PARAMETER() {
+        return "终止时间必须大于起始时间，请输入正确的参数执行。";
+    }
 }

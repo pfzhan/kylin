@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,6 +81,22 @@ public class DiagClientToolTest extends NLocalFileMetadataTestCase {
                 }
             }
         }
+    }
+
+    @Test
+    public void testExecuteWithInvalidParameter() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        try {
+            DiagClientTool diagClientTool = new DiagClientTool();
+            diagClientTool.execute(new String[] { "-destDir", mainDir.getAbsolutePath(), "-startTime", "1604999712000",
+                    "-endTime", "1604998712000" });
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause() instanceof KylinException);
+            Assert.assertEquals(e.getCause().getMessage(), MsgPicker.getMsg().getINVALID_DIAG_TIME_PARAMETER());
+        }
+
     }
 
     @Test

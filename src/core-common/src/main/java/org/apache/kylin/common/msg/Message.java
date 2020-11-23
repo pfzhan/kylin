@@ -1633,4 +1633,8 @@ public class Message {
     public String getSNAPSHOT_MANAGEMENT_NOT_ENABLED() {
         return "Snapshot management is not enabled.";
     }
+
+    public String getINVALID_DIAG_TIME_PARAMETER() {
+        return "The end time must be greater than the start time, please input the correct parameters to execute.";
+    }
 }
