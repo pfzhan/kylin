@@ -222,14 +222,16 @@ public class NAccessController extends NBasicController {
     @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> batchGrant(@PathVariable("entity_type") String entityType,
-            @PathVariable("uuid") String uuid, @RequestBody List<BatchAccessRequest> batchAccessRequests)
+            @PathVariable("uuid") String uuid,
+            @RequestParam(value = "init_acl", required = false, defaultValue = "true") boolean initAcl,
+            @RequestBody List<BatchAccessRequest> batchAccessRequests)
             throws IOException {
         List<AccessRequest> requests = transform(batchAccessRequests);
         accessService.checkAccessRequestList(requests);
 
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.batchGrant(requests, ae);
-        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType) && initAcl) {
             aclTCRService.updateAclTCR(uuid, requests);
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
