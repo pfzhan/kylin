@@ -26,13 +26,15 @@ package io.kyligence.kap.tool.upgrade;
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import javax.sql.DataSource;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.tool.OptionBuilder;
-import io.kyligence.kap.tool.util.MetadataUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -40,11 +42,13 @@ import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
 
-import lombok.extern.slf4j.Slf4j;
+import com.google.common.annotations.VisibleForTesting;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.tool.OptionBuilder;
+import io.kyligence.kap.tool.util.MetadataUtil;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 4.1 -> 4.2
@@ -91,7 +95,12 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
         systemExitWhenMainThread(0);
     }
 
-    private int affectedRowsWhenTruncate(String sessionTableName) throws SQLException {
+    @VisibleForTesting
+    public int affectedRowsWhenTruncate(String sessionTableName) throws SQLException {
+        if (!JdbcUtil.isTableExists(dataSource.getConnection(), sessionTableName)) {
+            log.info("Table {} is not exist, affected rows is zero.", sessionTableName);
+            return 0;
+        }
         try (PreparedStatement preparedStatementQuery = dataSource.getConnection()
                 .prepareStatement("SELECT COUNT(1) FROM " + sessionTableName);
                 ResultSet rs = preparedStatementQuery.executeQuery()) {
@@ -102,7 +111,12 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
         }
     }
 
-    private void truncateSessionTable(String sessionTableName) throws Exception {
+    @VisibleForTesting
+    public void truncateSessionTable(String sessionTableName) throws SQLException {
+        if (!JdbcUtil.isTableExists(dataSource.getConnection(), sessionTableName)) {
+            log.info("Table {} is not exist, skip truncate.", sessionTableName);
+            return;
+        }
         try (PreparedStatement preparedStatement = dataSource.getConnection()
                 .prepareStatement("DELETE FROM " + sessionTableName + " WHERE SESSION_ID IS NOT NULL")) {
 
@@ -114,7 +128,12 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
         }
     }
 
-    private boolean isSessionTableNeedUpgrade(String sessionTableName) {
+    @VisibleForTesting
+    public boolean isSessionTableNeedUpgrade(String sessionTableName) throws SQLException {
+        if (!JdbcUtil.isTableExists(dataSource.getConnection(), sessionTableName)) {
+            log.info("Table {} is not exist, no need to upgrade.", sessionTableName);
+            return false;
+        }
         try (PreparedStatement preparedStatement = dataSource.getConnection()
                 .prepareStatement("SELECT SESSION_ID FROM " + sessionTableName + " LIMIT 1")) {
             int columnLength = preparedStatement.getMetaData().getPrecision(1);
@@ -133,7 +152,7 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
         return false;
     }
 
-    private void tryUpdateSessionTable(String replaceName, String sql, String sessionTableName) {
+    private void tryUpdateSessionTable(String replaceName, String sql, String sessionTableName) throws SQLException {
         if (!isSessionTableNeedUpgrade(sessionTableName)) {
             return;
         }
@@ -162,6 +181,10 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!StringUtils.equalsIgnoreCase(systemKylinConfig.getSpringStoreType(), "JDBC")) {
+            printlnGreen("skip upgrade session and session_ATTRIBUTES table.");
+            return;
+        }
         String tableName = systemKylinConfig.getMetadataUrlPrefix() + "_session";
         String tableAttributesName = tableName + "_ATTRIBUTES";
 
