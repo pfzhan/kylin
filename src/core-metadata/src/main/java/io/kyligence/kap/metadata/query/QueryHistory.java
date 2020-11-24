@@ -183,12 +183,7 @@ public class QueryHistory implements IKeep {
 
         for (String realization : this.queryRealizations.split(",")) {
             String[] info = realization.split("#");
-
-            realizations.add(new NativeQueryRealization(info[0],
-                    info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
-                    info[2].equalsIgnoreCase("null") ? null : info[2],
-                    info[3].equalsIgnoreCase("null") ? null :
-                            Lists.newArrayList(info[3].substring(1, info[3].length()-1).split(",\\s*"))));
+            transformRealizations(info, realizations);
         }
 
         return realizations;
@@ -196,6 +191,20 @@ public class QueryHistory implements IKeep {
 
     public enum EngineType {
         NATIVE, CONSTANTS
+    }
+
+    private void transformRealizations(String[] info, List<NativeQueryRealization> realizations) {
+        if (info.length > 3) {
+            realizations.add(new NativeQueryRealization(info[0],
+                    info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
+                    info[2].equalsIgnoreCase("null") ? null : info[2],
+                    info[3].equalsIgnoreCase("null") ? null :
+                            Lists.newArrayList(info[3].substring(1, info[3].length() - 1).split(",\\s*"))));
+        } else {
+            realizations.add(new NativeQueryRealization(info[0],
+                    info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
+                    info[2].equalsIgnoreCase("null") ? null : info[2]));
+        }
     }
 
 }
