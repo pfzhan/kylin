@@ -52,8 +52,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -71,6 +73,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
+import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
 import io.kyligence.kap.rest.service.KapQueryService;
 
@@ -134,6 +137,25 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nAsyncQueryController).query(Mockito.any());
+    }
+
+    @Test
+    public void testAsyncQueryContextClean() throws Exception {
+        AsyncQuerySQLRequest asyncQuerySQLRequest1 = new AsyncQuerySQLRequest();
+        asyncQuerySQLRequest1.setProject(PROJECT);
+        AsyncQuerySQLRequest asyncQuerySQLRequest2 = new AsyncQuerySQLRequest();
+        asyncQuerySQLRequest2.setProject(PROJECT);
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setException(false);
+
+        Mockito.doReturn(AsyncQueryService.QueryStatus.SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(),
+                Mockito.anyString());
+        Mockito.doReturn(sqlResponse).when(kapQueryService).doQueryWithCache(Mockito.any(), Mockito.anyBoolean());
+
+        EnvelopeResponse<AsyncQueryResponse> query1 = nAsyncQueryController.query(asyncQuerySQLRequest1);
+        EnvelopeResponse<AsyncQueryResponse> query2 = nAsyncQueryController.query(asyncQuerySQLRequest2);
+
+        Assert.assertNotEquals(query1.getData().getQueryID(), query2.getData().getQueryID());
     }
 
     @Test

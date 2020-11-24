@@ -138,6 +138,7 @@ public class NAsyncQueryController extends NBasicController {
                     } else {
                         asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
                         asyncQueryService.saveFileInfo(sqlRequest.getProject(), format, encode, sqlRequest.getFileName(), queryContext.getQueryId());
+                        compileResultRef.set(true);
                     }
                     asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
                 } catch (Exception e) {
@@ -151,14 +152,13 @@ public class NAsyncQueryController extends NBasicController {
                         exceptionHandle.set(exceptionHandle.get() + "\n" + e.getMessage());
                         throw new RuntimeException(e1);
                     }
+                } finally {
+                    QueryContext.current().close();
                 }
             }
         });
 
         while (compileResultRef.get() == null) {
-            if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                break;
-            }
             Thread.sleep(200);
         }
 
@@ -171,13 +171,9 @@ public class NAsyncQueryController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                     new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.FAILED, exceptionHandle.get()),
                     "");
-        case RUNNING:
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "query still running"),
-                    "");
         default:
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.MISSING, "query status is lost"),
+                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "query still running"),
                     "");
         }
     }
