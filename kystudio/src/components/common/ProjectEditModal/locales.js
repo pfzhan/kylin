@@ -19,8 +19,7 @@ export default {
     projectType2Desc: 'AI Augmented Mode: Drag source tables to design your own model. The system will provide recommendations based on your query behaviour.',
     projectType4: 'Smart Mode',
     projectType4Desc: 'Smart Mode: Building index for source table, the system will accelerate your desired SQL statements.',
-    aiProjectTips: 'You could design your own model by adding source tables manually. When you turn on the smart recommendation setting, recommendations would be generated to optimize your models, based on query histories.',
-    resourceGroupTips: 'Resource group mode is enabled in the Kyligence Manager. The added project needs to be allocated to a resource group in Kyligence Manager before using.'
+    aiProjectTips: 'The project will be in AI augmented mode. You could design your own model by adding source tables manually. When you turn on the smart recommendation setting, recommendations would be generated to optimize your models, based on query histories.'
   },
   'zh-cn': {
     project: '项目',
@@ -42,7 +41,6 @@ export default {
     projectType2Desc: 'AI 增强模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。同时，系统将根据您的查询历史提供模型建议。',
     projectType4: '智能模式',
     projectType4Desc: '智能模式：通过对表创建索引，系统将加速常用的分析查询语句。',
-    aiProjectTips: '您可以手动从数据源中拖拽表，创建直观的多维分析模型。当您打开智能推荐开关后，系统将根据您的查询历史提供模型优化建议。',
-    resourceGroupTips: '当前已启用资源组模式。新增项目后，请前往 Kyligence Manager 为其绑定资源组。'
+    aiProjectTips: '添加的项目为 AI 增强模式。您可以手动从数据源中拖拽表，创建直观的多维分析模型。当您打开智能推荐开关后，系统将根据您的查询历史提供模型优化建议。'
   }
 }

@@ -51,8 +51,7 @@ export default {
     recommendationPageSize: 0,
     isShowGlobalAlter: false,
     dimMeasNameMaxLength: 300,
-    favoriteImportSqlMaxSize: 1000,
-    resourceGroupEnabled: 'false'
+    favoriteImportSqlMaxSize: 1000
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -161,7 +160,6 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.recommendation-page-size', key: 'recommendationPageSize'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.dimension-measure-name.max-length', key: 'dimMeasNameMaxLength', defaultValue: 300})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.favorite.import-sql-max-size', key: 'favoriteImportSqlMaxSize'})
-          commit(types.GET_CONF_BY_NAME, {name: 'resource_group_enabled', key: 'resourceGroupEnabled', defaultValue: 'false'})
           resolve(response)
         }, () => {
           reject()

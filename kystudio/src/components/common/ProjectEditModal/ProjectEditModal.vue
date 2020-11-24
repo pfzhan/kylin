@@ -45,30 +45,15 @@
       </div>
       <!-- 假设智能模式还在，需要显示这个 div end -->
       <!-- 去除了智能模式的，直接显示下面这个div 即可 begin -->
-      <div v-if="!isSmartModeEnabled">
-        <div v-if="$store.state.system.resourceGroupEnabled==='true '">
-          <el-alert
-            :title="$t('resourceGroupTips')"
-            type="warning"
-            :closable="false">
-          </el-alert>
-          <el-alert
-            :title="$t('aiProjectTips')"
-            :show-background="false"
-            :closable="false"
-            class="ksd-mb-20">
-          </el-alert>
-        </div>
-        <el-alert
-          v-else
-          type="info"
-          :title="$t('aiProjectTips')"
-          :show-background="false"
-          :closable="false"
-          show-icon
-          class="ksd-mb-20">
-        </el-alert>
-      </div>
+      <el-alert
+        v-if="!isSmartModeEnabled"
+        :title="$t('aiProjectTips')"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        show-icon
+        class="ksd-mb-20">
+      </el-alert>
       <!-- 去除了智能模式的，直接显示下面这个div 即可 end -->
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')" class="js_projectname">
