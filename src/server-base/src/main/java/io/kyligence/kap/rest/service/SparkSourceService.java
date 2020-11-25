@@ -199,7 +199,7 @@ public class SparkSourceService extends BasicService {
                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
                         String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
             }
-            tableDesc.put(table, DdlOperation.getTableDesc(database, table));
+            tableDesc.put(table, DdlOperation.getTableDesc(database, table).replaceAll("\t|\r|\n", ""));
         }
         tableResponse.setDatabase(database);
         tableResponse.setTables(tableDesc);

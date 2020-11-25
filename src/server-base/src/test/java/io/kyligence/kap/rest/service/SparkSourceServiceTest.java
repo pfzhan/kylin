@@ -66,7 +66,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     public void setUp() throws Exception {
         ss = SparkSession.builder().appName("local").master("local[1]").enableHiveSupport().getOrCreate();
         ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
-            "jdbc:derby:memory:db;create=true");
+                "jdbc:derby:memory:db;create=true");
         SparderEnv.setSparkSession(ss);
         staticCreateTestMetadata();
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -145,25 +145,24 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     @Test
     public void testListColumns() {
         Assert.assertEquals(4, sparkSourceService.listColumns("default", "COUNTRY").size());
-        
+
     }
 
     @Test
     public void testExportTables() throws IOException {
-        String expectedTableStructure = "CREATE EXTERNAL TABLE `default`.`hive_bigints`(`id` BIGINT)\n"
-                + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'\n"
-                + "WITH SERDEPROPERTIES (\n" + "  'serialization.format' = '1'\n" + ")\n" + "STORED AS\n"
-                + "  INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'\n"
-                + "  OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'\n"
-                + "LOCATION 'file:/tmp/parquet_data'\n" + "TBLPROPERTIES (\n" + "  '";
+        String expectedTableStructure = "CREATE EXTERNAL TABLE `default`.`hive_bigints`(`id` BIGINT)"
+                + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'WITH "
+                + "SERDEPROPERTIES (  'serialization.format' = '1')STORED AS  "
+                + "INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'  "
+                + "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'"
+                + "LOCATION 'file:/tmp/parquet_data'";
         sparkSourceService.executeSQL(
                 "CREATE EXTERNAL TABLE hive_bigints(id bigint)  STORED AS PARQUET LOCATION '/tmp/parquet_data'");
 
         String actureTableStructure = sparkSourceService.exportTables("default", new String[] { "hive_bigints" })
                 .getTables().get("hive_bigints");
 
-        Assert.assertEquals(
-                actureTableStructure.substring(0, actureTableStructure.lastIndexOf("transient_lastDdlTime")),
+        Assert.assertEquals(actureTableStructure.substring(0, actureTableStructure.lastIndexOf("TBLPROPERTIES")),
                 expectedTableStructure);
     }
 
