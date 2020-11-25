@@ -237,7 +237,7 @@ def prepare_project():
             if os.path.exists(INPUT_ROOT + '/acl/' + project_origin_json['uuid']):
                 with open(INPUT_ROOT + '/acl/' + project_origin_json['uuid'], 'r') as project_role_file:
                     project_role_json = json.load(project_role_file)
-                    for role_entry in project_role_json['entries']:
+                    for role_entry in project_role_json.get('entries', []):
                         if 'a' in role_entry:
                             group_whole.append(role_entry['a'])
                         elif 'p' in role_entry:
