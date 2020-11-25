@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.ProcessUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -55,15 +54,17 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.ProcessUtil;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
+
 import lombok.val;
 import lombok.var;
 
@@ -430,7 +431,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1L, (long) queryHistories.get(1).getNativeQueryRealizations().get(1).getLayoutId());
         Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(0).getSnapshots());
         Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(1).getSnapshots());
-        Assert.assertEquals(1, queryHistories.get(1).getNativeQueryRealizations().get(0).getSnapshots().size());
+        Assert.assertEquals(0, queryHistories.get(1).getNativeQueryRealizations().get(0).getSnapshots().size());
         Assert.assertNotNull(queryHistories.get(1).getNativeQueryRealizations().get(0).getSnapshots());
         Assert.assertNotNull(queryHistories.get(1).getNativeQueryRealizations().get(1).getSnapshots());
 
