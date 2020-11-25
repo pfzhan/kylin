@@ -192,12 +192,12 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(tables, Sets.newHashSet(tableNameOfSamplingJob1, tableNameOfSamplingJob2));
 
         // refresh failed
-        String expected = "The job failed to be submitted. There already exists building job running " +
-                "under the corresponding subject.";
+        String expected = "The job failed to be submitted. There already exists building job running "
+                + "under the corresponding subject.";
         String actual = "";
         try {
             snapshotService.buildSnapshots(PROJECT, databases, tables, true);
-        } catch(TransactionException e) {
+        } catch (TransactionException e) {
             actual = e.getCause().getMessage();
         }
         Assert.assertEquals(expected, actual);
@@ -241,8 +241,8 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
             snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), false);
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof JobSubmissionException);
-            Assert.assertEquals("The job failed to be submitted. There already exists building job running " +
-                    "under the corresponding subject.", (e.getCause()).getMessage());
+            Assert.assertEquals("The job failed to be submitted. There already exists building job running "
+                    + "under the corresponding subject.", (e.getCause()).getMessage());
         }
     }
 
@@ -255,6 +255,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(getSnapshotPath(tableName));
         snapshotService.deleteSnapshots(PROJECT, Sets.newHashSet(tableName));
         Assert.assertNull(getSnapshotPath(tableName));
+        Assert.assertEquals(-1, getOriginalSize(tableName));
     }
 
     @Test
@@ -278,7 +279,8 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         tableManager.getTableDesc(tableName).setLastSnapshotPath("file://a/b");
         Assert.assertNotNull(getSnapshotPath(tableName));
         snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), false);
-        SnapshotCheckResponse response = snapshotService.checkBeforeDeleteSnapshots(PROJECT, Sets.newHashSet(tableName));
+        SnapshotCheckResponse response = snapshotService.checkBeforeDeleteSnapshots(PROJECT,
+                Sets.newHashSet(tableName));
         Assert.assertEquals(1, response.getAffectedJobs().size());
         Assert.assertNotNull(getSnapshotPath(tableName));
     }
@@ -293,13 +295,12 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "true");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("testuser", "testuser", Constant.ROLE_MODELER));
-        snapshotService.getProjectSnapshots(
-                PROJECT, tablePattern, statusFilter, sortBy, true);
+        snapshotService.getProjectSnapshots(PROJECT, tablePattern, statusFilter, sortBy, true);
 
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        List<SnapshotResponse> responses = snapshotService.getProjectSnapshots(
-                PROJECT, tablePattern, statusFilter, sortBy, true);
+        List<SnapshotResponse> responses = snapshotService.getProjectSnapshots(PROJECT, tablePattern, statusFilter,
+                sortBy, true);
         SnapshotResponse response = responses.get(0);
         Assert.assertEquals("SSB", response.getDatabase());
         Assert.assertEquals("LINEORDER", response.getTable());
@@ -319,8 +320,8 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         NInitTablesResponse response = snapshotService.getTables(PROJECT, tablePattern, 0, 1);
         NInitTablesResponse.DatabaseTables database = response.getDatabases().get(0);
         Assert.assertEquals("SSB", database.getDbname());
-        Assert.assertEquals("CUSTOMER", ((TableNameResponse)database.getTables().get(0)).getTableName());
-        Assert.assertEquals(false, ((TableNameResponse)database.getTables().get(0)).isLoaded());
+        Assert.assertEquals("CUSTOMER", ((TableNameResponse) database.getTables().get(0)).getTableName());
+        Assert.assertEquals(false, ((TableNameResponse) database.getTables().get(0)).isLoaded());
     }
 
     @Test
@@ -359,6 +360,11 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     private void setSnapshotPath(String tableName, String snapshotPath) {
         NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName)
                 .setLastSnapshotPath(snapshotPath);
+    }
+
+    private long getOriginalSize(String tableName) {
+        return NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getOrCreateTableExt(tableName)
+                .getOriginalSize();
     }
 
     private void enableSnapshotManualManagement() {

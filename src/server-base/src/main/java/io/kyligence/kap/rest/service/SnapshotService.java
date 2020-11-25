@@ -53,6 +53,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -92,7 +93,7 @@ public class SnapshotService extends BasicService {
     private TableService tableService;
 
     public JobInfoResponse buildSnapshots(String project, Set<String> buildDatabases,
-                                             Set<String> needBuildSnapshotTables, boolean isRefresh) {
+            Set<String> needBuildSnapshotTables, boolean isRefresh) {
         if (buildDatabases.isEmpty()) {
             return buildSnapshots(project, needBuildSnapshotTables, isRefresh);
         }
@@ -105,8 +106,9 @@ public class SnapshotService extends BasicService {
             throw new KylinException(DATABASE_NOT_EXIST, String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(),
                     StringUtils.join(databasesNotExist, ", ")));
         }
-        Set<String> tablesOfDatabases = tableManager.listAllTables().stream().filter(tableDesc ->
-                databases.contains(tableDesc.getDatabase())).map(TableDesc::getIdentity).collect(Collectors.toSet());
+        Set<String> tablesOfDatabases = tableManager.listAllTables().stream()
+                .filter(tableDesc -> databases.contains(tableDesc.getDatabase())).map(TableDesc::getIdentity)
+                .collect(Collectors.toSet());
         needBuildSnapshotTables.addAll(tablesOfDatabases);
 
         return buildSnapshots(project, needBuildSnapshotTables, isRefresh);
@@ -163,8 +165,7 @@ public class SnapshotService extends BasicService {
         checkTablePermission(tables);
         checkTableSnapshotExist(project, tables);
 
-        List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity)
-                .collect(Collectors.toList());
+        List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList());
 
         NTableMetadataManager tableManager = getTableManager(project);
         NExecutableManager execManager = getExecutableManager(project);
@@ -184,6 +185,12 @@ public class SnapshotService extends BasicService {
             TableDesc src = tableManager.getTableDesc(tableName);
             TableDesc copy = tableManager.copyForWrite(src);
             copy.setLastSnapshotPath(null);
+
+            TableExtDesc ext = tableManager.getOrCreateTableExt(src);
+            TableExtDesc extCopy = tableManager.copyForWrite(ext);
+            extCopy.setOriginalSize(-1);
+
+            tableManager.mergeAndUpdateTableExt(ext, extCopy);
             tableManager.updateTableDesc(copy);
         });
         return response;
@@ -196,8 +203,7 @@ public class SnapshotService extends BasicService {
         checkTablePermission(tables);
         checkTableSnapshotExist(project, tables);
 
-        List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity)
-                .collect(Collectors.toList());
+        List<String> needDeleteTables = tables.stream().map(TableDesc::getIdentity).collect(Collectors.toList());
 
         NExecutableManager execManager = getExecutableManager(project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
@@ -289,7 +295,7 @@ public class SnapshotService extends BasicService {
     }
 
     public List<SnapshotResponse> getProjectSnapshots(String project, String table, Set<String> statusFilter,
-                                                      String sortBy, boolean isReversed) {
+            String sortBy, boolean isReversed) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectReadPermission(project);
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
@@ -328,10 +334,9 @@ public class SnapshotService extends BasicService {
         tables.stream().forEach(tableDesc -> {
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
             response.add(new SnapshotResponse(tableDesc,
-                    tableService.getSnapshotSize(project, tableDesc.getIdentity(), fs),
-                    countPair.getFirst(), countPair.getSecond(),
-                    tableService.getSnapshotModificationTime(tableDesc), getSnapshotJobStatus(tableDesc, executables),
-                    getForbiddenColumns(tableDesc)));
+                    tableService.getSnapshotSize(project, tableDesc.getIdentity(), fs), countPair.getFirst(),
+                    countPair.getSecond(), tableService.getSnapshotModificationTime(tableDesc),
+                    getSnapshotJobStatus(tableDesc, executables), getForbiddenColumns(tableDesc)));
         });
 
         if (!statusFilter.isEmpty()) {
@@ -359,9 +364,9 @@ public class SnapshotService extends BasicService {
                 continue;
             }
             if (model.isRootFactTable(tableDesc)) {
-                factCount ++;
+                factCount++;
             } else if (model.isLookupTable(tableDesc)) {
-                lookupCount ++;
+                lookupCount++;
             }
         }
         return new Pair<>(factCount, lookupCount);
@@ -384,8 +389,8 @@ public class SnapshotService extends BasicService {
             allColumns.addAll(groupAuth.getColumns());
         }
 
-        forbiddenColumns = Sets.newHashSet(tableDesc.getColumns()).stream().map(columnDesc ->
-                columnDesc.getTable().getIdentity() + "." + columnDesc.getName())
+        forbiddenColumns = Sets.newHashSet(tableDesc.getColumns()).stream()
+                .map(columnDesc -> columnDesc.getTable().getIdentity() + "." + columnDesc.getName())
                 .collect(Collectors.toSet());
 
         forbiddenColumns.removeAll(allColumns);
@@ -465,8 +470,8 @@ public class SnapshotService extends BasicService {
         return allTables.contains(originTable.getIdentity());
     }
 
-    private boolean matchTablePattern(TableDesc tableDesc, String tablePattern,
-                                      String databasePattern, String databaseTarget) {
+    private boolean matchTablePattern(TableDesc tableDesc, String tablePattern, String databasePattern,
+            String databaseTarget) {
         if (StringUtils.isEmpty(tablePattern)) {
             return true;
         }
@@ -549,14 +554,13 @@ public class SnapshotService extends BasicService {
         }
 
         final String finalTable = tablePattern;
-        List<TableDesc> tables = tableManager.listAllTables().stream().filter(tableDesc ->
-                tableDesc.getDatabase().equalsIgnoreCase(database)
-        ).filter(tableDesc -> {
-            if (StringUtils.isEmpty(finalTable)) {
-                return true;
-            }
-            return tableDesc.getName().toLowerCase().contains(finalTable.toLowerCase());
-        }).filter(this::isAuthorizedTableAndColumn).sorted(tableService::compareTableDesc)
+        List<TableDesc> tables = tableManager.listAllTables().stream()
+                .filter(tableDesc -> tableDesc.getDatabase().equalsIgnoreCase(database)).filter(tableDesc -> {
+                    if (StringUtils.isEmpty(finalTable)) {
+                        return true;
+                    }
+                    return tableDesc.getName().toLowerCase().contains(finalTable.toLowerCase());
+                }).filter(this::isAuthorizedTableAndColumn).sorted(tableService::compareTableDesc)
                 .collect(Collectors.toList());
         for (TableDesc tableDesc : tables) {
             TableNameResponse tableNameResponse = new TableNameResponse();
