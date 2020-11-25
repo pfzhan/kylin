@@ -101,10 +101,6 @@ public class BackdoorToggles {
         return getBoolean(QUERY_FROM_AUTO_MODELING);
     }
 
-    public static boolean getIsQueryNonEquiJoinModelEnabled() {
-        return getBoolean(QUERY_NON_EQUI_JOIN_MODEL_ENABLED);
-    }
-
     public static String getPartitionDumpDir() {
         return getString(DEBUG_TOGGLE_PARTITION_DUMP_DIR);
     }
@@ -290,6 +286,4 @@ public class BackdoorToggles {
     public final static String DEBUG_TOGGLE_HTRACE_ENABLED = "DEBUG_TOGGLE_HTRACE_ENABLED";
 
     public final static String QUERY_FROM_AUTO_MODELING = "QUERY_FROM_AUTO_MODELING";
-
-    public final static String QUERY_NON_EQUI_JOIN_MODEL_ENABLED = "QUERY_NON_EQUI_JOIN_MODEL_ENABLED";
 }

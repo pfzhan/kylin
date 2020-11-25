@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -374,6 +376,55 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // assert result
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         Assert.assertEquals(3, rawRecItems.size());
+        List<RawRecItem> layoutRecs = rawRecItems.stream()
+                .filter(item -> item.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT).collect(Collectors.toList());
+        Assert.assertEquals(1, layoutRecs.size());
+        Assert.assertEquals(RawRecItem.IMPORTED, layoutRecs.get(0).getRecSource());
+    }
+
+    @Test
+    public void testOptimizeNonEquivJoinModel() {
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        String joinExpr = "\"TEST_ORDER\".\"ORDER_ID\" = \"TEST_KYLIN_FACT\".\"ORDER_ID\" "
+                + "AND \"TEST_ORDER\".\"BUYER_ID\" >= \"TEST_KYLIN_FACT\".\"SELLER_ID\" "
+                + "AND \"TEST_ORDER\".\"BUYER_ID\" < \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"";
+        String sql = "select test_order.order_id,buyer_id from test_order "
+                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "and buyer_id>=seller_id and buyer_id<leaf_categ_id " //
+                + "group by test_order.order_id,buyer_id";
+        // prepare an origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // assert origin model
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeOptimization = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(17, modelBeforeOptimization.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeOptimization.getAllMeasures().size());
+        IndexPlan indexPlanBeforeOptimization = modelContexts.get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, indexPlanBeforeOptimization.getAllLayouts().size());
+        Assert.assertEquals(1, modelBeforeOptimization.getJoinTables().size());
+        JoinTableDesc joinTable = modelBeforeOptimization.getJoinTables().get(0);
+        NonEquiJoinCondition nonEquiJoinCondition = joinTable.getJoin().getNonEquiJoinCondition();
+        Assert.assertEquals(joinExpr, nonEquiJoinCondition.getExpr());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        // suggest model without create new model
+        List<String> sqlList = ImmutableList.of("select test_order.order_id,test_date_enc from test_order "
+                + "left join test_kylin_fact on test_order.order_id = test_kylin_fact.order_id "
+                + "and buyer_id >= seller_id and buyer_id < leaf_categ_id " //
+                + "group by test_order.order_id,test_date_enc");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, false);
+        rawRecService.transferAndSaveRecommendations(proposeContext);
+
+        // assert result
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(2, rawRecItems.size());
         List<RawRecItem> layoutRecs = rawRecItems.stream()
                 .filter(item -> item.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT).collect(Collectors.toList());
         Assert.assertEquals(1, layoutRecs.size());
