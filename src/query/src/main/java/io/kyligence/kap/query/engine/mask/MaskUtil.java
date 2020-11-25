@@ -48,7 +48,7 @@ class MaskUtil {
     static Dataset<Row> dFToDFWithIndexedColumns(Dataset<Row> df) {
         String[] indexedColNames = new String[df.columns().length];
         for (int i = 0; i < indexedColNames.length; i++) {
-            indexedColNames[i] = df.columns()[i] + "_" + i;
+            indexedColNames[i] = df.columns()[i].replace('`', '_') + "_" + i;
         }
         return df.toDF(indexedColNames);
     }

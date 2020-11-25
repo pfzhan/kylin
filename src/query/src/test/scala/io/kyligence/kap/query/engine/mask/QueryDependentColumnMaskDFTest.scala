@@ -132,4 +132,40 @@ class QueryDependentColumnMaskDFTest extends org.scalatest.FunSuite with BeforeA
       masked.collect()
     }
   }
+
+  test("test sum") {
+    val sql = "SELECT SUM(ORDER_ID), ACCOUNT_SELLER_LEVEL, NAME" +
+      " FROM TEST_KYLIN_FACT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID" +
+      " JOIN TEST_COUNTRY ON ACCOUNT_COUNTRY = NAME GROUP BY ACCOUNT_SELLER_LEVEL, NAME"
+
+    val queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv)
+    val relNode = queryExec.parseAndOptimize(sql)
+    mask.doSetRootRelNode(relNode)
+    mask.init()
+
+    val df = ss.createDataFrame(
+      ss.sparkContext.parallelize(
+        Seq(
+          Row(123, 1, "China"),
+          Row(123, 1, "CN"),
+          Row(123, 4, "China")
+        )
+      ),
+      StructType(
+        List(
+          StructField("SUM(ORDER_ID)_&*%$#@\"'`_123", DataTypes.IntegerType),
+          StructField("ACCOUNT_SELLER_LEVEL", DataTypes.IntegerType),
+          StructField("NAME", DataTypes.StringType)
+        ))
+    )
+    val masked = mask.doMaskResult(df)
+    assertResult(Seq(
+      Row(123, 1, "China"),
+      Row(null, 1, "CN"),
+      Row(null, 4, "China")
+    )) {
+      masked.collect()
+    }
+  }
+
 }

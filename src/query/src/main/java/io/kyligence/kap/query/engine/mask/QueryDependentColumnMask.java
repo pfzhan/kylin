@@ -136,9 +136,10 @@ public class QueryDependentColumnMask implements QueryResultMask {
             for (ResultDependentValues dependentValue : maskInfo.dependentValues) {
                 String depColumnName = dfWithIndexedCol.columns()[dependentValue.colIdx];
                 if (condExpr.length() > 0) {
-                    condExpr.append("AND ");
+                    condExpr.append(" AND ");
                 }
-                condExpr.append(depColumnName);
+                condExpr.append("(");
+                condExpr.append("`").append(depColumnName).append("`");
                 condExpr.append(" IN (");
                 boolean firstVal = true;
                 for (String depValue : dependentValue.values) {
@@ -148,12 +149,12 @@ public class QueryDependentColumnMask implements QueryResultMask {
                     condExpr.append("'").append(depValue).append("'");
                     firstVal = false;
                 }
-                condExpr.append(")");
+                condExpr.append("))");
             }
             Expression expr = null;
             try {
                 expr = dfWithIndexedCol.sparkSession().sessionState().sqlParser().parseExpression(
-                        String.format("CASE WHEN %s THEN %s ELSE NULL END", condExpr.toString(), dfWithIndexedCol.columns()[i]));
+                        String.format("CASE WHEN (%s) THEN `%s` ELSE NULL END", condExpr.toString(), dfWithIndexedCol.columns()[i]));
             } catch (ParseException e) {
                 throw new KylinException(ServerErrorCode.ACL_DEPENDENT_COLUMN_PARSE_ERROR, e);
             }
