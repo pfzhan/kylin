@@ -67,22 +67,6 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testVerifyFavoriteQueryCreation() {
-        NCircuitBreaker.verifyFavoriteQueryCreation(300);
-
-        thrown.expect(KylinException.class);
-        NCircuitBreaker.verifyFavoriteQueryCreation(30_000);
-    }
-
-    @Test
-    public void testVerifySqlPatternToBlacklist() {
-        NCircuitBreaker.verifySqlPatternToBlacklist(300);
-
-        thrown.expect(KylinException.class);
-        NCircuitBreaker.verifySqlPatternToBlacklist(30_000);
-    }
-
-    @Test
     public void testVerifyQueryResultRowCount() {
         NCircuitBreaker.verifyQueryResultRowCount(2_000_000L);
 

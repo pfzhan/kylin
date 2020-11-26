@@ -24,17 +24,16 @@
 
 package io.kyligence.kap.smart.query.validator;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
@@ -50,7 +49,7 @@ public abstract class AbstractSQLValidator {
     private static final int DEFAULT_THREAD_COUNT = 4;
 
     protected KylinConfig kylinConfig;
-    private AbstractQueryExecutor queryExecutor;
+    private final AbstractQueryExecutor queryExecutor;
     ISqlAdvisor sqlAdvisor;
     int threadCount;
 
@@ -64,9 +63,9 @@ public abstract class AbstractSQLValidator {
         this(kylinConfig, queryExecutor, DEFAULT_THREAD_COUNT);
     }
 
-    abstract AbstractQueryRunner createQueryRunner(String[] sqls) throws IOException;
+    abstract AbstractQueryRunner createQueryRunner(String[] sqls);
 
-    public Map<String, SQLValidateResult> batchValidate(String[] sqls) throws IOException {
+    public Map<String, SQLValidateResult> batchValidate(String[] sqls) {
 
         if (sqls == null || sqls.length == 0) {
             return Maps.newHashMap();

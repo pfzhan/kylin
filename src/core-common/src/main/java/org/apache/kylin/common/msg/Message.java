@@ -774,11 +774,6 @@ public class Message {
         return "Failed to generate diagnostic package, the reason for the failure is unknown, please try to regenerate it.";
     }
 
-    // Encoding
-    public String getVALID_ENCODING_NOT_AVAILABLE() {
-        return "Can not provide valid encodings for datatype: %s.";
-    }
-
     // ExternalFilter
     public String getFILTER_ALREADY_EXIST() {
         return "The filter named '%s' already exists.";
@@ -789,31 +784,6 @@ public class Message {
     }
 
     // Basic
-    public String getHBASE_FAIL() {
-        return "HBase failed: '%s'";
-    }
-
-    public String getHBASE_FAIL_WITHOUT_DETAIL() {
-        return "HBase failed.";
-    }
-
-    // Favorite Query
-    public String getFAVORITE_RULE_NOT_FOUND() {
-        return "Cannot find favorite rule '%s' ";
-    }
-
-    public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
-        return "Current number of unAccelerated favorite queries has not reached to '%s' ";
-    }
-
-    public String getFAIL_TO_VERIFY_SQL() {
-        return "Failed to verify SQLs.";
-    }
-
-    public String getFAVORITE_QUERY_NOT_EXIST() {
-        return "Favorite query '%s' does not exist";
-    }
-
     public String getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY() {
         return "The query frequency threshold cannot be empty";
     }
@@ -1330,14 +1300,6 @@ public class Message {
 
     public String getMODEL_NUM_OVER_THRESHOLD() {
         return "Failed to create a new model. The number of models exceeds the maximum: {%s}. Please delete other abandoned models before trying to create new ones or contact the administrator to adjust the maximum number of models.";
-    }
-
-    public String getFQ_NUM_OVER_THRESHOLD() {
-        return "Failed to accelerate sql. The number of FavoriteQuery exceeds the maximum: {%s}. Please delete other abandoned FavoriteQuery before trying to create new ones or contact the administrator to adjust the maximum number of FavoriteQuery.";
-    }
-
-    public String getBLACK_LIST_OVER_THRESHOLD() {
-        return "Failed to add sql to accelerating blacklist. The number of sql in blacklist exceeds the maximum: {%s}. Please delete other sqls before trying to add new ones or contact the administrator to adjust the maximum number of sql in blacklist.";
     }
 
     public String getQUERY_ROW_NUM_OVER_THRESHOLD() {

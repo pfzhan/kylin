@@ -41,8 +41,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -234,7 +232,6 @@ public class NSmartMaster {
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 genDiagnoseInfo();
-                saveAccelerateInfo();
                 return null;
             }, project);
         } catch (Exception e) {
@@ -246,25 +243,6 @@ public class NSmartMaster {
         context.getAccelerateInfoMap().forEach((key, value) -> {
             value.getRelatedLayouts().clear();
             value.setFailedCause(throwable);
-        });
-    }
-
-    void saveAccelerateInfo() {
-        val favoriteQueryMgr = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val accelerateInfoMap = context.getAccelerateInfoMap();
-        accelerateInfoMap.forEach((sqlPattern, accelerateInfo) -> {
-            if (accelerateInfo.isNotSucceed()) {
-                return;
-            }
-            List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();
-            for (val layout : accelerateInfo.getRelatedLayouts()) {
-                FavoriteQueryRealization realization = new FavoriteQueryRealization();
-                realization.setSemanticVersion(layout.getSemanticVersion());
-                realization.setModelId(layout.getModelId());
-                realization.setLayoutId(layout.getLayoutId());
-                favoriteQueryRealizations.add(realization);
-            }
-            favoriteQueryMgr.resetRealizations(sqlPattern, favoriteQueryRealizations);
         });
     }
 

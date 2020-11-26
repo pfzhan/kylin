@@ -30,7 +30,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,9 +86,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDictionaryDesc;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -138,7 +134,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 }
             }).collect(Collectors.toList()));
         });
-        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
 
     }
 
@@ -171,7 +167,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testPreProcess_AffectByCC() throws Exception {
-        createTestFavoriteQuery();
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
 
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
@@ -272,9 +267,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
-            copyForWrite.setRuleBasedIndex(newRule);
-        });
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "LSTG_FORMAT_NAME");
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
@@ -294,9 +287,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
-            copyForWrite.setRuleBasedIndex(newRule);
-        });
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
@@ -310,17 +301,19 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val newRule = new NRuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
-        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16,17,18,19],\n"
-                + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [[14,15,16]],\n"
-                + "          \"mandatory_dims\": [17,18],\n" + "          \"joint_dims\": []\n" + "        }\n" + "}",
-                NAggregationGroup.class);
+        val group1 = JsonUtil.readValue("{\n" //
+                + "        \"includes\": [14,15,16,17,18,19],\n"//
+                + "        \"select_rule\": {\n" //
+                + "          \"hierarchy_dims\": [[14,15,16]],\n" //
+                + "          \"mandatory_dims\": [17,18],\n" //
+                + "          \"joint_dims\": []\n" //
+                + "        }\n" //
+                + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
-            copyForWrite.setRuleBasedIndex(newRule);
-        });
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
@@ -334,17 +327,19 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val newRule = new NRuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
-        val group1 = JsonUtil
-                .readValue("{\n" + "        \"includes\": [14,15,16,17,18,19],\n" + "        \"select_rule\": {\n"
-                        + "          \"hierarchy_dims\": [[14,15,16]],\n" + "          \"mandatory_dims\": [],\n"
-                        + "          \"joint_dims\": [[17,18,19]]\n" + "        }\n" + "}", NAggregationGroup.class);
+        val group1 = JsonUtil.readValue("{\n" //
+                + "        \"includes\": [14,15,16,17,18,19],\n" //
+                + "        \"select_rule\": {\n" //
+                + "          \"hierarchy_dims\": [[14,15,16]],\n" //
+                + "          \"mandatory_dims\": [],\n" //
+                + "          \"joint_dims\": [[17,18,19]]\n" //
+                + "        }\n" //
+                + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
-            copyForWrite.setRuleBasedIndex(newRule);
-        });
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
         modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
             if (!id.equals(originIndexPlan.getId())) {
                 modelService.dropModel(id, PROJECT, true);
@@ -702,15 +697,16 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 model.getAllNamedColumns().stream().filter(n -> n.getId() == 15).findAny().get().getStatus());
         val indexPlan = indexManager.getIndexPlan(model.getId());
         indexPlan.getAllIndexes().forEach(index -> {
-            Assert.assertFalse("index " + index.getId() + " have 15, dimensions are " + index.getDimensions(),
-                    index.getDimensions().contains(15));
+            String message = "index " + index.getId() + " have 15, dimensions are " + index.getDimensions();
+            Assert.assertFalse(message, index.getDimensions().contains(15));
         });
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val dataflow = dataflowManager.getDataflow(model.getId());
         for (NDataSegment segment : dataflow.getSegments()) {
             for (NDataLayout layout : segment.getLayoutsMap().values()) {
-                Assert.assertFalse("data_layout " + layout.getLayout().getId() + " have 15, col_order is "
-                        + layout.getLayout().getColOrder(), layout.getLayout().getColOrder().contains(15));
+                String message = "data_layout " + layout.getLayout().getId() + " have 15, col_order is "
+                        + layout.getLayout().getColOrder();
+                Assert.assertFalse(message, layout.getLayout().getColOrder().contains(15));
             }
         }
 
@@ -723,8 +719,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 originIndexPlan.getAllIndexes().stream().filter(index -> !index.getDimensions().contains(15)).count(),
                 indexPlan2.getAllIndexes().size());
         indexPlan2.getAllIndexes().forEach(index -> {
-            Assert.assertFalse("index " + index.getId() + " have 15, dimensions are " + index.getDimensions(),
-                    index.getDimensions().contains(15));
+            String message = "index " + index.getId() + " have 15, dimensions are " + index.getDimensions();
+            Assert.assertFalse(message, index.getDimensions().contains(15));
         });
 
         var executables = getRunningExecutables(PROJECT, model2.getId());
@@ -740,7 +736,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertNotEquals("TEST_TIME_ENC", stat.getColumnName());
         }
         for (String[] sampleRow : tableExt.getSampleRows()) {
-            Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_3"));
+            Assert.assertFalse(Joiner.on(",").join(sampleRow).contains("col_3"));
         }
 
         Assert.assertEquals("PRICE", model.getAllNamedColumns().get(11).getName());
@@ -1394,42 +1390,5 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         }).toArray(ColumnDesc[]::new);
         tableMeta.setColumns(newColumns);
         JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
-    }
-
-    private void createTestFavoriteQuery() {
-        String[] sqls = new String[] { //
-                "sql1", //
-                "sql2", //
-                "sql3", //
-        };
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        val favoriteQuery1 = new FavoriteQuery(sqls[0]);
-        val real1 = new FavoriteQueryRealization();
-        real1.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        real1.setLayoutId(1);
-        favoriteQuery1.setRealizations(Arrays.asList(real1));
-
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqls[1]);
-        val real2 = new FavoriteQueryRealization();
-        real2.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        real2.setLayoutId(20000010001L);
-        favoriteQuery2.setRealizations(Arrays.asList(real2));
-
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery(sqls[2]);
-        val real3 = new FavoriteQueryRealization();
-        real3.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        real3.setLayoutId(20000010001L);
-        val real4 = new FavoriteQueryRealization();
-        real4.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        real4.setLayoutId(20000030001L);
-        favoriteQuery3.setRealizations(Arrays.asList(real3, real4));
-
-        favoriteQueryManager.create(new HashSet<FavoriteQuery>() {
-            {
-                add(favoriteQuery1);
-                add(favoriteQuery2);
-                add(favoriteQuery3);
-            }
-        });
     }
 }

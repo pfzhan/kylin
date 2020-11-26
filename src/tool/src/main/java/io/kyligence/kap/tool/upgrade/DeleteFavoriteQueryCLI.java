@@ -23,17 +23,13 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
-import io.kyligence.kap.tool.OptionBuilder;
-import lombok.extern.slf4j.Slf4j;
+import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -41,12 +37,16 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
-import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
+import io.kyligence.kap.tool.OptionBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 4.1 -> 4.2
@@ -93,31 +93,20 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication implements IKe
         UnitOfAllWorks.doInTransaction(() -> {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-            Map<String, List<FavoriteQuery>> globalFavoriteQueryList = Maps.newHashMap();
             Map<String, List<FavoriteRule>> globalFavoriteRuleList = Maps.newHashMap();
             NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
             projectManager.listAllProjects().forEach(projectInstance -> {
-                FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig,
-                        projectInstance.getName());
                 FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(kylinConfig,
                         projectInstance.getName());
-                List<FavoriteQuery> favoriteQueryList = favoriteQueryManager.getAll();
                 List<FavoriteRule> favoriteRuleList = favoriteRuleManager.getAll();
 
-                log.info("Delete Project: {}, Favorite Query size: {}, Favorite Rule size: {}",
-                        projectInstance.getName(), favoriteQueryList.size(), favoriteRuleList.size());
-
-                globalFavoriteQueryList.put(projectInstance.getName(), favoriteQueryList);
                 globalFavoriteRuleList.put(projectInstance.getName(), favoriteRuleList);
             });
 
-            long fq = globalFavoriteQueryList.values().stream().mapToLong(List::size).sum();
             long fr = globalFavoriteRuleList.values().stream().mapToLong(List::size).sum();
-            printlnGreen(String.format("found %d recommendation metadata need to be updated.", fq + fr));
+            printlnGreen(String.format("found %d recommendation metadata need to be updated.", fr));
 
             if (optionsHelper.hasOption(OPTION_EXEC)) {
-                globalFavoriteQueryList.forEach((project, fqList) -> fqList
-                        .forEach(tfq -> FavoriteQueryManager.getInstance(kylinConfig, project).delete(tfq)));
                 globalFavoriteRuleList.forEach((project, frList) -> frList
                         .forEach(tfr -> FavoriteRuleManager.getInstance(kylinConfig, project).delete(tfr)));
 

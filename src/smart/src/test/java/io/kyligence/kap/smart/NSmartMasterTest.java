@@ -41,13 +41,10 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -169,50 +166,6 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testSaveAccelerateInfo() {
-        String[] sqls = new String[] {
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
-                        + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
-                        + "where part_dt = '2012-01-02' group by part_dt, lstg_format_name",
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
-                        + "where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name",
-                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
-        initFQData(sqls);
-        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
-        NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.analyzeSQLs();
-        Assert.assertEquals(5, smartMaster.getContext().getAccelerateInfoMap().size());
-        for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : smartMaster.getContext().getAccelerateInfoMap()
-                .entrySet()) {
-            Assert.assertFalse(accelerateInfoEntry.getValue().isFailed());
-        }
-        smartMaster.executePropose();
-        context.saveMetadata();
-
-        AbstractContext ctx = smartMaster.getContext();
-        final Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
-        Assert.assertEquals(1, ctx.getModelContexts().size());
-        Assert.assertEquals(5, accelerateInfoMap.size());
-
-        // before saveAccelerateInfo
-        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
-        final List<IndexEntity> allCuboids = indexPlan.getAllIndexes();
-        final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
-        Set<FavoriteQueryRealization> fqRealizationsBefore = collectFQR(layouts);
-        Assert.assertTrue(fqRealizationsBefore.isEmpty());
-
-        // do save accelerateInfo
-        smartMaster.saveAccelerateInfo();
-
-        // after saveAccelerateInfo
-        Set<FavoriteQueryRealization> fqRealizationsAfter = collectFQR(layouts);
-        Assert.assertEquals(5, fqRealizationsAfter.size());
-    }
-
-    @Test
     public void testCountDistinctTwoParamColumn() {
         /*
          * case 1:
@@ -269,29 +222,22 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testSaveAccelerateInfoOfOneSqlToManyLayouts() {
+    public void testOneSqlToManyLayouts() {
         String[] sqls = new String[] { "select a.*, kylin_sales.lstg_format_name as lstg_format_name \n"
                 + "from ( select part_dt, sum(price) as sum_price from kylin_sales\n"
                 + "         where part_dt > '2010-01-01' group by part_dt) a \n"
                 + "join kylin_sales on a.part_dt = kylin_sales.part_dt \n"
                 + "group by lstg_format_name, a.part_dt, a.sum_price" };
-        initFQData(sqls);
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
-        final Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
+        Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
         Assert.assertEquals(1, ctx.getModelContexts().size());
         Assert.assertEquals(1, accelerateInfoMap.size());
-
-        // get favorite query realization relationships from database and validate them
-        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
-        final List<IndexEntity> allCuboids = indexPlan.getAllIndexes();
-        final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
-        val fqRealizationsAfter = collectFQR(layouts);
-        Assert.assertEquals(2, fqRealizationsAfter.size());
+        Set<AccelerateInfo.QueryLayoutRelation> relatedLayouts = accelerateInfoMap.get(sqls[0]).getRelatedLayouts();
+        Assert.assertEquals(2, relatedLayouts.size());
     }
 
     @Test

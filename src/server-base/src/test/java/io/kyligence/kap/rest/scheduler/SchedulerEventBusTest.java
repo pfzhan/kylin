@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.scheduler;
 
 import static org.awaitility.Awaitility.await;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -64,11 +63,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
 
-@Ignore
 public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(SchedulerEventBusTest.class);
@@ -78,21 +75,11 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     private final JobSchedulerListener jobSchedulerListener = new JobSchedulerListener();
 
-    private final String[] sqls = new String[] { //
-            "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
-            "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
-            "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
-            "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
-    };
-
     @InjectMocks
-    private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
-
-    @InjectMocks
-    private JobService jobService = Mockito.spy(new JobService());
+    private final JobService jobService = Mockito.spy(new JobService());
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Before
     public void setup() {
@@ -104,7 +91,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(favoriteQueryService, "aclEvaluate", aclEvaluate);
         // init DefaultScheduler
         System.setProperty("kylin.job.max-local-consumption-ratio", "10");
         NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()));
@@ -127,27 +113,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
     }
 
-    @Test
-    public void testRateLimit() throws InterruptedException {
-        logger.info("SchedulerEventBusTest testRateLimit");
-        // only allow 10 permits per second
-        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "600");
-
-        // request 10 permits per second
-        for (int i = 0; i < 10; i++) {
-            favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
-            Thread.sleep(100);
-        }
-
-        // request 100 permits per second
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(10);
-            favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
-        }
-
-        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
-    }
-
+    @Ignore
     @Test
     public void testJobSchedulerListener() throws InterruptedException {
         logger.info("SchedulerEventBusTest testJobSchedulerListener");
@@ -187,7 +153,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testResumeJob() throws IOException {
+    public void testResumeJob() {
         logger.info("SchedulerEventBusTest testResumeJob");
 
         System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
@@ -214,12 +180,12 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             return null;
         }, PROJECT);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> jobSchedulerListener.isJobReadyNotified());
+        await().atMost(60000, TimeUnit.MILLISECONDS).until(jobSchedulerListener::isJobReadyNotified);
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 
     @Test
-    public void testRestartJob() throws IOException {
+    public void testRestartJob() {
         logger.info("SchedulerEventBusTest testRestartJob");
 
         System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
@@ -259,8 +225,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
         int oriCount = NDefaultScheduler.listAllSchedulers().size();
         listener.onProjectControlled(new ProjectControlledNotifier(prj));
-        Assert.assertTrue(NDefaultScheduler.listAllSchedulers().size() == oriCount + 1);
+        Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount + 1);
         listener.onProjectEscaped(new ProjectEscapedNotifier(prj));
-        Assert.assertTrue(NDefaultScheduler.listAllSchedulers().size() == oriCount);
+        Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount);
     }
 }

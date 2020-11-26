@@ -55,7 +55,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -63,7 +62,6 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.UserProjectPermissionResponse;
 import org.apache.kylin.rest.security.AclManager;
@@ -98,7 +96,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -785,19 +782,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         thrown.expectMessage("Illegal users!"
                 + " Only the system administrator and the project administrator role of this project can be set as the project owner.");
         projectService.updateProjectOwner(project, ownerChangeRequest2);
-    }
-
-    @Test
-    public void testGetRulesWithError() {
-        // assert get rule error
-        try {
-            projectService.getFavoriteRules(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), FavoriteRule.COUNT_RULE_NAME),
-                    ex.getMessage());
-        }
     }
 
     public void testGetFavoriteRules() {

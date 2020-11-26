@@ -853,12 +853,6 @@ public class CnMessage extends Message {
         return "生成诊断包失败，失败原因未知，请尝试重新生成。";
     }
 
-    // Encoding
-    @Override
-    public String getVALID_ENCODING_NOT_AVAILABLE() {
-        return "无法为数据类型: %s 提供合法的编码";
-    }
-
     // ExternalFilter
     @Override
     public String getFILTER_ALREADY_EXIST() {
@@ -871,37 +865,6 @@ public class CnMessage extends Message {
     }
 
     // Basic
-    @Override
-    public String getHBASE_FAIL() {
-        return "HBase 遇到错误: '%s'";
-    }
-
-    @Override
-    public String getHBASE_FAIL_WITHOUT_DETAIL() {
-        return "HBase 遇到错误";
-    }
-
-    // Favorite Query
-    @Override
-    public String getFAVORITE_RULE_NOT_FOUND() {
-        return "无法找到相应的加速规则 '%s' ";
-    }
-
-    @Override
-    public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
-        return "目前待加速的加速查询未达到 '%s' 条";
-    }
-
-    @Override
-    public String getFAIL_TO_VERIFY_SQL() {
-        return "验证sql失败.";
-    }
-
-    @Override
-    public String getFAVORITE_QUERY_NOT_EXIST() {
-        return "加速查询 '%s' 不存在";
-    }
-
     @Override
     public String getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY() {
         return "查询频率阈值不能为空";
@@ -1450,7 +1413,6 @@ public class CnMessage extends Message {
         return "找不到表 '%s'";
     }
 
-
     @Override
     public String getILLEGAL_JOB_STATE() {
         return "非法的任务状态:%s";
@@ -1564,16 +1526,6 @@ public class CnMessage extends Message {
     @Override
     public String getMODEL_NUM_OVER_THRESHOLD() {
         return "新建模型失败。模型超过最大值：{%s}。请删除其他废弃模型后再尝试新建或联系管理员调整最大模型数。";
-    }
-
-    @Override
-    public String getFQ_NUM_OVER_THRESHOLD() {
-        return "加速失败。待加速的查询超过最大值：{%s}。请删除其他查询后再尝试或联系管理员调整一次可以加速的查询最大数。";
-    }
-
-    @Override
-    public String getBLACK_LIST_OVER_THRESHOLD() {
-        return "添加 SQL 到加速禁用名单失败。超过禁用名单最大值：{%s}。请删除其他禁用名单 SQL 后再尝试或联系管理员调整黑名单最大数。";
     }
 
     @Override

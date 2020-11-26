@@ -82,8 +82,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -437,26 +435,6 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
                     "/" + destProjectName + "/");
             results.add(new RenameEntity(srcResourcePath, destResourcePath));
         }
-        return results;
-    }
-
-    /**
-     * @param originProjectName
-     * @param destProjectName
-     * @return
-     */
-    private List<RenameEntity> updateFavoriteQuery(String originProjectName, String destProjectName) {
-        List<RenameEntity> results = new ArrayList<>();
-        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(fileSystemConfig,
-                originProjectName);
-        List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
-        for (FavoriteQuery favoriteQuery : favoriteQueries) {
-            String srcResourcePath = favoriteQuery.getResourcePath();
-            favoriteQuery.setProject(destProjectName);
-            String destResourcePath = favoriteQuery.getResourcePath();
-            results.add(new RenameEntity(srcResourcePath, destResourcePath));
-        }
-
         return results;
     }
 

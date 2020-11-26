@@ -138,7 +138,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -1210,9 +1209,6 @@ public class TableService extends BasicService {
             jobs.addAll(updateModelByReloadTable(project, model, context, needBuild));
         }
 
-        val fqManager = getFavoriteQueryManager(projectName);
-        context.getFavoriteQueries().forEach(fqManager::delete);
-
         val loadingManager = getDataLoadingRangeManager(projectName);
         val removeCols = context.getRemoveColumnFullnames();
         loadingManager.getDataLoadingRanges().forEach(loadingRange -> {
@@ -1578,13 +1574,6 @@ public class TableService extends BasicService {
         };
         context.setRemoveAffectedModels(toAffectedModels.apply(context.getRemoveColumns(), true));
         context.setChangeTypeAffectedModels(toAffectedModels.apply(context.getChangeTypeColumns(), false));
-        val fqManager = getFavoriteQueryManager(project);
-        context.setFavoriteQueries(fqManager.getAll().stream()
-                .filter(fq -> fq.getRealizations().stream()
-                        .anyMatch(fqr -> context.getRemoveAffectedModels().containsKey(fqr.getModelId())
-                                && context.getRemoveAffectedModels().get(fqr.getModelId()).getUpdatedLayouts()
-                                        .contains(fqr.getLayoutId())))
-                .map(FavoriteQuery::getId).collect(Collectors.toSet()));
 
         return context;
     }

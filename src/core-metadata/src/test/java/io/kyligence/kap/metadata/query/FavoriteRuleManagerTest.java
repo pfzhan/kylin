@@ -25,21 +25,16 @@
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
@@ -98,75 +93,5 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetEnabledRules() {
         Assert.assertEquals(4, manager.getAllEnabled().size());
-    }
-
-    @Test
-    public void testAppendSqlsToBlacklist() {
-        // add a sql to blacklist
-        FavoriteRuleManager mockManager = Mockito.spy(manager);
-        AtomicBoolean setted = new AtomicBoolean(false);
-        Mockito.doAnswer(invocation -> {
-            String name = invocation.getArgument(0);
-            if (FavoriteRule.BLACKLIST_NAME.equals(name) && !setted.get()) {
-                return null;
-            }
-            return manager.getByName(name);
-        }).when(mockManager).getByName(Mockito.anyString());
-
-        Mockito.doAnswer(invocation -> {
-            FavoriteRule rule = invocation.getArgument(0);
-            if (FavoriteRule.BLACKLIST_NAME.equals(rule.getName()) && !setted.get()) {
-                setted.set(true);
-                return null;
-            }
-            manager.createRule(rule);
-            return null;
-        }).when(mockManager).createRule(Mockito.any(FavoriteRule.class));
-
-        Assert.assertNull(mockManager.getByName(FavoriteRule.BLACKLIST_NAME));
-        FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition("test_sql1");
-        mockManager.appendSqlPatternToBlacklist(sqlCondition);
-        Assert.assertNotNull(mockManager.getByName(FavoriteRule.BLACKLIST_NAME));
-
-        FavoriteRule blacklist = mockManager.getByName(FavoriteRule.BLACKLIST_NAME);
-        Assert.assertEquals(2, blacklist.getConds().size());
-
-        // append a existed sql to blacklist
-        sqlCondition.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
-        mockManager.appendSqlPatternToBlacklist(sqlCondition);
-        blacklist = mockManager.getByName(FavoriteRule.BLACKLIST_NAME);
-        Assert.assertEquals(2, blacklist.getConds().size());
-    }
-
-    @Test
-    public void testRemoveSqlFromBlacklist() {
-        // first append a new sql
-        FavoriteRule.SQLCondition newSql = new FavoriteRule.SQLCondition("new_sql");
-        manager.appendSqlPatternToBlacklist(newSql);
-        FavoriteRule blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
-        Assert.assertEquals(2, blacklist.getConds().size());
-
-        // remove new added sql
-        manager.removeSqlPatternFromBlacklist(newSql.getId());
-        blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
-        Assert.assertEquals(1, blacklist.getConds().size());
-        Assert.assertEquals("SELECT *\nFROM \"TEST_KYLIN_FACT\"",
-                ((FavoriteRule.SQLCondition) blacklist.getConds().get(0)).getSqlPattern());
-    }
-
-    @Test
-    public void testAppendSqlPatternToBlacklistWithBreaker() {
-        FavoriteRuleManager manager = Mockito.spy(FavoriteRuleManager.getInstance(getTestConfig(), PROJECT));
-        FavoriteRule.SQLCondition condition = new FavoriteRule.SQLCondition("test_ck_sql1");
-        manager.appendSqlPatternToBlacklist(condition);
-
-        getTestConfig().setProperty("kylin.circuit-breaker.threshold.sql-pattern-to-blacklist", "1");
-        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
-        try {
-            thrown.expect(KylinException.class);
-            manager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("test_ck_sql2"));
-        } finally {
-            NCircuitBreaker.stop();
-        }
     }
 }

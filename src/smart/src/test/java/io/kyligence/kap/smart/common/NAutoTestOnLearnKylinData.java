@@ -25,7 +25,6 @@
 package io.kyligence.kap.smart.common;
 
 import java.io.File;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -45,18 +44,13 @@ import com.google.common.io.Files;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.AbstractContext;
-import lombok.val;
 
 public abstract class NAutoTestOnLearnKylinData {
 
     protected String proj = "learn_kylin";
     private File tmpMeta;
     private SetAndUnsetThreadLocalConfig localConfig;
-    private FavoriteQueryManager favoriteQueryManager;
 
     @Before
     public void setUp() throws Exception {
@@ -72,7 +66,6 @@ public abstract class NAutoTestOnLearnKylinData {
         kylinConfig.setProperty("kylin.env", "UT");
         kylinConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
-        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 
     public KylinConfig getTestConfig() {
@@ -96,18 +89,6 @@ public abstract class NAutoTestOnLearnKylinData {
         return layouts;
     }
 
-    protected Set<FavoriteQueryRealization> collectFQR(List<LayoutEntity> layouts) {
-        Set<FavoriteQueryRealization> realizations = Sets.newHashSet();
-        layouts.forEach(layout -> {
-            final long layoutId = layout.getId();
-            final String modelId = layout.getModel().getId();
-
-            val tmp = favoriteQueryManager.getFQRByConditions(modelId, layoutId);
-            realizations.addAll(tmp);
-        });
-        return realizations;
-    }
-
     protected Set<OLAPContext> collectAllOlapContexts(AbstractContext smartContext) {
         Preconditions.checkArgument(smartContext != null);
         Set<OLAPContext> olapContexts = Sets.newHashSet();
@@ -115,15 +96,5 @@ public abstract class NAutoTestOnLearnKylinData {
         modelContexts.forEach(modelCtx -> olapContexts.addAll(modelCtx.getModelTree().getOlapContexts()));
 
         return olapContexts;
-    }
-
-    protected void initFQData(String[] sqls) {
-        Set<FavoriteQuery> favoriteQueries = new HashSet<>();
-        for (String sql : sqls) {
-            FavoriteQuery fq = new FavoriteQuery(sql);
-            favoriteQueries.add(fq);
-        }
-
-        favoriteQueryManager.create(favoriteQueries);
     }
 }

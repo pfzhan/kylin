@@ -24,9 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -35,12 +34,10 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -58,12 +55,10 @@ import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
 import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
-import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import io.kyligence.kap.smart.query.validator.AbstractSQLValidator;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
-import lombok.val;
 
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
@@ -73,26 +68,6 @@ public class FavoriteRuleService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
-
-    @Transaction(project = 0)
-    public void batchDeleteFQs(String project, List<String> uuids, boolean block) {
-        aclEvaluate.checkProjectWritePermission(project);
-        uuids.forEach(uuid -> {
-            val favoriteQuery = getFavoriteQueryManager(project).getByUuid(uuid);
-            if (favoriteQuery == null)
-                throw new KylinException(INVALID_PARAMETER,
-                        String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_EXIST(), uuid));
-
-            if (block) {
-                // put to blacklist
-                val sqlCondition = new FavoriteRule.SQLCondition(favoriteQuery.getSqlPattern());
-                getFavoriteRuleManager(project).appendSqlPatternToBlacklist(sqlCondition);
-            }
-
-            // delete favorite query
-            getFavoriteQueryManager(project).delete(favoriteQuery);
-        });
-    }
 
     public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -112,22 +87,9 @@ public class FavoriteRuleService extends BasicService {
         return sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ").toUpperCase();
     }
 
-    @Transaction(project = 1)
-    public void removeBlacklistSql(String id, String project) {
-        aclEvaluate.checkProjectWritePermission(project);
-        getFavoriteRuleManager(project).removeSqlPatternFromBlacklist(id);
-    }
-
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
-        Map<String, SQLValidateResult> map;
-        try {
-            AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(getConfig(), project, new MockupQueryExecutor());
-            map = sqlValidator.batchValidate(sqls.toArray(new String[0]));
-        } catch (IOException e) {
-            throw new InternalErrorException(MsgPicker.getMsg().getFAIL_TO_VERIFY_SQL(), e);
-        }
-
-        return map;
+        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(getConfig(), project, new MockupQueryExecutor());
+        return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
 
     public SQLParserResponse importSqls(MultipartFile[] files, String project) {
@@ -209,7 +171,7 @@ public class FavoriteRuleService extends BasicService {
     List<String> transformFileToSqls(MultipartFile file, String project) throws IOException {
         List<String> sqls = new ArrayList<>();
 
-        String content = new String(file.getBytes(), "UTF-8");
+        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
 
         if (content.isEmpty()) {
             return sqls;

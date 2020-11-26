@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.val;
 
@@ -89,44 +88,6 @@ public class FavoriteRuleManager {
             return;
 
         crud.save(rule);
-    }
-
-    public void appendSqlPatternToBlacklist(FavoriteRule.SQLCondition newCondition) {
-        FavoriteRule blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
-        if (blacklist == null) {
-            createRule(new FavoriteRule(Lists.newArrayList(), FavoriteRule.BLACKLIST_NAME, true));
-        }
-        blacklist = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
-        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
-
-        if (conditions.contains(newCondition))
-            return;
-
-        //check blacklist count
-        NCircuitBreaker.verifySqlPatternToBlacklist(conditions.size());
-
-        conditions.add(newCondition);
-        blacklist.setConds(conditions);
-        crud.save(blacklist);
-    }
-
-    public void removeSqlPatternFromBlacklist(String id) {
-        FavoriteRule blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
-        if (blacklist == null) {
-            return;
-        }
-        blacklist = crud.copyForWrite(blacklist);
-        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
-
-        for (int i = 0; i < conditions.size(); i++) {
-            FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
-            if (id.equals(sqlCondition.getId())) {
-                conditions.remove(sqlCondition);
-            }
-        }
-
-        blacklist.setConds(conditions);
-        crud.save(blacklist);
     }
 
     public void updateRule(List<FavoriteRule.Condition> conditions, boolean isEnabled, String ruleName) {

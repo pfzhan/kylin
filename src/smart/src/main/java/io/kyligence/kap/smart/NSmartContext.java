@@ -24,89 +24,27 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.Getter;
-import lombok.val;
 
 @Getter
 public class NSmartContext extends AbstractContext {
 
     public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
-    }
-
-    /**
-     * Erase the layout in accelerate info map
-     * @param layout the layout need erase
-     * @return corresponding sqlPatterns of this layout
-     */
-    public Set<String> eraseLayoutInAccelerateInfo(LayoutEntity layout) {
-
-        Preconditions.checkNotNull(layout);
-        Set<String> sqlPatterns = Sets.newHashSet();
-        for (val entry : getAccelerateInfoMap().entrySet()) {
-
-            val relatedLayouts = entry.getValue().getRelatedLayouts();
-            val iterator = relatedLayouts.iterator();
-            while (iterator.hasNext()) {
-
-                // only when layoutId, cubePlanId, modelId and semanticVersion consist with queryLayoutRelation would do erase
-                final AccelerateInfo.QueryLayoutRelation next = iterator.next();
-                if (next.consistent(layout)) {
-                    Preconditions.checkState(entry.getKey().equalsIgnoreCase(next.getSql())); // must equal, otherwise error
-                    iterator.remove();
-                    sqlPatterns.add(entry.getKey());
-                }
-            }
-        }
-        return sqlPatterns;
-    }
-
-    /**
-     * Rebuild accelerationInfoMap by relations between favorite query and layout from database
-     * @param favoriteQueryRealizations serialized relations between layout and favorite query
-     */
-    public void reBuildAccelerationInfoMap(Set<FavoriteQueryRealization> favoriteQueryRealizations) {
-        final Set<String> sqlPatternsSet = new HashSet<>(Lists.newArrayList(getSqlArray()));
-        for (FavoriteQueryRealization fqRealization : favoriteQueryRealizations) {
-            final String sqlPattern = fqRealization.getSqlPattern();
-            if (!sqlPatternsSet.contains(sqlPattern))
-                continue;
-            if (!getAccelerateInfoMap().containsKey(sqlPattern)) {
-                getAccelerateInfoMap().put(sqlPattern, new AccelerateInfo());
-            }
-
-            if (getAccelerateInfoMap().containsKey(sqlPattern)) {
-                val queryRelatedLayouts = getAccelerateInfoMap().get(sqlPattern).getRelatedLayouts();
-                String modelId = fqRealization.getModelId();
-                long layoutId = fqRealization.getLayoutId();
-                int semanticVersion = fqRealization.getSemanticVersion();
-                val queryLayoutRelation = new AccelerateInfo.QueryLayoutRelation(sqlPattern, modelId, layoutId,
-                        semanticVersion);
-                queryRelatedLayouts.add(queryLayoutRelation);
-            }
-        }
     }
 
     public NModelContext createModelContext(ModelTree modelTree) {

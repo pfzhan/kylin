@@ -40,19 +40,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -62,7 +58,7 @@ import lombok.var;
 
 @RunWith(TimeZoneTestRunner.class)
 public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
-    private String PROJECT = "default";
+    private static final String PROJECT = "default";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     @Before
@@ -78,94 +74,19 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     /**
-     * Here prepared three test favorite queries, each corresponds to two layouts
-     * fq1 -> low frequency fq, connects to layout 1, 40001
-     * fq2 -> created within the frequency collection time window, does not count as low frequency fq
-     *        connects to layout 40001, 40002
-     * fq3 -> high frequency fq, connects to layout 10001, 10002
-     *
-     * Also added a manually created table index, id as 20000040001, which should not be deleted
+     * manually created table index, id as 20000040001, which should not be deleted
      */
-
     private void initTestData() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
-        val model = modelMgr.getDataModelDesc(MODEL_ID);
-        val indexPlan = indePlanManager.getIndexPlan(MODEL_ID);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
 
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         long currentTime = System.currentTimeMillis();
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
         long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
 
-        // a low frequency favorite query, related layout 1 will be considered as garbage
-        val fq1 = new FavoriteQuery("sql1");
-        fq1.setCreateTime(TimeUtil.minusDays(currentTime, 32));
-        fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(TimeUtil.minusDays(currentDate, 7), 1);
-                put(TimeUtil.minusDays(currentDate, 31), 100);
-            }
-        }));
-
-        val fqr1 = new FavoriteQueryRealization();
-        fqr1.setModelId(model.getId());
-        fqr1.setSemanticVersion(model.getSemanticVersion());
-        fqr1.setLayoutId(40001);
-
-        val fqr2 = new FavoriteQueryRealization();
-        fqr2.setModelId(model.getId());
-        fqr2.setSemanticVersion(model.getSemanticVersion());
-        fqr2.setLayoutId(1);
-
-        fq1.setRealizations(Lists.newArrayList(fqr1, fqr2));
-
-        // not reached low frequency threshold, related layouts are 40001 and 40002
-        val fq2 = new FavoriteQuery("sql2");
-        fq2.setCreateTime(TimeUtil.minusDays(currentTime, 8));
-        fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(TimeUtil.minusDays(currentDate, 7), 1);
-                put(currentDate, 2);
-            }
-        }));
-
-        val fqr3 = new FavoriteQueryRealization();
-        fqr3.setModelId(model.getId());
-        fqr3.setSemanticVersion(model.getSemanticVersion());
-        fqr3.setLayoutId(40001);
-
-        val fqr4 = new FavoriteQueryRealization();
-        fqr4.setModelId(model.getId());
-        fqr4.setSemanticVersion(model.getSemanticVersion());
-        fqr4.setLayoutId(40002);
-        fq2.setRealizations(Lists.newArrayList(fqr3, fqr4));
-
-        // not a low frequency fq, related layouts are 10001 and 10002
-        val fq3 = new FavoriteQuery("sql3");
-        fq3.setCreateTime(TimeUtil.minusDays(currentTime, 31));
-        fq3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(TimeUtil.minusDays(currentDate, 30), 10);
-            }
-        }));
-
-        val fqr5 = new FavoriteQueryRealization();
-        fqr5.setModelId(model.getId());
-        fqr5.setSemanticVersion(model.getSemanticVersion());
-        fqr5.setLayoutId(10001);
-
-        val fqr6 = new FavoriteQueryRealization();
-        fqr6.setModelId(model.getId());
-        fqr6.setSemanticVersion(model.getSemanticVersion());
-        fqr6.setLayoutId(10002);
-        fq3.setRealizations(Lists.newArrayList(fqr5, fqr6));
-
-        favoriteQueryManager.create(Sets.newHashSet(fq1, fq2, fq3));
-
         // add some new layouts for indexPlan
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         dfMgr.updateDataflow(indexPlan.getId(), copyForWrite -> {
             copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
                 {
@@ -201,7 +122,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
                 }
             });
         });
-        indePlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
             newDesc.setId(40000);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));
@@ -231,111 +152,12 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         });
     }
 
-    @Test
-    public void testCleanUpWithExpertMode() {
-        long currentTime = System.currentTimeMillis();
-        ZoneId zoneId = TimeZone.getDefault().toZoneId();
-        LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
-        long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
-        val newFq = new FavoriteQuery("sql");
-        newFq.initAfterReload(getTestConfig(), PROJECT);
-        newFq.setCreateTime(System.currentTimeMillis() - 31 * 24 * 60 * 60 * 1000L);
-        newFq.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(TimeUtil.minusDays(currentDate, 7), 10);
-                put(TimeUtil.minusDays(currentDate, 30), 10);
-            }
-        }));
-
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        favoriteQueryManager.create(Sets.newHashSet(newFq));
-
-        // before cleaned 4 fqs
-        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
-
-        // change project to expert mode
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        projectManager.updateProject(PROJECT, copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-            var properties = copyForWrite.getOverrideKylinProps();
-            if (properties == null) {
-                properties = Maps.newLinkedHashMap();
-            }
-            properties.put("kylin.metadata.semi-automatic-mode", "false");
-            copyForWrite.setOverrideKylinProps(properties);
-        });
-
-        // after clean is also the same
-        GarbageCleaner.cleanupMetadataManually(PROJECT);
-        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
-    }
-
-    @Test
-    public void testCleanupMetadataManually_ChangeConfig() {
-        long currentTime = System.currentTimeMillis();
-        ZoneId zoneId = TimeZone.getDefault().toZoneId();
-        LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
-        long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
-        val newFq = new FavoriteQuery("sql");
-        newFq.initAfterReload(getTestConfig(), PROJECT);
-        newFq.setCreateTime(System.currentTimeMillis() - 31 * 24 * 60 * 60 * 1000L);
-        newFq.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
-            {
-                put(TimeUtil.minusDays(currentDate, 7), 10);
-                put(TimeUtil.minusDays(currentDate, 30), 10);
-            }
-        }));
-
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-
-        favoriteQueryManager.create(Sets.newHashSet(newFq));
-
-        val prjManager = NProjectManager.getInstance(getTestConfig());
-        HashMap<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put("kylin.cube.low-frequency-threshold", "2");
-        overrideKylinProps.put("kylin.cube.frequency-time-window", "30");
-        prjManager.updateProject(PROJECT, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
-        });
-
-        // before cleaned 4 fqs
-        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
-
-        GarbageCleaner.cleanupMetadataManually(PROJECT);
-        //only fq1 cleaned
-
-        overrideKylinProps.put("kylin.cube.low-frequency-threshold", "9");
-        overrideKylinProps.put("kylin.cube.frequency-time-window", "7");
-        prjManager.updateProject(PROJECT, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
-        });
-
-        GarbageCleaner.cleanupMetadataManually(PROJECT);
-
-        //update fqmap
-        newFq.update(newFq);
-        //newFq remian 30 days fqmap
-        int remainSize = favoriteQueryManager.getFavoriteQueryMap().get("sql").getFrequencyMap().getDateFrequency()
-                .size();
-        Assert.assertEquals(2, remainSize);
-
-        overrideKylinProps.put("kylin.cube.low-frequency-threshold", "30");
-        overrideKylinProps.put("kylin.cube.frequency-time-window", "30");
-        prjManager.updateProject(PROJECT, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
-        });
-
-        GarbageCleaner.cleanupMetadataManually(PROJECT);
-        //all fqs cleaned
-        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
-    }
-
+    /**
+     * clean up a project that has broken models
+     */
     @Test
     public void testCleanupMetadataManually() {
-        /**
-         * clean up a project that has broken models
-         */
-        val projectManager = NProjectManager.getInstance(getTestConfig());
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         // when broken model is in MANUAL_MAINTAIN project
         var brokenModelProject = projectManager.getProject("broken_test");
         brokenModelProject.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
@@ -360,12 +182,10 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         model.setSemanticVersion(2);
         modelMgr.updateDataModelDesc(model);
 
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         Set<Long> layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         Assert.assertEquals(13, layouts.size());
-        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
 
         GarbageCleaner.cleanupMetadataManually(PROJECT);
 
@@ -379,12 +199,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 20001));
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 30001));
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
-
-        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
-        val sqls = favoriteQueryManager.getAll().stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toSet());
-        Assert.assertTrue(sqls.contains("sql1"));
-        Assert.assertTrue(sqls.contains("sql2"));
-        Assert.assertTrue(sqls.contains("sql3"));
     }
 
     @Test
@@ -409,12 +223,10 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, dataflowManager.listUnderliningDataModels(true).size());
 
         // clean up project default
-        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         var autoLayouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         Assert.assertEquals(13, autoLayouts.size());
-        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
 
         GarbageCleaner.cleanupMetadataAtScheduledTime(PROJECT);
         indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
@@ -428,8 +240,5 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(autoLayouts.contains(IndexEntity.TABLE_INDEX_START_ID + 30001));
         // manual created index
         Assert.assertTrue(autoLayouts.contains(20000040001L));
-
-        // no fq was deleted
-        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
     }
 }

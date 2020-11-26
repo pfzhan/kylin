@@ -76,7 +76,6 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -166,10 +165,6 @@ public abstract class BasicService {
 
     public MonitorDao getMonitorDao() {
         return MonitorDao.getInstance();
-    }
-
-    public FavoriteQueryManager getFavoriteQueryManager(String project) {
-        return FavoriteQueryManager.getInstance(getConfig(), project);
     }
 
     public AccelerateRatioManager getAccelerateRatioManager(String project) {

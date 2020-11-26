@@ -47,9 +47,6 @@ public class ScheduleService {
     MetadataBackupService backupService;
 
     @Autowired
-    FavoriteQueryService favoriteQueryService;
-
-    @Autowired
     ProjectService projectService;
 
     @Autowired

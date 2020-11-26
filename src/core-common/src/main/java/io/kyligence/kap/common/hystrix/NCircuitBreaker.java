@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.common.hystrix;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_ACCELERATE_QUERY;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_PROJECT;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_INSERT_ACCELERATE_QUERY_BLACKLIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_OBTAIN_QUERY_RESULT;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -101,34 +99,6 @@ public class NCircuitBreaker {
 
         throw new KylinException(FAILED_CREATE_MODEL,
                 String.format(MsgPicker.getMsg().getMODEL_NUM_OVER_THRESHOLD(), threshold));
-    }
-
-    public static void verifyFavoriteQueryCreation(int current) {
-        if (!isEnabled()) {
-            return;
-        }
-
-        int threshold = breakerConfig.thresholdOfFavoriteQuery();
-        if (threshold < 1 || current < threshold) {
-            return;
-        }
-
-        throw new KylinException(FAILED_ACCELERATE_QUERY,
-                String.format(MsgPicker.getMsg().getFQ_NUM_OVER_THRESHOLD(), threshold));
-    }
-
-    public static void verifySqlPatternToBlacklist(int current) {
-        if (!isEnabled()) {
-            return;
-        }
-
-        int threshold = breakerConfig.thresholdOfSqlPatternToBlacklist();
-        if (threshold < 1 || current < threshold) {
-            return;
-        }
-
-        throw new KylinException(FAILED_INSERT_ACCELERATE_QUERY_BLACKLIST,
-                String.format(MsgPicker.getMsg().getBLACK_LIST_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifyQueryResultRowCount(long current) {

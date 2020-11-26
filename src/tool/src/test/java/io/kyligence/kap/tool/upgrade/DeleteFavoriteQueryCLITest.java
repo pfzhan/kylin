@@ -23,14 +23,14 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 
 public class DeleteFavoriteQueryCLITest extends NLocalFileMetadataTestCase {
 
@@ -48,15 +48,12 @@ public class DeleteFavoriteQueryCLITest extends NLocalFileMetadataTestCase {
     public void test() {
         KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
 
-        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(systemKylinConfig, "broken_test");
         FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(systemKylinConfig, "broken_test");
-        Assert.assertTrue(favoriteQueryManager.getAll().size() > 0);
         Assert.assertTrue(favoriteRuleManager.getAll().size() > 0);
 
         DeleteFavoriteQueryCLI deleteFavoriteQueryCLI = new DeleteFavoriteQueryCLI();
         deleteFavoriteQueryCLI.execute(new String[] { "-d", getTestConfig().getMetadataUrl().toString(), "-e" });
 
-        Assert.assertEquals(favoriteQueryManager.getAll().size(), 0);
         Assert.assertEquals(favoriteRuleManager.getAll().size(), 0);
     }
 }
