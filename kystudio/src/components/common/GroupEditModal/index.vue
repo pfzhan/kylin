@@ -229,7 +229,7 @@ export default class GroupEditModal extends Vue {
     const { data: { data } } = await this.loadUsersList({
       page_size: this.pageSize,
       page_offset: this.page_offset,
-      project: this.currentSelectedProject,
+      // project: this.currentSelectedProject, // 处理资源组时，发现这个接口不用传 project 参数
       name: value
     })
 

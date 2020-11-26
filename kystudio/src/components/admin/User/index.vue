@@ -201,7 +201,7 @@ export default class SecurityUser extends Vue {
     try {
       const parameter = {
         ...this.pagination,
-        project: this.currentSelectedProject,
+        // project: this.currentSelectedProject, // 处理资源组时，发现这个接口不用传 project 参数
         name: name || '',
         group_uuid: this.currentGroup && this.currentGroup.uuid
       }

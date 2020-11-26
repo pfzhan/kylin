@@ -47,7 +47,7 @@ export default {
     return Vue.resource(apiUrl + 'user_group/users_with_group').get(para)
   },
   getGroupList: (para) => {
-    return Vue.resource(apiUrl + 'user_group/groups?project=' + para.project).get()
+    return Vue.resource(apiUrl + 'user_group/groups').get()
   },
   addGroup: (para) => {
     return Vue.resource(apiUrl + 'user_group').save(para)

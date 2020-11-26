@@ -385,8 +385,8 @@ export default class UserEditModal extends Vue {
 
   // Helper: 从后台获取用户组
   async fetchUserGroups () {
-    const project = this.currentSelectedProject
-    const { data: { data: totalGroups } } = await this.getGroupList({ project })
+    // const project = this.currentSelectedProject // 处理资源组时，发现这个接口不用传 project 参数
+    const { data: { data: totalGroups } } = await this.getGroupList()
 
     this.setModal({ totalGroups })
   }

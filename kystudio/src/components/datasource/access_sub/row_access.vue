@@ -197,9 +197,8 @@ export default {
       this.getWhiteListOfTable()
     },
     getGroups () {
-      this.getGroupList({
-        project: this.$store.state.project.selected_project
-      }).then((res) => {
+      // 处理资源组时，发现这个接口不用传 project 参数
+      this.getGroupList().then((res) => {
         handleSuccess(res, (data) => {
           var result = []
           data.forEach((d) => {
