@@ -148,6 +148,10 @@ public class AclPermissionUtil {
                 .map(accessControlEntry -> getName(accessControlEntry.getSid())).collect(Collectors.toSet());
     }
 
+    public static boolean isAdmin(Set<String> groups) {
+        return Objects.nonNull(groups) && groups.stream().anyMatch(Constant.ROLE_ADMIN::equals);
+    }
+
     public static boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return Objects.nonNull(auth) && auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)

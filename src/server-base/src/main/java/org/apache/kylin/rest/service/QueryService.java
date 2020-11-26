@@ -680,7 +680,8 @@ public class QueryService extends BasicService {
                 // force clear the query context before a new query
                 clearThreadLocalContexts();
 
-                if (!AclPermissionUtil.canUseACLGreenChannel(queryParams.getProject(), queryParams.getAclInfo().getGroups(), false)) {
+                // skip masking if executing user has admin permission
+                if (!isACLDisabledOrAdmin(sqlRequest.getProject(), queryParams.getAclInfo())) {
                     QueryResultMasks.init(sqlRequest.getProject(), NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(sqlRequest.getProject()).getConfig());
                 }
                 return execute(correctedSql, sqlRequest, queryExec);
@@ -699,6 +700,22 @@ public class QueryService extends BasicService {
         } finally {
             QueryResultMasks.remove();
         }
+    }
+
+    private boolean isACLDisabledOrAdmin(String project, QueryContext.AclInfo aclInfo) {
+        KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project).getConfig();
+        if (!projectKylinConfig.isAclTCREnabled()) {
+            return true;
+        }
+
+        // is role admin
+        if (aclInfo != null && aclInfo.getGroups() != null && AclPermissionUtil.isAdmin(aclInfo.getGroups())) {
+            return true;
+        }
+
+        // is project admin
+        return aclInfo != null && aclInfo.isHasAdminPermission();
     }
 
     private SQLResponse pushDownQuery(SQLException sqlException, SQLRequest sqlRequest, String defaultSchema)
