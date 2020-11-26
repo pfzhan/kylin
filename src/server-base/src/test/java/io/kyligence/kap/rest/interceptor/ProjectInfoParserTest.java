@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.interceptor;
 
-import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
@@ -101,7 +101,7 @@ public class ProjectInfoParserTest {
         request.setRequestURI("/kylin/api/test");
         request.setParameter("project", "AAA");
 
-        Pair<String, ServletRequest> pair = ProjectInfoParser.parseProjectInfo(request);
+        Pair<String, HttpServletRequest> pair = ProjectInfoParser.parseProjectInfo(request);
         Assert.assertEquals(pair.getFirst(), "AAA");
 
         // project in body

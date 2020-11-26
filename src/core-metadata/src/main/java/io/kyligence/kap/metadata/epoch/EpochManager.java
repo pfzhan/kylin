@@ -58,6 +58,7 @@ import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import lombok.val;
 
 public class EpochManager implements IKeep {
@@ -151,13 +152,11 @@ public class EpochManager implements IKeep {
     }
 
     private List<String> getProjectsToMarkOwner() {
-        return NProjectManager.getInstance(config).listAllProjects().stream().filter(p -> {
-            Epoch epoch = epochStore.getEpoch(p.getName());
-            if (!isEpochLegal(epoch) || epoch.getCurrentEpochOwner().equals(identity)) {
-                return true;
-            }
-            return false;
-        }).map(ProjectInstance::getName).collect(Collectors.toList());
+        return NProjectManager.getInstance(config).listAllProjects()
+                .stream()
+                .filter(p -> currentInstanceHasPermissionToOwn(p.getName(), false))
+                .map(ProjectInstance::getName)
+                .collect(Collectors.toList());
     }
 
     private Set<String> tryUpdateAllEpoch() {
@@ -178,11 +177,11 @@ public class EpochManager implements IKeep {
     }
 
     /**
-     * 
+     *
      * the method only update epoch'meta,
      * will not post ProjectControlledNotifier event
      * so it can be safely used by tool
-     * 
+     *
      * @param projects projects need to be updated or inserted
      * @param skipCheckMaintMode if true, should not check maintenance mode status
      * @param maintenanceModeReason
@@ -205,8 +204,15 @@ public class EpochManager implements IKeep {
             if (CollectionUtils.isNotEmpty(needUpdateProjectSet)) {
                 val needUpdateEpochList = epochList.stream()
                         .filter(epoch -> needUpdateProjectSet.contains(epoch.getEpochTarget()))
-                        .map(epochTemp -> oldEpoch2NewEpoch(epochTemp, epochTemp.getEpochTarget(), true,
-                                maintenanceModeReason).getSecond())
+                        .map(epochTemp -> {
+                            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(epochTemp, epochTemp.getEpochTarget(),
+                                    true, maintenanceModeReason);
+                            if (Objects.nonNull(pair)) {
+                                return pair.getSecond();
+                            }
+                            return null;
+                        })
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
                 //batch update
                 epochStore.updateBatch(needUpdateEpochList);
@@ -216,7 +222,14 @@ public class EpochManager implements IKeep {
             val needInsertProjectSet = Sets.difference(new HashSet<>(projects), needUpdateProjectSet);
             if (CollectionUtils.isNotEmpty(needInsertProjectSet)) {
                 val needInsertEpochList = needInsertProjectSet.stream()
-                        .map(project -> oldEpoch2NewEpoch(null, project, true, maintenanceModeReason).getSecond())
+                        .map(project -> {
+                            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(null, project, true, maintenanceModeReason);
+                            if (Objects.nonNull(pair)) {
+                                return pair.getSecond();
+                            }
+                            return null;
+                        })
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
                 epochStore.insertBatch(needInsertEpochList);
             }
@@ -229,8 +242,7 @@ public class EpochManager implements IKeep {
     }
 
     @Nullable
-    private Pair<Epoch, Epoch> oldEpoch2NewEpoch(@Nullable Epoch oldEpoch, @Nonnull String epochTarget, boolean force,
-            String maintenanceModeReason) {
+    private Pair<Epoch, Epoch> oldEpoch2NewEpoch(@Nullable Epoch oldEpoch, @Nonnull String epochTarget, boolean force, String maintenanceModeReason) {
         Epoch finalEpoch = getNewEpoch(oldEpoch, force, epochTarget);
         if (finalEpoch == null) {
             return null;
@@ -241,17 +253,12 @@ public class EpochManager implements IKeep {
     }
 
     public boolean tryUpdateEpoch(String epochTarget, boolean force) {
-        return tryUpdateEpoch(epochTarget, force, null);
-    }
-
-    public boolean tryUpdateEpoch(String epochTarget, boolean force, String maintenanceModeReason) {
         if (!force && checkInMaintenanceMode()) {
             return false;
         }
         try {
             Epoch epoch = epochStore.getEpoch(epochTarget);
-
-            Pair<Epoch, Epoch> oldNewEpochPair = oldEpoch2NewEpoch(epoch, epochTarget, force, maintenanceModeReason);
+            Pair<Epoch, Epoch> oldNewEpochPair = oldEpoch2NewEpoch(epoch, epochTarget, force, null);
 
             //current epoch already has owner and not to force
             if (Objects.isNull(oldNewEpochPair)) {
@@ -276,7 +283,7 @@ public class EpochManager implements IKeep {
 
     /**
      * if epoch's target is not in meta data,insert new one,
-     * otherwise update it 
+     * otherwise update it
      * @param epoch
      */
     public void insertOrUpdateEpoch(Epoch epoch) {
@@ -304,13 +311,17 @@ public class EpochManager implements IKeep {
             newEpoch.setMvcc(epoch == null ? 0 : epoch.getMvcc());
             return newEpoch;
         }
+        if (!currentInstanceHasPermissionToOwn(epochTarget, force)) {
+            return null;
+        }
         if (epoch == null) {
             epoch = new Epoch(1L, epochTarget, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), null,
                     0L);
         } else {
             if (!epoch.getCurrentEpochOwner().equals(identity)) {
-                if (isEpochLegal(epoch) && !force)
+                if (isEpochLegal(epoch) && !force) {
                     return null;
+                }
                 epoch.setEpochId(epoch.getEpochId() + 1);
             } else if (!currentEpochs.contains(epochTarget)) {
                 epoch.setEpochId(epoch.getEpochId() + 1);
@@ -353,37 +364,23 @@ public class EpochManager implements IKeep {
         return isEpochLegal(epoch) && epoch.getCurrentEpochOwner().equals(identity);
     }
 
-    //when create a epochTarget, mark now
-    public synchronized void updateEpoch(String epochTarget) throws Exception {
-        if (checkInMaintenanceMode()) {
-            return;
-        }
-
-        if (StringUtils.isEmpty(epochTarget)) {
-            updateAllEpochs();
-        }
-
-        if (tryUpdateEpoch(epochTarget, false)) {
+    public void updateEpochWithNotifier(String epochTarget, boolean force) {
+        if (tryUpdateEpoch(epochTarget, force)) {
             currentEpochs.add(epochTarget);
             eventBusFactory.postAsync(new ProjectControlledNotifier(epochTarget));
         }
     }
 
-    public Set<String> getAllLeadersByMode(String serverMode) {
-        Set<String> leaders = epochStore.list().stream().filter(this::isEpochLegal).map(Epoch::getCurrentEpochOwner)
-                .map(this::getHostAndPort).collect(Collectors.toSet());
-        Epoch globalEpoch = getGlobalEpoch();
-        if (StringUtils.isNotBlank(serverMode) && StringUtils.isNotBlank(globalEpoch.getServerMode())
-                && !serverMode.equals(globalEpoch.getServerMode())) {
-            return leaders;
+    private boolean currentInstanceHasPermissionToOwn(String epochTarget, boolean force) {
+        // if force, no need to check resource group, eg: switch maintenance mode.
+        if (force) {
+            return true;
         }
-        if (isEpochLegal(globalEpoch)) {
-            leaders.add(getHostAndPort(globalEpoch.getCurrentEpochOwner()));
-        }
-        return leaders;
+        ResourceGroupManager rgManager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+        return rgManager.instanceHasPermissionToOwnEpochTarget(epochTarget, AddressUtil.getLocalInstance());
     }
 
-    public boolean isEpochLegal(Epoch epoch) {
+    private boolean isEpochLegal(Epoch epoch) {
         if (epoch == null) {
             logger.debug("Get null epoch");
             return false;
@@ -397,6 +394,12 @@ public class EpochManager implements IKeep {
             return false;
         }
 
+        ResourceGroupManager rgManager = ResourceGroupManager.getInstance(config);
+        String epochServer = getHostAndPort(epoch.getCurrentEpochOwner());
+        if (!rgManager.instanceHasPermissionToOwnEpochTarget(epoch.getEpochTarget(), epochServer)) {
+            logger.debug("Epoch {}'s owner is not in build request type resource group.", epoch);
+            return false;
+        }
         return true;
     }
 
@@ -426,27 +429,6 @@ public class EpochManager implements IKeep {
             throw new IllegalStateException(String.format("Epoch of project %s does not exist", epochTarget));
         }
         return epoch.getEpochId();
-    }
-
-    public synchronized boolean forceUpdateEpoch(String epochTarget) {
-        return forceUpdateEpoch(epochTarget, null);
-    }
-
-    /**
-     * only for maintainModeTool
-     * @param epochTarget
-     * @param maintenanceModeReason
-     * @return
-     */
-    public synchronized boolean forceUpdateEpoch(String epochTarget, String maintenanceModeReason) {
-        if (tryUpdateEpoch(epochTarget, true, maintenanceModeReason)) {
-            currentEpochs.add(epochTarget);
-            if (!isMaintenanceMode()) {
-                eventBusFactory.postAsync(new ProjectControlledNotifier(epochTarget));
-            }
-            return true;
-        }
-        return false;
     }
 
     private void checkEpochTarget(String epochTarget) {

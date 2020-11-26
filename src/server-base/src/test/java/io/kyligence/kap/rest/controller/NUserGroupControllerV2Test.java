@@ -23,11 +23,10 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.controller.v2.NUserGroupControllerV2;
-import io.kyligence.kap.rest.service.NUserGroupService;
-import lombok.val;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.util.List;
+
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
@@ -48,9 +47,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ContentNegotiationManager;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.rest.controller.v2.NUserGroupControllerV2;
+import io.kyligence.kap.rest.service.NUserGroupService;
+import lombok.val;
 
 public class NUserGroupControllerV2Test {
 
@@ -91,7 +93,7 @@ public class NUserGroupControllerV2Test {
 
     @Test
     public void testGetUserWithGroup() throws Exception {
-        Mockito.doReturn(null).when(userGroupService).listAllAuthorities(Mockito.anyString());
+        Mockito.doReturn(null).when(userGroupService).listAllAuthorities();
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/usersWithGroup")

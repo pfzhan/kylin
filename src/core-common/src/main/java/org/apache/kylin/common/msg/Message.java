@@ -1599,4 +1599,61 @@ public class Message {
     public String getINVALID_DIAG_TIME_PARAMETER() {
         return "The end time must be greater than the start time, please input the correct parameters to execute.";
     }
+
+    // Resource Group
+    public String getRESOURCE_GROUP_FIELD_IS_NULL() {
+        return "Resource group fields can not be null.";
+    }
+
+    public String getRESOURCE_CAN_NOT_BE_EMPTY() {
+        return "In resource group mode, at least one resource group exists.";
+    }
+
+    public String getEMPTY_RESOURCE_GROUP_ID() {
+        return "Resource group id can not be empty.";
+    }
+
+    public String getDUPLICATED_RESOURCE_GROUP_ID() {
+        return "Resource group id can not duplicated.";
+    }
+
+    public String getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM() {
+        return "Resource group information must be cleared before closing the resource group.";
+    }
+
+    public String getPROJECT_WITHOUT_RESOURCE_GROUP() {
+        return "No Resource Group is allocated, please contact your administrator.";
+    }
+
+    public String getEMPTY_KYLIN_INSTANCE_IDENTITY() {
+        return "Kylin instance filed can not be empty.";
+    }
+
+    public String getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID() {
+        return "Kylin instance resource_group_id field can not be empty.";
+    }
+
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE() {
+        return "Kylin instance resource_group_id not exists.";
+    }
+
+    public String getDUPLICATED_KYLIN_INSTANCE() {
+        return "Kylin instance can not duplicated.";
+    }
+
+    public String getEMPTY_PROJECT_IN_MAPPING_INFO() {
+        return "Project can not be empty in mapping_info.";
+    }
+
+    public String getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO() {
+        return "Resource group id can not be empty in mapping_info.";
+    }
+
+    public String getPROJECT_BINDING_RESOURCE_GROUP_INVALID() {
+        return "A project is bound to two resource groups at most, and each request is bound to at most one resource group, invalid project name: [%s].";
+    }
+
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO() {
+        return "Mapping info resource_group_id not exists.";
+    }
 }

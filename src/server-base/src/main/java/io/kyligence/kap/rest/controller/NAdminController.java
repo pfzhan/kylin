@@ -32,6 +32,7 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 
 import org.apache.commons.lang3.StringUtils;
@@ -46,6 +47,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -74,7 +76,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.model.dimension-measure-name.max-length");
         propertyKeys.add("kylin.favorite.import-sql-max-size");
 
-        final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
+        final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys) + addPropertyInMetadata();
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, config, "");
     }
@@ -89,6 +91,17 @@ public class NAdminController extends NBasicController {
         data.put("instance.timezone", zoneId.toString());
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    private String addPropertyInMetadata() {
+        Properties properties = new Properties();
+        ResourceGroupManager manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+        properties.put("resource_group_enabled", manager.isResourceGroupEnabled());
+        final StringBuilder sb = new StringBuilder();
+        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+            sb.append(entry.getKey()).append("=").append(entry.getValue()).append('\n');
+        }
+        return sb.toString();
     }
 
 }

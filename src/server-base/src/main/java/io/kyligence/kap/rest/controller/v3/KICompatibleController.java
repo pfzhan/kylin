@@ -117,7 +117,7 @@ public class KICompatibleController {
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-        val result = userController.listAllUsers(null, null, false, pageOffset, pageSize);
+        val result = userController.listAllUsers(null, false, pageOffset, pageSize);
         Map<String, Object> response = Maps.newHashMap();
         response.put("users", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());

@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.rest.util.InitResourceGroupUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -98,6 +99,7 @@ public class EpochChangedListener implements IKeep {
                 ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();
                 return null;
             }, "", 1);
+            InitResourceGroupUtils.initResourceGroup();
         }
     }
 

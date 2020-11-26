@@ -115,9 +115,9 @@ public class NUserGroupController extends NBasicController {
     @GetMapping(value = "/groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<List<String>> listUserAuthorities(@RequestParam(value = "project") String project)
+    public EnvelopeResponse<List<String>> listUserAuthorities()
             throws IOException {
-        List<String> groups = userGroupService.listAllAuthorities(project);
+        List<String> groups = userGroupService.listAllAuthorities();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, groups, "get groups");
     }
 

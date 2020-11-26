@@ -53,7 +53,7 @@ import io.kyligence.kap.rest.response.UserGroupResponseKI;
 
 public interface IUserGroupService {
     //need project to indicate user's permission.only global admin and project admin can get.
-    List<String> listAllAuthorities(String project) throws IOException;
+    List<String> listAllAuthorities() throws IOException;
 
     List<String> getAuthoritiesFilterByGroupName(String userGroupName) throws IOException;
 

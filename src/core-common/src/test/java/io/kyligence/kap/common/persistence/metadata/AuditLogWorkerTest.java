@@ -141,7 +141,7 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
                 return 0;
             }, "0p1");
             try {
-                restClient.notifyCatchUp(new AuditLogBroadcastEventNotifier());
+                restClient.notify(new AuditLogBroadcastEventNotifier());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -199,7 +199,7 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
         });
 
         try {
-            restClient.notifyCatchUp(new AuditLogBroadcastEventNotifier());
+            restClient.notify(new AuditLogBroadcastEventNotifier());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -217,7 +217,7 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
             return 0;
         }, "p2");
         try {
-            restClient.notifyCatchUp(new AuditLogBroadcastEventNotifier());
+            restClient.notify(new AuditLogBroadcastEventNotifier());
         } catch (IOException e) {
             e.printStackTrace();
         }

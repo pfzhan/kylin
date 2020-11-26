@@ -25,22 +25,36 @@
 package io.kyligence.kap.metadata.epoch;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
+    @Before
+    public void setup() {
+        createTestMetadata();
+    }
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testUpdateGlobalEpoch() throws Exception {
@@ -216,4 +230,73 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
     }
 
+    @Test
+    public void testForceUpdateEpoch() {
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        Assert.assertNull(epochManager.getGlobalEpoch());
+        epochManager.updateEpochWithNotifier(EpochManager.GLOBAL, true);
+        Assert.assertNotNull(epochManager.getGlobalEpoch());
+    }
+
+    @Test
+    public void testUpdateProjectEpochWithResourceGroupEnabled() {
+        val manager = ResourceGroupManager.getInstance(getTestConfig());
+        manager.getResourceGroup();
+        manager.updateResourceGroup(copyForWrite -> {
+            copyForWrite.setResourceGroupEnabled(true);
+        });
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        val prjMgr = NProjectManager.getInstance(getTestConfig());
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
+            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+        }
+        epochManager.updateAllEpochs();
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
+            Assert.assertNull(epochManager.getEpoch(prj.getName()));
+        }
+    }
+
+    @Test
+    public void testGetEpochOwnerWithException() {
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("Project should not be empty");
+        epochManager.getEpochOwner(null);
+    }
+
+    @Test
+    public void testGetEpochOwnerWithEpochIsNull() {
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        String epoch = epochManager.getEpochOwner("notexist");
+        Assert.assertNull(epoch);
+    }
+
+    @Test
+    public void testUpdateEpoch() {
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        Assert.assertNull(epochManager.getGlobalEpoch());
+        epochManager.updateEpochWithNotifier("_global", false);
+        Assert.assertNotNull(epochManager.getGlobalEpoch());
+    }
+
+    @Test
+    public void testTryForceInsertOrUpdateEpochBatchTransaction() {
+        Epoch e1 = new Epoch();
+        e1.setEpochTarget("test1");
+        e1.setCurrentEpochOwner("owner1");
+        e1.setEpochId(1);
+        e1.setLastEpochRenewTime(System.currentTimeMillis());
+
+        getEpochStore().insertBatch(Lists.newArrayList(e1));
+
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        List<String> projects = Lists.newArrayList("test1");
+        boolean result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false,
+                "test", false);
+        Assert.assertTrue(result);
+
+        result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(Lists.newArrayList(), false,
+                "test", false);
+        Assert.assertFalse(result);
+    }
 }

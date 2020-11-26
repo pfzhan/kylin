@@ -24,23 +24,15 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-import io.kyligence.kap.common.persistence.metadata.Epoch;
-import org.apache.kylin.common.restclient.RestClient;
-
 import java.io.IOException;
 
+import org.apache.kylin.common.restclient.RestClient;
+
 public class EpochRestClientTool {
-
-    public static void transferUpdateEpochRequest(Epoch epoch, String project) throws IOException {
-        String ownerInfo = epoch.getCurrentEpochOwner();
-        transferUpdateEpochRequest(ownerInfo.split("\\|")[0], project);
-    }
-
     public static void transferUpdateEpochRequest(String node, String project) throws IOException {
         RestClient restClient = new RestClient(node);
         restClient.updatePrjEpoch(project);
     }
-
 
     public static String getHost(String ownerInfo) {
         return ownerInfo.split(":")[0];

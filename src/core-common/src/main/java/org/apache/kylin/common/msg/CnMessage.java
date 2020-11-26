@@ -1818,4 +1818,75 @@ public class CnMessage extends Message {
     public String getINVALID_DIAG_TIME_PARAMETER() {
         return "终止时间必须大于起始时间，请输入正确的参数执行。";
     }
+
+    // Resource Group
+    @Override
+    public String getRESOURCE_GROUP_FIELD_IS_NULL() {
+        return "资源组请求字段均不能为 null。";
+    }
+
+    @Override
+    public String getRESOURCE_CAN_NOT_BE_EMPTY() {
+        return "在资源组模式下，至少存在一个资源组。";
+    }
+
+    @Override
+    public String getEMPTY_RESOURCE_GROUP_ID() {
+        return "资源组 id 不能为空。";
+    }
+
+    @Override
+    public String getDUPLICATED_RESOURCE_GROUP_ID() {
+        return "资源组不能有重复的 id。";
+    }
+
+    @Override
+    public String getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM() {
+        return "关闭资源组前必须清空资源组信息.";
+    }
+
+    @Override
+    public String getPROJECT_WITHOUT_RESOURCE_GROUP() {
+        return "当前项目未绑定资源组，请联系管理员。";
+    }
+
+    @Override
+    public String getEMPTY_KYLIN_INSTANCE_IDENTITY() {
+        return "实例 instance 字段不能为空。";
+    }
+
+    @Override
+    public String getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID() {
+        return "实例 resource_group_id 字段不能为空。";
+    }
+
+    @Override
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE() {
+        return "实例中的 resource_group_id 不存在。";
+    }
+
+    @Override
+    public String getDUPLICATED_KYLIN_INSTANCE() {
+        return "实例不能重复。";
+    }
+
+    @Override
+    public String getEMPTY_PROJECT_IN_MAPPING_INFO() {
+        return "mapping_info 中，project 不能为空。";
+    }
+
+    @Override
+    public String getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO() {
+        return "mapping_info 中，resource_group_id 不能为空。";
+    }
+
+    @Override
+    public String getPROJECT_BINDING_RESOURCE_GROUP_INVALID() {
+        return "一个项目最多绑定两个资源组，每种请求最多绑定一个资源组，不合理的项目名称： [%s].";
+    }
+
+    @Override
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO() {
+        return "mapping_info 中，resource_group_id 不存在。";
+    }
 }

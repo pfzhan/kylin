@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.rest.broadcaster;
 
-import java.io.IOException;
-
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +38,7 @@ public class BroadcastListener implements IKeep {
     private Broadcaster broadcaster = Broadcaster.getInstance(KylinConfig.getInstanceFromEnv());
 
     @Subscribe
-    public void onEventReady(BroadcastEventReadyNotifier notifier) throws IOException {
+    public void onEventReady(BroadcastEventReadyNotifier notifier) {
         broadcaster.announce(new Broadcaster.BroadcastEvent(), notifier);
     }
 

@@ -28,7 +28,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
@@ -48,7 +50,7 @@ public class EpochService extends BasicService {
     @Autowired
     public AclEvaluate aclEvaluate;
 
-    public void updateEpoch(List<String> projects, boolean force, boolean client) throws Exception {
+    public void updateEpoch(List<String> projects, boolean force, boolean client) {
         if (!client)
             aclEvaluate.checkIsGlobalAdmin();
 
@@ -57,19 +59,19 @@ public class EpochService extends BasicService {
         NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (projects.isEmpty()) {
             projects.add(EpochManager.GLOBAL);
-            projects.addAll(projectMgr.listAllProjects().stream().map(p -> p.getName()).collect(Collectors.toList()));
+            projects.addAll(projectMgr.listAllProjects().stream().map(ProjectInstance::getName).collect(Collectors.toList()));
         }
-
+        ResourceGroupManager rgManager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (String project : projects) {
+            if (!rgManager.instanceHasPermissionToOwnEpochTarget(project, AddressUtil.getLocalInstance())) {
+                continue;
+            }
             logger.info("update epoch {}", project);
-            if (force)
-                epochMgr.forceUpdateEpoch(project);
-            else
-                epochMgr.updateEpoch(project);
+            epochMgr.updateEpochWithNotifier(project, force);
         }
     }
 
-    public void updateAllEpochs(boolean force, boolean client) throws Exception {
+    public void updateAllEpochs(boolean force, boolean client) {
         if (!client)
             aclEvaluate.checkIsGlobalAdmin();
         NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());

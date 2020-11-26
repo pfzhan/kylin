@@ -26,7 +26,29 @@ package io.kyligence.kap.common.persistence.transaction;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
+import lombok.Getter;
+import lombok.Setter;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
+@Getter
+@Setter
 public class BroadcastEventReadyNotifier extends SchedulerEventNotifier {
+
+    protected BroadcastScopeEnum broadcastScope = BroadcastScopeEnum.WHOLE_NODES;
+
+    public enum BroadcastScopeEnum {
+        /**
+         * All、Job、Query
+         */
+        WHOLE_NODES,
+
+        /**
+         * All、Job
+         */
+        LEADER_NODES,
+
+        ALL_NODES,
+        JOB_NODES,
+        QUERY_NODES
+    }
 }

@@ -116,15 +116,15 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
         user1.setPassword("KYLIN");
         user1.setDefaultPassword(false);
         List<ManagedUser> managedUsers = Lists.newArrayList(user1);
-        Mockito.when(nUserController.listAllUsers("default", "KYLIN", false, 0, 10)).thenReturn(new EnvelopeResponse<>(
+        Mockito.when(nUserController.listAllUsers("KYLIN", false, 0, 10)).thenReturn(new EnvelopeResponse<>(
                 ResponseCode.CODE_SUCCESS, DataResult.get(managedUsers, 0, 10), "testListAllUsers"));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/kap/user/users").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("name", "KYLIN")
+                .param("name", "KYLIN")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserControllerV2).listAllUsers("default", "KYLIN", false, 0, 10);
+        Mockito.verify(nUserControllerV2).listAllUsers("KYLIN", false, 0, 10);
     }
 
     @Test

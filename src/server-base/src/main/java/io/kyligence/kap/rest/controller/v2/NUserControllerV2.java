@@ -67,14 +67,13 @@ public class NUserControllerV2 extends NBasicController {
 
     @GetMapping(value = "/kap/user/users", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
-    public EnvelopeResponse listAllUsers(@RequestParam(value = "project", required = false) String project,
-            @RequestParam(value = "name", required = false) String nameSeg,
+    public EnvelopeResponse listAllUsers(@RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
 
-        EnvelopeResponse<DataResult<List<ManagedUser>>> dataResult = nUserController.listAllUsers(project, nameSeg,
+        EnvelopeResponse<DataResult<List<ManagedUser>>> dataResult = nUserController.listAllUsers(nameSeg,
                 isCaseSensitive, pageOffset, pageSize);
         Map<String, Object> result = Maps.newHashMap();
         result.put("users", dataResult.getData().getValue());

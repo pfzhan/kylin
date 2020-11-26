@@ -26,6 +26,7 @@ package io.kyligence.kap.rest;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_WITHOUT_RESOURCE_GROUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
 
@@ -75,6 +76,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
@@ -161,9 +163,38 @@ public class QueryNodeFilter implements Filter {
             HttpServletResponse servletResponse = (HttpServletResponse) response;
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             try {
+                // if without this, it will produce StackOverflowError
+                final String uri = StringUtils.stripEnd(servletRequest.getRequestURI(), "/");
+                if (uri.startsWith(ERROR_REQUEST_URL)) {
+                    chain.doFilter(servletRequest, response);
+                    return;
+                }
+
+                String contentType = servletRequest.getContentType();
+                Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(servletRequest);
+                String project = projectInfo.getFirst();
+                // Don't move this line of code randomly.
+                servletRequest = projectInfo.getSecond();
+
+                // project not exist
+                if (!checkProjectExist(project)) {
+                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
+                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
+                }
+
+                // project is not bound to resource group
+                if (!checkProjectBindToResourceGroup(project)) {
+                    Message msg = MsgPicker.getMsg();
+                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP()));
+                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
+                }
+
                 // not start with /kylin/api
                 if (checkNeedToRoute(servletRequest)) {
-                    chain.doFilter(request, response);
+                    chain.doFilter(servletRequest, response);
                     return;
                 }
 
@@ -175,21 +206,9 @@ public class QueryNodeFilter implements Filter {
                     return;
                 }
 
-                String contentType = request.getContentType();
-                Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
-                String project = projectInfo.getFirst();
-                if (!checkProjectExist(project)) {
-                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
-                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
-                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
-                    return;
-                }
-
-                request = projectInfo.getSecond();
-
                 if (checkProcessLocal(kylinConfig, project, contentType)) {
                     log.info("process local caused by project owner");
-                    chain.doFilter(request, response);
+                    chain.doFilter(servletRequest, response);
                     return;
                 }
 
@@ -202,14 +221,15 @@ public class QueryNodeFilter implements Filter {
                 return;
             }
 
-            ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);
+            ServletRequestAttributes attributes = new ServletRequestAttributes(servletRequest);
             RequestContextHolder.setRequestAttributes(attributes);
 
             log.debug("proxy {} {} to all", servletRequest.getMethod(), servletRequest.getRequestURI());
-            val body = IOUtils.toByteArray(request.getInputStream());
+            val body = IOUtils.toByteArray(servletRequest.getInputStream());
             HttpHeaders headers = new HttpHeaders();
-            Collections.list(servletRequest.getHeaderNames())
-                    .forEach(k -> headers.put(k, Collections.list(servletRequest.getHeaders(k))));
+            for (String k : Collections.list(servletRequest.getHeaderNames())) {
+                headers.put(k, Collections.list(servletRequest.getHeaders(k)));
+            }
             headers.add(ROUTED, "true");
             byte[] responseBody;
             int responseStatus;
@@ -311,6 +331,14 @@ public class QueryNodeFilter implements Filter {
             }
         }
         return true;
+    }
+
+    private boolean checkProjectBindToResourceGroup(String project) {
+        val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+        if (UnitOfWork.GLOBAL_UNIT.equals(project) || !manager.isResourceGroupEnabled()) {
+            return true;
+        }
+        return manager.isProjectBindToResourceGroup(project);
     }
 
     public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {

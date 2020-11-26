@@ -186,6 +186,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     SYSTEM_IS_RECOVER("KE-10021002"), //
     TRANSFER_FAILED("KE-10021003"), //
     NO_ACTIVE_ALL_NODE("KE-10021004"), //
+    PROJECT_WITHOUT_RESOURCE_GROUP("KE-10021005"),
 
     // 10022XXX segment
     INVALID_SEGMENT_RANGE("KE-10022001"), //

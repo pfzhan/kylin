@@ -26,7 +26,6 @@ package io.kyligence.kap.rest;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
@@ -66,7 +65,7 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
     }
 
     private Server choose(HttpServletRequest request) {
-        Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
+        Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
         String project = projectInfo.getFirst();
         String owner = EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).getEpochOwner(project);
         if (StringUtils.isBlank(owner)) {

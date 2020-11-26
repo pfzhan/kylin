@@ -44,8 +44,10 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
 import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -418,16 +420,16 @@ public class NSystemController extends NBasicController {
 
     @PostMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> setReadMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest)
-            throws Exception {
+    public EnvelopeResponse<String> setMaintenanceMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest) {
         maintenanceModeService.setMaintenanceMode(maintenanceModeRequest.getReason());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @DeleteMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> unsetReadMode(@RequestParam(value = "reason") String reason) throws Exception {
+    public EnvelopeResponse<String> unsetReadMode(@RequestParam(value = "reason") String reason) {
         maintenanceModeService.unsetMaintenanceMode(reason);
+        EventBusFactory.getInstance().postAsync(new EpochCheckBroadcastNotifier());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -459,5 +461,11 @@ public class NSystemController extends NBasicController {
         licenseInfoService.refreshLicenseVolume();
         EventBusFactory.getInstance().postAsync(new RefreshVolumeBroadcastEventNotifier());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @GetMapping(value = "/host")
+    @ResponseBody
+    public EnvelopeResponse<String> getHostname() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AddressUtil.getLocalInstance(), "");
     }
 }

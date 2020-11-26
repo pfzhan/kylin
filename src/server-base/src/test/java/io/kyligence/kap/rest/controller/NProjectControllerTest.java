@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
@@ -115,6 +116,9 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ProjectService projectService;
+
+    @Mock
+    private ClusterManager clusterManager;
 
     @InjectMocks
     private NProjectController nProjectController = Mockito.spy(new NProjectController());

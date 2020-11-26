@@ -223,4 +223,13 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
         nSystemController.setAclEvaluate(sourceValue);
     }
+
+    @Test
+    public void testGetHostname() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/system/host")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController, Mockito.times(1)).getHostname();
+    }
 }

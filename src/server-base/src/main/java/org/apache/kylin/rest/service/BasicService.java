@@ -50,6 +50,7 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -204,5 +205,9 @@ public abstract class BasicService {
 
     public Set<String> getCurrentUserGroups() {
         return userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername());
+    }
+
+    public ResourceGroupManager getResourceGroupManager() {
+        return ResourceGroupManager.getInstance(getConfig());
     }
 }

@@ -333,18 +333,17 @@ public class RestClient {
     public HttpResponse updatePrjEpoch(String project) throws IOException {
         String url = baseUrl + "/epoch";
         HttpPost post = newPost(url);
-        HashMap<String, Object> paraMap = new HashMap<String, Object>();
+        HashMap<String, Object> paraMap = new HashMap<>();
         paraMap.put("projects", Lists.newArrayList(project));
         paraMap.put("force", "false");
         paraMap.put("client", "true");
         paraMap.put(ROUTED, "true");
         String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
         post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
-        HttpResponse response = client.execute(post);
-        return response;
+        return client.execute(post);
     }
 
-    public HttpResponse notifyCatchUp(BroadcastEventReadyNotifier notifier) throws IOException {
+    public HttpResponse notify(BroadcastEventReadyNotifier notifier) throws IOException {
         String url = baseUrl + "/broadcast";
         HttpPost post = newPost(url);
         post.addHeader(ROUTED, "true");

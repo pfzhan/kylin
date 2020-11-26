@@ -23,28 +23,29 @@
  */
 package io.kyligence.kap.rest.interceptor;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import lombok.Data;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
-
-import javax.servlet.ReadListener;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.servlet.ReadListener;
+import javax.servlet.ServletInputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
+
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import lombok.Data;
+import lombok.Getter;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ProjectInfoParser implements IKeep {
@@ -66,11 +67,11 @@ public class ProjectInfoParser implements IKeep {
         throw new IllegalStateException("Utility class");
     }
 
-    public static Pair<String, ServletRequest> parseProjectInfo(ServletRequest request) {
-        ServletRequest requestWrapper = request;
+    public static Pair<String, HttpServletRequest> parseProjectInfo(HttpServletRequest request) {
+        HttpServletRequest requestWrapper = request;
         String project = null;
         try {
-            requestWrapper = new RepeatableBodyRequestWrapper((HttpServletRequest) request);
+            requestWrapper = new RepeatableBodyRequestWrapper(request);
             project = requestWrapper.getParameter("project");
             if (StringUtils.isEmpty(project) && request.getContentType() != null
                     && request.getContentType().contains("json")) {
@@ -86,14 +87,14 @@ public class ProjectInfoParser implements IKeep {
         }
 
         if (StringUtils.isEmpty(project)) {
-            project = extractProject(((HttpServletRequest) request).getRequestURI());
+            project = extractProject((request).getRequestURI());
         }
 
         if (StringUtils.isEmpty(project)) {
             project = UnitOfWork.GLOBAL_UNIT;
         }
 
-        log.debug("Parsed project {} from request {}", project, ((HttpServletRequest) request).getRequestURI());
+        log.debug("Parsed project {} from request {}", project, (request).getRequestURI());
         return new Pair<>(project, requestWrapper);
     }
 

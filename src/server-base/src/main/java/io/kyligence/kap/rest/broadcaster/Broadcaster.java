@@ -24,19 +24,6 @@
 
 package io.kyligence.kap.rest.broadcaster;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.RestClient;
-import org.apache.kylin.common.util.DaemonThreadFactory;
-import org.apache.kylin.rest.util.SpringContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
@@ -49,6 +36,25 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.restclient.RestClient;
+import org.apache.kylin.common.util.DaemonThreadFactory;
+import org.apache.kylin.rest.util.SpringContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 
 public class Broadcaster implements Closeable {
 
@@ -76,16 +82,26 @@ public class Broadcaster implements Closeable {
                 new DaemonThreadFactory(), new ThreadPoolExecutor.DiscardPolicy());
     }
 
-    private Set<String> getCurNodes() {
+    private Set<String> getNodesByModes(String... serverModes) {
+        Set<String> serverModeList = Sets.newHashSet(serverModes);
+        if (CollectionUtils.isEmpty(serverModeList)) {
+            return serverModeList;
+        }
+        serverModeList.forEach(serverMode -> Preconditions.checkArgument(serverMode.trim().equals(ClusterConstant.QUERY)
+                || serverMode.trim().equals(ClusterConstant.ALL) || serverMode.trim().equals(ClusterConstant.JOB)));
+
         if (clusterManager == null) {
             clusterManager = (ClusterManager) SpringContext.getApplicationContext().getBean("zookeeperClusterManager");
         }
         final List<ServerInfoResponse> nodes = clusterManager.getServersFromCache();
         Set<String> result = Sets.newHashSet();
-        if (nodes == null || nodes.size() < 1) {
+        if (CollectionUtils.isEmpty(nodes)) {
             logger.warn("There is no available rest server; check the 'kylin.server.cluster-servers' config");
         } else {
-            result = nodes.stream().map(node -> node.getHost()).collect(Collectors.toSet());
+            result = nodes.stream()
+                    .filter(node -> serverModeList.contains(node.getMode()))
+                    .map(ServerInfoResponse::getHost)
+                    .collect(Collectors.toSet());
         }
         return result;
     }
@@ -95,10 +111,10 @@ public class Broadcaster implements Closeable {
             return;
         try {
             String identity = AddressUtil.getLocalInstance();
-            Set<String> curNodes = getCurNodes();
-            CountDownLatch latch = new CountDownLatch(curNodes.size());
-            for (String node : curNodes) {
-                if (identity.equals(node)) {
+            Set<String> notifyNodes = getBroadcastNodes(notifier);
+            CountDownLatch latch = new CountDownLatch(notifyNodes.size());
+            for (String node : notifyNodes) {
+                if (identity.equals(node) && notifier instanceof AuditLogBroadcastEventNotifier) {
                     latch.countDown();
                     continue;
                 }
@@ -110,10 +126,10 @@ public class Broadcaster implements Closeable {
                 RestClient finalClient = client;
                 announceThreadPool.submit(() -> {
                     try {
-                        logger.info("Broadcast to notify catch up.");
-                        finalClient.notifyCatchUp(notifier);
+                        logger.info("Broadcast to notify.");
+                        finalClient.notify(notifier);
                     } catch (IOException e) {
-                        logger.warn("Failed to notify catch up.");
+                        logger.warn("Failed to notify.");
                     } finally {
                         latch.countDown();
                     }
@@ -126,6 +142,21 @@ public class Broadcaster implements Closeable {
             logger.warn("failed to broadcast", e);
         } finally {
             eventBlockingQueue.clear();
+        }
+    }
+
+    private Set<String> getBroadcastNodes(BroadcastEventReadyNotifier notifier) {
+        switch (notifier.getBroadcastScope()) {
+            case LEADER_NODES:
+                return getNodesByModes(ClusterConstant.ALL, ClusterConstant.JOB);
+            case ALL_NODES:
+                return getNodesByModes(ClusterConstant.ALL);
+            case JOB_NODES:
+                return getNodesByModes(ClusterConstant.JOB);
+            case QUERY_NODES:
+                return getNodesByModes(ClusterConstant.QUERY);
+            default:
+                return getNodesByModes(ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
         }
     }
 

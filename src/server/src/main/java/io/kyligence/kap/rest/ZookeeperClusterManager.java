@@ -53,11 +53,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.ClusterConstant;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @ConditionalOnZookeeperEnabled
 @Component
@@ -156,17 +155,6 @@ public class ZookeeperClusterManager implements ClusterManager {
         }
         return cleanServer(servers);
     }
-
-    private void mergeJobNodeWithEpoch(List<String> hosts, String serverMode) {
-        val ips = hosts.stream().map(host -> convertHost(host)).collect(Collectors.toList());
-        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        for (String leader : epochManager.getAllLeadersByMode(serverMode)) {
-            if (!ips.contains(leader)) {
-                hosts.add(leader);
-            }
-        }
-    }
-
 
     private List<ServerInfoResponse> cleanServer(List<ServerInfoResponse> servers) {
         return servers.stream()

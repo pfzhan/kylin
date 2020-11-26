@@ -77,8 +77,8 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
@@ -137,17 +137,17 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testGetGroups() throws Exception {
-        Mockito.doReturn(null).when(userGroupService).listAllAuthorities(Mockito.anyString());
+        Mockito.doReturn(null).when(userGroupService).listAllAuthorities();
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/groups").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserGroupController).listUserAuthorities("");
+        Mockito.verify(nUserGroupController).listUserAuthorities();
     }
 
     @Test
     public void testGetUserWithGroup() throws Exception {
-        Mockito.doReturn(null).when(userGroupService).listAllAuthorities(Mockito.anyString());
+        Mockito.doReturn(null).when(userGroupService).listAllAuthorities();
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/users_with_group")

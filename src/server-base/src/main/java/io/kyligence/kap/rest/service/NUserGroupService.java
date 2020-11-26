@@ -154,15 +154,15 @@ public class NUserGroupService implements IUserGroupService {
         }
     }
 
-    // add param project to check user's permission
-    public List<String> listAllAuthorities(String project) {
-        checkPermission(project);
+    @Override
+    public List<String> listAllAuthorities() {
+        aclEvaluate.checkIsGlobalAdmin();
         return getAllUserGroups();
     }
 
     @Override
     public List<String> getAuthoritiesFilterByGroupName(String userGroupName) {
-        checkPermission(null);
+        aclEvaluate.checkIsGlobalAdmin();
         return StringUtils.isEmpty(userGroupName) ? getAllUserGroups()
                 : getAllUserGroups().stream()
                         .filter(userGroup -> userGroup.toUpperCase().contains(userGroupName.toUpperCase()))
@@ -176,7 +176,7 @@ public class NUserGroupService implements IUserGroupService {
 
     @Override
     public List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) {
-        checkPermission(null);
+        aclEvaluate.checkIsGlobalAdmin();
         return StringUtils.isEmpty(userGroupName) ? listUserGroups()
                 : getUserGroupManager().getAllGroups().stream().filter(
                         userGroup -> userGroup.getGroupName().toUpperCase().contains(userGroupName.toUpperCase()))
@@ -213,14 +213,6 @@ public class NUserGroupService implements IUserGroupService {
 
     public ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-    }
-
-    protected void checkPermission(String project) {
-        if (StringUtils.isEmpty(project)) {
-            aclEvaluate.checkIsGlobalAdmin();
-        } else {
-            aclEvaluate.checkProjectAdminPermission(project);
-        }
     }
 
     private void checkGroupNameExist(String groupName) {

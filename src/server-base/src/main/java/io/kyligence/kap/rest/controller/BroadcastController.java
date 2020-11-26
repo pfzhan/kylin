@@ -27,6 +27,9 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
@@ -62,13 +65,15 @@ public class BroadcastController extends NBasicController {
 
     @PostMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<String> notifyCatchUp(@RequestBody BroadcastEventReadyNotifier notifier) {
+    public EnvelopeResponse<String> broadcastReceive(@RequestBody BroadcastEventReadyNotifier notifier) {
         if (notifier instanceof AuditLogBroadcastEventNotifier) {
             auditLogService.notifyCatchUp();
         } else if (notifier instanceof StopQueryBroadcastEventNotifier) {
             queryService.stopQuery(notifier.getSubject());
         } else if (notifier instanceof RefreshVolumeBroadcastEventNotifier) {
             licenseInfoService.refreshLicenseVolume();
+        } else if (notifier instanceof EpochCheckBroadcastNotifier) {
+            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateAllEpochs();
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

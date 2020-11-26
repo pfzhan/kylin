@@ -43,7 +43,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -62,6 +61,7 @@ import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,8 +88,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -295,7 +295,6 @@ public class NUserController extends NBasicController {
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<ManagedUser>>> listAllUsers(
-            @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,

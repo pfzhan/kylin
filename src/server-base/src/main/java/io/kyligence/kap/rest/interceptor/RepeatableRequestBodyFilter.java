@@ -31,6 +31,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.QueryContext;
@@ -53,7 +54,7 @@ public class RepeatableRequestBodyFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         try {
-            Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
+            Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo((HttpServletRequest) request);
             String project = projectInfo.getFirst();
             if (!Strings.isEmpty(project) && !project.equalsIgnoreCase("_global")) {
                 MDC.put("request.project", String.format("[%s] ", project));

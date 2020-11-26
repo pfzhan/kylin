@@ -55,8 +55,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserGroupController;
-import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.request.UserGroupRequest;
 
 @Controller
 @RequestMapping(value = "/api/user_group", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -80,7 +80,7 @@ public class OpenUserGroupController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-        List<String> groups = userGroupService.listAllAuthorities(null);
+        List<String> groups = userGroupService.listAllAuthorities();
         if (StringUtils.isNotBlank(groupName)) {
             groups = groups.stream().filter(group -> isCaseSensitive ? group.contains(groupName)
                     : StringUtils.containsIgnoreCase(group, groupName)).collect(Collectors.toList());

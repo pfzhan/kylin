@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
@@ -75,14 +76,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.util.FileUtils;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -106,6 +105,7 @@ import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -135,6 +135,9 @@ public class NProjectController extends NBasicController {
     @Autowired
     @Qualifier("queryHistoryService")
     private QueryHistoryService qhService;
+
+    @Autowired
+    ClusterManager clusterManager;
 
     @ApiOperation(value = "getProjects", notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
@@ -188,8 +191,7 @@ public class NProjectController extends NBasicController {
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
-        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<String> list = Lists.newArrayList(epochMgr.getAllLeadersByMode(null));
+        List<String> list = clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(list)) {
             String leader = list.get(new Random().nextInt(list.size()));
             try {

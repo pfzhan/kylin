@@ -204,7 +204,9 @@
             **/io/kyligence/kap/rest/security/KerberosLoginManager.java,
             **/io/kyligence/kap/engine/spark/source/NSparkMetadataExplorer.java,
             **/io/kyligence/kap/rest/security/SecurityLogAspect.java,
-            **/io/kyligence/kap/rest/util/SecurityLoggerUtils.java
+            **/io/kyligence/kap/rest/util/SecurityLoggerUtils.java,
+            **/io/kyligence/kap/rest/util/InitResourceGroupUtils.java,
+            **/io/kyligence/kap/rest/QueryNodeFilter.java
         </sonar.coverage.exclusions>
         <sonar.organization>kyligence</sonar.organization>
         <aggregate.report.dir>src/kap-it/target/site/jacoco-aggregate/jacoco.xml</aggregate.report.dir>

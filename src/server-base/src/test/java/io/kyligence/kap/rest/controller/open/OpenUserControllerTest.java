@@ -123,7 +123,7 @@ public class OpenUserControllerTest extends NLocalFileMetadataTestCase {
     public void testListAll() throws Exception {
         Mockito.doReturn(
                 new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(Lists.newArrayList(), 0, 10), ""))
-                .when(userController).listAllUsers(null, "ADMIN", false, 0, 10);
+                .when(userController).listAllUsers("ADMIN", false, 0, 10);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .param("name", "ADMIN").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))

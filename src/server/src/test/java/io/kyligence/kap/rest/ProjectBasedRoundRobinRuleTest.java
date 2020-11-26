@@ -119,7 +119,7 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
         String[] split = instance.split(":");
 
         try {
-            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateEpoch("test_project");
+            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateEpochWithNotifier("test_project", false);
         } catch (Exception e) {
             e.printStackTrace();
         }

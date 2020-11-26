@@ -482,11 +482,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testListAll() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("name", "KYLIN")
+                .param("name", "KYLIN")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nUserController).listAllUsers(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean(),
+        Mockito.verify(nUserController).listAllUsers(Mockito.anyString(), Mockito.anyBoolean(),
                 Mockito.anyInt(), Mockito.anyInt());
     }
 
