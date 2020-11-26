@@ -199,8 +199,8 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         List<String> r6 = NExecAndComp.queryCube(getProject(), query6).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
 
-        Assert.assertEquals("Shenzhen,0", r6.get(0));
-        Assert.assertEquals("Beijing,1", r6.get(1));
-        Assert.assertEquals("Shanghai,1", r6.get(2));
+        Assert.assertEquals("Beijing,1", r6.get(0));
+        Assert.assertEquals("Shanghai,1", r6.get(1));
+        Assert.assertEquals("Shenzhen,0", r6.get(2));
     }
 }

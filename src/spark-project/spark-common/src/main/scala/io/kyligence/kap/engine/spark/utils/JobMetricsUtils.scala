@@ -29,6 +29,7 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution._
 import org.apache.spark.sql.execution.aggregate.{HashAggregateExec, ObjectHashAggregateExec, SortAggregateExec}
+import org.apache.spark.sql.execution.command.DataWritingCommandExec
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, BroadcastNestedLoopJoinExec, ShuffledHashJoinExec, SortMergeJoinExec}
 import org.apache.spark.sql.execution.streaming.StreamingSymmetricHashJoinExec
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
@@ -56,12 +57,22 @@ object JobMetricsUtils extends Logging {
     val rowMetrics = new JobMetrics
     var afterAgg = false
     var afterJoin = false
+    var afterWrite = false;
 
     sparkPlan foreach {
+      case plan: DataWritingCommandExec =>
+        if (!afterWrite) {
+          rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, plan.metrics.apply("numOutputRows").value)
+          afterWrite = true
+          logInfo(s"Set ${Metrics.CUBOID_ROWS_CNT} to ${DataWritingCommandExec.getClass.getCanonicalName}.metrics.numOutputRows," +
+            s"${plan.metrics.apply("numOutputRows").value}")
+        }
       case plan: UnaryExecNode =>
-        if (aggs.contains(plan.getClass) && !afterAgg) {
+        if (aggs.contains(plan.getClass) && !afterAgg && !afterWrite) {
           afterAgg = true
           rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, plan.metrics.apply("numOutputRows").value)
+          logInfo(s"Set ${Metrics.CUBOID_ROWS_CNT} to ${plan.getClass.getCanonicalName}.metrics.numOutputRows," +
+            s"${plan.metrics.apply("numOutputRows").value}")
         }
       case plan: BinaryExecNode =>
         if (joins.contains(plan.getClass) && !afterJoin) {
@@ -83,10 +94,12 @@ object JobMetricsUtils extends Logging {
       case _ =>
     }
 
-    // resolve table index without agg
+    // resolve table index without agg and without write
     if (!rowMetrics.isDefinedAt(Metrics.CUBOID_ROWS_CNT)) {
+      require(!afterWrite)
       require(!afterAgg)
       rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT))
+      logInfo(s"Set ${Metrics.CUBOID_ROWS_CNT} to ${Metrics.SOURCE_ROWS_CNT}, ${rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)}")
     }
 
     rowMetrics

@@ -57,10 +57,10 @@ class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   test("collectOutputRows - mock build agg index with persist") {
-    val afterJoin = flatTable
-    val afterSort = afterJoin.groupBy("key1").agg(count("key3")).repartition(2).sort("key1")
-    afterSort.collect()
-    val metrics = JobMetricsUtils.collectOutputRows(afterSort.queryExecution.executedPlan)
+    JobMetricsUtils.registerListener(spark)
+    spark.sparkContext.setLocalProperty("spark.sql.execution.id", id1)
+    val afterSort = flatTable.groupBy("key1").agg(count("key3").alias("key3_count")).repartition(2).sort("key1")
+    val metrics = StorageUtils.writeWithMetrics(afterSort, "/tmp/" + UUID.randomUUID().toString)
     assert(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT) == 10)
     assert(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == 50)
   }
@@ -88,6 +88,17 @@ class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession wi
     afterUnion.collect()
     val metrics = JobMetricsUtils.collectOutputRows(afterUnion.queryExecution.executedPlan)
     assert(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT) == 20)
+    assert(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == 20)
+  }
+
+  test("collectOutputRows - mock merge table index with aggregate") {
+    JobMetricsUtils.registerListener(spark)
+    spark.sparkContext.setLocalProperty("spark.sql.execution.id", id1)
+    val df1 = generateTable1()
+    val df2 = generateTable2().agg(Map( "key3" -> "max", "key4" -> "min"))
+    val afterUnion = df1.union(df2)
+    val metrics = StorageUtils.writeWithMetrics(afterUnion, "/tmp/" + UUID.randomUUID().toString)
+    assert(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT) == 11)
     assert(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == 20)
   }
 
