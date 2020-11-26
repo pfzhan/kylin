@@ -195,11 +195,14 @@ public class SparkSourceService extends BasicService {
         val tableResponse = new ExportTablesResponse();
         Map<String, String> tableDesc = Maps.newHashMap();
         for (String table : tables) {
+            if (table.equals("")){
+                throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_TABLE_LIST());
+            }
             if (!tableExists(database, table)) {
                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
                         String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
             }
-            tableDesc.put(table, DdlOperation.getTableDesc(database, table).replaceAll("\t|\r|\n", ""));
+            tableDesc.put(table, DdlOperation.getTableDesc(database, table).replaceAll("\t|\r|\n", " "));
         }
         tableResponse.setDatabase(database);
         tableResponse.setTables(tableDesc);
