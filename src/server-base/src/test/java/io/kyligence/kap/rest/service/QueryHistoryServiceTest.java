@@ -141,7 +141,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
         acceleratedQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[]");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO)
@@ -371,13 +371,13 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         layoutNullQuery.setSql("select * from test_table_1");
         layoutNullQuery.setEngineType("NATIVE");
         layoutNullQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#null#null#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[]");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#null#null,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
 
         // accelerated query
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
         acceleratedQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[]");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(layoutNullQuery, acceleratedQuery)).when(queryHistoryDAO)
@@ -415,7 +415,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryHistory containSnapshotQuery = new QueryHistory();
         containSnapshotQuery.setSql("select * from test_table_3");
         containSnapshotQuery.setQueryRealizations(
-                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index#[],89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[test_snapshot]");
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index#[];89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[test_snapshot]");
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(noSnapshotQuery, containSnapshotQuery)).when(queryHistoryDAO)
@@ -434,6 +434,40 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, queryHistories.get(1).getNativeQueryRealizations().get(0).getSnapshots().size());
         Assert.assertNotNull(queryHistories.get(1).getNativeQueryRealizations().get(0).getSnapshots());
         Assert.assertNotNull(queryHistories.get(1).getNativeQueryRealizations().get(1).getSnapshots());
+
+    }
+
+    @Test
+    public void testGetQueryHistoryWithMultiSnapshots() {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
+
+        // mock query histories
+        QueryHistory snapshotQuery = new QueryHistory();
+        snapshotQuery.setSql("select * from test_table_1");
+        snapshotQuery.setEngineType("NATIVE");
+        snapshotQuery.setQueryRealizations(
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#null#null;89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index#[snapshot1, snapshot2]");
+
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(snapshotQuery)).when(queryHistoryDAO)
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+
+        Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+        Assert.assertEquals(1, queryHistories.size());
+        Assert.assertEquals("nmodel_basic", queryHistories.get(0).getNativeQueryRealizations().get(1).getModelAlias());
+        Assert.assertEquals(1L, (long) queryHistories.get(0).getNativeQueryRealizations().get(1).getLayoutId());
+        Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(0).getSnapshots());
+        Assert.assertNotNull(queryHistories.get(0).getNativeQueryRealizations().get(1).getSnapshots());
+        Assert.assertEquals(2, queryHistories.get(0).getNativeQueryRealizations().get(1).getSnapshots().size());
 
     }
 }

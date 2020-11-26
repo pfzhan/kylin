@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -32,6 +33,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -181,7 +183,14 @@ public class QueryHistory implements IKeep {
         if (StringUtils.isEmpty(this.queryRealizations))
             return realizations;
 
-        for (String realization : this.queryRealizations.split(",")) {
+        String[] queryRealizations;
+        Pattern p = Pattern.compile("\\[.*?\\]+");
+        if (p.matcher(this.queryRealizations).find()) {
+            queryRealizations = this.queryRealizations.split(";");
+        } else {
+            queryRealizations = this.queryRealizations.split(",");
+        }
+        for (String realization : queryRealizations) {
             String[] info = realization.split("#");
             transformRealizations(info, realizations);
         }

@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
@@ -53,6 +52,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
@@ -240,7 +240,7 @@ public class QueryMetricsContext extends QueryMetrics {
             List<String> snapshots = realizationMetrics.getSnapshots() == null ?
                     Lists.newArrayList() : realizationMetrics.getSnapshots();
             realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
-                    + realizationMetrics.getIndexType() + "#" + snapshots + ",");
+                    + realizationMetrics.getIndexType() + "#" + snapshots + ";");
 
             if (realization.getIndexType() == null)
                 continue;

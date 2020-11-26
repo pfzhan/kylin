@@ -314,7 +314,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         // assert query metric fields
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
-        Assert.assertEquals("mocked_model_id#1#Agg Index#[],mocked_model_id#20000000002#Table Index#[]",
+        Assert.assertEquals("mocked_model_id#1#Agg Index#[];mocked_model_id#20000000002#Table Index#[]",
                 influxdbFields.get("realizations"));
 
         // assert realizations
