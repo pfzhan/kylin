@@ -797,6 +797,9 @@ export default class DataSourceBar extends Vue {
           font-size: 12px;
         }
       }
+      .datatype {
+        color: @text-placeholder-color !important;
+      }
       .top {
         display: none;
         font-size: 13px;
@@ -816,6 +819,10 @@ export default class DataSourceBar extends Vue {
       }
       .column {
         padding-right: 10px;
+        color: @text-placeholder-color;
+        .column-name {
+          color: @text-title-color;
+        }
       }
       > div,
       .table {

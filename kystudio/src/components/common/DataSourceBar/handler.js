@@ -92,8 +92,7 @@ export const render = {
   },
   column: {
     render (h, { node, data, store }) {
-      const { label, tags } = data
-
+      const { label, tags, datatype, cardinality, min_value, max_value } = data
       return (
         <div class="column">
           <div class="left">
@@ -106,7 +105,14 @@ export const render = {
               }
             })}
           </div>
-          <span title={label}>{label}</span>
+          <el-tooltip placement="top" visible-arrow={false} open-delay={300}>
+            <div slot="content">
+              <span>{this.$t('kylinLang.dataSource.cardinality')}</span>: <span>{cardinality || 'NULL'}</span><br/>
+              <span>{this.$t('kylinLang.dataSource.minimal')}</span>: <span>{min_value || 'NULL'}</span><br/>
+              <span>{this.$t('kylinLang.dataSource.maximum')}</span>: <span>{max_value || 'NULL'}</span>
+            </div>
+            <span><span class="column-name">{label}</span><span class="ksd-ml-5 ksd-fs-12 datatype">{datatype}</span></span>
+          </el-tooltip>
         </div>
       )
     }
@@ -234,7 +240,11 @@ function getColumnObjArray (that, tableObj) {
       label: column.name,
       render: render.column.render.bind(that),
       tags,
-      type: 'column'
+      type: 'column',
+      datatype: column.datatype,
+      cardinality: column.cardinality,
+      min_value: column.min_value,
+      max_value: column.max_value
     }
   })
 }

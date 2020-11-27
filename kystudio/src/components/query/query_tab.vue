@@ -4,7 +4,7 @@
     <el-button @click="handleForGuide" style="position: absolute;" v-visible v-guide.queryTriggerBtn></el-button>
     <!-- for guide end -->
     <div class="query_panel_box ksd-mb-30">
-      <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema" :readOnly="!isWorkspace">
+      <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="220" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema" :readOnly="!isWorkspace">
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">

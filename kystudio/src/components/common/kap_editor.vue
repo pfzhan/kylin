@@ -297,11 +297,14 @@ export default {
     }
     .smyles_dragbar {
       width: 100%;
-      height: 1px;
+      border-bottom: 1px solid @line-border-color;
       cursor: row-resize;
       opacity: 1;
       position: relative;
-      bottom: -1px;
+      bottom: 0px;
+      &:hover {
+        border-color: @base-color;
+      }
     }
     .edit-copy-btn {
       position: absolute;

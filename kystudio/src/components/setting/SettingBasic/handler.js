@@ -96,10 +96,12 @@ export function _getSegmentSettings (data, project) {
     auto_merge_enabled: data.auto_merge_enabled,
     volatile_range: {
       ...data.volatile_range,
+      volatile_range_number: data.volatile_range.volatile_range_number + '',
       volatile_range_enabled: data.auto_merge_enabled
     },
     retention_range: {
       ...data.retention_range,
+      retention_range_number: data.retention_range.retention_range_number + '',
       retention_range_enabled: data.retention_range.retention_range_enabled,
       retention_range_type: data.retention_range.retention_range_type
     },
