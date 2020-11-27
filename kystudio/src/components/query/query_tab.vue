@@ -283,7 +283,7 @@ export default class QueryTab extends Vue {
           this.config.errorMsgBox.msg = this.errinfo
           this.config.errorMsgBox.detail = data
         }
-        this.$emit('changeView', this.tabsItem.index, data, this.errinfo)
+        this.$emit('changeView', this.tabsItem.index, data, this.errinfo, true) // 最后的true为系统弹框报错（job节点不支持查询）
       })
     })
   }

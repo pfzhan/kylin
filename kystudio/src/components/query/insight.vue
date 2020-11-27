@@ -304,31 +304,42 @@ export default class NewQuery extends Vue {
     }
     this.savedQueryListVisible = false
   }
-  changeTab (index, data, errorInfo) {
+  changeTab (index, data, errorInfo, isSystemBlock) {
     if (index === 0 || index === this.editableTabs[1].index) { // 编辑器结果中断查询时置空或者显示最新一条查询的结果
       this.editableTabs[0].extraoption = data
       this.editableTabs[0].queryErrorInfo = errorInfo
       this.editableTabs[0].cancelQuery = true
-      this.editableTabs[0].isStop = data.is_stop_by_user || false
+      this.editableTabs[0].isStop = data && data.is_stop_by_user || isSystemBlock || false
     }
     if (index) {
       let tabs = this.editableTabs
       for (var k = 1; k < tabs.length; k++) {
         if (tabs[k].index === index) {
-          tabs[k].icon = errorInfo ? 'el-icon-ksd-error_01' : 'el-icon-ksd-good_health'
+          tabs[k].icon = errorInfo || isSystemBlock ? 'el-icon-ksd-error_01' : 'el-icon-ksd-good_health'
           tabs[k].spin = errorInfo === 'circle-o-notch'
           tabs[k].extraoption = data
           tabs[k].queryErrorInfo = errorInfo
-          tabs[k].isStop = data.is_stop_by_user || false
+          tabs[k].isStop = data && data.is_stop_by_user || isSystemBlock || false
           break
         }
       }
     }
-    this.cacheTabs()
+    this.cacheTabs(isSystemBlock)
   }
-  cacheTabs () {
+  cacheTabs (isSystemBlock) { // 系统报错情况不缓存SQL语句，不然每次切换insight都会弹框报错block用户操作
     const project = this.currentSelectedProject
-    const obj = {[project]: this.editableTabs}
+    const obj = {[project]: isSystemBlock ? [{
+      title: 'sqlEditor',
+      i18n: 'sqlEditor',
+      name: 'WorkSpace',
+      icon: '',
+      spin: true,
+      extraoption: null,
+      queryErrorInfo: '',
+      queryObj: null,
+      index: 0,
+      cancelQuery: false
+    }] : this.editableTabs}
     this.saveTabs({tabs: obj})
   }
   openSaveQueryDialog () {
