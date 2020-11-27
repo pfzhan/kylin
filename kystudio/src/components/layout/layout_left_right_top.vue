@@ -77,14 +77,14 @@
             <li v-if="currentSelectedProject">
               <div class="quota-top-bar">
                 <el-popover ref="quotaPopover" width="290" popper-class="quota-popover" v-model="showQuota">
-                  <div>
+                  <div class="quota-popover-layout">
                     <i class="el-icon-ksd-setting" v-if="dashboardActions.includes('viewSetting')" @click="gotoSetting"></i>
-                    <p class="ksd-fs-14">
+                    <p class="ksd-fs-12">
                       <span>{{$t('useageMana')}}: </span><span  v-if="quotaInfo.storage_quota_size !== -1" :class="['quota-status', getQuotaColor]">
                         {{useageRatio*100 | fixed(2)}}%({{quotaInfo.total_storage_size | dataSize}}/{{quotaInfo.storage_quota_size | dataSize}})
                       </span><span v-else>--</span>
                     </p>
-                    <p class="ksd-fs-14 ksd-mt-5">
+                    <p class="ksd-fs-12 ksd-mt-5">
                       <span>{{$t('trash')}}: </span><span v-if="quotaInfo.garbage_storage_size !== -1"><span>
                         {{quotaInfo.garbage_storage_size | dataSize}}
                         </span><common-tip placement="right" :content="$t('clear')" v-if="$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->

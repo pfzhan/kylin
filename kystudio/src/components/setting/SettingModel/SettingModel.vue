@@ -87,7 +87,7 @@
           <template slot-scope="scope">
             <common-tip>
               <div slot="content">{{$t('addSettingItem')}}</div>
-              <i class="el-icon-ksd-table_add" :class="{'disabled': scope.row.auto_merge_time_ranges&&scope.row.volatile_range&&scope.row.retention_range&&Object.keys(scope.row.override_props).length==4}" @click="addSettingItem(scope.row)"></i>
+              <i class="el-icon-ksd-table_add" @click="addSettingItem(scope.row)"></i>
             </common-tip>
           </template>
       </el-table-column>
@@ -322,9 +322,9 @@ export default class SettingStorage extends Vue {
     this.modelSettingForm = JSON.parse(initialSettingForm)
   }
   addSettingItem (row) {
-    if (row.auto_merge_time_ranges && row.volatile_range && row.retention_range && Object.keys(row.override_props).length === 4) {
-      return
-    }
+    // if (row.auto_merge_time_ranges && row.volatile_range && row.retention_range && Object.keys(row.override_props).length === 4) {
+    //   return
+    // }
     this.modelSettingForm.name = row.alias
     this.activeRow = objectClone(row)
     this.step = 'stepOne'
@@ -430,7 +430,11 @@ export default class SettingStorage extends Vue {
   editSparkItem (row, sparkItemKey) {
     this.modelSettingForm.name = row.alias
     this.modelSettingForm.settingItem = sparkItemKey.substring(24)
-    this.modelSettingForm[this.modelSettingForm.settingItem] = row.override_props[sparkItemKey]
+    if (this.modelSettingForm.settingItem === 'spark.executor.memory') {
+      this.modelSettingForm[this.modelSettingForm.settingItem] = row.override_props[sparkItemKey].replace(/[a-zA-Z]+$/, '')
+    } else {
+      this.modelSettingForm[this.modelSettingForm.settingItem] = row.override_props[sparkItemKey]
+    }
     this.activeRow = row
     this.step = 'stepTwo'
     this.isEdit = true

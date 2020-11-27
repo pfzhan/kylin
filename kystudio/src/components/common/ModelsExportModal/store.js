@@ -7,26 +7,23 @@ export function getInitialState () {
     isShow: false,
     callback: null,
     project: null,
+    type: 'one',
     models: [],
     form: {
-      ids: []
+      ids: [],
+      exportRecommendations: false,
+      exportOverProps: false
     }
   }
 }
 
 function formatModelsStructure (response) {
   return response.map(model => ({
+    ...model,
     id: model.uuid,
     name: model.name,
     nodeType: 'model',
-    search: [model.name],
-    children: model.tables.map(table => ({
-      id: `${model.uuid}-${table.name}`,
-      name: table.name,
-      nodeType: 'table',
-      type: table.kind,
-      search: [model.name, table.name]
-    }))
+    search: [model.name]
   }))
 }
 
@@ -53,6 +50,9 @@ export default {
       for (const [key, value] of Object.entries(payload)) {
         state.form[key] = value
       }
+    },
+    [actionTypes.RESET_MODAL_STATE] (state) {
+      state.form = {ids: [], exportRecommendations: false, exportOverProps: false}
     }
   },
   actions: {

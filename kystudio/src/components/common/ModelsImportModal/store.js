@@ -11,9 +11,8 @@ export function getInitialState () {
     models: [],
     conflicts: [],
     form: {
-      signature: '',
       file: null,
-      ids: []
+      request: {}
     }
   }
 }
@@ -29,23 +28,23 @@ function findConflictModelInZip (conflictItems, modelNamesMap) {
   return conflictModel
 }
 
-function formatParsedResponse (response) {
-  return {
-    models: response.models.map(modelResponse => ({
-      id: modelResponse.uuid,
-      name: modelResponse.name,
-      nodeType: 'model',
-      children: modelResponse.tables.map(tableResponse => ({
-        id: `${modelResponse.uuid}-${tableResponse.name}`,
-        name: tableResponse.name,
-        nodeType: 'table',
-        type: tableResponse.kind
-      }))
-    })),
-    conflicts: response.conflicts,
-    signature: response.signature
-  }
-}
+// function formatParsedResponse (response) {
+//   return {
+//     models: response.models.map(modelResponse => ({
+//       id: modelResponse.uuid,
+//       name: modelResponse.name,
+//       nodeType: 'model',
+//       children: modelResponse.tables.map(tableResponse => ({
+//         id: `${modelResponse.uuid}-${tableResponse.name}`,
+//         name: tableResponse.name,
+//         nodeType: 'table',
+//         type: tableResponse.kind
+//       }))
+//     })),
+//     conflicts: response.conflicts,
+//     signature: response.signature
+//   }
+// }
 
 function formatUploadData (form) {
   const uploadData = new FormData()
@@ -56,11 +55,103 @@ function formatUploadData (form) {
 function formatImportData (form) {
   const importData = new FormData()
   importData.append('file', form.file)
-  importData.append('signature', form.signature)
-  form.ids.forEach((id, idx) => {
-    importData.append(`ids[${idx}]`, id)
-  })
+  // importData.append('models', form.models)
+  importData.append('request', new window.Blob([JSON.stringify(form.request)], {type: 'application/json'}))
+  // form.models.forEach((it, index) => {
+  //   importData.append(`models[${index}]`, it)
+  // })
   return importData
+}
+
+export function getDefaultAction (v) {
+  if (!v) return
+  let defaultValue = ''
+  let disabledValue = []
+  if (!v.importable) {
+    defaultValue = 'noImport'
+    disabledValue.push('new', 'replace')
+  } else if (!v.overwritable) {
+    defaultValue = 'new'
+    disabledValue.push('replace')
+  } else {
+    defaultValue = 'replace'
+  }
+  return { defaultValue, disabledValue }
+}
+
+function assemblyImportData (_data) {
+  const assignData = {}
+  const pageSize = 30 // 折叠项每页展示的数量
+  // 后端接口返回字段归类
+  const typeMaps = {
+    tables: ['MODEL_TABLE', 'MODEL_FACT', 'MODEL_DIM'],
+    columns: ['TABLE_COLUMN'],
+    partitionColumns: ['MODEL_PARTITION'],
+    measures: ['MODEL_MEASURE'],
+    dimensions: ['MODEL_DIMENSION'],
+    indexes: ['WHITE_LIST_INDEX', 'TO_BE_DELETED_INDEX', 'RULE_BASED_INDEX'],
+    computedColumns: ['MODEL_CC'],
+    modelJoin: ['MODEL_JOIN'],
+    modelFilter: ['MODEL_FILTER']
+  }
+  // 未找到、新增、删除以及更改对应需要展示的折叠项
+  const dataMap = {
+    nofound: ['tables', 'columns'],
+    add: ['tables', 'modelJoin', 'columns', 'partitionColumns', 'measures', 'dimensions', 'indexes', 'computedColumns', 'modelFilter'],
+    reduce: ['tables', 'modelJoin', 'columns', 'partitionColumns', 'measures', 'dimensions', 'indexes', 'computedColumns', 'modelFilter'],
+    modified: ['columns', 'partitionColumns', 'measures', 'computedColumns', 'indexes', 'modelJoin', 'modelFilter']
+  }
+
+  // tab 接口字段对照
+  const paneTabMap = {
+    new_items: 'add',
+    missing_items: 'nofound',
+    reduce_items: 'reduce',
+    update_items: 'modified'
+  }
+
+  for (let item in paneTabMap) {
+    let v = paneTabMap[item]
+    if (_data[item] && _data[item].length && item !== 'missing_items') {
+      dataMap[v].forEach(name => {
+        if (name === 'indexes') {
+          const indexList = _data[item].filter(it => typeMaps[name].includes(it.type))
+          assignData[v] = {
+            ...assignData[v],
+            [name]: {
+              agg: indexList.filter(item => (item.detail || item.first_detail) < 20000000000).map(it => (it.detail || it.first_detail)).join(','),
+              table: indexList.filter(item => (item.detail || item.first_detail) > 20000000000).map(it => (it.detail || it.first_detail)).join(','),
+              length: indexList.length
+            }
+          }
+        } else {
+          let dataList = _data[item].filter(it => typeMaps[name].includes(it.type))
+          assignData[v] = {
+            ...assignData[v],
+            [name]: {
+              list: dataList.slice(0, pageSize),
+              totalData: dataList,
+              pageOffset: 1,
+              pageSize: pageSize
+            }
+          }
+        }
+      })
+    } else if (_data[item] && _data[item].length && item === 'missing_items') {
+      dataMap[v].forEach(name => {
+        let dataList = _data[item].filter(it => typeMaps[name].includes(it.type))
+        assignData[v] = {...assignData[v],
+          [name]: {
+            list: dataList.slice(0, pageSize),
+            totalData: dataList,
+            pageOffset: 1,
+            pageSize: pageSize
+          }
+        }
+      })
+    }
+  }
+  return assignData
 }
 
 export default {
@@ -105,12 +196,23 @@ export default {
           const response = await api.model.uploadModelsMetadata({ project, form })
           const result = await handleSuccessAsync(response)
 
-          const { models, conflicts, signature } = formatParsedResponse(result)
-          commit(actionTypes.SET_MODAL, { models, conflicts })
-          commit(actionTypes.SET_MODAL_FORM, { signature })
+          const { models } = result
+          const modelList = Object.keys(models).map(name => {
+            const otherData = assemblyImportData(models[name])
+            return {
+              original_name: name,
+              target_name: name,
+              isNameError: models[name].has_same_name || false,
+              nameErrorMsg: models[name].has_same_name ? 'kylinLang.model.sameModelName' : '',
+              ...models[name],
+              action: getDefaultAction(models[name]).defaultValue,
+              ...otherData
+            }
+          })
+          commit(actionTypes.SET_MODAL, { models: modelList })
           resolve()
         } catch (e) {
-          handleError(e)
+          // handleError(e)
           reject(e)
         }
       })

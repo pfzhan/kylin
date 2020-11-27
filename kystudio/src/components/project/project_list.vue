@@ -239,7 +239,7 @@ export default {
     },
     async handleExportModels (row) {
       const { name: project } = row
-      await this.callModelsExportModal({ project })
+      await this.callModelsExportModal({ project, type: 'all' })
     },
     async handleImportModels (row) {
       const { name: project } = row
@@ -414,8 +414,8 @@ export default {
       projectFilter: 'Search Project',
       backupPro: 'Backup Project',
       author: 'Authorization',
-      exportModelsMetadata: 'Export Model Metadata',
-      importModelsMetadata: 'Import Model Metadata',
+      exportModelsMetadata: 'Export Model',
+      importModelsMetadata: 'Import Model',
       changeProjectOwner: 'Change Owner',
       change: 'Change',
       changeDesc: 'You can change the owner of the project to a system administrator or a user in the ADMIN role of the project.',
@@ -452,8 +452,8 @@ export default {
       projectFilter: '搜索项目',
       backupPro: '备份项目',
       author: '授权',
-      exportModelsMetadata: '导出模型元数据',
-      importModelsMetadata: '导入模型元数据',
+      exportModelsMetadata: '导出模型',
+      importModelsMetadata: '导入模型',
       changeProjectOwner: '变更所有者',
       change: '变更',
       changeDesc: '您可以将该项目的所有者变更为系统管理员、或者项目 ADMIN 角色的用户。',

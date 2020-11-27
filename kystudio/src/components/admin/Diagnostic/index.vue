@@ -6,7 +6,6 @@
     :close-on-click-modal="false"
     :before-close="() => handleClose('header')"
     :title="$route.name === 'Job' ? $t('jobDiagnosis') : $t('systemDiagnosis') "
-    :limited-area="true"
   >
     <div class="body">
       <template v-if="$route.name !== 'Job'">

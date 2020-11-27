@@ -9,42 +9,71 @@
     @close="handleClose"
     @closed="handleClosed">
     <div v-if="isBodyShow" v-loading="isLoading || isSubmiting">
-      <div class="header clearfix">
+      <p class="all-tips">
+        <i class="el-icon-ksd-info"></i>
+        <span>{{$t('exportAllTip')}}</span>
+      </p>
+       <!-- <el-alert :title="$t('exportAllTip')" icon="el-icon-ksd-info" :show-background="false" type="info" :closable="false"></el-alert> -->
+      <div class="header clearfix" v-if="type === 'all'">
         <div class="ksd-fleft">
           <span class="title">{{$t('chooseModels')}}</span>
         </div>
         <div class="ksd-fright">
-          <el-input class="filter" size="small" :placeholder="$t('placeholder')" @input="handleFilter" />
+          <el-input class="filter" prefix-icon="el-icon-search" size="small" :placeholder="$t('placeholder')" @input="handleFilter" />
         </div>
       </div>
-      <el-tree
+      <p class="export-tips">{{$t('exportOneModelTip')}}</p>
+      <!-- <p v-if="choosedModelsArr.length > 0" class="choosed-block">{{choosedModelsArr.join(', ')}}</p> -->
+      <!-- <el-tree
         highlight-current
+        v-if="type === 'all'"
         check-strictly
         class="model-tree"
         ref="tree"
         node-key="id"
         v-show="!isTreeEmpty"
         :data="models"
-        :props="{ children: 'children', label: 'name' }"
+        :props="{ label: 'name', isLeaf: true }"
         :show-checkbox="getIsNodeShowCheckbox"
         :render-content="renderContent"
         :filter-node-method="handleFilterNode"
         @check="handleSelectModels"
-      />
-      <div class="model-tree" v-show="isTreeEmpty">
-        <div class="no-data">{{$t('kylinLang.common.noData')}}</div>
+      /> -->
+      <div class="export-model-list" v-if="type === 'all'">
+        <el-checkbox-group v-model="selectedModals" @change="handleSelectModels">
+          <el-checkbox v-for="item in exportModal.list" :disabled="item.status === 'BROKEN'" :label="item.id" :key="item.id">
+            <el-tooltip :content="$t('exportBrokenModelCheckboxTip')" effect="dark" placement="top" :disabled="item.status !== 'BROKEN'">
+              <span>{{item.name}}</span>
+            </el-tooltip>
+          </el-checkbox>
+        </el-checkbox-group>
+        <p class="loadingMore" v-if="showLoadingMore" @click="loadMoreModals"><i class="el-icon-loading" v-if="isLoadingModals"></i>{{isLoadingModals ? $t('loading') : $t('kylinLang.common.loadMore')}}</p>
+        <div class="model-tree" v-show="isTreeEmpty">
+          <div class="no-data">{{$t('kylinLang.common.noData')}}</div>
+        </div>
+      </div>
+      <div class="export-other">
+        <p class="title">{{$t('exportOther')}}</p>
+        <p class="mrgb15">
+          <el-tooltip :content="$t('disabledRecommendationTip')" effect="dark" placement="top" :disabled="changeCheckboxType('rec') !== selectedModals.length">
+            <el-checkbox v-model="form.exportRecommendations" :disabled="changeCheckboxType('rec') === selectedModals.length">{{$t('recommendations')}}</el-checkbox>
+          </el-tooltip>
+        </p>
+        <el-tooltip :content="$t('disabledOverrideTip')" effect="dark" placement="top" :disabled="changeCheckboxType('ops') !== selectedModals.length">
+          <el-checkbox v-model="form.exportOverProps" :disabled="changeCheckboxType('ops') === selectedModals.length">{{$t('override')}}</el-checkbox>
+        </el-tooltip>
       </div>
     </div>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" :disabled="isSubmiting" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" :disabled="!form.ids.length" @click="handleSubmit" :loading="isSubmiting">{{$t('export')}}</el-button>
+      <el-button size="medium" :disabled="!selectedModals.length" @click="handleSubmit" :loading="isSubmiting">{{$t('export')}}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions } from 'vuex'
 import { downloadFileByXMLHttp } from '../../../util/business'
 import vuex, { actionTypes } from '../../../store'
@@ -62,17 +91,30 @@ vuex.registerModule(['modals', 'ModelsExportModal'], store)
   computed: {
     ...mapState('ModelsExportModal', {
       project: state => state.project,
+      type: state => state.type,
       models: state => state.models,
       form: state => state.form,
       isShow: state => state.isShow,
       callback: state => state.callback
     })
+    // choosedModelsArr () {
+    //   let arr = []
+    //   for (let i in this.form.ids) {
+    //     for (let j in this.models) {
+    //       if (this.models[j].id === this.form.ids[i]) {
+    //         arr.push(this.models[j].name)
+    //       }
+    //     }
+    //   }
+    //   return arr
+    // }
   },
   methods: {
     ...mapMutations('ModelsExportModal', {
       setModalForm: actionTypes.SET_MODAL_FORM,
       hideModal: actionTypes.HIDE_MODAL,
-      initModal: actionTypes.INIT_MODAL
+      initModal: actionTypes.INIT_MODAL,
+      resetState: actionTypes.RESET_MODAL_STATE
     }),
     ...mapActions('ModelsExportModal', {
       getModelsMetadataStructure: actionTypes.GET_MODELS_METADATA_STRUCTURE
@@ -89,9 +131,32 @@ export default class ModelsExportModal extends Vue {
   isBodyShow = false
   isSubmiting = false
   isTreeEmpty = false
+  isLoadingModals = false
+  showLoadingMore = false
+  filterName = ''
+
+  selectedModals = []
+  exportModal = {
+    list: [],
+    pageOffset: 1,
+    pageSize: 200
+  }
+
+  @Watch('isShow')
+  changeExportModalVisibled (newVal, oldVal) {
+    newVal && !oldVal && (this.exportModalList = this.models)
+  }
 
   getIsNodeShowCheckbox (data) {
     return data.nodeType === 'model'
+  }
+
+  changeCheckboxType (type) {
+    if (type === 'rec') {
+      return this.models.filter(it => this.selectedModals.includes(it.id) && !it.has_recommendations).length
+    } else {
+      return this.models.filter(it => this.selectedModals.includes(it.id) && !it.has_override_props).length
+    }
   }
 
   async handleOpen () {
@@ -99,8 +164,14 @@ export default class ModelsExportModal extends Vue {
       const { project } = this
       this.isLoading = true
       await this.getModelsMetadataStructure({ project })
-      this.isBodyShow = true
       this.isLoading = false
+      this.isBodyShow = true
+      if (this.type !== 'all') {
+        this.selectedModals = this.form.ids
+        return
+      }
+      this.models.length > this.exportModal.pageSize && (this.showLoadingMore = true)
+      this.pageExportModals()
     } catch (e) {
       this.handleClose()
       this.$message.error(this.$t('fetchModelsFailed'))
@@ -109,28 +180,66 @@ export default class ModelsExportModal extends Vue {
 
   handleClose (isSubmit = false) {
     this.hideModal()
+    this.resetState()
+    this.exportModal.list = []
+    this.exportModal.pageOffset = 1
+    this.showLoadingMore = false
+    this.selectedModals = []
+    this.filterName = ''
     this.callback && this.callback(isSubmit)
   }
+
+  // changeCheck (item) {
+  //   if (item.choosed) {
+  //     this.choosedModelsArr.push(item.name)
+  //   } else {
+  //     var index = this.choosedModelsArr.indexOf(item.name)
+  //     this.choosedModelsArr.splice(index, 1)
+  //   }
+  // }
 
   handleClosed () {
     this.isBodyShow = false
   }
 
-  handleSelectModels (data, { checkedKeys }) {
-    this.setModalForm({ ids: checkedKeys })
+  handleSelectModels (data) {
+    const hasRecommendationList = this.models.filter(it => data.includes(it.id) && it.has_recommendations)
+    const hasOverrideProps = this.models.filter(it => data.includes(it.id) && it.has_override_props)
+    this.setModalForm({ ids: data, exportRecommendations: !hasRecommendationList.length && this.form.exportRecommendations ? false : this.form.exportRecommendations, exportOverProps: !hasOverrideProps.length && this.form.exportOverProps ? false : this.form.exportOverProps })
+    // if (!hasRecommendationList.length) {
+    //   this.setModalForm({ ids: data, exportRecommendations: false })
+    // } else if (!hasOverrideProps.length) {
+    //   this.setModalForm({ ids: data, exportOverProps: false })
+    // } else if (!hasRecommendationList.length && !hasOverrideProps.length) {
+    //   this.setModalForm({ ids: data, exportRecommendations: false, exportOverProps: false })
+    // } else {
+    //   this.setModalForm({ ids: data })
+    // }
   }
 
   handleCancel () {
     this.handleClose()
   }
 
+  loadMoreModals () {
+    this.isLoadingModals = true
+    this.exportModal.pageOffset += 1
+    this.pageExportModals()
+  }
+
+  pageExportModals () {
+    const { pageOffset, pageSize } = this.exportModal
+    this.exportModal.list = this.models.filter(it => it.name.toLocaleLowerCase().indexOf(this.filterName.toLocaleLowerCase()) >= 0).slice(0, pageOffset * pageSize)
+    this.isLoadingModals = false
+    this.isTreeEmpty = !this.exportModal.list.length
+  }
+
   handleFilter (value) {
-    if (!this.$refs.tree) return
-    this.$refs.tree.filter(value)
+    this.filterName = value
     setTimeout(() => {
-      const allNodes = this.$refs.tree.getAllNodes()
-      this.isTreeEmpty = !allNodes.some(node => node.visible)
-    })
+      this.exportModal.pageOffset = 1
+      this.pageExportModals()
+    }, 200)
   }
 
   handleFilterNode (inputValue, data) {
@@ -147,14 +256,16 @@ export default class ModelsExportModal extends Vue {
     if (this.$store.state.config.platform === 'iframe') {
       // this.downloadResouceData(project, form)
       let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
-      downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
+      downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/json').then(() => {
         this.isSubmiting = false
         this.handleClose(true)
         this.$message.success(this.$t('exportSuccess'))
       })
     } else {
       try {
+        // if (this.type !== 'all') {
         await this.downloadModelsMetadata({ project, form })
+        // } else {}
         this.handleClose(true)
         this.$message.success(this.$t('exportSuccess'))
       } catch (e) {
@@ -205,32 +316,32 @@ export default class ModelsExportModal extends Vue {
     }
   }
 
-  renderNodeIcon (h, { node, data }) {
-    switch (data.nodeType) {
-      case 'table': return data.type === 'FACT'
-        ? <i class="tree-icon el-icon-ksd-fact_table" />
-        : <i class="tree-icon el-icon-ksd-lookup_table" />
-      case 'model':
-      default: return null
-    }
-  }
+  // renderNodeIcon (h, { node, data }) {
+  //   switch (data.nodeType) {
+  //     case 'table': return data.type === 'FACT'
+  //       ? <i class="tree-icon el-icon-ksd-fact_table" />
+  //       : <i class="tree-icon el-icon-ksd-lookup_table" />
+  //     case 'model':
+  //     default: return null
+  //   }
+  // }
 
-  renderNodeText (h, { node, data }) {
-    switch (data.nodeType) {
-      case 'model': return <span v-custom-tooltip={{ text: node.label, w: 50 }}>{node.label}</span>
-      case 'table': return <span v-custom-tooltip={{ text: node.label, w: 80 }}>{node.label}</span>
-      default: return null
-    }
-  }
+  // renderNodeText (h, { node, data }) {
+  //   switch (data.nodeType) {
+  //     case 'model': return <span v-custom-tooltip={{ text: node.label, w: 50 }}>{node.label}</span>
+  //     case 'table': return <span v-custom-tooltip={{ text: node.label, w: 80 }}>{node.label}</span>
+  //     default: return null
+  //   }
+  // }
 
-  renderContent (h, { node, data }) {
-    return (
-      <span class={['tree-item', data.nodeType]}>
-        {this.renderNodeIcon(h, { node, data })}
-        {this.renderNodeText(h, { node, data })}
-      </span>
-    )
-  }
+  // renderContent (h, { node, data }) {
+  //   return (
+  //     <span class={['tree-item', data.nodeType]}>
+  //       {this.renderNodeIcon(h, { node, data })}
+  //       {this.renderNodeText(h, { node, data })}
+  //     </span>
+  //   )
+  // }
 }
 </script>
 
@@ -238,6 +349,39 @@ export default class ModelsExportModal extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .models-export-modal {
+  .export-tips {
+    font-size: 12px;
+    color: @text-normal-color;
+    margin-bottom: 10px;
+  }
+  .export-other {
+    margin-top: 15px;
+  }
+  .mrgb15 {
+    margin-bottom: 10px;
+    margin-top: 5px;
+  }
+  .choosed-block {
+    margin-bottom: 10px;
+    color: @text-normal-color;
+    font-size: 12px;
+  }
+  .all-tips {
+    margin-bottom: 10px;
+    font-size: 14px;
+    i {
+      color: @text-disabled-color
+    }
+    span {
+      color: @text-title-color;
+    }
+  }
+  .one-tip {
+    margin-bottom: 10px;
+  }
+  .el-alert__title {
+    font-size: 14px;
+  }
   .filter {
     width: 200px;
   }
@@ -247,17 +391,13 @@ export default class ModelsExportModal extends Vue {
   .title {
     line-height: 24px;
     font-weight: bold;
-    color: #1A1A1A;
+    color: @text-title-color;
   }
   .model-tree {
-    border: 1px solid @line-border-color;
-    height: 316px;
-    overflow-x: hidden;
-    overflow-y: auto;
+    // border: 1px solid @line-border-color;
+    width: 100%;
+    height: 100%;
     position: relative;
-    .table {
-      margin-left: 5px;
-    }
   }
   .no-data {
     position: absolute;
@@ -269,20 +409,6 @@ export default class ModelsExportModal extends Vue {
   .tree-icon {
     margin-right: 5px;
   }
-  // .tree-item.model {
-  //   display: inline-block;
-  //   width: calc(~'100% - 24px - 22px');
-  // }
-  // .tree-item.table {
-  //   display: inline-block;
-  //   width: calc(~'100% - 18px - 24px - 5px');
-  // }
-  // .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content,
-  // .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content:hover {
-  //   background-color: unset;
-  //   color: inherit;
-  //   cursor: unset;
-  // }
   .tree-item.table {
     display: flex;
     align-items: center;
@@ -295,6 +421,26 @@ export default class ModelsExportModal extends Vue {
       .el-tooltip {
         display: block;
       }
+    }
+  }
+  .export-model-list {
+    width: 100%;
+    height: 200px;
+    overflow: auto;
+    border: 1px solid #dddddd;
+    padding: 10px;
+    box-sizing: border-box;
+    .loadingMore {
+      cursor: pointer;
+      color: @text-disabled-color;
+      font-size: 12px;
+    }
+    .el-checkbox {
+      display: block;
+      margin-bottom: 10px;
+    }
+    .el-checkbox+.el-checkbox {
+      margin-left: 0;
     }
   }
 }

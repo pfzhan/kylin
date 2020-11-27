@@ -330,7 +330,11 @@
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
                     <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
                     <!-- <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
-                    <el-dropdown-item command="exportMetadata" v-if="scope.row.status !== 'BROKEN' && metadataActions.includes('executeModelMetadata')">{{$t('exportMetadata')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMetadata" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="metadataActions.includes('executeModelMetadata')">
+                      <common-tip :content="$t('bokenModelExportMetadatasTip')" :disabled="scope.row.status !== 'BROKEN'">
+                        {{$t('exportMetadatas')}}
+                      </common-tip>
+                    </el-dropdown-item>
                     <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="modelActions.includes('exportTDS')">
                       <common-tip :content="$t('bokenModelExportTDSTip')" :disabled="scope.row.status !== 'BROKEN'">
                         <span>{{$t('exportTds')}}</span>
@@ -1015,18 +1019,21 @@ export default class ModelList extends Vue {
       const project = this.currentSelectedProject
       const form = { ids: [modelDesc.uuid] }
       if (this.$store.state.config.platform === 'iframe') {
-        // this.downloadResouceData(project, form)
+        this.downloadResouceData(project, form)
         let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
         downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
           this.$message.success(this.$t('exportMetadataSuccess'))
         })
       } else {
-        try {
-          await this.downloadModelsMetadata({ project, form })
-          this.$message.success(this.$t('exportMetadataSuccess'))
-        } catch (e) {
-          this.$message.error(this.$t('exportMetadataFailed'))
-        }
+        const project = this.currentSelectedProject
+        const type = 'one'
+        await this.callModelsExportModal({ project, form, type })
+        // try {
+        //   await this.downloadModelsMetadata({ project, form })
+        //   this.$message.success(this.$t('exportMetadataSuccess'))
+        // } catch (e) {
+        //   this.$message.error(this.$t('exportMetadataFailed'))
+        // }
       }
     } else if (command === 'exportTDS') {
       if (scope.row.status === 'BROKEN') return
@@ -1207,7 +1214,8 @@ export default class ModelList extends Vue {
   }
   async handleExportMetadatas () {
     const project = this.currentSelectedProject
-    await this.callModelsExportModal({ project })
+    const type = 'all'
+    await this.callModelsExportModal({ project, type })
   }
   @Watch('modelsPagerRenderData')
   onModelChange (modelsPagerRenderData) {
