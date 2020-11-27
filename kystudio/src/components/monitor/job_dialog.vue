@@ -1,7 +1,8 @@
 <template>
   <div>
     <el-alert show-icon :show-background="false" type="info" class="download-tips">
-      <span slot="title">{{$t('outputTips')}}<el-button type="primary" size="mini" text @click="downloadLogs">{{$t('download')}}</el-button>{{$t('end')}}</span>
+      <span slot="title">{{$t('outputTips')}}<el-button type="primary" size="mini" text @click="downloadLogs">{{$t('download')}}</el-button><span v-if="$store.state.config.platform === 'iframe'">{{$t('or')}}<el-button type="primary" size="mini" text @click="goSystemLog">{{$t('gotoSystemLog')}}</el-button></span>{{$t('end')}}</span>
+      <!-- 只在 KC 中使用 -->
     </el-alert>
     <!-- <el-alert show-icon :show-background="false" type="info" class="download-tips" v-else>
       <span slot="title">{{$t('outputTipsKC')}}</span>
@@ -21,6 +22,7 @@
 <script>
 import { apiUrl } from '../../config'
 import { mapActions } from 'vuex'
+import { postCloudUrlMessage } from '../../util/business'
 export default {
   name: 'jobDialog',
   props: ['stepDetail', 'stepId', 'jobId', 'targetProject'],
@@ -29,13 +31,17 @@ export default {
       outputTips: 'The output log shows the first and last 100 lines by default. To view all the output, please click to ',
       download: 'download the log file.',
       end: '.',
-      outputTipsKC: 'The output log shows the first and last 100 lines by default. To view all the output, please download diagnosis package on Admin-Troubleshooting page.'
+      outputTipsKC: 'The output log shows the first and last 100 lines by default. To view all the output, please download diagnosis package on Admin-Troubleshooting page.',
+      gotoSystemLog: 'view all logs',
+      or: 'or'
     },
     'zh-cn': {
       outputTips: '输出日志默认展示首尾各100行内容，如需查看所有内容，请点击',
       download: '下载全部日志',
       end: '。',
-      outputTipsKC: '输出日志默认展示首尾各 100 行内容，如需查看所有内容，请进入管理 - 诊断运维页面下载诊断包。'
+      outputTipsKC: '输出日志默认展示首尾各 100 行内容，如需查看所有内容，请进入管理 - 诊断运维页面下载诊断包。',
+      gotoSystemLog: '查看全部日志',
+      or: '或'
     }
   },
   data () {
@@ -52,6 +58,9 @@ export default {
     ...mapActions({
       downloadLog: 'DOWNLOAD_LOGS'
     }),
+    goSystemLog () {
+      postCloudUrlMessage(this.$route, { name: 'systemLogs', query: { id: this.jobId, project: this.targetProject } })
+    },
     downloadLogs () {
       let params = {
         jobId: this.jobId,

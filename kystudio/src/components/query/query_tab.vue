@@ -37,10 +37,14 @@
         <div class="resultTips">
           <p class="resultText" v-if="extraoptionObj.queryId">
             <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
-            <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span>
-            <common-tip :content="$t('linkToSpark')" v-if="extraoptionObj.appMasterURL">
-              <a target="_blank" :href="extraoptionObj.appMasterURL"><i class="el-icon-ksd-go"></i></a>
-            </common-tip>
+            <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span><span v-if="$store.state.config.platform === 'iframe'">
+              <a target="_blank" :href="extraoptionObj.appMasterURL" v-if="extraoptionObj.appMasterURL" class="ksd-ml-15 ksd-ml-15">{{$t('linkToSpark')}}</a><el-button class="btn-view-log" type="primary" text @click="goSystemLog">{{$t('viewLogs')}}</el-button>
+            </span>
+            <span v-else class="ksd-ml-10">
+              <common-tip :content="$t('linkToSpark')" v-if="extraoptionObj.appMasterURL">
+                <a target="_blank" :href="extraoptionObj.appMasterURL"><i class="el-icon-ksd-go"></i></a>
+              </common-tip>
+            </span>
           </p>
           <!-- <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
           <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p> -->
@@ -62,14 +66,17 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapState } from 'vuex'
 import queryresult from './query_result'
 import saveQueryDialog from './save_query_dialog'
-import { kapConfirm, handleSuccess, handleError } from '../../util/business'
+import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../../util/business'
 @Component({
   props: ['tabsItem', 'completeData', 'tipsName'],
   methods: {
     ...mapActions({
       query: 'QUERY_BUILD_TABLES',
       stop: 'STOP_QUERY_BUILD'
-    })
+    }),
+    goSystemLog () {
+      postCloudUrlMessage(this.$route, { name: 'systemLogs', query: { id: this.extraoptionObj.queryId, project: this.currentSelectedProject } })
+    }
   },
   components: {
     queryresult,
@@ -93,7 +100,8 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       clear: 'Clear',
       runQuery: 'Run Query',
       stopQuery: 'Stop Query',
-      overIntegerLength: 'Please enter a value no larger than 2,147,483,647.'
+      overIntegerLength: 'Please enter a value no larger than 2,147,483,647.',
+      viewLogs: 'View Logs'
     },
     'zh-cn': {
       trace: '追踪',
@@ -104,7 +112,8 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       clear: '清空',
       runQuery: '运行',
       stopQuery: '停止',
-      overIntegerLength: '请输入小于等于 2,147,483,647 的数值。'
+      overIntegerLength: '请输入小于等于 2,147,483,647 的数值。',
+      viewLogs: '查看日志'
     }
   }
 })
@@ -376,6 +385,9 @@ export default class QueryTab extends Vue {
       &.is-global-alter {
         height: calc(~'100vh - 433px');
       }
+    }
+    .btn-view-log {
+      margin-left: 15px;
     }
   }
   #queryPanelBox {
