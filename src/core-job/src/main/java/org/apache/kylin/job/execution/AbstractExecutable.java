@@ -502,8 +502,7 @@ public abstract class AbstractExecutable implements Executable {
             return;
         }
         List<String> users;
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        users = getAllNotifyUsers(kylinConfig);
+        users = getAllNotifyUsers(projectConfig);
         if (this instanceof DefaultChainedExecutable) {
             MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
         } else {
