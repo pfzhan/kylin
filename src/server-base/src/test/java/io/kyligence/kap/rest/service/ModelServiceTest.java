@@ -187,6 +187,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -1109,6 +1110,67 @@ public class ModelServiceTest extends CSVSourceTestCase {
             List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
             Assert.assertTrue(indexes.isEmpty());
         });
+    }
+
+    @Test
+    public void testOptimizeModelNeedMergeIndex() {
+        String project = "newten";
+
+        // prepare initial model
+        String sql = "select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
+                + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt";
+        AbstractContext smartContext = NSmartMaster.proposeForAutoMode(getTestConfig(), project, new String[] { sql },
+                null);
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        NDataModel targetModel = modelContexts.get(0).getTargetModel();
+
+        // assert initial result
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
+        long dimensionCount = allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(2L, dimensionCount);
+        Assert.assertEquals(2, dataModel.getAllMeasures().size());
+        Assert.assertEquals(1, indexPlanManager.getIndexPlan(dataModel.getUuid()).getAllLayouts().size());
+
+        // transfer auto model to semi-auto
+        // make model online
+        transferProjectToSemiAutoMode(getTestConfig(), project);
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        dfManager.updateDataflow(targetModel.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+
+        // optimize with a batch of sql list
+        List<String> sqlList = Lists.newArrayList();
+        sqlList.add(sql);
+        sqlList.add("select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
+                + "where lstg_format_name = 'USA' group by lstg_format_name, cal_dt");
+        sqlList.add("select lstg_format_name, cal_dt, count(item_count) from test_kylin_fact "
+                + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt");
+        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true, true);
+
+        // assert optimization result
+        List<AbstractContext.NModelContext> modelContextsAfterOptimization = proposeContext.getModelContexts();
+        Assert.assertEquals(1, modelContextsAfterOptimization.size());
+        AbstractContext.NModelContext modelContextAfterOptimization = modelContextsAfterOptimization.get(0);
+        Map<String, LayoutRecItemV2> indexRexItemMap = modelContextAfterOptimization.getIndexRexItemMap();
+        Assert.assertEquals(2, indexRexItemMap.size()); // if no merge, the result will be 3.
+
+        // apply recommendations
+        ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        modelService.saveRecResult(modelSuggestionResponse, project);
+
+        // assert result after apply recommendations
+        NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(2L, dimensionCountRefreshed);
+        Assert.assertEquals(3, modelAfterSuggestModel.getAllMeasures().size());
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelAfterSuggestModel.getUuid());
+        Assert.assertEquals(3, indexPlan.getAllLayouts().size());
     }
 
     @Test

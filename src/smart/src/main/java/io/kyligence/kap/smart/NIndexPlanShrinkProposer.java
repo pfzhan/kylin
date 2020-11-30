@@ -136,7 +136,12 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         dropDuplicateIndex(existedTableIndicesOrReadyIndices.stream().map(IndexEntity::getLayouts).flatMap(List::stream)
                 .collect(Collectors.toList()), newDim2Index);
         newDim2Index.forEach((k, v) -> v.forEach(index -> {
-            index.getLayouts().forEach(modelContext::gatherLayoutRecItem);
+            List<LayoutEntity> layouts = index.getLayouts();
+            layouts.forEach(layout -> {
+                if (layout.isInProposing()) {
+                    modelContext.gatherLayoutRecItem(layout);
+                }
+            });
         }));
 
         // update new merged indices to the origin index_plan
