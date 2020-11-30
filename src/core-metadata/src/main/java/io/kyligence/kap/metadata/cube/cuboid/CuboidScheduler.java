@@ -35,7 +35,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.val;
@@ -47,7 +47,7 @@ public abstract class CuboidScheduler implements Serializable {
 
     protected static final String OUT_OF_MAX_COMBINATION_MSG_FORMAT = "Too many cuboids for the cube. Cuboid combination reached %s and limit is %s. Abort calculation.";
 
-    public static CuboidScheduler getInstance(IndexPlan indexPlan, NRuleBasedIndex ruleBasedIndex, boolean skipAll) {
+    public static CuboidScheduler getInstance(IndexPlan indexPlan, RuleBasedIndex ruleBasedIndex, boolean skipAll) {
         if (ruleBasedIndex.getSchedulerVersion() == 1) {
             return new KECuboidSchedulerV1(indexPlan, ruleBasedIndex, skipAll);
         } else if (ruleBasedIndex.getSchedulerVersion() == 2) {
@@ -56,16 +56,16 @@ public abstract class CuboidScheduler implements Serializable {
         throw new NotImplementedException("Not Support version " + ruleBasedIndex.getSchedulerVersion());
     }
 
-    public static CuboidScheduler getInstance(IndexPlan indexPlan, NRuleBasedIndex ruleBasedIndex) {
+    public static CuboidScheduler getInstance(IndexPlan indexPlan, RuleBasedIndex ruleBasedIndex) {
         return getInstance(indexPlan, ruleBasedIndex, false);
     }
 
     // ============================================================================
 
     protected final IndexPlan indexPlan;
-    protected final NRuleBasedIndex ruleBasedAggIndex;
+    protected final RuleBasedIndex ruleBasedAggIndex;
 
-    protected CuboidScheduler(final IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
+    protected CuboidScheduler(final IndexPlan indexPlan, RuleBasedIndex ruleBasedAggIndex) {
         this.indexPlan = indexPlan;
         this.ruleBasedAggIndex = ruleBasedAggIndex == null ? indexPlan.getRuleBasedIndex() : ruleBasedAggIndex;
     }

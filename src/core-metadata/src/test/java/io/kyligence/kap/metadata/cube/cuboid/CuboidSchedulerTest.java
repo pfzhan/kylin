@@ -38,7 +38,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
@@ -141,7 +141,7 @@ public class CuboidSchedulerTest extends NLocalFileMetadataTestCase {
         cube = JsonUtil.deepCopy(cube, IndexPlan.class);
         cube.setIndexes(Lists.<IndexEntity> newArrayList());
         cube.initAfterReload(getTestConfig(), DEFAULT_PROJECT);
-        val rule = new NRuleBasedIndex();
+        val rule = new RuleBasedIndex();
         rule.setDimensions(Lists.<Integer> newArrayList());
         rule.setMeasures(Lists.<Integer> newArrayList());
         rule.setIndexPlan(cube);

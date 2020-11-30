@@ -36,7 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -69,8 +69,8 @@ public class UpdateRuleBasedCuboidRequest implements ProjectInsensitiveRequest {
     @JsonProperty("load_data")
     private boolean isLoadData = true;
 
-    public NRuleBasedIndex convertToRuleBasedIndex() {
-        val newRuleBasedCuboid = new NRuleBasedIndex();
+    public RuleBasedIndex convertToRuleBasedIndex() {
+        val newRuleBasedCuboid = new RuleBasedIndex();
         BeanUtils.copyProperties(this, newRuleBasedCuboid);
         newRuleBasedCuboid.setDimensions(getSortedDimensions());
         newRuleBasedCuboid.setGlobalDimCap(globalDimCap);

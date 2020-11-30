@@ -60,7 +60,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -294,7 +294,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
         indexPlan = indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
             try {
-                val newRule = new NRuleBasedIndex();
+                val newRule = new RuleBasedIndex();
                 newRule.setDimensions(Arrays.asList(1, 2, 3, 4));
                 val group1 = JsonUtil
                         .readValue(
@@ -391,11 +391,14 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         val layouts = newPlan.getRuleBaseLayouts();
         Assert.assertEquals(7, layouts.size());
         for (val layout : layouts) {
-            Assert.assertNotNull(layout.getIndex());
+            val index = newPlan.getIndexEntity(layout.getIndexId());
+            Assert.assertNotNull(index);
             Assert.assertTrue(layout.getUpdateTime() > 0);
-            Assert.assertTrue(layout.getIndex().getLayouts().size() > 0);
-            for (val indexLayout : layout.getIndex().getLayouts()) {
-                Assert.assertSame(layout.getIndex(), indexLayout.getIndex());
+            val filtered = index.getLayouts().stream().filter(LayoutEntity::isManual).collect(Collectors.toList());
+            Assert.assertEquals(1, filtered.size());
+            for (val indexLayout : filtered) {
+                Assert.assertEquals(layout.getId(), indexLayout.getId());
+                Assert.assertEquals(layout.getColOrder(), indexLayout.getColOrder());
             }
         }
     }
@@ -523,7 +526,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
                         .map(l -> l.getId() + "   " + l.getColOrder().toString()).collect(Collectors.joining("\n")));
 
         newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
-            val rule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+            val rule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), RuleBasedIndex.class);
             val aggs = rule.getAggregationGroups();
             rule.setAggregationGroups(Lists.newArrayList(aggs.get(1), aggs.get(0)));
             rule.setLayoutIdMapping(Lists.newArrayList());
@@ -569,7 +572,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             "    ],\n" + //
             "    \"storage_type\": 20,\n" + //
             "    \"scheduler_version\": 2\n" + //
-            "  }").getBytes(), NRuleBasedIndex.class));
+            "  }").getBytes(), RuleBasedIndex.class));
         });
 
         val result = "30001   [2, 3, 5, 100000, 100001]\n" + //
@@ -639,7 +642,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             "    ],\n" + //
             "    \"storage_type\": 20,\n" + //
             "    \"scheduler_version\": 2\n" + //
-            "  }").getBytes(), NRuleBasedIndex.class));
+            "  }").getBytes(), RuleBasedIndex.class));
         });
         val result = "30001   [2, 3, 5, 100000, 100001]\n" + //
                 "30002   [5, 3, 2, 100000, 100001]\n" + //

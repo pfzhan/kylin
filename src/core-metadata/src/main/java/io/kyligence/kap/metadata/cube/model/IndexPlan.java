@@ -97,7 +97,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @Getter
     @JsonManagedReference
     @JsonProperty("rule_based_index")
-    private NRuleBasedIndex ruleBasedIndex;
+    private RuleBasedIndex ruleBasedIndex;
 
     @Getter
     @JsonManagedReference
@@ -494,7 +494,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return source.stream().filter(layout -> !target.contains(layout)).collect(Collectors.toSet());
     }
 
-    public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
+    public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
         genMeasuresForRuleBasedIndex(ruleBasedIndex);
         if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
             ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
@@ -511,35 +511,35 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return new Pair<>(layoutsNotIn(sourceLayouts, targetLayouts), layoutsNotIn(targetLayouts, sourceLayouts));
     }
 
-    public void setRuleBasedIndex(NRuleBasedIndex nRuleBasedIndex, boolean reuseStartId, boolean markToBeDeleted) {
+    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, boolean reuseStartId, boolean markToBeDeleted) {
         checkIsNotCachedAndShared();
-        genMeasuresForRuleBasedIndex(nRuleBasedIndex);
+        genMeasuresForRuleBasedIndex(ruleBasedIndex);
 
-        if (CollectionUtils.isEmpty(nRuleBasedIndex.getMeasures())) {
-            nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
+        if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
+            ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
         }
-        nRuleBasedIndex.setIndexStartId(reuseStartId ? nRuleBasedIndex.getIndexStartId() : nextAggregationIndexId);
-        nRuleBasedIndex.setIndexPlan(this);
-        nRuleBasedIndex.init();
+        ruleBasedIndex.setIndexStartId(reuseStartId ? ruleBasedIndex.getIndexStartId() : nextAggregationIndexId);
+        ruleBasedIndex.setIndexPlan(this);
+        ruleBasedIndex.init();
         Set<LayoutEntity> originSet = this.ruleBasedIndex == null ? Sets.newHashSet()
                 : this.ruleBasedIndex.genCuboidLayouts();
-        nRuleBasedIndex.genCuboidLayouts(Sets.newHashSet(originSet));
+        ruleBasedIndex.genCuboidLayouts(Sets.newHashSet(originSet));
 
-        this.ruleBasedIndex = nRuleBasedIndex;
+        this.ruleBasedIndex = ruleBasedIndex;
         Set<LayoutEntity> targetSet = this.ruleBasedIndex.genCuboidLayouts();
         this.ruleBasedLayouts = Lists.newArrayList(targetSet);
 
         if (markToBeDeleted && CollectionUtils.isNotEmpty(layoutsNotIn(targetSet, originSet))) {
             Set<LayoutEntity> toBeDeletedSet = layoutsNotIn(originSet, targetSet);
             if (CollectionUtils.isNotEmpty(toBeDeletedSet)) {
-                markIndexesToBeDeleted(nRuleBasedIndex.getIndexPlan().getUuid(), toBeDeletedSet);
+                markIndexesToBeDeleted(ruleBasedIndex.getIndexPlan().getUuid(), toBeDeletedSet);
             }
         }
 
         updateNextId();
     }
 
-    private void genMeasuresForRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
+    private void genMeasuresForRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
         val aggregationGroups = ruleBasedIndex.getAggregationGroups();
 
         TreeSet<Integer> measures = new TreeSet<>();
@@ -556,11 +556,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         ruleBasedIndex.setMeasures(Lists.newArrayList(measures));
     }
 
-    public void setRuleBasedIndex(NRuleBasedIndex nRuleBasedIndex, boolean reuseStartId) {
-        setRuleBasedIndex(nRuleBasedIndex, reuseStartId, false);
+    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, boolean reuseStartId) {
+        setRuleBasedIndex(ruleBasedIndex, reuseStartId, false);
     }
 
-    public void setRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
+    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
         setRuleBasedIndex(ruleBasedIndex, false);
     }
 

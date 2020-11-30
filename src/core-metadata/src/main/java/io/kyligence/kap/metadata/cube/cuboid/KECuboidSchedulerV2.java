@@ -38,7 +38,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,7 +49,7 @@ public class KECuboidSchedulerV2 extends CuboidScheduler {
     private final int measureSize;
     private transient final OrderedSet<ColOrder> allColOrders;
 
-    KECuboidSchedulerV2(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex, boolean skipAll) {
+    KECuboidSchedulerV2(IndexPlan indexPlan, RuleBasedIndex ruleBasedAggIndex, boolean skipAll) {
         super(indexPlan, ruleBasedAggIndex);
 
         this.max = ruleBasedAggIndex.getFullMask();

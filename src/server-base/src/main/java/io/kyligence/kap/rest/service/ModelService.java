@@ -176,8 +176,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.cube.model.SegmentPartition;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
@@ -3142,7 +3142,7 @@ public class ModelService extends BasicService {
 
             copyForWrite.setOverrideProps(overrideProps);
             if (affectedByProp && copyForWrite.getRuleBasedIndex() != null) {
-                val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+                val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), RuleBasedIndex.class);
                 newRule.setLastModifiedTime(System.currentTimeMillis());
                 newRule.setLayoutIdMapping(Lists.newArrayList());
                 copyForWrite.setRuleBasedIndex(newRule);

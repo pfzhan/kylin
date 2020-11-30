@@ -63,7 +63,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -249,7 +249,7 @@ public class ImportModelContext implements IKeep {
             if (targetIndexPlan.getRuleBasedIndex() != null) {
                 copyForWrite.setRuleBasedIndex(targetIndexPlan.getRuleBasedIndex());
             } else {
-                copyForWrite.setRuleBasedIndex(new NRuleBasedIndex());
+                copyForWrite.setRuleBasedIndex(new RuleBasedIndex());
             }
 
             if (targetIndexPlan.getIndexes() != null) {
@@ -336,7 +336,7 @@ public class ImportModelContext implements IKeep {
         }
 
         // reorder
-        NRuleBasedIndex ruleBasedIndex = copy.getRuleBasedIndex();
+        RuleBasedIndex ruleBasedIndex = copy.getRuleBasedIndex();
         if (ruleBasedIndex != null) {
             ruleBasedIndex.setDimensions(ruleBasedIndex.getDimensions().stream()
                     .map(id -> idChangedMap.getOrDefault(id, id)).collect(Collectors.toList()));

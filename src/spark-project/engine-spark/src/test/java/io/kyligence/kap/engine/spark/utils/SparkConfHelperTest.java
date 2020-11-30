@@ -255,7 +255,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(20480, 100), new ResourceInfo(60480, 100)));
         instancesRule.apply(helper);
-        Assert.assertEquals("14", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+        Assert.assertEquals("13", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
         // case: v1 < v4 <  v2 < v3, spark.executor.instances = v2
         resetSparkConfHelper(helper);
@@ -268,7 +268,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         resetSparkConfHelper(helper);
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "200");
         instancesRule.apply(helper);
-        Assert.assertEquals("14", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+        Assert.assertEquals("13", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
         // case: v2 < v4 < v3 < v1, spark.executor.instances = v1
         resetSparkConfHelper(helper);

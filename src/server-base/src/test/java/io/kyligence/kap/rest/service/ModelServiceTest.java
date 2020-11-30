@@ -173,9 +173,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnumToDisplay;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
@@ -900,7 +900,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         indePlanManager.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", copyForWrite -> {
-            val rule = new NRuleBasedIndex();
+            val rule = new RuleBasedIndex();
             rule.setDimensions(Lists.newArrayList(1, 2, 3, 4));
             rule.setMeasures(Lists.newArrayList(100001, 100002));
             try {
@@ -1083,7 +1083,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             request.setLoadData(false);
             request.setGlobalDimCap(null);
             request.setAggregationGroups(ruleBaseIndex.getAggregationGroups().subList(0, 1));
-            NRuleBasedIndex newRuleBasedCuboid = request.convertToRuleBasedIndex();
+            RuleBasedIndex newRuleBasedCuboid = request.convertToRuleBasedIndex();
             copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
         });
 

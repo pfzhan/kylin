@@ -83,7 +83,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -296,7 +296,7 @@ public class ModelSemanticHelper extends BasicService {
             for (ColumnDesc column : modelRequest.getColumnsFetcher().apply(tableDesc, !isFact)) {
                 val namedColumn = new NDataModel.NamedColumn();
                 namedColumn.setId(id++);
-                namedColumn.setName(column.getName());
+                namedColumn.setName(alias + "_" + column.getName());
                 namedColumn.setAliasDotColumn(alias + "." + column.getName());
                 namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
                 val dimension = dimensionNameMap.get(namedColumn.getAliasDotColumn());
@@ -728,7 +728,7 @@ public class ModelSemanticHelper extends BasicService {
             if (copyForWrite.getRuleBasedIndex() == null) {
                 return;
             }
-            val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+            val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), RuleBasedIndex.class);
             newRule.setLayoutIdMapping(Lists.newArrayList());
 
             if (newRule.getAggregationGroups() != null) {
@@ -825,8 +825,8 @@ public class ModelSemanticHelper extends BasicService {
         JobManager.getInstance(config, project).addFullIndexJob(new JobParam(modelId, getUsername()));
     }
 
-    public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
-            NRuleBasedIndex newRule, boolean forceFireEvent) {
+    public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, RuleBasedIndex oldRule,
+                                                        RuleBasedIndex newRule, boolean forceFireEvent) {
         log.debug("handle indexPlan udpate rule {} {}", project, model);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);

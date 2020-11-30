@@ -62,7 +62,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -126,7 +126,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val allLayouts = df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                 .collect(Collectors.toSet());
         val livedLayouts = cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
-            copyForWrite.setRuleBasedIndex(new NRuleBasedIndex());
+            copyForWrite.setRuleBasedIndex(new RuleBasedIndex());
         }).getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         allLayouts.removeAll(livedLayouts);
         dataflowManager.removeLayouts(df2, allLayouts);
@@ -162,7 +162,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         });
         cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
             try {
-                val newRule = new NRuleBasedIndex();
+                val newRule = new RuleBasedIndex();
                 newRule.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6));
                 val group1 = JsonUtil
                         .readValue(

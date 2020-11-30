@@ -49,8 +49,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -61,7 +61,7 @@ import lombok.var;
 @SuppressWarnings("serial")
 @NoArgsConstructor
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NRuleBasedIndex implements Serializable, IKeep {
+public class RuleBasedIndex implements Serializable, IKeep {
 
     @Getter
     @JsonBackReference
@@ -263,7 +263,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         long proposalId = indexStartId + 1;
         for (int i = 0; i < colOrders.size(); i++) {
             val colOrder = colOrders.get(i);
-            //mock a LayoutEntity for one legacy cuboid
             val layout = new LayoutEntity();
             layout.setManual(true);
 
@@ -303,7 +302,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 long indexId = layout.getIndexId();
                 maybeIndex = new IndexEntity();
                 maybeIndex.setId(indexId);
-                maybeIndex.setLayouts(Lists.newArrayList(layout));
                 maybeIndex.setDimensions(dimensionsInLayout);
                 maybeIndex.setMeasures(measuresInLayout);
                 maybeIndex.setIndexPlan(indexPlan);

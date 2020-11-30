@@ -36,7 +36,7 @@ public class CubeTestUtils {
         val modelMgr = NDataModelManager.getInstance(config, "default");
         val model = modelMgr.copyForWrite(modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         model.setUuid(indexPlan.getUuid());
-        model.setAlias("tmp");
+        model.setAlias("tmp" + indexPlan.getUuid());
         model.setMvcc(-1);
         modelMgr.createDataModelDesc(model, null);
 

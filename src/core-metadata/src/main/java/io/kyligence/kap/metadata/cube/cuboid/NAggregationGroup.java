@@ -46,7 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.math.LongMath;
 
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -90,11 +90,11 @@ public class NAggregationGroup implements Serializable {
     private List<BigInteger> joints;//each long is a group
     private BigInteger jointDimsMask;
     private List<BigInteger> normalDimMeas;//each long is a single dim
-    protected NRuleBasedIndex ruleBasedAggIndex;
+    protected RuleBasedIndex ruleBasedAggIndex;
     private boolean isMandatoryOnlyValid;
     private HashMap<BigInteger, BigInteger> dim2JointMap;
 
-    public void init(NRuleBasedIndex ruleBasedCuboidsDesc) {
+    public void init(RuleBasedIndex ruleBasedCuboidsDesc) {
         this.ruleBasedAggIndex = ruleBasedCuboidsDesc;
         this.isMandatoryOnlyValid = ruleBasedCuboidsDesc.getIndexPlan().getConfig()
                 .getCubeAggrGroupIsMandatoryOnlyValid();

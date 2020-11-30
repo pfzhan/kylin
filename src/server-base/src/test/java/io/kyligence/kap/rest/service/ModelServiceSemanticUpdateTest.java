@@ -74,7 +74,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -802,7 +802,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 + "aggregation group, recommended aggregate index or table index. Please delete this dimension from the above first.");
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", cubeBasic -> {
-            val rule = new NRuleBasedIndex();
+            val rule = new RuleBasedIndex();
             rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 26));
             rule.setMeasures(Arrays.asList(100001, 100002, 100003));
             cubeBasic.setRuleBasedIndex(rule);
@@ -1017,7 +1017,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         Assert.assertEquals(0, executables.size());
 
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
-            val rule = new NRuleBasedIndex();
+            val rule = new RuleBasedIndex();
             rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
             rule.setMeasures(Arrays.asList(100000, 100001));
             val aggGroup = new NAggregationGroup();
@@ -1122,7 +1122,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         dfMgr.updateDataflow(update);
 
         val newCube = indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
-            val newRule = new NRuleBasedIndex();
+            val newRule = new RuleBasedIndex();
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
             newRule.setMeasures(Arrays.asList(100001, 100002));
             copyForWrite.setRuleBasedIndex(newRule);

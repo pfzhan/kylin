@@ -52,7 +52,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -91,8 +91,8 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @GetMapping(value = "/rule")
-    public EnvelopeResponse<NRuleBasedIndex> getRule(@RequestParam("project") String project,
-            @RequestParam("model") String modelId) {
+    public EnvelopeResponse<RuleBasedIndex> getRule(@RequestParam("project") String project,
+                                                    @RequestParam("model") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val rule = indexPlanService.getRule(project, modelId);

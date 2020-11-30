@@ -71,7 +71,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -572,10 +572,10 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testGetRule() throws Exception {
         Assert.assertNull(indexPlanService.getRule("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         val rule = JsonUtil.deepCopy(indexPlanService.getRule("default", "741ca86a-1f13-46da-a59f-95fb68615e3a"),
-                NRuleBasedIndex.class);
+                RuleBasedIndex.class);
         Assert.assertNotNull(rule);
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Lists.newArrayList(1, 2, 3));
         newRule.setMeasures(Lists.newArrayList(1001, 1002));
 

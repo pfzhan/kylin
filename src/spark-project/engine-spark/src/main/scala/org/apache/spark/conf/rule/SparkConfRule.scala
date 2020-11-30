@@ -53,6 +53,10 @@ class ExecutorMemoryRule extends SparkConfRule {
     if (StringUtils.isNotBlank(userDefinedMemory)) {
       return
     }
+    if (StringUtils.isBlank(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))) {
+      logInfo(s"Source table size is Empty, skip ${getClass.getName}")
+      return
+    }
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val hasCountDistinct = helper.hasCountDistinct
     val memory = sourceGB match {
@@ -75,6 +79,10 @@ class ExecutorCoreRule extends SparkConfRule {
     if (StringUtils.isNotBlank(userDefinedCores)) {
       return
     }
+    if (StringUtils.isBlank(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))) {
+      logInfo(s"Source table size is Empty, skip ${getClass.getName}")
+      return
+    }
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val hasCountDistinct = helper.hasCountDistinct
     val cores = if (sourceGB >= 1 || hasCountDistinct) {
@@ -90,6 +98,10 @@ class ExecutorOverheadRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val userDefinedOverHeadMemory = helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD)
     if (StringUtils.isNotBlank(userDefinedOverHeadMemory)) {
+      return
+    }
+    if (StringUtils.isBlank(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))) {
+      logInfo(s"Source table size is Empty, skip ${getClass.getName}")
       return
     }
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
@@ -116,7 +128,6 @@ class ExecutorInstancesRule extends SparkConfRule {
     if (StringUtils.isNotBlank(userDefinedInstances)) {
       return
     }
-    val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
     val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
     val requiredCores = helper.getOption(SparkConfHelper.REQUIRED_CORES)
@@ -127,8 +138,8 @@ class ExecutorInstancesRule extends SparkConfRule {
     val availableResource = helper.getClusterManager.fetchQueueAvailableResource(queue).available
     val availableMem = availableResource.memory
     val availableCore = availableResource.vCores
-    val executorMem = Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_MEMORY))
-    +Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD))
+    val executorMem = Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_MEMORY)) +
+      Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD))
 
     val executorCore: Int = Option(helper.getConf(SparkConfHelper.EXECUTOR_CORES)) match {
       case Some(cores) => cores.toInt
@@ -188,6 +199,10 @@ class ShufflePartitionsRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val userDefinedPartitions = helper.getConf(SparkConfHelper.SHUFFLE_PARTITIONS)
     if (StringUtils.isNotBlank(userDefinedPartitions)) {
+      return
+    }
+    if (StringUtils.isBlank(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))) {
+      logInfo(s"Source table size is Empty, skip ${getClass.getName}")
       return
     }
     val sourceTableSize = helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE)

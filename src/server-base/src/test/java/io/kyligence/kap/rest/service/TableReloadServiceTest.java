@@ -85,7 +85,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDictionaryDesc;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -258,7 +258,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_AddIndexCount() throws Exception {
 
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
                 + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
@@ -278,7 +278,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_AddIndexCountHierarchy() throws Exception {
 
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
                 + "          \"hierarchy_dims\": [[14,15,16]],\n" + "          \"mandatory_dims\": [],\n"
@@ -299,7 +299,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_AddIndexCountMandatory() throws Exception {
 
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
         val group1 = JsonUtil.readValue("{\n" //
                 + "        \"includes\": [14,15,16,17,18,19],\n"//
@@ -325,7 +325,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_AddIndexCountJoint() throws Exception {
 
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
         val group1 = JsonUtil.readValue("{\n" //
                 + "        \"includes\": [14,15,16,17,18,19],\n" //
@@ -471,7 +471,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, brokenModel.getJoinTables().size());
         Assert.assertEquals(17, brokenModel.getAllMeasures().size());
         Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
-        Assert.assertEquals("ORDER_ID", brokenModel.getAllNamedColumns().get(13).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_ORDER_ID", brokenModel.getAllNamedColumns().get(13).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(13).getStatus());
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -498,7 +498,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
         Assert.assertEquals(198, reModel.getAllNamedColumns().size());
-        Assert.assertEquals("ORDER_ID", reModel.getAllNamedColumns().get(13).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_ORDER_ID", reModel.getAllNamedColumns().get(13).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(13).getStatus());
         val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow(reModel.getId());
@@ -530,7 +530,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, brokenModel.getJoinTables().size());
         Assert.assertEquals(17, brokenModel.getAllMeasures().size());
         Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
-        Assert.assertEquals("CAL_DT", brokenModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", brokenModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", brokenModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(28).getStatus());
@@ -560,7 +560,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
         Assert.assertEquals(198, reModel.getAllNamedColumns().size());
-        Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", reModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
@@ -610,7 +610,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
         Assert.assertEquals(198, reModel.getAllNamedColumns().size());
-        Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", reModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
@@ -739,7 +739,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertFalse(Joiner.on(",").join(sampleRow).contains("col_3"));
         }
 
-        Assert.assertEquals("PRICE", model.getAllNamedColumns().get(11).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_PRICE", model.getAllNamedColumns().get(11).getName());
         Assert.assertTrue(model.getAllNamedColumns().get(11).isExist());
         Assert.assertTrue(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
@@ -750,7 +750,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReload_RemoveAggShardByColumns() throws Exception {
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
                 + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
@@ -762,7 +762,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReload_KeepAggShardByColumns() throws Exception {
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(13, 14, 15));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [13,14,15],\n" + "        \"select_rule\": {\n"
                 + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
@@ -772,8 +772,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     }
 
-    private void testReload_AggShardByColumns(NRuleBasedIndex ruleBasedIndex, List<Integer> beforeAggShardBy,
-            List<Integer> endAggShardBy) throws Exception {
+    private void testReload_AggShardByColumns(RuleBasedIndex ruleBasedIndex, List<Integer> beforeAggShardBy,
+                                              List<Integer> endAggShardBy) throws Exception {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val updatedIndexPlan = indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
@@ -1005,7 +1005,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReload_ChangeColumnInAggManual() throws Exception {
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
                 + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
@@ -1066,7 +1066,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         // add agg group contains TEST_KYLIN_FACT.ITEM_COUNT and sum(TEST_KYLIN_FACT.ITEM_COUNT)
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
 
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         // TEST_KYLIN_FACT.ITEM_COUNT， TEST_ORDER.TEST_TIME_ENC， TEST_KYLIN_FACT.SLR_SEGMENT_CD
         newRule.setDimensions(Arrays.asList(12, 15, 16));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [12,15,16],\n" + "        \"select_rule\": {\n"
@@ -1131,7 +1131,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         // add agg group contains TEST_KYLIN_FACT.ITEM_COUNT and sum(TEST_KYLIN_FACT.ITEM_COUNT)
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
 
-        val newRule = new NRuleBasedIndex();
+        val newRule = new RuleBasedIndex();
         // TEST_KYLIN_FACT.ITEM_COUNT， TEST_ORDER.TEST_TIME_ENC， TEST_KYLIN_FACT.SLR_SEGMENT_CD
         newRule.setDimensions(Arrays.asList(12, 15, 16));
         val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [12,15,16],\n" + "        \"select_rule\": {\n"

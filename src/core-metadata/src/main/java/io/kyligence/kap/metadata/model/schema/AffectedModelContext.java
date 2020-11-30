@@ -43,7 +43,7 @@ import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.Data;
@@ -140,7 +140,7 @@ public class AffectedModelContext {
         if (indexPlan.getRuleBasedIndex() == null) {
             return;
         }
-        val rule = JsonUtil.deepCopyQuietly(indexPlan.getRuleBasedIndex(), NRuleBasedIndex.class);
+        val rule = JsonUtil.deepCopyQuietly(indexPlan.getRuleBasedIndex(), RuleBasedIndex.class);
         rule.setLayoutIdMapping(Lists.newArrayList());
         rule.setDimensions(
                 rule.getDimensions().stream().filter(d -> !dimensions.contains(d)).collect(Collectors.toList()));

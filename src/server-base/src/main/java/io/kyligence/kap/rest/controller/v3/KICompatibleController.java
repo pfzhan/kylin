@@ -40,7 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.rest.controller.NIndexPlanController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.controller.NProjectController;
@@ -86,8 +86,8 @@ public class KICompatibleController {
     }
 
     @GetMapping(value = "/index_plans/rule", produces = { HTTP_VND_APACHE_KYLIN_V3_JSON })
-    public EnvelopeResponse<NRuleBasedIndex> getRule(@RequestParam("project") String project,
-            @RequestParam("model") String modelId) {
+    public EnvelopeResponse<RuleBasedIndex> getRule(@RequestParam("project") String project,
+                                                    @RequestParam("model") String modelId) {
         return indexPlanController.getRule(project, modelId);
     }
 

@@ -85,7 +85,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -379,7 +379,7 @@ public class IndexPlanService extends BasicService {
 
         boolean invalid = false;
         try {
-            NRuleBasedIndex ruleBasedIndex = request.convertToRuleBasedIndex();
+            RuleBasedIndex ruleBasedIndex = request.convertToRuleBasedIndex();
             NDataModel model = NDataModelManager.getInstance(getConfig(), request.getProject())
                     .getDataModelDesc(indexPlan.getUuid());
 
@@ -648,7 +648,7 @@ public class IndexPlanService extends BasicService {
 
     }
 
-    public NRuleBasedIndex getRule(String project, String model) {
+    public RuleBasedIndex getRule(String project, String model) {
         aclEvaluate.checkProjectWritePermission(project);
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkState(indexPlan != null);
@@ -804,7 +804,7 @@ public class IndexPlanService extends BasicService {
             val indexes = changedLayouts.stream()
                     .map(layout -> (layout / IndexEntity.INDEX_ID_STEP) * IndexEntity.INDEX_ID_STEP)
                     .collect(Collectors.toSet());
-            val originAgg = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), NRuleBasedIndex.class);
+            val originAgg = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), RuleBasedIndex.class);
             copy.addRuleBasedBlackList(
                     copy.getRuleBaseLayouts().stream().filter(l -> changedLayouts.contains(l.getId()))
                             .map(LayoutEntity::getId).collect(Collectors.toList()));
@@ -832,7 +832,7 @@ public class IndexPlanService extends BasicService {
             indexList.addAll(changedIndexes);
             copy.setIndexes(indexList);
             if (originAgg != null) {
-                val updatedAgg = new NRuleBasedIndex();
+                val updatedAgg = new RuleBasedIndex();
                 updatedAgg.setAggregationGroups(originAgg.getAggregationGroups());
                 updatedAgg.setGlobalDimCap(originAgg.getGlobalDimCap());
                 updatedAgg.setDimensions(originAgg.getDimensions());
@@ -848,7 +848,7 @@ public class IndexPlanService extends BasicService {
             return;
 
         getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
-            val copyRuleBaseIndex = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), NRuleBasedIndex.class);
+            val copyRuleBaseIndex = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), RuleBasedIndex.class);
 
             for (ListIterator<Integer> measureItr = copyRuleBaseIndex.getMeasures().listIterator(); measureItr.hasNext();) {
                 Integer measureId = measureItr.next();
