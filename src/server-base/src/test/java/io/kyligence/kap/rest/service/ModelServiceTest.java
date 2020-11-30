@@ -1112,6 +1112,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testSuggestModelWithSimpleQuery() {
+        String project = "newten";
+        transferProjectToSemiAutoMode(getTestConfig(), project);
+
+        List<String> sqlList = Lists.newArrayList();
+        sqlList.add("select floor(date'2020-11-17' TO day), ceil(date'2020-11-17' TO day) from test_kylin_fact");
+        AbstractContext proposeContext = modelService.suggestModel(project, sqlList, false, true);
+        ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        modelService.saveRecResult(modelSuggestionResponse, project);
+
+        List<AbstractContext.NModelContext> modelContexts = proposeContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        NDataModel targetModel = modelContexts.get(0).getTargetModel();
+        long dimensionCountRefreshed = targetModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(1L, dimensionCountRefreshed);
+        Assert.assertEquals(1, targetModel.getAllMeasures().size());
+    }
+
+    @Test
     public void testSuggestOrOptimizeModels() throws Exception {
         String project = "newten";
         // prepare initial model

@@ -26,10 +26,14 @@ package io.kyligence.kap.smart.index;
 
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
+
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
 
 class NIndexProposer extends NAbstractIndexProposer {
@@ -47,7 +51,17 @@ class NIndexProposer extends NAbstractIndexProposer {
         suggester.suggestIndexes(context.getModelTree());
 
         indexPlan.setIndexes(Lists.newArrayList(indexEntityMap.values()));
-
+        initModel(context.getTargetModel());
         return indexPlan;
+    }
+
+    // Important fix for KE-14714: all columns in table index will be treat as dimension.
+    // Extra dimensions may add to model in IndexSuggester.suggestTableIndexDimensions,
+    // code line: namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION).
+    private void initModel(NDataModel modelDesc) {
+        String project = context.getProposeContext().getProject();
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(config, project);
+        modelDesc.init(config, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 }
