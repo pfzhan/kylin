@@ -520,14 +520,18 @@ export default class ModelsImportModal extends Vue {
     }
 
     try {
-      const models = this.models.map(it => ({original_name: it.original_name, target_name: it.target_name, import_type: actionMap[it.action]}))
-      this.setModalForm({ request: { models } })
-      const { project, form } = this
-      this.isSubmiting = true
+      const models = this.models.map(it => ({original_name: it.original_name, target_name: it.target_name, import_type: actionMap[it.action]})).filter(item => item.import_type !== 'UN_IMPORT')
+      if (models.length) {
+        this.setModalForm({ request: { models } })
+        const { project, form } = this
+        this.isSubmiting = true
 
-      await this.importModelsMetadata({ project, form })
-      this.handleClose(true)
-      this.$message.success(this.$t('submitSuccess'))
+        await this.importModelsMetadata({ project, form })
+        this.handleClose(true)
+        this.$message.success(this.$t('submitSuccess'))
+      } else {
+        this.handleClose(true)
+      }
     } catch (e) {}
     this.isSubmiting = false
   }
