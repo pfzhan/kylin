@@ -128,6 +128,17 @@
       "returntype" : "bigint"
     },
     "id" : 100001
+  }, {
+    "name" : "sad",
+    "function" : {
+      "expression" : "SUM",
+      "parameters" : [ {
+        "type" : "column",
+        "value" : "TEST_KYLIN_FACT.ITEM_COUNT"
+      } ],
+      "returntype" : "bigint"
+    },
+    "id" : 100002
   } ],
   "column_correlations" : [ ],
   "multilevel_partition_cols" : [ ],

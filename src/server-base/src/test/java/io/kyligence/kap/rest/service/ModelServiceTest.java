@@ -1714,7 +1714,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         modelRequest.setPartitionDesc(null);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
+        val saved = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("sad", saved.getMeasureNameByMeasureId(100002));
+        Assert.assertEquals("SAD", saved.getMeasureNameByMeasureId(100000));
         modelRequest = JsonUtil.readValue(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_full_load.json"),
                 ModelRequest.class);

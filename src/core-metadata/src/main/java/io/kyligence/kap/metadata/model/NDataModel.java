@@ -1064,7 +1064,7 @@ public class NDataModel extends RootPersistentEntity {
         ImmutableBiMap.Builder<Integer, Measure> mapBuilder = ImmutableBiMap.builder();
         for (Measure m : allMeasures) {
             try {
-                m.setName(m.getName().toUpperCase());
+                m.setName(m.getName());
 
                 if (!m.tomb) {
                     mapBuilder.put(m.id, m);
