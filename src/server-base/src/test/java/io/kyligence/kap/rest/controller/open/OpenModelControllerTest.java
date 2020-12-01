@@ -68,6 +68,7 @@ import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
@@ -250,6 +251,30 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCompleteSegments() throws Exception {
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String project = "default";
+        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
+        req.setProject(project);
+        req.setParallelBuildBySegment(false);
+        req.setSegmentIds(Lists.newArrayList(ids));
+        mockGetModelName(modelName, project, modelId);
+        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+                .addIndexesToSegments(modelId, req);
+        Mockito.doReturn(ids).when(modelService).convertSegmentIdWithName(modelId, project, ids, null);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
+                .param("project", "default") //
+                .param("parallel", "false") //
+                .param("ids", ids) //
+                .param("names", (String) null) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null);
+    }
+
+    @Test
     public void testDeleteSegmentsAll() throws Exception {
         String modelName = "default_model_name";
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -307,7 +332,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(modelParatitionDescRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).updateParatitionDesc(project, modelAlias, modelParatitionDescRequest);
+        Mockito.verify(openModelController).updatePartitionDesc(project, modelAlias, modelParatitionDescRequest);
     }
 
     @Test

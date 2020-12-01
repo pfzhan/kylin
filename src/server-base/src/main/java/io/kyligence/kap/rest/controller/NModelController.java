@@ -864,7 +864,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/indexes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
-            @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
@@ -876,7 +876,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/all_indexes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> addAllIndexesToSegments(@PathVariable("model") String modelId,
-            @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment());
@@ -887,7 +887,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
     @ResponseBody
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
-            @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) {
         checkProjectName(deleteSegmentsRequest.getProject());
         modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
                 deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());

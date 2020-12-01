@@ -65,6 +65,7 @@ import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OpenBatchApproveRecItemsRequest;
@@ -75,6 +76,7 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
@@ -208,6 +210,23 @@ public class OpenModelController extends NBasicController {
         return modelController.deleteSegments(modelId, project, purge, force, ids, names);
     }
 
+    @PostMapping(value = "/{model_name}/segments/completion")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponseWithFailure> completeSegments(@PathVariable("model_name") String modelAlias,
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "parallel", required = false, defaultValue = "false") boolean parallel,
+            @RequestParam(value = "ids", required = false) String[] ids,
+            @RequestParam(value = "names", required = false) String[] names) {
+        checkProjectName(project);
+        String modelId = getModel(modelAlias, project).getId();
+        String[] segIds = modelService.convertSegmentIdWithName(modelId, project, ids, names);
+        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
+        req.setProject(project);
+        req.setParallelBuildBySegment(parallel);
+        req.setSegmentIds(Lists.newArrayList(segIds));
+        return modelController.addIndexesToSegments(modelId, req);
+    }
+
     @GetMapping(value = "/{project}/{model}/model_desc")
     @ResponseBody
     public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
@@ -219,7 +238,7 @@ public class OpenModelController extends NBasicController {
 
     @PutMapping(value = "/{project}/{model}/partition_desc")
     @ResponseBody
-    public EnvelopeResponse<String> updateParatitionDesc(@PathVariable("project") String project,
+    public EnvelopeResponse<String> updatePartitionDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias,
             @RequestBody ModelParatitionDescRequest modelParatitionDescRequest) {
         checkProjectName(project);
