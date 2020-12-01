@@ -124,6 +124,10 @@ import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
       type: Array,
       default: () => ['database', 'table', 'column']
     },
+    defaultWidth: {
+      type: Number,
+      default: 250
+    },
     isShowActionGroup: {
       type: Boolean,
       default: true
@@ -229,9 +233,9 @@ export default class DataSourceBar extends Vue {
   loadedTables = []
   failedTables = []
   dataSourceDragData = {
-    width: 250,
+    width: this.defaultWidth,
     limit: {
-      width: [250, 500]
+      width: [this.defaultWidth, 500]
     }
   }
   databaseSizeObj = {}
@@ -820,8 +824,10 @@ export default class DataSourceBar extends Vue {
       .column {
         padding-right: 10px;
         color: @text-placeholder-color;
+        font-size: 12px;
         .column-name {
           color: @text-title-color;
+          font-size: 14px;
         }
       }
       > div,
