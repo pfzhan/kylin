@@ -179,6 +179,21 @@
         <el-button type="primary" @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
       </span>
     </el-dialog>
+    <!-- 这个是服务即将过期的弹窗 -->
+     <el-dialog class="linsencebox"
+      :title="kapVersion"
+      width="480px"
+      limited-area
+      :visible.sync="licenseServiceDialogVisible"
+      :close-on-press-escape="false"
+      :modal="false">
+      <p><span>{{$t('serviceEndDate')}}</span>{{KESeriveDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
+      <p class="ksd-pt-10">{{$t('serviceOvertip1')}}<span class="hastime">{{lastServiceEndTime}} </span>{{$t('serviceOvertip2')}}</p>
+      <span slot="footer" class="dialog-footer">
+        <el-button plain @click="concatSales">{{$t('contactSales')}}</el-button>
+        <el-button type="primary" @click="licenseServiceDialogVisible = false">{{$t('gotit')}}</el-button>
+      </span>
+    </el-dialog>
     <!-- 全局apply favorite query -->
     <el-dialog width="480px" :title="$t('accelerateTips')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
       <el-row>
@@ -223,6 +238,7 @@ import Capacity from '../admin/SystemCapacity/CapacityTopBar'
 import $ from 'jquery'
 import ElementUI from 'kyligence-ui'
 import GuideModal from '../studio/StudioModel/ModelList/GuideModal/GuideModal.vue'
+import moment from 'moment'
 let MessageBox = ElementUI.MessageBox
 // import Scrollbar from 'smooth-scrollbar'
 @Component({
@@ -328,6 +344,11 @@ let MessageBox = ElementUI.MessageBox
   },
   locales: {
     'en': {
+      contactSales: 'Concat Sales',
+      gotit: 'Got It',
+      serviceOvertip1: 'The technical support service will expire in ',
+      serviceOvertip2: ' days. After the expiration date, you couldn\'t use the support service and the ticket system. Please contact the sales to extend your service time if needed.',
+      serviceEndDate: 'Service End Time: ',
       storageQuota: 'Storage Quota: ',
       useageMana: 'Used Storage',
       trash: 'Low Usage Storage',
@@ -359,6 +380,11 @@ let MessageBox = ElementUI.MessageBox
       quotaSetting: 'Storage Setting'
     },
     'zh-cn': {
+      contactSales: '联系销售',
+      gotit: '知道了',
+      serviceOvertip1: '技术支持服务将在 ',
+      serviceOvertip2: ' 天后到期。过期后您将无法使用该产品的技术支持服务，相应的工单系统权限也将关闭。请联系销售支持人员申请延期。',
+      serviceEndDate: '服务截止日期：',
       storageQuota: '存储配额：',
       useageMana: '已使用',
       trash: '低效存储',
@@ -401,6 +427,7 @@ export default class LayoutLeftRightTop extends Vue {
   currentPathNameParent = 'Model'
   defaultActive = ''
   lisenceDialogVisible = false
+  licenseServiceDialogVisible = false
   currentUserInfo = {
     username: ''
   }
@@ -501,6 +528,11 @@ export default class LayoutLeftRightTop extends Vue {
   hideGlobalMask () {
     this.isGlobalMaskShow = false
     this.notifyContect = ''
+  }
+  concatSales () {
+    let lang = localStorage.getItem('kystudio_lang') === 'zh-cn' ? 'zh' : 'en'
+    let url = `http://account.kyligence.io/#/?lang=${lang}/license`
+    window.open(url)
   }
   async handleSwitchAdmin () {
     this.setGlobalMask(this.isAdminView ? 'leaveAdmin' : 'enterAdmin')
@@ -880,6 +912,9 @@ export default class LayoutLeftRightTop extends Vue {
   get kapDate () {
     return this.defaultVal(this.kapInfo && this.kapInfo['ke.dates'] || null)
   }
+  get KESeriveDate () {
+    return this.defaultVal(this.kapInfo && this.kapInfo['ke.license.serviceEnd'] || null)
+  }
   get kapVersion () {
     return this.defaultVal(this.kapInfo && this.kapInfo['ke.version'] || null)
   }
@@ -888,6 +923,23 @@ export default class LayoutLeftRightTop extends Vue {
   }
   get serverAboutKap () {
     return this.$store.state.system.serverAboutKap
+  }
+  get lastServiceEndTime () {
+    var date = this.serverAboutKap && this.serverAboutKap['ke.license.serviceEnd'] || ''
+    let isEvaluation = this.serverAboutKap && this.serverAboutKap['ke.license.isEvaluation']
+    if (date === 'No') {
+      return 0
+    } else {
+      var currentDate = moment(new Date()).add('year', 0).format('YYYY-MM-DD')
+      var timeLeft = moment(date).diff(moment(currentDate), 'days')
+      if (timeLeft <= 30) {
+        if (!this.$store.state.config.overLock && this.$store.state.config.platform !== 'iframe' && !isEvaluation) {
+          this.licenseServiceDialogVisible = true
+          this.$store.state.config.overLock = true
+        }
+        localStorage.setItem('buyit', true)
+      }
+    }
   }
   get lastTime () {
     var date = this.serverAboutKap && this.serverAboutKap['ke.dates'] || ''
