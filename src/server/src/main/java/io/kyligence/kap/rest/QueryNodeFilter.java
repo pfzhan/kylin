@@ -26,7 +26,6 @@ package io.kyligence.kap.rest;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_WITHOUT_RESOURCE_GROUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
 
@@ -76,7 +75,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
@@ -183,14 +181,6 @@ public class QueryNodeFilter implements Filter {
                 if (!checkProjectExist(project)) {
                     servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
                             String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
-                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
-                    return;
-                }
-
-                // project is not bound to resource group
-                if (!checkProjectBindToResourceGroup(project)) {
-                    Message msg = MsgPicker.getMsg();
-                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP()));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }
@@ -321,14 +311,6 @@ public class QueryNodeFilter implements Filter {
             }
         }
         return true;
-    }
-
-    private boolean checkProjectBindToResourceGroup(String project) {
-        val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
-        if (UnitOfWork.GLOBAL_UNIT.equals(project) || !manager.isResourceGroupEnabled()) {
-            return true;
-        }
-        return manager.isProjectBindToResourceGroup(project);
     }
 
     public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {
