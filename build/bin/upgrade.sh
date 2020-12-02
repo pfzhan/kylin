@@ -87,6 +87,15 @@ function upgrade() {
           exit 1
         fi
     fi
+
+    if [[ -f ${OLD_KYLIN_HOME}/grafana/pid ]]; then
+        PID=`cat ${OLD_KYLIN_HOME}/grafana/pid`
+        if ps -p $PID > /dev/null; then
+          error "Please stop the Grafana during the upgrade process."
+          exit 1
+        fi
+    fi
+
     echo `date '+%Y-%m-%d %H:%M:%S '`"INFO : [Operation: upgrade] user:`whoami`, upgrade time:${START_TIME}" >> ${NEW_KYLIN_HOME}/logs/security.log
     origin_version=$(awk '{print $NF}' ${OLD_KYLIN_HOME}/VERSION)
     target_version=$(awk '{print $NF}' ${NEW_KYLIN_HOME}/VERSION)
