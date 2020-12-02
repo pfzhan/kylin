@@ -28,11 +28,13 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRES
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -91,6 +93,9 @@ import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -447,5 +452,19 @@ public class OpenModelController extends NBasicController {
         checkProjectName(param.getProject());
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.updatePartitionSemantic(modelId, param);
+    }
+
+    @ApiOperation(value = "export model", notes = "Add URL: {model}")
+    @GetMapping(value = "/{model_name:.+}/export")
+    @ResponseBody
+    public void exportModel(@PathVariable("model_name") String modelAlias, @RequestParam(value = "project") String project,
+                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+                            @RequestParam(value = "server_host", required = false) String host,
+                            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+                            HttpServletResponse response) throws IOException {
+        checkProjectName(project);
+        val modelId = getModel(modelAlias, project).getId();
+        modelController.exportModel(modelId, project, exportAs, element, host, port, request, response);
     }
 }
