@@ -78,7 +78,7 @@ public class NSnapshotController extends NBasicController {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
-                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), false);
+                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), false, snapshotsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -91,7 +91,7 @@ public class NSnapshotController extends NBasicController {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
-                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), true);
+                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), true, snapshotsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
 
     }

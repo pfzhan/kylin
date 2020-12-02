@@ -48,4 +48,9 @@ public class FullBuildSegmentParams extends BasicSegmentParams {
         this.ignoredSnapshotTables = ignoredSnapshotTables;
         return this;
     }
+
+    public FullBuildSegmentParams withPriority(int priority) {
+        this.priority = priority;
+        return this;
+    }
 }

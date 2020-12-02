@@ -307,7 +307,7 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/name/multi_partition")
     @ResponseBody
     public EnvelopeResponse<List<String>> listMultiPartitionModel(@RequestParam("project") String project,
-                                                                  @RequestParam(value = "non_offline", required = false, defaultValue = "true") boolean nonOffline) {
+            @RequestParam(value = "non_offline", required = false, defaultValue = "true") boolean nonOffline) {
         checkProjectName(project);
         List<String> onlineStatus = null;
         if (nonOffline) {
@@ -412,7 +412,7 @@ public class NModelController extends NBasicController {
 
         modelService.validateCCType(modelId, request.getProject());
 
-        val response = modelService.buildIndicesManually(modelId, request.getProject());
+        val response = modelService.buildIndicesManually(modelId, request.getProject(), request.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -794,14 +794,15 @@ public class NModelController extends NBasicController {
             }
             jobInfos = modelService.refreshSegmentById(
                     new RefreshSegmentParams(request.getProject(), modelId, segIds, request.isRefreshAllIndexes())
-                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
+                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables())
+                            .withPriority(request.getPriority()));
         } else {
             if (ArrayUtils.isEmpty(segIds) || segIds.length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
-            val jobInfo = modelService
-                    .mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, segIds));
+            val jobInfo = modelService.mergeSegmentsManually(
+                    new MergeSegmentParams(request.getProject(), modelId, segIds).withPriority(request.getPriority()));
             if (jobInfo != null) {
                 jobInfos.add(jobInfo);
             }
@@ -814,7 +815,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/segments/merge_check")
     @ResponseBody
     public EnvelopeResponse<MergeSegmentCheckResponse> checkMergeSegments(@PathVariable("model") String modelId,
-                                                                          @RequestBody SegmentsRequest request) {
+            @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
             throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
@@ -836,7 +837,8 @@ public class NModelController extends NBasicController {
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
-                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(), buildSegmentsRequest.getMultiPartitionValues());
+                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
+                buildSegmentsRequest.getMultiPartitionValues(), buildSegmentsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -852,9 +854,11 @@ public class NModelController extends NBasicController {
 
         IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
-                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getMultiPartitionDesc(), buildSegmentsRequest.getSegmentHoles(),
-                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getMultiPartitionValues())
-                .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables());
+                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getMultiPartitionDesc(),
+                buildSegmentsRequest.getSegmentHoles(), buildSegmentsRequest.isBuildAllIndexes(),
+                buildSegmentsRequest.getMultiPartitionValues())
+                        .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables())
+                        .withPriority(buildSegmentsRequest.getPriority());
 
         JobInfoResponse response = modelService.incrementBuildSegmentsManually(inrcParams);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
@@ -868,7 +872,7 @@ public class NModelController extends NBasicController {
         checkProjectName(buildSegmentsRequest.getProject());
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
-                buildSegmentsRequest.isParallelBuildBySegment());
+                buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -879,7 +883,8 @@ public class NModelController extends NBasicController {
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
-                modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment());
+                modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment(),
+                buildSegmentsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -898,11 +903,11 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
     public void exportModel(@PathVariable("model") String modelId, @RequestParam(value = "project") String project,
-                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                            @RequestParam(value = "server_host", required = false) String host,
-                            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
-                            HttpServletResponse response) throws IOException {
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String host,
+            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         checkProjectName(project);
         if (host == null) {
             host = request.getServerName();
@@ -916,13 +921,13 @@ public class NModelController extends NBasicController {
         String fileName = String.format("%s_%s_%s", project, modelService.getModelById(modelId, project).getAlias(),
                 new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
         switch (exportAs) {
-            case TABLEAU_CONNECTOR_TDS:
-            case TABLEAU_ODBC_TDS:
-                response.setContentType("application/xml");
-                response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s.tds\"", fileName));
-                break;
-            default:
-                throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
+        case TABLEAU_CONNECTOR_TDS:
+        case TABLEAU_ODBC_TDS:
+            response.setContentType("application/xml");
+            response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s.tds\"", fileName));
+            break;
+        default:
+            throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
         }
         syncModel.dump(response.getOutputStream());
         response.getOutputStream().flush();
@@ -932,7 +937,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model") String modelId,
-                                                        @RequestBody PartitionsBuildRequest param) {
+            @RequestBody PartitionsBuildRequest param) {
         checkProjectName(param.getProject());
         checkRequiredArg("segment_id", param.getSegmentId());
         checkRequiredArg("partition_values", param.getPartitionValues());
@@ -944,7 +949,7 @@ public class NModelController extends NBasicController {
     @PutMapping(value = "/{model:.+}/model_segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model") String modelId,
-                                                          @RequestBody PartitionsRefreshRequest param) {
+            @RequestBody PartitionsRefreshRequest param) {
         checkProjectName(param.getProject());
         checkRequiredArg("segment_id", param.getSegmentId());
         val response = modelService.refreshSegmentPartition(param, modelId);
@@ -954,9 +959,8 @@ public class NModelController extends NBasicController {
     @DeleteMapping(value = "/model_segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelId,
-                                                         @RequestParam("project") String project,
-                                                         @RequestParam("segment") String segment,
-                                                         @RequestParam(value = "ids") String[] ids) {
+            @RequestParam("project") String project, @RequestParam("segment") String segment,
+            @RequestParam(value = "ids") String[] ids) {
         checkProjectName(project);
         HashSet<Long> partitions = Sets.newHashSet();
         Arrays.stream(ids).forEach(id -> partitions.add(Long.parseLong(id)));
@@ -984,7 +988,7 @@ public class NModelController extends NBasicController {
     @PutMapping(value = "/{model:.+}/multi_partition/mapping")
     @ResponseBody
     public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model") String modelId,
-                                                                @RequestBody MultiPartitionMappingRequest mappingRequest) throws Exception {
+            @RequestBody MultiPartitionMappingRequest mappingRequest) throws Exception {
         checkProjectName(mappingRequest.getProject());
         modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -1004,7 +1008,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/multi_partition/values")
     @ResponseBody
     public EnvelopeResponse<String> addMultiPartitionValues(@PathVariable("model") String modelId,
-                                                            @RequestBody UpdateMultiPartitionValueRequest request) {
+            @RequestBody UpdateMultiPartitionValueRequest request) {
         checkProjectName(request.getProject());
         modelService.addMultiPartitionValues(request.getProject(), modelId, request.getValues());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -1014,8 +1018,7 @@ public class NModelController extends NBasicController {
     @DeleteMapping(value = "/{model:.+}/multi_partition/values")
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartitionValues(@PathVariable("model") String modelId,
-                                                               @RequestParam("project") String project,
-                                                               @RequestParam(value = "ids") Long[] ids) {
+            @RequestParam("project") String project, @RequestParam(value = "ids") Long[] ids) {
         checkProjectName(project);
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(ids));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

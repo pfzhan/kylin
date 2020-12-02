@@ -54,7 +54,7 @@ public class TableSamplingService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     @Transaction(project = 1)
-    public List<String> sampling(Set<String> tables, String project, int rows) {
+    public List<String> sampling(Set<String> tables, String project, int rows, int priority) {
         aclEvaluate.checkProjectWritePermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
@@ -69,7 +69,7 @@ public class TableSamplingService extends BasicService {
             }
 
             val tableDesc = tableMgr.getTableDesc(table);
-            val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows);
+            val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows, priority);
             jobIds.add(samplingJob.getId());
             execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());

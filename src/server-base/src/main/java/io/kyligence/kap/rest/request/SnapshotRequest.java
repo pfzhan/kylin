@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 import java.util.Set;
 
@@ -42,4 +43,6 @@ public class SnapshotRequest {
 
     @JsonProperty("databases")
     private Set<String> databases = Sets.newHashSet();
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

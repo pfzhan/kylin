@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class TableLoadRequest implements ProjectInsensitiveRequest {
@@ -40,4 +41,5 @@ public class TableLoadRequest implements ProjectInsensitiveRequest {
     private Boolean needSampling;
     @JsonProperty("sampling_rows")
     private Integer samplingRows;
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

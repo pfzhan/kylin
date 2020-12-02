@@ -85,4 +85,10 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
         this.ignoredSnapshotTables = ignoredSnapshotTables;
         return this;
     }
+
+    @Override
+    public IncrementBuildSegmentParams withPriority(int priority) {
+        this.priority = priority;
+        return this;
+    }
 }

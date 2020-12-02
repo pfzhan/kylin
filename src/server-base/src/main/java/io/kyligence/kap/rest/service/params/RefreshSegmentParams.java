@@ -56,4 +56,9 @@ public class RefreshSegmentParams extends BasicSegmentParams {
         this.ignoredSnapshotTables = ignoredSnapshotTables;
         return this;
     }
+
+    public RefreshSegmentParams withPriority(int priority) {
+        this.priority = priority;
+        return this;
+    }
 }

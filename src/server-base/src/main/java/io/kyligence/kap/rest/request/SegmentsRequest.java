@@ -30,6 +30,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class SegmentsRequest implements ProjectInsensitiveRequest {
@@ -44,6 +45,8 @@ public class SegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("refresh_all_indexes")
     private boolean refreshAllIndexes;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
     public enum SegmentsRequestType {
         REFRESH, MERGE

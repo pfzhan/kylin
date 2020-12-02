@@ -54,6 +54,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SamplingRequest;
@@ -668,7 +669,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setRows(20000);
         request.setQualifiedTableName("default.test_kylin_fact");
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
-                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
+                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
+                        ExecutablePO.DEFAULT_PRIORITY);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
@@ -747,7 +749,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
         String errorMsg = "Please input at least one table(database.table) for sampling!";
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
-                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
+                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
+                        ExecutablePO.DEFAULT_PRIORITY);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
@@ -767,7 +770,8 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
         String errorMsg = "Illegal table name 'test_kylin_fact', please input a qualified table name as database.table!";
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
-                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
+                .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
+                        ExecutablePO.DEFAULT_PRIORITY);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //

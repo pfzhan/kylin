@@ -258,7 +258,7 @@ public class NTableController extends NBasicController {
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
-                    tableLoadRequest.getSamplingRows());
+                    tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
@@ -492,7 +492,7 @@ public class NTableController extends NBasicController {
         checkSamplingTable(request.getQualifiedTableName());
 
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
-                request.getRows());
+                request.getRows(), request.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -560,7 +560,7 @@ public class NTableController extends NBasicController {
                 throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
-                    request.getMaxRows(), request.isNeedBuild());
+                    request.getMaxRows(), request.isNeedBuild(), request.getPriority());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);

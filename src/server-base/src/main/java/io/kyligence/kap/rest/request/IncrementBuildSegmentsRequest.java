@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.request;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -61,4 +62,6 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
 
     @JsonProperty("multi_partition_desc")
     private MultiPartitionDesc multiPartitionDesc;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

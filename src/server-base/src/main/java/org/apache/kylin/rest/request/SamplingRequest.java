@@ -33,6 +33,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Getter
 @Setter
@@ -43,4 +44,5 @@ public class SamplingRequest implements Serializable, ProjectInsensitiveRequest 
     @JsonProperty("qualified_table_name")
     private String qualifiedTableName;
     private int rows;
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

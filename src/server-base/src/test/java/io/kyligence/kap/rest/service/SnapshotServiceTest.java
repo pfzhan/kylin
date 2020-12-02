@@ -136,7 +136,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tables = Sets.newHashSet(table1, table2);
         thrown.expect(KylinException.class);
         thrown.expectMessage("Snapshot management is not enable");
-        snapshotService.buildSnapshots(PROJECT, tables, false);
+        snapshotService.buildSnapshots(PROJECT, tables, false, 3);
     }
 
     @Test
@@ -145,7 +145,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tables = Sets.newHashSet("non-exist");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Cannot find table 'non-exist'.");
-        snapshotService.buildSnapshots(PROJECT, tables, false);
+        snapshotService.buildSnapshots(PROJECT, tables, false, 3);
     }
 
     @Test
@@ -154,7 +154,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tables = Sets.newHashSet("DEFAULT.TEST_KYLIN_FACT");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Snapshot(s) 'DEFAULT.TEST_KYLIN_FACT' not found.");
-        snapshotService.buildSnapshots(PROJECT, tables, true);
+        snapshotService.buildSnapshots(PROJECT, tables, true, 3);
     }
 
     @Test
@@ -164,7 +164,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
         Set<String> databases = Sets.newHashSet();
-        snapshotService.buildSnapshots(PROJECT, databases, tables, false);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, false, 3);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
@@ -196,7 +196,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
                 + "under the corresponding subject.";
         String actual = "";
         try {
-            snapshotService.buildSnapshots(PROJECT, databases, tables, true);
+            snapshotService.buildSnapshots(PROJECT, databases, tables, true, 3);
         } catch (TransactionException e) {
             actual = e.getCause().getMessage();
         }
@@ -210,7 +210,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         final String database = "DEFAULT";
         Set<String> databases = Sets.newHashSet(database);
         Set<String> tables = Sets.newHashSet();
-        snapshotService.buildSnapshots(PROJECT, databases, tables, false);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, false, 3);
         val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
@@ -222,7 +222,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         databases = Sets.newHashSet("non-exist");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Database:[NON-EXIST] is not exist.");
-        snapshotService.buildSnapshots(PROJECT, databases, tables, false);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, false, 3);
     }
 
     @Test
@@ -230,7 +230,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         enableSnapshotManualManagement();
         // initialize a sampling job and assert the status of it
         String table = "DEFAULT.TEST_KYLIN_FACT";
-        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), false);
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), false, 3);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
@@ -238,7 +238,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         val initialJob = allExecutables.get(0);
         Assert.assertEquals(ExecutableState.READY, initialJob.getStatus());
         try {
-            snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), false);
+            snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), false, 3);
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof JobSubmissionException);
             Assert.assertEquals("The job failed to be submitted. There already exists building job running "
@@ -265,7 +265,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         tableManager.getTableDesc(tableName).setLastSnapshotPath("file://a/b");
         Assert.assertNotNull(getSnapshotPath(tableName));
-        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), false);
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), false, 3);
         SnapshotCheckResponse response = snapshotService.deleteSnapshots(PROJECT, Sets.newHashSet(tableName));
         Assert.assertEquals(1, response.getAffectedJobs().size());
         Assert.assertNull(getSnapshotPath(tableName));
@@ -278,7 +278,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         tableManager.getTableDesc(tableName).setLastSnapshotPath("file://a/b");
         Assert.assertNotNull(getSnapshotPath(tableName));
-        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), false);
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), false, 3);
         SnapshotCheckResponse response = snapshotService.checkBeforeDeleteSnapshots(PROJECT,
                 Sets.newHashSet(tableName));
         Assert.assertEquals(1, response.getAffectedJobs().size());

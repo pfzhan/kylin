@@ -80,6 +80,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.common.PatternedLogger;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -1174,7 +1175,12 @@ public class TableService extends BasicService {
     }
 
     public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
-            int maxRows, boolean needBuild) {
+                                                  int maxRows, boolean needBuild) {
+        return reloadTable(projectName, tableIdentity, needSample, maxRows, needBuild, ExecutablePO.DEFAULT_PRIORITY);
+    }
+
+    public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
+            int maxRows, boolean needBuild, int priority) {
         aclEvaluate.checkProjectWritePermission(projectName);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Pair<String, List<String>> pair = new Pair<>();
@@ -1182,7 +1188,7 @@ public class TableService extends BasicService {
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
                 List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName,
-                        maxRows);
+                        maxRows, priority);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     pair.setFirst(jobIds.get(0));
                 }

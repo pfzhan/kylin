@@ -29,6 +29,7 @@ import io.kyligence.kap.rest.transaction.TransactionProjectUnit;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @NoArgsConstructor
 @Getter
@@ -37,6 +38,7 @@ public class BasicSegmentParams implements TransactionProjectUnit {
     protected String project;
     protected String modelId;
     protected Set<String> ignoredSnapshotTables;
+    protected int priority = ExecutablePO.DEFAULT_PRIORITY;
 
     BasicSegmentParams(String project, String modelId) {
         this.project = project;

@@ -72,6 +72,9 @@ import lombok.Setter;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ExecutablePO extends RootPersistentEntity {
+    public static final int HIGHEST_PRIORITY = 0;
+    public static final int DEFAULT_PRIORITY = 3;
+    public static final int LOWEST_PRIORITY = 4;
 
     @JsonProperty("name")
     private String name;
@@ -114,6 +117,13 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("target_partitions")
     private Set<Long> targetPartitions = Sets.newHashSet();
 
+    @JsonProperty("priority")
+    private int priority = DEFAULT_PRIORITY;
+
+    public void setPriority(int p) {
+        priority = isPriorityValid(p) ? DEFAULT_PRIORITY : p;
+    }
+
     @Override
     public String getResourcePath() {
         return concatResourcePath(getUuid(), project);
@@ -122,6 +132,10 @@ public class ExecutablePO extends RootPersistentEntity {
     public static String concatResourcePath(String name, String project) {
         return new StringBuilder().append("/").append(project).append(ResourceStore.EXECUTABLE_JOB).append("/")
                 .append(name).toString();
+    }
+
+    public static boolean isPriorityValid(int priority) {
+        return HIGHEST_PRIORITY > priority || LOWEST_PRIORITY < priority;
     }
 
     public void addYarnApplicationJob(String appId) {

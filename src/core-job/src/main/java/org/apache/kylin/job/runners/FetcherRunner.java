@@ -23,12 +23,15 @@
  */
 package org.apache.kylin.job.runners;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.Executable;
@@ -36,10 +39,14 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 public class FetcherRunner extends AbstractDefaultSchedulerRunner {
@@ -111,6 +118,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             int nDiscarded = 0;
             int nSucceed = 0;
             int nSuicidal = 0;
+            boolean skipSchedule = false;
             for (final String id : executableManager.getJobs()) {
                 if (markDiscardJob(id)) {
                     nDiscarded++;
@@ -134,6 +142,14 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                         break;
                     }
 
+                    if (skipSchedule) {
+                        break;
+                    }
+                    if (hasHigherPriorRunningJobs(id)) {
+                        skipSchedule = true;
+                        logger.info("Has higher priority running jobs, wait until next schedule time");
+                        break;
+                    }
                     logger.info("fetcher schedule {} ", id);
                     scheduleJob(id);
                     break;
@@ -188,6 +204,31 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
         }
 
         return false;
+    }
+
+    private boolean hasHigherPriorRunningJobs(String jobId) {
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AbstractExecutable executable = executableManager.getJob(jobId);
+        if (ExecutablePO.HIGHEST_PRIORITY == executable.getPriority()) {
+            return false;
+        }
+        List<Executable> runningJobs = context.getRunningJobs().values().stream()
+                .filter(job -> job.getPriority() < executable.getPriority()).collect(Collectors.toList());
+        if (!runningJobs.isEmpty()) {
+            return true;
+        }
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NProjectManager projectManager = NProjectManager.getInstance(config);
+        List<ExecutablePO> jobs = Lists.newArrayList();
+        for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
+            if (project.equalsIgnoreCase(projectInstance.getName())) {
+                continue;
+            }
+            NExecutableManager otherExecutableManager = NExecutableManager.getInstance(config, projectInstance.getName());
+            jobs.addAll(otherExecutableManager.getRunningJobs(executable.getPriority()));
+        }
+        jobs.forEach(job -> logger.info("Found Higher priority job {} in project {} for job {}", job.getId(), job.getProject(), executable.getId()));
+        return !jobs.isEmpty();
     }
 
     private void scheduleJob(String id) {

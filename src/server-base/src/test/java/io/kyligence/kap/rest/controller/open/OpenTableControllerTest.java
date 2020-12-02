@@ -29,6 +29,7 @@ import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -217,7 +218,8 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         request.setNeedSampling(false);
 
         Mockito.doReturn(new Pair<String, List<String>>()).when(tableService)
-                .reloadTable(request.getProject(), request.getTable(), request.getNeedSampling(), 0, false);
+                .reloadTable(request.getProject(), request.getTable(), request.getNeedSampling(), 0, false,
+                        ExecutablePO.DEFAULT_PRIORITY);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //

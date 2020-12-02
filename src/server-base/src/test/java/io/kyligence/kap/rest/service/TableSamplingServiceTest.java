@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -111,7 +112,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         final String table1 = "DEFAULT.TEST_KYLIN_FACT";
         final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
-        tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS);
+        tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
@@ -144,7 +145,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
     public void testSamplingKillAnExistingNonFinalJob() {
         // initialize a sampling job and assert the status of it
         String table = "DEFAULT.TEST_KYLIN_FACT";
-        tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
+        tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
@@ -154,7 +155,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         // launch another job on the same table will discard the already existing job and create a new job(secondJob)
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
             return null;
         }, PROJECT);
         Assert.assertEquals(ExecutableState.DISCARDED, initialJob.getStatus());
@@ -172,7 +173,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
             executableManager.updateJobOutput(secondJob.getId(), ExecutableState.RUNNING);
-            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
             return null;
         }, PROJECT);
         Assert.assertEquals(ExecutableState.DISCARDED, secondJob.getStatus());
@@ -190,7 +191,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
             executableManager.updateJobOutput(thirdJob.getId(), ExecutableState.ERROR);
-            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
             return null;
         }, PROJECT);
         Assert.assertEquals(ExecutableState.DISCARDED, thirdJob.getStatus());

@@ -94,6 +94,7 @@ public class NExecutableDao {
     public List<String> getJobIds() {
         return crud.listAll().stream()
                 .sorted(Comparator.comparing(ExecutablePO::getCreateTime))
+                .sorted(Comparator.comparing(ExecutablePO::getPriority))
                 .map(RootPersistentEntity::resourceName).collect(Collectors.toList());
     }
 

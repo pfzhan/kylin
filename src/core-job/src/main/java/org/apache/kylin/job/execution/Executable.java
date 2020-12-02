@@ -65,4 +65,6 @@ public interface Executable {
     boolean isRunnable();
 
     Map<String, String> getParams();
+
+    int getPriority();
 }

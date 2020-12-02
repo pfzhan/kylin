@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnTable;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -61,6 +62,11 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
     }
 
     public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows) {
+        return create(tableDesc, project, submitter, rows, ExecutablePO.DEFAULT_PRIORITY);
+    }
+
+    public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows,
+            int priority) {
         Preconditions.checkArgument(tableDesc != null, //
                 "Create table sampling job failed for table not exist!");
 
@@ -77,6 +83,7 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         job.setParam(NBatchConstants.P_JOB_ID, job.getId());
         job.setParam(NBatchConstants.P_TABLE_NAME, tableDesc.getIdentity());
         job.setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
+        job.setPriority(priority);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.RESOURCE_DETECT.createStep(job, config);

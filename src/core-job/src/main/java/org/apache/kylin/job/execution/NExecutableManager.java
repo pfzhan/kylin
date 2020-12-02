@@ -148,6 +148,7 @@ public class NExecutableManager {
         result.setTargetSegments(executable.getTargetSegments());
         result.setTargetPartitions(executable.getTargetPartitions());
         result.getOutput().setResumable(executable.isResumable());
+        result.setPriority(executable.getPriority());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
             Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
@@ -429,6 +430,13 @@ public class NExecutableManager {
 
     public List<String> getJobs() {
         return Lists.newArrayList(executableDao.getJobIds());
+    }
+
+    public List<ExecutablePO> getRunningJobs(int priority) {
+       return executableDao.getJobs().stream().filter(po -> {
+            Output output = getOutput(po.getId());
+            return priority > po.getPriority() && output.getState().isProgressing();
+        }).collect(Collectors.toList());
     }
 
     public void resumeAllRunningJobs() {
@@ -771,6 +779,7 @@ public class NExecutableManager {
             result.setTargetSegments(executablePO.getTargetSegments());
             result.setResumable(executablePO.getOutput().isResumable());
             result.setTargetPartitions(executablePO.getTargetPartitions());
+            result.setPriority(executablePO.getPriority());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);

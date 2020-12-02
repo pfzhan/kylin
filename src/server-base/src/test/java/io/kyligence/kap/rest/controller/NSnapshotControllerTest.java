@@ -109,7 +109,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
 
-        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false);
+        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false, 3);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
@@ -124,7 +124,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         SnapshotRequest request = new SnapshotRequest();
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
-        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false);
+        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false, 3);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
@@ -143,7 +143,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
 
-        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false);
+        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false, 3);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
@@ -158,7 +158,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         SnapshotRequest request = new SnapshotRequest();
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
-        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false);
+        Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false, 3);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))

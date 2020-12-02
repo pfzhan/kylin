@@ -95,6 +95,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -3736,7 +3737,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         thrown.expect(KylinException.class);
         thrown.expectMessage("Table oriented model [all_fixed_length] can not build indices manually!");
-        modelService.buildIndicesManually(modelId, project);
+        modelService.buildIndicesManually(modelId, project, 3);
     }
 
     @Test
@@ -3756,7 +3757,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project);
+        val response = modelService.buildIndicesManually(modelId, project, 3);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(1, executables.size());
@@ -3771,7 +3772,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project);
+        val response = modelService.buildIndicesManually(modelId, project, 3);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(0, executables.size());
@@ -3789,7 +3790,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project);
+        val response = modelService.buildIndicesManually(modelId, project, 3);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(0, executables.size());
@@ -4948,7 +4949,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update2);
 
         modelService.addIndexesToSegments(project, modelId,
-                Lists.newArrayList(dataSegment1.getId(), dataSegment2.getId()), Lists.newArrayList(80001L), false);
+                Lists.newArrayList(dataSegment1.getId(), dataSegment2.getId()), Lists.newArrayList(80001L), false, ExecutablePO.DEFAULT_PRIORITY);
         val executables = getRunningExecutables(getProject(), modelId);
         val job = executables.get(0);
         Assert.assertEquals(1, executables.size());

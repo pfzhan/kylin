@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
@@ -41,4 +42,5 @@ public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
     private int samplingRows;
     @JsonProperty("need_building")
     private Boolean needBuilding = false;
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

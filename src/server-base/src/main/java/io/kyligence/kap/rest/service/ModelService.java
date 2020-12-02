@@ -102,6 +102,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -310,7 +311,8 @@ public class ModelService extends BasicService {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDescByAlias(modelAlias);
         if (null == nDataModel) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         return nDataModel;
     }
@@ -587,7 +589,7 @@ public class ModelService extends BasicService {
     }
 
     public List<NDataModelResponse> getMultiPartitionModelsByStatus(final String projectName,
-                                                                    final List<String> status) {
+            final List<String> status) {
         return getModels(null, projectName, false, null, status, LAST_MODIFY, true, null, null, null).stream()
                 .filter(NDataModel::isMultiPartitionModel).collect(Collectors.toList());
     }
@@ -1150,8 +1152,8 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void offlineMultiPartitionModelsInProject(String project) {
         aclEvaluate.checkProjectWritePermission(project);
-        List<String> multiPartitionModels =  getMultiPartitionModelsByStatus(project, getModelNonOffOnlineStatus()).stream().map(NDataModel::getId)
-                .collect(Collectors.toList());
+        List<String> multiPartitionModels = getMultiPartitionModelsByStatus(project, getModelNonOffOnlineStatus())
+                .stream().map(NDataModel::getId).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(multiPartitionModels)) {
             return;
         }
@@ -1210,7 +1212,7 @@ public class ModelService extends BasicService {
         boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
                 && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
                 || (status.equals(RealizationStatusEnum.ONLINE.name())
-                && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
+                        && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
         if (needChangeStatus) {
             NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
@@ -2060,7 +2062,7 @@ public class ModelService extends BasicService {
     }
 
     public JobInfoResponse fixSegmentHoles(String project, String modelId, List<SegmentTimeRequest> segmentHoles,
-           Set<String> ignoredSnapshotTables) throws Exception {
+            Set<String> ignoredSnapshotTables) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         checkModelAndIndexManually(project, modelId);
@@ -2070,7 +2072,8 @@ public class ModelService extends BasicService {
             List<JobInfoResponse.JobInfo> jobInfos = Lists.newArrayList();
             List<String[]> allPartitions = null;
             if (modelDesc.isMultiPartitionModel()) {
-                allPartitions = modelDesc.getMultiPartitionDesc().getPartitions().stream().map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
+                allPartitions = modelDesc.getMultiPartitionDesc().getPartitions().stream()
+                        .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
             }
             for (SegmentTimeRequest hole : segmentHoles) {
                 jobInfos.add(constructIncrementBuild(new IncrementBuildSegmentParams(project, modelId, hole.getStart(),
@@ -2092,16 +2095,25 @@ public class ModelService extends BasicService {
     }
 
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
-                                                 boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValuess) throws Exception {
+            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValuess)
+            throws Exception {
+        return buildSegmentsManually(project, modelId, start, end, needBuild, ignoredSnapshotTables,
+                multiPartitionValuess, ExecutablePO.DEFAULT_PRIORITY);
+    }
+
+    public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
+            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValuess, int priority)
+            throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
-                    .withIgnoredSnapshotTables(ignoredSnapshotTables));
+                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority));
         } else {
             return incrementBuildSegmentsManually(
-                    new IncrementBuildSegmentParams(project, modelId, start, end, modelDesc.getPartitionDesc(), modelDesc.getMultiPartitionDesc(),
-                            Lists.newArrayList(), needBuild, multiPartitionValuess).withIgnoredSnapshotTables(ignoredSnapshotTables));
+                    new IncrementBuildSegmentParams(project, modelId, start, end, modelDesc.getPartitionDesc(),
+                            modelDesc.getMultiPartitionDesc(), Lists.newArrayList(), needBuild, multiPartitionValuess)
+                                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority));
         }
     }
 
@@ -2151,7 +2163,7 @@ public class ModelService extends BasicService {
         RefreshSegmentParams refreshSegmentParams = new RefreshSegmentParams(project, modelId,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
                         .toArray(new String[0]),
-                true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables());
+                true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority());
         res.addAll(refreshSegmentById(refreshSegmentParams));
         return res;
     }
@@ -2198,27 +2210,27 @@ public class ModelService extends BasicService {
         if (params.isNeedBuild() && CollectionUtils.isEmpty(params.getMultiPartitionValues())) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
         }
-        if(!params.isNeedBuild() && !CollectionUtils.isEmpty(params.getMultiPartitionValues())){
+        if (!params.isNeedBuild() && !CollectionUtils.isEmpty(params.getMultiPartitionValues())) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
         }
         for (String[] values : params.getMultiPartitionValues()) {
             if (values.length != model.getMultiPartitionDesc().getColumns().size()) {
-                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+                throw new KylinException(FAILED_CREATE_JOB,
+                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
             }
         }
-
     }
 
     //only for test
     public JobInfoResponse incrementBuildSegmentsManually(String project, String modelId, String start, String end,
             PartitionDesc partitionDesc, List<SegmentTimeRequest> segmentHoles) throws Exception {
-        return incrementBuildSegmentsManually(
-                new IncrementBuildSegmentParams(project, modelId, start, end, partitionDesc, null, segmentHoles, true, null));
+        return incrementBuildSegmentsManually(new IncrementBuildSegmentParams(project, modelId, start, end,
+                partitionDesc, null, segmentHoles, true, null));
     }
 
     @Transaction(project = 0)
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
-            List<Long> indexIds, boolean parallelBuildBySegment) {
+            List<Long> indexIds, boolean parallelBuildBySegment, int priority) {
         aclEvaluate.checkProjectOperationPermission(project);
         val dfManger = getDataflowManager(project);
         NDataflow dataflow = dfManger.getDataflow(modelId);
@@ -2232,7 +2244,8 @@ public class ModelService extends BasicService {
                 JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getSourceUsageManager().licenseCheckWrap(project,
                                 () -> jobManager.addRelatedIndexJob(new JobParam(Sets.newHashSet(segmentIds),
-                                        indexIds == null ? null : new HashSet<>(indexIds), modelId, getUsername()))));
+                                        indexIds == null ? null : new HashSet<>(indexIds), modelId, getUsername())
+                                                .withPriority(priority))));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
                 result.addFailedSeg(dataflow, e);
@@ -2303,8 +2316,10 @@ public class ModelService extends BasicService {
 
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
                 () -> innerIncrementBuild(new IncrementBuildSegmentParams(project, params.getModelId(), startFormat,
-                        endFormat, params.getPartitionDesc(),  params.getMultiPartitionDesc(), format, params.getSegmentHoles(), params.isNeedBuild(),
-                        params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())),
+                        endFormat, params.getPartitionDesc(), params.getMultiPartitionDesc(), format,
+                        params.getSegmentHoles(), params.isNeedBuild(), params.getMultiPartitionValues())
+                                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
+                                .withPriority(params.getPriority())),
                 project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
@@ -2338,11 +2353,11 @@ public class ModelService extends BasicService {
         for (SegmentTimeRequest hole : params.getSegmentHoles()) {
             res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                     hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true,
-                    allPartitions).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())));
+                    allPartitions).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())));
         }
         res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
-                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())));
+                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())));
         return res;
     }
 
@@ -2358,7 +2373,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updatePartitionColumn(String project, String modelId, PartitionDesc partitionDesc,
-                                      MultiPartitionDesc multiPartitionDesc) throws IOException {
+            MultiPartitionDesc multiPartitionDesc) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         val dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(modelId);
@@ -2384,7 +2399,7 @@ public class ModelService extends BasicService {
         val multiPartitionDesc = model.getMultiPartitionDesc();
         val segments = getDataflowManager(project).getDataflow(modelId).getSegments();
         val totalSegCount = segments.size();
-        val responses = Lists.<MultiPartitionValueResponse>newArrayList();
+        val responses = Lists.<MultiPartitionValueResponse> newArrayList();
 
         if (multiPartitionDesc == null || CollectionUtils.isEmpty(multiPartitionDesc.getPartitions())) {
             return responses;
@@ -2407,7 +2422,6 @@ public class ModelService extends BasicService {
         val model = modelManager.getDataModelDesc(modelId);
         modelManager.addPartitionsIfAbsent(model, values);
     }
-
 
     private void checkModelAndIndexManually(String project, String modelId) {
         checkModelAndIndexManually(new FullBuildSegmentParams(project, modelId, true));
@@ -2821,8 +2835,8 @@ public class ModelService extends BasicService {
                 df, new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()),
                 true);
 
-        String jobId = getSourceUsageManager().licenseCheckWrap(project,
-                () -> jobManager.mergeSegmentJob(new JobParam(mergeSeg, modelId, getUsername())));
+        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> jobManager
+                .mergeSegmentJob(new JobParam(mergeSeg, modelId, getUsername()).withPriority(params.getPriority())));
 
         return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), jobId);
     }
@@ -2853,8 +2867,8 @@ public class ModelService extends BasicService {
 
             String jobId = getSourceUsageManager().licenseCheckWrap(params.getProject(),
                     () -> jobManager.refreshSegmentJob(new JobParam(newSeg, params.getModelId(), getUsername())
-                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()),
-                            params.isRefreshAllLayouts()));
+                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
+                            .withPriority(params.getPriority()), params.isRefreshAllLayouts()));
 
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), jobId));
         }
@@ -3223,7 +3237,7 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public BuildIndexResponse buildIndicesManually(String modelId, String project) {
+    public BuildIndexResponse buildIndicesManually(String modelId, String project, int priority) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
@@ -3237,8 +3251,8 @@ public class ModelService extends BasicService {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
 
-        String jobId = getSourceUsageManager().licenseCheckWrap(project,
-                () -> getJobManager(project).addFullIndexJob(new JobParam(modelId, getUsername())));
+        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> getJobManager(project)
+                .addFullIndexJob(new JobParam(modelId, getUsername()).withPriority(priority)));
 
         return new BuildIndexResponse(StringUtils.isBlank(jobId) //
                 ? BuildIndexResponse.BuildIndexType.NO_LAYOUT //
@@ -3480,7 +3494,8 @@ public class ModelService extends BasicService {
                 }
             }
 
-            val partitionValues = request.getValueMapping().stream().map(pair -> pair.getFirst().toArray(new String[0])).collect(Collectors.toList());
+            val partitionValues = request.getValueMapping().stream().map(pair -> pair.getFirst().toArray(new String[0]))
+                    .collect(Collectors.toList());
             for (MultiPartitionDesc.PartitionInfo partitionInfo : multiPartitionDesc.getPartitions()) {
                 if (!partitionValues.stream().anyMatch(value -> Arrays.equals(value, partitionInfo.getValues()))) {
                     throw new KylinException(INVALID_MULTI_PARTITION_MAPPING_REQUEST,
@@ -3715,14 +3730,15 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public List<SegmentPartitionResponse> getSegmentPartitions(String project, String modelId, String segmentId,
-                                                               List<String> status, String sortBy, boolean reverse) {
+            List<String> status, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
         val model = getModelById(modelId, project);
         val partitionDesc = model.getMultiPartitionDesc();
         val dataflow = getDataflowManager(project).getDataflow(modelId);
         val segment = dataflow.getSegment(segmentId);
         if (segment == null) {
-            throw new KylinException(SEGMENT_NOT_EXIST, String.format(MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), segmentId));
+            throw new KylinException(SEGMENT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), segmentId));
         }
 
         Comparator<SegmentPartitionResponse> comparator = propertyComparator(
@@ -3732,8 +3748,8 @@ public class ModelService extends BasicService {
             val partitionInfo = partitionDesc.getPartitionInfo(partition.getPartitionId());
             val lastModifiedTime = partition.getLastBuildTime() != 0 ? partition.getLastBuildTime()
                     : partition.getCreateTimeUTC();
-            return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(),
-                    partition.getStatus(), lastModifiedTime, partition.getRowCount(), partition.getStorageSize());
+            return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(), partition.getStatus(),
+                    lastModifiedTime, partition.getRowCount(), partition.getStorageSize());
         }).filter(partitionResponse -> {
             if (CollectionUtils.isEmpty(status) || status.contains(partitionResponse.getStatus().name())) {
                 return true;
@@ -3746,7 +3762,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public JobInfoResponse buildSegmentPartitionByValue(String project, String modelId, String segmentId,
-                                             List<String[]> partitionValues, boolean parallelBuild) {
+            List<String[]> partitionValues, boolean parallelBuild) {
         aclEvaluate.checkProjectOperationPermission(project);
         val dfm = getDataflowManager(project);
         val df = dfm.getDataflow(modelId);
@@ -3759,23 +3775,26 @@ public class ModelService extends BasicService {
                     MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(msg));
         }
         dfm.appendPartitions(df.getId(), segment.getId(), partitionValues);
-        Set<Long> targetPartitions = getDataModelManager(project).getDataModelDesc(modelId).getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
+        Set<Long> targetPartitions = getDataModelManager(project).getDataModelDesc(modelId).getMultiPartitionDesc()
+                .getPartitionIdsByValues(partitionValues);
         return parallelBuildPartition(parallelBuild, project, modelId, segmentId, targetPartitions);
     }
 
-    private JobInfoResponse parallelBuildPartition(boolean parallelBuild, String project, String modelId, String segmentId, Set<Long> partitionIds) {
+    private JobInfoResponse parallelBuildPartition(boolean parallelBuild, String project, String modelId,
+            String segmentId, Set<Long> partitionIds) {
         val jobIds = Lists.<String> newArrayList();
         if (parallelBuild) {
             partitionIds.forEach(partitionId -> {
-                val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(), Sets.newHashSet(partitionId), null);
-                val jobId = getSourceUsageManager().licenseCheckWrap(project, () ->
-                        getJobManager(project).buildPartitionJob(jobParam));
+                val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(),
+                        Sets.newHashSet(partitionId), null);
+                val jobId = getSourceUsageManager().licenseCheckWrap(project,
+                        () -> getJobManager(project).buildPartitionJob(jobParam));
                 jobIds.add(jobId);
             });
         } else {
             val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(), partitionIds, null);
-            val jobId = getSourceUsageManager().licenseCheckWrap(project, () ->
-                    getJobManager(project).buildPartitionJob(jobParam));
+            val jobId = getSourceUsageManager().licenseCheckWrap(project,
+                    () -> getJobManager(project).buildPartitionJob(jobParam));
             jobIds.add(jobId);
         }
         return JobInfoResponse.of(jobIds, JobTypeEnum.SUB_PARTITION_BUILD.toString());
@@ -3791,9 +3810,11 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
 
         if (CollectionUtils.isEmpty(param.getPartitionIds())) {
-            partitions = getModelById(modelId, project).getMultiPartitionDesc().getPartitionIdsByValues(param.getPartitionValues());
+            partitions = getModelById(modelId, project).getMultiPartitionDesc()
+                    .getPartitionIdsByValues(param.getPartitionValues());
             if (partitions.isEmpty() || partitions.size() != param.getPartitionValues().size()) {
-                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+                throw new KylinException(FAILED_CREATE_JOB,
+                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
             }
         }
 
@@ -3803,8 +3824,8 @@ public class ModelService extends BasicService {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
         }
         val jobManager = getJobManager(project);
-        JobParam jobParam = new JobParam(Sets.newHashSet(segment.getId()), null, modelId, getUsername(), partitions, null)
-                .withIgnoredSnapshotTables(param.getIgnoredSnapshotTables());
+        JobParam jobParam = new JobParam(Sets.newHashSet(segment.getId()), null, modelId, getUsername(), partitions,
+                null).withIgnoredSnapshotTables(param.getIgnoredSnapshotTables());
 
         val jobId = getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.refreshSegmentJob(jobParam));
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());
@@ -3816,12 +3837,12 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isEmpty(partitions)) {
             return;
         }
-        if(StringUtils.isNotEmpty(segmentId)){
+        if (StringUtils.isNotEmpty(segmentId)) {
             // remove partition in target segment
             getDataflowManager(project).removeLayoutPartition(modelId, partitions, Sets.newHashSet(segmentId));
             // remove partition in target segment
             getDataflowManager(project).removeSegmentPartition(modelId, partitions, Sets.newHashSet(segmentId));
-        }else {
+        } else {
             // remove partition in all layouts
             getDataflowManager(project).removeLayoutPartition(modelId, Sets.newHashSet(partitions), null);
             // remove partition in all  segments

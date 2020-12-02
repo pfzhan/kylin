@@ -29,6 +29,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Getter
 @Setter
@@ -43,4 +44,5 @@ public class ReloadTableRequest implements ProjectInsensitiveRequest {
     private int maxRows;
     @JsonProperty("need_build")
     private boolean needBuild;
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

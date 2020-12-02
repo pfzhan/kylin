@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class BuildIndexRequest implements ProjectInsensitiveRequest {
@@ -35,4 +36,5 @@ public class BuildIndexRequest implements ProjectInsensitiveRequest {
     @JsonProperty("project")
     private String project;
 
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

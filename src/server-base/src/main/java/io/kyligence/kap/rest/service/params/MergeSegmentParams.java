@@ -37,4 +37,9 @@ public class MergeSegmentParams extends BasicSegmentParams {
         super(project, modelId);
         this.segmentIds = segmentIds;
     }
+
+    public MergeSegmentParams withPriority(int priority) {
+        this.priority = priority;
+        return this;
+    }
 }

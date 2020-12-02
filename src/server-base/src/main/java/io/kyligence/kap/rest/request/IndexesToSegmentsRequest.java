@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 import java.util.List;
 
@@ -43,4 +44,6 @@ public class IndexesToSegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("parallel_build_by_segment")
     private boolean parallelBuildBySegment;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

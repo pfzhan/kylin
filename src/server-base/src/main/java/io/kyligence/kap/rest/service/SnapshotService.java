@@ -47,6 +47,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -93,9 +94,9 @@ public class SnapshotService extends BasicService {
     private TableService tableService;
 
     public JobInfoResponse buildSnapshots(String project, Set<String> buildDatabases,
-            Set<String> needBuildSnapshotTables, boolean isRefresh) {
+            Set<String> needBuildSnapshotTables, boolean isRefresh, int priority) {
         if (buildDatabases.isEmpty()) {
-            return buildSnapshots(project, needBuildSnapshotTables, isRefresh);
+            return buildSnapshots(project, needBuildSnapshotTables, isRefresh, priority);
         }
 
         NTableMetadataManager tableManager = getTableManager(project);
@@ -111,10 +112,10 @@ public class SnapshotService extends BasicService {
                 .collect(Collectors.toSet());
         needBuildSnapshotTables.addAll(tablesOfDatabases);
 
-        return buildSnapshots(project, needBuildSnapshotTables, isRefresh);
+        return buildSnapshots(project, needBuildSnapshotTables, isRefresh, priority);
     }
 
-    public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables, boolean isRefresh) {
+    public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables, boolean isRefresh, int priority) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectOperationPermission(project);
         Set<TableDesc> tables = getTableDescs(project, needBuildSnapshotTables);
@@ -133,7 +134,9 @@ public class SnapshotService extends BasicService {
                     JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
                     jobStatisticsManager.updateStatistics(TimeUtil.getDayStart(System.currentTimeMillis()), 0, 0, 1);
                     NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, project, getUsername(), isRefresh);
-                    execMgr.addJob(NExecutableManager.toPO(job, project));
+                    ExecutablePO po = NExecutableManager.toPO(job, project);
+                    po.setPriority(priority);
+                    execMgr.addJob(po);
                     jobIds.add(job.getId());
                 }
                 return null;

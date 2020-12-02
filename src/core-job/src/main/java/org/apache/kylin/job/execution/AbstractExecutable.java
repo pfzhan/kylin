@@ -64,6 +64,7 @@ import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
@@ -157,6 +158,10 @@ public abstract class AbstractExecutable implements Executable {
     public boolean isBucketJob() {
         return CollectionUtils.isNotEmpty(targetPartitions);
     }
+
+    @Getter
+    @Setter
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
     public String getTargetModelAlias() {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());

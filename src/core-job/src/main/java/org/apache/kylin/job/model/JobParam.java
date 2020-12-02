@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.job.dao.ExecutablePO;
+
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import com.google.common.collect.Maps;
@@ -74,6 +76,8 @@ public class JobParam {
     private Set<Long> targetPartitions = Sets.newHashSet();
 
     private Set<JobBucket> targetBuckets = Sets.newHashSet();
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
     /**
      * Some additional params in different jobTypes
@@ -138,6 +142,11 @@ public class JobParam {
 
     public JobParam withJobTypeEnum(JobTypeEnum jobTypeEnum) {
         this.jobTypeEnum = jobTypeEnum;
+        return this;
+    }
+
+    public JobParam withPriority(int priority) {
+        this.priority = priority;
         return this;
     }
 

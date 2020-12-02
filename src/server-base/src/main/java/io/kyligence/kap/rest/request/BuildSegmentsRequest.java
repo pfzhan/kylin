@@ -31,6 +31,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
@@ -49,4 +50,6 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("multi_partition_values")
     private List<String[]> multiPartitionValues;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }
