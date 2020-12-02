@@ -25,11 +25,13 @@
 package io.kyligence.kap.metadata.usergroup;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USERGROUP_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.USERGROUP_NOT_EXIST;
 import static org.apache.kylin.common.persistence.ResourceStore.USER_GROUP_ROOT;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -38,6 +40,7 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -92,18 +95,32 @@ public class NUserGroupManager implements IKeep {
         return crud.copyForWrite(userGroup);
     }
 
+    @VisibleForTesting
+    public String getRealUserGroupByName(String groupName) {
+        for (String name : getAllGroupNames()) {
+            if (StringUtils.equalsIgnoreCase(name, groupName)) {
+                return name;
+            }
+        }
+        return null;
+    }
+
     public void add(String name) {
-        if (getAllGroupNames().contains(name)) {
-            throw new KylinException(DUPLICATE_USERGROUP_NAME, String.format(MsgPicker.getMsg().getUSERGROUP_EXIST(), name));
+        String realGroupName = getRealUserGroupByName(name);
+        if (StringUtils.isNotEmpty(realGroupName)) {
+            throw new KylinException(DUPLICATE_USERGROUP_NAME,
+                    String.format(MsgPicker.getMsg().getUSERGROUP_EXIST(), realGroupName));
         }
         UserGroup userGroup = new UserGroup(name);
         crud.save(userGroup);
     }
 
     public void delete(String name) {
-        if (!getAllGroupNames().contains(name)) {
-            throw new RuntimeException(String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), name));
+        String realGroupName = getRealUserGroupByName(name);
+        if (StringUtils.isEmpty(realGroupName)) {
+            throw new KylinException(USERGROUP_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), name));
         }
-        crud.delete(name);
+        crud.delete(realGroupName);
     }
 }

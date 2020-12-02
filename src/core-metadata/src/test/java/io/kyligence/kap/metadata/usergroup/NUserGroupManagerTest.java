@@ -69,7 +69,34 @@ public class NUserGroupManagerTest extends NLocalFileMetadataTestCase {
             group.delete("g1");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals("Invalid values in parameter “group_name“. The value g1 doesn’t exist.",
+                    e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCRUDCaseInsensitive() {
+        NUserGroupManager group = NUserGroupManager.getInstance(getTestConfig());
+        group.add("test1");
+        group.add("test2");
+        group.add("test3");
+        try {
+            group.add("TEST1");
+            Assert.fail("expecting some AlreadyExistsException here");
+        } catch (KylinException e) {
+            Assert.assertEquals("Group [test1] already exists.", e.getMessage());
+        }
+
+        group.delete("Test1");
+        Assert.assertFalse(group.exists("test1"));
+
+        try {
+            group.delete("test1");
+            Assert.fail("expecting some AlreadyExistsException here");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("Invalid values in parameter “group_name“. The value test1 doesn’t exist.",
                     e.getMessage());
         }
     }
