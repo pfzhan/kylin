@@ -54,7 +54,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -116,8 +116,9 @@ public class RealizationChooser {
 
     private static ExecutorService selectCandidateService = new ThreadPoolExecutor(
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadCoreNum(),
-            KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(10000), new NamedThreadFactory("RealizationChooserRunner"));
+            KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
+            new SynchronousQueue<Runnable>(), new NamedThreadFactory("RealizationChooserRunner"),
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
@@ -126,6 +127,18 @@ public class RealizationChooser {
 
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
+        // try different model for different context
+        for (OLAPContext ctx : contexts) {
+            if (ctx.isConstantQueryWithAggregations()) {
+                continue;
+            }
+            ctx.realizationCheck = new RealizationCheck();
+            attemptSelectCandidate(ctx);
+            Preconditions.checkNotNull(ctx.realization);
+        }
+    }
+
+    public static void multiThreadSelectLayoutCandidate(List<OLAPContext> contexts) {
         try {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             String project = QueryContext.current().getProject();

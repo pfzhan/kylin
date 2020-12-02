@@ -1535,7 +1535,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getQueryRealizationChooserThreadCoreNum() {
-        return Integer.parseInt(this.getOptional("kylin.query.realization.chooser.thread-core-num", "2"));
+        return Integer.parseInt(this.getOptional("kylin.query.realization.chooser.thread-core-num", "5"));
     }
 
     /**

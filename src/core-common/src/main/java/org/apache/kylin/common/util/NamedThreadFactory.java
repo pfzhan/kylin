@@ -55,11 +55,11 @@ public class NamedThreadFactory implements ThreadFactory {
     public NamedThreadFactory(String namePrefix) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-        this.namePrefix = namePrefix + "-p-" + poolNumber.getAndIncrement() + "-t-" + threadNumber.getAndIncrement();
+        this.namePrefix = namePrefix + "-p-" + poolNumber.getAndIncrement() ;
     }
 
     public Thread newThread(Runnable r) {
-        Thread t = new Thread(group, r, namePrefix, 0);
+        Thread t = new Thread(group, r, namePrefix + "-t-" + threadNumber.getAndIncrement(), 0);
         if (t.isDaemon())
             t.setDaemon(false);
         if (t.getPriority() != Thread.NORM_PRIORITY)
