@@ -26,12 +26,25 @@ package io.kyligence.kap.common.util;
 import java.io.Serializable;
 
 import io.kyligence.kap.common.obf.IKeep;
+import lombok.Getter;
 
 public class ClusterConstant implements Serializable, IKeep {
     private ClusterConstant() {
     }
 
-    public static final String QUERY = "query";
-    public static final String ALL = "all";
-    public static final String JOB = "job";
+    public static final String QUERY = ServerModeEnum.QUERY.name;
+    public static final String ALL = ServerModeEnum.ALL.name;
+    public static final String JOB = ServerModeEnum.JOB.name;
+
+    @Getter
+    public enum ServerModeEnum {
+        QUERY("query"), ALL("all"), JOB("job");
+
+        private String name;
+
+        ServerModeEnum(String name) {
+            this.name = name;
+        }
+
+    }
 }

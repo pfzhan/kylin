@@ -58,6 +58,7 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.ZookeeperConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.job.exception.ZkAcquireLockException;
@@ -124,7 +125,7 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
 
         private static String getZKConnectString(KylinConfig config) {
             // the ZKConnectString should come from KylinConfig, however it is taken from HBase configuration at the moment
-            return ZookeeperUtil.getZKConnectString(config);
+            return ZookeeperConfig.getZKConnectString(config);
         }
 
         final String zkPathBase;

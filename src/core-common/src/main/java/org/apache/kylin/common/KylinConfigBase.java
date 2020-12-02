@@ -449,6 +449,16 @@ public abstract class KylinConfigBase implements Serializable {
         throw new RuntimeException("Please set 'kylin.env.zookeeper-connect-string' in kylin.properties");
     }
 
+    public long geZookeeperClientSessionTimeoutThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-session-client-timeout-threshold", "120000ms"),
+                TimeUnit.MILLISECONDS);
+    }
+
+    public long geZookeeperClientConnectionTimeoutThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-connection-client-timeout-threshold", "15000ms"),
+                TimeUnit.MILLISECONDS);
+    }
+
     public boolean isZookeeperAclEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.env.zookeeper-acl-enabled", FALSE));
     }
@@ -1548,19 +1558,19 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isJobNode() {
-        return !ClusterConstant.QUERY.equals(getServerMode());
+        return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
     }
 
     public boolean isQueryNode() {
-        return !ClusterConstant.JOB.equals(getServerMode());
+        return !StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode());
     }
 
     public boolean isJobNodeOnly() {
-        return ClusterConstant.JOB.equals(getServerMode());
+        return StringUtils.equals(ClusterConstant.ServerModeEnum.JOB.getName(), getServerMode());
     }
 
     public boolean isQueryNodeOnly() {
-        return ClusterConstant.QUERY.equals(getServerMode());
+        return StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
     }
 
     public boolean isAllNode() {
@@ -2040,6 +2050,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     public long getEpochCheckerIntervalSecond() {
         return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-interval", "30"));
+    }
+
+    public long getDiscoveryClientTimeoutThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.server.discovery-client-timeout-threshold", "3s"),
+                TimeUnit.SECONDS);
     }
 
     public boolean getJStackDumpTaskEnabled() {

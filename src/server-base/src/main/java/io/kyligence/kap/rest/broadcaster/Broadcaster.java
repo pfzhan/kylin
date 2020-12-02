@@ -24,10 +24,14 @@
 
 package io.kyligence.kap.rest.broadcaster;
 
+import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum;
+
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -36,8 +40,10 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.DaemonThreadFactory;
@@ -45,14 +51,12 @@ import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 
@@ -82,14 +86,12 @@ public class Broadcaster implements Closeable {
                 new DaemonThreadFactory(), new ThreadPoolExecutor.DiscardPolicy());
     }
 
-    private Set<String> getNodesByModes(String... serverModes) {
-        Set<String> serverModeList = Sets.newHashSet(serverModes);
-        if (CollectionUtils.isEmpty(serverModeList)) {
-            return serverModeList;
+    private Set<String> getNodesByModes(ServerModeEnum... serverModeEnums) {
+        if (ArrayUtils.isEmpty(serverModeEnums)) {
+            return Collections.emptySet();
         }
-        serverModeList.forEach(serverMode -> Preconditions.checkArgument(serverMode.trim().equals(ClusterConstant.QUERY)
-                || serverMode.trim().equals(ClusterConstant.ALL) || serverMode.trim().equals(ClusterConstant.JOB)));
 
+        Set<String> serverModeNameSets = Stream.of(serverModeEnums).filter(Objects::nonNull).map(ServerModeEnum::getName).collect(Collectors.toSet());
         if (clusterManager == null) {
             clusterManager = (ClusterManager) SpringContext.getApplicationContext().getBean("zookeeperClusterManager");
         }
@@ -99,7 +101,7 @@ public class Broadcaster implements Closeable {
             logger.warn("There is no available rest server; check the 'kylin.server.cluster-servers' config");
         } else {
             result = nodes.stream()
-                    .filter(node -> serverModeList.contains(node.getMode()))
+                    .filter(node -> serverModeNameSets.contains(node.getMode()))
                     .map(ServerInfoResponse::getHost)
                     .collect(Collectors.toSet());
         }
@@ -148,15 +150,15 @@ public class Broadcaster implements Closeable {
     private Set<String> getBroadcastNodes(BroadcastEventReadyNotifier notifier) {
         switch (notifier.getBroadcastScope()) {
             case LEADER_NODES:
-                return getNodesByModes(ClusterConstant.ALL, ClusterConstant.JOB);
+                return getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB);
             case ALL_NODES:
-                return getNodesByModes(ClusterConstant.ALL);
+                return getNodesByModes(ServerModeEnum.ALL);
             case JOB_NODES:
-                return getNodesByModes(ClusterConstant.JOB);
+                return getNodesByModes(ServerModeEnum.JOB);
             case QUERY_NODES:
-                return getNodesByModes(ClusterConstant.QUERY);
+                return getNodesByModes(ServerModeEnum.QUERY);
             default:
-                return getNodesByModes(ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
+                return getNodesByModes(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.QUERY);
         }
     }
 

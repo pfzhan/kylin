@@ -23,6 +23,10 @@
  */
 package io.kyligence.kap.tool;
 
+import static org.apache.kylin.common.ZookeeperConfig.geZKClientConnectionTimeoutMs;
+import static org.apache.kylin.common.ZookeeperConfig.geZKClientSessionTimeoutMs;
+import static org.apache.kylin.common.ZookeeperConfig.getZKConnectString;
+
 import java.util.List;
 
 import org.apache.curator.RetryPolicy;
@@ -36,14 +40,13 @@ import org.apache.curator.x.discovery.ServiceProvider;
 import org.apache.curator.x.discovery.strategies.RandomStrategy;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.lock.ZookeeperAclBuilder;
-import org.apache.kylin.job.lock.ZookeeperUtil;
 import org.apache.zookeeper.data.Stat;
 
 import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.tool.discovery.ServiceInstanceSerializer;
 import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CuratorOperator implements AutoCloseable {
@@ -55,10 +58,11 @@ public class CuratorOperator implements AutoCloseable {
         kerberosLoginTask.execute();
 
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-        String connectString = ZookeeperUtil.getZKConnectString();
+        String connectString = getZKConnectString();
         ZookeeperAclBuilder aclBuilder = new ZookeeperAclBuilder().invoke();
         zkClient = aclBuilder.setZKAclBuilder(CuratorFrameworkFactory.builder()).connectString(connectString)
-                .sessionTimeoutMs(120000).connectionTimeoutMs(15000).retryPolicy(retryPolicy).build();
+                .sessionTimeoutMs(geZKClientSessionTimeoutMs()).connectionTimeoutMs(geZKClientConnectionTimeoutMs())
+                .retryPolicy(retryPolicy).build();
         zkClient.start();
     }
 

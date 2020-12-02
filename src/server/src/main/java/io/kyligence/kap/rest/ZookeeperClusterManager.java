@@ -24,13 +24,22 @@
 package io.kyligence.kap.rest;
 
 import static io.kyligence.kap.common.util.AddressUtil.convertHost;
+import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum;
+import static org.apache.kylin.common.ZookeeperConfig.geZKClientConnectionTimeoutMs;
+import static org.apache.kylin.common.ZookeeperConfig.geZKClientSessionTimeoutMs;
+import static org.apache.kylin.common.ZookeeperConfig.getZKConnectString;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.RetryPolicy;
@@ -41,8 +50,6 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.lock.ZookeeperUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
@@ -52,7 +59,6 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.val;
@@ -63,38 +69,68 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ZookeeperClusterManager implements ClusterManager {
 
-    @Autowired
-    ZookeeperDiscoveryClient discoveryClient;
+    private final ZookeeperDiscoveryClient discoveryClient;
 
-    List<ServerInfoResponse> cache;
+    //<ServerMode,ServerInfoResponse>
+    private final Map<ServerModeEnum, List<ServerInfoResponse>> serverInfoCachesMap;
 
-    @Autowired
-    AsyncTaskExecutor executor;
+    private final AsyncTaskExecutor executor;
 
-    public ZookeeperClusterManager(ZookeeperDiscoveryClient discoveryClient) throws Exception {
+    public ZookeeperClusterManager(ZookeeperDiscoveryClient discoveryClient, AsyncTaskExecutor executor)
+            throws Exception {
+        this.discoveryClient = discoveryClient;
+        this.executor = executor;
+        serverInfoCachesMap = new ConcurrentHashMap<>();
+
+        initMonitorServer();
+    }
+
+    private void initMonitorServer() throws Exception {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-        CuratorFramework client = CuratorFrameworkFactory.newClient(ZookeeperUtil.getZKConnectString(), 120000, 15000, retryPolicy);
+        CuratorFramework client = CuratorFrameworkFactory.newClient(getZKConnectString(), geZKClientSessionTimeoutMs(),
+                geZKClientConnectionTimeoutMs(), retryPolicy);
+
         client.start();
-        monitorServer(ClusterConstant.ALL, client);
-        monitorServer(ClusterConstant.JOB, client);
-        monitorServer(ClusterConstant.QUERY, client);
+        monitorServer(ServerModeEnum.ALL, client);
+        monitorServer(ServerModeEnum.JOB, client);
+        monitorServer(ServerModeEnum.QUERY, client);
     }
 
-    private void monitorServer(String serverMode, CuratorFramework client) throws Exception {
+    private void monitorServer(ServerModeEnum serverMode, CuratorFramework client) throws Exception {
         String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
-        String nodePath = "/kylin/" + identifier + "/services/" + serverMode;
-        try (val pathChildrenCache = new PathChildrenCache(client, nodePath, false)) {
-            PathChildrenCacheListener childrenCacheListener = new PathChildrenCacheListener() {
-                @Override
-                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
-                    cache = getServers();
+        String nodePath = "/kylin/" + identifier + "/services/" + serverMode.getName();
+
+        val pathChildrenCache = new PathChildrenCache(client, nodePath, false);
+        PathChildrenCacheListener childrenCacheListener = new PathChildrenCacheListener() {
+            @Override
+            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
+                switch (event.getType()) {
+                case CONNECTION_LOST:
+                case CONNECTION_SUSPENDED: {
+                    log.debug("path listener on {} event:{}.", serverMode.getName(), event.toString());
+                    break;
                 }
-            };
-            pathChildrenCache.getListenable().addListener(childrenCacheListener);
-            pathChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
-        }
+                default: {
+                    //avoid two event enter
+                    synchronized (pathChildrenCache) {
+                        log.debug("update service cache on {}, event:{}.", serverMode.getName(), event.toString());
+                        updateServersCacheByMode(serverMode);
+                    }
+                    break;
+                }
+                }
+
+            }
+        };
+        pathChildrenCache.getListenable().addListener(childrenCacheListener);
+        pathChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+
     }
 
+    private List<ServerInfoResponse> updateServersCacheByMode(ServerModeEnum serverMode) {
+        serverInfoCachesMap.put(serverMode, getServerByMode(serverMode));
+        return serverInfoCachesMap.get(serverMode);
+    }
 
     @Override
     public String getLocalServer() {
@@ -102,11 +138,12 @@ public class ZookeeperClusterManager implements ClusterManager {
         return instance.getHost() + ":" + instance.getPort();
     }
 
-    private List<String> getServers(String serverMode) {
-        checkServerMode(serverMode);
-        val list = submitWithTimeOut(() -> discoveryClient.getInstances(serverMode), 3);
+    private List<String> getServers(@Nonnull ServerModeEnum serverMode) {
+        Preconditions.checkNotNull(serverMode, "server mode is null");
+        String serverModeName = serverMode.getName();
+        val timeout = KylinConfig.getInstanceFromEnv().getDiscoveryClientTimeoutThreshold();
+        val list = submitWithTimeOut(() -> discoveryClient.getInstances(serverModeName), timeout);
         if (CollectionUtils.isEmpty(list)) {
-            log.warn("Failed to get servers info ({} node) from zk", serverMode);
             return Lists.newArrayList();
         } else {
             return list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
@@ -114,43 +151,33 @@ public class ZookeeperClusterManager implements ClusterManager {
         }
     }
 
-    private void checkServerMode(String serverMode) {
-        Preconditions.checkArgument(serverMode.trim().equals(ClusterConstant.QUERY)
-                || serverMode.trim().equals(ClusterConstant.ALL) || serverMode.trim().equals(ClusterConstant.JOB));
-    }
-
     @Override
     public List<ServerInfoResponse> getQueryServers() {
-        return getServerByMode(ClusterConstant.ALL, ClusterConstant.QUERY);
+        return getServerByMode(ServerModeEnum.ALL, ServerModeEnum.QUERY);
     }
 
     @Override
     public List<ServerInfoResponse> getServersFromCache() {
-        try {
-            if (CollectionUtils.isNotEmpty(cache))
-                return cache;
-            else return getServers();
-        } catch (Exception e) {
-            return getServers();
-        }
+        return serverInfoCachesMap.values().stream().filter(CollectionUtils::isNotEmpty).flatMap(List::stream)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<ServerInfoResponse> getJobServers() {
-        return getServerByMode(ClusterConstant.ALL, ClusterConstant.JOB);
+        return getServerByMode(ServerModeEnum.ALL, ServerModeEnum.JOB);
     }
 
     @Override
     public List<ServerInfoResponse> getServers() {
         // please take care of this method when you want to add or remove a server mode
-        return getServerByMode(ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
+        return getServerByMode(ServerModeEnum.ALL, ServerModeEnum.JOB, ServerModeEnum.QUERY);
     }
 
-    private List<ServerInfoResponse> getServerByMode(String... mode) {
+    private List<ServerInfoResponse> getServerByMode(ServerModeEnum... modeEnum) {
         List<ServerInfoResponse> servers = new ArrayList<>();
-        for (val nodeType : mode) {
+        for (val nodeType : modeEnum) {
             for (val host : getServers(nodeType)) {
-                servers.add(new ServerInfoResponse(host, nodeType));
+                servers.add(new ServerInfoResponse(host, nodeType.getName()));
             }
         }
         return cleanServer(servers);
@@ -167,8 +194,10 @@ public class ZookeeperClusterManager implements ClusterManager {
         val task = executor.submit(callable);
         try {
             return task.get(timeout, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            log.warn("ZookeeperDiscoveryClient getInstances timeout:{}, error:", timeout, e);
         } catch (Exception e) {
-            log.warn("ZookeeperDiscoveryClient getInstances error {}", e.getMessage(), e);
+            log.warn("ZookeeperDiscoveryClient getInstances error:", e);
         }
         return Lists.newArrayList();
     }

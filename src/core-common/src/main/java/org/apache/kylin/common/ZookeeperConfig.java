@@ -40,18 +40,24 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.lock;
+package org.apache.kylin.common;
 
-import org.apache.kylin.common.KylinConfig;
-
-public class ZookeeperUtil {
+public class ZookeeperConfig {
 
     public static String getZKConnectString() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         return config.getZookeeperConnectString();
     }
 
-    public static String getZKConnectString(KylinConfig config){
+    public static String getZKConnectString(KylinConfig config) {
         return config.getZookeeperConnectString();
+    }
+
+    public static int geZKClientSessionTimeoutMs() {
+        return Math.toIntExact(KylinConfig.getInstanceFromEnv().geZookeeperClientSessionTimeoutThreshold());
+    }
+
+    public static int geZKClientConnectionTimeoutMs() {
+        return Math.toIntExact(KylinConfig.getInstanceFromEnv().geZookeeperClientConnectionTimeoutThreshold());
     }
 }

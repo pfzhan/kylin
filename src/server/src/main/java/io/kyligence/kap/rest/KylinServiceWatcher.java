@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest;
 
+import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -46,7 +48,6 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
@@ -76,15 +77,15 @@ public class KylinServiceWatcher {
 
     public KylinServiceWatcher(ServiceDiscovery<ZookeeperInstance> serviceDiscovery) throws Exception {
         // all server cache
-        allServiceCache = createServiceCache(serviceDiscovery, ClusterConstant.ALL, UPDATE_ALL_EPOCHS);
+        allServiceCache = createServiceCache(serviceDiscovery, ServerModeEnum.ALL, UPDATE_ALL_EPOCHS);
 
         // query server cache
-        queryServiceCache = createServiceCache(serviceDiscovery, ClusterConstant.QUERY, () -> {
+        queryServiceCache = createServiceCache(serviceDiscovery, ServerModeEnum.QUERY, () -> {
 
         });
 
         // job server cache
-        jobServiceCache = createServiceCache(serviceDiscovery, ClusterConstant.JOB, UPDATE_ALL_EPOCHS);
+        jobServiceCache = createServiceCache(serviceDiscovery, ServerModeEnum.JOB, UPDATE_ALL_EPOCHS);
 
         start();
     }
@@ -96,8 +97,8 @@ public class KylinServiceWatcher {
     }
 
     private ServiceCache<ZookeeperInstance> createServiceCache(ServiceDiscovery<ZookeeperInstance> serviceDiscovery,
-            String serverMode, Callback action) {
-        ServiceCache<ZookeeperInstance> serviceCache = serviceDiscovery.serviceCacheBuilder().name(serverMode)
+            ServerModeEnum serverMode, Callback action) {
+        ServiceCache<ZookeeperInstance> serviceCache = serviceDiscovery.serviceCacheBuilder().name(serverMode.getName())
                 .threadFactory(Executors.defaultThreadFactory()).build();
 
         serviceCache.addListener(new ServiceCacheListener() {
@@ -105,8 +106,8 @@ public class KylinServiceWatcher {
             public void cacheChanged() {
                 List<ServiceInstance<ZookeeperInstance>> instances = serviceCache.getInstances();
                 List<String> nodes = getServerNodes(instances);
-                System.setProperty("kylin.server.cluster-mode-" + serverMode, StringUtils.join(nodes, ","));
-                logger.info("kylin.server.cluster-mode-{} update to {}", serverMode, nodes);
+                System.setProperty("kylin.server.cluster-mode-" + serverMode.getName(), StringUtils.join(nodes, ","));
+                logger.info("kylin.server.cluster-mode-{} update to {}", serverMode.getName(), nodes);
 
                 // current node is active all/job nodes, try to update all epochs
                 if (clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost)
