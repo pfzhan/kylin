@@ -572,18 +572,20 @@ export default class DimensionsModal extends Vue {
         this.$set(col, 'validateSameName', false)
         this.$set(col, 'validateNameMaxLen', false)
         this.isClickSubmit = false
-        if (countObjWithSomeKey(columns, 'alias', col.alias) > 1) {
-          hasPassValidate = false
-          this.$set(col, 'validateSameName', true)
-          this.errorGuidList.push(col.guid || col.table_guid)
-        } else if (!this.checkDimensionNameRegex(col.alias)) {
-          hasPassValidate = false
-          this.$set(col, 'validateNameRule', true)
-          this.errorGuidList.push(col.guid || col.table_guid)
-        } else if (col.alias.length > this.dimMeasNameMaxLength) {
-          hasPassValidate = false
-          this.$set(col, 'validateNameMaxLen', true)
-          this.errorGuidList.push(col.guid || col.table_guid)
+        if (col.isSelected) {
+          if (countObjWithSomeKey(columns, 'alias', col.alias) > 1) {
+            hasPassValidate = false
+            this.$set(col, 'validateSameName', true)
+            this.errorGuidList.push(col.guid || col.table_guid)
+          } else if (!this.checkDimensionNameRegex(col.alias)) {
+            hasPassValidate = false
+            this.$set(col, 'validateNameRule', true)
+            this.errorGuidList.push(col.guid || col.table_guid)
+          } else if (col.alias.length > this.dimMeasNameMaxLength) {
+            hasPassValidate = false
+            this.$set(col, 'validateNameMaxLen', true)
+            this.errorGuidList.push(col.guid || col.table_guid)
+          }
         }
       })
       return hasPassValidate
