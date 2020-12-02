@@ -580,7 +580,7 @@ public class ProjectService extends BasicService {
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
+            copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
         });
     }
 
@@ -697,7 +697,7 @@ public class ProjectService extends BasicService {
     public void updateShardNumConfig(String project, ShardNumConfigRequest req) {
         getProjectManager().updateProject(project, copyForWrite -> {
             try {
-                copyForWrite.getOverrideKylinProps().put("kylin.engine.shard-num-json",
+                copyForWrite.putOverrideKylinProps("kylin.engine.shard-num-json",
                         JsonUtil.writeValueAsString(req.getColToNum()));
             } catch (JsonProcessingException e) {
                 logger.error("Can not write obj to json.", e);
@@ -719,12 +719,12 @@ public class ProjectService extends BasicService {
                 String runnerClassName = copyForWrite.getConfig().getPushDownRunnerClassName();
                 if (StringUtils.isEmpty(runnerClassName)) {
                     val defaultPushDownRunner = getConfig().getPushDownRunnerClassNameWithDefaultValue();
-                    copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name",
+                    copyForWrite.putOverrideKylinProps("kylin.query.pushdown.runner-class-name",
                             defaultPushDownRunner);
                 }
-                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", KylinConfig.TRUE);
+                copyForWrite.putOverrideKylinProps("kylin.query.pushdown-enabled", KylinConfig.TRUE);
             } else {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", KylinConfig.FALSE);
+                copyForWrite.putOverrideKylinProps("kylin.query.pushdown-enabled", KylinConfig.FALSE);
             }
         });
     }
@@ -733,7 +733,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateSnapshotConfig(String project, SnapshotConfigRequest snapshotConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.snapshot.manual-management-enabled",
+            copyForWrite.putOverrideKylinProps("kylin.snapshot.manual-management-enabled",
                     snapshotConfigRequest.getSnapshotManualManagementEnabled().toString());
         });
     }
@@ -742,7 +742,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest, ModelService modelService) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled",
+            copyForWrite.putOverrideKylinProps("kylin.query.non-equi-join-model-enabled",
                     scd2ConfigRequest.getScd2Enabled().toString());
         });
 
@@ -771,9 +771,9 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updatePushDownProjectConfig(String project, PushDownProjectConfigRequest pushDownProjectConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name",
+            copyForWrite.putOverrideKylinProps("kylin.query.pushdown.runner-class-name",
                     pushDownProjectConfigRequest.getRunnerClassName());
-            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.converter-class-names",
+            copyForWrite.putOverrideKylinProps("kylin.query.pushdown.converter-class-names",
                     pushDownProjectConfigRequest.getConverterClassNames());
         });
     }
@@ -782,7 +782,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
+            copyForWrite.putOverrideKylinProps(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
                     String.valueOf(computedColumnConfigRequest.getExposeComputedColumn()));
         });
     }
@@ -830,7 +830,7 @@ public class ProjectService extends BasicService {
         }
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
-            copyForWrite.getOverrideKylinProps().put("kylin.metadata.semi-automatic-mode",
+            copyForWrite.putOverrideKylinProps("kylin.metadata.semi-automatic-mode",
                     String.valueOf(projectGeneralInfoRequest.isSemiAutoMode()));
         });
     }
@@ -895,7 +895,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);
+            copyForWrite.putOverrideKylinProps("kylin.source.default", sourceType);
         });
     }
 

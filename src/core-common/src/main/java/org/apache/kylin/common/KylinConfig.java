@@ -42,6 +42,8 @@
 
 package org.apache.kylin.common;
 
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,12 +58,18 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -70,6 +78,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /**
  */
@@ -255,7 +264,7 @@ public class KylinConfig extends KylinConfigBase {
             try {
                 config = new KylinConfig();
                 InputStream is = new FileInputStream(uri);
-                Properties prop = streamToProps(is);
+                Properties prop = streamToTrimProps(is);
                 config.reloadKylinConfig(prop);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -267,7 +276,7 @@ public class KylinConfig extends KylinConfigBase {
                 RestClient client = new RestClient(uri);
                 String propertyText = client.getKylinProperties();
                 InputStream is = IOUtils.toInputStream(propertyText, Charset.defaultCharset());
-                Properties prop = streamToProps(is);
+                Properties prop = streamToTrimProps(is);
                 config.reloadKylinConfig(prop);
                 return config;
             } catch (IOException e) {
@@ -276,11 +285,35 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
+    public static Properties streamToTrimProps(InputStream is) throws IOException {
+        Properties originProps = streamToProps(is);
+        Properties trimProps = new Properties();
+
+        originProps.forEach(
+                (k, v) -> trimProps.put(StringUtils.trim(String.valueOf(k)), StringUtils.trim(String.valueOf(v))));
+        return originProps;
+    }
+
     public static Properties streamToProps(InputStream is) throws IOException {
         Properties prop = new Properties();
         prop.load(is);
         IOUtils.closeQuietly(is);
         return prop;
+    }
+
+    /**
+     * trim all kv from map
+     * @param originMap
+     * @return linkedHashMap
+     */
+    public static LinkedHashMap<String, String> trimKVFromMap(@Nullable Map<String, String> originMap) {
+        LinkedHashMap<String, String> newMap = Maps.newLinkedHashMap();
+        if (MapUtils.isEmpty(originMap)) {
+            return newMap;
+        }
+        originMap.forEach((k, v) -> newMap.put(StringUtils.trim(k), StringUtils.trim(v)));
+
+        return newMap;
     }
 
     public static void setKylinConfigInEnvIfMissing(Properties prop) {
@@ -402,14 +435,14 @@ public class KylinConfig extends KylinConfigBase {
             Preconditions.checkNotNull(resource);
             logger.info("Loading kylin-defaults.properties from {}", resource.getPath());
             OrderedProperties orderedProperties = new OrderedProperties();
-            loadPropertiesFromInputStream(resource.openStream(), orderedProperties);
+            loadAndTrimProperties(resource.openStream(), orderedProperties);
 
             for (int i = 0; i < 10; i++) {
                 String fileName = "kylin-defaults" + (i) + ".properties";
                 URL additionalResource = Thread.currentThread().getContextClassLoader().getResource(fileName);
                 if (additionalResource != null) {
                     logger.info("Loading {} from {} ", fileName, additionalResource.getPath());
-                    loadPropertiesFromInputStream(additionalResource.openStream(), orderedProperties);
+                    loadAndTrimProperties(additionalResource.openStream(), orderedProperties);
                 }
             }
 
@@ -420,13 +453,13 @@ public class KylinConfig extends KylinConfigBase {
                 logger.error("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
                 throw new RuntimeException("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
             }
-            loadPropertiesFromInputStream(new FileInputStream(propFile), orderedProperties);
+            loadAndTrimProperties(new FileInputStream(propFile), orderedProperties);
 
             // 3. still support kylin.properties.override as secondary override
             // not suggest to use it anymore
             File propOverrideFile = new File(propFile.getParentFile(), propFile.getName() + ".override");
             if (propOverrideFile.exists()) {
-                loadPropertiesFromInputStream(new FileInputStream(propOverrideFile), orderedProperties);
+                loadAndTrimProperties(new FileInputStream(propOverrideFile), orderedProperties);
             }
             return orderedProperties;
         } catch (IOException e) {
@@ -467,23 +500,38 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-    /**
-     * will close the passed in inputstream
-     */
-    private static void loadPropertiesFromInputStream(InputStream inputStream, OrderedProperties properties) {
-        Preconditions.checkNotNull(properties);
+    private static OrderedProperties loadPropertiesFromInputStream(InputStream inputStream) {
         BufferedReader confReader = null;
         try {
             confReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
             OrderedProperties temp = new OrderedProperties();
             temp.load(confReader);
-            temp = BCC.check(temp);
+            return temp;
 
-            properties.putAll(temp);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             IOUtils.closeQuietly(confReader);
+        }
+    }
+
+    /**
+     * 1.load props from InputStream
+     * 2.trim all key-value
+     * 3.backward compatibility check
+     * 4.close the passed in inputStream
+     * @param inputStream
+     * @param properties
+     */
+    private static void loadAndTrimProperties(@Nonnull InputStream inputStream, @Nonnull OrderedProperties properties) {
+        Preconditions.checkNotNull(inputStream);
+        Preconditions.checkNotNull(properties);
+        try {
+            OrderedProperties trimProps = OrderedProperties.copyAndTrim(loadPropertiesFromInputStream(inputStream));
+            BCC.check(trimProps);
+            properties.putAll(trimProps);
+        } catch (Exception e) {
+            throw new KylinException(UNKNOWN_ERROR_CODE, " loadAndTrimProperties error ", e);
         }
     }
 

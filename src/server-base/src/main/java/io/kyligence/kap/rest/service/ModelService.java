@@ -3137,10 +3137,11 @@ public class ModelService extends BasicService {
             // affected by "kylin.cube.aggrgroup.is-base-cuboid-always-valid" config
             String affectProp = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
             String oldProp = copyForWrite.getOverrideProps().get(affectProp);
-            String newProp = overrideProps.get(affectProp);
-            boolean affectedByProp = !StringUtils.equals(oldProp, newProp);
 
             copyForWrite.setOverrideProps(overrideProps);
+            String newProp = copyForWrite.getOverrideProps().get(affectProp);
+
+            boolean affectedByProp = !StringUtils.equals(oldProp, newProp);
             if (affectedByProp && copyForWrite.getRuleBasedIndex() != null) {
                 val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), RuleBasedIndex.class);
                 newRule.setLastModifiedTime(System.currentTimeMillis());

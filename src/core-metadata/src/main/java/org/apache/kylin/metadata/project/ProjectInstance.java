@@ -282,10 +282,21 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         return overrideKylinProps;
     }
 
-    public void setOverrideKylinProps(LinkedHashMap<String, String> overrideKylinProps) {
-        if (overrideKylinProps == null) {
-            overrideKylinProps = new LinkedHashMap<>();
+    public void putOverrideKylinProps(String key, String value) {
+        overrideKylinProps.put(StringUtils.trim(key), StringUtils.trim(value));
+    }
+
+    public void replaceKeyOverrideKylinProps(String originKey, String destKey) {
+        String value = overrideKylinProps.get(originKey);
+        if (StringUtils.isNotEmpty(value)) {
+            overrideKylinProps.remove(originKey);
+            putOverrideKylinProps(destKey, value);
         }
+    }
+
+    public void setOverrideKylinProps(LinkedHashMap<String, String> overrideKylinProps) {
+
+        overrideKylinProps = KylinConfig.trimKVFromMap(overrideKylinProps);
         this.overrideKylinProps = overrideKylinProps;
         if (config != null) {
             this.config = KylinConfigExt.createInstance(config.base(), overrideKylinProps);

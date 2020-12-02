@@ -87,6 +87,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -556,6 +557,23 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl",
                 projectConfig2.getPushDownRunnerClassName());
         Assert.assertArrayEquals(converterClassNames, projectConfig2.getPushDownConverterClassNames());
+    }
+
+    @Test
+    public void testUpdateProjectConfig_trim() {
+
+        Map<String, String> testOverrideP = Maps.newLinkedHashMap();
+        testOverrideP.put(" testk1 ", " testv1 ");
+        testOverrideP.put("tes   tk2", "test    v2");
+        testOverrideP.put("      tes    tk3 ", "    t     estv3    ");
+
+        projectService.updateProjectConfig(PROJECT, testOverrideP);
+
+        val kylinConfigExt = projectManager.getProject(PROJECT).getConfig().getExtendedOverrides();
+
+        Assert.assertEquals("testv1", kylinConfigExt.get("testk1"));
+        Assert.assertEquals("test    v2", kylinConfigExt.get("tes   tk2"));
+        Assert.assertEquals("t     estv3", kylinConfigExt.get("tes    tk3"));
     }
 
     @Test

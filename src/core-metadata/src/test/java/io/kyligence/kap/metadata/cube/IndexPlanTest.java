@@ -368,6 +368,42 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testConfigOverride_trim() {
+        val indexPlanMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        val indexPlan = indexPlanMgr.getIndexPlanByModelAlias("nmodel_basic");
+
+        {
+            //test IndexPlan trim k-v
+            IndexPlan copy = indexPlanMgr.copy(indexPlan);
+            LinkedHashMap<String, String> overrideCopy = new LinkedHashMap<>(copy.getOverrideProps());
+            overrideCopy.put(" testkey ", " testvalue0 ");
+            indexPlanMgr.updateIndexPlan(indexPlan.getId(), new NIndexPlanManager.NIndexPlanUpdater() {
+                @Override
+                public void modify(IndexPlan copyForWrite) {
+                    copyForWrite.setOverrideProps(overrideCopy);
+                }
+            });
+            Assert.assertEquals("testvalue0",
+                    ((KylinConfigExt) indexPlanMgr.getIndexPlanByModelAlias("nmodel_basic").getConfig())
+                            .getExtendedOverrides().get("testkey"));
+        }
+
+        {
+            //test ProjectInstance trim k-v
+            NProjectManager pm = NProjectManager.getInstance(getTestConfig());
+            ProjectInstance p = pm.getProject(projectDefault);
+            ProjectInstance newP = pm.copyForWrite(p);
+            LinkedHashMap<String, String> overrideCopy = new LinkedHashMap<>(newP.getOverrideKylinProps());
+            overrideCopy.put(" testkey ", " testvalue2 ");
+            newP.setOverrideKylinProps(overrideCopy);
+            pm.updateProject(newP);
+
+            Assert.assertEquals("testvalue2",
+                    ((KylinConfigExt) indexPlan.getConfig()).getExtendedOverrides().get("testkey"));
+        }
+    }
+
+    @Test
     public void testGetAllIndexesWithRuleBasedAndAutoRecommendedLayout() throws IOException {
         var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/rule_based_and_auto_cube.json"),
                 IndexPlan.class);

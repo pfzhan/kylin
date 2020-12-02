@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -65,6 +65,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
+
+import javax.annotation.Nonnull;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Modified from the etiennestuder/java-ordered-properties in https://github.com/etiennestuder/java-ordered-properties
@@ -126,6 +132,27 @@ public final class OrderedProperties implements Serializable {
         // copy the properties from the source to the target
         for (Map.Entry<String, String> entry : source.entrySet()) {
             result.setProperty(entry.getKey(), entry.getValue());
+        }
+        return result;
+    }
+
+    /**
+     * copy a new instance that all k-v are trimed
+     * @param source
+     * @return
+     */
+    public static OrderedProperties copyAndTrim(@Nonnull OrderedProperties source) {
+        Preconditions.checkNotNull(source, "source cannot be null");
+        // create a copy that has the same behaviour
+        OrderedPropertiesBuilder builder = new OrderedPropertiesBuilder();
+        if (source.properties instanceof TreeMap) {
+            builder.withOrdering(((TreeMap<String, String>) source.properties).comparator());
+        }
+        OrderedProperties result = builder.build();
+
+        // copy the properties from the source to the target
+        for (Map.Entry<String, String> entry : source.entrySet()) {
+            result.setProperty(StringUtils.trim(entry.getKey()), StringUtils.trim(entry.getValue()));
         }
         return result;
     }
@@ -370,7 +397,8 @@ public final class OrderedProperties implements Serializable {
          * @return the new instance
          */
         public OrderedProperties build() {
-            Map<String, String> properties = (this.comparator != null) ? new TreeMap<String, String>(comparator) : new LinkedHashMap<String, String>();
+            Map<String, String> properties = (this.comparator != null) ? new TreeMap<>(comparator)
+                    : new LinkedHashMap<>();
             return new OrderedProperties(properties);
         }
 

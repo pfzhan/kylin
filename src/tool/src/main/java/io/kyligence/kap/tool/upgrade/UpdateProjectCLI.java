@@ -24,7 +24,6 @@
 package io.kyligence.kap.tool.upgrade;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -85,14 +84,7 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             // for upgrade, set project override properties
-            LinkedHashMap<String, String> overrideKylinProps = project.getOverrideKylinProps();
-            REPLACE_OVERRIDE_PROPERTIES_MAP.forEach((originKey, destKey) -> {
-                String value = overrideKylinProps.get(originKey);
-                if (StringUtils.isNotEmpty(value)) {
-                    overrideKylinProps.remove(originKey);
-                    overrideKylinProps.put(destKey, value);
-                }
-            });
+            REPLACE_OVERRIDE_PROPERTIES_MAP.forEach(project::replaceKeyOverrideKylinProps);
 
             // for upgrade, set default database
             if (StringUtils.isEmpty(project.getDefaultDatabase())) {
