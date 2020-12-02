@@ -1510,6 +1510,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.valueOf(this.getOptional("kylin.query.security.acl-tcr-enabled", TRUE));
     }
 
+    public boolean inferFiltersEnabled() {
+        return Boolean.valueOf(this.getOptional("kylin.job.infer-filters-enabled", FALSE));
+    }
+
     public boolean isEscapeDefaultKeywordEnabled() {
         return Boolean.valueOf(this.getOptional("kylin.query.escape-default-keyword", FALSE));
     }

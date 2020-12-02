@@ -27,13 +27,14 @@ import java.util.Objects
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
-import io.kyligence.kap.engine.spark.job.TableMetaManager
+import io.kyligence.kap.engine.spark.job.{FiltersUtil, TableMetaManager}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
 import io.kyligence.kap.metadata.model.NDataModel
 import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.commons.lang3.StringUtils
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model._
 import org.apache.spark.sql.functions.{col, expr}
@@ -115,6 +116,9 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     var flatTableDS = if (needJoin) {
       val lookupTableCCs = cleanComputedColumns(factTableCCs, fastFactTableDS.columns.toSet)
       val lookupTableDSMap = newLookupTableDS(lookupTableCCs)
+      if (inferFiltersEnabled) {
+        FiltersUtil.initFilters(tableDesc, lookupTableDSMap)
+      }
       val jointDS = joinFactTableWithLookupTables(fastFactTableDS, lookupTableDSMap, dataModel, sparkSession)
       withColumn(jointDS, factTableCCs)
     } else {
@@ -143,6 +147,10 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
         generateDimensionTableMeta(encodedLookupTableDSMap)
       }
       val allTableDS = Seq(encodedFactTableDS) ++ encodedLookupTableDSMap.values
+
+      if (inferFiltersEnabled) {
+        FiltersUtil.initFilters(tableDesc, encodedLookupTableDSMap)
+      }
 
       val jointDS = joinFactTableWithLookupTables(encodedFactTableDS, encodedLookupTableDSMap, dataModel, sparkSession)
       encodeWithCols(jointDS,
@@ -413,6 +421,9 @@ object SegmentFlatTable extends LogEx {
 
   import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 
+  private val conf = KylinConfig.getInstanceFromEnv
+  private val inferFiltersEnabled = conf.inferFiltersEnabled()
+
   def fulfillDS(originDS: Dataset[Row], cols: Set[TblColRef], tableRef: TableRef): Dataset[Row] = {
     // wrap computed columns, filter out valid columns
     val computedColumns = chooseSuitableCols(originDS, cols)
@@ -471,7 +482,11 @@ object SegmentFlatTable extends LogEx {
       } else {
         val condition = equiConditionColPairs.reduce(_ && _)
         logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
-        afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+        if (inferFiltersEnabled) {
+          afterJoin = afterJoin.join(FiltersUtil.inferFilters(pk, lookupDataset), condition, joinType)
+        } else {
+          afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+        }
       }
     }
     afterJoin

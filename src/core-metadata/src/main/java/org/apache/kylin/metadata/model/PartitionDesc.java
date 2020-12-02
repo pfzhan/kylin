@@ -133,7 +133,7 @@ public class PartitionDesc implements Serializable {
     }
 
     // for test
-    void setPartitionDateColumnRef(TblColRef partitionDateColumnRef) {
+    public void setPartitionDateColumnRef(TblColRef partitionDateColumnRef) {
         this.partitionDateColumnRef = partitionDateColumnRef;
     }
 

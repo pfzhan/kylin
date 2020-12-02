@@ -113,7 +113,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     if (lookupTablesGlobal.isEmpty) {
       val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
       lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
-      lookupTablesGlobal.foreach{ case (_, df) =>
+      lookupTablesGlobal.foreach { case (_, df) =>
         df.persist(StorageLevel.MEMORY_ONLY)
       }
     }
@@ -126,7 +126,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     val encodedDataset = encodeWithCols(batchDataset, ccCols, dictCols, encodeCols)
     val filterEncodedDataset = FlatTableHelper.applyFilterCondition(flatTable, encodedDataset, true)
 
-      flatTable match {
+    flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
         changeSchemeToColumnIndice(filterEncodedDataset, joined)
       case unsupported =>
@@ -143,8 +143,8 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     var rootFactDataset = generateTableDataset(model.getRootFactTable, ccCols.toSeq, model.getRootFactTable.getAlias, ss, sourceInfo)
     lazy val flatTableInfo = Map(
       "segment" -> seg,
-      "table"   -> model.getRootFactTable.getTableIdentity,
-      "join_lookup"-> needJoin,
+      "table" -> model.getRootFactTable.getTableIdentity,
+      "join_lookup" -> needJoin,
       "build_global_dictionary" -> needEncode
     )
     logInfo(s"Create a flat table: ${LogUtils.jsonMap(flatTableInfo)}")
@@ -172,6 +172,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
       case (true, false) =>
         val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
         val lookupTableDatasetMap = generateLookupTableDataset(model, cleanLookupCC, ss)
+
         rootFactDataset = joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap, model, ss)
         rootFactDataset = withColumn(rootFactDataset, ccCols)
       case (false, true) =>
@@ -180,14 +181,14 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
       case _ =>
     }
 
-    if(needEncode) {
+    if (needEncode) {
       // checkpoint dict after all encodeWithCols actions done
       DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => copied.setDictReady(true))
     }
 
     rootFactDataset = FlatTableHelper.applyFilterCondition(flatTable, rootFactDataset, true)
 
-      flatTable match {
+    flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
         changeSchemeToColumnIndice(rootFactDataset, joined)
       case unsupported =>
@@ -201,7 +202,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
                              dictCols: Set[TblColRef],
                              encodeCols: Set[TblColRef]): Dataset[Row] = {
     val ccDataset = withColumn(ds, ccCols)
-    if(seg.isDictReady) {
+    if (seg.isDictReady) {
       logInfo(s"Skip already built dict, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
     } else {
       buildDict(ccDataset, dictCols)
@@ -264,13 +265,14 @@ object CreateFlatTable extends LogEx {
     lookupTablePar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(lookupTablePar.size))
     lookupTablePar.foreach { case (joinTableDesc, dataset) =>
       val tableIdentity = joinTableDesc.getTable
-      logTime (s"count $tableIdentity") {
+      logTime(s"count $tableIdentity") {
         val rowCount = dataset.count()
         TableMetaManager.putTableMeta(tableIdentity, 0L, rowCount)
         logInfo(s"put meta table: $tableIdentity , count: ${rowCount}")
       }
     }
   }
+
   private def generateLookupTableDataset(model: NDataModel,
                                          cols: Seq[TblColRef],
                                          ss: SparkSession): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
@@ -332,10 +334,12 @@ object CreateFlatTable extends LogEx {
         val condition = equiConditionColPairs.reduce(_ && _)
         logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
         afterJoin = afterJoin.join(lookupDataset, condition, joinType)
+
       }
     }
     afterJoin
   }
+
   def changeSchemeToColumnIndice(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
     val structType = ds.schema
     val colIndices = flatTable.getIndices.asScala
