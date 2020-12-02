@@ -99,7 +99,6 @@ public class DFBuildJob extends SparkApplication {
 
     @Override
     protected void doExecute() throws Exception {
-        onInit();
         buildLayoutWithUpdate = new BuildLayoutWithUpdate();
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ","));
@@ -409,7 +408,7 @@ public class DFBuildJob extends SparkApplication {
             afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             toOrder = layout -> NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
         } else {
-            afterPrj = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg, nSpanningTree);
+            afterPrj = CuboidAggregator.agg(parent, dimIndexes, cuboid.getEffectiveMeasures(), seg, nSpanningTree);
             toOrder = layout -> NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet(),
                     layout.getOrderedMeasures().keySet());
         }
@@ -456,7 +455,6 @@ public class DFBuildJob extends SparkApplication {
         dataLayout.setPartitionValues(taskStats.partitionValues());
         dataLayout.setFileCount(taskStats.numFiles());
         dataLayout.setByteSize(taskStats.numBytes());
-        dataLayout.setReady(true);
         return dataLayout;
     }
 

@@ -32,6 +32,7 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import lombok.Data;
 
 @Data
@@ -55,4 +56,9 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
 
+    @JsonProperty("multi_partition_values")
+    private List<String[]> multiPartitionValues;
+
+    @JsonProperty("multi_partition_desc")
+    private MultiPartitionDesc multiPartitionDesc;
 }

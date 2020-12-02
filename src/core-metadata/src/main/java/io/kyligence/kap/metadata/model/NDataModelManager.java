@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -44,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -244,6 +246,27 @@ public class NDataModelManager {
         desc = saveDataModelDesc(copy);
 
         return desc;
+    }
+
+    public Set<Long> addPartitionsIfAbsent(NDataModel model, List<String[]> partitionValues) {
+        Preconditions.checkState(model.isMultiPartitionModel());
+        Set<Long> partitionIds = Sets.newHashSet();
+        NDataModel copy = copyForWrite(model);
+        AtomicLong maxPartitionId = new AtomicLong(copy.getMultiPartitionDesc().getMaxPartitionID());
+
+        partitionValues.forEach(value -> {
+            MultiPartitionDesc.PartitionInfo partition = copy.getMultiPartitionDesc().getPartitionByValue(value);
+            if (partition != null) {
+                partitionIds.add(partition.getId());
+            } else {
+                MultiPartitionDesc.PartitionInfo toAddPartition = new MultiPartitionDesc.PartitionInfo(maxPartitionId.incrementAndGet(), value);
+                copy.getMultiPartitionDesc().getPartitions().add(toAddPartition);
+                partitionIds.add(toAddPartition.getId());
+            }
+        });
+        copy.getMultiPartitionDesc().setMaxPartitionID(maxPartitionId.get());
+        crud.save(copy);
+        return partitionIds;
     }
 
     public NDataModel updateDataModel(String model, NDataModelUpdater updater) {

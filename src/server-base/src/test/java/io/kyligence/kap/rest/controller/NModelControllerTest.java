@@ -52,6 +52,7 @@ import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
@@ -78,6 +79,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
@@ -93,11 +95,15 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.PartitionsBuildRequest;
+import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
@@ -105,6 +111,7 @@ import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -867,4 +874,129 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nModelController).updateModelOwner(modelId, ownerChangeRequest);
     }
 
+    @Test
+    public void testBuildMultiPartition() throws Exception {
+        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
+        jobInfos.add(new JobInfoResponse.JobInfo(JobTypeEnum.SUB_PARTITION_BUILD.toString(),
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        JobInfoResponse response = new JobInfoResponse();
+        response.setJobs(jobInfos);
+        PartitionsBuildRequest param = new PartitionsBuildRequest();
+        param.setProject("default");
+        param.setSegmentId("73570f31-05a5-448f-973c-44209830dd01");
+        param.setPartitionValues(Lists.newArrayList());
+        Mockito.doReturn(new ModelSaveCheckResponse()).when(modelService).checkBeforeModelSave(Mockito.any());
+        Mockito.doReturn(new JobInfoResponse()).when(modelService).buildSegmentPartitionByValue(param.getProject(), "", param.getSegmentId(),
+                param.getPartitionValues(), param.isParallelBuildBySegment());
+        Mockito.doNothing().when(modelService).validateCCType(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(param))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testRefreshMultiPartition() throws Exception {
+        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
+        jobInfos.add(new JobInfoResponse.JobInfo(JobTypeEnum.SUB_PARTITION_REFRESH.toString(),
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        JobInfoResponse response = new JobInfoResponse();
+        response.setJobs(jobInfos);
+
+        PartitionsRefreshRequest param = new PartitionsRefreshRequest();
+        param.setProject("default");
+        param.setSegmentId("73570f31-05a5-448f-973c-44209830dd01");
+
+        Mockito.doReturn(response).when(modelService).refreshSegmentPartition(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders
+                .put("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(param))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testDeleteMultiPartition() throws Exception {
+        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
+        jobInfos.add(new JobInfoResponse.JobInfo(JobTypeEnum.SUB_PARTITION_REFRESH.toString(),
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        JobInfoResponse response = new JobInfoResponse();
+        response.setJobs(jobInfos);
+        Mockito.doReturn(response).when(modelService).refreshSegmentPartition(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders
+                .delete("/api/models/model_segments/multi_partition")
+                .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .param("project", "default")
+                .param("segment", "73570f31-05a5-448f-973c-44209830dd01")
+                .param("ids", new String[]{"1", "2"})
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetMultiPartition() throws Exception {
+        List<SegmentPartitionResponse> responses = Lists.newArrayList();
+        Mockito.doReturn(responses).when(modelService)
+                .getSegmentPartitions("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "73570f31-05a5-448f-973c-44209830dd01",
+                        Lists.newArrayList(), "last_modify_time", true);
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .param("project", "default")
+                .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .param("segment_id", "73570f31-05a5-448f-973c-44209830dd01")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testUpdateMultiPartitionMapping() throws Exception {
+        MultiPartitionMappingRequest request = new MultiPartitionMappingRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(modelService)
+                .updateMultiPartitionMapping(request.getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
+        mockMvc.perform(MockMvcRequestBuilders
+                .put("/api/models/{model}/multi_partition/mapping", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetMultiPartitionValues() throws Exception {
+        MultiPartitionMappingRequest request = new MultiPartitionMappingRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(modelService)
+                .updateMultiPartitionMapping(request.getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
+        mockMvc.perform(MockMvcRequestBuilders
+                .put("/api/models/{model}/multi_partition/mapping", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testAddMultiPartitionValues() throws Exception {
+        UpdateMultiPartitionValueRequest request = new UpdateMultiPartitionValueRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(modelService)
+                .addMultiPartitionValues(request.getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getValues());
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/models/{model}/multi_partition/values", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testDeleteMultiPartitionValuess() throws Exception {
+        Mockito.doNothing().when(modelService)
+                .deletePartitions("default", null, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Sets.newHashSet(1L, 2L));
+        mockMvc.perform(MockMvcRequestBuilders
+                .delete("/api/models/{model}/multi_partition/values", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .param("project", "default")
+                .param("ids", new String[]{"1", "2"})
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
 }

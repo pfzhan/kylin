@@ -61,6 +61,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.UserProjectPermissionResponse;
@@ -105,6 +106,7 @@ import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
@@ -127,6 +129,9 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @InjectMocks
     private final ProjectService projectService = Mockito.spy(ProjectService.class);
+
+    @InjectMocks
+    private final ModelService modelService = Mockito.spy(ModelService.class);
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
@@ -153,6 +158,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         ReflectionTestUtils.setField(projectService, "accessService", accessService);
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
@@ -226,15 +232,14 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(20, projectInstances.size());
-
+        Assert.assertEquals(21, projectInstances.size());
     }
 
     @Test
     public void testGetAdminProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getAdminProjects();
-        Assert.assertEquals(20, projectInstances.size());
+        Assert.assertEquals(21, projectInstances.size());
     }
 
     @Test
@@ -248,7 +253,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(20, projectInstances.size());
+        Assert.assertEquals(21, projectInstances.size());
 
     }
 
@@ -361,24 +366,13 @@ public class ProjectServiceTest extends ServiceTestBase {
             }
 
             if (projectInstance.getName().equalsIgnoreCase("gc_test")) {
-                // more info please refer to ProjectStorageInfoCollectorTest.testSimilarLayoutGcStrategy
-                NDataModel model = dataflowManager.listUnderliningDataModels().get(0);
-                //     OptimizeRecommendation optimizeRecommendation = OptimizeRecommendationManager
-                //             .getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
-                //             .getOptimizeRecommendation(model.getUuid());
-                //     List<LayoutRecommendationItem> layoutRecommendations = optimizeRecommendation
-                //             .getLayoutRecommendations();
-                //     // default index optimizer will not handle manual layouts.
-                //     Assert.assertEquals(2, layoutRecommendations.size());
-                //     layoutRecommendations.sort(Comparator.comparingLong(rec -> rec.getLayout().getId()));
-                //     Assert.assertEquals(70001L, layoutRecommendations.get(0).getLayout().getId());
-                //     Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(0).getRecommendationType());
-                //     Assert.assertEquals(80001L, layoutRecommendations.get(1).getLayout().getId());
-                //     Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(1).getRecommendationType());
                 continue;
             }
 
             for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
+                if(model.isMultiPartitionModel()) {
+                    continue;
+                }
                 NDataflow dataflow = dataflowManager.getDataflow(model.getId());
                 IndexPlan indexPlan = dataflow.getIndexPlan();
                 if (model.getId().equals(MODEL_ID)) {
@@ -562,6 +556,21 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl",
                 projectConfig2.getPushDownRunnerClassName());
         Assert.assertArrayEquals(converterClassNames, projectConfig2.getPushDownConverterClassNames());
+    }
+
+    @Test
+    public void testMultiPartitionConfig() {
+        val project = PROJECT;
+        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+        NDataflowManager dfm = NDataflowManager.getInstance(getTestConfig(), project);
+
+        MultiPartitionConfigRequest request1 = new MultiPartitionConfigRequest(true);
+        projectService.updateMultiPartitionConfig(project, request1, modelService);
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, dfm.getDataflow(modelId).getStatus());
+
+        MultiPartitionConfigRequest request2 = new MultiPartitionConfigRequest(false);
+        projectService.updateMultiPartitionConfig(project, request2, modelService);
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, dfm.getDataflow(modelId).getStatus());
     }
 
     @Test
@@ -883,7 +892,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         ProjectStatisticsResponse statisticsOfProjectDefault = projectService.getProjectStatistics(PROJECT);
         Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
-        Assert.assertEquals(18, statisticsOfProjectDefault.getTableSize());
+        Assert.assertEquals(20, statisticsOfProjectDefault.getTableSize());
         Assert.assertEquals(0, statisticsOfProjectDefault.getLastWeekQueryCount());
         Assert.assertEquals(0, statisticsOfProjectDefault.getUnhandledQueryCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getAdditionalRecPatternCount());
@@ -893,7 +902,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRecCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedAdditionalRecCount());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getApprovedRemovalRecCount());
-        Assert.assertEquals(6, statisticsOfProjectDefault.getModelSize());
+        Assert.assertEquals(7, statisticsOfProjectDefault.getModelSize());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getAcceptableRecSize());
         Assert.assertFalse(statisticsOfProjectDefault.isRefreshed());
         Assert.assertEquals(-1, statisticsOfProjectDefault.getMaxRecShowSize());

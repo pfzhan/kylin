@@ -96,11 +96,11 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         NDataSegment twoSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("2012-03-01")));
         Set<NDataSegment> segments = Sets.newHashSet(oneSeg, twoSeg);
         Set<LayoutEntity> layouts = Sets.newHashSet(df.getIndexPlan().getAllLayouts());
-        NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN");
+        NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN", null);
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
-        Assert.assertEquals(ResourceDetectBeforeCubingJob.class.getName(),
+        Assert.assertEquals(RDSegmentBuildJob.class.getName(),
                 resourceDetectStep.getSparkSubmitClassName());
 
         // launch the job

@@ -4,10 +4,10 @@
       <div>
         <el-alert
           :title="$t('changeBuildTypeTips')"
-          type="warning"
+          type="info"
+          :show-background="false"
           :closable="false"
-          class="ksd-mb-10"
-          v-if="isShowWarning"
+          class="ksd-mb-10 ksd-pl-2"
           show-icon>
         </el-alert>
         <div class="ksd-title-label-small ksd-mb-10">{{$t('chooseBuildType')}}</div>
@@ -87,6 +87,33 @@
               </el-col>
             </el-row>
             <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
+          </el-form-item>
+          <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table">
+            <span slot="label">
+              <span>{{$t('multilevelPartition')}}</span>
+              <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
+                <i class="el-icon-ksd-what"></i>
+              </el-tooltip>
+            </span>
+            <el-row>
+              <el-col :span="11">
+              <el-select
+                :disabled="isLoadingNewRange"
+                v-model="partitionMeta.multiPartition"
+                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                filterable
+                class="partition-multi-partition"
+                popper-class="js_multi-partition"
+                style="width:100%">
+                  <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
+                  <el-option :label="$t('noPartition')" value=""></el-option>
+                  <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                    <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
+                    <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
+                  </el-option>
+                </el-select>
+              </el-col>
+            </el-row>
           </el-form-item>
         </el-form>
         <div v-if="partitionMeta.table && partitionMeta.column && partitionMeta.format">
@@ -172,17 +199,47 @@
               </tr>
             </table>
           </div>
+          <div v-if="displaySubPartition">
+            <div class="ksd-title-label-small ksd-mt-10">{{$t('multiPartitionValue')}}</div>
+            <p class="sub-partition-alert"><i class="icon el-icon-info ksd-mr-5"></i>{{$t('subPartitionAlert')}}</p>
+            <arealabel
+              ref="selectSubPartition"
+              :class="['select-sub-partition', {'error-border': duplicateValueError}, 'ksd-mt-5']"
+              :duplicateremove="false"
+              splitChar=","
+              :selectedlabels="selectMultiPartitionValues"
+              :isNeedNotUpperCase="true"
+              :allowcreate="true"
+              :isSignSameValue="true"
+              :remoteSearch="true"
+              :labels="subPartitionOptions"
+              :placeholder="$t('multiPartitionPlaceholder')"
+              :remote-method="filterPartitions"
+              @duplicateTags="checkDuplicateValue"
+              @refreshData="refreshPartitionValues"
+              @removeTag="removeSelectedMultiPartition">
+            </arealabel>
+            <p class="duplicate-tips" v-if="duplicateValueError"><span class="error-msg">{{$t('duplicatePartitionValueTip')}}</span><span class="clear-value-btn" @click="removeDuplicateValue"><i class="el-icon-ksd-clear ksd-mr-5"></i>{{$t('removeDuplicateValue')}}</span></p>
+          </div>
         </div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
+        <!-- <div class="ksd-fleft" v-if="$store.state.project.multi_partition_enabled&&modelDesc.multi_partition_desc&&modelDesc.multi_partition_desc.columns.length">
+          <el-checkbox v-model="isMultipleBuild">
+            <span>{{$t('multipleBuild')}}</span>
+            <common-tip placement="top" :content="$t('multipleBuildTip')">
+              <span class='el-icon-ksd-what'></span>
+            </common-tip>
+          </el-checkbox>
+        </div> -->
         <el-button plain @click="closeModal(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <template v-if="isAddSegment">
           <el-button type="primary" plain :loading="btnLoading" @click="setbuildModel(false, 'onlySave')" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
-          <el-button type="primary" :loading="btnLoading" v-if="modelDesc.total_indexes" v-guide.setbuildModelRange @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndBuild')}}</el-button>
-          <el-button type="primary" :loading="btnLoading" v-else v-guide.setbuildModelRange @click="saveAndAddIndex" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndAddIndex')}}</el-button>
+          <el-button type="primary" :loading="btnLoading" v-if="modelDesc.total_indexes && !multiPartitionEnabled" v-guide.setbuildModelRange @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndBuild')}}</el-button>
+          <el-button type="primary" :loading="btnLoading" v-else-if="!multiPartitionEnabled" v-guide.setbuildModelRange @click="saveAndAddIndex" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndAddIndex')}}</el-button>
         </template>
         <template v-else>
-          <el-button type="primary" :loading="btnLoading" @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t(buildType)}}</el-button>
+          <el-button type="primary" :loading="btnLoading" @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad || duplicateValueError" size="medium">{{$t(buildType)}}</el-button>
         </template>
       </div>
     </el-dialog>
@@ -192,18 +249,22 @@
   import { Component, Watch } from 'vue-property-decorator'
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from 'store'
-  import { handleError, transToUTCMs, getGmtDateFromUtcLike, kapMessage } from 'util/business'
-  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, kapConfirm } from 'util/index'
+  import { handleError, transToUTCMs, getGmtDateFromUtcLike, kapMessage, postCloudUrlMessage } from 'util/business'
+  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, kapConfirm, split_array, getQueryString } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
   import { BuildIndexStatus } from 'config/model'
   import { dateFormats } from 'config'
+  import arealabel from '../../../../common/area_label.vue'
   import moment from 'moment'
 
   vuex.registerModule(['modals', 'ModelBuildModal'], store)
 
   @Component({
+    components: {
+      arealabel
+    },
     computed: {
       ...mapGetters([
         'currentSelectedProject',
@@ -212,6 +273,7 @@
       ...mapState('ModelBuildModal', {
         isShow: state => state.isShow,
         title: state => state.title,
+        source: state => state.source,
         type: state => state.type,
         isAddSegment: state => state.isAddSegment,
         buildOrComp: state => state.buildOrComp,
@@ -220,6 +282,9 @@
         modelDesc: state => state.form.modelDesc,
         modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
         callback: state => state.callback
+      }),
+      ...mapState({
+        multiPartitionEnabled: state => state.project.multi_partition_enabled
       })
     },
     methods: {
@@ -232,7 +297,8 @@
         fetchPartitionFormat: 'FETCH_PARTITION_FORMAT',
         updataModel: 'UPDATE_MODEL',
         autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
-        setModelPartition: 'MODEL_PARTITION_SET'
+        setModelPartition: 'MODEL_PARTITION_SET',
+        fetchSubPartitionValues: 'FETCH_SUB_PARTITION_VALUES'
       }),
       ...mapMutations('ModelBuildModal', {
         setModal: types.SET_MODAL,
@@ -268,12 +334,14 @@
     partitionMeta = {
       table: '',
       column: '',
-      format: ''
+      format: '',
+      multiPartition: ''
     }
     prevPartitionMeta = {
       table: '',
       column: '',
-      format: ''
+      format: '',
+      multiPartition: ''
     }
     partitionRules = {
       column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
@@ -283,6 +351,37 @@
     isExpand = true
     isShowWarning = false
     isWillAddIndex = false
+    inputMultiType = 'select'
+    multiPartitionValues = []
+    multiPartitionValueOptions = []
+    selectMultiPartitionValues = []
+    modelSubPartitionValues = []
+    isMultipleBuild = false
+    duplicateValueError = false
+    subPartitionOptions = []
+
+    @Watch('buildType')
+    changeBuildType (newVal, oldVal) {
+      newVal !== oldVal && (this.duplicateValueError = false)
+    }
+
+    toggleInputMultiPartition () {
+      this.inputMultiType = this.inputMultiType === 'select' ? 'textarea' : 'select'
+    }
+
+    get toggleText () {
+      return this.inputMultiType === 'select' ? this.$t('selectInput') : this.$t('batchInput')
+    }
+
+    get displaySubPartition () {
+      return this.source !== 'addSegment' && this.$store.state.project.multi_partition_enabled && this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns.length
+    }
+
+    refreshPartitionValues (val) {
+      this.multiPartitionValues = val
+    }
+
+    removeSelectedMultiPartition () {}
 
     toggleDetail () {
       this.showDetail = !this.showDetail
@@ -461,7 +560,7 @@
       }
     }
     @Watch('isShow')
-    initModelBuldRange () {
+    async initModelBuldRange () {
       if (this.isShow) {
         this.buildType = this.type
         this.buildOrComplete = this.buildOrComp
@@ -480,11 +579,24 @@
           this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
           this.partitionMeta.column = this.prevPartitionMeta.column = named[1]
           this.partitionMeta.format = this.prevPartitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+          this.partitionMeta.multiPartition = this.prevPartitionMeta.multiPartition = this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns[0] && this.modelDesc.multi_partition_desc.columns[0].split('.')[1] || ''
           this.isExpand = false
         } else {
           this.isExpand = true
         }
         this.isShowWarning = false
+        if (this.$store.state.project.multi_partition_enabled && this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns.length) {
+          try {
+            const res = await this.fetchSubPartitionValues({ project: this.currentSelectedProject, model_id: this.modelDesc.uuid })
+            const data = await handleSuccessAsync(res)
+            this.modelSubPartitionValues = data.map((p) => {
+              return p.partition_value[0]
+            })
+            this.subPartitionOptions = this.modelSubPartitionValues.slice(0, 50)
+          } catch (e) {
+            handleError(e)
+          }
+        }
       } else {
         this.modelBuildMeta.dataRangeVal = []
         this.resetForm()
@@ -494,9 +606,10 @@
       this.partitionMeta = {
         table: '',
         column: '',
-        format: ''
+        format: '',
+        multiPartition: ''
       }
-      this.prevPartitionMeta = { table: '', column: '', format: '' }
+      this.prevPartitionMeta = { table: '', column: '', format: '', multiPartition: '' }
       this.filterCondition = ''
       this.isLoadingSave = false
       this.isLoadingFormat = false
@@ -548,6 +661,7 @@
       this.errorSegments = []
       this.showDetail = false
       this.isWillAddIndex = false
+      this.multiPartitionValues = []
       this.resetError()
       this.hideModal()
       setTimeout(() => {
@@ -555,7 +669,8 @@
         this.resetModalForm()
       }, 200)
     }
-    _buildModel ({start, end, modelId, modelName, isBuild, partition_desc, segment_holes}) {
+    _buildModel ({start, end, modelId, modelName, isBuild, partition_desc, multi_partition_desc, multi_partition_values, segment_holes}) {
+      const partitionValuesArr = split_array(multi_partition_values, 1)
       this.buildModel({
         model_id: modelId,
         data: {
@@ -563,7 +678,10 @@
           end: end,
           build_all_indexes: isBuild,
           partition_desc: partition_desc,
+          multi_partition_values: partitionValuesArr,
           segment_holes: segment_holes || [],
+          // parallel_build_by_segment: this.isMultipleBuild,
+          multi_partition_desc,
           project: this.currentSelectedProject
         }
       }).then(() => {
@@ -580,7 +698,7 @@
               message: (
                 <div>
                   <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-                  <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+                  <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
                 </div>
               )
             })
@@ -624,7 +742,7 @@
             }
             const partition_desc = {}
             if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
-              if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
+              if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format || this.prevPartitionMeta.multiPartition !== this.partitionMeta.multiPartition) {
                 // await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
                 try {
                   await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
@@ -645,8 +763,9 @@
             // 如果切换分区列或者构建方式，会清空segment，不用检测
             const isChangePatition = this.prevPartitionMeta.table && (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format)
             const isChangeBuildType = !this.prevPartitionMeta.table && this.isHaveSegment
+            const multi_partition_desc = this.partitionMeta.multiPartition ? {columns: [this.partitionMeta.table + '.' + this.partitionMeta.multiPartition]} : null
             if (isChangePatition || isChangeBuildType) {
-              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc})
+              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues})
             } else {
               let res
               try {
@@ -694,19 +813,19 @@
                           return {start: seg.date_range_start, end: seg.date_range_end}
                         })
                         try {
-                          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
+                          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues, segment_holes: selectSegmentHoles})
                         } catch (e) {
                           handleError(e)
                         }
                       }
                     })
-                    this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc})
+                    this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues})
                   } catch (e) {
                     this.btnLoading = false
                     handleError(e)
                   }
                 } else {
-                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc})
+                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues})
                 }
               }
             }
@@ -743,7 +862,7 @@
                   message: (
                     <div>
                       <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-                      <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+                      <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
                     </div>
                   )
                 })
@@ -843,6 +962,25 @@
       }
       this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
     }
+    // 检测是否输入了重复的子分区值
+    checkDuplicateValue (type) {
+      this.duplicateValueError = type
+    }
+    removeDuplicateValue () {
+      this.$refs.selectSubPartition && this.$refs.selectSubPartition.clearDuplicateValue()
+    }
+
+    filterPartitions (query) {
+      this.subPartitionOptions = this.modelSubPartitionValues.filter(item => item.indexOf(query) >= 0).slice(0, 50)
+    }
+
+    jumpToJobs () {
+      if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+        postCloudUrlMessage(this.$route, { name: 'kapJob' })
+      } else {
+        this.$router.push('/monitor/job')
+      }
+    }
     created () {
       this.$on('buildModel', this._buildModel)
     }
@@ -881,6 +1019,40 @@
       border-top: 1px solid @line-border-color;
       margin-top: 10px;
       margin-bottom: 20px;
+    }
+    .area-input {
+      border: 1px solid @line-border-color3;
+      height: 60px;
+      overflow-y: auto;
+      margin-top: 5px;
+      .el-input__inner {
+        border: none;
+        padding: 0 26px 0 12px;
+      }
+      .el-select .el-input__suffix {
+        display: none;
+      }
+    }
+    .duplicate-tips {
+      font-size: 12px;
+      margin-top: 5px;
+      .clear-value-btn {
+        cursor: pointer;
+        color: @text-normal-color;
+      }
+    }
+    .sub-partition-alert {
+      font-size: 12px;
+      color: @text-title-color;
+      margin: 10px 0;
+      .icon {
+        color: @text-disabled-color;
+      }
+    }
+    .select-sub-partition.error-border {
+      .el-input__inner {
+        border-color: @error-color-1;
+      }
     }
   }
   .build-full-load-success {

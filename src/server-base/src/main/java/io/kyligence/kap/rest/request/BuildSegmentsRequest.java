@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -45,4 +46,7 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
+
+    @JsonProperty("multi_partition_values")
+    private List<String[]> multiPartitionValues;
 }

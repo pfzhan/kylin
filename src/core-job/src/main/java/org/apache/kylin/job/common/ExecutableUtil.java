@@ -45,172 +45,93 @@ package org.apache.kylin.job.common;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
-import lombok.extern.slf4j.Slf4j;
+import io.kyligence.kap.metadata.job.JobBucket;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
-import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  **/
 @Slf4j
-public class ExecutableUtil {
+public abstract class ExecutableUtil {
 
-    public static void computLayouts(JobParam jobParam) {
-        switch (jobParam.getJobTypeEnum()) {
-            case INDEX_BUILD:
-                computIndexLayouts(jobParam);
-                break;
-            case INDEX_MERGE:
-                computMergeLayouts(jobParam);
-                break;
-            case INDEX_REFRESH:
-                computRefreshLayouts(jobParam);
-                break;
-            case INC_BUILD:
-                computIncLayouts(jobParam);
-                break;
-            default:
-                log.warn("JobTypeEnum doesn't have matched function: {}", jobParam.getJobTypeEnum());
-                break;
+    final static Map<JobTypeEnum, ExecutableUtil> implementations = Maps.newHashMap();
+
+    static {
+        implementations.put(JobTypeEnum.INDEX_BUILD, new IndexBuildJobUtil());
+        implementations.put(JobTypeEnum.INDEX_MERGE, new MergeJobUtil());
+        implementations.put(JobTypeEnum.INDEX_REFRESH, new RefreshJobUtil());
+        implementations.put(JobTypeEnum.INC_BUILD, new SegmentBuildJobUtil());
+        implementations.put(JobTypeEnum.SUB_PARTITION_REFRESH, new RefreshJobUtil());
+        implementations.put(JobTypeEnum.SUB_PARTITION_BUILD, new PartitionBuildJobUtil());
+    }
+
+    public static void computeParams(JobParam jobParam) {
+        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject()).getDataModelDesc(jobParam.getModel());
+        if (model.isMultiPartitionModel()) {
+            jobParam.getCondition().put(JobParam.ConditionConstant.MULTI_PARTITION_JOB, true);
+        }
+        ExecutableUtil paramUtil = implementations.get(jobParam.getJobTypeEnum());
+        paramUtil.computeLayout(jobParam);
+        if (jobParam.isMultiPartitionJob()) {
+            paramUtil.computePartitions(jobParam);
         }
     }
 
-    public static void computRefreshLayouts(JobParam jobParam) {
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                .getDataflow(jobParam.getModel());
-        NDataSegment newSeg = df.getSegment(jobParam.getSegment());
-        List<NDataSegment> segments = df.getSegments().stream()
-                .filter(segment -> segment.getSegRange().startStartMatch(newSeg.getSegRange()))
-                .filter(segment -> segment.getSegRange().endEndMatch(newSeg.getSegRange()))
-                .filter(segment -> segment.getStatus().equals(SegmentStatusEnum.READY) || segment.getStatus().equals(SegmentStatusEnum.WARNING))
-                .collect(Collectors.toList());
-        if (segments.size() != 1) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
+    public static void computeJobBucket(JobParam jobParam) {
+        if(!jobParam.isMultiPartitionJob()){
+            return;
         }
-        HashSet<LayoutEntity> layouts = Sets.newHashSet();
-        val refreshAll = (Boolean) jobParam.getCondition().get(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS);
-        if(refreshAll) {
-            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                    .getIndexPlan(jobParam.getModel());
-            indexPlan.getAllLayouts().forEach(layout -> {
-                if (!layout.isToBeDeleted()) {
-                    layouts.add(layout);
-                }
-            });
-        } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
-        } else {
-            segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
+        if (CollectionUtils.isEmpty(jobParam.getTargetPartitions())) {
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
         }
-        jobParam.setProcessLayouts(layouts);
+        Set<JobBucket> buckets = Sets.newHashSet();
+        NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject());
+        NDataflow df = dfm.getDataflow(jobParam.getModel());
+
+        for (String targetSegment : jobParam.getTargetSegments()) {
+            NDataSegment segment = df.getSegment(targetSegment);
+            val bucketStart = new AtomicLong(segment.getMaxBucketId());
+            Set<Long> partitions;
+            // Different segments with different partitions will only happen in index build job.
+            if (jobParam.getJobTypeEnum().equals(JobTypeEnum.INDEX_BUILD)) {
+                partitions = segment.getAllPartitionIds();
+            } else {
+                partitions = jobParam.getTargetPartitions();
+            }
+            jobParam.getProcessLayouts().forEach(layout ->
+                    partitions.forEach(partition ->
+                            buckets.add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition)))
+            );
+            dfm.updateDataflow(df.getId(), copyForWrite -> copyForWrite.getSegment(targetSegment).setMaxBucketId(bucketStart.get()));
+        }
+        jobParam.setTargetBuckets(buckets);
     }
 
-    public static void computIncLayouts(JobParam jobParam) {
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                .getIndexPlan(jobParam.getModel());
-        final HashSet<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
-        val targetLayouts = jobParam.getTargetLayouts();
-
-        if (targetLayouts.isEmpty()) {
-            indexPlan.getAllLayouts().forEach(layout -> {
-                if (!layout.isToBeDeleted()) {
-                    toBeProcessedLayouts.add(layout);
-                }
-            });
-            jobParam.setProcessLayouts(toBeProcessedLayouts);
-        } else {
-            toBeProcessedLayouts.addAll(indexPlan.getAllLayouts());
-            HashSet target = new HashSet(jobParam.getTargetLayouts());
-            jobParam.setProcessLayouts(new HashSet<>(toBeProcessedLayouts.stream()
-                    .filter(layout -> target.contains(layout.getId())).collect(Collectors.toSet())));
-        }
-        if (CollectionUtils.isEmpty(jobParam.getProcessLayouts()) && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
-        }
+    public void computeLayout(JobParam jobParam) {
     }
 
-    public static void computIndexLayouts(JobParam jobParam) {
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                .getDataflow(jobParam.getModel());
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                .getIndexPlan(jobParam.getModel());
-        final HashSet<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
-        final HashSet<LayoutEntity> toBeDeletedLayouts = Sets.newLinkedHashSet();
-
-        var readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        if (readySegs.isEmpty()) {
-            log.warn("JobParam {} is no longer valid because no ready segment exists in target index_plan {}", jobParam,
-                    jobParam.getModel());
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
-        }
-        val mixLayouts = SegmentUtils.mixLayouts(readySegs);
-        var allLayouts = indexPlan.getAllLayouts();
-        val targetLayouts = jobParam.getTargetLayouts();
-
-        if (targetLayouts.isEmpty()) {
-            allLayouts.forEach(layout -> {
-                if (layout.isToBeDeleted()) {
-                    toBeDeletedLayouts.add(layout);
-                } else if (!mixLayouts.contains(layout.getId())) {
-                    toBeProcessedLayouts.add(layout);
-                }
-            });
-        } else {
-            allLayouts.forEach(layout -> {
-                long layoutId = layout.getId();
-                if (targetLayouts.contains(layoutId) && !mixLayouts.contains(layoutId)) {
-                    toBeProcessedLayouts.add(layout);
-                }
-            });
-        }
-        jobParam.setProcessLayouts(toBeProcessedLayouts);
-        jobParam.setDeleteLayouts(toBeDeletedLayouts);
-    }
-
-    public static void computMergeLayouts(JobParam jobParam) {
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                .getDataflow(jobParam.getModel());
-        NDataSegment newSeg = df.getSegment(jobParam.getSegment());
-        HashSet<LayoutEntity> layouts = Sets.newHashSet();
-        val oldSegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).stream()
-                .filter(seg -> seg.getSegRange().overlaps(newSeg.getSegRange()))
-                .collect(Collectors.toList());
-        if (oldSegs.size() == 0) {
-            log.warn("JobParam {} is no longer valid because no old segment ready", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
-        }
-
-        for (Map.Entry<Long, NDataLayout> cuboid : oldSegs.get(0).getLayoutsMap()
-                .entrySet()) {
-            layouts.add(cuboid.getValue().getLayout());
-        }
-        if (layouts.isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
-        }
-        jobParam.setProcessLayouts(layouts);
+    /**
+     * Only multi partition model
+     */
+    public void computePartitions(JobParam jobParam) {
     }
 }

@@ -16,6 +16,7 @@ export default {
       { "id": "model", "value": "modellist", "title": "modelList" },
       { "id": "index", "value": "index", "title": "Index" },
       { "id": "modelEdit", "value": "modeledit", "title": "Model Edit" },
+      { "id": "modelSubPartitionValues", "value": "modelsubpartitionvalues", "title": "Model SubPartition Values" },
       { "id": "snapshot", "value": "snapshot", "title": "Snapshot" },
       { "id": "monitor", "value": "monitor", "title": "Monitor" },
       { "id": "job", "value": "job", "title": "Job" },
@@ -84,6 +85,7 @@ export default {
     ],
     "modelActions": [
       { "id": "dataLoad" },
+      { "id": "manageSubPartitionValues" },
       { "id": "importMDX" },
       { "id": "exportTDS" },
       { "id": "exportMDX" },
@@ -151,10 +153,10 @@ export default {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
         { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic,systemCapacity]", "value": "admin,project,user,group,groupDetail,diagnostic,projectAuthority,systemCapacity" },
-        { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,snapshot,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,snapshot,monitor,job,admin" },
+        { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelSubPartitionValues,snapshot,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelSubPartitionValues,snapshot,monitor,job,admin" },
         { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin,projectAuthority" },
-        { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,snapshot,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,snapshot,monitor,job,admin" },
-        { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,snapshot,monitor,job" },
+        { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelSubPartitionValues,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelSubPartitionValues,snapshot,monitor,job,admin" },
+        { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,modelSubPartitionValues,snapshot,monitor,job" },
         { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,snapshot,index,monitor,job" },
         { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,snapshot,index" },
         { "key": "systemUser-default-*", "value": "dashboard" }
@@ -203,8 +205,8 @@ export default {
     "modelActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner" },
-        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner" },
+        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues" },
+        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues" },
         { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
         { "key": "systemUser-operation", "value": "purge,exportTDS" },
         { "key": "systemUser-read", "value": "exportTDS" }

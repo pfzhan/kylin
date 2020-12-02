@@ -36,8 +36,8 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
-public class SnapshotBuildingJob extends SparkApplication {
-    protected static final Logger logger = LoggerFactory.getLogger(SnapshotBuildingJob.class);
+public class SnapshotBuildJob extends SparkApplication {
+    protected static final Logger logger = LoggerFactory.getLogger(SnapshotBuildJob.class);
 
     @Override
     protected void doExecute() throws Exception {
@@ -52,8 +52,8 @@ public class SnapshotBuildingJob extends SparkApplication {
     }
 
     public static void main(String[] args) {
-        SnapshotBuildingJob snapshotBuildingJob = new SnapshotBuildingJob();
-        snapshotBuildingJob.execute(args);
+        SnapshotBuildJob snapshotBuildJob = new SnapshotBuildJob();
+        snapshotBuildJob.execute(args);
     }
 
 }

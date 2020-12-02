@@ -42,7 +42,9 @@
 
 package io.kyligence.kap.metadata.model;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 
 import java.io.Serializable;
 import java.util.ArrayDeque;
@@ -74,7 +76,6 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -226,16 +227,6 @@ public class NDataModel extends RootPersistentEntity {
     private List<Measure> allMeasures = new ArrayList<>(); // including deleted ones
 
     @EqualsAndHashCode.Include
-    @JsonProperty("column_correlations")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<ColumnCorrelation> colCorrs = new ArrayList<>();
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("multilevel_partition_cols")
-    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
-    private List<String> mpColStrs = Lists.newArrayList();
-
-    @EqualsAndHashCode.Include
     @JsonProperty("computed_columns")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
@@ -251,6 +242,13 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("handled_after_broken")
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean handledAfterBroken = false;
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("multi_partition_desc")
+    private MultiPartitionDesc multiPartitionDesc;
+
+    @JsonProperty("multi_partition_key_mapping")
+    private MultiPartitionKeyMappingImpl multiPartitionKeyMapping;
 
     // computed fields below
     private String project;
@@ -397,8 +395,6 @@ public class NDataModel extends RootPersistentEntity {
         this.capacity = other.capacity;
         this.allNamedColumns = other.allNamedColumns;
         this.allMeasures = other.allMeasures;
-        this.colCorrs = other.colCorrs;
-        this.mpColStrs = other.mpColStrs;
         this.computedColumnDescs = other.computedColumnDescs;
         this.managementType = other.managementType;
         this.segmentConfig = other.segmentConfig;
@@ -408,6 +404,7 @@ public class NDataModel extends RootPersistentEntity {
         this.configLastModifier = other.configLastModifier;
         this.configLastModified = other.configLastModified;
         this.semanticVersion = other.semanticVersion;
+        this.multiPartitionDesc = other.multiPartitionDesc;
     }
 
     public KylinConfig getConfig() {
@@ -554,7 +551,7 @@ public class NDataModel extends RootPersistentEntity {
         TableRef tableRef = findTable(table);
         TblColRef result = tableRef.getColumn(column.toUpperCase());
         if (result == null)
-            throw new RuntimeException(String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
+            throw new KylinException(COLUMN_NOT_EXIST, String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
                     String.format("%s.%s", table, column)));
         return result;
     }
@@ -610,7 +607,8 @@ public class NDataModel extends RootPersistentEntity {
                 result = tableNameMap.get(table.substring(endOfDatabaseName + 1));
             }
             if (result == null) {
-                throw new IllegalArgumentException("Table not found by " + table);
+                throw new KylinException(TABLE_NOT_EXIST,
+                        String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
             }
         }
         return result;
@@ -650,6 +648,8 @@ public class NDataModel extends RootPersistentEntity {
         reorderJoins(tables);
         initJoinsGraph();
         initPartitionDesc();
+        initMultiPartition();
+        initMultiPartitionKeyMapping();
         initFilterCondition();
         if (StringUtils.isEmpty(this.alias)) {
             this.alias = this.uuid;
@@ -736,6 +736,17 @@ public class NDataModel extends RootPersistentEntity {
     private void initPartitionDesc() {
         if (this.partitionDesc != null)
             this.partitionDesc.init(this);
+    }
+
+    private void initMultiPartition() {
+        if (this.multiPartitionDesc != null)
+            this.multiPartitionDesc.init(this);
+    }
+
+    private void initMultiPartitionKeyMapping() {
+        if (this.multiPartitionKeyMapping != null) {
+            this.multiPartitionKeyMapping.init(this);
+        }
     }
 
     //Check if the filter condition is illegal.
@@ -971,7 +982,6 @@ public class NDataModel extends RootPersistentEntity {
         init(config, tables);
 
         initComputedColumns(otherModels);
-        initMultilevelPartitionCols();
         this.effectiveCols = initAllNamedColumns(NamedColumn::isExist);
         this.effectiveDimensions = initAllNamedColumns(NamedColumn::isDimension);
         initAllMeasures();
@@ -1126,33 +1136,6 @@ public class NDataModel extends RootPersistentEntity {
         return effectiveCols.get(colId);
     }
 
-    private void initMultilevelPartitionCols() {
-        mpCols = Arrays.asList(new TblColRef[mpColStrs.size()]);
-        if (CollectionUtils.isEmpty(mpColStrs))
-            return;
-
-        StringUtil.toUpperCaseArray(mpColStrs, mpColStrs);
-
-        for (int i = 0; i < mpColStrs.size(); i++) {
-            mpCols.set(i, findColumn(mpColStrs.get(i)));
-            mpColStrs.set(i, mpCols.get(i).getIdentity());
-
-            DataType type = mpCols.get(i).getType();
-            if (!type.isNumberFamily() && !type.isStringFamily())
-                throw new IllegalStateException(
-                        "Multi-level partition column must be Number or String, but " + mpCols.get(i) + " is " + type);
-        }
-
-        checkMPColsBelongToModel(mpCols);
-    }
-
-    private void checkMPColsBelongToModel(List<TblColRef> tcr) {
-        Set<TblColRef> refSet = effectiveCols.values();
-        if (!refSet.containsAll(Sets.newHashSet(tcr))) {
-            throw new IllegalStateException("Primary partition column should inside of this model.");
-        }
-    }
-
     public void initComputedColumns(List<NDataModel> otherModels) {
         Preconditions.checkNotNull(otherModels);
 
@@ -1281,9 +1264,6 @@ public class NDataModel extends RootPersistentEntity {
         this.allMeasures = allMeasures;
     }
 
-    public List<ColumnCorrelation> getColCorrs() {
-        return colCorrs;
-    }
 
     public ImmutableMultimap<TblColRef, TblColRef> getFk2Pk() {
         return fk2Pk;
@@ -1415,5 +1395,9 @@ public class NDataModel extends RootPersistentEntity {
         List<Integer> columnIdList = columns.stream().map(NamedColumn::getId).collect(Collectors.toList());
         Preconditions.checkState(Ordering.natural().isOrdered(columnIdList),
                 "Unsorted named columns exception in process of proposing model.");
+    }
+
+    public boolean isMultiPartitionModel() {
+        return multiPartitionDesc != null && CollectionUtils.isNotEmpty(multiPartitionDesc.getColumns());
     }
 }

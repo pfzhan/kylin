@@ -6,7 +6,7 @@
   "join_tables": [
     {
       "table": "DEFAULT.TEST_ORDER",
-      "kind" : "FACT",
+      "kind" : "LOOKUP",
       "alias" : "TEST_ORDER",
       "join": {
         "type": "LEFT",

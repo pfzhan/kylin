@@ -44,7 +44,7 @@ public class MockResumeBuildJob extends DFBuildJob {
     }
 
     @Override
-    protected void onInit() {
+    protected void extraInit() {
         // for ut only
         if (Objects.isNull(config) || !config.isUTEnv()) {
             return;

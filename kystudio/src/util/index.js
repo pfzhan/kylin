@@ -256,6 +256,18 @@ export function objectArraySort (objArr, sequence, sortKey) {
   }
   return objectArr
 }
+// 拆分数组为子数组
+/* arr:['a', 'b', 'c', 'd']
+  result: [['a'], ['b'], ['c'], ['d']]
+*/
+export function split_array (arr, len) {
+  var a_len = arr.length
+  var result = []
+  for (var i = 0; i < a_len; i += len) {
+    result.push(arr.slice(i, i + len))
+  }
+  return result
+}
 // 对象数组按照另一个数组来排序 （废弃）
 /* export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
   var resultArr = []

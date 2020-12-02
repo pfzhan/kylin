@@ -24,24 +24,29 @@
 
 package org.apache.kylin.job.execution;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+
 import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.ManagementType;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
 
@@ -87,7 +92,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
     @Override
     public boolean checkSuicide() {
         try {
-            return !checkAnyTargetSegmentExists() || !checkAnyLayoutExists();
+            return !checkAnyTargetSegmentAndPartitionExists() || !checkAnyLayoutExists();
         } catch (Exception e) {
             return true;
         }
@@ -104,16 +109,33 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         return Stream.of(StringUtil.splitAndTrim(layouts, ",")).anyMatch(allLayoutIds::contains);
     }
 
-    private boolean checkTargetSegmentExists(String segmentId) {
+    private boolean checkTargetSegmentAndPartitionExists(String segmentId) {
         NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(getTargetModel());
         if (dataflow == null || dataflow.checkBrokenWithRelatedInfo()) {
             return false;
         }
         NDataSegment segment = dataflow.getSegment(segmentId);
-        return segment != null;
+        // segment is deleted or model multi partition
+        if (segment == null) {
+            return false;
+        }
+        if (dataflow.getModel().isMultiPartitionModel()) {
+            Set<Long> partitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId).collect(Collectors.toSet());
+            Set<Long> partitionInSegment = getPartitionsBySegment().get(segmentId);
+            if (partitionInSegment == null) {
+                logger.warn("Segment {} doesn't contain any partition in this job", segmentId);
+                return true;
+            }
+            for (long partition : partitionInSegment) {
+                if (!partitionIds.contains(partition)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
-    public boolean checkAnyTargetSegmentExists() {
+    public boolean checkAnyTargetSegmentAndPartitionExists() {
         List<String> topJobTargetSegments = getTargetSegments();
         AbstractExecutable parent = getParent();
         if (parent != null) {
@@ -121,8 +143,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         }
 
         Preconditions.checkState(!topJobTargetSegments.isEmpty());
-
-        return topJobTargetSegments.stream().anyMatch(this::checkTargetSegmentExists);
+        return topJobTargetSegments.stream().anyMatch(this::checkTargetSegmentAndPartitionExists);
     }
 
     public boolean checkCuttingInJobByModel() {
@@ -130,7 +151,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         if (parent == null) {
             parent = this;
         }
-        if (!JobTypeEnum.INDEX_BUILD.equals(parent.getJobType())) {
+        if (!JobParam.isBuildIndexJob(parent.getJobType())) {
             return false;
         }
         val model = ((DefaultChainedExecutableOnModel) parent).getTargetModel();

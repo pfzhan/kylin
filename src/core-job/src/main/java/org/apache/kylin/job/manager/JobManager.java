@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JO
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -49,6 +50,8 @@ import org.apache.kylin.metadata.model.Segments;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -123,7 +126,17 @@ public class JobManager {
 
     public String refreshSegmentJob(JobParam jobParam, boolean refreshAllLayouts) {
         jobParam.getCondition().put(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS, refreshAllLayouts);
-        jobParam.setJobTypeEnum(JobTypeEnum.INDEX_REFRESH);
+        NDataModel model = NDataModelManager.getInstance(config, project).getDataModelDesc(jobParam.getModel());
+        if (model.isMultiPartitionModel() && CollectionUtils.isNotEmpty(jobParam.getTargetPartitions())) {
+            jobParam.setJobTypeEnum(JobTypeEnum.SUB_PARTITION_REFRESH);
+        } else {
+            jobParam.setJobTypeEnum(JobTypeEnum.INDEX_REFRESH);
+        }
+        return addJob(jobParam);
+    }
+
+    public String buildPartitionJob(JobParam jobParam) {
+        jobParam.setJobTypeEnum(JobTypeEnum.SUB_PARTITION_BUILD);
         return addJob(jobParam);
     }
 
@@ -133,24 +146,26 @@ public class JobManager {
         }
         checkNotNull(project);
         jobParam.setProject(project);
-        ExecutableUtil.computLayouts(jobParam);
+        ExecutableUtil.computeParams(jobParam);
         AbstractJobHandler handler;
         switch (jobParam.getJobTypeEnum()) {
-        case INC_BUILD:
-            handler = new AddSegmentHandler();
-            break;
-        case INDEX_MERGE:
-            handler = new MergeSegmentHandler();
-            break;
-        case INDEX_BUILD:
-            handler = new AddIndexHandler();
-            break;
-        case INDEX_REFRESH:
-            handler = new RefreshSegmentHandler();
-            break;
-        default:
-            log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
-            return null;
+            case INC_BUILD:
+                handler = new AddSegmentHandler();
+                break;
+            case INDEX_MERGE:
+                handler = new MergeSegmentHandler();
+                break;
+            case INDEX_BUILD:
+            case SUB_PARTITION_BUILD:
+                handler = new AddIndexHandler();
+                break;
+            case INDEX_REFRESH:
+            case SUB_PARTITION_REFRESH:
+                handler = new RefreshSegmentHandler();
+                break;
+            default:
+                log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
+                return null;
         }
         handler.handle(jobParam);
         return jobParam.getJobId();

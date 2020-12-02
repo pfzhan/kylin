@@ -112,7 +112,7 @@ public class MockedDFBuildJob extends SparkApplication {
                 Dataset<Row> ds = ss.createDataFrame(Lists.newArrayList(), structType);
 
                 cuboids.forEach(layout -> {
-                    CuboidAggregator.agg(ss, ds, layout.getOrderedDimensions().keySet(),
+                    CuboidAggregator.agg(ds, layout.getOrderedDimensions().keySet(),
                             indexPlan.getEffectiveMeasures(), seg, nSpanningTree);
 
                     NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layout.getId());

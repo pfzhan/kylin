@@ -63,6 +63,12 @@ public class NDataSegmentResponse extends NDataSegment {
     @JsonProperty("index_count_total")
     private long indexCountTotal;
 
+    @JsonProperty("multi_partition_count")
+    private long multiPartitionCount;
+
+    @JsonProperty("multi_partition_count_total")
+    private long multiPartitionCountTotal;
+
     @JsonProperty("row_count")
     private long rowCount;
 
@@ -86,6 +92,10 @@ public class NDataSegmentResponse extends NDataSegment {
         storage = bytesSize;
         indexCount = segment.getLayoutSize();
         indexCountTotal = segment.getIndexPlan().getAllLayouts().size();
+        multiPartitionCount = segment.getMultiPartitions().size();
+        if (dataflow.getModel().getMultiPartitionDesc() != null) {
+            multiPartitionCountTotal = dataflow.getModel().getMultiPartitionDesc().getPartitions().size();
+        }
         rowCount = segment.getSegDetails().getTotalRowCount();
         setBytesSize(segment.getStorageBytesSize());
         getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
@@ -94,6 +104,7 @@ public class NDataSegmentResponse extends NDataSegment {
         setSourceBytesSize(segment.getSourceBytesSize());
         setLastBuildTime(segment.getLastBuildTime());
         setSegDetails(segment.getSegDetails());
+        setMaxBucketId(segment.getMaxBucketId());
     }
 
     /**

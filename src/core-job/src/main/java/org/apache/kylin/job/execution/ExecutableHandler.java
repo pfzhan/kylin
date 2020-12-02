@@ -36,7 +36,6 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -96,18 +95,17 @@ public abstract class ExecutableHandler implements IKeepNames {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject());
         val df = dfManager.getDataflow(getModelId());
-        boolean offlineManually = df.getIndexPlan().isOfflineManually();
-        boolean offlineScd = SCD2CondChecker.INSTANCE.isScd2Model(df.getModel()) && !prjManager.getConfig().isQueryNonEquiJoinModelEnabled();
+        boolean isOffline = dfManager.isOfflineModel(df);
         val status = df.getStatus();
         switch (status) {
             case ONLINE:
-                if (offlineManually || offlineScd) {
+                if (isOffline) {
                     dfManager.updateDataflow(df.getId(),
                             copyForWrite -> copyForWrite.setStatus(OFFLINE));
                 }
                 break;
             case OFFLINE:
-                if (!offlineManually && !offlineScd) {
+                if (!isOffline) {
                     dfManager.updateDataflow(df.getId(),
                             copyForWrite -> copyForWrite.setStatus(ONLINE));
                 }

@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,14 +37,21 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
 import org.spark_project.guava.collect.Sets;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.job.JobBucket;
+import lombok.val;
 
 public class NSparkCubingUtil {
 
@@ -73,11 +83,11 @@ public class NSparkCubingUtil {
     }
 
     public static Set<String> toIgnoredTableSet(String tableListStr) {
-        if(StringUtils.isBlank(tableListStr)){
-            return null;
+        if (StringUtils.isBlank(tableListStr)) {
+            return Sets.newLinkedHashSet();
         }
         Set<String> s = Sets.newLinkedHashSet();
-        s.addAll(Arrays.asList(StringSplitter.split(tableListStr,",")));
+        s.addAll(Arrays.asList(StringSplitter.split(tableListStr, ",")));
         return s;
 
     }
@@ -108,22 +118,23 @@ public class NSparkCubingUtil {
         return s;
     }
 
-    public static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> ids) {
-        Set<LayoutEntity> r = new LinkedHashSet<>();
-        for (Long id : ids) {
-            r.add(indexPlan.getCuboidLayout(id));
+    public static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> layouts) {
+        return layouts.stream().map(indexPlan::getCuboidLayout).filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    @SafeVarargs
+    public static Set<Integer> combineIndices(Set<Integer>... items) {
+        Set<Integer> combined = new LinkedHashSet<>();
+        for (Set<Integer> single : items) {
+            combined.addAll(single);
         }
-        return r;
+        return combined;
     }
 
-    public static Column[] getColumns(Set<Integer> indices1, Set<Integer> indices2) {
-        Set<Integer> ret = new LinkedHashSet<>();
-        ret.addAll(indices1);
-        ret.addAll(indices2);
-        return getColumns(ret);
-    }
-
-    public static Column[] getColumns(Set<Integer> indices) {
+    @SafeVarargs
+    public static Column[] getColumns(Set<Integer>... items) {
+        Set<Integer> indices = combineIndices(items);
         Column[] ret = new Column[indices.size()];
         int index = 0;
         for (Integer i : indices) {
@@ -133,25 +144,28 @@ public class NSparkCubingUtil {
         return ret;
     }
 
-    public static Column[] getColumns(List<Integer> indices) {
-        Column[] ret = new Column[indices.size()];
-        int index = 0;
-        for (Integer i : indices) {
-            ret[index] = new Column(String.valueOf(i));
-            index++;
-        }
-        return ret;
+    public static String getStoragePath(NDataSegment nDataSegment, Long layoutId, Long bucketId) {
+        String hdfsWorkingDir = KapConfig.wrap(nDataSegment.getConfig()).getMetadataWorkingDirectory();
+        return hdfsWorkingDir + getStoragePathWithoutPrefix(nDataSegment.getProject(),
+                nDataSegment.getDataflow().getId(), nDataSegment.getId(), layoutId, bucketId);
     }
 
     public static String getStoragePath(NDataSegment nDataSegment, Long layoutId) {
-        String hdfsWorkingDir = KapConfig.wrap(nDataSegment.getConfig()).getMetadataWorkingDirectory();
-        return hdfsWorkingDir + getStoragePathWithoutPrefix(nDataSegment.getProject(),
-                nDataSegment.getDataflow().getId(), nDataSegment.getId(), layoutId);
+        return getStoragePath(nDataSegment, layoutId, null);
     }
 
     public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId,
             long layoutId) {
-        return project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
+        return getStoragePathWithoutPrefix(project, dataflowId, segmentId, layoutId, null);
+    }
+
+    public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId, long layoutId,
+            Long bucketId) {
+        if (bucketId == null) {
+            return project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
+        } else {
+            return project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId + "/" + bucketId;
+        }
     }
 
     private static final Pattern DOT_PATTERN = Pattern.compile("\\b([\\w`]+)\\.([\\w`]+)\\b");
@@ -207,5 +221,12 @@ public class NSparkCubingUtil {
 
     public static String convertToDot(String withoutDot) {
         return withoutDot.replace(SEPARATOR, ".");
+    }
+
+    public static Map<Long, LayoutEntity> toLayoutMap(IndexPlan indexPlan, Set<Long> layoutIds) {
+        val layouts = toLayouts(indexPlan, layoutIds).stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, LayoutEntity> map = Maps.newHashMap();
+        layouts.forEach(layout -> map.put(layout.getId(), layout));
+        return map;
     }
 }

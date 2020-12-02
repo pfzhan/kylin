@@ -230,7 +230,10 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     SNAPSHOT_MANAGEMENT_NOT_ENABLED("KE-10033002"),
 
     // 10034xx acl
-    ACL_DEPENDENT_COLUMN_PARSE_ERROR("KE-10034001");
+    ACL_DEPENDENT_COLUMN_PARSE_ERROR("KE-10034001"),
+
+    // 10034xxx multi partition column
+    INVALID_MULTI_PARTITION_MAPPING_REQUEST("KE-10035001");
 
     private final ErrorCode errorCode;
 

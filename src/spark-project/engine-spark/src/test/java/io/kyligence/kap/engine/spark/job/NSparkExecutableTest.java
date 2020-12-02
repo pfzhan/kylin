@@ -56,7 +56,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.util.Random;
 import java.util.UUID;
 
@@ -86,15 +85,13 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
         MockSparkTestExecutable executable = new MockSparkTestExecutable();
         executable.setMetaUrl(path);
         executable.setProject("default");
-        Assert.assertEquals(6, executable.getMetadataDumpList(config).size());
+        Assert.assertEquals(7, executable.getMetadataDumpList(config).size());
         NDataModel model = modelManager.getDataModelDesc("82fa7671-a935-45f5-8779-85703601f49a");
         for (int i = 0; i < 10; i++) {
             new Thread(new AddModelRunner(model)).start();
         }
         executable.attachMetadataAndKylinProps(config);
         Assert.assertEquals(2, junitFolder.listFiles().length);
-        File modelFiles = new File(path + "/default/model_desc");
-        Assert.assertTrue(modelFiles.listFiles().length % 3 == 0);
     }
 
     class AddModelRunner implements Runnable {

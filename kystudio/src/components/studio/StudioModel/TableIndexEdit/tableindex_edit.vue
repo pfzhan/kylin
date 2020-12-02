@@ -79,8 +79,8 @@
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
   import { BuildIndexStatus } from 'config/model'
-  import { handleError, kapMessage, handleSuccess, kapConfirm } from 'util/business'
-  import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray } from 'util/index'
+  import { handleError, kapMessage, handleSuccess, kapConfirm, postCloudUrlMessage } from 'util/business'
+  import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray, getQueryString } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -357,7 +357,7 @@
             message: (
               <div>
                 <span>{tipMsg}</span>
-                <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+                <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
               </div>
             )
           })
@@ -447,6 +447,14 @@
       this.allColumns = [...selectedColumns, ...unSelected]
       selectedColumns.length === this.allColumns.length && (this.isSelectAllTableIndex = true)
       unSelected.length === this.allColumns.length && (this.isSelectAllTableIndex = false)
+    }
+    // 跳转至job页面
+    jumpToJobs () {
+      if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+        postCloudUrlMessage(this.$route, { name: 'kapJob' })
+      } else {
+        this.$router.push('/monitor/job')
+      }
     }
   }
 </script>

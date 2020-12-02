@@ -37,6 +37,7 @@ class NModel {
       partition_date_start: 0,
       partition_type: 'APPEND'
     }
+    this.multi_partition_desc = options.multi_partition_desc || null
     this.his_partition_desc = Object.assign({}, options.partition_desc)
     this.simplified_dimensions = options.simplified_dimensions || []
     this.simplified_dimensions.forEach((col) => {
@@ -389,6 +390,7 @@ class NModel {
         metaData.last_modified = this.last_modified
         metaData.filter_condition = this.filter_condition
         metaData.partition_desc = this.partition_desc
+        metaData.multi_partition_desc = this.multi_partition_desc
         metaData.maintain_model_type = this._mount.maintain_model_type
         metaData.management_type = this.management_type
         metaData.canvas = this._generateTableRectData()

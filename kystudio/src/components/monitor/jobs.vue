@@ -276,7 +276,7 @@
                   </div>
                 </div>
                 <div class="timeline-footer">
-                  
+
                   <!-- <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i> -->
                   <common-tip :content="$t('sparkJobTip')" v-if="step.info">
                     <a :href="step.info.yarn_application_tracking_url" target="_blank" v-if="!$store.state.config.platform || ($store.state.config.platform === 'iframe' && step.step_status === 'RUNNING')">
@@ -449,6 +449,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       INDEX_BUILD: 'Build Index',
       INC_BUILD: 'Load Data',
       TABLE_SAMPLING: 'Sample Table',
+      SUB_PARTITION_REFRESH: 'Refresh Subpartition',
+      SUB_PARTITION_BUILD: 'Build Subpartition',
       SNAPSHOT_BUILD: 'Build Snapshot',
       SNAPSHOT_REFRESH: 'Refresh Snapshot',
       project: 'Project',
@@ -542,6 +544,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       INDEX_BUILD: '构建索引',
       INC_BUILD: '加载数据',
       TABLE_SAMPLING: '抽样表数据',
+      SUB_PARTITION_BUILD: '加载子分区数据',
+      SUB_PARTITION_REFRESH: '刷新子分区数据',
       SNAPSHOT_BUILD: '构建快照',
       SNAPSHOT_REFRESH: '刷新快照',
       project: '项目',
@@ -610,7 +614,7 @@ export default class JobsList extends Vue {
   jobsList = []
   jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
-  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH']
+  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SUB_PARTITION_BUILD', 'SUB_PARTITION_REFRESH']
   tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH']
   targetId = ''
   searchLoading = false

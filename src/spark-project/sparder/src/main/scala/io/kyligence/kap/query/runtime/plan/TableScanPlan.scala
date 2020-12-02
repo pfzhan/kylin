@@ -21,9 +21,10 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import java.util
 import java.util.concurrent.ConcurrentHashMap
+import java.{lang, util}
 
+import com.google.common.base.Joiner
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
@@ -71,6 +72,7 @@ object TableScanPlan extends LogEx {
     val dataflow = olapContext.realization.asInstanceOf[NDataflow]
     val cuboidDF = {
       val prunedSegments = olapContext.storageContext.getPrunedSegments
+      val prunedPartitionMap = olapContext.storageContext.getPrunedPartitions
       olapContext.resetSQLDigest()
       val context = olapContext.storageContext
       val cuboidLayout = context.getCandidate.getCuboidLayout
@@ -84,12 +86,10 @@ object TableScanPlan extends LogEx {
       val kapConfig = KapConfig.wrap(dataflow.getConfig)
       val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)
       val fileList = prunedSegments.asScala.map(
-        seg => toCuboidPath(dataflow, cuboidLayout.getId, basePath, seg)
+        seg => toLayoutPath(dataflow, cuboidLayout.getId, basePath, seg, prunedPartitionMap)
       )
       val path = fileList.mkString(",") + olapContext.isFastBitmapEnabled
-      lazy val segmentIDs = LogUtils.jsonArray(prunedSegments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
-      logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
-      logInfo(s"size is ${cacheDf.get().size()}")
+      printLogInfo(basePath, dataflow.getId, cuboidLayout.getId, prunedSegments, prunedPartitionMap)
 
       val cached = cacheDf.get().getOrDefault(path, null)
       var df = if (cached != null && !cached.sparkSession.sparkContext.isStopped) {
@@ -97,14 +97,19 @@ object TableScanPlan extends LogEx {
         cached
       } else {
         import io.kyligence.kap.query.implicits._
-        val segmentIdsCombined = prunedSegments.asScala.map(
-          seg => seg.getId
-        ).mkString(",")
+        val pruningInfo = prunedSegments.asScala.map { seg =>
+          if (prunedPartitionMap != null) {
+            val partitions = prunedPartitionMap.get(seg.getId)
+            seg.getId + ":" + Joiner.on("|").join(partitions)
+          } else {
+            seg.getId
+          }
+        }.mkString(",")
         val newDf = session.kylin
           .format("parquet")
           .option("parquet.filter.columnindex.enabled", "false")
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
-          .cuboidTable(dataflow, cuboidLayout, segmentIdsCombined)
+          .cuboidTable(dataflow, cuboidLayout, pruningInfo)
           .toDF(columnNames: _*)
         logInfo(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, newDf)
@@ -167,8 +172,33 @@ object TableScanPlan extends LogEx {
     cuboidDF
   }
 
-  def toCuboidPath(dataflow: NDataflow, cuboidId: Long, basePath: String, seg: NDataSegment): String = {
+  def toLayoutPath(dataflow: NDataflow, cuboidId: Long, basePath: String, seg: NDataSegment): String = {
     s"$basePath${dataflow.getUuid}/${seg.getId}/$cuboidId"
+  }
+
+  def toLayoutPath(dataflow: NDataflow, layoutId: Long, basePath: String, seg: NDataSegment, partitionsMap: util.Map[String, util.List[lang.Long]]): List[String] = {
+    if (partitionsMap == null) {
+      List(toLayoutPath(dataflow, layoutId, basePath, seg))
+    } else {
+      partitionsMap.get(seg.getId).asScala.map(part => {
+        val bucketId = dataflow.getSegment(seg.getId).getBucketId(layoutId, part)
+        val childDir = if (bucketId == null) part else bucketId
+        toLayoutPath(dataflow, layoutId, basePath, seg) + "/" + childDir
+      }).toList
+    }
+  }
+
+  def printLogInfo(basePath: String, dataflowId: String, cuboidId: Long, prunedSegments: util.List[NDataSegment], partitionsMap: util.Map[String, util.List[lang.Long]]) {
+    if (partitionsMap == null) {
+      val segmentIDs = LogUtils.jsonArray(prunedSegments.asScala)(e => s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
+      logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflowId}","segments":$segmentIDs,"layout": ${cuboidId}""")
+    } else {
+      val prunedSegmentInfo = partitionsMap.asScala.map { case (segmentId, partitionList) => {
+        "[" + segmentId + ": " + partitionList.asScala.mkString(",") + "]"
+      } }.mkString(",")
+      logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflowId}","segments":{$prunedSegmentInfo},"layout": ${cuboidId}""")
+    }
+    logInfo(s"size is ${cacheDf.get().size()}")
   }
 
   private def processTopN(topNMetric: FunctionDesc, df: DataFrame, topNFieldIndex: Int, tupleInfo: TupleInfo, tableName: String): (DataFrame, Map[Int, Column]) = {
@@ -253,9 +283,9 @@ object TableScanPlan extends LogEx {
 
   // copy from NCubeTupleConverter
   def getTupleIdx(
-    selectedDimensions: util.Set[TblColRef],
-    selectedMetrics: util.Set[FunctionDesc],
-    tupleInfo: TupleInfo): Array[Int] = {
+                   selectedDimensions: util.Set[TblColRef],
+                   selectedMetrics: util.Set[FunctionDesc],
+                   tupleInfo: TupleInfo): Array[Int] = {
     var tupleIdx: Array[Int] =
       new Array[Int](selectedDimensions.size + selectedMetrics.size)
 
@@ -334,8 +364,8 @@ object TableScanPlan extends LogEx {
   }
 
   private def expandDerived(
-    layoutCandidate: NLayoutCandidate,
-    cols: util.Collection[TblColRef]): util.Set[TblColRef] = {
+                             layoutCandidate: NLayoutCandidate,
+                             cols: util.Collection[TblColRef]): util.Set[TblColRef] = {
     val expanded = new util.HashSet[TblColRef]
     cols.asScala.foreach(
       col => {

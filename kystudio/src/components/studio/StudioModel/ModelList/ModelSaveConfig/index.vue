@@ -9,7 +9,7 @@
     @close="isShow && handleClose(false)"
     :close-on-press-escape="false"
     :close-on-click-modal="false">
-    <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div>
+    <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
     <div class="partition-set ksd-mb-10" v-if="mode === 'saveModel'">
       <el-alert
         :title="$t('changeBuildTypeTips')"
@@ -34,7 +34,8 @@
       </el-alert>
     </div>
     <el-form v-if="mode === 'saveModel'&&buildType=== 'incremental'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
-      <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
+      <div class="ksd-title-label ksd-mb-10">{{$t('partitionSet')}}</div>
+      <el-form-item :label="$t('partitionDateTable')" class="clearfix">
         <el-row :gutter="5">
           <el-col :span="12">
             <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
@@ -42,7 +43,11 @@
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-col>
-          <el-col :span="12" v-if="partitionMeta.table">
+        </el-row>
+      </el-form-item>
+      <el-form-item  :label="$t('partitionDateColumn')" v-if="partitionMeta.table">
+        <el-row :gutter="5">
+          <el-col :span="11" v-if="partitionMeta.table">
             <el-form-item prop="column">
               <el-select
                 :disabled="isLoadingNewRange"
@@ -61,11 +66,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-      </el-form-item>
-      <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
-        <el-row :gutter="5">
-          <el-col :span="12">
+          <el-col :span="11">
             <el-select
               :disabled="isLoadingFormat"
               v-guide.partitionColumnFormat
@@ -78,7 +79,7 @@
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="1">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
               <div style="display: inline-block;">
                 <el-button
@@ -95,27 +96,61 @@
         </el-row>
         <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
       </el-form-item>
+      <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table">
+        <span slot="label">
+          <span>{{$t('multilevelPartition')}}</span>
+          <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
+        </span>
+        <el-row>
+          <el-col :span="11">
+           <el-select
+                :disabled="isLoadingNewRange"
+                v-model="partitionMeta.multiPartition"
+                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                filterable
+                class="partition-multi-partition"
+                popper-class="js_multi-partition"
+                style="width:100%">
+                <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
+                <el-option :label="$t('noPartition')" value=""></el-option>
+                <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                  <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
+                  <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
+                </el-option>
+              </el-select>
+          </el-col>
+        </el-row>
+      </el-form-item>
     </el-form>
     <template v-if="mode === 'saveModel'">
-      <div class="divider"></div>
-      <div class="ksd-title-label ksd-mb-10">
-        {{$t('dataFilterCond')}}
-        <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
-          <i class="el-icon-ksd-what"></i>
-        </el-tooltip>
+      <div class="divide-block">
+        <div class="divider"></div>
+        <span v-if="isExpand" @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-icon-ksd-more_01-copy arrow"></i></span>
+        <span v-else @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-icon-ksd-more_02 arrow"></i></span>
       </div>
-      <el-alert
-        :title="$t('filterCondTips')"
-        type="warning"
-        :closable="false"
-        :show-background="false"
-        style="padding-top:0px;"
-        show-icon>
-      </el-alert>
-      <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" width="99.6%" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
-      <div class="error-msg-box ksd-mt-10" v-if="filterErrorMsg">
-        <div class="error-tag">{{$t('errorMsg')}}</div>
-        <div v-html="filterErrorMsg"></div>
+      <div v-show="isExpand">
+        <!-- <div class="divider"></div> -->
+        <div class="ksd-title-label ksd-mb-10">
+          {{$t('dataFilterCond')}}
+          <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
+        </div>
+        <el-alert
+          :title="$t('filterCondTips')"
+          type="warning"
+          :closable="false"
+          :show-background="false"
+          style="padding-top:0px;"
+          show-icon>
+        </el-alert>
+        <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" width="99.6%" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
+        <div class="error-msg-box ksd-mt-10" v-if="filterErrorMsg">
+          <div class="error-tag">{{$t('errorMsg')}}</div>
+          <div v-html="filterErrorMsg"></div>
+        </div>
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
@@ -196,7 +231,8 @@ export default class ModelPartitionModal extends Vue {
   partitionMeta = {
     table: '',
     column: '',
-    format: ''
+    format: '',
+    multiPartition: ''
   }
   timeDataType = timeDataType
   rules = {
@@ -211,11 +247,17 @@ export default class ModelPartitionModal extends Vue {
   prevPartitionMeta = {
     table: '',
     column: '',
-    format: ''
+    format: '',
+    multiPartition: ''
   }
   buildType = 'incremental'
   isShowWarning = false
   importantChange = false
+  isExpand = false
+
+  toggleShowPartition () {
+    this.isExpand = !this.isExpand
+  }
   get disabledSave () {
     if (this.buildType === 'incremental' && this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format || this.buildType === 'fullLoad') {
       return false
@@ -395,6 +437,7 @@ export default class ModelPartitionModal extends Vue {
         this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
         this.partitionMeta.column = this.prevPartitionMeta.column = named[1]
         this.partitionMeta.format = this.prevPartitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+        this.partitionMeta.multiPartition = this.prevPartitionMeta.multiPartition = this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns[0] && this.modelDesc.multi_partition_desc.columns[0].split('.')[1] || ''
       } else {
         this.partitionMeta.table = this.partitionTables[0].alias // 默认增量构建选择事实表
       }
@@ -416,6 +459,7 @@ export default class ModelPartitionModal extends Vue {
   partitionTableChange () {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
+    this.partitionMeta.multiPartition = ''
     // this.$refs.partitionForm.validate()
   }
   // partitionColumnChange () {
@@ -426,9 +470,10 @@ export default class ModelPartitionModal extends Vue {
     this.partitionMeta = {
       table: '',
       column: '',
-      format: ''
+      format: '',
+      multiPartition: ''
     }
-    this.prevPartitionMeta = { table: '', column: '', format: '' }
+    this.prevPartitionMeta = { table: '', column: '', format: '', multiPartition: '' }
     this.filterCondition = ''
     this.isLoadingSave = false
     this.isLoadingFormat = false
@@ -440,7 +485,7 @@ export default class ModelPartitionModal extends Vue {
   }
 
   get isChangePartition () {
-    return (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) && this.buildType === 'incremental'
+    return (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format || this.prevPartitionMeta.multiPartition !== this.partitionMeta.multiPartition) && this.buildType === 'incremental'
   }
 
   async savePartitionConfirm () {
@@ -495,6 +540,14 @@ export default class ModelPartitionModal extends Vue {
       this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
     } else {
       this.modelDesc.partition_desc.partition_date_column = ''
+    }
+    if (this.partitionMeta.multiPartition) {
+      this.modelDesc.multi_partition_desc = {
+        ...this.modelInstance.multi_partition_desc || {},
+        columns: [this.partitionMeta.table + '.' + this.partitionMeta.multiPartition]
+      }
+    } else {
+      this.modelDesc.multi_partition_desc = null
     }
     this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
     this.modelDesc.filter_condition = this.filterCondition
@@ -587,9 +640,26 @@ export default class ModelPartitionModal extends Vue {
       color: @error-color-1;
     }
   }
-  .divider {
-    margin: 15px 0;
-    border-bottom: 1px solid @line-split-color;
+  .divide-block {
+    color: @base-color;
+    position: relative;
+    text-align: center;
+    margin-top: 5px;
+    span {
+      cursor: pointer;
+    }
+    .arrow {
+      transform: rotate(90deg);
+      margin-left: 3px;
+      font-size: 5px;
+      color: @base-color;
+      position: absolute;
+      top: 15px;
+    }
+    .divider {
+      margin: 10px 0;
+      border-bottom: 1px solid @line-split-color;
+    }
   }
   .item-desc {
     font-size: 12px;

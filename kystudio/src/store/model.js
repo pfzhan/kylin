@@ -226,17 +226,41 @@ export default {
       }
       return api.model.fetchSegments(params.modelName, paraData)
     },
+    [types.BUILD_SUB_PARTITIONS] ({ commit }, params) {
+      return api.model.buildSubPartitions(params)
+    },
+    [types.FETCH_SUB_PARTITIONS] ({ commit }, params) {
+      return api.model.fetchSubPartitions(params)
+    },
+    [types.DELETE_SUB_PARTITION] ({ commit }, params) {
+      return api.model.deleteSubPartition(params)
+    },
+    [types.REFRESH_SUB_PARTITION] ({ commit }, params) {
+      return api.model.refreshSubPartition(params)
+    },
     [types.FETCH_CUBOID] ({ commit }, params) {
       return api.model.fetchCuboid(params.modelId, params.projectName, params.cuboidId)
     },
     [types.FETCH_CUBOIDS] ({ commit }, params) {
       return api.model.fetchCuboids(params.modelId, params.projectName)
     },
+    [types.FETCH_SUB_PARTITION_VALUES] ({ commit }, params) {
+      return api.model.fetchSubPartitionValues(params)
+    },
+    [types.ADD_PARTITION_VALUES] ({ commit }, params) {
+      return api.model.addPartitionValues(params)
+    },
+    [types.DELETE_PARTITION_VALUES] ({ commit }, params) {
+      return api.model.deletePartitionValues(params)
+    },
     [types.REFRESH_SEGMENTS] ({ commit }, params) {
       return api.model.refreshSegments(params.modelId, params.projectName, params.segmentIds, params.refresh_all_indexes)
     },
     [types.MERGE_SEGMENTS] (_, params) {
       return api.model.mergeSegments(params.modelId, params.projectName, params.segmentIds)
+    },
+    [types.MERGE_SEGMENT_CHECK] ({ commit }, params) {
+      return api.model.mergeSegmentCheck(params)
     },
     [types.GET_AGG_CUBOIDS] ({ commit }, params) {
       return api.model.getCalcCuboids(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.globalDimCap)

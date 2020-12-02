@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import com.google.common.collect.Maps;
@@ -37,6 +38,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -68,6 +70,11 @@ public class JobParam {
     private JobTypeEnum jobTypeEnum;
 
     private Set<String> ignoredSnapshotTables;
+
+    private Set<Long> targetPartitions = Sets.newHashSet();
+
+    private Set<JobBucket> targetBuckets = Sets.newHashSet();
+
     /**
      * Some additional params in different jobTypes
      */
@@ -84,6 +91,8 @@ public class JobParam {
     public static class ConditionConstant {
         public static final String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";
 
+        public static final String MULTI_PARTITION_JOB = "MULTI_PARTITION_JOB";
+
         private ConditionConstant() {
         }
     }
@@ -93,10 +102,17 @@ public class JobParam {
         this.owner = owner;
     }
 
-    public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner) {
+    public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner,
+            Set<Long> targetPartitions, Set<JobBucket> targetBuckets) {
         this(model, owner);
         this.setTargetSegments(targetSegments);
         this.setTargetLayouts(targetLayouts);
+        if (CollectionUtils.isNotEmpty(targetPartitions)) {
+            this.setTargetPartitions(targetPartitions);
+        }
+        if (CollectionUtils.isNotEmpty(targetBuckets)) {
+            this.setTargetBuckets(targetBuckets);
+        }
     }
 
     public JobParam(NDataSegment newSegment, String model, String owner) {
@@ -104,6 +120,10 @@ public class JobParam {
         if (Objects.nonNull(newSegment)) {
             this.targetSegments.add(newSegment.getId());
         }
+    }
+
+    public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner) {
+        this(targetSegments, targetLayouts, model, owner, null, null);
     }
 
     public JobParam(NDataSegment newSegment, String model, String owner, Set<Long> targetLayouts) {
@@ -144,5 +164,17 @@ public class JobParam {
             return null;
         }
         return targetSegments.iterator().next();
+    }
+
+    public boolean isMultiPartitionJob() {
+        return (boolean) condition.getOrDefault(ConditionConstant.MULTI_PARTITION_JOB, false);
+    }
+
+    public static boolean isBuildIndexJob(JobTypeEnum jobTypeEnum) {
+        return JobTypeEnum.INDEX_BUILD.equals(jobTypeEnum) || JobTypeEnum.SUB_PARTITION_BUILD.equals(jobTypeEnum);
+    }
+
+    public static boolean isRefreshJob(JobTypeEnum jobTypeEnum) {
+        return JobTypeEnum.INDEX_REFRESH.equals(jobTypeEnum) || JobTypeEnum.SUB_PARTITION_REFRESH.equals(jobTypeEnum);
     }
 }

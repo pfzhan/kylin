@@ -280,7 +280,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         val segment = dataflow.getSegment("ef5e0663-feba-4ed2-b71c-21958122bbff");
         val layouts = dataflow.getIndexPlan().getAllLayouts();
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), Sets.newLinkedHashSet(layouts), "ADMIN",
-                JobTypeEnum.INDEX_BUILD, jobId, null);
+                JobTypeEnum.INDEX_BUILD, jobId, null, null, null);
         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).addJob(job);
     }
 

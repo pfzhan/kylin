@@ -46,17 +46,22 @@ package org.apache.kylin.query.routing.rules;
 import java.util.Iterator;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.RoutingRule;
 
 /**
  */
+@Slf4j
 public class RemoveUncapableRealizationsRule extends RoutingRule {
     @Override
     public void apply(List<Candidate> candidates) {
         for (Iterator<Candidate> iterator = candidates.iterator(); iterator.hasNext();) {
             Candidate candidate = iterator.next();
+            if (candidate.getCapability() != null) {
+                continue;
+            }
 
             CapabilityResult capability = candidate.getRealization().isCapable(candidate.getSqlDigest(), candidate.getPrunedSegments());
             candidate.setCapability(capability);

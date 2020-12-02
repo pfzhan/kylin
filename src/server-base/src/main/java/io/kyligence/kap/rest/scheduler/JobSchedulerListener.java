@@ -192,10 +192,10 @@ public class JobSchedulerListener {
     @Subscribe
     public void onCubingJobFinished(CubingJobFinishedNotifier notifier) {
         try {
-            SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getModelId(), notifier.getOwner());
+            SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getModelId(),
+                    notifier.getOwner());
         } catch (Throwable e) {
             log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getModelId(), e);
         }
     }
-
 }

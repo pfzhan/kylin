@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -75,7 +74,7 @@ public class QueryRouter {
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
     public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations,
-                                              Map<String, String> aliasMap, List<NDataSegment> prunedSegments) {
+                                              Map<String, String> aliasMap) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         IRealization readyReal = null;
@@ -100,7 +99,7 @@ public class QueryRouter {
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {
             if (real.isReady()) {
-                candidates.add(new Candidate(real, sqlDigest, olapContext, prunedSegments));
+                candidates.add(new Candidate(real, sqlDigest, olapContext));
             }
         }
         logger.debug("Find candidates by table {} and project={} : {}", factTableName, projectName,

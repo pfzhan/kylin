@@ -595,7 +595,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testGetModels() {
         val mgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
         List<NDataModel> models = mgr.listUnderliningDataModels();
-        Assert.assertEquals(6, models.size());
+        Assert.assertEquals(7, models.size());
 
         val mgrSsb = NDataflowManager.getInstance(getTestConfig(), "ssb");
         List<NDataModel> models2 = mgrSsb.listUnderliningDataModels();

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -368,15 +369,29 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         } else {
             NDataflow dataflow = (NDataflow) getContext().realization;
             PartitionDesc partitionDesc = dataflow.getModel().getPartitionDesc();
-            if (partitionDesc != null && partitionDesc.getPartitionDateColumnRef() != null
-                    && getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet())
-                            .contains(partitionDesc.getPartitionDateColumnRef().getIdentity())) {
+            MultiPartitionDesc multiPartitionDesc = dataflow.getModel().getMultiPartitionDesc();
+            if (groupbyContainMultiPartitions(multiPartitionDesc) && groupbyContainSegmentPartition(partitionDesc)) {
                 logger.info("Find partition column. skip agg");
                 return true;
-            } else {
-                return dataflow.getQueryableSegments().size() == 1;
             }
+
+            return dataflow.getQueryableSegments().size() == 1
+                    && dataflow.getQueryableSegments().get(0).getMultiPartitions().size() <= 1;
         }
+    }
+
+    private boolean groupbyContainSegmentPartition(PartitionDesc partitionDesc) {
+        return partitionDesc != null && partitionDesc.getPartitionDateColumnRef() != null
+                && getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet())
+                .contains(partitionDesc.getPartitionDateColumnRef().getIdentity());
+    }
+
+    private boolean groupbyContainMultiPartitions(MultiPartitionDesc multiPartitionDesc) {
+        if (multiPartitionDesc == null || CollectionUtils.isEmpty(multiPartitionDesc.getPartitions()))
+            return true;
+
+        return getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet())
+                .containsAll(multiPartitionDesc.getColumnRefs().stream().map(TblColRef::getIdentity).collect(Collectors.toSet()));
     }
 
     private boolean isDimExactlyMatch() {

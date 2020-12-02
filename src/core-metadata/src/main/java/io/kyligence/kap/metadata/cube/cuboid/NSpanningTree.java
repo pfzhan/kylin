@@ -80,6 +80,8 @@ public abstract class NSpanningTree implements Serializable {
 
     abstract public Collection<IndexEntity> decideTheNextBatch(NDataSegment segment);
 
+    abstract public Collection<IndexEntity> getImmediateSuccessors(IndexEntity index);
+
     public Map<IndexEntity, Collection<LayoutEntity>> getCuboids() {
         return cuboids;
     }

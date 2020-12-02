@@ -54,6 +54,8 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -813,26 +815,56 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public SegmentStatusEnumToDisplay getSegmentStatusToDisplay(T segment) {
         Segments<T> overlapSegs = getSegmentsByRange(segment.getSegRange());
         overlapSegs.remove(segment);
-        if (segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
-            return SegmentStatusEnumToDisplay.WARNING;
-        } else if (segment.getStatus().equals(SegmentStatusEnum.READY)) {
-            if (CollectionUtils.isEmpty(overlapSegs)) {
-                return SegmentStatusEnumToDisplay.ONLINE;
-            } else {
-                Preconditions.checkState(CollectionUtils.isNotEmpty(overlapSegs.getSegments(SegmentStatusEnum.NEW)));
-                return SegmentStatusEnumToDisplay.LOCKED;
-            }
-        } else {
+        if (segment.getStatus().equals(SegmentStatusEnum.NEW)) {
             if (CollectionUtils.isEmpty(overlapSegs)) {
                 return SegmentStatusEnumToDisplay.LOADING;
-            } else {
-                if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
-                    return SegmentStatusEnumToDisplay.REFRESHING;
-                } else {
-                    return SegmentStatusEnumToDisplay.MERGING;
-                }
             }
+
+            if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
+                return SegmentStatusEnumToDisplay.REFRESHING;
+            }
+
+            return SegmentStatusEnumToDisplay.MERGING;
         }
+
+        if (isAnyPartitionLoading(segment)) {
+            return SegmentStatusEnumToDisplay.LOADING;
+        }
+
+        if (isAnyPartitionRefreshing(segment)) {
+            return SegmentStatusEnumToDisplay.REFRESHING;
+        }
+
+        if (segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            return SegmentStatusEnumToDisplay.WARNING;
+        }
+
+        if (CollectionUtils.isNotEmpty(overlapSegs)) {
+            Preconditions.checkState(CollectionUtils.isNotEmpty(overlapSegs.getSegments(SegmentStatusEnum.NEW)));
+            return SegmentStatusEnumToDisplay.LOCKED;
+        }
+
+        return SegmentStatusEnumToDisplay.ONLINE;
+    }
+
+    private boolean isAnyPartitionLoading(T segment) {
+        Preconditions.checkArgument(segment instanceof NDataSegment);
+        val partitions = ((NDataSegment) segment).getMultiPartitions();
+
+        if (CollectionUtils.isEmpty(partitions))
+            return false;
+        val loadingPartition = partitions.stream().filter(partition -> partition.getStatus().equals(PartitionStatusEnum.NEW)).findAny().orElse(null);
+        return loadingPartition != null;
+    }
+
+    private boolean isAnyPartitionRefreshing(T segment) {
+        Preconditions.checkArgument(segment instanceof NDataSegment);
+        val partitions = ((NDataSegment) segment).getMultiPartitions();
+
+        if (CollectionUtils.isEmpty(partitions))
+            return false;
+        val refreshPartition = partitions.stream().filter(partition -> partition.getStatus().equals(PartitionStatusEnum.REFRESH)).findAny().orElse(null);
+        return refreshPartition != null;
     }
 
     public Segments<T> getFlatSegments() {

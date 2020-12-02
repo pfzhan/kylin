@@ -23,10 +23,12 @@
  */
 package io.kyligence.kap.engine.spark;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -58,9 +60,16 @@ public class ExecutableUtils {
     }
 
     public static Set<Long> getLayoutIds(AbstractExecutable buildTask) {
-        return Stream.of(StringUtils.split(buildTask.getParam(NBatchConstants.P_LAYOUT_IDS), ","))
-                .map(Long::parseLong).collect(Collectors.toSet());
+        return Stream.of(StringUtils.split(buildTask.getParam(NBatchConstants.P_LAYOUT_IDS), ",")).map(Long::parseLong)
+                .collect(Collectors.toSet());
 
+    }
+
+    public static Set<Long> getPartitionIds(AbstractExecutable buildTask) {
+        if(CollectionUtils.isEmpty(buildTask.getTargetPartitions())){
+            return new HashSet<>();
+        }
+        return buildTask.getTargetPartitions();
     }
 
     public static void initJobFactory() {

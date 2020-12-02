@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.kylin.metadata.model.PartitionDesc;
 
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,35 +41,43 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
     private String start;
     private String end;
     private PartitionDesc partitionDesc;
+    private MultiPartitionDesc multiPartitionDesc;
     private List<SegmentTimeRequest> segmentHoles;
     private String partitionColFormat;
+    private List<String[]> multiPartitionValues;
 
     public IncrementBuildSegmentParams(String project, String modelId, String start, String end,
-            String partitionColFormat, boolean needBuild) {
+            String partitionColFormat, boolean needBuild, List<String[]> multiPartitionValues) {
         super(project, modelId, needBuild);
         this.start = start;
         this.end = end;
         this.partitionColFormat = partitionColFormat;
+        this.multiPartitionValues = multiPartitionValues;
     }
 
     public IncrementBuildSegmentParams(String project, String modelId, String start, String end,
-            PartitionDesc partitionDesc, List<SegmentTimeRequest> segmentHoles, boolean needBuild) {
+            PartitionDesc partitionDesc, MultiPartitionDesc multiPartitionDesc, List<SegmentTimeRequest> segmentHoles, boolean needBuild,
+            List<String[]> multiPartitionValues) {
         super(project, modelId, needBuild);
         this.start = start;
         this.end = end;
         this.partitionDesc = partitionDesc;
         this.segmentHoles = segmentHoles;
+        this.multiPartitionValues = multiPartitionValues;
+        this.multiPartitionDesc = multiPartitionDesc;
     }
 
     public IncrementBuildSegmentParams(String project, String modelId, String start, String end,
-            PartitionDesc partitionDesc, String partitionColFormat, List<SegmentTimeRequest> segmentHoles,
-            boolean needBuild) {
+            PartitionDesc partitionDesc, MultiPartitionDesc multiPartitionDesc,  String partitionColFormat, List<SegmentTimeRequest> segmentHoles,
+            boolean needBuild, List<String[]> multiPartitionValues) {
         super(project, modelId, needBuild);
         this.start = start;
         this.end = end;
         this.partitionDesc = partitionDesc;
         this.segmentHoles = segmentHoles;
         this.partitionColFormat = partitionColFormat;
+        this.multiPartitionValues = multiPartitionValues;
+        this.multiPartitionDesc = multiPartitionDesc;
     }
 
     @Override

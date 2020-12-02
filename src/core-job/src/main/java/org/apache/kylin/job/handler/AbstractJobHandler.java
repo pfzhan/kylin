@@ -38,12 +38,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.common.ExecutableUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 
@@ -74,14 +74,14 @@ public abstract class AbstractJobHandler {
 
     protected final void doHandle(JobParam jobParam) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-
+        ExecutableUtil.computeJobBucket(jobParam);
         AbstractExecutable job = createJob(jobParam);
         if (job == null) {
-            log.info("Event {} no need to create job ", jobParam);
+            log.info("Job {} no need to create job ", jobParam);
             jobParam.setJobId(null);
             return;
         }
-        log.info("Event {} creates job {}", jobParam, job);
+        log.info("Job {} creates job {}", jobParam, job);
         String project = jobParam.getProject();
         val po = NExecutableManager.toPO(job, project);
 
@@ -110,10 +110,16 @@ public abstract class AbstractJobHandler {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val dataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
-        List<AbstractExecutable> executables = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning, null);
+        List<AbstractExecutable> executables;
+        if (jobParam.isMultiPartitionJob()) {
+            executables = execManager.listMultiPartitionModelExec(model, ExecutableState::isRunning, jobParam.getJobTypeEnum(),
+                    jobParam.getTargetPartitions(), null);
+        } else {
+            executables = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning, null);
+        }
 
         List<String> failedSegs = new LinkedList<>();
-        if (jobParam.getJobTypeEnum().equals(JobTypeEnum.INDEX_BUILD)) {
+        if (JobParam.isBuildIndexJob(jobParam.getJobTypeEnum())) {
             for (String segmentId : jobParam.getTargetSegments()) {
                 if (isOverlapWithJob(executables, segmentId, jobParam, dataflow)) {
                     failedSegs.add(segmentId);

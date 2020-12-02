@@ -138,12 +138,36 @@ export default {
   refreshSegments: (modelId, project, ids, refresh_all_indexes) => {
     return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'REFRESH', refresh_all_indexes })
   },
+  fetchSubPartitionValues: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/values`).get(para)
+  },
+  addPartitionValues: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/values`).save(para)
+  },
+  deletePartitionValues: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/values`).delete(para)
+  },
+  buildSubPartitions: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/model_segments/multi_partition`).save(para)
+  },
+  fetchSubPartitions: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/model_segments/multi_partition`).get(para)
+  },
+  refreshSubPartition: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/model_segments/multi_partition`).update(para)
+  },
+  deleteSubPartition: (para) => {
+    return Vue.resource(apiUrl + `models/model_segments/multi_partition`).delete(para)
+  },
   deleteSegments: (model, project, ids) => {
     return Vue.resource(`${apiUrl}models/${model}/segments/?project=${project}&purge=false`).delete({ ids })
   },
   // merge segment
   mergeSegments: (modelId, project, ids) => {
     return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'MERGE' })
+  },
+  mergeSegmentCheck: (para) => {
+    return Vue.resource(apiUrl + `models/${para.modelId}/segments/merge_check`).save(para)
   },
   // 弃用
   modelDataCheck: (para) => {
@@ -162,7 +186,7 @@ export default {
     return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation{?ids}`).get({project: para.projectName, ids: para.ids})
   },
   setPartition: (para) => {
-    return Vue.resource(apiUrl + `models/${para.modelId}/partition`).update({project: para.project, partition_desc: para.partition_desc})
+    return Vue.resource(apiUrl + `models/${para.modelId}/partition`).update({project: para.project, partition_desc: para.partition_desc, multi_partition_desc: para.multi_partition_desc})
   },
   fetchAggregateGroups: (project, model) => {
     return Vue.resource(apiUrl + 'index_plans/rule').get({ project, model })

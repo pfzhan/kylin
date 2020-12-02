@@ -87,7 +87,7 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
     public void handleDiscardOrSuicidal() {
         val job = getExecutable();
         // anyTargetSegmentExists && checkCuttingInJobByModel need restart job
-        if (!(job.checkCuttingInJobByModel() && job.checkAnyTargetSegmentExists())) {
+        if (!(job.checkCuttingInJobByModel() && job.checkAnyTargetSegmentAndPartitionExists())) {
             return;
         }
     }

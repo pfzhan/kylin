@@ -39,9 +39,9 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -69,10 +69,14 @@ public class AddIndexHandler extends AbstractJobHandler {
             log.info("Event {} is no longer valid because no layout awaits process", jobParam);
             return null;
         }
+        if(readySegs.isEmpty()){
+            throw new IllegalArgumentException("No segment is ready in this job.");
+        }
         return JobFactory.createJob(CUBE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(Sets.newLinkedHashSet(readySegs), jobParam.getProcessLayouts(),
                         jobParam.getOwner(), jobParam.getJobTypeEnum(), jobParam.getJobId(),
-                        jobParam.getDeleteLayouts(), jobParam.getIgnoredSnapshotTables()));
+                        jobParam.getDeleteLayouts(), jobParam.getIgnoredSnapshotTables(),
+                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets()));
     }
 
 }

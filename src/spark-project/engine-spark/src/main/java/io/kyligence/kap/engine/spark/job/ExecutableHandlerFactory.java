@@ -38,6 +38,7 @@ public class ExecutableHandlerFactory {
         val segmentIds = job.getTargetSegments();
         switch (job.getJobType()) {
         case INDEX_BUILD:
+        case SUB_PARTITION_BUILD:
             return new ExecutableAddCuboidHandler(job);
         case INC_BUILD:
             Preconditions.checkArgument(CollectionUtils.isNotEmpty(segmentIds));
@@ -45,6 +46,7 @@ public class ExecutableHandlerFactory {
                     segmentIds.get(0), job.getId());
         case INDEX_MERGE:
         case INDEX_REFRESH:
+        case SUB_PARTITION_REFRESH:
             Preconditions.checkArgument(CollectionUtils.isNotEmpty(segmentIds));
             return new ExecutableMergeOrRefreshHandler(job.getProject(), job.getTargetSubject(), job.getSubmitter(),
                     segmentIds.get(0), job.getId());

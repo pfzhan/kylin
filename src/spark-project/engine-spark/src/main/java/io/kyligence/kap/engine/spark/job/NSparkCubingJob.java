@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
@@ -44,6 +46,8 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -53,6 +57,8 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
+import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.val;
 
 /**
@@ -79,8 +85,9 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     // for test use only
-    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter) {
-        return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString(), null);
+    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter, Set<JobBucket> buckets) {
+        return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString(), null, null,
+                buckets);
     }
 
     //used for JobFactory
@@ -88,7 +95,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
         NSparkCubingJob sparkCubingJob = create(jobBuildParams.getSegments(), jobBuildParams.getLayouts(),
                 jobBuildParams.getSubmitter(), jobBuildParams.getJobType(), jobBuildParams.getJobId(),
-                jobBuildParams.getIgnoredSnapshotTables());
+                jobBuildParams.getIgnoredSnapshotTables(), jobBuildParams.getPartitions(), jobBuildParams.getBuckets());
         if (CollectionUtils.isNotEmpty(jobBuildParams.getToBeDeletedLayouts())) {
             sparkCubingJob.setParam(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS,
                     NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(jobBuildParams.getToBeDeletedLayouts())));
@@ -97,7 +104,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables) {
+            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables, Set<Long> partitions,
+            Set<JobBucket> buckets) {
         Preconditions.checkArgument(!segments.isEmpty());
         Preconditions.checkArgument(submitter != null);
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
@@ -120,7 +128,15 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setTargetSegments(segments.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.toList()));
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
-
+        if (CollectionUtils.isNotEmpty(partitions)) {
+            job.setTargetPartitions(partitions);
+            job.setParam(NBatchConstants.P_PARTITION_IDS,
+                    job.getTargetPartitions().stream().map(String::valueOf).collect(joining(",")));
+            checkIfNeedBuildSnapshots(job);
+        }
+        if (CollectionUtils.isNotEmpty(buckets)) {
+            job.setParam(NBatchConstants.P_BUCKETS, ExecutableParams.toBucketParam(buckets));
+        }
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
         job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetSubject());
@@ -129,7 +145,6 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
         job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
-
         if (CollectionUtils.isNotEmpty(ignoredSnapshotTables)) {
             job.setParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES, String.join(",", ignoredSnapshotTables));
         }
@@ -139,6 +154,19 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         JobStepType.CUBING.createStep(job, config);
         JobStepType.UPDATE_METADATA.createStep(job, config);
         return job;
+    }
+
+    public static void checkIfNeedBuildSnapshots(NSparkCubingJob job) {
+        switch (job.getJobType()){
+            case INC_BUILD:
+            case INDEX_REFRESH:
+            case INDEX_BUILD:
+                job.setParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS, "true");
+                break;
+            default:
+                job.setParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS, "false");
+                break;
+        }
     }
 
     @Override
@@ -173,6 +201,51 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
         nDataflowManager.updateDataflow(nDataflowUpdate);
+        updatePartitionOnCancelJob();
+    }
+
+    public void updatePartitionOnCancelJob() {
+        if (!isBucketJob()) {
+            return;
+        }
+        NDataflowManager dfManager = NDataflowManager.getInstance(getConfig(), getProject());
+        NDataflow df = dfManager.getDataflow(getSparkCubingStep().getDataflowId()).copy();
+        Set<String> segmentIds = getSparkCubingStep().getSegmentIds();
+        Set<Long> partitions = getSparkCubingStep().getTargetPartitions();
+        switch (getJobType()) {
+            case SUB_PARTITION_BUILD:
+                for (String id : segmentIds) {
+                    NDataSegment segment = df.getSegment(id);
+                    if (segment == null) {
+                        continue;
+                    }
+                    // remove partition in layouts
+                    dfManager.removeLayoutPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
+                    // remove partition in segments
+                    dfManager.removeSegmentPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
+                    logger.info(String.format("Remove partitions [%s] in segment [%s] cause to cancel job.", partitions, id));
+                }
+                break;
+            case SUB_PARTITION_REFRESH:
+                for (String id : segmentIds) {
+                    NDataSegment segment = df.getSegment(id);
+                    if (segment == null) {
+                        continue;
+                    }
+                    segment.getMultiPartitions().forEach(partition -> {
+                        if (partitions.contains(partition.getPartitionId()) && PartitionStatusEnum.REFRESH.equals(partition.getStatus())) {
+                            partition.setStatus(PartitionStatusEnum.READY);
+                        }
+                    });
+                    val dfUpdate = new NDataflowUpdate(df.getId());
+                    dfUpdate.setToUpdateSegs(segment);
+                    dfManager.updateDataflow(dfUpdate);
+                    logger.info(String.format("Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions, id));
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     @Override
@@ -211,8 +284,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
         // post cubing job finished event with project and model Id
         if (result.succeed()) {
-            EventBusFactory.getInstance()
-                    .postAsync(new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter()));
+            EventBusFactory.getInstance().postAsync(
+                    new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter(), getId()));
         }
     }
 }

@@ -151,13 +151,13 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         }
     }
 
-    private boolean isHeterogeneousSegmentEnabled(OLAPContext context) {
+    private boolean isHeterogeneousSegmentOrMultiPartEnabled(OLAPContext context) {
         if (context.olapSchema == null) {
             return false;
         }
         String projectName = context.olapSchema.getProjectName();
         KylinConfig kylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(projectName).getConfig();
-        return kylinConfig.isHeterogeneousSegmentEnabled();
+        return kylinConfig.isHeterogeneousSegmentEnabled() || kylinConfig.isMultiPartitionEnabled();
     }
 
     private void updateContextFilter() {
@@ -165,7 +165,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         Set<TblColRef> filterColumns = Sets.newHashSet();
         FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
         this.condition.accept(visitor);
-        if (isHeterogeneousSegmentEnabled(this.context)) {
+        if (isHeterogeneousSegmentOrMultiPartEnabled(this.context)) {
             context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
         }
         for (TblColRef tblColRef : filterColumns) {
@@ -234,7 +234,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             Set<TblColRef> filterColumns = Sets.newHashSet();
             FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
             this.condition.accept(visitor);
-            if (isHeterogeneousSegmentEnabled(context)) {
+            if (isHeterogeneousSegmentOrMultiPartEnabled(context)) {
                 context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
             }
             // optimize the filter, the optimization has to be segment-irrelevant

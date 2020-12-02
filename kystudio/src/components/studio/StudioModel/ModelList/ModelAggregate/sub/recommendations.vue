@@ -90,7 +90,7 @@
                 <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.memo_info.recommendation_source)}}</el-tag>
               </el-tooltip>
             </template>
-          </div> 
+          </div>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.action')" width="83" fixed="right">
           <template slot-scope="scope">
@@ -230,9 +230,9 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { transToGmtTime } from 'util/business'
+import { transToGmtTime, postCloudUrlMessage } from 'util/business'
 import { mapActions, mapState, mapGetters } from 'vuex'
-import { handleSuccessAsync, handleError } from '../../../../../../util'
+import { handleSuccessAsync, handleError, getQueryString } from '../../../../../../util'
 import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
 import filterElements from '../../../../../../filter/index'
 
@@ -792,7 +792,11 @@ export default class IndexList extends Vue {
   }
 
   jumpToSetting () {
-    this.$router.push({path: '/setting', query: {moveTo: 'index-suggest-setting'}})
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapSetting' })
+    } else {
+      this.$router.push({path: '/setting', query: {moveTo: 'index-suggest-setting'}})
+    }
   }
 }
 </script>

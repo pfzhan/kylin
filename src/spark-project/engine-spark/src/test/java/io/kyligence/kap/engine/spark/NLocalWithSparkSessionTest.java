@@ -30,8 +30,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
@@ -40,10 +41,14 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.SparkConf;
@@ -66,6 +71,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
@@ -75,10 +81,12 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.job.JobBucket;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @SuppressWarnings("serial")
 @Slf4j
@@ -128,6 +136,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     public void setUp() throws Exception {
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
+        ExecutableUtils.initJobFactory();
         zkTestServer = new TestingServer(true);
         System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
@@ -254,23 +263,39 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-            boolean isAppend) throws Exception {
+                               boolean isAppend) throws Exception {
+        buildCuboid(cubeName, segmentRange, toBuildLayouts, prj, isAppend, null);
+    }
+
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
+                               boolean isAppend, List<String[]> partitionValues) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NDataflow df = dsMgr.getDataflow(cubeName);
-
         // ready dataflow, segment, cuboid layout
-        NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange);
-        buildSegment(cubeName, oneSeg, toBuildLayouts, prj, isAppend);
+        NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange, SegmentStatusEnum.NEW, partitionValues);
+        buildSegment(cubeName, oneSeg, toBuildLayouts, prj, isAppend, partitionValues);
     }
 
     protected void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, String prj,
-            boolean isAppend) throws InterruptedException {
+                                boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
         NDataflow df = dsMgr.getDataflow(cubeName);
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), toBuildLayouts, "ADMIN");
+        Set<JobBucket> buckets = Sets.newHashSet();
+        if (CollectionUtils.isNotEmpty(partitionValues)) {
+            NDataModelManager modelManager = NDataModelManager.getInstance(config, prj);
+            Set<Long> targetPartitions = modelManager.getDataModelDesc(cubeName).getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
+            val bucketStart = new AtomicLong(segment.getMaxBucketId());
+            toBuildLayouts.forEach(layout -> {
+                targetPartitions.forEach(partition -> {
+                    buckets.add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition));
+                });
+            });
+            dsMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.getSegment(segment.getId()).setMaxBucketId(bucketStart.get()));
+        }
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), toBuildLayouts, "ADMIN", buckets);
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
@@ -289,7 +314,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                     ExecutableUtils.getRemoteStore(config, sparkStep));
         } else {
             merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(segment.getId()),
-                    ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
+                    ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep), null);
         }
     }
 
@@ -319,5 +344,42 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         end = SegmentRange.dateToLong("2015-01-01 00:00:00");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
+    }
+
+    public void buildMultiSegmentPartitions(String dfName, String segStart, String segEnd, List<Long> layouts, List<Long> partitionIds) throws Exception {
+        val config = getTestConfig();
+        val project = getProject();
+        val dfManager = NDataflowManager.getInstance(config, project);
+        val df = dfManager.getDataflow(dfName);
+        val partitionValues = df.getModel().getMultiPartitionDesc().getPartitionValuesById(partitionIds);
+
+        // append segment
+        long start = SegmentRange.dateToLong(segStart);
+        long end = SegmentRange.dateToLong(segEnd);
+        val segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        val dataSegment = dfManager.appendSegment(df, segmentRange, SegmentStatusEnum.NEW, partitionValues);
+
+        // build segment with partitions
+        val jobParam = new JobParam(Sets.newHashSet(dataSegment.getId()), Sets.newHashSet(layouts), dfName, "ADMIN", Sets.newHashSet(partitionIds), null);
+        jobParam.setJobTypeEnum(JobTypeEnum.INC_BUILD);
+        val jobManager = JobManager.getInstance(config, project);
+
+        val jobId = jobManager.addJob(jobParam);
+
+        val job = NExecutableManager.getInstance(config, project).getJob(jobId);
+        if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
+            throw new IllegalStateException();
+        }
+
+        Assert.assertTrue(job instanceof NSparkCubingJob);
+        val sparkJob = (NSparkCubingJob) job;
+        NSparkCubingStep sparkStep = sparkJob.getSparkCubingStep();
+        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(getTestConfig().getHdfsWorkingDirectory()));
+
+        val merger = new AfterBuildResourceMerger(config, getProject());
+        merger.mergeAfterIncrement(df.getUuid(), dataSegment.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+                ExecutableUtils.getRemoteStore(config, sparkStep));
     }
 }

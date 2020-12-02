@@ -26,16 +26,25 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfigExt;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
 
 import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataLayout implements Serializable {
@@ -53,10 +62,16 @@ public class NDataLayout implements Serializable {
 
     // ============================================================================
 
+    /**
+     * bucketID start from 20000000,20000001...
+     */
+    public static final long BUCKET_START_ID = 20_000_000L;
+
     @JsonBackReference
     private NDataSegDetails segDetails;
     @JsonProperty("layout_id")
     private long layoutId;
+    // Job id must have been set during SegmentBuildExec.
     @JsonProperty("build_job_id")
     private String buildJobId;
     @JsonProperty("rows")
@@ -76,12 +91,14 @@ public class NDataLayout implements Serializable {
     @JsonProperty("partition_values")
     private List<String> partitionValues = new ArrayList<>();
 
-    @JsonProperty("is_ready")
-    private boolean isReady = false;
-
     @Getter
     @JsonProperty("create_time")
     private long createTime;
+
+    @Getter
+    @Setter
+    @JsonProperty("multi_partition")
+    private List<LayoutPartition> multiPartition = new ArrayList<>();
 
     public NDataLayout() {
         this.createTime = System.currentTimeMillis();
@@ -127,7 +144,11 @@ public class NDataLayout implements Serializable {
     }
 
     public long getRows() {
-        return rows;
+        if (CollectionUtils.isEmpty(multiPartition)) {
+            return rows;
+        }
+
+        return multiPartition.stream().mapToLong(LayoutPartition::getRows).sum();
     }
 
     public void setRows(long rows) {
@@ -136,7 +157,11 @@ public class NDataLayout implements Serializable {
     }
 
     public long getByteSize() {
-        return byteSize;
+        if (CollectionUtils.isEmpty(multiPartition)) {
+            return byteSize;
+        }
+
+        return multiPartition.stream().mapToLong(LayoutPartition::getByteSize).sum();
     }
 
     public void setByteSize(long byteSize) {
@@ -145,7 +170,11 @@ public class NDataLayout implements Serializable {
     }
 
     public long getSourceRows() {
-        return sourceRows;
+        if (CollectionUtils.isEmpty(multiPartition)) {
+            return sourceRows;
+        }
+
+        return multiPartition.stream().mapToLong(LayoutPartition::getSourceRows).sum();
     }
 
     public void setSourceRows(long sourceRows) {
@@ -154,7 +183,11 @@ public class NDataLayout implements Serializable {
     }
 
     public long getSourceByteSize() {
-        return sourceByteSize;
+        if (CollectionUtils.isEmpty(multiPartition)) {
+            return sourceByteSize;
+        }
+
+        return multiPartition.stream().mapToLong(LayoutPartition::getSourceByteSize).sum();
     }
 
     public void setSourceByteSize(long sourceByteSize) {
@@ -188,12 +221,38 @@ public class NDataLayout implements Serializable {
         this.partitionValues = partitionValues;
     }
 
-    public boolean isReady() {
-        return isReady;
+    public void replacePartitions(List<LayoutPartition> update) {
+        HashMap<Long, LayoutPartition> partitionMap = Maps.newHashMap();
+        multiPartition.forEach(partition -> partitionMap.put(partition.getPartitionId(), partition));
+        update.forEach(partition -> {
+            Preconditions.checkState(partitionMap.containsKey(partition.getPartitionId()));
+            partitionMap.put(partition.getPartitionId(), partition);
+        });
+        this.multiPartition = new ArrayList<>(partitionMap.values());
     }
 
-    public void setReady(boolean ready) {
-        isReady = ready;
+    public boolean removeMultiPartition(Set<Long> toBeDeletedPartIds) {
+        val iterator = this.multiPartition.iterator();
+        boolean contain = false;
+        while (iterator.hasNext()) {
+            val dataPartition = iterator.next();
+            if (toBeDeletedPartIds.contains(dataPartition.getPartitionId())) {
+                iterator.remove();
+                contain = true;
+            }
+        }
+
+        return contain;
+    }
+
+    public LayoutPartition getDataPartition(Long partitionId) {
+        return this.multiPartition.stream().filter(p -> p.getPartitionId() == partitionId).findAny().orElse(null);
+    }
+
+    public List<LayoutPartition> getPartitionsByIds(List<Long> partitionIds) {
+        Set<Long> partitionSets = new HashSet<>(partitionIds);
+        return multiPartition.stream().filter(partition -> partitionSets.contains(partition.getPartitionId()))
+                .collect(Collectors.toList());
     }
 
     // ============================================================================
@@ -248,7 +307,7 @@ public class NDataLayout implements Serializable {
 
     @Override
     public String toString() {
-        return "NDataLayout [ Model Name:" + segDetails.getDataflow().getModelAlias() + ", Segment Id:" + segDetails.getId()
-                + ", Layout Id:" + layoutId + "]";
+        return "NDataLayout [ Model Name:" + segDetails.getDataflow().getModelAlias() + ", Segment Id:"
+                + segDetails.getId() + ", Layout Id:" + layoutId + "]";
     }
 }

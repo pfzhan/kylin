@@ -42,25 +42,7 @@
 
 package org.apache.kylin.common;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
-import io.kyligence.kap.common.util.ClusterConstant;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.common.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.lang.Math.toIntExact;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,7 +65,27 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.lang.Math.toIntExact;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
+import io.kyligence.kap.common.util.ClusterConstant;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -531,6 +533,14 @@ public abstract class KylinConfigBase implements Serializable {
                 new String[] { "io.kyligence.kap.metadata.cube.model.NDataflowManager" });
     }
 
+    public String getMultiPartitionKeyMappingProvider() {
+        return getOptional("kylin.model.multi-partition-key-mapping-provider-class", "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider");
+    }
+
+    public boolean isMultiPartitionEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.model.multi-partition-enabled", FALSE));
+    }
+
     public String[] getCubeDimensionCustomEncodingFactories() {
         return getOptionalStringArray("kylin.metadata.custom-dimension-encodings", new String[0]);
     }
@@ -710,19 +720,25 @@ public abstract class KylinConfigBase implements Serializable {
         return new Path(path);
     }
 
-    public Path getJobTmpFlatTableDir(String project, String jobId) {
-        String path = getJobTmpDir(project) + jobId + "/flat_table/";
-        return new Path(path);
-    }
-
     public Path getFlatTableDir(String project, String dataFlowId, String segmentId) {
         String path = getHdfsWorkingDirectory() + project + "/flat_table/" + dataFlowId + PATH_DELIMITER
                 + segmentId;
         return new Path(path);
     }
 
-    public Path getJobTmpViewFactTableDir(String project, String jobId) {
-        String path = getJobTmpDir(project) + jobId + "/view_fact_table/";
+    public Path getFactTableViewDir(String project, String dataflowId, String segmentId) {
+        String path = getHdfsWorkingDirectory() + project + "/fact_table_view/" + dataflowId
+                + PATH_DELIMITER + segmentId;
+        return new Path(path);
+    }
+
+    public Path getJobTmpFlatTableDir(String project, String jobId) {
+        String path = getJobTmpDir(project) + jobId + "/flat_table/";
+        return new Path(path);
+    }
+
+    public Path getJobTmpFactTableViewDir(String project, String jobId) {
+        String path = getJobTmpDir(project) + jobId + "/fact_table_view/";
         return new Path(path);
     }
 
@@ -1085,10 +1101,10 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getSnapshotBuildClassName(){
-        return getOptional("kylin.engine.spark.snapshot-build-class-name", "io.kyligence.kap.engine.spark.job.SnapshotBuildingJob");
+        return getOptional("kylin.engine.spark.snapshot-build-class-name", "io.kyligence.kap.engine.spark.job.SnapshotBuildJob");
     }
     public String getSparkBuildClassName() {
-        return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
+        return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.SegmentBuildJob");
     }
 
     public String getSparkTableSamplingClassName() {
@@ -1097,7 +1113,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getSparkMergeClassName() {
-        return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
+        return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.SegmentMergeJob");
     }
 
     public String getClusterManagerClassName() {

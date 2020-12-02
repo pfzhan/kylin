@@ -146,6 +146,7 @@ public class NExecutableManager {
         result.setJobType(executable.getJobType());
         result.setTargetModel(executable.getTargetSubject());
         result.setTargetSegments(executable.getTargetSegments());
+        result.setTargetPartitions(executable.getTargetPartitions());
         result.getOutput().setResumable(executable.isResumable());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
@@ -335,13 +336,8 @@ public class NExecutableManager {
         return listExecByModelAndStatus(model, predicate, null).size();
     }
 
-    public long countBySegmentAndStatus(String model, Predicate<ExecutableState> predicate,
-            HashSet<String> relatedSegments) {
-        return listExecBySegmentAndStatus(model, predicate, null, relatedSegments).size();
-    }
-
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-            JobTypeEnum jobType) {
+                                                             JobTypeEnum jobType) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
@@ -355,29 +351,27 @@ public class NExecutableManager {
                 .filter(e -> predicate.test(e.getStatus())).collect(Collectors.toList());
     }
 
-    public List<AbstractExecutable> listExecBySegmentAndStatus(String model, Predicate<ExecutableState> predicate,
-            JobTypeEnum jobType, HashSet<String> relatedSegments) {
-        val relatedSegmentSet = new HashSet<>(relatedSegments);
-        return getAllExecutables().stream() //
-                .filter(e -> e.getTargetSubject() != null) //
-                .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> predicate.test(e.getStatus()))
-                .filter(e -> (jobType == null || jobType.equals(e.getJobType())))
-                .filter(e -> e.getTargetSegments().stream().anyMatch(relatedSegmentSet::contains))
-                .collect(Collectors.toList());
-    }
-
-    public Map<String, List<String>> getModelExecutables(Set<String> models, Predicate<ExecutableState> predicate) {
-        Map<String, List<String>> result = getAllExecutables().stream() //
-                .filter(e -> e.getTargetSubject() != null) //
-                .filter(e -> models.contains(e.getTargetSubject())) //
-                .filter(e -> predicate.test(e.getStatus()))
-                .collect(Collectors.toMap(AbstractExecutable::getTargetSubject,
-                        executable -> Lists.newArrayList(executable.getId()), (one, other) -> {
-                            one.addAll(other);
-                            return one;
-                        }));
-        return result;
+    public List<AbstractExecutable> listMultiPartitionModelExec(String model, Predicate<ExecutableState> predicate,
+                                                             JobTypeEnum jobType, Set<Long> targetPartitions, Set<String> segmentIds) {
+        return getAllExecutables().stream().filter(e -> e.getTargetSubject() != null)
+                .filter(e -> e.getTargetSubject().equals(model)).filter(e -> predicate.test(e.getStatus()))
+                .filter(e -> {
+                    /**
+                     *  Select jobs which partition is overlap.
+                     *  Attention: Refresh/Index build job will include all partitions.
+                     */
+                    boolean checkAllPartition = CollectionUtils.isEmpty(targetPartitions) || JobTypeEnum.INDEX_REFRESH.equals(e.getJobType()) ||
+                            JobTypeEnum.INDEX_REFRESH.equals(jobType) || JobTypeEnum.INDEX_BUILD.equals(e.getJobType()) || JobTypeEnum.INDEX_BUILD.equals(jobType);
+                    if (checkAllPartition) {
+                        return true;
+                    }
+                    return !Sets.intersection(e.getTargetPartitions(), targetPartitions).isEmpty();
+                }).filter(e -> {
+                    if (CollectionUtils.isEmpty(segmentIds)) {
+                        return true;
+                    }
+                    return !Sets.intersection(new HashSet<>(e.getTargetSegments()), segmentIds).isEmpty();
+                }).collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
@@ -776,6 +770,7 @@ public class NExecutableManager {
             result.setTargetSubject(executablePO.getTargetModel());
             result.setTargetSegments(executablePO.getTargetSegments());
             result.setResumable(executablePO.getOutput().isResumable());
+            result.setTargetPartitions(executablePO.getTargetPartitions());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);

@@ -68,6 +68,7 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_BUILD_IN_MEM_CUBE = "Build Cube In-Mem";
     public static final String STEP_NAME_BUILD_SPARK_CUBE = "Load Data To Index";
     public static final String STEP_NAME_MERGER_SPARK_SEGMENT = "Merge Segment Data";
+    public static final String STEP_NAME_BUILD_SEGMENT_BUCKET = "Build Segment Bucket";
     public static final String STEP_NAME_CLEANUP = "Clean Up Old Segment";
     public static final String STEP_UPDATE_METADATA = "Update Metadata";
     public static final String STEP_NAME_UPDATE_CUBE_INFO = "Refresh Index Information";

@@ -59,22 +59,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSimplify;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.TimestampString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -89,7 +77,6 @@ import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPContextProp;
-import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +103,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectLoader;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
-import lombok.var;
 
 
 public class RealizationChooser {
@@ -241,8 +227,7 @@ public class RealizationChooser {
                 Set<TblColRef> dimensions = Sets.newHashSet();
                 Set<FunctionDesc> metrics = Sets.newHashSet();
                 buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics, (NDataflow) context.realization);
-                buildStorageContext(context.storageContext, dimensions, metrics,
-                        (NLayoutCandidate) selectedCandidate.capability.getSelectedCandidate(), selectedCandidate.getPrunedSegments());
+                buildStorageContext(context.storageContext, dimensions, metrics, selectedCandidate);
                 fixContextForTableIndexAnswerNonRawQuery(context);
             }
             return;
@@ -269,7 +254,7 @@ public class RealizationChooser {
             return null;
         }
         Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)),
-                model2AliasMap.get(model), pruneSegments(model, context));
+                model2AliasMap.get(model));
         if (candidate != null) {
             logger.trace("Model {} QueryRouter matched", model);
         } else {
@@ -282,132 +267,6 @@ public class RealizationChooser {
     private static boolean hasReadySegments(NDataModel model) {
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataflow(model.getUuid());
         return dataflow.hasReadySegments();
-    }
-
-    private static List<NDataSegment> pruneSegments(NDataModel model, OLAPContext olapContext) {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val projectName = model.getProject();
-        val dataflow = NDataflowManager.getInstance(kylinConfig, projectName).getDataflow(model.getUuid());
-        val projectInstance = NProjectManager.getInstance(kylinConfig).getProject(projectName);
-        if (!projectInstance.getConfig().isHeterogeneousSegmentEnabled()) {
-            return Lists.newArrayList(dataflow.getLatestReadySegment());
-        }
-        val allReadySegments = dataflow.getQueryableSegments();
-        val partitionDesc = dataflow.getModel().getPartitionDesc();
-        // no partition column
-        if (partitionDesc == null || partitionDesc.getPartitionDateColumn() == null) {
-            logger.trace("No partition column");
-            return allReadySegments;
-        }
-
-        val partitionColumn = partitionDesc.getPartitionDateColumnRef();
-        val dateFormat = partitionDesc.getPartitionDateFormat();
-        val filterColumns = olapContext.filterColumns;
-        // sql filter columns do not include partition column
-        if (!filterColumns.contains(partitionColumn)) {
-            logger.trace("Filter columns do not contain partition column");
-            return allReadySegments;
-        }
-
-        val selectedSegments = Lists.<NDataSegment>newArrayList();
-        val filterConditions = olapContext.getExpandedFilterConditions();
-        val relOptCluster = olapContext.firstTableScan.getCluster();
-        val rexBuilder = relOptCluster.getRexBuilder();
-        val rexSimplify = new RexSimplify(relOptCluster.getRexBuilder(),
-                RelOptPredicateList.EMPTY, true, relOptCluster.getPlanner().getExecutor());
-        val simplifiedSqlFilter = rexSimplify.simplifyAnds(filterConditions);
-        // sql filter condition is always false
-        if (simplifiedSqlFilter.isAlwaysFalse()) {
-            logger.trace("SQL filter condition is always false, pruning all ready segments");
-            return selectedSegments;
-        }
-        // sql filter condition is always true
-        if (simplifiedSqlFilter.isAlwaysTrue()) {
-            logger.trace("SQL filter condition is always true, pruning no segment");
-            return allReadySegments;
-        }
-        val partitionColInputRef = getPartitionColInputRef(partitionColumn, olapContext.allTableScans);
-        if (partitionColInputRef == null) {
-            logger.debug("Cannot find partition column {} in context {} all tableScans", partitionColumn.getIdentity(), olapContext.id);
-            return allReadySegments;
-        }
-
-        for (NDataSegment dataSegment : allReadySegments) {
-            try {
-                val segmentRanges = transformSegment2RexCall(dataSegment, dateFormat, rexBuilder, partitionColInputRef, partitionColumn.getType());
-                // compare with segment start
-                val segmentStartPredicate = RelOptPredicateList.of(rexBuilder, Lists.newArrayList(segmentRanges.getFirst()));
-                var simplifiedWithPredicate = rexSimplify.withPredicates(segmentStartPredicate).simplify(simplifiedSqlFilter);
-                if (simplifiedWithPredicate.isAlwaysFalse()) {
-                    continue;
-                }
-                // compare with segment end
-                val segmentEndPredicate = RelOptPredicateList.of(rexBuilder, Lists.newArrayList(segmentRanges.getSecond()));
-                simplifiedWithPredicate = rexSimplify.withPredicates(segmentEndPredicate).simplify(simplifiedWithPredicate);
-                if (!simplifiedWithPredicate.isAlwaysFalse()) {
-                    selectedSegments.add(dataSegment);
-                }
-            } catch (Exception ex) {
-                logger.warn("Segment pruning error: ", ex);
-                selectedSegments.add(dataSegment);
-            }
-        }
-
-        return selectedSegments;
-    }
-
-    private static Pair<RexNode, RexNode> transformSegment2RexCall(NDataSegment dataSegment, String dateFormat, RexBuilder rexBuilder, RexInputRef partitionColInputRef, DataType partitionColType) {
-        String start;
-        String end;
-        if (dataSegment.isOffsetCube()) {
-            start = DateFormat.formatToDateStr(dataSegment.getKSRange().getStart(), dateFormat);
-            end = DateFormat.formatToDateStr(dataSegment.getKSRange().getEnd(), dateFormat);
-        } else {
-            start = DateFormat.formatToDateStr(dataSegment.getTSRange().getStart(), dateFormat);
-            end = DateFormat.formatToDateStr(dataSegment.getTSRange().getEnd(), dateFormat);
-        }
-
-        val startRexLiteral = transformSegmentRange2RexLiteral(rexBuilder, start, partitionColType);
-        val endRexLiteral = transformSegmentRange2RexLiteral(rexBuilder, end, partitionColType);
-        val greaterThanOrEqualCall = rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, Lists.newArrayList(partitionColInputRef, startRexLiteral));
-        val lessThanCall = rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, Lists.newArrayList(partitionColInputRef, endRexLiteral));
-        return Pair.newPair(greaterThanOrEqualCall, lessThanCall);
-    }
-
-    private static RexNode transformSegmentRange2RexLiteral(RexBuilder rexBuilder, String time, DataType partitionColType) {
-        switch (partitionColType.getName()) {
-            case DATE:
-                return rexBuilder.makeDateLiteral(new DateString(time));
-            case TIMESTAMP:
-                var relDataType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
-                return rexBuilder.makeTimestampLiteral(new TimestampString(time), relDataType.getPrecision());
-            case VARCHAR:
-            case STRING:
-                return rexBuilder.makeLiteral(time);
-            case INTEGER:
-                relDataType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-                return rexBuilder.makeLiteral(Integer.valueOf(time), relDataType, false);
-            case BIGINT:
-                relDataType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-                return rexBuilder.makeLiteral(Long.valueOf(time), relDataType, false);
-            default:
-                throw new IllegalArgumentException(String.format("%s data type is not supported for partition column", partitionColType));
-        }
-    }
-
-    private static RexInputRef getPartitionColInputRef(TblColRef partitionCol, Set<OLAPTableScan> tableScans) {
-        for (OLAPTableScan tableScan : tableScans) {
-            val tableIdentity = tableScan.getTableName();
-            if (tableIdentity.equals(partitionCol.getTable())) {
-                val index = tableScan.getColumnRowType().getAllColumns().indexOf(partitionCol);
-                if (index >= 0) {
-                    return RexInputRef.of(tableIdentity + "." + partitionCol.getName(), index, tableScan.getRowType());
-                }
-                return null;
-            }
-        }
-
-        return null;
     }
 
     public static void fixContextForTableIndexAnswerNonRawQuery(OLAPContext context) {
@@ -481,19 +340,23 @@ public class RealizationChooser {
     }
 
     private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
-                                            Set<FunctionDesc> metrics, NLayoutCandidate selectedCandidate, List<NDataSegment> prunedSegments) {
-        if (CollectionUtils.isEmpty(prunedSegments)) {
+                                            Set<FunctionDesc> metrics, Candidate candidate) {
+        val layoutCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedCandidate();
+        val prunedSegments = candidate.getPrunedSegments();
+        val prunedPartitions = candidate.getPrunedPartitions();
+        if (layoutCandidate.isEmptyCandidate()) {
             context.setCuboidLayoutId(null);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;
         }
-        LayoutEntity cuboidLayout = selectedCandidate.getCuboidLayout();
-        context.setCandidate(selectedCandidate);
+        LayoutEntity cuboidLayout = layoutCandidate.getCuboidLayout();
+        context.setCandidate(layoutCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
         context.setCuboidLayoutId(cuboidLayout.getId());
         context.setPrunedSegments(prunedSegments);
+        context.setPrunedPartitions(prunedPartitions);
         val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
         logger.debug("for context {}, chosen model: {}, its join: {}, layout: {}, dimensions: {}, measures: {}, segments: {}",
                 context.getCtxId(), cuboidLayout.getModel().getAlias(), cuboidLayout.getModel().getJoinsGraph(),

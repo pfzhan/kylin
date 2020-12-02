@@ -505,8 +505,8 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
-import { isIE, groupData, objectClone, filterObjectArray, handleSuccessAsync } from '../../../../util'
+import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm, postCloudUrlMessage } from '../../../../util/business'
+import { isIE, groupData, objectClone, filterObjectArray, handleSuccessAsync, getQueryString } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import BatchMeasureModal from '../BatchMeasureModal/index.vue'
@@ -1798,7 +1798,7 @@ export default class ModelEdit extends Vue {
                   message: (
                     <div>
                       <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-                      <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+                      <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
                     </div>
                   )
                 })
@@ -1843,6 +1843,16 @@ export default class ModelEdit extends Vue {
   updateBetchMeasure (val) {
     this.modelInstance.all_measures = val
   }
+
+  // 跳转至job页面
+  jumpToJobs () {
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
+    }
+  }
+
   created () {
     // 心跳请求，保持用户 active
     this.getAboutKap()

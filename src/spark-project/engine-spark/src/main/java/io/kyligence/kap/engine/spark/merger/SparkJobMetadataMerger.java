@@ -25,7 +25,10 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -40,8 +43,18 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutPartition;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
+import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
 import lombok.val;
@@ -67,8 +80,8 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
     }
 
     @Override
-    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteResourceStore, JobTypeEnum jobType) {
+    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds, //
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         return new NDataLayout[0];
     }
 
@@ -122,5 +135,70 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             log.error("Fail to get project config.");
         }
         return true;
+    }
+
+    // Note: DO NOT copy max bucketId in segment.
+    public NDataSegment upsertSegmentPartition(NDataSegment localSegment, NDataSegment newSegment, //
+            Set<Long> partitionIds) {
+        localSegment.getMultiPartitions().removeIf(partition -> partitionIds.contains(partition.getPartitionId()));
+        List<SegmentPartition> upsertPartitions = newSegment.getMultiPartitions().stream() //
+                .filter(partition -> partitionIds.contains(partition.getPartitionId())).collect(Collectors.toList());
+        final long lastBuildTime = System.currentTimeMillis();
+        upsertPartitions.forEach(partition -> {
+            partition.setStatus(PartitionStatusEnum.READY);
+            partition.setLastBuildTime(lastBuildTime);
+        });
+        localSegment.getMultiPartitions().addAll(upsertPartitions);
+        List<SegmentPartition> partitions = localSegment.getMultiPartitions();
+        localSegment.setSourceCount(partitions.stream() //
+                .mapToLong(SegmentPartition::getSourceCount).sum());
+        final Map<String, Long> merged = Maps.newHashMap();
+        partitions.stream().map(SegmentPartition::getColumnSourceBytes) //
+                .forEach(item -> //
+                item.forEach((k, v) -> //
+                merged.put(k, v + merged.getOrDefault(k, 0L))));
+        localSegment.setColumnSourceBytes(merged);
+        // KE-18417 snapshot management.
+        localSegment.setLastBuildTime(newSegment.getLastBuildTime());
+        localSegment.setSourceBytesSize(newSegment.getSourceBytesSize());
+        localSegment.setLastBuildTime(lastBuildTime);
+        return localSegment;
+    }
+
+    public NDataLayout upsertLayoutPartition(NDataLayout localLayout, NDataLayout newLayout, Set<Long> partitionIds) {
+        if (localLayout == null) {
+            return newLayout;
+        }
+        localLayout.getMultiPartition().removeIf(partition -> partitionIds.contains(partition.getPartitionId()));
+        List<LayoutPartition> upsertLayouts = newLayout.getMultiPartition().stream() //
+                .filter(partition -> partitionIds.contains(partition.getPartitionId())).collect(Collectors.toList());
+        localLayout.getMultiPartition().addAll(upsertLayouts);
+        List<LayoutPartition> partitions = localLayout.getMultiPartition();
+        localLayout.setRows(partitions.stream() //
+                .mapToLong(LayoutPartition::getRows).sum());
+        localLayout.setSourceRows(partitions.stream() //
+                .mapToLong(LayoutPartition::getSourceRows).sum());
+        localLayout.setFileCount(partitions.stream() //
+                .mapToLong(LayoutPartition::getFileCount).sum());
+        localLayout.setByteSize(partitions.stream() //
+                .mapToLong(LayoutPartition::getByteSize).sum());
+        return localLayout;
+    }
+
+    public Set<Long> getAvailableLayoutIds(NDataflow dataflow, Set<Long> layoutIds) {
+        val layoutInCubeIds = dataflow.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
+                .collect(Collectors.toList());
+        return layoutIds.stream().filter(layoutInCubeIds::contains).collect(Collectors.toSet());
+    }
+
+    public void updateIndexPlan(String dfId, ResourceStore remoteStore) {
+        val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
+        val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
+        IndexPlan remoteIndexPlan = remoteDataflowManager.getDataflow(dfId).getIndexPlan();
+        IndexPlan indexPlan = localDataflowManager.getDataflow(dfId).getIndexPlan();
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            copyForWrite.setLayoutBucketNumMapping(remoteIndexPlan.getLayoutBucketNumMapping());
+        });
     }
 }

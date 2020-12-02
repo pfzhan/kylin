@@ -43,6 +43,7 @@
 package org.apache.kylin.storage;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -141,6 +142,10 @@ public class StorageContext {
     @Getter
     @Setter
     private List<NDataSegment> prunedSegments;
+
+    @Getter
+    @Setter
+    private Map<String, List<Long>> prunedPartitions;
 
     @Getter
     @Setter

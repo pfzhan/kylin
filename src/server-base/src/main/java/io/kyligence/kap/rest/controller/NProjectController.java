@@ -89,6 +89,7 @@ import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -538,5 +539,15 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("project", project);
         projectService.updateJdbcConfig(project, jdbcRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @ApiOperation(value = "updateMultiPartitionConfig", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/multi_partition_config")
+    @ResponseBody
+    public EnvelopeResponse<String> updateMultiPartitionConfig(@PathVariable("project") String project,
+                                                     @RequestBody MultiPartitionConfigRequest request) {
+        checkRequiredArg("multi_partition_enabled", request.getMultiPartitionEnabled());
+        projectService.updateMultiPartitionConfig(project, request, modelService);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

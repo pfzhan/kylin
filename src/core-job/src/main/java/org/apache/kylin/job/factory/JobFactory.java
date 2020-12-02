@@ -33,6 +33,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -61,6 +62,8 @@ public abstract class JobFactory {
         private String jobId;
         private Set<LayoutEntity> toBeDeletedLayouts;
         private Set<String> ignoredSnapshotTables;
+        private Set<Long> partitions;
+        private Set<JobBucket> buckets;
     }
 
     public static DefaultChainedExecutableOnModel createJob(String factory, JobBuildParams jobBuildParams) {

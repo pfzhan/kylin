@@ -8,10 +8,9 @@
     :disabled='disabled'
     multiple
     filterable
-    remote
-    default-first-option
+    :remote="remoteSearch"
     size="medium"
-    :remote-method="remoteMethod"
+    :remote-method="remoteMethodSync"
     :allow-create='allowcreate'
     :popper-class="changeable"
     :placeholder="placeholder"
@@ -28,7 +27,27 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate', 'ignoreSplitChar', 'validateRegex', 'splitChar', 'duplicateremove'],
+  props: {
+    labels: Array,
+    refreshInfo: [String, Array, Boolean, Number, Object],
+    selectedlabels: Array,
+    isNeedNotUpperCase: Boolean,
+    placeholder: String,
+    changeable: String,
+    datamap: Object,
+    disabled: Boolean,
+    allowcreate: Boolean,
+    ignoreSplitChar: Boolean,
+    validateRegex: RegExp,
+    splitChar: String,
+    duplicateremove: Boolean,
+    isSignSameValue: Boolean,
+    remoteMethod: Function,
+    remoteSearch: {
+      type: Boolean,
+      default: true
+    }
+  },
   data () {
     return {
       selectedL: this.selectedlabels,
@@ -59,7 +78,7 @@ export default {
   watch: {
     selectedlabels (val) {
       this.selectedL = val.map((item) => {
-        return item.toLocaleUpperCase()
+        return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
       })
     },
     // 保证组件在外部切换校验类型的时候能够动态切换校验表达式
@@ -68,15 +87,20 @@ export default {
     }
   },
   methods: {
-    remoteMethod (query) {
-      this.query = query
+    remoteMethodSync (query) {
+      if (this.remoteSearch && this.remoteMethod) {
+        this.query = query
+        this.remoteMethod(query)
+      } else {
+        this.query = query
+      }
     },
     change (e) {
       this.$nextTick(() => {
         this.$emit('change')
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         if (this.allowcreate && e.length > 0) {
-          let item = (e[e.length - 1]).toLocaleUpperCase()
+          let item = this.isNeedNotUpperCase ? e[e.length - 1] : (e[e.length - 1]).toLocaleUpperCase()
           let result = this.filterCreateTag(item)
           var splitChar = this.splitChar || ';'
           var regOfSeparate = new RegExp(splitChar)
@@ -92,12 +116,13 @@ export default {
         }
         // 都转为大写
         let temp = this.selectedL.map((item) => {
-          return item.toLocaleUpperCase()
+          return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
         })
         // 去重返回
-        this.selectedL = [...new Set(temp)]
+        this.duplicateremove && (this.selectedL = [...new Set(temp)])
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
+        this.isSignSameValue && this.signSameTags()
       })
     },
     bindTagClick () {
@@ -118,14 +143,36 @@ export default {
         }
       }
     },
+    // 标记重复的tag
+    signSameTags () {
+      setTimeout(() => {
+        let indexes = []
+        const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
+        const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && item.querySelector('.el-select__tags-text').innerText)
+        tagText.forEach((element, index, self) => {
+          if (self.indexOf(element) !== self.lastIndexOf(element)) {
+            tags[index] && (tags[index].className += ' error-tag')
+            indexes.push(index)
+          } else {
+            if (!tags[index]) return
+            let tagClassName = tags[index].className
+            if (tags[index] && tagClassName.indexOf('error-tag') > -1) {
+              tags[index].className = tagClassName.replace(/error-tag/g, '')
+            }
+          }
+        })
+        this.$emit('duplicateTags', indexes.length > 0)
+      }, 200)
+    },
     removeTag (data) {
-      var len = this.selectedL && this.selectedL.length || 0
-      for (var k = 0; k < len; k++) {
-        if (this.selectedL[k] === data) {
-          this.selectedL.splice(k, 1)
-          break
-        }
-      }
+      // var len = this.selectedL && this.selectedL.length || 0
+      // for (var k = 0; k < len; k++) {
+      //   if (this.selectedL[k] === data) {
+      //     this.selectedL.splice(k, 1)
+      //     break
+      //   }
+      // }
+      this.isSignSameValue && this.signSameTags()
       this.$emit('removeTag', data, this.refreshInfo)
     },
     selectTag (e) {
@@ -155,7 +202,7 @@ export default {
       var splitChar = this.splitChar || ';'
       var regOfSeparate = new RegExp(splitChar)
       if (item && regOfSeparate.test(item)) {
-        Array.prototype.push.apply(result, item.split(regOfSeparate))
+        Array.prototype.push.apply(result, item.split(regOfSeparate).filter(item => item))
       } else if (item) {
         result.push(item)
       }
@@ -166,6 +213,11 @@ export default {
       //   return item
       // })
       return result
+    },
+    clearDuplicateValue () {
+      this.selectedL = [...new Set(this.selectedL)]
+      this.$emit('refreshData', this.selectedL, this.refreshInfo)
+      this.signSameTags()
     }
   },
   mounted () {
@@ -177,15 +229,17 @@ export default {
         }
         // 处理单独录入的情况 start
         if (this.allowcreate && this.query) {
-          var result = this.filterCreateTag(this.query.toLocaleUpperCase())
+          let query = this.isNeedNotUpperCase ? this.query : this.query.toLocaleUpperCase()
+          var result = this.filterCreateTag(query)
           if (result && result.length > 0) {
             this.selectedL = this.selectedL.concat(result)
             // 都转为大写
             let temp = this.selectedL.map((item) => {
-              return item.toLocaleUpperCase()
+              return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
             })
             // 去重返回
-            this.selectedL = [...new Set(temp)]
+            this.duplicateremove && (this.selectedL = [...new Set(temp)])
+            this.isSignSameValue && (this.selectedL = this.selectedL.filter(it => it), this.signSameTags())
             this.$emit('refreshData', this.selectedL, this.refreshInfo)
           }
           if (this.$refs.select.$refs.input) {
@@ -198,6 +252,9 @@ export default {
         }
         // 处理单独录入的情况end
       }
+      this.$refs.select.$refs.input.onblur = () => {
+        this.isSignSameValue && this.signSameTags()
+      }
     }
     this.bindTagClick()
     this.$nextTick(() => {
@@ -208,7 +265,7 @@ export default {
 }
 </script>
 <style lang="less">
-
+@import '../../assets/styles/variables.less';
 .unchange {
     display:none;
 }
@@ -264,6 +321,21 @@ export default {
     visibility:hidden;
     font-size:0;
     line-height:0;
+  }
+  .el-tag.error-tag {
+    border: 1px solid @error-color-1;
+    color: @error-color-1;
+    background: rgba(231,51,113,.1);
+    .el-tag__close {
+      color: @error-color-1;
+      &:hover {
+        background-color: #ff4159;
+        color: @fff;
+      }
+    }
+    &:hover {
+      border: 1px solid @error-color-1;
+    }
   }
 }
 

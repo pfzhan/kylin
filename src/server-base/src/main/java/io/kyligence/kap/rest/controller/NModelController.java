@@ -41,6 +41,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -54,6 +55,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccelerateRequest;
@@ -74,6 +76,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -91,11 +94,15 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
+import io.kyligence.kap.rest.request.PartitionsBuildRequest;
+import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -105,12 +112,15 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
+import io.kyligence.kap.rest.response.MergeSegmentCheckResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
+import io.kyligence.kap.rest.response.MultiPartitionValueResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
+import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
@@ -288,6 +298,23 @@ public class NModelController extends NBasicController {
                 : Arrays.asList(ModelStatusToDisplayEnum.OFFLINE.name());
         List<String> scd2ModelsOnline = modelService.getSCD2ModelsAliasByStatus(project, status);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, scd2ModelsOnline, "");
+    }
+
+    /**
+     * list model that is multi partition
+     */
+    @ApiOperation(value = "listMultiPartitionModel", notes = "")
+    @GetMapping(value = "/name/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<List<String>> listMultiPartitionModel(@RequestParam("project") String project,
+                                                                  @RequestParam(value = "non_offline", required = false, defaultValue = "true") boolean nonOffline) {
+        checkProjectName(project);
+        List<String> onlineStatus = null;
+        if (nonOffline) {
+            onlineStatus = modelService.getModelNonOffOnlineStatus();
+        }
+        List<String> multiPartitionModels = modelService.getMultiPartitionModelsAlias(project, onlineStatus);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, multiPartitionModels, "");
     }
 
     @ApiOperation(value = "getLatestData", notes = "Update URL: {model}")
@@ -490,7 +517,8 @@ public class NModelController extends NBasicController {
         validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, modelId);
         try {
-            modelService.updatePartitionColumn(request.getProject(), modelId, request.getPartitionDesc());
+            modelService.updatePartitionColumn(request.getProject(), modelId, request.getPartitionDesc(),
+                    request.getMultiPartitionDesc());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_UPDATE_MODEL, e);
@@ -783,6 +811,20 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
+    @PostMapping(value = "/{model:.+}/segments/merge_check")
+    @ResponseBody
+    public EnvelopeResponse<MergeSegmentCheckResponse> checkMergeSegments(@PathVariable("model") String modelId,
+                                                                          @RequestBody SegmentsRequest request) {
+        checkProjectName(request.getProject());
+        if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
+            throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
+        }
+        Pair<Long, Long> merged = modelService
+                .checkMergeSegments(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                new MergeSegmentCheckResponse(merged.getFirst(), merged.getSecond()), "");
+    }
+
     @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/segments")
     @ResponseBody
@@ -794,7 +836,7 @@ public class NModelController extends NBasicController {
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
-                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables());
+                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(), buildSegmentsRequest.getMultiPartitionValues());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -810,9 +852,9 @@ public class NModelController extends NBasicController {
 
         IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
-                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getSegmentHoles(),
-                buildSegmentsRequest.isBuildAllIndexes())
-                        .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables());
+                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getMultiPartitionDesc(), buildSegmentsRequest.getSegmentHoles(),
+                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getMultiPartitionValues())
+                .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables());
 
         JobInfoResponse response = modelService.incrementBuildSegmentsManually(inrcParams);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
@@ -856,11 +898,11 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
     public void exportModel(@PathVariable("model") String modelId, @RequestParam(value = "project") String project,
-            @RequestParam(value = "export_as") SyncContext.BI exportAs,
-            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-            @RequestParam(value = "server_host", required = false) String host,
-            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
+                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+                            @RequestParam(value = "server_host", required = false) String host,
+                            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+                            HttpServletResponse response) throws IOException {
         checkProjectName(project);
         if (host == null) {
             host = request.getServerName();
@@ -874,17 +916,109 @@ public class NModelController extends NBasicController {
         String fileName = String.format("%s_%s_%s", project, modelService.getModelById(modelId, project).getAlias(),
                 new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
         switch (exportAs) {
-        case TABLEAU_CONNECTOR_TDS:
-        case TABLEAU_ODBC_TDS:
-            response.setContentType("application/xml");
-            response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s.tds\"", fileName));
-            break;
-        default:
-            throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
+            case TABLEAU_CONNECTOR_TDS:
+            case TABLEAU_ODBC_TDS:
+                response.setContentType("application/xml");
+                response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s.tds\"", fileName));
+                break;
+            default:
+                throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
         }
         syncModel.dump(response.getOutputStream());
         response.getOutputStream().flush();
         response.getOutputStream().close();
+    }
+
+    @PostMapping(value = "/{model:.+}/model_segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model") String modelId,
+                                                        @RequestBody PartitionsBuildRequest param) {
+        checkProjectName(param.getProject());
+        checkRequiredArg("segment_id", param.getSegmentId());
+        checkRequiredArg("partition_values", param.getPartitionValues());
+        val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
+                param.getPartitionValues(), param.isParallelBuildBySegment());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @PutMapping(value = "/{model:.+}/model_segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model") String modelId,
+                                                          @RequestBody PartitionsRefreshRequest param) {
+        checkProjectName(param.getProject());
+        checkRequiredArg("segment_id", param.getSegmentId());
+        val response = modelService.refreshSegmentPartition(param, modelId);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @DeleteMapping(value = "/model_segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelId,
+                                                         @RequestParam("project") String project,
+                                                         @RequestParam("segment") String segment,
+                                                         @RequestParam(value = "ids") String[] ids) {
+        checkProjectName(project);
+        HashSet<Long> partitions = Sets.newHashSet();
+        Arrays.stream(ids).forEach(id -> partitions.add(Long.parseLong(id)));
+        modelService.deletePartitions(project, segment, modelId, partitions);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/{model:.+}/model_segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<DataResult<List<SegmentPartitionResponse>>> getMultiPartition(
+            @PathVariable("model") String modelId, @RequestParam("project") String project,
+            @RequestParam("segment_id") String segId,
+            @RequestParam(value = "status", required = false) List<String> status,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset, //
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify_time") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        checkProjectName(project);
+        val responseList = modelService.getSegmentPartitions(project, modelId, segId, status, sortBy, reverse);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responseList, pageOffset, pageSize),
+                "");
+    }
+
+    @ApiOperation(value = "updateMultiPartitionMapping", notes = "Add URL: {model}")
+    @PutMapping(value = "/{model:.+}/multi_partition/mapping")
+    @ResponseBody
+    public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model") String modelId,
+                                                                @RequestBody MultiPartitionMappingRequest mappingRequest) throws Exception {
+        checkProjectName(mappingRequest.getProject());
+        modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "getMultiPartitionValues", notes = "Add URL: {model}")
+    @GetMapping(value = "/{model:.+}/multi_partition/values")
+    @ResponseBody
+    public EnvelopeResponse<List<MultiPartitionValueResponse>> getMultiPartitionValues(
+            @PathVariable("model") String modelId, @RequestParam("project") String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getMultiPartitionValues(project, modelId),
+                "");
+    }
+
+    @ApiOperation(value = "addMultiPartitionValues", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/multi_partition/values")
+    @ResponseBody
+    public EnvelopeResponse<String> addMultiPartitionValues(@PathVariable("model") String modelId,
+                                                            @RequestBody UpdateMultiPartitionValueRequest request) {
+        checkProjectName(request.getProject());
+        modelService.addMultiPartitionValues(request.getProject(), modelId, request.getValues());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "deleteMultiPartitionValues", notes = "Add URL: {model}")
+    @DeleteMapping(value = "/{model:.+}/multi_partition/values")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteMultiPartitionValues(@PathVariable("model") String modelId,
+                                                               @RequestParam("project") String project,
+                                                               @RequestParam(value = "ids") Long[] ids) {
+        checkProjectName(project);
+        modelService.deletePartitions(project, null, modelId, Sets.newHashSet(ids));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
 }

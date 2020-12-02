@@ -289,7 +289,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             // create cubing job
             if (!layouts.isEmpty()) {
                 NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(readySegments),
-                        Sets.newLinkedHashSet(layouts), "ADMIN");
+                        Sets.newLinkedHashSet(layouts), "ADMIN", null);
                 execMgr.addJob(job);
                 while (true) {
                     Thread.sleep(500);
@@ -309,7 +309,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
                 } else {
                     val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId())
                             .collect(Collectors.toSet());
-                    merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
+                    merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore, null);
                 }
 
                 SchemaProcessor.checkSchema(SparderEnv.getSparkSession(), df.getUuid(), proj);

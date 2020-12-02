@@ -85,6 +85,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
@@ -404,6 +405,7 @@ public class ModelSemanticHelper extends BasicService {
         originModel.setRootFactTableAlias(expectedModel.getRootFactTableAlias());
         originModel.setPartitionDesc(expectedModel.getPartitionDesc());
         originModel.setFilterCondition(expectedModel.getFilterCondition());
+        originModel.setMultiPartitionDesc(expectedModel.getMultiPartitionDesc());
         updateModelColumnForTableAliasModify(originModel, matchAlias);
 
         return expectedModel;
@@ -703,17 +705,23 @@ public class ModelSemanticHelper extends BasicService {
         return StringUtils.trim(oldFilterCondition).equals(StringUtils.trim(newFilterCondition));
     }
 
+    public static boolean isMultiPartitionDescSame(MultiPartitionDesc oldPartitionDesc, MultiPartitionDesc newPartitionDesc) {
+        String oldColumns = oldPartitionDesc == null ? "" : StringUtils.join(oldPartitionDesc.getColumns(), ",");
+        String newColumns = newPartitionDesc == null ? "" : StringUtils.join(newPartitionDesc.getColumns(), ",");
+        return oldColumns.equals(newColumns);
+    }
+
     // if partitionDesc, mpCol, joinTable, FilterCondition changed, we need reload data from datasource
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
-                || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
                 || !Objects.equals(originModel.getRootFactTable(), newModel.getRootFactTable())
                 || !originModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap())
-                || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition());
+                || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition())
+                || !isMultiPartitionDescSame(originModel.getMultiPartitionDesc(), newModel.getMultiPartitionDesc());
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
-            NIndexPlanManager indexPlanManager) {
+                                            NIndexPlanManager indexPlanManager) {
         return indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
                     .filter(index -> measures.containsAll(index.getMeasures())).collect(Collectors.toList()));
@@ -735,7 +743,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void removeUselessDimensions(IndexPlan indexPlan, Set<Integer> availableDimensions, boolean onlyDataflow,
-            KylinConfig config) {
+                                         KylinConfig config) {
         val dataflowManager = NDataflowManager.getInstance(config, indexPlan.getProject());
         val deprecatedLayoutIds = indexPlan.getIndexes().stream().filter(index -> !index.isTableIndex())
                 .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
@@ -772,7 +780,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end,
-            boolean saveOnly) {
+                                  boolean saveOnly) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         var df = dataflowManager.getDataflow(newModel.getUuid());
@@ -783,22 +791,32 @@ public class ModelSemanticHelper extends BasicService {
         });
 
         String modelId = newModel.getUuid();
-
-        if (!Objects.equals(oriModel.getPartitionDesc(), newModel.getPartitionDesc())) {
-
-            // from having partition to no partition
-            if (newModel.getPartitionDesc() == null) {
-                dataflowManager.fillDfManually(df,
-                        Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
-                // change partition column and from no partition to having partition
-            } else if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
-                dataflowManager.fillDfManually(df,
-                        Lists.newArrayList(getSegmentRangeByModel(project, modelId, start, end)));
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
+        if (newModel.isMultiPartitionModel() || oriModel.isMultiPartitionModel()) {
+            boolean isPartitionChange = !isMultiPartitionDescSame(oriModel.getMultiPartitionDesc(), newModel.getMultiPartitionDesc()) ||
+                    !Objects.equals(oriModel.getPartitionDesc(), newModel.getPartitionDesc());
+            if (isPartitionChange && newModel.isMultiPartitionModel()) {
+                modelManager.updateDataModel(modelId, copyForWrite -> {
+                    copyForWrite.setMultiPartitionDesc(new MultiPartitionDesc(newModel.getMultiPartitionDesc().getColumns()));
+                });
             }
         } else {
-            List<SegmentRange> segmentRanges = Lists.newArrayList();
-            segments.forEach(segment -> segmentRanges.add(segment.getSegRange()));
-            dataflowManager.fillDfManually(df, segmentRanges);
+            if (!Objects.equals(oriModel.getPartitionDesc(), newModel.getPartitionDesc())) {
+
+                // from having partition to no partition
+                if (newModel.getPartitionDesc() == null) {
+                    dataflowManager.fillDfManually(df,
+                            Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+                    // change partition column and from no partition to having partition
+                } else if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
+                    dataflowManager.fillDfManually(df,
+                            Lists.newArrayList(getSegmentRangeByModel(project, modelId, start, end)));
+                }
+            } else {
+                List<SegmentRange> segmentRanges = Lists.newArrayList();
+                segments.forEach(segment -> segmentRanges.add(segment.getSegRange()));
+                dataflowManager.fillDfManually(df, segmentRanges);
+            }
         }
 
         if (saveOnly)

@@ -92,7 +92,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         NDataSegment oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2012-06-01")));
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
 
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN", null);
 
         // launch the job
         execMgr.addJob(job);
@@ -104,7 +104,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("2013-06-01")));
 
-        job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
+        job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN", null);
 
         // launch the job
         execMgr.addJob(job);

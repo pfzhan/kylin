@@ -130,7 +130,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import locales from './locales'
 import { getPrevTimeValue, postCloudUrlMessage } from '../../../util/business'
-// import { handleSuccess } from 'util/business'
+import { getQueryString } from 'util/index'
 import vuex from '../../../store'
 import store, { types } from './store'
 import { mapActions, mapState, mapMutations, mapGetters } from 'vuex'
@@ -212,7 +212,11 @@ export default class Diagnostic extends Vue {
   }
   goto (page) {
     if (page === 'job') {
-      this.$router.push('/monitor/job')
+      if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+        postCloudUrlMessage(this.$route, { name: 'kapJob' })
+      } else {
+        this.$router.push('/monitor/job')
+      }
     } else {
       this.$router.push('/admin/project')
     }

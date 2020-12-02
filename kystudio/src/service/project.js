@@ -144,5 +144,11 @@ export default {
   },
   refreshAccelerationTag (para) {
     return Vue.http.post(apiUrl + `projects/acceleration_tag?project=${para.project}&user=${para.user}`, para)
+  },
+  toggleMultiPartition (data) {
+    return Vue.resource(apiUrl + 'projects/' + data.project + '/multi_partition_config').update(data)
+  },
+  getMultiPartitionModels (data) {
+    return Vue.resource(apiUrl + 'models/name/multi_partition').get(data)
   }
 }

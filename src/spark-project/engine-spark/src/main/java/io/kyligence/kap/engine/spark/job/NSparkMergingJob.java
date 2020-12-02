@@ -24,15 +24,18 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -50,6 +53,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.job.JobBucket;
 
 public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
     @SuppressWarnings("unused")
@@ -70,8 +74,13 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
                 return null;
             }
             return merge(jobBuildParams.getSegments().iterator().next(), jobBuildParams.getLayouts(),
-                    jobBuildParams.getSubmitter(), jobBuildParams.getJobId());
+                    jobBuildParams.getSubmitter(), jobBuildParams.getJobId(), jobBuildParams.getPartitions(), jobBuildParams.getBuckets());
         }
+    }
+
+    public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
+                                         String jobId){
+        return merge(mergedSegment, layouts, submitter, jobId, null, null);
     }
 
     /**
@@ -82,7 +91,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
      *                       the ready cuboids in the segments.
      */
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
-            String jobId) {
+            String jobId, Set<Long> partitions, Set<JobBucket> buckets) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
@@ -100,6 +109,14 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
 
+        if (CollectionUtils.isNotEmpty(partitions)) {
+            job.setTargetPartitions(partitions);
+            job.setParam(NBatchConstants.P_PARTITION_IDS,
+                    job.getTargetPartitions().stream().map(String::valueOf).collect(joining(",")));
+        }
+        if (CollectionUtils.isNotEmpty(buckets)) {
+            job.setParam(NBatchConstants.P_BUCKETS, ExecutableParams.toBucketParam(buckets));
+        }
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
         job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetSubject());

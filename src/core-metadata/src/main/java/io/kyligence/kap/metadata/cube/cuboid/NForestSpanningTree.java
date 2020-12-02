@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -58,8 +59,10 @@ import lombok.val;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     @JsonProperty("nodes")
-    protected Map<Long, TreeNode> nodesMap = Maps.newTreeMap();
+    protected final Map<Long, TreeNode> nodesMap = Maps.newTreeMap();
     protected final Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
+
+    private final Map<Long, List<IndexEntity>> successorMap = Maps.newHashMap();
 
     /* If base cuboid exists, forest will become tree. */
     @JsonProperty("roots")
@@ -174,6 +177,17 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         return null;
     }
 
+    // ABCDE -> [ABCD -> ABC -> AB, ABCE -> ABC -> AB]
+    // Immediate successors of ABCDE: [ABCD, ABCE]
+    @Override
+    public Collection<IndexEntity> getImmediateSuccessors(IndexEntity index) {
+        List<IndexEntity> ret = Lists.newArrayList();
+        if (Objects.isNull(index)) {
+            return ret;
+        }
+        return successorMap.getOrDefault(index.getId(), ret);
+    }
+
     protected TreeNode adjustTree(IndexEntity parent, NDataSegment seg, Boolean needParentsBuild) {
         TreeNode parentNode = nodesMap.get(parent.getId());
 
@@ -239,6 +253,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             for (IndexEntity cuboid : sortedCuboids) {
                 addCuboid(cuboid);
             }
+            evaluateSuccessors();
         }
 
         private void addCuboid(IndexEntity cuboid) {
@@ -275,6 +290,21 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             }
 
             return candidates;
+        }
+
+        private void evaluateSuccessors() {
+            final Map<Long, TreeNode> nodes = nodesMap;
+            cuboids.keySet().stream().filter(Objects::nonNull).forEach(index -> {
+                if (!successorMap.containsKey(index.getId())) {
+                    successorMap.put(index.getId(), Lists.newArrayList());
+                }
+                nodes.values().stream().filter(node -> Objects.nonNull(node) //
+                        && Objects.nonNull(node.parentCandidates) //
+                        && node.parentCandidates.stream().filter(Objects::nonNull)
+                                .anyMatch(parent -> parent.getId() == index.getId()))
+                        .map(TreeNode::getIndexEntity) //
+                        .forEach(child -> successorMap.get(index.getId()).add(child));
+            });
         }
     }
 }

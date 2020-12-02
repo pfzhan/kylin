@@ -17,7 +17,8 @@ export default {
     snapshot_manual_management_enabled: false,
     scd2_enabled: false,
     emptySegmentEnable: false,
-    projectConfig: null
+    projectConfig: null,
+    multi_partition_enabled: false
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -96,6 +97,9 @@ export default {
     },
     [types.UPDATE_SCD2_ENABLE] (state, type) {
       state.scd2_enabled = type
+    },
+    [types.UPDATE_MULTI_PARTITION_ENABLE] (state, type) {
+      state.multi_partition_enabled = type
     },
     [types.UPDATE_EMPTY_SEGMENT_ENABLE]: function (state, emptySegmentEnable) {
       state.emptySegmentEnable = emptySegmentEnable
@@ -197,6 +201,7 @@ export default {
         commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, notAutoProjectFlag && response.data.data.semi_automatic_mode)
         commit(types.UPDATE_SCD2_ENABLE, response.data.data.scd2_enabled || false)
         commit(types.UPDATE_SNAPSHOT_MANUAL_ENABLE, response.data.data.snapshot_manual_management_enabled || false)
+        commit(types.UPDATE_MULTI_PARTITION_ENABLE, response.data.data.multi_partition_enabled || false)
         commit(types.UPDATE_EMPTY_SEGMENT_ENABLE, response.data.data.create_empty_segment_enabled || false)
         return response
       })
@@ -281,6 +286,12 @@ export default {
     },
     [types.ACCELERATE_TAG]: function ({ commit }, para) {
       return api.project.refreshAccelerationTag(para)
+    },
+    [types.TOGGLE_MULTI_PARTITION]: function ({ commit }, para) {
+      return api.project.toggleMultiPartition(para)
+    },
+    [types.GET_MULTI_PARTITION_MODEL]: function ({ commit }, para) {
+      return api.project.getMultiPartitionModels(para)
     }
   },
   getters: {

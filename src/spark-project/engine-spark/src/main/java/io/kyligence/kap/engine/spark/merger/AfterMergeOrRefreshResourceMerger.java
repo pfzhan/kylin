@@ -29,10 +29,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.clearspring.analytics.util.Lists;
@@ -41,13 +43,12 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import lombok.val;
 
 public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
@@ -56,10 +57,89 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         super(config, project);
     }
 
-    @Override
-    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteResourceStore, JobTypeEnum jobType) {
+    public NDataLayout[] mergeMultiPartitionModel(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+                                                  ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
+        NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
+        NDataflowUpdate update = new NDataflowUpdate(dataflowId);
 
+        val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
+        val localDataflow = localDataflowManager.getDataflow(dataflowId).copy();
+
+        NDataflowManager distMgr = NDataflowManager.getInstance(remoteResourceStore.getConfig(), getProject());
+        NDataflow distDataflow = distMgr.getDataflow(update.getDataflowId()).copy();
+
+        List<NDataSegment> toUpdateSegments = Lists.newArrayList();
+        List<NDataLayout> toUpdateCuboids = Lists.newArrayList();
+
+        NDataSegment mergedSegment;
+        NDataSegment remoteSegment = distDataflow.getSegment(segmentIds.iterator().next());
+        NDataSegment localSegment = localDataflow.getSegment(segmentIds.iterator().next());
+        val availableLayoutIds = getAvailableLayoutIds(localDataflow, layoutIds);
+
+
+        // only add layouts which still in segments, others maybe deleted by user
+        List<NDataSegment> toRemoveSegments = Lists.newArrayList();
+        if (!JobTypeEnum.SUB_PARTITION_REFRESH.equals(jobType)) {
+            toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, remoteSegment);
+        }
+
+        if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
+            mergedSegment = remoteSegment;
+            final long lastBuildTime = System.currentTimeMillis();
+            mergedSegment.getMultiPartitions().forEach(partition -> {
+                partition.setStatus(PartitionStatusEnum.READY);
+                partition.setLastBuildTime(lastBuildTime);
+            });
+            mergedSegment.setLastBuildTime(lastBuildTime);
+            toUpdateCuboids.addAll(new ArrayList<>(mergedSegment.getSegDetails().getLayouts()));
+        } else {
+            mergedSegment = upsertSegmentPartition(localSegment, remoteSegment, partitions);
+            for (val segId : segmentIds) {
+                val remoteSeg = distDataflow.getSegment(segId);
+                val localSeg = localDataflow.getSegment(segId);
+                for (long layoutId : availableLayoutIds) {
+                    NDataLayout remoteLayout = remoteSeg.getLayout(layoutId);
+                    NDataLayout localLayout = localSeg.getLayout(layoutId);
+                    NDataLayout upsertLayout = upsertLayoutPartition(localLayout, remoteLayout, partitions);
+                    toUpdateCuboids.add(upsertLayout);
+                }
+            }
+        }
+
+
+        if (mergedSegment.getStatus() == SegmentStatusEnum.NEW)
+            mergedSegment.setStatus(SegmentStatusEnum.READY);
+
+        toUpdateSegments.add(mergedSegment);
+        if (JobParam.isRefreshJob(jobType)) {
+            mergeSnapshotMeta(distDataflow, remoteResourceStore);
+        }
+
+        if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
+            Optional<Long> reduce = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize)
+                    .filter(size -> size != -1).reduce(Long::sum);
+            if (reduce.isPresent()) {
+                long totalSourceSize = reduce.get();
+                mergedSegment.setSourceBytesSize(totalSourceSize);
+                mergedSegment.setLastBuildTime(System.currentTimeMillis());
+            }
+
+            if (toRemoveSegments.stream().anyMatch(seg -> seg.getStatus() == SegmentStatusEnum.WARNING)) {
+                mergedSegment.setStatus(SegmentStatusEnum.WARNING);
+            }
+        }
+        update.setToAddOrUpdateLayouts(toUpdateCuboids.toArray(new NDataLayout[0]));
+        update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));
+        update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
+
+        mgr.updateDataflow(update);
+
+        updateIndexPlan(dataflowId, remoteResourceStore);
+        return update.getToAddOrUpdateLayouts();
+    }
+
+    public NDataLayout[] mergeNormalModel(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+                                          ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
 
@@ -74,7 +154,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             mergedSegment.setStatus(SegmentStatusEnum.READY);
 
         toUpdateSegments.add(mergedSegment);
-        if (JobTypeEnum.INDEX_REFRESH.equals(jobType)) {
+        if (JobParam.isRefreshJob(jobType)) {
             mergeSnapshotMeta(distDataflow, remoteResourceStore);
         }
 
@@ -101,15 +181,19 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         mgr.updateDataflow(update);
 
-        IndexPlan remoteIndexPlan = distMgr.getDataflow(dataflowId).getIndexPlan();
-        IndexPlan indexPlan = mgr.getDataflow(dataflowId).getIndexPlan();
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
-        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.setLayoutBucketNumMapping(remoteIndexPlan.getLayoutBucketNumMapping());
-        });
+        updateIndexPlan(dataflowId, remoteResourceStore);
         return update.getToAddOrUpdateLayouts();
     }
 
+    @Override
+    public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
+                               ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
+        if (CollectionUtils.isNotEmpty(partitions)) {
+            return mergeMultiPartitionModel(dataflowId, segmentIds, layoutIds, remoteResourceStore, jobType, partitions);
+        } else {
+            return mergeNormalModel(dataflowId, segmentIds, layoutIds, remoteResourceStore, jobType, partitions);
+        }
+    }
 
     @Override
     public void merge(AbstractExecutable abstractExecutable) {
@@ -117,8 +201,9 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             val dataFlowId = ExecutableUtils.getDataflowId(abstractExecutable);
             val segmentIds = ExecutableUtils.getSegmentIds(abstractExecutable);
             val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
+            val partitionIds = ExecutableUtils.getPartitionIds(abstractExecutable);
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
-                    abstractExecutable.getJobType());
+                    abstractExecutable.getJobType(), partitionIds);
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
             KylinConfig config = KylinConfig.getInstanceFromEnv();

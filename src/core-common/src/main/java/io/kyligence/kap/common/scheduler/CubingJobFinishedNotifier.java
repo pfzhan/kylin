@@ -24,22 +24,19 @@
 
 package io.kyligence.kap.common.scheduler;
 
+import lombok.Data;
+
+@Data
 public class CubingJobFinishedNotifier extends SchedulerEventNotifier {
 
     private final String modelId;
     private final String owner;
+    private final String jobId;
 
-    public CubingJobFinishedNotifier(String project, String modelId, String owner) {
+    public CubingJobFinishedNotifier(String project, String modelId, String owner, String jobId) {
         this.project = project;
         this.modelId = modelId;
         this.owner = owner;
-    }
-
-    public String getModelId() {
-        return modelId;
-    }
-
-    public String getOwner() {
-        return owner;
+        this.jobId = jobId;
     }
 }

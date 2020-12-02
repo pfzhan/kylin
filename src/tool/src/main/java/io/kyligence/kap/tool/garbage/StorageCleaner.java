@@ -36,15 +36,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -66,11 +66,14 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.TrashRecord;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.LayoutPartition;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.AllArgsConstructor;
@@ -322,6 +325,7 @@ public class StorageCleaner {
             val config = KylinConfig.getInstanceFromEnv();
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val activeIndexDataPath = Sets.<String> newHashSet();
+            val activeBucketDataPath = Sets.<String> newHashSet();
             val activeFastBitmapIndexDataPath = Sets.<String> newHashSet();
             val activeSegmentFlatTableDataPath = Sets.<String> newHashSet();
             val dataflows = NDataflowManager.getInstance(config, project).listAllDataflows().stream()
@@ -331,7 +335,11 @@ public class StorageCleaner {
                     .forEach(activeSegmentFlatTableDataPath::add));
             dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
-                    .map(StorageCleaner.this::getDataLayoutDir).forEach(activeIndexDataPath::add));
+                    .forEach(layout -> {
+                        activeIndexDataPath.add(getDataLayoutDir(layout));
+                        layout.getMultiPartition().forEach(partition -> //
+                        activeBucketDataPath.add(getDataPartitionDir(layout, partition)));
+                    }));
             activeIndexDataPath
                     .forEach(path -> activeFastBitmapIndexDataPath.add(path + HadoopUtil.FAST_BITMAP_SUFFIX));
             val activeSegmentPath = activeIndexDataPath.stream().map(s -> new File(s).getParent())
@@ -343,6 +351,8 @@ public class StorageCleaner {
                 item.getProject(project).getLayouts()
                         .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath())
                                 || activeFastBitmapIndexDataPath.contains(node.getRelativePath()));
+                item.getProject(project).getBuckets()
+                        .removeIf(node -> activeBucketDataPath.contains(node.getRelativePath()));
                 item.getProject(project).getDfFlatTables().removeIf(node -> dataflows.contains(node.getName()));
                 item.getProject(project).getSegmentFlatTables()
                         .removeIf(node -> activeSegmentFlatTableDataPath.contains(node.getRelativePath()));
@@ -413,6 +423,10 @@ public class StorageCleaner {
                 + segDetails.getUuid() + "/" + dataLayout.getLayoutId();
     }
 
+    private String getDataPartitionDir(NDataLayout dataLayout, LayoutPartition dataPartition) {
+        return getDataLayoutDir(dataLayout) + "/" + dataPartition.getBucketId();
+    }
+
     private void collectFromHDFS(StorageItem item) throws Exception {
         val projectFolders = item.getFs().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_")
                 && (this.projectNames.isEmpty() || this.projectNames.contains(path.getName())));
@@ -448,8 +462,38 @@ public class StorageCleaner {
                             .forEach(x -> slot.add(new FileTreeNode(x.getPath().getName(), node)));
                 }
             }
+            collectMultiPartitions(item, projectNode);
         }
 
+    }
+
+    private void collectMultiPartitions(StorageItem item, ProjectFileTreeNode projectNode) throws IOException {
+        String project = projectNode.getName();
+        NDataflowManager manager = NDataflowManager.getInstance(kylinConfig, project);
+        Map<String, Boolean> cached = new HashMap<>();
+        // Buckets do not certainly exist.
+        // Only multi level partition model should do this.
+        val buckets = projectNode.getBuckets();
+        for (FileTreeNode node : projectNode.getLayouts()) {
+            String dataflowId = node.getParent() // segment
+                    .getParent().getName(); // dataflow
+            if (!cached.containsKey(dataflowId)) {
+                NDataflow dataflow = manager.getDataflow(dataflowId);
+                if (Objects.nonNull(dataflow) // 
+                        && Objects.nonNull(dataflow.getModel()) //
+                        && dataflow.getModel().isMultiPartitionModel()) {
+                    cached.put(dataflowId, true);
+                } else {
+                    cached.put(dataflowId, false);
+                }
+            }
+
+            if (Boolean.TRUE.equals(cached.get(dataflowId))) {
+                Stream.of(item.getFs().listStatus(new Path(item.getPath(), node.getRelativePath())))
+                        .filter(FileStatus::isDirectory) // Essential check in case of bad design.
+                        .forEach(x -> buckets.add(new FileTreeNode(x.getPath().getName(), node)));
+            }
+        }
     }
 
     @Data
@@ -472,6 +516,7 @@ public class StorageCleaner {
          *    |  +--/${dataflow_id}
          *    |     +--/${segment_id}
          *    |        +--/${layout_id}
+         *    |           +--/${bucket_id} if multi level partition enabled.
          *    |        +--/${layout_id}_fast_bitmap  if enabled
          *    |--/job_tmp
          *    |  +--/${job_id}
@@ -549,13 +594,15 @@ public class StorageCleaner {
 
         List<FileTreeNode> layouts = Lists.newLinkedList();
 
+        List<FileTreeNode> buckets = Lists.newLinkedList();
+
         List<FileTreeNode> dfFlatTables = Lists.newArrayList();
 
         List<FileTreeNode> segmentFlatTables = Lists.newArrayList();
 
         Collection<List<FileTreeNode>> getAllCandidates() {
             return Arrays.asList(jobTmps, tableExds, globalDictTables, globalDictColumns, snapshotTables, snapshots,
-                    dataflows, segments, layouts, dfFlatTables, segmentFlatTables);
+                    dataflows, segments, layouts, buckets, dfFlatTables, segmentFlatTables);
         }
 
     }

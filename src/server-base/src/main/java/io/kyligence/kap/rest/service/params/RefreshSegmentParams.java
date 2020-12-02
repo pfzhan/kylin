@@ -35,6 +35,7 @@ import lombok.Setter;
 public class RefreshSegmentParams extends BasicSegmentParams {
     private String[] segmentIds;
     private boolean refreshAllLayouts;
+    private Set<Long> partitions;
 
     public RefreshSegmentParams(String project, String modelId, String[] segmentIds) {
         super(project, modelId);
@@ -42,8 +43,13 @@ public class RefreshSegmentParams extends BasicSegmentParams {
     }
 
     public RefreshSegmentParams(String project, String modelId, String[] segmentIds, boolean refreshAllLayouts) {
+        this(project, modelId, segmentIds, refreshAllLayouts, null);
+    }
+
+    public RefreshSegmentParams(String project, String modelId, String[] segmentIds, boolean refreshAllLayouts, Set<Long> partitions) {
         this(project, modelId, segmentIds);
         this.refreshAllLayouts = refreshAllLayouts;
+        this.partitions = partitions;
     }
 
     public RefreshSegmentParams withIgnoredSnapshotTables(Set<String> ignoredSnapshotTables) {

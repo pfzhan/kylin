@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -101,6 +102,9 @@ public enum JobStepType {
         parent.addTask(step);
         if (step instanceof NSparkExecutable) {
             ((NSparkExecutable) step).setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
+        }
+        if (CollectionUtils.isNotEmpty(parent.getTargetPartitions())) {
+            step.setTargetPartitions(parent.getTargetPartitions());
         }
     }
 

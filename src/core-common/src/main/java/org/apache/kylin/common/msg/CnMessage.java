@@ -1633,6 +1633,10 @@ public class CnMessage extends Message {
         return "当前 Segments 所包含的索引不一致，请先构建索引并确保其一致后再合并。";
     }
 
+    public String getSegmentMergePartitionConflictError() {
+        return "当前 segments 所包含的分区数不一致，请先构建分区并确保其一致后再合并";
+    }
+
     @Override
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
         return "此模型维度表已被设置为事实表。请重新设置维度表。";
@@ -1772,6 +1776,22 @@ public class CnMessage extends Message {
         return "添加任务失败，该segment的索引数是空.";
     }
 
+    public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
+        return "添加任务失败，多级分区参数不合法。";
+    }
+
+    public String getADD_JOB_CHECK_MULTI_PARTITION_EMPTY() {
+        return "添加任务失败，多级分区值为空。";
+    }
+
+    public String getADD_JOB_CHECK_MULTI_PARTITION_NOT_ALIGNED() {
+        return "添加任务失败，多级分区没有对齐。";
+    }
+
+    public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
+        return String.format("添加任务失败，分区 [%s] 是重复的.", dupPartitions);
+    }
+
     @Override
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
         return String.format("当前暂不可重载表。表 %s 中已经存在列 %s。", table, column);
@@ -1806,6 +1826,17 @@ public class CnMessage extends Message {
     @Override
     public String getMODEL_ONLINE_WITH_EMPTY_SEG() {
         return "该模型尚未添加 Segment，不可服务于查询。请先添加 Segment 后再上线。";
+    }
+
+    @Override
+    public String getMODEL_ONLINE_FORBIDDEN() {
+        return "该模型不可上线";
+    }
+
+    // multi level partition mapping
+    @Override
+    public String getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID() {
+        return "更新多级分区映射关系失败, 字段 'multi_partition_columns' 必须和模型中定义的多级分区列完全一致";
     }
 
     @Override

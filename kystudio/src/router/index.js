@@ -83,6 +83,10 @@ let routerOptions = {
         meta: {},
         component: () => import('../components/studio/StudioModel/ModelTabs/index.vue')
       }, {
+        name: 'ModelSubPartitionValues',
+        path: 'studio/model_sub_partition_values/:modelName/:modelId',
+        component: () => import('../components/studio/StudioModel/SubPartitionValues/SubPartitionValues.vue')
+      }, {
         name: 'Snapshot',
         path: 'studio/snapshot',
         component: () => import('../components/studio/snapshot/snapshot.vue')

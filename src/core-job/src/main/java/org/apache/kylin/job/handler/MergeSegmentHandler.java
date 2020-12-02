@@ -58,7 +58,8 @@ public class MergeSegmentHandler extends AbstractJobHandler {
         mergeSegment.add(newSeg);
         return JobFactory.createJob(MERGE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(mergeSegment, jobParam.getProcessLayouts(), jobParam.getOwner(),
-                        JobTypeEnum.INDEX_MERGE, jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables()));
+                        JobTypeEnum.INDEX_MERGE, jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables(),
+                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets()));
     }
 
     /**

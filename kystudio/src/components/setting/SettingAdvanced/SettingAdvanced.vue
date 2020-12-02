@@ -132,7 +132,7 @@
               class="yarn-name-input"
               v-model.trim="form.principal">
             </el-input>
-          </el-form-item>          
+          </el-form-item>
           <el-form-item prop="fileList" :label="$t('keytabFile')">
             <!-- <input type="hidden" v-model="form.fileList" :show-message="false" /> -->
             <el-upload
@@ -181,6 +181,26 @@
           </div>
         </div>
       </el-form>
+    </EditableBlock>
+    <!-- 多级分区 -->
+    <EditableBlock
+      :header-content="$t('mulPartitionSettings')"
+      :isEditable="false">
+      <template slot="header">
+        <span class="beta-label">BETA</span>
+      </template>
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('mulPartition')}}</span><span class="setting-value fixed">
+          <el-switch
+            size="small"
+            v-model="form.multi_partition_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @change="handleMulPartitionSetting">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('mulPartitionDecription')}}</div>
+      </div>
     </EditableBlock>
     <!-- Snapshot -->
     <EditableBlock
@@ -273,10 +293,13 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       updateKerberosConfig: 'UPDATE_KERBEROS_CONFIG',
       reloadHiveDBAndTables: 'RELOAD_HIVE_DB_TABLES',
       toggleEnableSCD: 'TOGGLE_ENABLE_SCD',
-      getSCDModels: 'GET_SCD2_MODEL'
+      getSCDModels: 'GET_SCD2_MODEL',
+      toggleMultiPartition: 'TOGGLE_MULTI_PARTITION',
+      getMultiPartitionModels: 'GET_MULTI_PARTITION_MODEL'
     }),
     ...mapMutations({
-      updateSCD2Enable: 'UPDATE_SCD2_ENABLE'
+      updateSCD2Enable: 'UPDATE_SCD2_ENABLE',
+      updateMultiPartitionEnable: 'UPDATE_MULTI_PARTITION_ENABLE'
     })
   },
   computed: {
@@ -309,6 +332,7 @@ export default class SettingAdvanced extends Vue {
     fileList: [],
     file: null,
     snapshot_manual_management_enabled: this.project.snapshot_manual_management_enabled,
+    multi_partition_enabled: this.project.multi_partition_enabled,
     scd2_enabled: this.project.scd2_enabled
   }
   // 这里是为了适配lighting 嵌套的KE 要隐藏 yarn队列部分
@@ -680,6 +704,103 @@ export default class SettingAdvanced extends Vue {
         return name || fileName
     }
   }
+  handleMulPartitionSetting (val) {
+    const h = this.$createElement
+    if (val) {
+      this.$msgbox({
+        title: this.$t('openMulPartitionSetting'),
+        message: h('p', null, [
+          h('span', null, [
+            h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+            h('span', null, this.$t('openMulPartitionTip'))
+          ]),
+          h('a', {
+            style: 'color: #0988DE',
+            attrs: {
+              href: `https://docs.kyligence.io/books/v4.2/${this.$lang === 'en' ? 'en' : 'zh-cn'}/model/model_design/slowly_changing_dimension_${this.$lang === 'en' ? 'en' : 'cn'}.html`,
+              target: '_blank'
+            }
+          }, this.$t('userManual')),
+          this.$lang === 'en' && h('span', null, this.$t('openMulPartitionTip1')),
+          h('p', null, this.$t('confirmOpenTip'))
+        ]),
+        showCancelButton: true,
+        confirmButtonText: this.$t('confirmOpen'),
+        cancelButtonText: this.$t('kylinLang.common.cancel')
+      }).then(() => {
+        this.toggleMultiPartition({multi_partition_enabled: val, project: this.currentSelectedProject}).then(async (res) => {
+          try {
+            await handleSuccessAsync(res)
+            this.updateMultiPartitionEnable(val)
+            this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+          } catch (e) {
+            handleError(e)
+          }
+        }).catch((e) => {
+          this.form.multi_partition_enabled = false
+          handleError(e)
+        })
+      }).catch(() => {
+        this.form.multi_partition_enabled = false
+      })
+    } else {
+      // 抓取下是scd2 的model，如果存在，需要二次确认
+      this.getMultiPartitionModels({project: this.currentSelectedProject}).then(async (modeldata) => {
+        try {
+          const data = await handleSuccessAsync(modeldata)
+          if (data.length) {
+            this.$msgbox({
+              title: this.$t('closeMulPartitionSetting'),
+              message: h('p', null, [
+                h('span', null, [
+                  h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+                  h('span', null, this.$t('closeMulPartitionTip'))
+                ]),
+                h('div', {
+                  style: 'color: #5C5C5C;padding: 10px;background:#FAFAFA;'
+                }, data.join(',')),
+                h('p', null, this.$t('closeMulPartitionTip1'))
+              ]),
+              showCancelButton: true,
+              confirmButtonText: this.$t('confirmClose'),
+              cancelButtonText: this.$t('kylinLang.common.cancel')
+            }).then(() => {
+              this.toggleMultiPartition({multi_partition_enabled: val, project: this.currentSelectedProject}).then(async (res) => {
+                try {
+                  await handleSuccessAsync(res)
+                  this.updateMultiPartitionEnable(val)
+                  this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+                } catch (e) {
+                  handleError(e)
+                }
+              }).catch((e) => {
+                this.form.multi_partition_enabled = true
+                handleError(e)
+              })
+            }).catch(() => {
+              this.form.multi_partition_enabled = true
+            })
+          } else {
+            this.toggleMultiPartition({multi_partition_enabled: val, project: this.currentSelectedProject}).then(async (res) => {
+              try {
+                await handleSuccessAsync(res)
+                this.updateMultiPartitionEnable(val)
+                this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+              } catch (e) {
+                handleError(e)
+              }
+            }).catch((e) => {
+              handleError(e)
+            })
+          }
+        } catch (e) {
+          handleError(e)
+        }
+      }).catch((e) => {
+        handleError(e)
+      })
+    }
+  }
   handleScdSetting (val) {
     const h = this.$createElement
     if (val) {
@@ -726,7 +847,7 @@ export default class SettingAdvanced extends Vue {
           const data = await handleSuccessAsync(modeldata)
           if (data.length) {
             this.$msgbox({
-              title: this.$t('openSCDSetting'),
+              title: this.$t('closeSCDSetting'),
               message: h('p', null, [
                 h('span', null, [
                   h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),

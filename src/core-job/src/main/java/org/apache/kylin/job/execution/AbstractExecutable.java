@@ -56,6 +56,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -148,6 +149,14 @@ public abstract class AbstractExecutable implements Executable {
     @Getter
     @Setter
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
+
+    @Setter
+    @Getter
+    private Set<Long> targetPartitions = Sets.newHashSet();
+
+    public boolean isBucketJob() {
+        return CollectionUtils.isNotEmpty(targetPartitions);
+    }
 
     public String getTargetModelAlias() {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());

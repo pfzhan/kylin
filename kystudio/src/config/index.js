@@ -129,6 +129,8 @@ export const pageRefTags = {
   tableColumnsPager: 'tableColumnsPager',
   statisticsPager: 'statisticsPager',
   recommendationsPager: 'recommendationsPager',
+  subPartitionValuesPager: 'subPartitionValuesPager',
+  subPartitionSegmentPager: 'subPartitionSegmentPager',
   snapshotPager: 'snapshotPager'
 }
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']

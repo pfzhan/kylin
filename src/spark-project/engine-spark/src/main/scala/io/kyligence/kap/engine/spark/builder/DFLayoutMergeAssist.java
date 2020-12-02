@@ -24,23 +24,23 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import org.apache.kylin.storage.StorageFactory;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutPartition;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public class DFLayoutMergeAssist implements Serializable {
     protected static final Logger logger = LoggerFactory.getLogger(DFLayoutMergeAssist.class);
@@ -84,9 +84,7 @@ public class DFLayoutMergeAssist implements Serializable {
         for (int i = 0; i < toMergeCuboids.size(); i++) {
             NDataLayout nDataLayout = toMergeCuboids.get(i);
             ss.sparkContext().setJobDescription("Union segments layout " + nDataLayout.getLayoutId());
-            Dataset<Row> layoutDataset = StorageStoreUtils.toDF(nDataLayout.getSegDetails().getDataSegment(),
-                    nDataLayout.getLayout(), ss);
-
+            Dataset<Row> layoutDataset = getLayoutDS(nDataLayout);
             if (mergeDataset == null) {
                 mergeDataset = layoutDataset;
             } else
@@ -95,6 +93,25 @@ public class DFLayoutMergeAssist implements Serializable {
             ss.sparkContext().setJobDescription(null);
         }
         return mergeDataset;
+    }
+
+    private Dataset<Row> getLayoutDS(NDataLayout dataLayout) {
+        final NDataSegment dataSegment = dataLayout.getSegDetails().getDataSegment();
+        if (CollectionUtils.isEmpty(dataLayout.getMultiPartition())) {
+            return StorageStoreUtils.toDF(dataSegment, dataLayout.getLayout(), ss);
+        }
+        Dataset<Row> mergedDS = null;
+        for (LayoutPartition partition : dataLayout.getMultiPartition()) {
+            Dataset<Row> partitionDS = StorageStoreUtils.toDF(dataSegment, // 
+                    dataLayout.getLayout(), //
+                    partition.getPartitionId(), ss);
+            if (Objects.isNull(mergedDS)) {
+                mergedDS = partitionDS;
+            } else {
+                mergedDS = mergedDS.union(partitionDS);
+            }
+        }
+        return mergedDS;
     }
 
 }

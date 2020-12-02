@@ -2,7 +2,7 @@
    <el-dialog
     :title="title"
     limited-area
-    width="1050px"
+    width="1250px"
     :visible="isShow"
     v-if="isShow"
     :close-on-press-escape="false"
@@ -17,6 +17,19 @@
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.endTime')" show-overflow-tooltip prop="end_time" sortable="custom">
           <template slot-scope="scope">{{segmentTime(scope.row,scope.row.segRange.date_range_end) | toServerGMTDate}}</template>
+        </el-table-column>
+        <el-table-column
+          header-align="right"
+          align="right"
+          sortable="custom"
+          prop="indexAmount"
+          width="185"
+          v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc"
+          show-overflow-tooltip
+          :render-header="renderSubPartitionAmountHeader">
+          <template slot-scope="scope">
+            <span>{{scope.row.multi_partition_count}} / {{scope.row.multi_partition_count_total}}</span>
+          </template>
         </el-table-column>
         <el-table-column
           width="165"
@@ -76,7 +89,8 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import vuex from 'store'
 import { pageCount, pageRefTags } from 'config'
-import { handleError, handleSuccessAsync, transToGmtTime, transToServerGmtTime } from 'util'
+import { handleError, handleSuccessAsync, transToGmtTime, transToServerGmtTime, getQueryString } from 'util'
+import { postCloudUrlMessage } from 'util/business'
 import locales from './locales'
 import store, { types } from './store'
 vuex.registerModule(['modals', 'ConfirmSegment'], store)
@@ -177,6 +191,15 @@ export default class ConfirmSegmentModal extends Vue {
   get isFullLoadModel () {
     return !(this.model.partition_desc && this.model.partition_desc.partition_date_column)
   }
+
+  renderSubPartitionAmountHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('subPratitionAmount')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('subPratitionAmountTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
   // 更改不同状态对应不同type
   getTagType (row) {
     if (row.status_to_display === 'ONLINE') {
@@ -211,7 +234,7 @@ export default class ConfirmSegmentModal extends Vue {
     }
   }
   selectable (row) {
-    return (['ONLINE', 'WARNING']).includes(row.status_to_display)
+    return (['ONLINE', 'WARNING']).includes(row.status_to_display) && (this.$store.state.project.multi_partition_enabled && this.model.multi_partition_desc ? row.multi_partition_count : true)
   }
   closeModal (isSubmit) {
     this.hideModal()
@@ -307,7 +330,7 @@ export default class ConfirmSegmentModal extends Vue {
       message: (
         <div>
           <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-          <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+          <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
         </div>
       )
     })
@@ -340,6 +363,15 @@ export default class ConfirmSegmentModal extends Vue {
       isHideSubmit: true,
       cancelText: this.$t('gotIt')
     })
+  }
+
+  // 跳转至job页面
+  jumpToJobs () {
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
+    }
   }
 }
 </script>

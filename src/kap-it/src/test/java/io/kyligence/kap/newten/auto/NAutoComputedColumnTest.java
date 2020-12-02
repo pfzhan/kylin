@@ -639,7 +639,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerationInfoMap.get(sqls[0]).isNotSucceed());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+        Assert.assertEquals("Cannot find table 'UNKNOWN_ALIAS'.",
                 accelerationInfoMap.get(sqls[0]).getFailedCause().getMessage());
         Assert.assertFalse(accelerationInfoMap.get(sqls[1]).isNotSucceed());
     }

@@ -110,6 +110,7 @@ import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
@@ -681,6 +682,8 @@ public class ProjectService extends BasicService {
 
         response.setSnapshotManualManagementEnabled(config.isSnapshotManualManagementEnabled());
 
+        response.setMultiPartitionEnabled(config.isMultiPartitionEnabled());
+
         return response;
     }
 
@@ -748,6 +751,20 @@ public class ProjectService extends BasicService {
         } else {
             modelService.updateSCD2ModelStatusInProjectById(project, ModelStatusToDisplayEnum.OFFLINE);
         }
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction(project = 0)
+    public void updateMultiPartitionConfig(String project, MultiPartitionConfigRequest request,
+            ModelService modelService) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            if (Boolean.TRUE.equals(request.getMultiPartitionEnabled())) {
+                copyForWrite.getOverrideKylinProps().put("kylin.model.multi-partition-enabled", KylinConfig.TRUE);
+            } else {
+                copyForWrite.getOverrideKylinProps().put("kylin.model.multi-partition-enabled", KylinConfig.FALSE);
+                modelService.offlineMultiPartitionModelsInProject(project);
+            }
+        });
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

@@ -1391,6 +1391,10 @@ public class Message {
         return "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.";
     }
 
+    public String getSegmentMergePartitionConflictError() {
+        return "The partitions included in the selected segments are not fully aligned. Please build partition first and try merging again.";
+    }
+
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
         return "The dimension table of this model has been used as fact table. Please set another dimension table.";
     }
@@ -1554,6 +1558,22 @@ public class Message {
         return "Failed to add Job due to layout is empty in this segment.";
     }
 
+    public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
+        return "Add Job failed due to multi partition param is illegal.";
+    }
+
+    public String getADD_JOB_CHECK_MULTI_PARTITION_EMPTY() {
+        return "Add Job failed due to multi partition value is empty.";
+    }
+
+    public String getADD_JOB_CHECK_MULTI_PARTITION_NOT_ALIGNED() {
+        return "Add Job failed due to multi partition is not aligned.";
+    }
+
+    public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
+        return String.format("Add Job failed due to partition [%s] is duplicated.", dupPartitions);
+    }
+
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
         return String.format("The table metadata can’t be reloaded now. Column %s already exists in table %s.", column,
                 table);
@@ -1683,5 +1703,14 @@ public class Message {
 
     public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO() {
         return "Mapping info resource_group_id not exists.";
+    }
+
+    public String getMODEL_ONLINE_FORBIDDEN() {
+        return "This model can’t go online.";
+    }
+
+    // multi level partition mapping
+    public String getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID() {
+        return "Failed to update multi-partition mapping, invalid request";
     }
 }

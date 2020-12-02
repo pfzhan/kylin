@@ -24,21 +24,25 @@
 
 package io.kyligence.kap.newten;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.spark.sql.SparderEnv;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
-import io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
@@ -89,26 +93,35 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
      *  level3                                                 0
      */
     @Test
-    public void testBuild() throws Exception {
-        fullBuildCube("75080248-367e-4bac-9fd7-322517ee0227", getProject());
-        // use query to insure build is successful.
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("can_answer", "select count(*) from TEST_KYLIN_FACT"));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.NONE, "left");
+    public void testBuild() {
+        final String dataflowId = "75080248-367e-4bac-9fd7-322517ee0227";
 
-        String segId = getSegId();
+        NDataflowManager manager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow dataflow = manager.getDataflow(dataflowId);
 
-        NForestSpanningTree st = (NForestSpanningTree) KylinBuildEnv.get().buildJobInfos().getSpanningTree(segId);
-        NForestSpanningTree.TreeNode leafNode = st.getNodesMap().get(0L);
-        Assert.assertEquals(3, leafNode.getLevel());
-        Assert.assertEquals(40000L, leafNode.getParent().getIndexEntity().getId());
-    }
+        Set<LayoutEntity> layouts = Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts());
+        NSpanningTree spanningTree = NSpanningTreeFactory.fromLayouts(layouts, dataflowId);
+        List<IndexEntity> roots = Lists.newArrayList(spanningTree.getRootIndexEntities());
+        Assert.assertEquals(2, roots.size());
+        IndexEntity index1 = roots.get(0); // 100000L
+        IndexEntity index2 = roots.get(1); // 200000L
+        // 100000 => 10000, 20000
+        Set<Long> successors1 = spanningTree.getImmediateSuccessors(index1).stream().map(IndexEntity::getId)
+                .collect(Collectors.toSet());
+        Assert.assertEquals(2, successors1.size());
+        Assert.assertTrue(successors1.contains(10000L));
+        Assert.assertTrue(successors1.contains(20000L));
 
-    private String getSegId() {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        NDataflow df = dsMgr.getDataflow("75080248-367e-4bac-9fd7-322517ee0227");
-        return df.getSegments().getFirstSegment().getId();
+        // 200000 => 10000, 30000
+        List<IndexEntity> successors2 = Lists.newArrayList(spanningTree.getImmediateSuccessors(index2));
+        Assert.assertEquals(10000L, successors2.get(0).getId());
+        Assert.assertEquals(30000L, successors2.get(1).getId());
+        // 30000 => 40000
+        List<IndexEntity> successors3 = Lists.newArrayList(spanningTree.getImmediateSuccessors(successors2.get(1)));
+        Assert.assertEquals(40000L, successors3.get(0).getId());
+        // 40000 => 0
+        List<IndexEntity> successors4 = Lists.newArrayList(spanningTree.getImmediateSuccessors(successors3.get(0)));
+        Assert.assertEquals(0L, successors4.get(0).getId());
     }
 
     @Override

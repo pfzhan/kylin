@@ -29,7 +29,9 @@ import static org.apache.kylin.job.execution.AbstractExecutable.NOTIFY_LIST;
 import static org.apache.kylin.job.execution.AbstractExecutable.PARENT_ID;
 import static org.apache.kylin.job.execution.AbstractExecutable.SUBMITTER;
 
+import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,17 +39,22 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MailHelper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -148,5 +155,56 @@ public class ExecutableParams {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Compression bucket param to reduce storage volume in database.
+     * pattern: {segmentId:[ [layoutId:[{partitionId, bucketId},{partitionId, bucketId},...], [layoutId:[{partId, bucketId},{partId, bucketId},...], }
+     */
+    public static String toBucketParam(Set<JobBucket> buckets) {
+        String param = "";
+        try {
+            HashMap<String, Map<Long, Map<Long, Long>>> bucketParams = Maps.newHashMap();
+            buckets.forEach(bucket -> {
+                bucketParams.computeIfAbsent(bucket.getSegmentId(), k -> Maps.newHashMap());
+                bucketParams.get(bucket.getSegmentId()).computeIfAbsent(bucket.getLayoutId(), k -> Maps.newHashMap());
+                bucketParams.get(bucket.getSegmentId()).get(bucket.getLayoutId()).put(bucket.getPartitionId(),
+                        bucket.getBucketId());
+            });
+            param = JsonUtil.writeValueAsString(bucketParams);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return param;
+    }
+
+    public static Set<JobBucket> getBuckets(String content) {
+        final Set<JobBucket> buckets = Sets.newHashSet();
+        try {
+            val bucketParams = JsonUtil.readValue(content,
+                    new TypeReference<HashMap<String, Map<Long, Map<Long, Long>>>>() {
+                    });
+            bucketParams.forEach((segment, layouts) -> {
+                layouts.forEach((layoutId, partitions) -> {
+                    partitions.forEach((partitionId, bucketId) -> {
+                        buckets.add(new JobBucket(segment, layoutId, bucketId, partitionId));
+                    });
+                });
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return buckets;
+    }
+
+    // segmentId -> target partitions
+    public final Map<String, Set<Long>> getPartitionsBySegment() {
+        Set<JobBucket> buckets = getBuckets(getParam(NBatchConstants.P_BUCKETS));
+        HashMap<String, Set<Long>> partitions = Maps.newHashMap();
+        buckets.forEach(bucket -> {
+            partitions.putIfAbsent(bucket.getSegmentId(), Sets.newHashSet());
+            partitions.get(bucket.getSegmentId()).add(bucket.getPartitionId());
+        });
+        return partitions;
     }
 }

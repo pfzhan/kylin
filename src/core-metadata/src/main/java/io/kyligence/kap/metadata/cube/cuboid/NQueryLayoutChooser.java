@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -84,7 +85,7 @@ public class NQueryLayoutChooser {
         }
         List<NLayoutCandidate> candidates = new ArrayList<>();
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
-        val commonLayouts = getCommonLayouts(prunedSegments);
+        val commonLayouts = getLayoutsFromSegments(prunedSegments, dataflow);
         for (NDataLayout cuboid : commonLayouts) {
             CapabilityResult tempResult = new CapabilityResult();
             // check indexEntity
@@ -135,7 +136,12 @@ public class NQueryLayoutChooser {
         return new Pair<>(chosenCandidate, candidateCapabilityResultMap.get(chosenCandidate).influences);
     }
 
-    private static Collection<NDataLayout> getCommonLayouts(List<NDataSegment> segments) {
+    private static Collection<NDataLayout> getLayoutsFromSegments(List<NDataSegment> segments, NDataflow dataflow) {
+        val projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(dataflow.getProject());
+        if (!projectInstance.getConfig().isHeterogeneousSegmentEnabled()) {
+            return dataflow.getLatestReadySegment().getLayoutsMap().values();
+        }
+
         val commonLayouts = Maps.<Long, NDataLayout>newHashMap();
         if (CollectionUtils.isEmpty(segments)) {
             return commonLayouts.values();

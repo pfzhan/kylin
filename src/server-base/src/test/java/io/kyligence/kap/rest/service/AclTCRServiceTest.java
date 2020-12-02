@@ -450,7 +450,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, responses.size());
         Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream()
                 .anyMatch(t -> t.isAuthorized() && "TEST_ORDER".equals(t.getTableName()))));
-        Assert.assertTrue(responses.stream().anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 9));
+        Assert.assertTrue(responses.stream().anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 11));
         Assert.assertTrue(responses.stream().anyMatch(res -> "EDW".equals(res.getDatabaseName()) && res.getTables().size() == 3));
         Assert.assertTrue(responses.stream().anyMatch(res -> "SSB".equals(res.getDatabaseName()) && res.getTables().size() == 6));
     }

@@ -167,7 +167,7 @@ trait JobSupport
     // ready dataflow, segment, cuboid layout
     val oneSeg: NDataSegment = dsMgr.appendSegment(df, segmentRange)
     val job: NSparkCubingJob =
-      NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN")
+      NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null)
     val sparkStep: NSparkCubingStep = job.getSparkCubingStep
     val distMetaUrl: StorageURL = StorageURL.valueOf(sparkStep.getDistMetaUrl)
     Assert.assertEquals("hdfs", distMetaUrl.getScheme)
@@ -418,7 +418,7 @@ trait JobSupport
     val allCuboidLayouts = df.getIndexPlan.getAllLayouts.asScala
     val base: String = KapConfig.getInstanceFromEnv.getReadParquetStoragePath(df.getProject)
     for (nCuboidLayout <- allCuboidLayouts) {
-      val path: String = TableScanPlan.toCuboidPath(df, nCuboidLayout.getId, base, latestReadySegment)
+      val path: String = TableScanPlan.toLayoutPath(df, nCuboidLayout.getId, base, latestReadySegment)
       val paths = new Path(path).getFileSystem(new Configuration())
         .listFiles(new Path(path), false)
       while (paths.hasNext) {

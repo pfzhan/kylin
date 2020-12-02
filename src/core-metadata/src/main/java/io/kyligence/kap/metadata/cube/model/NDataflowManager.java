@@ -43,6 +43,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -72,7 +73,10 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
 
@@ -308,7 +312,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment appendSegment(NDataflow df, SegmentRange segRange, SegmentStatusEnum status) {
+        return appendSegment(df, segRange, status, null);
+    }
 
+    public NDataSegment appendSegment(NDataflow df, SegmentRange segRange, SegmentStatusEnum status,
+                                      List<String[]> multiPartitionValues) {
         NDataSegment newSegment = newSegment(df, segRange);
         newSegment.setStatus(status);
         validateNewSegments(df, newSegment);
@@ -316,7 +324,27 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
         updateDataflow(upd);
+        if (CollectionUtils.isNotEmpty(multiPartitionValues)) {
+            newSegment = appendPartitions(df.getId(), newSegment.getId(), multiPartitionValues);
+        }
         return newSegment;
+    }
+
+    public NDataSegment appendPartitions(String dfId, String segId, List<String[]> partitionValues) {
+        val copy = copy(getDataflow(dfId));
+        val segmentCopy = copy.getSegment(segId);
+        partitionValues.forEach(partitionValue -> {
+            if (copy.getSegment(segmentCopy.getId()).isPartitionOverlap(partitionValue)) {
+                throw new IllegalArgumentException(String.format("Duplicate partition value [%s] found in segment [%s]", partitionValue, segmentCopy.getId()));
+            }
+        });
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Set<Long> addPartitions = modelManager.addPartitionsIfAbsent(copy.getModel(), partitionValues);
+        addPartitions.forEach(partition -> {
+            segmentCopy.getMultiPartitions().add(new SegmentPartition(partition));
+        });
+        crud.save(copy);
+        return segmentCopy;
     }
 
     public NDataSegment appendSegmentForStreaming(NDataflow df, SegmentRange segRange) {
@@ -354,6 +382,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
 
         newSegment.setSegmentRange(toRefreshSeg.getSegRange());
+        newSegment.setMultiPartitions(toRefreshSeg.getMultiPartitions());
 
         NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
@@ -416,11 +445,31 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
 
         validateNewSegments(dataflowCopy, newSegment);
+        checkAndMergeMultiPartitions(dataflow, newSegment, mergingSegments);
 
         NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getUuid());
         update.setToAddSegs(newSegment);
         updateDataflow(update);
         return newSegment;
+    }
+
+    private void checkAndMergeMultiPartitions(NDataflow dataflow, NDataSegment newSegment, Segments<NDataSegment> mergingSegments) {
+        if (!dataflow.getModel().isMultiPartitionModel()) {
+            return;
+        }
+        Set<Long> partitions = mergingSegments.get(0).getMultiPartitions().stream().map(SegmentPartition::getPartitionId).collect(Collectors.toSet());
+        mergingSegments.forEach(segment -> {
+            if (MapUtils.isEmpty(segment.getLayoutsMap())) {
+                throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergeLayoutConflictError());
+            }
+            segment.getLayoutsMap().values().forEach(layout -> {
+                Set<Long> partitionsInLayout = layout.getMultiPartition().stream().map(LayoutPartition::getPartitionId).collect(Collectors.toSet());
+                if (!partitionsInLayout.equals(partitions)) {
+                    throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSegmentMergePartitionConflictError());
+                }
+            });
+        });
+        partitions.forEach(partition -> newSegment.getMultiPartitions().add(new SegmentPartition(partition)));
     }
 
     private void checkCubeIsPartitioned(NDataflow dataflow) {
@@ -544,6 +593,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
         return crud.save(copy);
     }
+
 
     public long getDataflowStorageSize(String modelId) {
         return getDataflow(modelId).getStorageBytesSize();
@@ -694,6 +744,72 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
 
         return calculateHoles(dfId, segments);
+    }
+
+    public void removeSegmentPartition(String dfId, Set<Long> toBeDeletedPartIds, Set<String> segments) {
+        val dfCopy = copy(getDataflow(dfId));
+        val updateSegments = new Segments<NDataSegment>();
+        if (CollectionUtils.isEmpty(segments)) {
+            updateSegments.addAll(dfCopy.getSegments());
+        } else {
+            dfCopy.getSegments().forEach(segment -> {
+                if (segments.contains(segment.getId())) {
+                    updateSegments.add(segment);
+                }
+            });
+        }
+        updateSegments.forEach(segment -> segment.getMultiPartitions().removeIf(partition -> toBeDeletedPartIds.contains(partition.getPartitionId())));
+        crud.save(dfCopy);
+    }
+
+    public void removeLayoutPartition(String dfId, Set<Long> toBeDeletedPartIds, Set<String> segments) {
+        val dataflow = copy(getDataflow(dfId));
+        List<NDataSegment> updateSegments = Lists.newArrayList();
+        if (segments == null) {
+            updateSegments.addAll(dataflow.getSegments());
+        } else {
+            updateSegments.addAll(dataflow.getSegments(segments));
+        }
+        val affectedLayouts = Lists.newArrayList();
+        for (NDataSegment segment : updateSegments) {
+            val layouts = segment.getSegDetails().getLayouts();
+            layouts.forEach(dataLayout -> {
+                if (dataLayout.removeMultiPartition(toBeDeletedPartIds)) {
+                    affectedLayouts.add(dataLayout);
+                }
+            });
+        }
+        val dfUpdate = new NDataflowUpdate(dfId);
+        dfUpdate.setToAddOrUpdateLayouts(affectedLayouts.toArray(new NDataLayout[0]));
+        val detailsManager = NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        detailsManager.updateDataflow(dataflow, dfUpdate);
+    }
+
+    public void appendLayoutPartitions(NDataSegment segment, long layoutId, List<LayoutPartition> addPartitions) {
+        NDataSegDetailsManager detailsManager = NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+
+        NDataSegDetails segmentDetailCopy = detailsManager.getForSegment(segment);
+        NDataflow df = segmentDetailCopy.getDataflow();
+        NDataLayout layout = segmentDetailCopy.getLayoutById(layoutId);
+        List<Long> partitionIds = addPartitions.stream().map(LayoutPartition::getPartitionId)
+                .collect(Collectors.toList());
+        Preconditions.checkState(layout.getPartitionsByIds(partitionIds).size() == 0);
+        layout.getMultiPartition().addAll(addPartitions);
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getId());
+        update.setToAddOrUpdateLayouts(layout);
+        detailsManager.updateDataflow(df, update);
+    }
+
+    public boolean isOfflineModel(NDataflow df) {
+        val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(df.getProject());
+        KylinConfigExt config = prjManager.getConfig();
+        boolean offlineManually = df.getIndexPlan().isOfflineManually();
+        boolean isOfflineMultiPartitionModel = df.getModel().isMultiPartitionModel() && !config.isMultiPartitionEnabled();
+        boolean isOfflineScdModel = SCD2CondChecker.INSTANCE.isScd2Model(df.getModel()) && !config.isQueryNonEquiJoinModelEnabled();
+        return offlineManually || isOfflineMultiPartitionModel || isOfflineScdModel;
     }
 
 }

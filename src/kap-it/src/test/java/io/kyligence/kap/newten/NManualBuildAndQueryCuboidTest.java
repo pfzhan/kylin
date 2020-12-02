@@ -164,9 +164,10 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     }
 
     private Dataset<Row> queryCuboidLayout(LayoutEntity layout, Dataset<Row> ds) {
-        NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(layout.getIndex().getIndexPlan());
-        return CuboidAggregator.aggInternal(ss, ds, layout.getIndex().getEffectiveDimCols().keySet(),
-                layout.getIndex().getIndexPlan().getEffectiveMeasures(), flatTableDesc, true);
+        NCubeJoinedFlatTableDesc tableDesc = new NCubeJoinedFlatTableDesc(layout.getIndex().getIndexPlan());
+        return CuboidAggregator.aggregateJava(ds, layout.getIndex().getEffectiveDimCols().keySet(), //
+                layout.getIndex().getIndexPlan().getEffectiveMeasures(), // 
+                tableDesc, true);
     }
 
     private Dataset<Row> dsConvertToOriginal(Dataset<Row> layoutDs, LayoutEntity layout) {

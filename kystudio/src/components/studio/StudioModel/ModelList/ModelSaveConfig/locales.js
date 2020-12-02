@@ -39,7 +39,11 @@ export default {
     saveAndBuild: 'Save and Build',
     purgeSegmentDataTips: 'Model definition has changed. Once saving the model, all data in the segments will be deleted. As a result, this model CAN\'T be used to serve queries. We strongly recommend to reload all data (in total {storageSize}).\r\n Do you want to continue?',
     changeSegmentTips: 'Model partition has changed. Once saving the model, all segments and data will be deleted. As a result, this model CAN\'T be used to serve queries.<br/>Do you want to continue?',
-    saveAndLoad: 'Save and Build Index'
+    saveAndLoad: 'Save and Build Index',
+    partitionDateTable: 'Partition Table',
+    multilevelPartition: 'Subpartition Column',
+    multilevelPartitionDesc: 'A column from the selected table could be chosen. The models under this project could be partitioned by this column in addition to time partitioning. ',
+    advanceSetting: 'Advanced Setting'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -81,6 +85,10 @@ export default {
     saveAndBuild: '保存并构建',
     purgeSegmentDataTips: '模型定义关系发生改变，保存后系统将删除所有 Segment 中的数据。模型将无法服务于业务查询。为了模型能够服务于业务查询，建议您重新加载模型下所有数据（共计 {storageSize}）。\r\n是否要继续保存？',
     changeSegmentTips: '模型分区设置发生改变，保存后系统将删除所有 Segment 及数据。模型将无法服务于业务查询。<br/>是否要继续保存？',
-    saveAndLoad: '保存并构建索引'
+    saveAndLoad: '保存并构建索引',
+    partitionDateTable: '分区表',
+    multilevelPartition: '子分区列',
+    multilevelPartitionDesc: '可选择表上的一列作为子分区，对模型进行分区管理。',
+    advanceSetting: '高级设置'
   }
 }

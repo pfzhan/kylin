@@ -143,8 +143,6 @@ public class NDataModelTest {
 
         NDataModel copyModel3 = mgr.copyForWrite(model);
         Assert.assertEquals(model, copyModel3);
-        copyModel3.getColCorrs().remove(copyModel3.getColCorrs().size() - 1);
-        Assert.assertNotEquals(model, copyModel3);
     }
 
     @Test

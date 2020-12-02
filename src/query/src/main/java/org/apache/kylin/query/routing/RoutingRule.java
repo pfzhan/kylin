@@ -46,9 +46,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.query.routing.rules.PartitionPruningRule;
 import org.apache.kylin.query.routing.rules.RealizationSortRule;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.query.routing.rules.RemoveUncapableRealizationsRule;
+import org.apache.kylin.query.routing.rules.SegmentPruningRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +64,8 @@ public abstract class RoutingRule {
 
     static {
         rules.add(new RemoveBlackoutRealizationsRule());
+        rules.add(new SegmentPruningRule());
+        rules.add(new PartitionPruningRule());
         rules.add(new RemoveUncapableRealizationsRule());
         rules.add(new RealizationSortRule());
     }

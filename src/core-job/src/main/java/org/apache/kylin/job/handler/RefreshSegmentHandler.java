@@ -28,7 +28,6 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.model.JobParam;
 
@@ -36,7 +35,10 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  *
@@ -47,13 +49,26 @@ public class RefreshSegmentHandler extends AbstractJobHandler {
     protected AbstractExecutable createJob(JobParam jobParam) {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dfm = NDataflowManager.getInstance(kylinConfig, jobParam.getProject());
+        NDataflow dataflow = dfm.getDataflow(jobParam.getModel()).copy();
 
-        NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, jobParam.getProject())
-                .getDataflow(jobParam.getModel());
+        if(jobParam.isMultiPartitionJob()){
+            // update partition status to refresh
+            val segment = dataflow.getSegment(jobParam.getSegment());
+            segment.getMultiPartitions().forEach(partition -> {
+                if (jobParam.getTargetPartitions().contains(partition.getPartitionId())) {
+                    partition.setStatus(PartitionStatusEnum.REFRESH);
+                }
+            });
+            val dfUpdate = new NDataflowUpdate(dataflow.getId());
+            dfUpdate.setToUpdateSegs(segment);
+            dfm.updateDataflow(dfUpdate);
+        }
 
         return JobFactory.createJob(CUBE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(Sets.newHashSet(dataflow.getSegment(jobParam.getSegment())),
-                        jobParam.getProcessLayouts(), jobParam.getOwner(), JobTypeEnum.INDEX_REFRESH,
-                        jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables()));
+                        jobParam.getProcessLayouts(), jobParam.getOwner(), jobParam.getJobTypeEnum(),
+                        jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables(),
+                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets()));
     }
 }

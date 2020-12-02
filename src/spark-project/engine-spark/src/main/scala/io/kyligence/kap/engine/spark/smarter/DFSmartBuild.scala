@@ -60,7 +60,7 @@ class DFSmartBuild extends DFBuildJob with Logging {
   private var runningIndexList = new ListBuffer[Long]
   private var buildContext: BuildContext = _
 
-  override protected def onInit(): Unit = {
+  override protected def extraInit(): Unit = {
     dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID)
     val layoutIds = str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS))
     segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ",")
@@ -79,7 +79,6 @@ class DFSmartBuild extends DFBuildJob with Logging {
   }
 
   override protected def doExecute(): Unit = {
-    onInit
 
     segmentIds.foreach(segmentBuild(_))
 
@@ -249,7 +248,7 @@ class DFSmartBuild extends DFBuildJob with Logging {
         Predef.assert(index.getMeasures.isEmpty)
         parent.select(getColumns(dimIndexes): _*)
       } else {
-        CuboidAggregator.agg(ss, parent, dimIndexes, index.getEffectiveMeasures, seg, nSpanningTree)
+        CuboidAggregator.agg(parent, dimIndexes, index.getEffectiveMeasures, seg, nSpanningTree)
       }
 
     val layouts = new mutable.ListBuffer[NDataLayout]

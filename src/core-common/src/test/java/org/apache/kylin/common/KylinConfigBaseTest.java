@@ -314,7 +314,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getKylinJobJarPath", new PropertiesEntity("kylin.engine.spark.job-jar", "/usr/lib/", "/usr/lib/"));
 
         map.put("getSparkBuildClassName", new PropertiesEntity("kylin.engine.spark.build-class-name",
-                "io.kyligence.kap.engine.spark.job.DFBuildJob", "io.kyligence.kap.engine.spark.job.DFBuildJob"));
+                "io.kyligence.kap.engine.spark.job.SegmentBuildJob", "io.kyligence.kap.engine.spark.job.SegmentBuildJob"));
 
         map.put("getSparkTableSamplingClassName",
                 new PropertiesEntity("kylin.engine.spark.sampling-class-name",
@@ -322,7 +322,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob"));
 
         map.put("getSparkMergeClassName", new PropertiesEntity("kylin.engine.spark.merge-class-name",
-                "io.kyligence.kap.engine.spark.job.DFMergeJob", "io.kyligence.kap.engine.spark.job.DFMergeJob"));
+                "io.kyligence.kap.engine.spark.job.SegmentMergeJob", "io.kyligence.kap.engine.spark.job.SegmentMergeJob"));
 
         map.put("getClusterManagerClassName", new PropertiesEntity("kylin.engine.spark.cluster-manager-class-name",
                 "io.kyligence.kap.cluster.YarnClusterManager", "io.kyligence.kap.cluster.YarnClusterManager"));
@@ -785,6 +785,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getAsyncQueryResultRetainDays", new PropertiesEntity("kylin.query.async.result-retain-days", "7d", 7L));
         map.put("getAuditLogBatchTimeout", new PropertiesEntity("kylin.metadata.audit-log.batch-timeout", "30s", 30));
         map.put("isSnapshotManualManagementEnabled", new PropertiesEntity("kylin.snapshot.manual-management-enabled", "false", false));
+
+        map.put("getMultiPartitionKeyMappingProvider", new PropertiesEntity("kylin.model.multi-partition-key-mapping-provider-class", "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider", "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider"));
     }
 
     @Before
@@ -805,7 +807,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(413, methodsCount);
+        Assert.assertEquals(416, methodsCount);
     }
 
     @Test

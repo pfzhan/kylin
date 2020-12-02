@@ -6,7 +6,7 @@
   "join_tables": [
     {
       "table": "DEFAULT.TEST_KYLIN_FACT",
-      "kind" : "FACT",
+      "kind" : "LOOKUP",
       "alias" : "TEST_KYLIN_FACT",
       "join": {
         "type": "LEFT",

@@ -44,7 +44,7 @@ public class NResourceDetectStep extends NSparkExecutable {
 
     public NResourceDetectStep(DefaultChainedExecutable parent) {
         if (parent instanceof NSparkCubingJob) {
-            this.setSparkSubmitClassName(ResourceDetectBeforeCubingJob.class.getName());
+            this.setSparkSubmitClassName(RDSegmentBuildJob.class.getName());
         } else if (parent instanceof NSparkMergingJob) {
             this.setSparkSubmitClassName(ResourceDetectBeforeMergingJob.class.getName());
         } else if (parent instanceof NTableSamplingJob) {

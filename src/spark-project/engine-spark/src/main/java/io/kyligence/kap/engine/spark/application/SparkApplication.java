@@ -320,6 +320,7 @@ public abstract class SparkApplication implements Application, IKeep {
             }
             logger.info("Start job");
             infos.startJob();
+            extraInit();
             doExecute();
             // Output metadata to another folder
             val resourceStore = ResourceStore.getKylinMetaStore(config);
@@ -341,7 +342,7 @@ public abstract class SparkApplication implements Application, IKeep {
         return !Utils.isLocalMaster(conf) && !config.isUTEnv();
     }
 
-    protected void onInit() {
+    protected void extraInit() {
         //do nothing
     }
 
@@ -393,7 +394,7 @@ public abstract class SparkApplication implements Application, IKeep {
             } catch (NoRetryException e) {
                 throw e;
             } catch (Exception e) {
-                logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ", e);
+                logger.warn("Error occurred when check resource. Ignore it and try to submit this job.", e);
             }
             infos.endWait();
         }

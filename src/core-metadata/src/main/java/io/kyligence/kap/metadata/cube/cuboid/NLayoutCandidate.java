@@ -61,6 +61,10 @@ public class NLayoutCandidate implements IRealizationCandidate  {
         this.cost = cost;
     }
 
+    public boolean isEmptyCandidate() {
+        return this.getCuboidLayout().getIndex() == null;
+    }
+
     @Nonnull
     public LayoutEntity getCuboidLayout() {
         return cuboidLayout;

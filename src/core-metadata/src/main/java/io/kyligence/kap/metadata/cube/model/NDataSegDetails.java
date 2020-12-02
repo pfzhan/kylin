@@ -146,7 +146,6 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
     void addLayout(NDataLayout cuboid) {
         checkIsNotCachedAndShared();
         if (layouts.contains(cuboid)) {
-            logger.warn("NDataLayout should be immutable, but {} is being updated", cuboid);
             layouts.remove(cuboid); // remove the old cuboid
         }
 

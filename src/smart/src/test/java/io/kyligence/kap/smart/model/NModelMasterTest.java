@@ -194,11 +194,11 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isFailed());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+        Assert.assertEquals("Cannot find table 'UNKNOWN_ALIAS'.",
                 accelerateInfoMap.get(sqls[0]).getFailedCause().getMessage());
 
         Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isFailed());
-        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+        Assert.assertEquals("Cannot find table 'UNKNOWN_ALIAS'.",
                 accelerateInfoMap.get(sqls[1]).getFailedCause().getMessage());
 
         Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isFailed());

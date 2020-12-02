@@ -109,6 +109,9 @@ public class ProjectConfigResponse {
     @JsonProperty("favorite_rules")
     private Map<String, Object> favoriteRules;
 
+    @JsonProperty("multi_partition_enabled")
+    private boolean multiPartitionEnabled;
+
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
         case 1:

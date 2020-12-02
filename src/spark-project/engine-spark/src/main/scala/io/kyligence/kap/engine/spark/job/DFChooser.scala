@@ -160,7 +160,7 @@ class DFChooser(toBuildTree: NSpanningTree,
       logInfo(s"Fact table ${fact.getAlias} isView ${fact.getTableDesc.isView} and fact table exists dict col ${existsFactDictCol}")
       if (fact.getTableDesc.isView && existsFactDictCol) {
         var viewDS = ss.table(fact.getTableDesc).alias(fact.getAlias)
-        path = s"${config.getJobTmpViewFactTableDir(seg.getProject, jobId)}"
+        path = s"${config.getJobTmpFactTableViewDir(seg.getProject, jobId)}"
 
         if (seg.isFactViewReady && HadoopUtil.getWorkingFileSystem.exists(new Path(path))) {
           logInfo(s"Skip already persisted fact view, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")

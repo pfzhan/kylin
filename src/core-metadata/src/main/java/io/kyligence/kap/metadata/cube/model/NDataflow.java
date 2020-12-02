@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -60,8 +61,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -298,11 +301,25 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     public NDataSegment getSegment(String segId) {
-        for (NDataSegment seg : segments) {
-            if (seg.getId().equals(segId))
-                return seg;
+        if (StringUtils.isBlank(segId)) {
+            return null;
+        }
+        val segments = getSegments(Sets.newHashSet(segId));
+        if (CollectionUtils.isNotEmpty(segments)) {
+            Preconditions.checkState(segments.size() == 1);
+            return segments.get(0);
         }
         return null;
+    }
+
+    public List<NDataSegment> getSegments(Set<String> segIds) {
+        List<NDataSegment> segs = Lists.newArrayList();
+        for (NDataSegment seg : segments) {
+            if (segIds.contains(seg.getId())) {
+                segs.add(seg);
+            }
+        }
+        return segs;
     }
 
     public NDataSegment getSegmentByName(String segName) {

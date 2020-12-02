@@ -114,11 +114,11 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         Set<NDataSegment> segments = Sets.newHashSet(oneSeg);
         Set<LayoutEntity> layouts = Sets.newHashSet(df.getIndexPlan().getAllLayouts());
-        NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN");
+        NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN", null);
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
-        Assert.assertEquals(ResourceDetectBeforeCubingJob.class.getName(),
+        Assert.assertEquals(RDSegmentBuildJob.class.getName(),
                 resourceDetectStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_DETECT_RESOURCE, resourceDetectStep.getName());
         job.getParams().forEach((key, value) -> Assert.assertEquals(value, resourceDetectStep.getParam(key)));
@@ -211,7 +211,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         val layouts = dataflow.getIndexPlan().getAllLayouts();
         val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
         NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
-                Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null));
+                Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null));
         NExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
         return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }

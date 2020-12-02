@@ -33,20 +33,20 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure
 import org.apache.kylin.common.KapConfig
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.measure.hllc.HLLCMeasureType
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.functions.{col, _}
 import org.apache.spark.sql.types.{StringType, _}
 import org.apache.spark.sql.udaf._
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
-import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 object CuboidAggregator {
 
-  def agg(ss: SparkSession,
-          dataSet: DataFrame,
+  def agg(dataset: DataFrame,
           dimensions: util.Set[Integer],
           measures: util.Map[Integer, Measure],
           seg: NDataSegment,
@@ -61,25 +61,45 @@ object CuboidAggregator {
     val flatTableDesc =
       new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
 
-    aggInternal(ss, dataSet, dimensions, measures, flatTableDesc, isSparkSql = false)
+    aggregate(dataset, dimensions, measures, //
+      (colRef: TblColRef) => flatTableDesc.getColumnIndex(colRef))
   }
 
-  def aggInternal(ss: SparkSession,
-                  dataSet: DataFrame,
-                  dimensions: util.Set[Integer],
-                  measures: util.Map[Integer, Measure],
-                  flatTableDesc: NCubeJoinedFlatTableDesc,
-                  isSparkSql: Boolean): DataFrame = {
+  /**
+    * Avoid compilation error when invoking aggregate in java
+    * incompatible types: Function1 is not a functional interface
+    *
+    * @param dataset
+    * @param dimensions
+    * @param measures
+    * @param tableDesc
+    * @param isSparkSQL
+    * @return
+    */
+  def aggregateJava(dataset: DataFrame,
+                    dimensions: util.Set[Integer],
+                    measures: util.Map[Integer, Measure],
+                    tableDesc: NCubeJoinedFlatTableDesc,
+                    isSparkSQL: Boolean = false): DataFrame = {
+    aggregate(dataset, dimensions, measures, //
+      (colRef: TblColRef) => tableDesc.getColumnIndex(colRef), isSparkSQL)
+  }
+
+  def aggregate(dataset: DataFrame,
+                dimensions: util.Set[Integer],
+                measures: util.Map[Integer, Measure],
+                columnIndexFunc: TblColRef => Int,
+                isSparkSQL: Boolean = false): DataFrame = {
     if (measures.isEmpty) {
-      return dataSet
+      return dataset
         .select(NSparkCubingUtil.getColumns(dimensions): _*)
         .dropDuplicates()
     }
 
-    val reuseLayout = dataSet.schema.fieldNames
+    val reuseLayout = dataset.schema.fieldNames
       .contains(measures.keySet().asScala.head.toString)
     val columnIndex =
-      dataSet.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
+      dataset.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
 
     var taggedColIndex: Int = -1
 
@@ -93,7 +113,7 @@ object CuboidAggregator {
         if (reuseLayout) {
           columns.append(col(measureEntry._1.toString))
         } else {
-          columns.appendAll(parameters.map(p => col(columnIndex.apply(flatTableDesc.getColumnIndex(p.getColRef)))))
+          columns.appendAll(parameters.map(p => col(columnIndex.apply(columnIndexFunc(p.getColRef)))))
         }
       } else {
         if (reuseLayout) {
@@ -123,7 +143,7 @@ object CuboidAggregator {
           }
         case "COUNT_DISTINCT" =>
           // add for test
-          if (isSparkSql) {
+          if (isSparkSQL) {
             countDistinct(columns.head).as(measureEntry._1.toString)
           } else {
             var cdCol = columns.head
@@ -133,7 +153,7 @@ object CuboidAggregator {
             if (isBitmap && parameters.size == 2) {
               require(measures.size() == 1, "Opt intersect count can only has one measure.")
               if (!reuseLayout) {
-                taggedColIndex = columnIndex.apply(flatTableDesc.getColumnIndex(parameters.last.getColRef)).toInt
+                taggedColIndex = columnIndex.apply(columnIndexFunc(parameters.last.getColRef)).toInt
                 val tagCol = col(taggedColIndex.toString)
                 val separator = KapConfig.getInstanceFromEnv.getIntersectCountSeparator
                 cdCol = wrapEncodeColumn(columns.head)
@@ -218,18 +238,18 @@ object CuboidAggregator {
     }
 
     val df: DataFrame = if (!dim.isEmpty) {
-      dataSet
+      dataset
         .groupBy(NSparkCubingUtil.getColumns(dim): _*)
         .agg(agg.head, agg.drop(1): _*)
     } else {
-      dataSet
+      dataset
         .agg(agg.head, agg.drop(1): _*)
     }
 
     // Avoid sum(decimal) add more precision
     // For example: sum(decimal(19,4)) -> decimal(29,4)  sum(sum(decimal(19,4))) -> decimal(38,4)
     if (reuseLayout) {
-      val columns = NSparkCubingUtil.getColumns(dimensions) ++ measureColumns(dataSet.schema, measures)
+      val columns = NSparkCubingUtil.getColumns(dimensions) ++ measureColumns(dataset.schema, measures)
       df.select(columns: _*)
     } else {
       if (taggedColIndex != -1) {

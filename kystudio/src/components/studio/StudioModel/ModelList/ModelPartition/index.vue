@@ -8,8 +8,9 @@
     @close="isShow && handleClose(false)"
     :close-on-press-escape="false"
     :close-on-click-modal="false">
+    <p class="segment-change-tip"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('segmentChangedTips')}}</p>
     <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
-      <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
+      <el-form-item  :label="$t('partitionDateTable')" class="clearfix">
         <el-row :gutter="5">
           <el-col :span="12">
             <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
@@ -17,7 +18,11 @@
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-col>
-          <el-col :span="12" v-if="partitionMeta.table">
+        </el-row>
+      </el-form-item>
+      <el-form-item  :label="$t('partitionDateColumn')" v-if="partitionMeta.table">
+        <el-row :gutter="5">
+          <el-col :span="11" v-if="partitionMeta.table">
             <el-form-item prop="column">
               <el-select
               v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
@@ -29,17 +34,13 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-      </el-form-item>
-      <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
-        <el-row :gutter="5">
-          <el-col :span="12">
+          <el-col :span="11">
             <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
               <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="1">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
               <div style="display: inline-block;">
                 <el-button
@@ -52,6 +53,32 @@
                 </el-button>
               </div>
             </el-tooltip>
+          </el-col>
+        </el-row>
+      </el-form-item>
+      <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table">
+        <span slot="label">
+          <span>{{$t('multilevelPartition')}}</span>
+          <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
+        </span>
+        <el-row>
+          <el-col :span="11">
+            <el-select
+              :disabled="isLoadingNewRange"
+              v-model="partitionMeta.multiPartition"
+              :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+              filterable
+              class="partition-multi-partition"
+              style="width:100%">
+                <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
+                <el-option :label="$t('noPartition')" value=""></el-option>
+                <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                  <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
+                  <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
+                </el-option>
+              </el-select>
           </el-col>
         </el-row>
       </el-form-item>
@@ -73,7 +100,7 @@ import locales from './locales'
 import store, { types } from './store'
 import { timeDataType, dateFormats } from 'config'
 import NModel from '../../ModelEdit/model.js'
-import { isDatePartitionType, objectClone, kapConfirm } from 'util'
+import { isDatePartitionType, kapConfirm } from 'util'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartition'], store)
 
@@ -110,7 +137,8 @@ export default class ModelPartition extends Vue {
   partitionMeta = {
     table: '',
     column: '',
-    format: ''
+    format: '',
+    multiPartition: ''
   }
   isLoadingNewRange = false
   isLoadingFormat = false
@@ -123,7 +151,8 @@ export default class ModelPartition extends Vue {
   prevPartitionMeta = {
     table: '',
     column: '',
-    format: ''
+    format: '',
+    multiPartition: ''
   }
   validateBrokenColumn (rule, value, callback) {
     if (value) {
@@ -171,20 +200,21 @@ export default class ModelPartition extends Vue {
         }
       })
     }
-    let ccColumns = this.modelInstance.getComputedColumns()
-    let cloneCCList = objectClone(ccColumns)
-    cloneCCList.forEach((x) => {
-      let cc = {
-        name: x.columnName,
-        datatype: x.datatype
-      }
-      result.push(cc)
-    })
+    // let ccColumns = this.modelInstance.getComputedColumns()
+    // let cloneCCList = objectClone(ccColumns)
+    // cloneCCList.forEach((x) => {
+    //   let cc = {
+    //     name: x.columnName,
+    //     datatype: x.datatype
+    //   }
+    //   result.push(cc)
+    // })
     return result
   }
   partitionTableChange () {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
+    this.partitionMeta.multiPartition = ''
     this.$refs.partitionForm.validate()
   }
   partitionColumnChange () {
@@ -195,9 +225,10 @@ export default class ModelPartition extends Vue {
     this.partitionMeta = {
       table: '',
       column: '',
-      format: ''
+      format: '',
+      multiPartition: ''
     }
-    this.prevPartitionMeta = { table: '', column: '', format: '' }
+    this.prevPartitionMeta = { table: '', column: '', format: '', multiPartition: '' }
     this.filterCondition = ''
     this.isLoadingSave = false
     this.isLoadingFormat = false
@@ -246,6 +277,7 @@ export default class ModelPartition extends Vue {
         this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
         this.partitionMeta.column = this.prevPartitionMeta.column = named[1]
         this.partitionMeta.format = this.prevPartitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+        this.partitionMeta.multiPartition = this.prevPartitionMeta.multiPartition = this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns[0] && this.modelDesc.multi_partition_desc.columns[0].split('.')[1] || ''
       }
     } else {
       this.resetForm()
@@ -257,7 +289,7 @@ export default class ModelPartition extends Vue {
   }
 
   get isChangePartition () {
-    return this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format
+    return this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format || this.prevPartitionMeta.multiPartition !== this.partitionMeta.multiPartition
   }
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
@@ -287,7 +319,8 @@ export default class ModelPartition extends Vue {
         partition_desc = null
       }
       this.isLoadingSave = true
-      await this.setModelPartition({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, partition_desc})
+      const multi_partition_desc = this.partitionMeta.multiPartition ? {columns: [this.partitionMeta.table + '.' + this.partitionMeta.multiPartition]} : null
+      await this.setModelPartition({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, partition_desc, multi_partition_desc: multi_partition_desc})
       this.handleClose(true)
       this.isLoadingSave = false
       this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
@@ -317,6 +350,13 @@ export default class ModelPartition extends Vue {
     span {
       color: @error-color-1;
     }
+  }
+  .segment-change-tip {
+    i {
+      color: @text-disabled-color;
+    }
+    font-size: 12px;
+    margin-bottom: 10px;
   }
 }
 </style>

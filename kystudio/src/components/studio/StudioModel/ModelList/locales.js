@@ -117,7 +117,9 @@ export default {
     connectODBC: 'Other ODBC data sources（default）',
     connectTableau: 'Tableau Kyligence Connector',
     exportTDSOfflineTips: 'The exported TDS file can\'t be used for queries if the model is OFFLINE. Please make sure that the model goes online when using this TDS file.',
-    bokenModelExportTDSTip: 'Can\'t export TDS file at the moment as the model is BROKEN'
+    bokenModelExportTDSTip: 'Can\'t export TDS file at the moment as the model is BROKEN',
+    subPartitionValuesManage: 'Manage Sub-Partition Values',
+    multilParTip: 'This model used multilevel partitioning, which are not supported at the moment. Please set subpartition as \'None\' in model partition dialog, or turn on \'Multilevel Partitioning\' in project settings.'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -234,6 +236,8 @@ export default {
     connectODBC: '其他 ODBC 数据源（默认）',
     connectTableau: 'Tableau Kyligence Connector',
     exportTDSOfflineTips: '模型为 OFFLINE 时，导出的 TDS 无法用于查询。请确保使用 TDS 文件时该模型已上线。',
-    bokenModelExportTDSTip: '该模型状态为 BROKEN，无法导出 TDS 文件'
+    bokenModelExportTDSTip: '该模型状态为 BROKEN，无法导出 TDS 文件',
+    subPartitionValuesManage: '子分区值设置',
+    multilParTip: '该模型使用了多级分区，当前不可用。请在分区设置中将子分区列设为”无分区”，或在项目设置中开启支持多级分区。'
   }
 }

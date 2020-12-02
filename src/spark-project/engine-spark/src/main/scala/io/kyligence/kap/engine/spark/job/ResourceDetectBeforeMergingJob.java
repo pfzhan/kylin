@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.Path;
@@ -62,7 +63,9 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
         infos.recordMergingSegments(mergingSegments);
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = DFMergeJob.generateMergeAssist(mergingSegments, ss,
                 mergedSeg);
-        ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()), ResourceDetectUtils.findCountDistinctMeasure(mergedSeg.getIndexPlan().getAllLayouts()));
+        ResourceDetectUtils.write(
+                new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()),
+                ResourceDetectUtils.findCountDistinctMeasure(mergedSeg.getIndexPlan().getAllLayouts()));
         Map<String, List<String>> resourcePaths = Maps.newHashMap();
         infos.clearSparkPlans();
         for (Map.Entry<Long, DFLayoutMergeAssist> entry : mergeCuboidsAssist.entrySet()) {

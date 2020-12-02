@@ -116,7 +116,7 @@ object SchemaProcessor {
     val base: String = KapConfig.getInstanceFromEnv.getReadParquetStoragePath(df.getProject)
     import scala.collection.JavaConversions._
     for (nCuboidLayout <- allCuboidLayouts) {
-      val path: String = TableScanPlan.toCuboidPath(df, nCuboidLayout.getId, base, latestReadySegment)
+      val path: String = TableScanPlan.toLayoutPath(df, nCuboidLayout.getId, base, latestReadySegment)
       val schema: StructType = sparkSession.read.parquet(path).schema
       val schemaFromNCuboidLayout: StructType = LayoutEntityConverter.genCuboidSchemaFromNCuboidLayout(nCuboidLayout)
       if (!(schema == schemaFromNCuboidLayout)) {

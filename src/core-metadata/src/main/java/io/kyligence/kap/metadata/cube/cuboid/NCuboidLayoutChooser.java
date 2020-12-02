@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.util.Comparator;
+import java.util.Objects;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -38,11 +39,18 @@ public class NCuboidLayoutChooser {
                 .filter(index -> index.fullyDerive(entity)) //
                 .flatMap(index -> index.getLayouts().stream()) //
                 .filter(layout -> (segment.getLayout(layout.getId()) != null)) //
-                .min(Comparator.comparingLong(o -> getRows(o, segment))); //
+                .min(Comparator.comparingLong(layout -> segment.getLayout(layout.getId()).getRows())); //
         return candidate.orElse(null);
     }
 
-    private static long getRows(LayoutEntity o1, NDataSegment segment) {
-        return segment.getLayout(o1.getId()).getRows();
+    public static LayoutEntity selectLayoutForBuild(NDataSegment segment, IndexEntity index, Long partitionId) {
+        val candidate = segment.getIndexPlan().getAllIndexes().stream() //
+                .filter(parent -> parent.fullyDerive(index)) //
+                .flatMap(parent -> parent.getLayouts().stream()) //
+                .filter(parent -> Objects.nonNull(segment.getLayout(parent.getId()))) //
+                .filter(parent -> Objects.nonNull(segment.getLayout(parent.getId()).getDataPartition(partitionId))) //
+                .min(Comparator.comparingLong(parent -> // 
+                segment.getLayout(parent.getId()).getDataPartition(partitionId).getRows()));
+        return candidate.orElse(null);
     }
 }

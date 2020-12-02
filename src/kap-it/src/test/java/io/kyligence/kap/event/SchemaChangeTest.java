@@ -180,7 +180,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         val execMgr = NExecutableManager.getInstance(config, PROJECT);
         // ready dataflow, segment, cuboid layout
         val oneSeg = dsMgr.appendSegment(df, segmentRange);
-        val job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN");
+        val job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null);
         // launch the job
         execMgr.addJob(job);
         if (!Objects.equals(waitForFinished(job), ExecutableState.SUCCEED))

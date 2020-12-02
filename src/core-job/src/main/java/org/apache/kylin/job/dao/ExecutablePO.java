@@ -111,6 +111,9 @@ public class ExecutablePO extends RootPersistentEntity {
 
     private String project;
 
+    @JsonProperty("target_partitions")
+    private Set<Long> targetPartitions = Sets.newHashSet();
+
     @Override
     public String getResourcePath() {
         return concatResourcePath(getUuid(), project);

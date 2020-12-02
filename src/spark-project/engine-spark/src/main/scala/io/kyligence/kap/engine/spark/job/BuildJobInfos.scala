@@ -42,6 +42,11 @@ class BuildJobInfos {
 
   private val mergingSegments: java.util.List[NDataSegment] = new util.LinkedList[NDataSegment]
 
+  // BUCKET
+  private val bucketsInfo = new util.HashMap[Long, util.List[Long]]
+
+  private var bucketingSegment: String = ""
+
   // COMMON
   private val abnormalLayouts: util.Map[Long, util.List[String]] = new util.HashMap[Long, util.List[String]]
 
@@ -59,9 +64,11 @@ class BuildJobInfos {
 
   private var waitStartTime: Long = 0L
 
+
   def startJob(): Unit = {
     jobStartTime = System.currentTimeMillis()
   }
+
   def jobEnd(): Unit = {
     buildTime = System.currentTimeMillis() - jobStartTime
   }
@@ -170,5 +177,21 @@ class BuildJobInfos {
 
   def getParent2Children: util.Map[NDataLayout, util.List[Long]] = {
     parent2Children
+  }
+
+  def recordBucketsInfo(bucketId: Long, partitions: util.List[Long]): Unit = {
+    bucketsInfo.put(bucketId, partitions)
+  }
+
+  def getBucketsInfo(): Unit = {
+    bucketsInfo
+  }
+
+  def recordBucketSegment(segId: String): Unit = {
+    bucketingSegment = segId
+  }
+
+  def getBucketSegment(): Unit = {
+    bucketingSegment
   }
 }

@@ -95,7 +95,7 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
             copyForWrite.setIndexes(Lists.newArrayList(indexEntity));
         });
         buildSegment(dfID, firstSegment,
-                Sets.newLinkedHashSet(dfManager.getDataflow(dfID).getIndexPlan().getAllLayouts()), getProject(), true);
+                Sets.newLinkedHashSet(dfManager.getDataflow(dfID).getIndexPlan().getAllLayouts()), getProject(), true, null);
         String query = "select count(distinct trans_id) from TEST_KYLIN_FACT";
         long result = NExecAndComp.queryCube(getProject(), query).collectAsList().get(0).getLong(0);
         long expect = ss.sql("select count(distinct trans_id) from TEST_KYLIN_FACT").collectAsList().get(0).getLong(0);

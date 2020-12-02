@@ -525,8 +525,8 @@ import locales from './locales'
 import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone, ArrayFlat } from 'util'
-import { handleSuccess } from 'util/business'
+import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone, ArrayFlat, getQueryString } from 'util'
+import { handleSuccess, postCloudUrlMessage } from 'util/business'
 
 vuex.registerModule(['modals', 'AggregateModal'], store)
 
@@ -1052,7 +1052,7 @@ export default class AggregateModal extends Vue {
           message: (
             <div>
               <span>{tipMsg}</span>
-              <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+              <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
             </div>
           )
         })
@@ -1086,6 +1086,16 @@ export default class AggregateModal extends Vue {
       }
     })
   }
+
+  // 跳转至job页面
+  jumpToJobs () {
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
+    }
+  }
+
   async handleSubmit (isCatchUp) {
     // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
     if (isCatchUp && this.model.segments.length > 0 && !this.model.partition_desc || !isCatchUp) {

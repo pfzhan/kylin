@@ -84,6 +84,7 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
                 .filter(executable -> JobTypeEnum.INC_BUILD == executable.getJobType()
                         || JobTypeEnum.INDEX_BUILD == executable.getJobType()
                         || JobTypeEnum.INDEX_REFRESH == executable.getJobType()
+                        || JobTypeEnum.SUB_PARTITION_REFRESH == executable.getJobType()
                         || JobTypeEnum.INDEX_MERGE == executable.getJobType())
                 .filter(executable -> ExecutableState.RUNNING == executable.getStatus()
                         || ExecutableState.ERROR == executable.getStatus()
@@ -106,6 +107,7 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
                         job.getHandler().getClass().getName());
                 break;
             case INDEX_REFRESH:
+            case SUB_PARTITION_REFRESH:
             case INDEX_MERGE:
                 Assert.assertEquals("io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler",
                         job.getHandler().getClass().getName());

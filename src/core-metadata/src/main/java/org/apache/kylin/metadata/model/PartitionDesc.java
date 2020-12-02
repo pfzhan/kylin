@@ -43,6 +43,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.LinkedList;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ClassUtil;
@@ -54,6 +55,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.EqualsAndHashCode;
 
@@ -181,6 +183,9 @@ public class PartitionDesc implements Serializable {
 
     public static interface IPartitionConditionBuilder {
         String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange);
+
+        String buildMultiPartitionCondition(final PartitionDesc partDesc, final MultiPartitionDesc multiPartDesc,
+                final LinkedList<Long> partitionIds, final ISegment seg, final SegmentRange segRange);
     }
 
     public static class DefaultPartitionConditionBuilder implements IPartitionConditionBuilder, Serializable {
@@ -207,6 +212,12 @@ public class PartitionDesc implements Serializable {
                         partDesc.getPartitionDateFormat());
             }
             return builder.toString();
+        }
+
+        @Override
+        public String buildMultiPartitionCondition(final PartitionDesc partDesc, final MultiPartitionDesc multiPartDesc,
+                final LinkedList<Long> partitionIds, final ISegment seg, final SegmentRange segRange) {
+            return "";
         }
 
         private static void buildSingleColumnRangeCondAsTimeMillis(StringBuilder builder, TblColRef partitionColumn,

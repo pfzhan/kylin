@@ -201,6 +201,9 @@
                 <div v-if="scope.row.status === 'OFFLINE' && !scope.row.segments.length">
                   <span>{{$t('noSegmentOnlineTip')}}</span>
                 </div>
+                <div v-if="scope.row.status === 'OFFLINE' && !$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc">
+                  <span>{{$t('multilParTip')}}</span>
+                </div>
               </el-popover>
               <span class="model-alias-title" v-custom-tooltip="{text: scope.row.alias, w: 50, tableClassName: 'model_list_table'}">{{scope.row.alias}}</span>
             </div>
@@ -302,7 +305,7 @@
               <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
                 <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="(e) => handleEditModel(scope.row.alias, e)"></i>
               </common-tip>
-              <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
+              <common-tip :content="(!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc) ? $t('multilParTip') : scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
                 <el-popover
                   ref="popoverBuild"
                   placement="bottom-end"
@@ -314,7 +317,7 @@
                     <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(scope.row.uuid)">{{$t('iKnow')}}</el-button>
                   </div>
                 </el-popover>
-                <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
+                <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes || (!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc)}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row, scope)}" :id="scope.row.name" trigger="click" >
@@ -327,6 +330,7 @@
                     <!-- 设置partition -->
                     <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
                     <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
+                    <el-dropdown-item @click.native="subParValMana(scope.row)" v-if="scope.row.status !== 'BROKEN' && $store.state.project.multi_partition_enabled && scope.row.multi_partition_desc && modelActions.includes('manageSubPartitionValues')">{{$t('subPartitionValuesManage')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
                     <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
                     <!-- <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
@@ -346,8 +350,8 @@
                     <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
                     <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
                     <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" :class="{'disabled-online': scope.row.forbidden_online || !scope.row.segments.length}" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">
-                      <common-tip :content="getDisabledOnlineTips(scope.row)" v-if="scope.row.forbidden_online || !scope.row.segments.length">
+                    <el-dropdown-item command="online" :class="{'disabled-online': scope.row.forbidden_online || !scope.row.segments.length || (!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc)}" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">
+                      <common-tip :content="getDisabledOnlineTips(scope.row)" v-if="scope.row.forbidden_online || !scope.row.segments.length || (!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc)">
                         <span>{{$t('onLine')}}</span>
                       </common-tip>
                       <span v-else>{{$t('onLine')}}</span>
@@ -463,6 +467,8 @@ import '../../../../util/fly.js'
 import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
 import ModelOverview from './ModelOverview/ModelOverview.vue'
+import AggregateModal from './AggregateModal/index.vue'
+import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 
 function getDefaultFilters (that) {
   return {
@@ -479,8 +485,6 @@ function getDefaultFilters (that) {
   }
 }
 
-import AggregateModal from './AggregateModal/index.vue'
-import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -664,6 +668,10 @@ export default class ModelList extends Vue {
     if (!row.segments.length) {
       tips += '<br/>'
       tips += this.$t('noSegmentOnlineTip')
+    }
+    if (!this.$store.state.project.multi_partition_enabled && row.multi_partition_desc) {
+      tips += '<br/>'
+      tips += this.$t('multilParTip')
     }
     return tips
   }
@@ -884,7 +892,7 @@ export default class ModelList extends Vue {
     }
   }
   async setModelBuldRange (modelDesc, isNeedBuildGuild) {
-    if (!modelDesc.total_indexes && !isNeedBuildGuild) return
+    if (!modelDesc.total_indexes && !isNeedBuildGuild || (!this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc)) return
     const projectName = this.currentSelectedProject
     const modelName = modelDesc.uuid
     const res = await this.fetchSegments({ projectName, modelName })
@@ -1010,7 +1018,7 @@ export default class ModelList extends Vue {
         this.handleDisableModel(objectClone(modelDesc))
       })
     } else if (command === 'online') {
-      if (modelDesc.forbidden_online || !modelDesc.segments.length) return
+      if (modelDesc.forbidden_online || !modelDesc.segments.length || !this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc) return
       // 模型上线不再进行二次弹窗确认
       // kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
       //   })
@@ -1205,6 +1213,10 @@ export default class ModelList extends Vue {
       this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
     }
   }
+  // 子分区值管理
+  subParValMana (model) {
+    this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.alias, modelId: model.uuid }})
+  }
   async handleImportModels () {
     const project = this.currentSelectedProject
     const isSubmit = await this.callModelsImportModal({ project })
@@ -1385,6 +1397,9 @@ export default class ModelList extends Vue {
   position:relative;
   .specialDropdown{
     min-width:96px;
+    .el-dropdown-menu__item {
+      white-space: nowrap;
+    }
   }
   .dropdown-filter + .dropdown-filter {
     margin-left: 5px;

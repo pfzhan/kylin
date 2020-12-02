@@ -66,7 +66,11 @@ import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OpenBatchApproveRecItemsRequest;
+import io.kyligence.kap.rest.request.PartitionColumnRequest;
+import io.kyligence.kap.rest.request.PartitionsBuildRequest;
+import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
@@ -78,6 +82,7 @@ import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.OpenOptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
+import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
@@ -151,6 +156,22 @@ public class OpenModelController extends NBasicController {
         String modelId = getModel(modelAlias, project).getId();
         return modelController.getSegments(modelId, project, status, offset, limit, start, end, null, null, false,
                 sortBy, reverse);
+    }
+
+    @GetMapping(value = "/{model_name:.+}/segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<DataResult<List<SegmentPartitionResponse>>> getMultiPartitions(
+            @PathVariable(value = "model_name") String modelAlias, //
+            @RequestParam(value = "project") String project, //
+            @RequestParam("segment_id") String segId,
+            @RequestParam(value = "status", required = false) List<String> status,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset, //
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify_time") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        checkProjectName(project);
+        String modelId = getModel(modelAlias, project).getId();
+        return modelController.getMultiPartition(modelId, project, segId, status, pageOffset, pageSize, sortBy, reverse);
     }
 
     @PostMapping(value = "/{model_name:.+}/segments")
@@ -353,5 +374,59 @@ public class OpenModelController extends NBasicController {
         validateDataRange(request.getStart(), request.getEnd());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 modelService.checkSegments(request.getProject(), modelName, request.getStart(), request.getEnd()), "");
+    }
+
+    @ApiOperation(value = "updateMultiPartitionMapping")
+    @PutMapping(value = "/{model_name:.+}/multi_partition/mapping")
+    @ResponseBody
+    public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model_name") String modelAlias,
+                                                                @RequestBody MultiPartitionMappingRequest mappingRequest) {
+        checkProjectName(mappingRequest.getProject());
+        val modelId = getModel(modelAlias, mappingRequest.getProject()).getId();
+        modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "build multi_partition")
+    @PostMapping(value = "/{model_name:.+}/segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model_name") String modelAlias,
+                                                        @RequestBody PartitionsBuildRequest param) {
+        checkProjectName(param.getProject());
+        val modelId = getModel(modelAlias, param.getProject()).getId();
+        return modelController.buildMultiPartition(modelId, param);
+    }
+
+    @ApiOperation(value = "refresh multi_partition")
+    @PutMapping(value = "/{model_name:.+}/segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model_name") String modelAlias,
+                                                          @RequestBody PartitionsRefreshRequest param) {
+        checkProjectName(param.getProject());
+        val modelId = getModel(modelAlias, param.getProject()).getId();
+        return modelController.refreshMultiPartition(modelId, param);
+    }
+
+    @ApiOperation(value = "delete multi_partition")
+    @DeleteMapping(value = "/segments/multi_partition")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelAlias,
+                                                         @RequestParam("project") String project,
+                                                         @RequestParam("segment") String segment,
+                                                         @RequestParam(value = "ids") String[] ids) {
+        checkProjectName(project);
+        checkRequiredArg("ids", ids);
+        val modelId = getModel(modelAlias, project).getId();
+        return modelController.deleteMultiPartition(modelId, project, segment, ids);
+    }
+
+    @ApiOperation(value = "update partition")
+    @PutMapping(value = "/{model_name:.+}/partition")
+    @ResponseBody
+    public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model_name") String modelAlias,
+                                                            @RequestBody PartitionColumnRequest param) throws Exception {
+        checkProjectName(param.getProject());
+        val modelId = getModel(modelAlias, param.getProject()).getId();
+        return modelController.updatePartitionSemantic(modelId, param);
     }
 }

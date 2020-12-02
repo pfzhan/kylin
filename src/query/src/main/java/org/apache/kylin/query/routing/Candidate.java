@@ -53,6 +53,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
 
 public class Candidate implements Comparable<Candidate> {
 
@@ -68,13 +69,17 @@ public class Candidate implements Comparable<Candidate> {
     OLAPContextProp rewrittenCtx;
 
     @Getter
+    @Setter
     private List<NDataSegment> prunedSegments;
 
-    public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx, List<NDataSegment> selectedSegments) {
+    @Getter
+    @Setter
+    private Map<String, List<Long>> prunedPartitions;
+
+    public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx) {
         this.realization = realization;
         this.sqlDigest = sqlDigest;
         this.ctx = ctx;
-        this.prunedSegments = selectedSegments;
     }
 
     public IRealization getRealization() {

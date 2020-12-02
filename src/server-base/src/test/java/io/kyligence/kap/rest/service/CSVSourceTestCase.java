@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
@@ -124,8 +125,10 @@ public class CSVSourceTestCase extends ServiceTestBase {
     }
 
     protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
+        List<AbstractExecutable> runningExecutables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
                 model);
+        runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
+        return runningExecutables;
     }
 
     protected void deleteJobByForce(AbstractExecutable executable) {

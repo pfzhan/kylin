@@ -43,7 +43,7 @@ public abstract class MetadataMerger {
     }
 
     public abstract NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteResourceStore, JobTypeEnum jobType);
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions);
 
     public abstract void merge(AbstractExecutable abstractExecutable);
 

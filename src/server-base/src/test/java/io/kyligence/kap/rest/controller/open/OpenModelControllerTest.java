@@ -69,11 +69,16 @@ import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
+import io.kyligence.kap.rest.request.PartitionColumnRequest;
+import io.kyligence.kap.rest.request.PartitionsBuildRequest;
+import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
+import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
@@ -395,6 +400,109 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).checkSegments(Mockito.anyString(), Mockito.any());
 
+    }
+
+    @Test
+    public void testGetMultiPartitions() throws Exception {
+        String modelName = "default_model_name";
+        String project = "default";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String segmentId = "73570f31-05a5-448f-973c-44209830dd01";
+        mockGetModelName(modelName, project, modelId);
+        DataResult<List<SegmentPartitionResponse>> result;
+        Mockito.when(nModelController.getMultiPartition(modelId, project, segmentId, Lists.newArrayList(), 0, 10, "last_modify_time", true))
+                .thenReturn(null);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments/multi_partition", modelName)
+                .param("project", project)
+                .param("segment_id", segmentId)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testUpdateMultiPartitionMapping() throws Exception {
+        String modelName = "default_model_name";
+        String project = "default";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, project, modelId);
+        MultiPartitionMappingRequest request = new MultiPartitionMappingRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(modelService)
+                .updateMultiPartitionMapping(request.getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/multi_partition/mapping", modelName)
+                .param("project", project)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testBuildMultiPartition() throws Exception {
+        String modelName = "default_model_name";
+        String project = "default";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, project, modelId);
+        PartitionsBuildRequest request = new PartitionsBuildRequest();
+        request.setProject("default");
+        Mockito.doReturn(null).when(nModelController)
+                .buildMultiPartition(modelId, request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testRefreshMultiPartition() throws Exception {
+        String modelName = "default_model_name";
+        String project = "default";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, project, modelId);
+        PartitionsRefreshRequest request = new PartitionsRefreshRequest();
+        request.setProject("default");
+        Mockito.doReturn(null).when(nModelController)
+                .refreshMultiPartition(modelId, request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments/multi_partition", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testDeleteMultiPartition() throws Exception {
+        String modelName = "default_model_name";
+        String project = "default";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String segmentId = "73570f31-05a5-448f-973c-44209830dd01";
+        mockGetModelName(modelName, project, modelId);
+        PartitionsRefreshRequest request = new PartitionsRefreshRequest();
+        request.setProject("default");
+        Mockito.doReturn(null).when(nModelController)
+                .deleteMultiPartition(modelId, project, segmentId, new String[]{"1"});
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/multi_partition")
+                .param("model", modelName)
+                .param("project", project)
+                .param("segment", segmentId)
+                .param("ids", new String[]{"1"})
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testUpdatePartition() throws Exception {
+        String modelName = "default_model_name";
+        String project = "default";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, project, modelId);
+        PartitionColumnRequest request = new PartitionColumnRequest();
+        request.setProject("default");
+        Mockito.doReturn(null).when(nModelController)
+                .updatePartitionSemantic(modelId, request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/partition", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     private void changeProjectToSemiAutoMode(String project) {

@@ -155,6 +155,11 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
         return null;
     }
 
+    @Override
+    public Collection<IndexEntity> getImmediateSuccessors(IndexEntity index) {
+        throw new UnsupportedOperationException();
+    }
+
     private void init() {
         new TreeBuilder(cuboids.keySet()).build();
     }

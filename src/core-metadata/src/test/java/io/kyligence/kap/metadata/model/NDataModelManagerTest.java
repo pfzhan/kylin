@@ -32,6 +32,7 @@ import java.util.UUID;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.junit.After;
@@ -84,6 +85,26 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasicModel() {
         NDataModel bm = mgrDefault.getDataModelDesc(modelBasic);
+        List<String> alias = Lists.newArrayList("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LEAF_CATEG_ID", "TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
+        List<String> partitions = Lists.newArrayList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.ORDER_ID", "TEST_KYLIN_FACT.CAL_DT");
+        List<Pair<List<String>, List<String>>> valueMapping = Lists.newArrayList();
+        List<String> pValue1 = Lists.newArrayList("1", "2", "3");
+        List<String> aValue1 = Lists.newArrayList("a", "b", "c");
+        List<String> aValue2 = Lists.newArrayList("a'", "b'", "c'");
+
+        List<String> pValue2 = Lists.newArrayList("4", "5", "6");
+        List<String> aValue3 = Lists.newArrayList("e", "f", "g");
+        List<String> aValue4 = Lists.newArrayList("e'", "f'", "g'");
+
+        valueMapping.add(Pair.newPair(pValue1, aValue1));
+        valueMapping.add(Pair.newPair(pValue1, aValue2));
+        valueMapping.add(Pair.newPair(pValue2, aValue3));
+        valueMapping.add(Pair.newPair(pValue2, aValue4));
+
+        MultiPartitionKeyMappingImpl mapping = new MultiPartitionKeyMappingImpl(alias, partitions, valueMapping);
+//        bm.setMultiPartitionKeyMapping(mapping);
+        mgrDefault.updateDataModelDesc(bm);
+
         Assert.assertEquals(9, bm.getJoinTables().size());
     }
 

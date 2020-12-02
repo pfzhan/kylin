@@ -22,14 +22,15 @@
 
 package org.apache.spark.sql.datasource.storage
 
-import java.util
 import java.util.concurrent.Executors
-import java.util.{List => JList}
+import java.util.{Objects, List => JList}
+import java.{lang, util}
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.StorageUtils.findCountDistinctMeasure
 import io.kyligence.kap.engine.spark.utils.{JobMetrics, Metrics, Repartitioner, StorageUtils}
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.job.JobBucket
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KapConfig
@@ -46,7 +47,7 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.exchange.DetectDataSkewException
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SaveMode, SparkSession}
 import org.apache.spark.util.ThreadUtils
 
 import scala.collection.JavaConverters._
@@ -83,6 +84,9 @@ abstract class StorageStore extends Logging {
   def readSpecialSegment(
                           segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
                           extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame
+
+  def readSpecialSegment(
+                          segment: NDataSegment, layout: LayoutEntity, partitionId: java.lang.Long, sparkSession: SparkSession): DataFrame
 
   def collectFileCountAndSizeAfterSave(outputPath: Path, conf: Configuration): (Long, Long) = {
     val fs = outputPath.getFileSystem(conf)
@@ -157,6 +161,7 @@ class StorageStoreV1 extends StorageStore {
         })
       dataFrame.select(columns: _*)
     }
+
     val afterReplaced = replaceCountDistinctEvalColumn(bitmaps, dataset)
     repartitionWriter(layoutEntity, outputPath, kapConfig, afterReplaced)
   }
@@ -167,7 +172,7 @@ class StorageStoreV1 extends StorageStore {
     val structType = if ("true".equals(extraOptions.apply("isFastBitmapEnabled"))) {
       layout.toExactlySchema()
     } else {
-       layout.toSchema()
+      layout.toSchema()
     }
     val indexCatalog = new FilePruner(sparkSession, options = extraOptions, structType)
     sparkSession.baseRelationToDataFrame(
@@ -187,6 +192,16 @@ class StorageStoreV1 extends StorageStore {
     val path = NSparkCubingUtil.getStoragePath(segment, layoutId)
     sparkSession.read.parquet(path)
   }
+
+  override def readSpecialSegment(segment: NDataSegment, layout: LayoutEntity, //
+                                  partitionId: lang.Long, sparkSession: SparkSession): DataFrame = {
+    val layoutId = layout.getId
+    val dataPartition = segment.getLayout(layoutId).getDataPartition(partitionId)
+    require(Objects.nonNull(dataPartition))
+    val path = NSparkCubingUtil.getStoragePath(segment, layoutId, dataPartition.getBucketId)
+    sparkSession.read.parquet(path)
+  }
+
 }
 
 
@@ -258,6 +273,13 @@ class StorageStoreV2 extends StorageStore with Logging {
     sparkSession.read.schema(layout.toCatalogTable().schema).parquet(NSparkCubingUtil.getStoragePath(segment, layout.getId))
   }
 
+
+  override def readSpecialSegment(segment: NDataSegment, layout: LayoutEntity, //
+                                  partitionId: lang.Long, sparkSession: SparkSession): DataFrame = {
+    throw new UnsupportedOperationException
+  }
+
+
   def read(
             segments: Seq[NDataSegment], layout: LayoutEntity, sparkSession: SparkSession,
             extraOptions: Map[String, String]): DataFrame = {
@@ -271,12 +293,13 @@ class StorageStoreV2 extends StorageStore with Logging {
       extraOptions)(sparkSession))
       .select(layout.toSchema().map(tp => col(tp.name)): _*)
   }
+
 }
 
-object StorageStoreUtils extends Logging{
+object StorageStoreUtils extends Logging {
   def writeSkewData(bucketIds: Seq[Int], dataFrame: DataFrame, outputPath: Path, table: CatalogTable,
-                      normalCase: Seq[Column], skewCase: Seq[Column], bucketNum: Int
-                     ): Set[String] = {
+                    normalCase: Seq[Column], skewCase: Seq[Column], bucketNum: Int
+                   ): Set[String] = {
     withNoSkewDetectScope(dataFrame.sparkSession) {
       val hadoopConf = dataFrame.sparkSession.sparkContext.hadoopConfiguration
       val fs = outputPath.getFileSystem(hadoopConf)
@@ -296,7 +319,7 @@ object StorageStoreUtils extends Logging{
               Column(HashPartitioning(normalCase.map(_.expr), bucketNum).partitionIdExpression).isin(bucketIds: _*)
             )).repartition(bucketNum, normalCase: _*), outputPath)
         }
-        }.map { case (df, path) =>
+      }.map { case (df, path) =>
         Future[(Path, Set[String])] {
           try {
             val partitionDirs =
@@ -354,7 +377,7 @@ object StorageStoreUtils extends Logging{
     }
   }
 
-  private def withNoSkewDetectScope[U](ss: SparkSession) (body: => U): U = {
+  private def withNoSkewDetectScope[U](ss: SparkSession)(body: => U): U = {
     try {
       ss.sessionState.conf.setLocalProperty("spark.sql.adaptive.shuffle.maxTargetPostShuffleInputSize", "-1")
       body
@@ -368,6 +391,10 @@ object StorageStoreUtils extends Logging{
 
   def toDF(segment: NDataSegment, layoutEntity: LayoutEntity, sparkSession: SparkSession): DataFrame = {
     StorageStoreFactory.create(layoutEntity.getModel.getStorageType).readSpecialSegment(segment, layoutEntity, sparkSession)
+  }
+
+  def toDF(segment: NDataSegment, layoutEntity: LayoutEntity, partitionId: java.lang.Long, sparkSession: SparkSession): DataFrame = {
+    StorageStoreFactory.create(layoutEntity.getModel.getStorageType).readSpecialSegment(segment, layoutEntity, partitionId, sparkSession)
   }
 
   def writeBucketAndPartitionFile(
