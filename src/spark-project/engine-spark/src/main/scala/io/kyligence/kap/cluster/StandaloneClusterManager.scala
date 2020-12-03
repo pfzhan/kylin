@@ -25,6 +25,7 @@ package io.kyligence.kap.cluster
 import java.util
 
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.JsonUtil
 import org.apache.spark.SparkConf
 import org.apache.spark.deploy.DeployMessages.{KillApplication, MasterStateResponse, RequestMasterState}
 import org.apache.spark.deploy.master.WorkerState
@@ -96,6 +97,17 @@ class StandaloneClusterManager extends IClusterManager with Logging {
 
   override def fetchQueueStatistics(queueName: String): ResourceInfo = {
     fetchMaximumResourceAllocation
+  }
+
+  override def isApplicationBeenKilled(jobStepId: String): Boolean = {
+    val master = masterEndpoints(0)
+    val state = master.askSync[MasterStateResponse](RequestMasterState)
+    val app = state.completedApps.find(_.desc.name.equals(s"$JOB_STEP_PREFIX$jobStepId")).orNull
+    if (app == null) {
+      false
+    } else {
+      "KILLED".equals(app.state.toString)
+    }
   }
 }
 

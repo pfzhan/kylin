@@ -25,9 +25,9 @@ package org.apache.spark.application
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.netty.util.internal.ThrowableUtil
+import org.apache.spark.autoheal.ExceptionTerminator
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
-import org.apache.spark.autoheal.ExceptionTerminator
 
 class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
   var retryTimes = 0
@@ -54,6 +54,12 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
         }
       }
       val buildEnv = KylinBuildEnv.get()
+      // if killed, job failed without retry
+      val jobStepId = buildEnv.buildJobInfos.getJobStepId
+      if (buildEnv.clusterManager.isApplicationBeenKilled(jobStepId)) {
+        eventLoop.post(JobFailed(s"Submitted application $jobStepId has been killed.", rl.throwable))
+        return
+      }
       retryTimes += 1
       KylinBuildEnv.get().buildJobInfos.recordRetryTimes(retryTimes)
       val maxRetry = buildEnv.kylinConfig.getSparkEngineMaxRetryTime

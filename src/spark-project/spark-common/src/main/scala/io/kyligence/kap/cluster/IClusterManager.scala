@@ -36,6 +36,8 @@ trait IClusterManager extends IKeep {
 
   def killApplication(jobStepId: String): Unit
 
+  def isApplicationBeenKilled(applicationId: String): Boolean
+
   def getRunningJobs(queues: util.Set[String]): util.List[String]
 
   def fetchQueueStatistics(queueName: String): ResourceInfo

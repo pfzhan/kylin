@@ -386,4 +386,5 @@ class MockClusterManager extends IClusterManager {
 
   override def fetchQueueStatistics(queueName: String): ResourceInfo = ResourceInfo(10, 20)
 
+  override def isApplicationBeenKilled(applicationId: String): Boolean = false
 }

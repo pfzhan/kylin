@@ -23,7 +23,7 @@
 package io.kyligence.kap.cluster
 
 import java.io.IOException
-import java.util
+import java.util.{ArrayList, Collections, EnumSet, Set, List}
 
 import com.google.common.collect.Sets
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
@@ -67,26 +67,30 @@ class YarnClusterManager extends IClusterManager with Logging {
     parser.availableResource(queueName)
   }
 
-  override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
+  def getYarnApplicationReport(applicationId: String): ApplicationReport = {
     withYarnClient(yarnClient => {
-      val applicationId = sparkSession.sparkContext.applicationId
       val array = applicationId.split("_")
       if (array.length < 3) return null
       val appId = ApplicationId.newInstance(array(1).toLong, array(2).toInt)
-      val applicationReport = yarnClient.getApplicationReport(appId)
-      if (null == applicationReport) null
-      else applicationReport.getTrackingUrl
+      yarnClient.getApplicationReport(appId)
     })
+  }
+
+  override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
+    val applicationId = sparkSession.sparkContext.applicationId
+    val applicationReport = getYarnApplicationReport(applicationId)
+    if (null == applicationReport) null
+    else applicationReport.getTrackingUrl
   }
 
   override def killApplication(jobStepId: String): Unit = {
     withYarnClient(yarnClient => {
       var orphanApplicationId: String = null
       try {
-        val types: util.Set[String] = Sets.newHashSet("SPARK")
-        val states: util.EnumSet[YarnApplicationState] = util.EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
+        val types: Set[String] = Sets.newHashSet("SPARK")
+        val states: EnumSet[YarnApplicationState] = EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
           YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
-        val applicationReports: util.List[ApplicationReport] = yarnClient.getApplications(types, states)
+        val applicationReports: List[ApplicationReport] = yarnClient.getApplications(types, states)
         if (CollectionUtils.isEmpty(applicationReports)) return
         import scala.collection.JavaConverters._
         for (report <- applicationReports.asScala) {
@@ -103,14 +107,14 @@ class YarnClusterManager extends IClusterManager with Logging {
     })
   }
 
-  def getRunningJobs(queues: util.Set[String]): util.List[String] = {
+  def getRunningJobs(queues: Set[String]): List[String] = {
     withYarnClient(yarnClient => {
       if (queues.isEmpty) {
-        val applications = yarnClient.getApplications(util.EnumSet.of(YarnApplicationState.RUNNING))
-        if (null == applications) List().asJava
+        val applications = yarnClient.getApplications(EnumSet.of(YarnApplicationState.RUNNING))
+        if (null == applications) Collections.emptyList()
         else applications.asScala.map(_.getName).asJava
       } else {
-        val runningJobs: util.List[String] = new util.ArrayList[String]()
+        val runningJobs: List[String] = Collections.emptyList()
         for (queue <- queues.asScala) {
           val applications = yarnClient.getQueueInfo(queue).getApplications
           if (null != applications) {
@@ -126,6 +130,23 @@ class YarnClusterManager extends IClusterManager with Logging {
     withYarnClient(yarnClient => {
       val qs = yarnClient.getQueueInfo(queueName).getQueueStatistics
       ResourceInfo(qs.getAvailableMemoryMB.toInt, qs.getAvailableVCores.toInt)
+    })
+  }
+
+  override def isApplicationBeenKilled(jobStepId: String): Boolean = {
+    withYarnClient(yarnClient => {
+      val types: Set[String] = Sets.newHashSet("SPARK")
+      val states: EnumSet[YarnApplicationState] = EnumSet.of(YarnApplicationState.KILLED)
+      val applicationReports: List[ApplicationReport] = yarnClient.getApplications(types, states)
+      if (!CollectionUtils.isEmpty(applicationReports)) {
+        import scala.collection.JavaConverters._
+        for (report <- applicationReports.asScala) {
+          if (report.getName.equalsIgnoreCase("job_step_" + jobStepId)) {
+            return true
+          }
+        }
+      }
+      false
     })
   }
 }

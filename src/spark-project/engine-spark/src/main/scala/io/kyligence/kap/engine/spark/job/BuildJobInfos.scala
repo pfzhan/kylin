@@ -64,6 +64,7 @@ class BuildJobInfos {
 
   private var waitStartTime: Long = 0L
 
+  private var jobStepId = ""
 
   def startJob(): Unit = {
     jobStartTime = System.currentTimeMillis()
@@ -193,5 +194,13 @@ class BuildJobInfos {
 
   def getBucketSegment(): Unit = {
     bucketingSegment
+  }
+
+  def recordJobStepId(stepId: String): Unit = {
+    jobStepId = stepId
+  }
+
+  def getJobStepId: String = {
+    jobStepId
   }
 }
