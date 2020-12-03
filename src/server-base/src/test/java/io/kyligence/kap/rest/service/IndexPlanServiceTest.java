@@ -25,6 +25,8 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.response.IndexResponse.Source.AUTO_TABLE;
 import static io.kyligence.kap.rest.response.IndexResponse.Source.MANUAL_TABLE;
+import static org.apache.kylin.metadata.model.SegmentStatusEnum.READY;
+import static org.apache.kylin.metadata.model.SegmentStatusEnum.WARNING;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,6 +43,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -757,6 +760,53 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a").aggregationGroups(aggGroups).build();
 
         return indexPlanService.calculateAggIndexCount(request);
+    }
+
+    @Test
+    public void testRemoveWarningSegmentIndex() throws Exception {
+        testUpdateSingleRuleBasedCuboid();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        var indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val manualAgg = indexPlan.getCuboidLayout(1010001L);
+        Assert.assertNotNull(manualAgg);
+        Assert.assertTrue(manualAgg.isManual());
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val df = dataflowManager.getDataflow(modelId);
+        val dfUpdate = new NDataflowUpdate(df.getId());
+        dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(modelId, dataflow -> {
+            dataflow.getSegments().getLastSegment().setStatus(SegmentStatusEnum.WARNING);
+        });
+        Assert.assertEquals(WARNING, dataflowManager.getDataflow(modelId).getLastSegment().getStatus());
+        indexPlanService.removeIndexes(getProject(), modelId, df.getLastSegment().getLayoutIds());
+        Assert.assertEquals(READY, dataflowManager.getDataflow(modelId).getLastSegment().getStatus());
+    }
+
+    @Test
+    public void testRemoveWarningSegmentIndexFromSegment() throws Exception {
+        testUpdateSingleRuleBasedCuboid();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        var indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val manualAgg = indexPlan.getCuboidLayout(1010001L);
+        Assert.assertNotNull(manualAgg);
+        Assert.assertTrue(manualAgg.isManual());
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val df = dataflowManager.getDataflow(modelId);
+        val dfUpdate = new NDataflowUpdate(df.getId());
+        dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(modelId, dataflow -> {
+            dataflow.getSegments().getLastSegment().setStatus(SegmentStatusEnum.WARNING);
+        });
+
+        Assert.assertEquals(WARNING, dataflowManager.getDataflow(modelId).getLastSegment().getStatus());
+        dataflowManager.updateDataflowDetailsLayouts(df.getLastSegment(), Lists.newArrayList());
+        Assert.assertEquals(READY, dataflowManager.getDataflow(modelId).getLastSegment().getStatus());
     }
 
     @Test

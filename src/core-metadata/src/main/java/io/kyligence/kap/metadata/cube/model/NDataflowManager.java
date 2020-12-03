@@ -418,7 +418,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
                     throw new KylinException(FAILED_MERGE_SEGMENT,
-                            String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), mergingSegments.get(i).displayIdName(),
+                            String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(),
+                                    mergingSegments.get(i).displayIdName(),
                                     mergingSegments.get(i + 1).displayIdName()));
             }
 
@@ -609,8 +610,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         NDataSegDetails details = segDetailsManager.getForSegment(seg);
         details.setLayouts(layouts);
         NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(), project).upsertForSegment(details);
-        updateDataflow(seg.getDataflow().getId(), copyForWrite -> {
-        });
+        updateDataflow(seg.getDataflow().getId(),
+                copyForWrite -> updateSegmentStatus(copyForWrite.getSegment(seg.getId())));
+
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {
@@ -658,6 +660,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             df.setCost(update.getCost() > 0 ? update.getCost() : df.getCost());
 
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
+            newSegs.forEach(this::updateSegmentStatus);
             if (needUpdateSourceUsage(update)) {
                 if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
                     EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier());
@@ -669,6 +672,13 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 }
             }
         });
+    }
+
+    private void updateSegmentStatus(NDataSegment seg) {
+        NDataSegDetails segDetails = NDataSegDetailsManager.getInstance(seg.getConfig(), project).getForSegment(seg);
+        if (seg.getStatus() == SegmentStatusEnum.WARNING && segDetails != null && segDetails.getLayouts().isEmpty()) {
+            seg.setStatus(SegmentStatusEnum.READY);
+        }
     }
 
     private boolean needUpdateSourceUsage(final NDataflowUpdate update) {
