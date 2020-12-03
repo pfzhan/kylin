@@ -36,6 +36,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -87,6 +88,7 @@ public class SumExpressionUtil {
         // original info
         private AggregateCall agg;
         private RexNode expression;
+        private RelDataType type;
 
         private boolean isSumCase = false;
         private List<RexNode> conditions;
@@ -114,6 +116,14 @@ public class SumExpressionUtil {
 
         public AggregateCall getAggCall() {
             return agg;
+        }
+
+        public RelDataType getType() {
+            return type;
+        }
+
+        public void setType(RelDataType type) {
+            this.type = type;
         }
 
         public void setExpression(RexNode expression) {

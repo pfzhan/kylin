@@ -32,7 +32,13 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.util.Util;
@@ -185,5 +191,41 @@ public class KapQueryUtil {
             return false;
         }
         return true;
+    }
+
+    public static boolean isSumCaseExpr(AggregateCall aggregateCall, Project inputProject) {
+        if (aggregateCall.getArgList().size() != 1) {
+            return false;
+        }
+
+        int input = aggregateCall.getArgList().get(0);
+        RexNode expression = inputProject.getChildExps().get(input);
+        return SumExpressionUtil.hasSumCaseWhen(aggregateCall, expression);
+    }
+
+    public static boolean containCast(RexNode rexNode) {
+        if (!(rexNode instanceof RexCall)) {
+            return false;
+        }
+        if (SqlKind.CAST == rexNode.getKind()) {
+            RexNode operand = ((RexCall) rexNode).getOperands().get(0);
+            if (operand instanceof RexCall && operand.getKind() != SqlKind.CASE) {
+                return false;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    public static boolean isCast(RexNode rexNode) {
+        if (!(rexNode instanceof RexCall)) {
+            return false;
+        }
+        return SqlKind.CAST == rexNode.getKind();
+    }
+
+    public static boolean isNotNullLiteral(RexNode node) {
+        return !(node instanceof RexLiteral && ((RexLiteral) node).isNull());
     }
 }

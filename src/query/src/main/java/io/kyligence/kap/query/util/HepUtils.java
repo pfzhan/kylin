@@ -71,6 +71,7 @@ public class HepUtils {
             KapSumExprRules.SUM_BASIC_OPERATOR_RULE,
             KapSumExprRules.SUM_CONSTANT_CONVERT_RULE_NEW,
             KapSumExprRules.SUM_TRANS_CAST_TO_THEN_RULE,
+            KapSumExprRules.SUM_CAST_TRANSPOSE_RULE,
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE,
             KapJoinRule.EQUAL_NULL_SAFE_INSTANT

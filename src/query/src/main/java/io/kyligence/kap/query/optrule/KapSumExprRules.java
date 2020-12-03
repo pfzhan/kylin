@@ -60,4 +60,9 @@ public class KapSumExprRules extends RelOptRule {
             operand(KapAggregateRel.class, operand(KapProjectRel.class, null,
                     KapSumTransCastToThenRule::existCastCase, any())),
             RelFactories.LOGICAL_BUILDER, "KapSumTransCastToThenRule");
+
+    public static final KapSumCastTransposeRule SUM_CAST_TRANSPOSE_RULE = new KapSumCastTransposeRule(
+            operand(KapAggregateRel.class,
+                    operand(KapProjectRel.class, null, KapSumCastTransposeRule::needSumCastTranspose, any())),
+            RelFactories.LOGICAL_BUILDER, "KapSumTransCastToThenRule");
 }

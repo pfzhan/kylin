@@ -123,4 +123,41 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
         Assert.assertNotNull(toCalcitePlan(project, SQL, KylinConfig.getInstanceFromEnv()));
 
     }
+
+    @Test
+    public void testSumCastTransposeRule() {
+        openSumCaseWhen();
+        String SQL = "SELECT SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE LEAF_CATEG_ID END) FROM TEST_KYLIN_FACT";
+        checkSQL(defaultProject, SQL, null, null, diff);
+    }
+
+    @Test
+    public void testSumCastTransposeRule2() {
+        openSumCaseWhen();
+        String SQL = "select sum(cast(price as bigint)) from TEST_KYLIN_FACT";
+        checkSQL(defaultProject, SQL, null, null, diff);
+    }
+
+    @Test
+    public void testSumCastTransposeRule3() {
+        openSumCaseWhen();
+        String SQL = "select sum(cast(price as bigint)), LSTG_FORMAT_NAME  from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
+        checkSQL(defaultProject, SQL, null, null, diff);
+    }
+
+    @Test
+    public void testSumCastTransposeRule4() {
+        openSumCaseWhen();
+        String SQL = "select sum(cast(price as bigint)) from TEST_KYLIN_FACT" +
+                " INNER JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
+        checkSQL(defaultProject, SQL, null, null, diff);
+    }
+
+    @Test
+    public void testSumCastTransposeRuleWithGroupby() {
+        openSumCaseWhen();
+        String SQL = "SELECT SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE LEAF_CATEG_ID END), " +
+                "LSTG_FORMAT_NAME FROM TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
+        checkSQL(defaultProject, SQL, null, null, diff);
+    }
 }

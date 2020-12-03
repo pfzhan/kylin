@@ -24,6 +24,10 @@
 
 package io.kyligence.kap.query.optrule;
 
+import static io.kyligence.kap.query.util.KapQueryUtil.isCast;
+import static io.kyligence.kap.query.util.KapQueryUtil.isNotNullLiteral;
+import static io.kyligence.kap.query.util.KapQueryUtil.isSumCaseExpr;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.query.relnode.ContextUtil;
@@ -45,8 +49,8 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
@@ -324,7 +328,9 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
                 List<RexNode> values = aggExpression.getValuesList();
                 for (int i = 0; i < values.size(); i++) {
                     aggExpression.getBottomAggValuesInput()[i] = bottomProjectList.size();
-                    if (isNotNullLiteral(values.get(i))) {
+                    if (isCast(values.get(i))) {
+                        bottomProjectList.add(((RexCall)(values.get(i))).operands.get(0));
+                    } else if (isNotNullLiteral(values.get(i))) {
                         bottomProjectList.add(values.get(i));
                     } else {
                         bottomProjectList.add(rexBuilder.makeBigintLiteral(BigDecimal.ZERO));
@@ -371,10 +377,6 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
 
         return bottomAggCalls;
     }
-    private static boolean isNotNullLiteral(RexNode node) {
-        // TODO: move to other place
-        return !(node instanceof RexLiteral && ((RexLiteral) node).isNull());
-    }
 
     private List<RexNode> buildTopProject(RelBuilder relBuilder, Project oldProject,
                                           List<AggExpression> aggExpressions, List<GroupExpression> groupExpressions) {
@@ -405,15 +407,19 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
                                     adjustments));
                     newArgs.add(whenNode);
                     RexNode thenNode = valuesList.get(whenIndex);
-                    // TODO? keep null or sum(null)
-                    if (isNotNullLiteral(thenNode)) {
+                    if (isCast(thenNode)) {
+                        thenNode = relBuilder.getRexBuilder().makeCast(((RexCall) thenNode).type,
+                                relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(), aggExpression.getTopProjValuesInput()[whenIndex]));
+                    } else if (isNotNullLiteral(thenNode)) {// TODO? keep null or sum(null)
                         thenNode = relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(), aggExpression.getTopProjValuesInput()[whenIndex]);
                     }
                     newArgs.add(thenNode);
                 }
                 RexNode elseNode = valuesList.get(whenIndex);
-                // TODO? keep null or sum(null)
-                if (isNotNullLiteral(elseNode)) {
+                if (isCast(elseNode)) {
+                    elseNode = relBuilder.getRexBuilder().makeCast(((RexCall) elseNode).type,
+                            relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(), aggExpression.getTopProjValuesInput()[whenIndex]));
+                } else if (isNotNullLiteral(elseNode)) {// TODO? keep null or sum(null)
                     elseNode = relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(), aggExpression.getTopProjValuesInput()[whenIndex]);
                 }
                 newArgs.add(elseNode);
@@ -457,15 +463,5 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             }
         }
         return false;
-    }
-
-    private static boolean isSumCaseExpr(AggregateCall aggregateCall, Project inputProject) {
-        if (aggregateCall.getArgList().size() != 1) {
-            return false;
-        }
-
-        int input = aggregateCall.getArgList().get(0);
-        RexNode expression = inputProject.getChildExps().get(input);
-        return SumExpressionUtil.hasSumCaseWhen(aggregateCall, expression);
     }
 }
