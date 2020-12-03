@@ -699,7 +699,7 @@ Vue.directive('custom-tooltip', {
           })
         }
       } else {
-        window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
+        parentList[id] && parentList[id][`resizeFn-${id}`] && window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
       }
     }, 500)
   },

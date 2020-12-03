@@ -62,7 +62,7 @@
             <div class="tab-collapse-details" v-if="activeModalObj && displayNoDataContain(item) > 0">
               <template v-if="activeModalObj[activeTabName]">
                 <el-collapse v-model="activeCollapse" v-if="activeTabName !== 'modified'">
-                  <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="index">
+                  <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="`${activeTabName}_${index}`">
                     <el-collapse-item :title="$t(item, {num: activeTabLength(item)})" v-if="activeTabLength(item)" :name="item">
                       <template v-if="item === 'partitionColumns'">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">{{$t('timePartition')}} {{it.detail}}</p>
@@ -99,7 +99,7 @@
                   </div>
                 </el-collapse>
                 <el-collapse v-model="activeCollapse" v-else>
-                  <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="index">
+                  <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="`${activeTabName}_${index}`">
                     <el-collapse-item :title="$t(item === 'columns' ? `${item}DataType` : item, {num: activeTabLength(item)})" v-if="activeTabLength(item)" :name="item">
                       <template v-if="item === 'columns'">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">{{it.first_detail}}：{{it.second_attributes.datatype}} <span class="modify-item">{{it.first_attributes.datatype}}</span></p>
@@ -204,7 +204,7 @@
       <!-- 确认/取消: 解析zip元数据包界面 -->
       <template v-else-if="step === 'second'">
         <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('first')">{{$t('kylinLang.common.prev')}}</el-button>
-        <el-button size="medium" @click="step = 'third'" :disabled="disabledNextBtnType.length > 0">{{$t('kylinLang.common.next')}}</el-button>
+        <el-button size="medium" @click="nextConfirmImport" :loading="isCheckName">{{$t('kylinLang.common.next')}}</el-button>
       </template>
       <!-- 确认导入模型 -->
       <template v-else>
@@ -225,7 +225,7 @@ import locales from './locales'
 import { NamedRegex } from 'config'
 import { validator } from './handler'
 import vuex, { actionTypes } from '../../../store'
-import { handleError, handleSuccess } from 'util/business'
+import { handleSuccessAsync, handleError } from '../../../util'
 import RenderModelConflicts from './RenderModelConflicts'
 import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
 
@@ -285,6 +285,7 @@ export default class ModelsImportModal extends Vue {
   activeModalObj = null
   validateErrorMsg = ''
   modelNameError = ''
+  isCheckName = false
   getDefaultAction = getDefaultAction
   activeCollapse = ['tables', 'columns', 'partitionColumns', 'measures', 'dimensions', 'indexes', 'computedColumns', 'modelJoin', 'modelFilter']
 
@@ -355,33 +356,63 @@ export default class ModelsImportModal extends Vue {
   changeActions (row, type) {
     if (type !== 'new' && row.original_name !== row.target_name) {
       row.target_name = row.original_name
+      row.isNameError = false
+      row.nameErrorMsg = ''
     }
   }
 
   // 新建模型时支持更改模型名称 - 以防重名
-  handleRename (row) {
+  async handleRename (row) {
     const value = row.target_name
+    const allImportModalName = this.models.filter(it => it.action === 'new').map(item => item.target_name)
     if (!NamedRegex.test(value)) {
       row.isNameError = true
       row.nameErrorMsg = 'kylinLang.common.nameFormatValidTip'
     } else if (value.length > 50) {
       row.isNameError = true
       row.nameErrorMsg = 'kylinLang.common.overLengthTip'
+    } else if (allImportModalName.filter(v => v === value).length > 1) {
+      row.isNameError = true
+      row.nameErrorMsg = 'kylinLang.model.sameModelName'
     } else {
-      this.getModelByModelName({model_name: value, project: this.currentSelectedProject}).then((response) => {
-        handleSuccess(response, (data) => {
-          if (data && data.value && data.value.length) {
-            row.isNameError = true
-            row.nameErrorMsg = 'kylinLang.model.sameModelName'
-          } else {
-            row.isNameError = false
-          }
-        })
-      }, (res) => {
+      try {
+        const res = await this.getModelByModelName({model_name: value, project: this.currentSelectedProject})
+        const data = await handleSuccessAsync(res)
+        if (data && data.value && data.value.length) {
+          row.isNameError = true
+          row.nameErrorMsg = 'kylinLang.model.sameModelName'
+        } else {
+          row.isNameError = false
+        }
+      } catch (e) {
         row.isNameError = false
-        handleError(res)
-      })
+        handleError(e)
+        throw Error(e)
+      }
     }
+  }
+
+  async nextConfirmImport () {
+    this.isCheckName = true
+    let errorApi = false
+    for (let item of this.models) {
+      if (item.action === 'new') {
+        try {
+          await this.handleRename(item)
+        } catch (e) {
+          console.log(3456789)
+          errorApi = true
+          break
+        }
+      }
+    }
+    this.isCheckName = false
+    if (errorApi) return
+    this.$nextTick(() => {
+      console.log(this.disabledNextBtnType.length)
+      if (this.disabledNextBtnType.length > 0) return
+      this.step = 'third'
+    })
   }
 
   showLoadMoreBtn (key) {

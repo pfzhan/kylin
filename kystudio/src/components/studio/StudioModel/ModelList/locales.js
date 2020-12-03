@@ -84,7 +84,7 @@ export default {
     exportMetadataSuccess: 'A model metadata package is being generated. The download will start after generation. please wait.',
     exportMetadataFailed: 'Export models failed. Please try again.',
     bokenModelExportMetadatasTip: 'Can\'t export model file at the moment as the model is BROKEN',
-    importModels: 'Imported Model',
+    importModels: 'Import Model',
     emptyIndexTips: 'This model has unbuilt indexes. Please click the build index button to build the indexes.',
     noIndexTips: 'You should add indexes first before building.',
     guideToAcceptRecom: 'You can click the icon beside the model name to optimize model by accepting recommendations based on your query history.',
