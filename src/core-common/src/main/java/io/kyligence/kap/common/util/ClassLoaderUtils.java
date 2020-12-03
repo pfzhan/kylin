@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.ext.classloader;
+package io.kyligence.kap.common.util;
 
 import java.io.File;
 import java.net.URLClassLoader;
@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class ClassLoaderUtils {
+    private ClassLoaderUtils(){}
     static URLClassLoader sparkClassLoader = null;
     static URLClassLoader originClassLoader = null;
     private static Logger logger = LoggerFactory.getLogger(ClassLoaderUtils.class);

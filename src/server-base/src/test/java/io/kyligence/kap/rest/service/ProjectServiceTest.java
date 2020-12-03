@@ -116,8 +116,6 @@ import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.source.file.S3KeyCredential;
-import io.kyligence.kap.source.file.S3KeyCredentialOperator;
 import lombok.val;
 import lombok.var;
 
@@ -655,22 +653,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         val prj = prjMgr.getProject("default");
         Assert.assertEquals(7, prj.getConfig().getFrequencyTimeWindowInDays());
         Assert.assertEquals(12, prj.getConfig().getLowFrequencyThreshold());
-    }
-
-    @Test
-    public void testUpdateFileSourceCredential() {
-        S3KeyCredentialOperator operator = new S3KeyCredentialOperator();
-        S3KeyCredential s3KeyCredential = new S3KeyCredential();
-        s3KeyCredential.setAccessKey("mockAccessKey");
-        s3KeyCredential.setSecretKey("mockSecretKey");
-        operator.setCredential(s3KeyCredential);
-        projectService.updateFileSourceCredential(PROJECT, operator);
-        Assert.assertEquals("AWS_S3_KEY",
-                projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.credential.type"));
-        Assert.assertEquals("13",
-                projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.default"));
-        Assert.assertEquals("{\"accessKey\":\"mockAccessKey\",\"secretKey\":\"mockSecretKey\",\"type\":\"AWS_S3_KEY\"}",
-                projectManager.getProject(PROJECT).getOverrideKylinProps().get("kylin.source.credential.value"));
     }
 
     private void updateProject() {

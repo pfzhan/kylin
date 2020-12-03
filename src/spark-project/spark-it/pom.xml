@@ -70,10 +70,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-tomcat-ext</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-spark-common</artifactId>
             <type>test-jar</type>
             <version>${project.version}</version>

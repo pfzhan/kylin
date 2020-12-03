@@ -302,11 +302,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-source-file</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-source-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -358,12 +353,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-tomcat-ext</artifactId>
-                <version>${project.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -408,11 +397,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-query</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-metrics</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

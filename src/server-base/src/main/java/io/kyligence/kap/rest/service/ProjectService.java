@@ -127,7 +127,6 @@ import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.transaction.Transaction;
-import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
 
@@ -582,16 +581,6 @@ public class ProjectService extends BasicService {
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
         });
-    }
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction(project = 0)
-    public void updateFileSourceCredential(String project, CredentialOperator credentialOperator) {
-        Map<String, String> overrideKylinProps = Maps.newLinkedHashMap();
-        overrideKylinProps.put("kylin.source.credential.type", credentialOperator.getCredential().getType());
-        overrideKylinProps.put("kylin.source.credential.value", credentialOperator.encode());
-        overrideKylinProps.put("kylin.source.default", String.valueOf(ISourceAware.ID_FILE));
-        updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
     @Transaction(project = 0)

@@ -25,9 +25,8 @@
 package io.kyligence.kap.query.pushdown;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
+import io.kyligence.kap.common.util.ClassLoaderUtils;
 import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.spark.common.CredentialUtils;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
@@ -66,7 +65,6 @@ public class SparkSubmitter {
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         SparkSession ss = getSparkSession();
-        CredentialUtils.wrap(ss, project);
         Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
         return new PushdownResponse(pair.getSecond(), pair.getFirst());
     }

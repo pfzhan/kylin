@@ -51,7 +51,6 @@
         <module>sparder</module>
         <module>engine-spark</module>
         <module>spark-it</module>
-        <module>source-file</module>
         <module>kylin-user-session</module>
         <module>kylin-user-session-dep</module>
         <module>source-jdbc</module>

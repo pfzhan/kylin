@@ -109,11 +109,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-tomcat-ext</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
