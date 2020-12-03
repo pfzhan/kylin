@@ -34,11 +34,11 @@
       <div class="index-group" :style="{width: `calc(${100 - moveEvent.w}% - 10px)`}">
         <div class="btn-groups" v-if="isShowAggregateAction">
           <el-button-group>
-            <el-button plain size="mini" icon="el-icon-ksd-login_intro" @click="switchIndexValue = 0" :class="{'active': switchIndexValue === 0}">{{$t('indexListBtn')}}</el-button>
+            <el-button plain size="mini" icon="el-icon-ksd-login_intro" @click="switchIndexValue = 0, doLayoutIndexTable()" :class="{'active': switchIndexValue === 0}">{{$t('indexListBtn')}}</el-button>
             <el-button plain size="mini" icon="el-icon-ksd-status" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" @click="switchIndexValue = 1" :class="{'active': switchIndexValue === 1}">{{$t('recommendationsBtn')}}</el-button>
           </el-button-group>
         </div>
-        <el-card class="agg-detail-card agg-detail" v-if="switchIndexValue === 0">
+        <el-card class="agg-detail-card agg-detail" v-show="switchIndexValue === 0">
           <div slot="header" class="clearfix">
             <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
             <!-- <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
@@ -116,13 +116,15 @@
             <el-table
               nested
               border
+              ref="indexesTable"
               :data="indexDatas"
               class="indexes-table"
               size="medium"
               :empty-text="emptyText"
               @sort-change="onSortChange"
               @selection-change="handleSelectionChange"
-              :row-class-name="tableRowClassName">
+              :row-class-name="tableRowClassName"
+            >
               <el-table-column type="selection" width="44"></el-table-column>
               <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
               <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
@@ -172,7 +174,7 @@
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
-        <recommendations :modelDesc="model" @accept="acceptRecommend" v-else/>
+        <recommendations :modelDesc="model" @accept="acceptRecommend" v-show="switchIndexValue === 1"/>
       </div>
     </div>
 
@@ -440,6 +442,11 @@ export default class ModelAggregate extends Vue {
   //     this.removeIndexs(row.id)
   //   }
   // }
+  doLayoutIndexTable () {
+    this.$nextTick(() => {
+      this.$refs.indexesTable && this.$refs.indexesTable.doLayout()
+    }, 100)
+  }
 
   handleSelectionChange (val) {
     this.checkedList = val
