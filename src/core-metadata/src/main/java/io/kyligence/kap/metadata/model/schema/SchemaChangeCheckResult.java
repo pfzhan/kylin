@@ -162,6 +162,11 @@ public class SchemaChangeCheckResult implements IKeep {
             return new ChangedItem(type, schemaNode, null, null, hasSameName, true, true, true);
         }
 
+        public static ChangedItem createOverwritableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
+                String modelAlias, boolean hasSameName) {
+            return new ChangedItem(type, schemaNode, modelAlias, null, hasSameName, true, true, true);
+        }
+
         public static ChangedItem createCreatableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
                 boolean hasSameName) {
             return new ChangedItem(type, schemaNode, null, null, hasSameName, true, true, false);

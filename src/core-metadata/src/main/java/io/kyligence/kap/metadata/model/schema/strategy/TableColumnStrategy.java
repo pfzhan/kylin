@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.model.schema.strategy;
 
-import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.MISSING_TABLE_COLUMN;
 import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.TABLE_COLUMN_DATATYPE_CHANGED;
 import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.USED_UNLOADED_TABLE;
 
@@ -50,7 +49,7 @@ public class TableColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> missingItems(SchemaUtil.SchemaDifference difference,
-                                                                  Set<String> importModels, Set<String> originalModels) {
+            Set<String> importModels, Set<String> originalModels) {
         return difference.getNodeDiff().entriesOnlyOnRight().entrySet().stream()
                 .filter(pair -> supportedSchemaNodeTypes().contains(pair.getKey().getType()))
                 .map(pair -> missingItemFunction(difference, pair, importModels, originalModels))
@@ -60,8 +59,8 @@ public class TableColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> missingItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                         Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
-                                                                         Set<String> originalModels) {
+            Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
+            Set<String> originalModels) {
         return reachableModel(difference.getTargetGraph(), entry.getValue()).stream()
                 .map(modelAlias -> SchemaChangeCheckResult.ChangedItem.createUnImportableSchemaNode(
                         entry.getKey().getType(), entry.getValue(), modelAlias, USED_UNLOADED_TABLE,
@@ -71,7 +70,7 @@ public class TableColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.UpdatedItem> updateItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                        MapDifference.ValueDifference<SchemaNode> diff, Set<String> importModels, Set<String> originalModels) {
+            MapDifference.ValueDifference<SchemaNode> diff, Set<String> importModels, Set<String> originalModels) {
         return Graphs.reachableNodes(difference.getTargetGraph(), diff.rightValue()).stream()
                 .filter(SchemaNode::isModelNode).map(SchemaNode::getSubject).distinct()
                 .map(modelAlias -> SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(),
@@ -82,12 +81,12 @@ public class TableColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> reduceItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                        Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
-                                                                        Set<String> originalModels) {
-        return Graphs.reachableNodes(difference.getTargetGraph(), entry.getValue()).stream()
+            Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
+            Set<String> originalModels) {
+        return Graphs.reachableNodes(difference.getSourceGraph(), entry.getValue()).stream()
                 .filter(SchemaNode::isModelNode).map(SchemaNode::getSubject).distinct()
-                .map(modelAlias -> SchemaChangeCheckResult.ChangedItem.createUnImportableSchemaNode(
-                        entry.getKey().getType(), entry.getValue(), modelAlias, MISSING_TABLE_COLUMN,
+                .map(modelAlias -> SchemaChangeCheckResult.ChangedItem.createOverwritableSchemaNode(
+                        entry.getKey().getType(), entry.getValue(), modelAlias,
                         hasSameName(modelAlias, originalModels)))
                 .collect(Collectors.toList());
     }

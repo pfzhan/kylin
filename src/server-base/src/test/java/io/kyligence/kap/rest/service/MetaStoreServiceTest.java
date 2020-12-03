@@ -781,6 +781,23 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testReduceColumn() throws Exception {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_reduce_column_table/model_reduce_column_model_metadata_2020_11_14_17_11_19_9724D22AE7F667BF04237DDD13B3E36F.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("ssb_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertTrue(modelSchemaChange.getReduceItems().stream()
+                .anyMatch(changedItem -> changedItem.isOverwritable()
+                        && changedItem.getType() == SchemaNodeType.TABLE_COLUMN
+                        && changedItem.getDetail().equals("SSB.P_LINEORDER.LO_SUPPKEY")));
+    }
+
+    @Test
     public void testGetModelMetadataProjectName() throws IOException {
         File file = new File(
                 "../core-metadata/src/test/resources/ut_meta/schema_utils/conflict_dim_table_project/conflict_dim_table_project_model_metadata_2020_11_14_16_20_06_5BCDB43E43D8C8D9E94A90C396CDA23F.zip");
