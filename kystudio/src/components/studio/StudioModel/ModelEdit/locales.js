@@ -73,7 +73,10 @@ export default {
     tableHasOppositeLinks: 'A reserved join condition already exists between the tables. Please click on the join condition to modify.',
     changeTableJoinCondition: 'Modifying the table\'s type would affect the existing join condition. Please delete or modify the join condition first.',
     lockupTableToFactTableTip: 'Please add join condition from the fact table to a look up table.',
-    noStarOrSnowflakeSchema: 'This join condition is not allowed in neither <a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">star</a> or <a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">snowflake</a> schema. Please adjust and try again.'
+    noStarOrSnowflakeSchema: 'This join condition is not allowed in neither <a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">star</a> or <a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">snowflake</a> schema. Please adjust and try again.',
+    varcharSumMeasureTip: 'Can\'t save model. The following measures can\'t reference column(s) in Varchar type, as the selected function is SUM.',
+    pleaseModify: 'Please modify.',
+    iKnow: 'Got It'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -149,6 +152,9 @@ export default {
     tableHasOppositeLinks: '两表之间已经存在一个反向连接条件，请点击连接关系进行修改。',
     changeTableJoinCondition: '修改该表的类型会影响现有的连接条件，请先删除或编辑连接关系。',
     lockupTableToFactTableTip: '请从事实表开始向维度表添加连接条件。',
-    noStarOrSnowflakeSchema: '该连接不符合<a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">星型</a>或<a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">雪花模型</a>的规范，请重新连接。'
+    noStarOrSnowflakeSchema: '该连接不符合<a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">星型</a>或<a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">雪花模型</a>的规范，请重新连接。',
+    varcharSumMeasureTip: '无法保存模型。以下度量的函数类型 SUM 不支持引用 Varchar 类型的可计算列：',
+    pleaseModify: '请修改。',
+    iKnow: '知道了'
   }
 }

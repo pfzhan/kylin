@@ -15,18 +15,18 @@
         <p><span class="point">•</span><span class="text">{{$t('expressionTip1')}}</span></p>
         <p><span class="point">•</span><span class="text">{{$t('expressionTip2')}}</span></p>
       </div>
-      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression" :read-only="!isEdit" @input="changeExpression">
+      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression" :read-only="source === 'createMeasure' ? isEditMeasureCC : !isEdit" @input="changeExpression">
       </kap-editor>
     </el-form-item>
     <div class="ky-sql-check-msg" v-if="errorMsg">
-      <div class="ky-error-title">Error Message:</div>
+      <div class="ky-error-title">{{$t('errorMsg')}}</div>
       <div class="ky-error-content">{{errorMsg}}</div>
     </div>
-    <div class="btn-group clearfix ksd-mt-6">
+    <div class="btn-group clearfix ksd-mt-6" v-if="!source || source !== 'createMeasure'">
       <el-button type="primary" size="small" @click="addCC" class="ksd-fright ksd-ml-10" v-if="isEdit && !isPureForm" :loading="checkBtnLoading">
         {{$t('kylinLang.common.save')}}
       </el-button>
-      <el-button size="small" plain @click="cancelCC" class="ksd-fright" v-if="!isPureForm">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="small" plain @click="cancelCC" class="ksd-fright" v-if="!isPureForm && !hideCancel">{{$t('kylinLang.common.cancel')}}</el-button>
     </div>
   </el-form>
   </div>
@@ -40,7 +40,7 @@ import { objectClone } from 'util/index'
 import { modelErrorMsg } from '../ModelEdit/config'
 import { NamedRegex } from 'config'
 @Component({
-  props: ['isShow', 'ccDesc', 'modelInstance', 'isPureForm', 'currentCCForm', 'isEdited'],
+  props: ['isShow', 'ccDesc', 'modelInstance', 'isPureForm', 'currentCCForm', 'isEdited', 'hideCancel', 'isEditMeasureCC', 'source'],
   computed: {
     ...mapGetters([
       'currentSelectedProject'
@@ -60,6 +60,7 @@ import { NamedRegex } from 'config'
       sameName: 'The name of computed column can\'t be duplicated within the same model',
       columnName: 'Column Name',
       name: 'Name',
+      errorMsg: 'Error Message：',
       expression: 'Expression',
       returnType: 'Return Type',
       paramValue: 'Param Value',
@@ -79,6 +80,7 @@ import { NamedRegex } from 'config'
       sameName: '可计算列名称在同一模型下不可重复',
       columnName: '列名',
       name: '名称',
+      errorMsg: '错误信息：',
       expression: '表达式',
       returnType: '返回类型',
       paramValue: '参数值',
@@ -222,63 +224,80 @@ export default class CCForm extends Vue {
     })
   }
   addCC () {
-    this.$refs['ccForm'].validate((valid) => {
-      if (valid) {
-        let factTable = this.modelInstance.getFactTable()
-        if (!factTable) {
-          this.$emit('saveError')
-          kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
-          return
-        }
-        if (this.isEdited) {
-          this.checkRemoteCC((data) => {
-            this.ccObject.datatype = data.datatype
-            const alias = factTable.alias
-            this.modelInstance.editCC(this.ccObject).then(cc => {
-              // 更改维度中引用该 cc 的 datatype
-              for (let i = 0; i <= this.modelInstance.all_measures.length - 1; i++) {
-                const names = this.modelInstance.all_measures[i].parameter_value.map(it => it.value)
-                if (names.includes(`${alias}.${cc.columnName}`)) {
-                  this.modelInstance.all_measures[i].return_type = cc.datatype
-                  break
+    return new Promise((resolve, reject) => {
+      this.$refs['ccForm'].validate((valid) => {
+        if (valid) {
+          let factTable = this.modelInstance.getFactTable()
+          if (!factTable) {
+            this.$emit('saveError')
+            kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
+            reject()
+            return
+          }
+          if (this.isEdited) {
+            this.checkRemoteCC((data) => {
+              this.ccObject.datatype = data.datatype
+              const alias = factTable.alias
+              this.modelInstance.editCC(this.ccObject).then(cc => {
+                // 更改维度中引用该 cc 的 datatype
+                for (let i = 0; i <= this.modelInstance.all_measures.length - 1; i++) {
+                  const names = this.modelInstance.all_measures[i].parameter_value.map(it => it.value)
+                  if (names.includes(`${alias}.${cc.columnName}`)) {
+                    this.modelInstance.all_measures[i].return_type = cc.datatype
+                    break
+                  }
                 }
-              }
-              // 更改维度中引用该 cc 的 datatype
-              const index = this.modelInstance._mount.dimensions.findIndex(it => it.name === cc.columnName)
-              index >= 0 && this.modelInstance._mount.dimensions.splice(index, 1, {...this.modelInstance._mount.dimensions[index], datatype: cc.datatype})
-              this.$emit('saveSuccess', cc)
-              this.isEdit = false
-            }, () => {
-              this.$emit('saveError')
+                // 更改维度中引用该 cc 的 datatype
+                const index = this.modelInstance._mount.dimensions.findIndex(it => it.name === cc.columnName)
+                index >= 0 && this.modelInstance._mount.dimensions.splice(index, 1, {...this.modelInstance._mount.dimensions[index], datatype: cc.datatype})
+                this.$emit('saveSuccess', cc)
+                this.isEdit = false
+                resolve()
+              }, () => {
+                this.$emit('saveError')
+                reject()
+              })
             })
-          })
+          } else {
+            this.checkRemoteCC((data) => {
+              this.ccObject.table_guid = factTable.guid
+              // 由后台推荐的datatype
+              this.ccObject.datatype = data.datatype
+              // 新增 measure 中创建 cc 暂不保存 cc
+              if (this.source && this.source === 'createMeasure') {
+                this.$emit('checkSuccess', data, this.ccObject)
+                this.isEdit = false
+                resolve()
+                return
+              }
+              if (this.ccObject.guid) {
+                this.modelInstance.editCC(this.ccObject).then((cc) => {
+                  this.$emit('saveSuccess', cc)
+                  this.isEdit = false
+                  resolve()
+                }, () => {
+                  this.$emit('saveError')
+                  kapMessage(this.$t('sameName'), { type: 'warning' })
+                  reject()
+                })
+              } else {
+                this.modelInstance.addCC(this.ccObject).then((cc) => {
+                  this.$emit('saveSuccess', cc)
+                  this.isEdit = false
+                  resolve()
+                }, () => {
+                  this.$emit('saveError')
+                  kapMessage(this.$t('sameName'), { type: 'warning' })
+                  reject()
+                })
+              }
+            })
+          }
         } else {
-          this.checkRemoteCC((data) => {
-            this.ccObject.table_guid = factTable.guid
-            // 由后台推荐的datatype
-            this.ccObject.datatype = data.datatype
-            if (this.ccObject.guid) {
-              this.modelInstance.editCC(this.ccObject).then((cc) => {
-                this.$emit('saveSuccess', cc)
-                this.isEdit = false
-              }, () => {
-                this.$emit('saveError')
-                kapMessage(this.$t('sameName'), { type: 'warning' })
-              })
-            } else {
-              this.modelInstance.addCC(this.ccObject).then((cc) => {
-                this.$emit('saveSuccess', cc)
-                this.isEdit = false
-              }, () => {
-                this.$emit('saveError')
-                kapMessage(this.$t('sameName'), { type: 'warning' })
-              })
-            }
-          })
+          this.$emit('saveError')
+          reject()
         }
-      } else {
-        this.$emit('saveError')
-      }
+      })
     })
   }
   editCC () {

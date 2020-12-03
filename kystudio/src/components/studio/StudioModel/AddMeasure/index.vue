@@ -52,7 +52,8 @@
             :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N',
-            'error-tip': showMutipleColumnsTip}"
+            'error-tip': showMutipleColumnsTip,
+            'error-measure': handlerErrorTip(measure)}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
             filterable @change="changeParamValue" :disabled="isEdit">
               <i slot="prefix" class="el-input__icon el-icon-search" v-if="!measure.parameterValue.value"></i>
@@ -81,7 +82,7 @@
           </div>
           <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'&&measure.return_type!=='bitmap'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
-        <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
+        <CCEditForm ref="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
@@ -137,13 +138,13 @@
             </el-option-group>
           </el-select>
           <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button></common-tip>
-          <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :ccDesc="corrCCObject" :modelInstance="modelInstance"></CCEditForm>
+          <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" :ccDesc="corrCCObject" :modelInstance="modelInstance"></CCEditForm>
         </div>
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="handleHide(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" size="medium" v-guide.saveMeasureBtn @click="checkMeasure">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" size="medium" v-guide.saveMeasureBtn @click="checkMeasure" :loading="loadingSubmit">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </template>
@@ -185,7 +186,8 @@ import $ from 'jquery'
       editMeasureTitle: 'Edit Measure',
       addMeasureTitle: 'Add Measure',
       sameColumn: 'Column has been defined as a measure by the same function',
-      selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.'
+      selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.',
+      createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function SUM.'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -204,7 +206,8 @@ import $ from 'jquery'
       editMeasureTitle: '编辑度量',
       addMeasureTitle: '添加度量',
       sameColumn: '该列已被相同函数定义为度量',
-      selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。'
+      selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。',
+      createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 SUM 引用。'
     }
   }
 })
@@ -262,6 +265,8 @@ export default class AddMeasure extends Vue {
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
   showMutipleColumnsTip = false
+  ccValidateError = false
+  loadingSubmit = false
 
   get rules () {
     return {
@@ -288,6 +293,8 @@ export default class AddMeasure extends Vue {
     if (this.ccGroups.length) {
       if (this.measure.expression === 'SUM(column)' || this.measure.expression === 'TOP_N') {
         return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+      } else if (this.measure.expression === 'PERCENTILE_APPROX') {
+        return this.ccGroups.filter(item => item.datatype.indexOf('VARCHAR') === -1)
       } else {
         return this.ccGroups
       }
@@ -442,6 +449,7 @@ export default class AddMeasure extends Vue {
     this.corrCCVisible = false
     this.ccObject = null
     this.corrCCObject = null
+    this.ccValidateError = false
   }
 
   newCC () {
@@ -456,9 +464,16 @@ export default class AddMeasure extends Vue {
     this.isCorrCCEdit = true
     this.corrCCVisible = true
   }
-  saveCC (cc) {
+  saveCC (cc, ccObject) {
+    this.ccObject = ccObject
     this.measure.parameterValue.value = cc.tableAlias + '.' + cc.columnName
-    this.isEdit = false
+    // this.isEdit = false
+    if (cc.datatype === 'VARCHAR' && this.measure.expression === 'SUM(column)') {
+      this.$refs.ccEditForm && (this.$refs.ccEditForm.errorMsg = this.$t('createCCMeasureTips'))
+      this.ccValidateError = true
+    } else {
+      this.ccValidateError = false
+    }
   }
   saveCorrCC (cc) {
     this.measure.convertedColumns[0].value = cc.tableAlias + '.' + cc.columnName
@@ -541,6 +556,7 @@ export default class AddMeasure extends Vue {
 
   handleHide (isSubmit, measure, isEdit, fromSearch) {
     this.measureVisible = false
+    this.ccValidateError = false
     this.$emit('closeAddMeasureDia', {
       isEdit: isEdit,
       fromSearch: fromSearch,
@@ -549,45 +565,67 @@ export default class AddMeasure extends Vue {
     })
     this.$refs['measureForm'].resetFields()
   }
-  checkMeasure () {
-    this.$refs.measureForm.validate((valid) => {
-      if (valid) {
-        // 老数据有多列但函数参数仅支持单列，此时提示错误信息
-        let message = ''
-        if (this.measure.expression === 'COUNT_DISTINCT' && this.measure.return_type === 'bitmap' && this.measure.convertedColumns.length) {
-          this.showMutipleColumnsTip = true
-          message = this.$t('selectMutipleColumnsTip', {expression: this.measure.expression, params: 'Precisely'})
-        }
-        if (this.showMutipleColumnsTip) {
-          this.$message({
-            type: 'error',
-            showClose: true,
-            duration: 0,
-            message
-          })
+
+  saveCCColumn () {
+    this.modelInstance.addCC(this.ccObject)
+  }
+
+  async checkMeasure () {
+    try {
+      this.loadingSubmit = true
+      // 创建measure 和 cc 整合，提交的时候统一检测 cc 是否符合规范，不再分看执行
+      if (this.ccVisible) {
+        this.$refs.ccEditForm && await this.$refs.ccEditForm.addCC()
+        if (this.ccValidateError) {
+          this.loadingSubmit = false
           return
         }
-        const measureClone = objectClone(this.measure)
-        // 判断该操作是否属于搜索入口进来
-        let isFromSearchAciton = measureClone.fromSearch
-        if (measureClone.expression.indexOf('SUM') !== -1) {
-          measureClone.expression = 'SUM'
-        }
-        if (measureClone.expression.indexOf('COUNT(constant)') !== -1 || measureClone.expression.indexOf('COUNT(column)') !== -1) {
-          measureClone.expression = 'COUNT'
-        }
-        measureClone.convertedColumns.unshift(measureClone.parameterValue)
-        measureClone.parameter_value = measureClone.convertedColumns
-        delete measureClone.parameterValue
-        delete measureClone.convertedColumns
-        delete measureClone.fromSearch
-        let action = this.isEditMeasure ? 'editMeasure' : 'addMeasure'
-        this.modelInstance[action](measureClone).then(() => {
-          // this.resetMeasure()
-          this.handleHide(true, measureClone, this.isEditMeasure, isFromSearchAciton)
-        })
+        this.saveCCColumn()
       }
-    })
+      this.$refs.measureForm.validate((valid) => {
+        if (valid) {
+          // 老数据有多列但函数参数仅支持单列，此时提示错误信息
+          let message = ''
+          this.loadingSubmit = false
+          if (this.measure.expression === 'COUNT_DISTINCT' && this.measure.return_type === 'bitmap' && this.measure.convertedColumns.length) {
+            this.showMutipleColumnsTip = true
+            message = this.$t('selectMutipleColumnsTip', {expression: this.measure.expression, params: 'Precisely'})
+          }
+          if (this.showMutipleColumnsTip) {
+            this.$message({
+              type: 'error',
+              showClose: true,
+              duration: 0,
+              message
+            })
+            return
+          }
+          const measureClone = objectClone(this.measure)
+          // 判断该操作是否属于搜索入口进来
+          let isFromSearchAciton = measureClone.fromSearch
+          if (measureClone.expression.indexOf('SUM') !== -1) {
+            measureClone.expression = 'SUM'
+          }
+          if (measureClone.expression.indexOf('COUNT(constant)') !== -1 || measureClone.expression.indexOf('COUNT(column)') !== -1) {
+            measureClone.expression = 'COUNT'
+          }
+          measureClone.convertedColumns.unshift(measureClone.parameterValue)
+          measureClone.parameter_value = measureClone.convertedColumns
+          delete measureClone.parameterValue
+          delete measureClone.convertedColumns
+          delete measureClone.fromSearch
+          let action = this.isEditMeasure ? 'editMeasure' : 'addMeasure'
+          this.modelInstance[action](measureClone).then(() => {
+            // this.resetMeasure()
+            this.handleHide(true, measureClone, this.isEditMeasure, isFromSearchAciton)
+          })
+        } else {
+          this.loadingSubmit = false
+        }
+      })
+    } catch (e) {
+      this.loadingSubmit = false
+    }
   }
 
   resetMeasure () {
@@ -641,6 +679,11 @@ export default class AddMeasure extends Vue {
       this.showMutipleColumnsTip = false
     }
   }
+
+  // SUM 或 PERCENTILE_APPROX 度量不适用 varchar 列
+  handlerErrorTip (m) {
+    return (m.expression.indexOf('SUM') >= 0 || m.expression === 'PERCENTILE_APPROX') && m.return_type.indexOf('varchar') >= 0
+  }
 }
 </script>
 
@@ -658,6 +701,11 @@ export default class AddMeasure extends Vue {
             border: 1px solid @error-color-1;
           }
         }
+      }
+    }
+    .error-measure {
+      .el-input__inner {
+        border: 1px solid @error-color-1;
       }
     }
     .measures-width {

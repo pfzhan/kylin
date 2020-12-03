@@ -231,7 +231,7 @@
             <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}'>
               <div class="content-scroll-layout" v-if="allMeasure.length" v-scroll.observe>
                 <ul class="measure-list">
-                  <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
+                  <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1, 'error-measure': ['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type.indexOf('varchar') > -1}">
                     <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
                       <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name" class="text">{{m.name}}</el-checkbox>
                       <span v-else class="text">{{m.name}}</span>
@@ -1592,14 +1592,16 @@ export default class ModelEdit extends Vue {
   }
   // 解析校验保存模型数据
   generateModelData (ignoreAloneTableCheck) {
-    this.modelInstance.generateMetadata(ignoreAloneTableCheck).then((data) => {
+    this.modelInstance.generateMetadata(ignoreAloneTableCheck).then(async (data) => {
       if (!(data.simplified_dimensions && data.simplified_dimensions.length)) {
-        this._tipNoDimension(data).then(() => {
+        this._tipNoDimension(data).then(async () => {
+          await this.checkMeasureWithCC(data)
           this.addPartitionFunc(data)
         }).catch(() => {
           this.$emit('saveRequestEnd')
         })
       } else {
+        await this.checkMeasureWithCC(data)
         this.addPartitionFunc(data)
       }
     }, (err, t) => {
@@ -1617,6 +1619,35 @@ export default class ModelEdit extends Vue {
       this.$emit('saveRequestEnd')
     })
   }
+
+  // 对于老数据检测 SUM 度量中是否使用 varchar cc 列
+  checkMeasureWithCC (data) {
+    return new Promise((resolve, reject) => {
+      let list = data.simplified_measures.filter(it => it.expression === 'SUM' && it.return_type.indexOf('varchar') > -1)
+      if (list.length) {
+        return this.$msgbox({
+          title: this.$t('kylinLang.common.tip'),
+          closeOnPressEscape: false,
+          closeOnClickModal: false,
+          showClose: false,
+          confirmButtonText: this.$t('iKnow'),
+          message: <div>
+            <p class='ksd-mb-5'><i class='error-font el-icon-ksd-error_01 ksd-mr-5'></i>{this.$t('varcharSumMeasureTip')}</p>
+            <ul>{
+              list.map(item => <li>• {item.name}</li>)
+            }</ul>
+            <p class='ksd-mt-5'>{this.$t('pleaseModify')}</p>
+          </div>,
+          callback: () => {
+            reject()
+          }
+        })
+      } else {
+        resolve()
+      }
+    })
+  }
+
   async mounted () {
     this.globalLoading.show()
     this.$el.onselectstart = function (e) {
@@ -2114,6 +2145,7 @@ export default class ModelEdit extends Vue {
             .icon-group {
               position: absolute;
               right: 7px;
+              color: @text-title-color;
             }
             .icon-span {
               display:none;
@@ -2123,6 +2155,11 @@ export default class ModelEdit extends Vue {
             }
             &.is-checked {
               background-color:@base-color-9;
+            }
+            &.error-measure {
+              .ksd-nobr-text, .li-type {
+                color: @error-color-1;
+              }
             }
             &:hover {
               .li-type{
@@ -2636,6 +2673,9 @@ export default class ModelEdit extends Vue {
         }
       }
     }
+  }
+  .error-font {
+    color: @error-color-1;
   }
 
 </style>
