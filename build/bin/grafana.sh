@@ -106,13 +106,13 @@ function stopGrafana(){
     if [[ -f "${KYLIN_HOME}/grafana/pid" ]]; then
         PID=`cat ${KYLIN_HOME}/grafana/pid`
         if ps -p "$PID" > /dev/null; then
-           echo "Stopping Kylin: $PID"
+           echo "Stopping Grafana: $PID"
            kill "$PID"
            for i in {1..10}; do
               sleep 3
-              if ps -p "$PID" -f | grep kylin > /dev/null; then
+              if ps -p "$PID" -f | grep grafana > /dev/null; then
                  if [[ "$i" == "10" ]]; then
-                    echo "Killing Kylin: $PID"
+                    echo "Killing Grafana: $PID"
                     kill -9 "$PID"
                  fi
                  continue
