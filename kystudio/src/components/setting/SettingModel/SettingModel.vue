@@ -147,8 +147,8 @@
         </el-form-item>
         <el-form-item :label="$t(settingMap[modelSettingForm.settingItem])" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'customSettings'">
           <div class="custom-settings" v-for="(item, index) in modelSettingForm[modelSettingForm.settingItem]" :key="index">
-            <el-input class="custom-param-key" v-model="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
-            <el-input class="custom-param-value" v-model="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
+            <el-input class="custom-param-key" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
+            <el-input class="custom-param-value" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
             <span class="ky-no-br-space ksd-ml-5">
               <el-button type="primary" icon="el-icon-ksd-add_2" plain circle size="mini" @click="addCustomSetting"></el-button>
               <el-button icon="el-icon-minus" class="ksd-ml-5" plain circle size="mini" :disabled="modelSettingForm[modelSettingForm.settingItem].length === 1 && index === 0" @click="removeCustomSetting(index)"></el-button>
