@@ -61,7 +61,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,11 +74,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
@@ -113,11 +109,13 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -142,8 +140,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -164,11 +160,11 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutPartition;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.LayoutPartition;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -394,7 +390,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(20L, 30L));
-        dsMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+        dsMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
 
         val models = modelService.getModels(df.getModelAlias(), getProject(), true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
@@ -732,37 +728,38 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         var values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[]{"0"}, values.get(0).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "0" }, values.get(0).getPartitionValue());
         Assert.assertEquals(3, values.get(0).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(0).getTotalSegmentCount());
 
-        Assert.assertArrayEquals(new String[]{"1"}, values.get(1).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "1" }, values.get(1).getPartitionValue());
         Assert.assertEquals(4, values.get(1).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(1).getTotalSegmentCount());
 
-        Assert.assertArrayEquals(new String[]{"2"}, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
         Assert.assertEquals(4, values.get(2).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(2).getTotalSegmentCount());
 
-        Assert.assertArrayEquals(new String[]{"3"}, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
         Assert.assertEquals(3, values.get(3).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(3).getTotalSegmentCount());
 
         // add a new value and a existed value
-        modelService.addMultiPartitionValues(project, modelId, Lists.<String[]>newArrayList(new String[]{"13"}, new String[]{"3"}));
+        modelService.addMultiPartitionValues(project, modelId,
+                Lists.<String[]> newArrayList(new String[] { "13" }, new String[] { "3" }));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(5, values.size());
-        Assert.assertArrayEquals(new String[]{"13"}, values.get(4).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "13" }, values.get(4).getPartitionValue());
         Assert.assertEquals(0, values.get(4).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(4).getTotalSegmentCount());
         // delete a existed value and a non-exist value
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(4L, 5L));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[]{"0"}, values.get(0).getPartitionValue());
-        Assert.assertArrayEquals(new String[]{"1"}, values.get(1).getPartitionValue());
-        Assert.assertArrayEquals(new String[]{"2"}, values.get(2).getPartitionValue());
-        Assert.assertArrayEquals(new String[]{"3"}, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "0" }, values.get(0).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "1" }, values.get(1).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
 
     }
 
@@ -1607,7 +1604,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
         val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        Assert.assertEquals(df1.getStatus(), RealizationStatusEnum.ONLINE);
+        Assert.assertEquals(df1.getStatus(), ONLINE);
         modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
                 false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
@@ -2010,81 +2007,74 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    @Ignore
-    public void testModelNonEquiJoinBrokenRepair() throws Exception {
+    public void testModelNonEquiJoinBrokenRepair() {
         /* 1.create scd2 model
          * 2.turn off scd2 configuration
          * 3.unload fact table , model become broken
          * 4.reload the fact table, model should be offline when model is scd2 and scd2 is turned off
          */
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "true");
+        String project = "newten";
+        transferProjectToSemiAutoMode(getTestConfig(), project);
+        String scd2Sql = "select test_order.order_id,buyer_id from test_order "
+                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "and buyer_id>=seller_id and buyer_id<leaf_categ_id " //
+                + "group by test_order.order_id,buyer_id";
+        val scd2Response = modelService.suggestOrOptimizeModels(smartRequest(project, scd2Sql));
 
-        BiFunction<String, String, NDataModel> getModel = ((project, modelId) -> NDataModelManager
-                .getInstance(getTestConfig(), project).getDataModelDesc(modelId));
-        Function<NDataModel, ModelStatusToDisplayEnum> getModelDisplayStatus = (modelId) -> {
-            long inconsistentSegmentCount = NDataflowManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), modelId.getProject()).getDataflow(modelId.getId())
-                    .getSegments(SegmentStatusEnum.WARNING).size();
-            return modelService.convertModelStatusToDisplay(modelId, modelId.getProject(), inconsistentSegmentCount);
-        };
-        String projectName = "default";
-        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        String normSql = "select test_order.order_id,buyer_id from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id";
+        val normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
 
-        Function<String, ModelRequest> modelRequestSupplier = (modelId) -> {
-            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                    projectName);
-            NDataModel model = modelManager.getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-            model.setPartitionDesc(null);
-            model.setManagementType(ManagementType.MODEL_BASED);
-            ModelRequest modelRequest = new ModelRequest(model);
-            modelRequest.setProject(projectName);
-            modelRequest.setUuid(null);
-            modelRequest.setLastModified(0L);
-            return modelRequest;
-        };
-        ModelRequest scd2ModelRequest = modelRequestSupplier.apply("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        scd2ModelRequest.setAlias("non_equi_model");
-        scd2ModelRequest.getSimplifiedJoinTableDescs().get(0).getSimplifiedJoinDesc()
-                .setSimplifiedNonEquiJoinConditions(genNonEquiJoinCond());
+        String nonEquivModelId = scd2Response.getModels().get(0).getUuid();
+        String normalModelId = normalResponse.getModels().get(0).getUuid();
 
-        ModelRequest normalModelRequest = modelRequestSupplier.apply("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        normalModelRequest.setAlias("equi_model");
-
-        val scd2Model = modelService.createModel(scd2ModelRequest.getProject(), scd2ModelRequest);
-        val normalModel = modelService.createModel(normalModelRequest.getProject(), normalModelRequest);
-
-        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
-        });
-
-        await().atMost(60, TimeUnit.SECONDS).untilAsserted(() -> {
-            Assert.assertEquals(getModelDisplayStatus.apply(scd2Model), ModelStatusToDisplayEnum.ONLINE);
-            Assert.assertEquals(getModelDisplayStatus.apply(normalModel), ModelStatusToDisplayEnum.ONLINE);
-        });
-
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel scd2Model = modelManager.getDataModelDesc(nonEquivModelId);
+        NDataModel normalModel = modelManager.getDataModelDesc(normalModelId);
+        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(scd2Model, project));
+        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(normalModel, project));
         Assert.assertTrue(SCD2CondChecker.INSTANCE.isScd2Model(scd2Model));
 
-        //online -> broken
-        tableService.unloadTable(projectName, "DEFAULT.TEST_KYLIN_FACT", false);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), project);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        tableDesc.setMvcc(-1);
 
-        await().atMost(60, TimeUnit.SECONDS).untilAsserted(() -> {
-            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, scd2Model.getUuid())),
-                    ModelStatusToDisplayEnum.BROKEN);
-            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, normalModel.getUuid())),
-                    ModelStatusToDisplayEnum.BROKEN);
+        // online -> broken
+        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
+        NDataModel nonEquivOnline2Broken = modelManager.getDataModelDesc(nonEquivModelId);
+        NDataModel normalOnline2Broken = modelManager.getDataModelDesc(normalModelId);
+        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, convertModelStatus(nonEquivOnline2Broken, project));
+        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, convertModelStatus(normalOnline2Broken, project));
+
+        // broken -> repair
+        TableExtDesc orCreateTableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
+        tableExtService.loadTable(tableDesc, orCreateTableExt, project);
+        await().atMost(30, TimeUnit.SECONDS).untilAsserted(() -> {
+            NDataModel nonEquivBroken2Repair = modelManager.getDataModelDesc(nonEquivModelId);
+            NDataModel normalBroken2Repair = modelManager.getDataModelDesc(nonEquivModelId);
+            Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(nonEquivBroken2Repair, project));
+            Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, convertModelStatus(normalBroken2Repair, project));
         });
+    }
 
-        //broken -> repair
-        tableExtService.loadTables(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, projectName);
+    private OpenSqlAccelerateRequest smartRequest(String project, String scd2Sql) {
+        OpenSqlAccelerateRequest scd2Request = new OpenSqlAccelerateRequest();
+        scd2Request.setProject(project);
+        scd2Request.setSqls(Lists.newArrayList(scd2Sql));
+        scd2Request.setAcceptRecommendation(true);
+        scd2Request.setForce2CreateNewModel(true);
+        scd2Request.setWithEmptySegment(true);
+        scd2Request.setWithModelOnline(true);
+        return scd2Request;
+    }
 
-        NDataflowManager.getInstance(getTestConfig(), projectName).getDataflow(scd2Model.getId());
-        await().atMost(60 * 2, TimeUnit.SECONDS).untilAsserted(() -> {
-            //normal model should be online
-            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, normalModel.getUuid())),
-                    ModelStatusToDisplayEnum.ONLINE);
-            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, scd2Model.getUuid())),
-                    ModelStatusToDisplayEnum.OFFLINE);
-        });
-
+    private ModelStatusToDisplayEnum convertModelStatus(NDataModel model, String project) {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        long inconsistentSegmentCount = dataflowManager.getDataflow(model.getUuid())
+                .getSegments(SegmentStatusEnum.WARNING).size();
+        return modelService.convertModelStatusToDisplay(model, model.getProject(), inconsistentSegmentCount);
     }
 
     private void testGetLatestData() throws Exception {
@@ -3117,10 +3107,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
             String str = "\"computed_columns\": [";
             int i = contents.indexOf(str) + str.length();
-            String oneMoreCC = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+            String oneMoreCC = " {\n" //
+                    + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
                     + "      \"columnName\": \"DEAL_AMOUNT_2\",\n"
                     + "      \"expression\": \"TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT\",\n"
-                    + "      \"datatype\": \"decimal\",\n" + "      \"comment\": \"bla bla bla\"\n" + "    },";
+                    + "      \"datatype\": \"decimal\",\n" //
+                    + "      \"comment\": \"bla bla bla\"\n" //
+                    + "    },";
             contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
 
             InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
@@ -3130,15 +3123,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (BadModelException e) {
             modelService.getTableManager("default").resetProjectSpecificTableDesc();
             TableDesc aDefault = modelService.getTableManager("default").getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-            Collection<String> allColumnNames = Collections2.transform(Arrays.asList(aDefault.getColumns()),
-                    new Function<ColumnDesc, String>() {
-                        @Nullable
-                        @Override
-                        public String apply(@Nullable ColumnDesc columnDesc) {
-                            return columnDesc.getName();
-                        }
-                    });
-            Assert.assertTrue(!allColumnNames.contains("DEAL_AMOUNT_2"));
+            Set<String> allColumnNames = Arrays.stream(aDefault.getColumns()).map(ColumnDesc::getName)
+                    .collect(Collectors.toSet());
+            Assert.assertFalse(allColumnNames.contains("DEAL_AMOUNT_2"));
         }
     }
 
@@ -4730,7 +4717,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
 
-
         // first segment
         List<String> partitionValues = Lists.newArrayList("usa", "cn");
         NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01", "2010-02-01", SegmentStatusEnum.READY);
@@ -4992,7 +4978,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, segment4.getAllPartitionIds().size());
         Assert.assertEquals(2, segment4.getLayout(1).getMultiPartition().size());
     }
-
 
     @Test
     public void testChangeMultiPartition() throws IOException {

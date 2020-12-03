@@ -177,8 +177,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
+import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
@@ -675,12 +675,12 @@ public class ModelService extends BasicService {
                 : getModelStatus(modelDesc.getUuid(), projectName);
         ModelStatusToDisplayEnum modelResponseStatus = ModelStatusToDisplayEnum.convert(modelStatus);
         val segmentHoles = getDataflowManager(projectName).calculateSegHoles(modelDesc.getUuid());
-        if (modelResponseStatus == ModelStatusToDisplayEnum.ONLINE
-                && (getEmptyIndexesCount(projectName, modelDesc.getId()) > 0
-                        || CollectionUtils.isNotEmpty(segmentHoles))) {
-            modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
+        if (modelResponseStatus == ModelStatusToDisplayEnum.BROKEN
+                || modelResponseStatus == ModelStatusToDisplayEnum.OFFLINE) {
+            return modelResponseStatus;
         }
-        if (inconsistentSegmentCount > 0) {
+        if (getEmptyIndexesCount(projectName, modelDesc.getId()) > 0 || CollectionUtils.isNotEmpty(segmentHoles)
+                || inconsistentSegmentCount > 0) {
             modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
         }
         return modelResponseStatus;
@@ -2335,8 +2335,8 @@ public class ModelService extends BasicService {
         NDataModel modelDesc = getDataModelManager(params.getProject()).getDataModelDesc(params.getModelId());
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())
-                || !modelDesc.getPartitionDesc().equals(params.getPartitionDesc())
-                || !ModelSemanticHelper.isMultiPartitionDescSame(modelDesc.getMultiPartitionDesc(), params.getMultiPartitionDesc())) {
+                || !modelDesc.getPartitionDesc().equals(params.getPartitionDesc()) || !ModelSemanticHelper
+                        .isMultiPartitionDescSame(modelDesc.getMultiPartitionDesc(), params.getMultiPartitionDesc())) {
             aclEvaluate.checkProjectWritePermission(params.getProject());
             val request = convertToRequest(modelDesc);
             request.setPartitionDesc(params.getPartitionDesc());
@@ -2348,16 +2348,19 @@ public class ModelService extends BasicService {
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(params.getSegmentHoles().size() + 2);
         List<String[]> allPartitions = null;
         if (modelDesc.isMultiPartitionModel()) {
-            allPartitions = modelDesc.getMultiPartitionDesc().getPartitions().stream().map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
+            allPartitions = modelDesc.getMultiPartitionDesc().getPartitions().stream()
+                    .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
         }
         for (SegmentTimeRequest hole : params.getSegmentHoles()) {
             res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
-                    hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true,
-                    allPartitions).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())));
+                    hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true, allPartitions)
+                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
+                            .withPriority(params.getPriority())));
         }
         res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
-                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())));
+                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
+                        .withPriority(params.getPriority())));
         return res;
     }
 
