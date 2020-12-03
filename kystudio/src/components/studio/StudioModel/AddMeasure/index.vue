@@ -328,6 +328,11 @@ export default class AddMeasure extends Vue {
   }
 
   checkColumn (rule, value, callback) {
+    // TOP_N 度量无需判断列是否已经被使用过了
+    if (this.measure.expression === 'TOP_N') {
+      callback()
+      return
+    }
     if (!this.modelInstance.checkSameEditMeasureColumn(this.measure)) {
       callback(new Error(this.$t('sameColumn')))
     } else {
