@@ -10,7 +10,7 @@
           prefix-icon="el-icon-search"
           v-model="filterText"
           @input="filterChange"
-          :placeholder="$t('kylinLang.common.pleaseFilter')">
+          :placeholder="$t('filterByColumns')">
         </el-input>
       </div>
     </div>

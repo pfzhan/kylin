@@ -17,7 +17,7 @@
             :show-background="false"
             show-icon>
           </el-alert>
-          <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+          <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
         </div>
        <div class="ky-simple-table">
           <el-row class="table-header table-row ksd-mt-10">

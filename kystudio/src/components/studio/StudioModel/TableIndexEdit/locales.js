@@ -19,7 +19,8 @@ export default {
     moveTop: 'Move to top',
     moveUp: 'Move up',
     moveDown: 'Move down',
-    tableIndexShardByTips: 'Please select columns for detail query. To enhance the query performance, please move the frequently used dimensions to the top of the list, and set a column with relatively large cardinality as ShardBy.'
+    tableIndexShardByTips: 'Please select columns for detail query. To enhance the query performance, please move the frequently used dimensions to the top of the list, and set a column with relatively large cardinality as ShardBy.',
+    filterByColumns: 'Search by column name'
   },
   'zh-cn': {
     addTableIndexTitle: '添加明细索引',
@@ -41,6 +42,7 @@ export default {
     moveTop: '置顶',
     moveUp: '上移',
     moveDown: '下移',
-    tableIndexShardByTips: '请选择添加哪些列用于回答明细查询。为了提高查询效率，请将查询中常用的列排在前面，并将基数较大的设置为 ShardBy 列。'
+    tableIndexShardByTips: '请选择添加哪些列用于回答明细查询。为了提高查询效率，请将查询中常用的列排在前面，并将基数较大的设置为 ShardBy 列。',
+    filterByColumns: '请搜索列名'
   }
 }
