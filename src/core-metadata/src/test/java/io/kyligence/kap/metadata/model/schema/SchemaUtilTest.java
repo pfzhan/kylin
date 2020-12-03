@@ -120,7 +120,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
     @Test
     public void testConflictWithDifferentDimTable() throws IOException {
         val file = new File(
-                "src/test/resources/ut_meta/schema_utils/conflict_dim_table_project/conflict_dim_table_project_model_metadata_2020_11_14_16_20_06_ACE8D6B93789790D8E59A2E920DFF156.zip");
+                "src/test/resources/ut_meta/schema_utils/conflict_dim_table_project/conflict_dim_table_project_model_metadata_2020_11_14_16_20_06_5BCDB43E43D8C8D9E94A90C396CDA23F.zip");
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
         String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
         val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);

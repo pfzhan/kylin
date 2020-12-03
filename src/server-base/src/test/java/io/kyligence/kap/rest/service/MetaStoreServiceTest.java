@@ -82,6 +82,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
@@ -328,8 +329,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertEquals(4, modelSchemaChange.getReduceItems().size());
         Assert.assertEquals("10001,40001,60001,70001", modelSchemaChange.getReduceItems().stream()
                 .map(SchemaChangeCheckResult.ChangedItem::getDetail).sorted().collect(Collectors.joining(",")));
-        Assert.assertTrue(modelSchemaChange.getReduceItems().stream()
-                .anyMatch(SchemaChangeCheckResult.BaseItem::isOverwritable));
+        Assert.assertTrue(
+                modelSchemaChange.getReduceItems().stream().anyMatch(SchemaChangeCheckResult.BaseItem::isOverwritable));
     }
 
     @Test
@@ -777,6 +778,19 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             }
         });
         metaStoreService.importModelMetadata("original_project", multipartFile, request);
+    }
+
+    @Test
+    public void testGetModelMetadataProjectName() throws IOException {
+        File file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/conflict_dim_table_project/conflict_dim_table_project_model_metadata_2020_11_14_16_20_06_5BCDB43E43D8C8D9E94A90C396CDA23F.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(multipartFile);
+        String projectName = ReflectionTestUtils.invokeMethod(metaStoreService, "getModelMetadataProjectName",
+                rawResourceMap.keySet());
+
+        Assert.assertEquals("conflict_dim_table_project", projectName);
     }
 
     @Test
