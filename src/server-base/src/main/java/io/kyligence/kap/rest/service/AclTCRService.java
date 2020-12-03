@@ -44,9 +44,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.acl.DependentColumn;
-import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -68,11 +65,14 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.acl.DependentColumn;
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
@@ -154,7 +154,7 @@ public class AclTCRService extends BasicService {
 
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
         aclEvaluate.checkProjectAdminPermission(project);
-        checkAclTCRRequest(project, requests);
+        checkAclTCRRequest(project, requests, sid, principal);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             updateAclTCR(project, sid, principal, transformRequests(project, requests));
             return null;
@@ -277,7 +277,7 @@ public class AclTCRService extends BasicService {
 
     }
 
-    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests) {
+    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal) {
         Set<String> databases = Sets.newHashSet();
         Set<String> tables = Sets.newHashSet();
         Set<String> columns = Sets.newHashSet();
@@ -293,7 +293,10 @@ public class AclTCRService extends BasicService {
                 columns.add(String.format(IDENTIFIER_FORMAT, dbName, col.getIdentity()));
             });
         });
-
+        boolean userWithGlobalAdminPermission = principal && accessService.hasGlobalAdminGroup(sid);
+        if (userWithGlobalAdminPermission) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getGLOBAL_ADMIN_ABANDON());
+        }
         checkAClTCRRequestParameterValid(databases, tables, columns, requests);
         checkAClTCRExist(databases, tables, columns, requests);
     }

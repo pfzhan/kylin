@@ -32,13 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.acl.SensitiveDataMask;
-import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -52,15 +50,20 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
+import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
@@ -72,6 +75,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     private final String user1 = "u1";
     private final String user2 = "u2";
     private final String user3 = "u3";
+    private final String user4 = "u4";
     private final String group1 = "g1";
     private final String group2 = "g2";
 
@@ -98,7 +102,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     private AccessService accessService = Mockito.spy(AccessService.class);
 
     @Mock
-    private UserService userService = Mockito.spy(UserService.class);
+    private UserService userService = Mockito.spy(KylinUserService.class);
 
     @Mock
     private IUserGroupService userGroupService = Mockito.spy(IUserGroupService.class);
@@ -106,7 +110,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         createTestMetadata();
-
+        initUsers();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
@@ -116,6 +120,18 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private void initUsers() {
+        NKylinUserManager userManager = NKylinUserManager.getInstance(getTestConfig());
+        userManager.update(new ManagedUser(user1, "Q`w11g23", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))));
+        userManager.update(new ManagedUser(user2, "Q`w11g23", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ANALYST))));
+        userManager.update(new ManagedUser(user3, "Q`w11g23", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
+        userManager.update(new ManagedUser(user4, "Q`w11g23", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ADMIN))));
     }
 
     @After
@@ -333,6 +349,9 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         aclTCRService.unloadTable(projectDefault, "DEFAULT.TEST_ORDER");
         tables = manager.getAuthorizedTables(user1, null);
         Assert.assertFalse(tables.contains("DEFAULT.TEST_ORDER"));
+        assertKylinExeption(() -> {
+            aclTCRService.updateAclTCR(projectDefault, user4, true, fillAclTCRRequest(request));
+        }, "Global admin is not supported to update permission.");
     }
 
     @Test

@@ -32,11 +32,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractKylinTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Maps;
@@ -234,4 +237,19 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
+    public void assertKylinExeption(UserFunction f, String msg) {
+        try {
+            f.process();
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            if (StringUtils.isNotEmpty(msg)) {
+                Assert.assertEquals(msg, e.getMessage());
+            }
+        }
+    }
+
+    public interface UserFunction {
+        void process();
+    }
 }

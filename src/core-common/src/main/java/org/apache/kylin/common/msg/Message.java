@@ -1713,4 +1713,8 @@ public class Message {
     public String getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID() {
         return "Failed to update multi-partition mapping, invalid request";
     }
+
+    public String getGLOBAL_ADMIN_ABANDON() {
+        return "Global admin is not supported to update permission.";
+    }
 }

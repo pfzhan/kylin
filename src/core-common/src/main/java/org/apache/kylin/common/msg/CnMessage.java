@@ -1955,4 +1955,9 @@ public class CnMessage extends Message {
     public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO() {
         return "mapping_info 中，resource_group_id 不存在。";
     }
+
+    @Override
+    public String getGLOBAL_ADMIN_ABANDON() {
+        return "系统管理员不支持被更新权限.";
+    }
 }
