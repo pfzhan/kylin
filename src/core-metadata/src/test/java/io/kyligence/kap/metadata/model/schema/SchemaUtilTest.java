@@ -515,9 +515,9 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
     }
 
     static String getModelMetadataProjectName(Set<String> rawResourceList) {
-        String anyPath = rawResourceList.stream()
-                .filter(resourcePath -> !resourcePath.startsWith(ResourceStore.METASTORE_UUID_TAG)).findAny()
-                .orElse(null);
+        String anyPath = rawResourceList.stream().filter(
+                resourcePath -> resourcePath.indexOf(File.separator) != resourcePath.lastIndexOf(File.separator))
+                .findAny().orElse(null);
         if (StringUtils.isBlank(anyPath)) {
             throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
         }

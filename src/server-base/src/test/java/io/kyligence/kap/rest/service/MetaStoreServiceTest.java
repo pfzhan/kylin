@@ -53,6 +53,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -804,10 +805,12 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
 
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(multipartFile);
-        String projectName = ReflectionTestUtils.invokeMethod(metaStoreService, "getModelMetadataProjectName",
-                rawResourceMap.keySet());
+        for (int i = 0; i < new Random().nextInt(10); i++) {
+            String projectName = ReflectionTestUtils.invokeMethod(metaStoreService, "getModelMetadataProjectName",
+                    rawResourceMap.keySet());
 
-        Assert.assertEquals("conflict_dim_table_project", projectName);
+            Assert.assertEquals("conflict_dim_table_project", projectName);
+        }
     }
 
     @Test
