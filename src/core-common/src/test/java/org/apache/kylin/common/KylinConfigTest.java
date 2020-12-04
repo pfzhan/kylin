@@ -97,6 +97,14 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
     }
 
     @Test
+    public void testBackwardCompatibility_KAP_KYLIN() {
+        Properties config = KylinConfig.getInstanceFromEnv().getAllProperties();
+        Assert.assertEquals(config.get("kylin.storage.columnar.spark-conf.spark.driver.memory"), "1234m");
+        Assert.assertEquals(config.get("kylin.storage.columnar.spark-conf.spark.executor.memoryOverhead"), "4321m");
+        Assert.assertEquals(config.get("kylin.storage.monitor-spark-period-seconds"), "5678");
+    }
+
+    @Test
     public void testExtShareTheBase() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Map<String, String> override = Maps.newHashMap();

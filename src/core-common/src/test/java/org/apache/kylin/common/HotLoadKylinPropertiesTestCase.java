@@ -68,13 +68,17 @@ public class HotLoadKylinPropertiesTestCase {
     public void setUp() throws Exception {
         cleanMetadataHelper = new CleanMetadataHelper();
 
-        List<String> properties = Lists.newArrayList(
-                "kylin.test.bcc.new-key=some-value",
-                "kylin.engine.mr.config-override.test1=test1",
-                "kylin.engine.mr.config-override.test2=test2",
+        List<String> properties = Lists.newArrayList("kylin.test.bcc.new-key=some-value",
+                "kylin.engine.mr.config-override.test1=test1", "kylin.engine.mr.config-override.test2=test2",
                 "kylin.job.lock=org.apache.kylin.job.lock.MockJobLockDup",
-                "kylin.job.lock=org.apache.kylin.job.lock.MockJobLock"
-        );
+                "kylin.job.lock=org.apache.kylin.job.lock.MockJobLock");
+        List<String> backwardProperties = Lists.newArrayList(
+                "kap.storage.columnar.spark-conf.spark.driver.memory=1234m",
+                "kap.storage.columnar.spark-conf.spark.executor.memoryOverhead=4321m",
+                "kap.storage.monitor-spark-period-seconds=5678");
+
+        properties.addAll(backwardProperties);
+
         cleanMetadataHelper.setUpWithSomeProperties(properties);
     }
 
