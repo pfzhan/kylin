@@ -116,7 +116,9 @@ public class QueryExec {
             beforeQuery();
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
+            QueryContext.current().record("end calcite convert sql to relnode");
             RelNode node = queryOptimizer.optimize(relRoot).rel;
+            QueryContext.current().record("end calcite optimize");
 
             List<StructField> resultFields = RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType);
             if (resultFields.isEmpty()) { // result fields size may be 0 because of ACL controls and should return immediately
@@ -168,6 +170,11 @@ public class QueryExec {
     @VisibleForTesting
     public RelRoot sqlToRelRoot(String sql) throws SqlParseException {
         return sqlConverter.convertSqlToRelNode(sql);
+    }
+
+    @VisibleForTesting
+    public RelRoot optimize(RelRoot relRoot) {
+        return queryOptimizer.optimize(relRoot);
     }
 
     /**

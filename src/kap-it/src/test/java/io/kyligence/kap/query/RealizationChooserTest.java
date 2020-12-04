@@ -31,7 +31,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.junit.Assert;
 import org.junit.Test;
@@ -55,6 +57,7 @@ import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
+
 import lombok.val;
 import lombok.var;
 
@@ -99,7 +102,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.match-partial-inner-join-model", "true");
         Assert.assertFalse(RealizationChooser.matchJoins(dataModel1, context).isEmpty());
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
-        RealizationChooser.attemptSelectCandidate(context);
+        RealizationChooser.attemptSelectCandidate(context, Maps.newHashMap());
         Assert.assertEquals(context.storageContext.getCandidate().getCuboidLayout().getModel().getId(), dataflow);
 
     }
@@ -124,8 +127,31 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
-        RealizationChooser.attemptSelectCandidate(context);
+        RealizationChooser.attemptSelectCandidate(context, Maps.newHashMap());
         Assert.assertEquals("nmodel_basic_inner", context.realization.getModel().getAlias());
+    }
+
+    @Test
+    public void testRealizationChooserHitCandidateCache() {
+        // prepare olap context
+        overwriteSystemProp("kylin.query.realization.chooser.cache-enabled", "true");
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        String sql = "select cal_dt,sum(price) from test_kylin_fact group by cal_dt";
+        val proposeContext = new SmartContext(kylinConfig, "default", new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(kylinConfig.base());
+
+        Map<SQLDigest, Candidate> candidateCache = Maps.newHashMap();
+        RealizationChooser.attemptSelectCandidate(context, candidateCache);
+        Assert.assertEquals(1, candidateCache.size());
+        RealizationChooser.attemptSelectCandidate(context, candidateCache);
+        Assert.assertEquals(context.realization, candidateCache.get(context.getSQLDigest()).getRealization());
+        overwriteSystemProp("kylin.query.realization.chooser.cache-enabled", "false");
     }
 
     private void addLayout(NDataflow dataflow, long rowcount) {
@@ -478,7 +504,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
-        RealizationChooser.attemptSelectCandidate(context);
+        RealizationChooser.attemptSelectCandidate(context, Maps.newHashMap());
 
         if (expectedLayoutId == -1L) {
             Assert.assertTrue(context.storageContext.isEmptyLayout());

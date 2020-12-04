@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -129,18 +130,20 @@ public class RealizationChooser {
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
         // try different model for different context
+        Map<SQLDigest, Candidate> candidateCache = new ConcurrentHashMap<>();
         for (OLAPContext ctx : contexts) {
             if (ctx.isConstantQueryWithAggregations()) {
                 continue;
             }
             ctx.realizationCheck = new RealizationCheck();
-            attemptSelectCandidate(ctx);
+            attemptSelectCandidate(ctx, candidateCache);
             Preconditions.checkNotNull(ctx.realization);
         }
     }
 
     public static void multiThreadSelectLayoutCandidate(List<OLAPContext> contexts) {
         try {
+            Map<SQLDigest, Candidate> candidateCache = new ConcurrentHashMap<>();
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             String project = QueryContext.current().getProject();
             // try different model for different context
@@ -159,7 +162,7 @@ public class RealizationChooser {
                         }
                         if (!ctx.isConstantQueryWithAggregations()) {
                             ctx.realizationCheck = new RealizationCheck();
-                            attemptSelectCandidate(ctx);
+                            attemptSelectCandidate(ctx, candidateCache);
                             Preconditions.checkNotNull(ctx.realization);
                         }
                     } finally {
@@ -184,7 +187,7 @@ public class RealizationChooser {
     }
 
     @VisibleForTesting
-    public static void attemptSelectCandidate(OLAPContext context) {
+    public static void attemptSelectCandidate(OLAPContext context, Map<SQLDigest, Candidate> candidateCache) {
         context.setHasSelected(true);
         // Step 1. get model through matching fact table with query
         Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
@@ -199,7 +202,7 @@ public class RealizationChooser {
         logger.debug("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-            Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
+            Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap, candidateCache);
             logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), candidate != null);
             if (candidate != null) {
                 candidates.add(candidate);
@@ -213,7 +216,7 @@ public class RealizationChooser {
                 && KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
             for (NDataModel model : modelMap.keySet()) {
                 OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-                Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
+                Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap, candidateCache);
                 if (candidate != null) {
                     candidates.add(candidate);
                 }
@@ -251,7 +254,8 @@ public class RealizationChooser {
     }
 
     private static Candidate selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
-                                                        Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap) {
+            Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap,
+            Map<SQLDigest, Candidate> candidateCache) {
         final Map<String, String> map = matchJoins(model, context, isPartialMatch);
         if (map == null) {
             return null;
@@ -268,7 +272,7 @@ public class RealizationChooser {
             return null;
         }
         Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)),
-                model2AliasMap.get(model));
+                model2AliasMap.get(model), candidateCache);
         if (candidate != null) {
             logger.trace("Model {} QueryRouter matched", model);
         } else {

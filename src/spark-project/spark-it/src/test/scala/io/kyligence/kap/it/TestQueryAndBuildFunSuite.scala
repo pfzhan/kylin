@@ -84,7 +84,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
     //    "sql_timestamp", no exist dir
     FloderInfo("sql_topn"),
-    FloderInfo("sql_union"),
+    FloderInfo("sql_union", List("query07.sql")),
     FloderInfo("sql_value"),
     FloderInfo("sql_udf", List("query02.sql")),
     FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))

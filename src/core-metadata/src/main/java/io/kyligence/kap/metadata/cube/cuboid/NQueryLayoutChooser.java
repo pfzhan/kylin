@@ -39,6 +39,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -86,10 +87,12 @@ public class NQueryLayoutChooser {
         List<NLayoutCandidate> candidates = new ArrayList<>();
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
         val commonLayouts = getLayoutsFromSegments(prunedSegments, dataflow);
+        KylinConfigExt configOfDataflow = dataflow.getConfig();
+        NSpanningTree spanningTree = dataflow.getIndexPlan().getSpanningTree();
         for (NDataLayout cuboid : commonLayouts) {
             CapabilityResult tempResult = new CapabilityResult();
             // check indexEntity
-            IndexEntity indexEntity = dataflow.getIndexPlan().getIndexEntity(cuboid.getIndexId());
+            IndexEntity indexEntity = spanningTree.getIndexEntity(cuboid.getIndexId());
 
             Set<TblColRef> unmatchedCols = Sets.newHashSet();
             Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
@@ -98,7 +101,7 @@ public class NQueryLayoutChooser {
             if (indexEntity.isTableIndex() && (sqlDigest.isRawQuery
                     || KylinConfig.getInstanceFromEnv().isUseTableIndexAnswerNonRawQuery())) {
                 unmatchedCols.addAll(sqlDigest.allColumns);
-                matched = matchTableIndex(cuboid.getLayout(), dataflow, unmatchedCols, needDerive,
+                matched = matchTableIndex(cuboid.getLayout(), configOfDataflow, unmatchedCols, needDerive,
                         tempResult);
                 if (!matched) {
                     logger.debug("Table index {} with unmatched columns {}", cuboid, unmatchedCols);
@@ -107,7 +110,7 @@ public class NQueryLayoutChooser {
             if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
-                matched = matchAggIndex(sqlDigest, cuboid.getLayout(), dataflow, unmatchedCols,
+                matched = matchAggIndex(sqlDigest, cuboid.getLayout(), configOfDataflow, unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
                 if (!matched) {
                     logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", cuboid,
@@ -200,27 +203,27 @@ public class NQueryLayoutChooser {
         }
     }
 
-    private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout, final NDataflow dataFlow,
-                                         Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
-                                         Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+    private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout,
+            final KylinConfigExt configOfDataflow, Set<TblColRef> unmatchedCols,
+            Collection<FunctionDesc> unmatchedMetrics, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
-        goThruDerivedDims(cuboidLayout.getIndex(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());
+        goThruDerivedDims(cuboidLayout.getIndex(), configOfDataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
         unmatchedAggregations(unmatchedMetrics, cuboidLayout);
         unmatchedCountColumnIfExistCountStar(unmatchedMetrics);
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {
             applyAdvanceMeasureStrategy(cuboidLayout.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics, result);
-            applyDimAsMeasureStrategy(cuboidLayout.getIndex(), dataFlow, unmatchedMetrics, needDerive, result);
+            applyDimAsMeasureStrategy(cuboidLayout.getIndex(), configOfDataflow, unmatchedMetrics, needDerive, result);
         }
 
         return unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
     }
 
-    private static boolean matchTableIndex(final LayoutEntity cuboidLayout, final NDataflow dataflow,
+    private static boolean matchTableIndex(final LayoutEntity cuboidLayout, final KylinConfigExt configOfDataflow,
                                            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
-        goThruDerivedDims(cuboidLayout.getIndex(), dataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
+        goThruDerivedDims(cuboidLayout.getIndex(), configOfDataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
         if (!unmatchedCols.isEmpty()) {
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.TABLE_INDEX_MISSING_COLS);
@@ -237,7 +240,7 @@ public class NQueryLayoutChooser {
                 .removeIf(functionDesc -> FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(functionDesc.getExpression()));
     }
 
-    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, NDataflow dataflow, Collection<FunctionDesc> unmatchedAggs,
+    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, KylinConfigExt configOfDataflow, Collection<FunctionDesc> unmatchedAggs,
                                                   Map<TblColRef, DeriveInfo> needDeriveCollector, CapabilityResult result) {
         Iterator<FunctionDesc> it = unmatchedAggs.iterator();
         while (it.hasNext()) {
@@ -253,7 +256,7 @@ public class NQueryLayoutChooser {
             List<TblColRef> neededCols = functionDesc.getColRefs();
             val leftUnmatchedCols = Sets.newHashSet(CollectionUtils.subtract(neededCols, indexEntity.getDimensionSet()));
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
-                goThruDerivedDims(indexEntity, dataflow, needDeriveCollector, leftUnmatchedCols, indexEntity.getModel());
+                goThruDerivedDims(indexEntity, configOfDataflow, needDeriveCollector, leftUnmatchedCols, indexEntity.getModel());
             }
 
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols))
@@ -403,14 +406,14 @@ public class NQueryLayoutChooser {
                 .dimensionsDerive(SCD2NonEquiCondSimplification.INSTANCE.extractFksFromNonEquiJoinDesc(joinDesc));
     }
 
-    private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
+    private static void goThruDerivedDims(final IndexEntity indexEntity, final KylinConfigExt configOfDataflow,
             Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
             if (model.isLookupTable(unmatchedDim.getTableRef())
                     && model.isQueryDerivedEnabled(unmatchedDim.getTableRef()) && goThruDerivedDimsFromLookupTable(
-                            indexEntity, dataflow, needDeriveCollector, model, unmatchedDimItr, unmatchedDim)) {
+                    indexEntity, configOfDataflow, needDeriveCollector, model, unmatchedDimItr, unmatchedDim)) {
                 continue;
             }
 
@@ -440,7 +443,7 @@ public class NQueryLayoutChooser {
         }
     }
 
-    private static boolean goThruDerivedDimsFromLookupTable(IndexEntity indexEntity, NDataflow dataflow,
+    private static boolean goThruDerivedDimsFromLookupTable(IndexEntity indexEntity, KylinConfigExt configOfDataflow,
             Map<TblColRef, DeriveInfo> needDeriveCollector, NDataModel model, Iterator<TblColRef> unmatchedDimItr,
             TblColRef unmatchedDim) {
         JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
@@ -448,7 +451,7 @@ public class NQueryLayoutChooser {
         TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
         TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
 
-        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(configOfDataflow,
                 model.getProject());
         if (joinByPKSide.isInnerJoin() && ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
             TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];

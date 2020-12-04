@@ -56,6 +56,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.util.Pair;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.schema.KylinSqlValidator;
 
 /**
@@ -143,6 +144,7 @@ public class SQLConverter {
      */
     public RelRoot convertSqlToRelNode(String sql) throws SqlParseException {
         SqlNode sqlNode = parseSQL(sql);
+        QueryContext.current().record("end calcite parse sql");
 
         return convertToRelNode(sqlNode);
     }

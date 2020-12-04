@@ -28,6 +28,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
@@ -111,6 +112,7 @@ public class QueryContextCutter {
         }
         logger.debug("select layout candidate for {} olapContext cost {} ms", contexts.size(),
                 System.currentTimeMillis() - selectLayoutStartTime);
+        QueryContext.current().record("end select realization");
         return contexts;
     }
 
