@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
@@ -100,10 +101,10 @@ public class EventBusFactory {
         executor.shutdown();
         try {
             if (!executor.awaitTermination(6000, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
+                ExecutorServiceUtil.forceShutdown(executor);
             }
         } catch (InterruptedException ex) {
-            executor.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(executor);
             Thread.currentThread().interrupt();
         }
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));

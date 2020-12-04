@@ -25,6 +25,7 @@
 package io.kyligence.kap.common.logging;
 
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.junit.After;
 import org.junit.Assert;
@@ -177,8 +178,7 @@ public class QueryLoggerBufferUtilTest {
         // subthread logging
         Mockito.verify(mockOutput, Mockito.times(5)).info(Mockito.anyString(), new Object[] { Mockito.anyString() });
         Mockito.verify(mockOutput, Mockito.times(1)).info(Mockito.anyString(), new Object[] { Mockito.anyInt() });
-
-        executorService.shutdownNow();
+        ExecutorServiceUtil.forceShutdown(executorService);
     }
 
 }

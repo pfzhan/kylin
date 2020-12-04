@@ -24,11 +24,15 @@
 
 package org.apache.kylin.common.util;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import lombok.val;
 
 //https://www.baeldung.com/java-executor-wait-for-threads
 public class ExecutorServiceUtil {
@@ -38,18 +42,30 @@ public class ExecutorServiceUtil {
         threadPool.shutdown();
         try {
             if (!threadPool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) {
-                threadPool.shutdownNow();
+                forceShutdown(threadPool);
             }
         } catch (InterruptedException ex) {
             logger.info("Interrupted while shutting down");
-            threadPool.shutdownNow();
+            forceShutdown(threadPool);
             Thread.currentThread().interrupt();
         }
     }
 
     public static void forceShutdown(ExecutorService threadPool) {
         if (threadPool != null) {
-            threadPool.shutdownNow();
+            List<Runnable> jobs = threadPool.shutdownNow();
+            logger.info("Shutdown now thread pool [{}], drain [{}] runnable jobs.", System.identityHashCode(threadPool),
+                    jobs.size());
+            int futureTaskCount = 0;
+            for (Runnable job : jobs) {
+                if (job instanceof Future) {
+                    futureTaskCount++;
+                    val task = (Future) job;
+                    logger.info("Cancel future task [{}].", System.identityHashCode(task));
+                    task.cancel(true);
+                }
+            }
+            logger.info("Thread poll cancel [{}] future jobs.", futureTaskCount);
         }
     }
 }

@@ -536,6 +536,7 @@ public class ProjectService extends BasicService {
     public void accelerateImmediately(String project) {
         QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
+            logger.info("Schedule QueryHistoryAccelerateRunner job, project [{}].", project);
             Future future = scheduler.scheduleImmediately(scheduler.new QueryHistoryAccelerateRunner(false));
             try {
                 future.get();

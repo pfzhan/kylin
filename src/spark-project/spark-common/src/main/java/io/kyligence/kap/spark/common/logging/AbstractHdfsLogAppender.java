@@ -38,6 +38,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
@@ -153,7 +154,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
 
                     closeWriter();
                     if (appendHdfsService != null && !appendHdfsService.isShutdown()) {
-                        appendHdfsService.shutdownNow();
+                        ExecutorServiceUtil.forceShutdown(appendHdfsService);
                     }
                 } catch (Exception e) {
                     transaction.forEach(this::printLoggingEvent);

@@ -35,6 +35,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,7 @@ public class KapGuardian {
 
     public void stop() {
         if (null != executor && !executor.isShutdown()) {
-            executor.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(executor);
         }
     }
 

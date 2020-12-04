@@ -40,6 +40,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -182,7 +183,7 @@ public class BuildLayoutWithUpdate {
             pool.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.warn("Error occurred when shutdown thread pool.", e);
-            pool.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(pool);
             Thread.currentThread().interrupt();
         }
 
@@ -191,7 +192,7 @@ public class BuildLayoutWithUpdate {
             checkPointer.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.warn("Error occurred when shutdown checkPointer.", e);
-            checkPointer.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(checkPointer);
             Thread.currentThread().interrupt();
         }
     }

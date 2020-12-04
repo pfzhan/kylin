@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,7 +148,7 @@ public class InfluxDBInstance {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             getInfluxDB().close();
-            scheduledExecutorService.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(scheduledExecutorService);
             logger.info("Shutdown InfluxDB Instance, database: {}, retentionPolicy: {}", getDatabase(),
                     getRetentionPolicyName());
         }));

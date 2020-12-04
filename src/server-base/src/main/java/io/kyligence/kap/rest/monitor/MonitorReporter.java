@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,8 +171,8 @@ public class MonitorReporter {
 
     @VisibleForTesting
     public void stopReporter() {
-        dataCollectorExecutor.shutdownNow();
-        reportMonitorMetricsExecutor.shutdownNow();
+        ExecutorServiceUtil.forceShutdown(dataCollectorExecutor);
+        ExecutorServiceUtil.forceShutdown(reportMonitorMetricsExecutor);
         started = false;
 
         logger.info("MonitorReporter stopped!");

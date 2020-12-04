@@ -65,6 +65,7 @@ import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.slf4j.Logger;
@@ -264,7 +265,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         stage = StageEnum.DONE;
         if (isDiagFromWeb(optionsHelper)) {
             reportDiagProgressImmediately(optionsHelper.getOptionValue(OPTION_DIAGID));
-            timerExecutorService.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(timerExecutorService);
         }
     }
 
@@ -470,11 +471,11 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     protected void awaitDiagPackageTermination(long timeout) throws InterruptedException {
         try {
             if (executorService != null && !executorService.awaitTermination(timeout, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
+                ExecutorServiceUtil.forceShutdown(executorService);
                 throw new KylinTimeoutException("diagnosis packaging timeout.");
             }
         } catch (InterruptedException e) {
-            executorService.shutdownNow();
+            ExecutorServiceUtil.forceShutdown(executorService);
             logger.debug("diagnosis main wait for all sub task exit...");
             long start = System.currentTimeMillis();
             boolean allSubTaskExit = executorService.awaitTermination(600, TimeUnit.SECONDS);

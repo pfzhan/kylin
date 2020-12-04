@@ -351,15 +351,17 @@ public class QueryHistoryTaskScheduler {
         @Override
         public void work() {
             if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
+                log.info("Skip QueryHistoryAccelerateRunner job, project [{}].", project);
                 return;
             }
+            log.info("Start QueryHistoryAccelerateRunner job, project [{}].", project);
 
             int batchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
             int maxSize = isManual() //
                     ? KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize()
                     : KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
             batchHandle(batchSize, maxSize, this::accelerateAndUpdateMetadata);
-
+            log.info("End QueryHistoryAccelerateRunner job, project [{}].", project);
         }
 
         private void accelerateAndUpdateMetadata(List<QueryHistory> queryHistories) {
