@@ -181,12 +181,12 @@ public class ImportModelContext implements IKeep {
     }
 
     /**
-     * 
+     *
      * @param originalDataModel model from current env
      * @param newDataModel model from import
      * @return
      */
-    private Map<Integer, Integer> prepareIdChangedMap(NDataModel originalDataModel, NDataModel newDataModel) {
+    private static Map<Integer, Integer> prepareIdChangedMap(NDataModel originalDataModel, NDataModel newDataModel) {
         Map<Integer, Integer> idChangedMap = new HashMap<>();
 
         int columnMaxId = originalDataModel.getAllNamedColumns().stream().map(NDataModel.NamedColumn::getId)
@@ -194,26 +194,41 @@ public class ImportModelContext implements IKeep {
         int measureMaxId = originalDataModel.getAllMeasures().stream().map(NDataModel.Measure::getId)
                 .mapToInt(Integer::intValue).max().orElse(NDataModel.MEASURE_ID_BASE);
         for (NDataModel.NamedColumn namedColumn : newDataModel.getAllNamedColumns()) {
-            val id = originalDataModel.getAllNamedColumns().stream()
-                    .filter(original -> original.getAliasDotColumn().equals(namedColumn.getAliasDotColumn())
-                            && original.isExist() == namedColumn.isExist())
-                    .map(NDataModel.NamedColumn::getId).findAny().orElse(++columnMaxId);
+            val exists = originalDataModel.getAllNamedColumns().stream()
+                    .anyMatch(original -> Objects.equals(original.getId(), namedColumn.getId())
+                            && Objects.equals(original.getAliasDotColumn(), namedColumn.getAliasDotColumn())
+                            && Objects.equals(original.getStatus(), namedColumn.getStatus()));
 
-            if (!Objects.equals(id, namedColumn.getId())) {
-                idChangedMap.put(namedColumn.getId(), id);
-                namedColumn.setId(id);
+            if (!exists) {
+                int id = originalDataModel.getAllNamedColumns().stream()
+                        .filter(original -> original.getAliasDotColumn().equals(namedColumn.getAliasDotColumn())
+                                && original.isExist() == namedColumn.isExist()
+                                && !idChangedMap.containsValue(original.getId()))
+                        .mapToInt(NDataModel.NamedColumn::getId).findFirst().orElse(++columnMaxId);
+                if (!Objects.equals(id, namedColumn.getId())) {
+                    idChangedMap.put(namedColumn.getId(), id);
+                    namedColumn.setId(id);
+                }
             }
         }
 
         for (NDataModel.Measure measure : newDataModel.getAllMeasures()) {
-            val id = originalDataModel.getAllMeasures().stream()
-                    .filter(original -> original.getName().equals(measure.getName())
-                            && original.isTomb() == measure.isTomb())
-                    .map(NDataModel.Measure::getId).findAny().orElse(++measureMaxId);
+            val exists = originalDataModel.getAllMeasures().stream()
+                    .anyMatch(original -> Objects.equals(original.getId(), measure.getId())
+                            && Objects.equals(original.getName(), measure.getName())
+                            && Objects.equals(original.isTomb(), measure.isTomb()));
 
-            if (!Objects.equals(id, measure.getId())) {
-                idChangedMap.put(measure.getId(), id);
-                measure.setId(id);
+            if (!exists) {
+                val id = originalDataModel.getAllMeasures().stream()
+                        .filter(original -> original.getName().equals(measure.getName())
+                                && original.isTomb() == measure.isTomb()
+                                && !idChangedMap.containsValue(original.getId()))
+                        .map(NDataModel.Measure::getId).findFirst().orElse(++measureMaxId);
+
+                if (!Objects.equals(id, measure.getId())) {
+                    idChangedMap.put(measure.getId(), id);
+                    measure.setId(id);
+                }
             }
         }
 
@@ -423,7 +438,7 @@ public class ImportModelContext implements IKeep {
     }
 
     public static List<RawRecItem> reorderRecommendations(List<RawRecItem> rawRecItems,
-                                                          Map<Integer, Integer> idChangedMap) {
+            Map<Integer, Integer> idChangedMap) {
         for (RawRecItem rawRecItem : rawRecItems) {
             rawRecItem.setDependIDs(
                     IntStream.of(rawRecItem.getDependIDs()).map(id -> idChangedMap.getOrDefault(id, id)).toArray());

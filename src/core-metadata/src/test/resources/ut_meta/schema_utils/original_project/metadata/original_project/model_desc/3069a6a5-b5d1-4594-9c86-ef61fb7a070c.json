@@ -160,6 +160,16 @@
     "id" : 26,
     "name" : "CC1",
     "column" : "P_LINEORDER.CC1"
+  }, {
+    "id" : 27,
+    "name" : "C_CUSTKEY",
+    "column" : "CUSTOMER.C_CUSTKEY",
+    "status" : "TOMB"
+  }, {
+    "id" : 28,
+    "name" : "C_CUSTKEY",
+    "column" : "CUSTOMER.C_CUSTKEY",
+    "status" : "TOMB"
   } ],
   "all_measures" : [ {
     "name" : "LO_CUSTKEY_SUM",
@@ -293,6 +303,42 @@
       "returntype" : "bigint"
     },
     "id" : 100011
+  }, {
+    "name" : "LO_QUANTITY_MAX",
+    "function" : {
+      "expression" : "MAX",
+      "parameters" : [ {
+        "type" : "column",
+        "value" : "P_LINEORDER.LO_QUANTITY"
+      } ],
+      "returntype" : "bigint"
+    },
+    "id" : 100012,
+    "status" : "TOMB"
+  }, {
+    "name" : "LO_QUANTITY_MAX",
+    "function" : {
+      "expression" : "MAX",
+      "parameters" : [ {
+        "type" : "column",
+        "value" : "P_LINEORDER.LO_QUANTITY"
+      } ],
+      "returntype" : "bigint"
+    },
+    "id" : 100013,
+    "tomb" : true
+  }, {
+    "name" : "LO_CUSTKEY_COUNT",
+    "function" : {
+      "expression" : "COUNT",
+      "parameters" : [ {
+        "type" : "column",
+        "value" : "P_LINEORDER.LO_CUSTKEY"
+      } ],
+      "returntype" : "bigint"
+    },
+    "id" : 100014,
+    "tomb" : true
   } ],
   "column_correlations" : [ ],
   "multilevel_partition_cols" : [ ],

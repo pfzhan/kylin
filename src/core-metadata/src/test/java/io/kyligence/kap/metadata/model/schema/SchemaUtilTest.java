@@ -366,7 +366,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
     @Test
     public void testModelWithDifferentColumnMeasureIdUpdate() throws IOException {
         val file = new File(
-                "src/test/resources/ut_meta/schema_utils/model_different_column_measure_id_update/original_project_model_metadata_2020_11_14_15_24_56_4805A3750F7B5625BF8E6BEB6F476FAE.zip");
+                "src/test/resources/ut_meta/schema_utils/model_different_column_measure_id_update/original_project_model_metadata_2020_11_14_15_24_56_4B2101A84E908397A8E711864FC8ADF2.zip");
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
         String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
         val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
@@ -497,7 +497,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
     }
 
-    private static Map<String, RawResource> getRawResourceFromUploadFile(File uploadFile) throws IOException {
+    static Map<String, RawResource> getRawResourceFromUploadFile(File uploadFile) throws IOException {
         Map<String, RawResource> rawResourceMap = Maps.newHashMap();
         try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(uploadFile))) {
             ZipEntry zipEntry;
@@ -514,7 +514,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    private String getModelMetadataProjectName(Set<String> rawResourceList) {
+    static String getModelMetadataProjectName(Set<String> rawResourceList) {
         String anyPath = rawResourceList.stream()
                 .filter(resourcePath -> !resourcePath.startsWith(ResourceStore.METASTORE_UUID_TAG)).findAny()
                 .orElse(null);
