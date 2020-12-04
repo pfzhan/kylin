@@ -70,7 +70,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -3168,33 +3167,19 @@ public class ModelService extends BasicService {
         });
     }
 
-    private void checkModelConfigParameters(ModelConfigRequest request) {
-        Boolean autoMergeEnabled = request.getAutoMergeEnabled();
-        List<AutoMergeTimeEnum> timeRanges = request.getAutoMergeTimeRanges();
-        VolatileRange volatileRange = request.getVolatileRange();
-        RetentionRange retentionRange = request.getRetentionRange();
-        LinkedHashMap<String, String> props = request.getOverrideProps();
+    private void checkPropParameter(ModelConfigRequest request) {
+        val props = request.getOverrideProps();
+        for (val pair : props.entrySet()) {
+            if (Objects.isNull(pair.getValue())) {
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(MsgPicker.getMsg().getINVALID_NULL_VALUE(), pair.getKey()));
+            }
+        }
         String cores = props.get("kylin.engine.spark-conf.spark.executor.cores");
         String instances = props.get("kylin.engine.spark-conf.spark.executor.instances");
         String pattitions = props.get("kylin.engine.spark-conf.spark.sql.shuffle.partitions");
         String memory = props.get("kylin.engine.spark-conf.spark.executor.memory");
         String baseCuboidAllowed = props.get("kylin.cube.aggrgroup.is-base-cuboid-always-valid");
-
-        if (Boolean.TRUE.equals(autoMergeEnabled) && (null == timeRanges || timeRanges.isEmpty())) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
-        }
-        if (null != volatileRange && volatileRange.isVolatileRangeEnabled()
-                && (volatileRange.getVolatileRangeNumber() < 0 || null == volatileRange.getVolatileRangeType())) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
-        }
-        if (null != retentionRange && retentionRange.isRetentionRangeEnabled()
-                && (null == autoMergeEnabled || !autoMergeEnabled || retentionRange.getRetentionRangeNumber() < 0
-                        || !retentionRange.getRetentionRangeType().equals(Collections.max(timeRanges)))) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
-        }
         if (null != cores && !StringUtil.validateNumber(cores)) {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores"));
@@ -3216,6 +3201,33 @@ public class ModelService extends BasicService {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid"));
         }
+    }
+
+    @VisibleForTesting
+    public void checkModelConfigParameters(ModelConfigRequest request) {
+        Boolean autoMergeEnabled = request.getAutoMergeEnabled();
+        List<AutoMergeTimeEnum> timeRanges = request.getAutoMergeTimeRanges();
+        VolatileRange volatileRange = request.getVolatileRange();
+        RetentionRange retentionRange = request.getRetentionRange();
+
+        if (Boolean.TRUE.equals(autoMergeEnabled) && (null == timeRanges || timeRanges.isEmpty())) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
+        }
+        if (null != volatileRange && volatileRange.isVolatileRangeEnabled()
+                && (volatileRange.getVolatileRangeNumber() < 0
+                        || null == volatileRange.getVolatileRangeType())) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
+        }
+        if (null != retentionRange && retentionRange.isRetentionRangeEnabled()
+                && (null == autoMergeEnabled || !autoMergeEnabled
+                        || retentionRange.getRetentionRangeNumber() < 0
+                        || !retentionRange.getRetentionRangeType().equals(Collections.max(timeRanges)))) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
+        }
+        checkPropParameter(request);
     }
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String modelId, PartitionDesc desc)

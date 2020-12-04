@@ -43,6 +43,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -475,10 +476,46 @@ public class ProjectServiceTest extends ServiceTestBase {
         segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
 
         segmentConfigRequest.getRetentionRange().setRetentionRangeType(null);
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention.");
-        projectService.updateSegmentConfig(project, segmentConfigRequest);
+        try {
+            projectService.updateSegmentConfig(project, segmentConfigRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(
+                    "No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention."));
+        }
+        segmentConfigRequest.getVolatileRange().setVolatileRangeNumber(-1);
+        try {
+            projectService.updateSegmentConfig(project, segmentConfigRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage()
+                    .contains("No valid value. Please set an integer 'x' to "
+                            + "'volatile_range_number'. The 'Auto-Merge' will not merge latest 'x' "
+                            + "period(day/week/month/etc..) segments."));
+        }
+        segmentConfigRequest.getVolatileRange().setVolatileRangeNumber(1);
+        segmentConfigRequest.getRetentionRange().setRetentionRangeNumber(-1);
+        try {
+            projectService.updateSegmentConfig(project, segmentConfigRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains("No valid value for 'retention_range_number'."
+                    + " Please set an integer 'x' to specify the retention threshold. The system will "
+                    + "only retain the segments in the retention threshold (x years before the last data time). "));
+        }
+        segmentConfigRequest.getRetentionRange().setRetentionRangeNumber(1);
+        segmentConfigRequest.setAutoMergeTimeRanges(new ArrayList<>());
+        try {
+            projectService.updateSegmentConfig(project, segmentConfigRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains("No valid value for 'auto_merge_time_ranges'. Please set "
+                    + "{'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'} to specify the period of auto-merge. "));
+        }
     }
 
     @Test

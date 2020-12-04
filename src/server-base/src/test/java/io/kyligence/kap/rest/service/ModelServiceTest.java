@@ -185,6 +185,8 @@ import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
@@ -574,7 +576,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // loading
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
         val segment1Id = segments.get(0).getId();
-        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]>newArrayList(new String[]{"4"}));
+        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]> newArrayList(new String[] { "4" }));
         segments = modelService.getSegmentsResponse(dataflowId, project, "0", "" + Long.MAX_VALUE, "", "", false);
         Assert.assertEquals(SegmentStatusEnumToDisplay.LOADING, segments.get(0).getStatusToDisplay());
 
@@ -597,7 +599,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // append a new partition to segment1
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]>newArrayList(new String[]{"4"}));
+        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]> newArrayList(new String[] { "4" }));
         // make the first partition in segment2 to refresh status
         val segment2 = dataflowManager.getDataflow(dataflowId).copy().getSegment(segment2Id);
         segment2.getMultiPartitions().get(0).setStatus(PartitionStatusEnum.REFRESH);
@@ -605,37 +607,40 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfUpdate.setToUpdateSegs(segment2);
         dataflowManager.updateDataflow(dfUpdate);
 
-        val partitions1 = modelService.getSegmentPartitions(project, dataflowId, segment1Id, null, "last_modified_time", false);
+        val partitions1 = modelService.getSegmentPartitions(project, dataflowId, segment1Id, null, "last_modified_time",
+                false);
         Assert.assertEquals(5, partitions1.size());
         Assert.assertEquals(0, partitions1.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"0"}, partitions1.get(0).getValues());
+        Assert.assertArrayEquals(new String[] { "0" }, partitions1.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions1.get(0).getStatus());
         Assert.assertEquals(14, partitions1.get(0).getRowCount());
         Assert.assertEquals(1397, partitions1.get(0).getBytesSize());
         Assert.assertEquals(4, partitions1.get(4).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"4"}, partitions1.get(4).getValues());
+        Assert.assertArrayEquals(new String[] { "4" }, partitions1.get(4).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.LOADING, partitions1.get(4).getStatus());
         Assert.assertEquals(0, partitions1.get(4).getRowCount());
         Assert.assertEquals(0, partitions1.get(4).getBytesSize());
 
-        val partitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id, null, "last_modified_time", false);
+        val partitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id, null, "last_modified_time",
+                false);
         Assert.assertEquals(3, partitions2.size());
         Assert.assertEquals(0, partitions2.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"0"}, partitions2.get(0).getValues());
+        Assert.assertArrayEquals(new String[] { "0" }, partitions2.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.REFRESHING, partitions2.get(0).getStatus());
         Assert.assertEquals(14, partitions2.get(0).getRowCount());
         Assert.assertEquals(1397, partitions2.get(0).getBytesSize());
         Assert.assertEquals(1, partitions2.get(1).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"1"}, partitions2.get(1).getValues());
+        Assert.assertArrayEquals(new String[] { "1" }, partitions2.get(1).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions2.get(1).getStatus());
         Assert.assertEquals(14, partitions2.get(1).getRowCount());
         Assert.assertEquals(1397, partitions2.get(1).getBytesSize());
 
         // filter by status
-        val onlinePartitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id, Lists.newArrayList("ONLINE"), "last_modified_time", true);
+        val onlinePartitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id,
+                Lists.newArrayList("ONLINE"), "last_modified_time", true);
         Assert.assertEquals(2, onlinePartitions2.size());
         Assert.assertEquals(2, onlinePartitions2.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"2"}, onlinePartitions2.get(0).getValues());
+        Assert.assertArrayEquals(new String[] { "2" }, onlinePartitions2.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, onlinePartitions2.get(0).getStatus());
         Assert.assertEquals(1, onlinePartitions2.get(1).getPartitionId());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, onlinePartitions2.get(1).getStatus());
@@ -668,7 +673,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // update mapping
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_site_id"));
         mappingRequest.setAliasCols(Lists.newArrayList("test_kylin_fact.leaf_categ_id"));
-        val valueMappings = Lists.<Pair<List<String>, List<String>>>newArrayList();
+        val valueMappings = Lists.<Pair<List<String>, List<String>>> newArrayList();
         valueMappings.add(Pair.newPair(Lists.newArrayList("0"), Lists.newArrayList("10")));
         valueMappings.add(Pair.newPair(Lists.newArrayList("1"), Lists.newArrayList("10")));
         valueMappings.add(Pair.newPair(Lists.newArrayList("2"), Lists.newArrayList("11")));
@@ -681,17 +686,22 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, mapping.getAliasColumns().size());
         Assert.assertEquals(aliasColumn, mapping.getAliasColumns().get(0));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("0")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("10")), mapping.getAliasValue(Lists.newArrayList("0")));
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("10")),
+                mapping.getAliasValue(Lists.newArrayList("0")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("1")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("10")), mapping.getAliasValue(Lists.newArrayList("1")));
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("10")),
+                mapping.getAliasValue(Lists.newArrayList("1")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("2")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("11")), mapping.getAliasValue(Lists.newArrayList("2")));
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("11")),
+                mapping.getAliasValue(Lists.newArrayList("2")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("3")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("11")), mapping.getAliasValue(Lists.newArrayList("3")));
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("11")),
+                mapping.getAliasValue(Lists.newArrayList("3")));
 
         // invalid request
         // wrong size
-        mappingRequest.setAliasCols(Lists.newArrayList("test_kylin_fact.leaf_categ_id", "test_kylin_fact.lstg_format_name"));
+        mappingRequest
+                .setAliasCols(Lists.newArrayList("test_kylin_fact.leaf_categ_id", "test_kylin_fact.lstg_format_name"));
         try {
             modelService.updateMultiPartitionMapping(project, modelId, mappingRequest);
         } catch (Exception ex) {
@@ -4645,16 +4655,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val buildPartitions = Lists.<String[]>newArrayList();
-        buildPartitions.add(new String[]{"usa"});
-        buildPartitions.add(new String[]{"Austria"});
-        val segmentTimeRequests = Lists.<SegmentTimeRequest>newArrayList();
+        val buildPartitions = Lists.<String[]> newArrayList();
+        buildPartitions.add(new String[] { "usa" });
+        buildPartitions.add(new String[] { "Austria" });
+        val segmentTimeRequests = Lists.<SegmentTimeRequest> newArrayList();
         segmentTimeRequests.add(new SegmentTimeRequest("1630425600000", "1630512000000"));
 
-        IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(project,
-                modelId, "1633017600000", "1633104000000",
-                model.getPartitionDesc(), model.getMultiPartitionDesc(), segmentTimeRequests,
-                true, buildPartitions);
+        IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
+                "1633104000000", model.getPartitionDesc(), model.getMultiPartitionDesc(), segmentTimeRequests, true,
+                buildPartitions);
         val jobInfo = modelService.incrementBuildSegmentsManually(inrcParams);
 
         Assert.assertEquals(2, jobInfo.getJobs().size());
@@ -4669,10 +4678,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(44, segment.getMaxBucketId());
 
         // change multi partition desc will clean all segments
-        IncrementBuildSegmentParams inrcParams2 = new IncrementBuildSegmentParams(project,
-                modelId, "1633017600000", "1633104000000",
-                model.getPartitionDesc(), null, null,
-                true, null);
+        IncrementBuildSegmentParams inrcParams2 = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
+                "1633104000000", model.getPartitionDesc(), null, null, true, null);
         val jobInfo3 = modelService.incrementBuildSegmentsManually(inrcParams2);
         val executables2 = getRunningExecutables(getProject(), modelId);
         val newModel = dataflowManager.getDataflow(modelId).getModel();
@@ -4686,7 +4693,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
         val project = "default";
         val segmentId = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        val refreshSegmentParams = new RefreshSegmentParams(project, modelId, new String[]{segmentId});
+        val refreshSegmentParams = new RefreshSegmentParams(project, modelId, new String[] { segmentId });
         modelService.refreshSegmentById(refreshSegmentParams);
 
         val jobs = getRunningExecutables(getProject(), modelId);
@@ -4719,71 +4726,86 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // first segment
         List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01", "2010-02-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
+                "2010-02-01", SegmentStatusEnum.READY);
         NDataLayout layout1 = generateLayoutForMultiPartition(modelId, dataSegment1.getId(), partitionValues, 1L);
 
-        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01", "2010-03-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01",
+                "2010-03-01", SegmentStatusEnum.READY);
         NDataLayout layout2 = generateLayoutForMultiPartition(modelId, dataSegment2.getId(), partitionValues, 1L);
 
         List<String> partitionValues2 = Lists.newArrayList("usa");
-        NDataSegment dataSegment3 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-03-01", "2010-04-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment3 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-03-01",
+                "2010-04-01", SegmentStatusEnum.READY);
         NDataLayout layout3 = generateLayoutForMultiPartition(modelId, dataSegment3.getId(), partitionValues2, 1L);
 
-        NDataSegment dataSegment4 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-04-01", "2010-05-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment4 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-04-01",
+                "2010-05-01", SegmentStatusEnum.READY);
         NDataLayout layout4_1 = generateLayoutForMultiPartition(modelId, dataSegment4.getId(), partitionValues2, 1L);
-        NDataLayout layout4_2 = generateLayoutForMultiPartition(modelId, dataSegment4.getId(), partitionValues2, 10001L);
+        NDataLayout layout4_2 = generateLayoutForMultiPartition(modelId, dataSegment4.getId(), partitionValues2,
+                10001L);
 
-        NDataSegment dataSegment5 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-05-01", "2010-06-01", SegmentStatusEnum.READY);
-        NDataSegment dataSegment6 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-06-01", "2010-07-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment5 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-05-01",
+                "2010-06-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment6 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-06-01",
+                "2010-07-01", SegmentStatusEnum.READY);
 
         List<NDataLayout> toAddCuboIds = Lists.newArrayList(layout1, layout2, layout3, layout4_1, layout4_2);
-        val segments = Lists.newArrayList(dataSegment1, dataSegment2, dataSegment3, dataSegment4, dataSegment5, dataSegment6);
+        val segments = Lists.newArrayList(dataSegment1, dataSegment2, dataSegment3, dataSegment4, dataSegment5,
+                dataSegment6);
 
         val update2 = new NDataflowUpdate(df.getUuid());
-        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[]{}));
-        update2.setToUpdateSegs(segments.toArray(new NDataSegment[]{}));
+        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[] {}));
+        update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
         dfManager.updateDataflow(update2);
 
         // empty layout in segment4
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[]{dataSegment5.getId(), dataSegment6.getId()}));
+                    new String[] { dataSegment5.getId(), dataSegment6.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("The indexes included in the selected segments are not fully identical. Please build index first and try merging again.", e.getMessage());
+            Assert.assertEquals(
+                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
+                    e.getMessage());
         }
 
         // index is not aligned in segment3, segment4
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[]{dataSegment3.getId(), dataSegment4.getId()}));
+                    new String[] { dataSegment3.getId(), dataSegment4.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("The indexes included in the selected segments are not fully identical. Please build index first and try merging again.", e.getMessage());
+            Assert.assertEquals(
+                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.",
+                    e.getMessage());
         }
 
         // partitions are not aligned in segment2, segment3
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[]{dataSegment2.getId(), dataSegment3.getId()}));
+                    new String[] { dataSegment2.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("The partitions included in the selected segments are not fully aligned. Please build partition first and try merging again.", e.getMessage());
+            Assert.assertEquals(
+                    "The partitions included in the selected segments are not fully aligned. Please build partition first and try merging again.",
+                    e.getMessage());
         }
 
         // success
-        modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                new String[]{dataSegment1.getId(), dataSegment2.getId()}));
+        modelService.mergeSegmentsManually(
+                new MergeSegmentParams(project, modelId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
     }
 
-    private NDataSegment generateSegmentForMultiPartition(String modelId, List<String> partitionValues, String start, String end, SegmentStatusEnum status) {
+    private NDataSegment generateSegmentForMultiPartition(String modelId, List<String> partitionValues, String start,
+            String end, SegmentStatusEnum status) {
         val dfm = NDataflowManager.getInstance(getTestConfig(), getProject());
-        val partitions = Lists.<String[]>newArrayList();
+        val partitions = Lists.<String[]> newArrayList();
         partitionValues.forEach(value -> {
-            partitions.add(new String[]{value});
+            partitions.add(new String[] { value });
         });
         long startTime = SegmentRange.dateToLong(start);
         long endTime = SegmentRange.dateToLong(end);
@@ -4796,15 +4818,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         return newSegment;
     }
 
-    private NDataLayout generateLayoutForMultiPartition(String modelId, String segmentId, List<String> partitionValues, long layoutId) {
+    private NDataLayout generateLayoutForMultiPartition(String modelId, String segmentId, List<String> partitionValues,
+            long layoutId) {
         val dfm = NDataflowManager.getInstance(getTestConfig(), getProject());
         val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
 
         val model = modelManager.getDataModelDesc(modelId);
         val df = dfm.getDataflow(modelId);
-        val partitions = Lists.<String[]>newArrayList();
+        val partitions = Lists.<String[]> newArrayList();
         partitionValues.forEach(value -> {
-            partitions.add(new String[]{value});
+            partitions.add(new String[] { value });
         });
         val partitionIds = model.getMultiPartitionDesc().getPartitionIdsByValues(partitions);
         NDataLayout layout = NDataLayout.newDataLayout(df, segmentId, layoutId);
@@ -4824,10 +4847,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val dataflow = dataflowManager.getDataflow(modelId);
         val dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowManager.updateDataflow(dataflowUpdate);
-        val buildPartitions = Lists.<String[]>newArrayList();
-        buildPartitions.add(new String[]{"un"});
-        buildPartitions.add(new String[]{"Africa"});
-        buildPartitions.add(new String[]{"Austria"});
+        val buildPartitions = Lists.<String[]> newArrayList();
+        buildPartitions.add(new String[] { "un" });
+        buildPartitions.add(new String[] { "Africa" });
+        buildPartitions.add(new String[] { "Austria" });
         val multiPartition1 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         Assert.assertEquals(3, multiPartition1.getPartitions().size());
         modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false);
@@ -4865,16 +4888,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.updateDataflow(dataflowUpdate);
 
         // refresh partition by id
-        PartitionsRefreshRequest param1 = new PartitionsRefreshRequest(getProject(), segmentId1, Sets.newHashSet(7L, 8L), null, null);
+        PartitionsRefreshRequest param1 = new PartitionsRefreshRequest(getProject(), segmentId1,
+                Sets.newHashSet(7L, 8L), null, null);
         modelService.refreshSegmentPartition(param1, modelId);
 
         // refresh partition by value
-        val partitionValues = Lists.<String[]>newArrayList(new String[]{"usa"}, new String[]{"un"});
-        PartitionsRefreshRequest param2 = new PartitionsRefreshRequest(getProject(), segmentId2, null, partitionValues, null);
+        val partitionValues = Lists.<String[]> newArrayList(new String[] { "usa" }, new String[] { "un" });
+        PartitionsRefreshRequest param2 = new PartitionsRefreshRequest(getProject(), segmentId2, null, partitionValues,
+                null);
         modelService.refreshSegmentPartition(param2, modelId);
 
         // no target partition id in segment
-        PartitionsRefreshRequest param3 = new PartitionsRefreshRequest(getProject(), segmentId1, Sets.newHashSet(99L), null, null);
+        PartitionsRefreshRequest param3 = new PartitionsRefreshRequest(getProject(), segmentId1, Sets.newHashSet(99L),
+                null, null);
         try {
             modelService.refreshSegmentPartition(param3, modelId);
             Assert.fail();
@@ -4884,8 +4910,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
         // no target partition value in segment
-        partitionValues.add(new String[]{"nodata"});
-        PartitionsRefreshRequest param4 = new PartitionsRefreshRequest(getProject(), segmentId1, null, partitionValues, null);
+        partitionValues.add(new String[] { "nodata" });
+        PartitionsRefreshRequest param4 = new PartitionsRefreshRequest(getProject(), segmentId1, null, partitionValues,
+                null);
         try {
             modelService.refreshSegmentPartition(param4, modelId);
             Assert.fail();
@@ -4919,23 +4946,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // different segments with different partitions and layouts
         List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01", "2010-02-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
+                "2010-02-01", SegmentStatusEnum.READY);
         NDataLayout layout1 = generateLayoutForMultiPartition(modelId, dataSegment1.getId(), partitionValues, 1L);
 
         List<String> partitionValues2 = Lists.newArrayList("usa");
-        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-02-01", "2010-03-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues2, "2010-02-01",
+                "2010-03-01", SegmentStatusEnum.READY);
         NDataLayout layout2 = generateLayoutForMultiPartition(modelId, dataSegment2.getId(), partitionValues2, 1L);
         NDataLayout layout3 = generateLayoutForMultiPartition(modelId, dataSegment2.getId(), partitionValues2, 100001L);
 
         List<NDataLayout> toAddCuboIds = Lists.newArrayList(layout1, layout2, layout3);
         val segments = Lists.newArrayList(dataSegment1, dataSegment2);
         val update2 = new NDataflowUpdate(df.getUuid());
-        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[]{}));
-        update2.setToUpdateSegs(segments.toArray(new NDataSegment[]{}));
+        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[] {}));
+        update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
         dfManager.updateDataflow(update2);
 
         modelService.addIndexesToSegments(project, modelId,
-                Lists.newArrayList(dataSegment1.getId(), dataSegment2.getId()), Lists.newArrayList(80001L), false, ExecutablePO.DEFAULT_PRIORITY);
+                Lists.newArrayList(dataSegment1.getId(), dataSegment2.getId()), Lists.newArrayList(80001L), false,
+                ExecutablePO.DEFAULT_PRIORITY);
         val executables = getRunningExecutables(getProject(), modelId);
         val job = executables.get(0);
         Assert.assertEquals(1, executables.size());
@@ -4991,7 +5021,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // PartitionDesc change. Multi Partition column change or from none to have or from have to none.
 
         // Not change partition
-        modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(), model.getMultiPartitionDesc());
+        modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
+                model.getMultiPartitionDesc());
         Assert.assertEquals(df.getSegments().size(), 4);
         Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
         Assert.assertEquals(model.getMultiPartitionDesc().getPartitions().size(), 3);
@@ -5005,22 +5036,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(model1.getMultiPartitionDesc().getPartitions().size(), 0);
 
         // Multi Partition column change
-        dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                SegmentStatusEnum.READY);
+        dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
         dfm.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
         });
-        val columns = Lists.<String>newLinkedList();
+        val columns = Lists.<String> newLinkedList();
         columns.add("location");
 
-        modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(), new MultiPartitionDesc(columns));
+        modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
+                new MultiPartitionDesc(columns));
         val df2 = dfm.getDataflow(modelId);
         Assert.assertEquals(df2.getSegments().size(), 0);
         Assert.assertEquals(df2.getStatus(), RealizationStatusEnum.OFFLINE);
 
         // Multi Partition column change to none
-        dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                SegmentStatusEnum.READY);
+        dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
         dfm.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
         });
@@ -5030,14 +5060,113 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(df3.getStatus(), RealizationStatusEnum.OFFLINE);
 
         // Normal model change to multi partition model
-        dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                SegmentStatusEnum.READY);
+        dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
         dfm.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
         });
-        modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(), new MultiPartitionDesc(columns));
+        modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
+                new MultiPartitionDesc(columns));
         val df4 = dfm.getDataflow(modelId);
         Assert.assertEquals(df4.getSegments().size(), 0);
         Assert.assertEquals(df4.getStatus(), RealizationStatusEnum.OFFLINE);
     }
+
+    private void checkPropParameter(ModelConfigRequest request) {
+        LinkedHashMap<String, String> prop = new LinkedHashMap<>();
+        request.setOverrideProps(prop);
+        prop.put("kylin.engine.spark-conf.spark.executor.cores", "1.2");
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage()
+                    .contains(String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores")));
+        }
+        prop.clear();
+        prop.put("kylin.engine.spark-conf.spark.executor.instances", "1.2");
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances")));
+        }
+        prop.clear();
+        prop.put("kylin.engine.spark-conf.spark.sql.shuffle.partitions", "1.2");
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions")));
+        }
+        prop.clear();
+        prop.put("kylin.engine.spark-conf.spark.executor.memory", "3");
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage()
+                    .contains(String.format(MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory")));
+        }
+        prop.clear();
+        prop.put("kylin.cube.aggrgroup.is-base-cuboid-always-valid", "ddd");
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid")));
+        }
+        prop.clear();
+        prop.put("kylin.engine.spark-conf.spark.executor.memory", null);
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(String.format(MsgPicker.getMsg().getINVALID_NULL_VALUE(),
+                    "kylin.engine.spark-conf.spark.executor.memory")));
+        }
+    }
+
+    @Test
+    public void testCheckModelConfigParameters() {
+        ModelConfigRequest request = new ModelConfigRequest();
+        request.setAutoMergeEnabled(true);
+        request.setAutoMergeTimeRanges(new ArrayList<>());
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
+        }
+        request.setAutoMergeEnabled(false);
+        request.setVolatileRange(new VolatileRange(2, true, null));
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
+        }
+        request.setVolatileRange(null);
+        request.setRetentionRange(new RetentionRange(-1, true, null));
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
+        }
+        request.setRetentionRange(null);
+        checkPropParameter(request);
+    }
+
 }

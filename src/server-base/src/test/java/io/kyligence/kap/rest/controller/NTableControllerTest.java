@@ -89,6 +89,7 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
+import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
@@ -864,5 +865,19 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nTableController).getModelTables(project, modelName);
+    }
+
+    @Test
+    public void testReloadTable() throws Exception {
+        Mockito.doAnswer(x -> null).when(tableService).reloadTable("default", "a", false, 100000, false);
+        ReloadTableRequest request = new ReloadTableRequest();
+        request.setProject("default");
+        request.setMaxRows(100000);
+        request.setTable("a");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nTableController).reloadTable(Mockito.any());
     }
 }

@@ -1415,6 +1415,10 @@ public class Message {
         return "PASSWORD ENCODER init failed, please check configuration item kylin.security.user-password-encoder";
     }
 
+    public String getINVALID_NULL_VALUE() {
+        return "Failed to rewrite the model settings, %s parameter value is null.";
+    }
+
     public String getINVALID_INTEGER_FORMAT() {
         return "Failed to rewrite the model settings, %s parameter value must be non-negative integer.";
     }

@@ -50,8 +50,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
@@ -86,8 +84,10 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -96,6 +96,7 @@ import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
+import io.kyligence.kap.rest.request.SnapshotConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
@@ -482,5 +483,18 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(400));
+    }
+
+    @Test
+    public void testUpdateGarbageCleanupConfig() throws Exception {
+        GarbageCleanUpConfigRequest request = new GarbageCleanUpConfigRequest();
+        request.setLowFrequencyThreshold(1L);
+        request.setFrequencyTimeWindow(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.DAY);
+        Mockito.doAnswer(x -> null).when(projectService).updateGarbageCleanupConfig(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/garbage_cleanup_config", "default")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nProjectController).updateGarbageCleanupConfig(Mockito.any(), Mockito.any());
     }
 }
