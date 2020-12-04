@@ -25,6 +25,8 @@
 package org.apache.kylin.job.execution;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -92,7 +94,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void test() throws Exception {
+    public void test() {
         assertNotNull(manager);
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setParam("test1", "test1");
@@ -101,21 +103,21 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject("default");
         manager.addJob(executable);
         long createTime = manager.getJob(executable.getId()).getCreateTime();
-        Assert.assertTrue(createTime != 0L);
+        assertNotEquals(0L, createTime);
         List<AbstractExecutable> result = manager.getAllExecutables();
         assertEquals(1, result.size());
         AbstractExecutable another = manager.getJob(executable.getId());
         assertJobEqual(executable, another);
 
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, "test output");
-        Assert.assertTrue(manager.getJob(executable.getId()).getStartTime() != 0L);
+        assertNotEquals(0L, manager.getJob(executable.getId()).getStartTime());
         Assert.assertEquals(createTime, manager.getJob(executable.getId()).getCreateTime());
-        Assert.assertTrue(manager.getJob(executable.getId()).getLastModified() != 0L);
+        assertNotEquals(0L, manager.getJob(executable.getId()).getLastModified());
         assertJobEqual(executable, manager.getJob(executable.getId()));
     }
 
     @Test
-    public void testDefaultChainedExecutable() throws Exception {
+    public void testDefaultChainedExecutable() {
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
@@ -139,7 +141,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testValidStateTransfer() throws Exception {
+    public void testValidStateTransfer() {
         SucceedTestExecutable job = new SucceedTestExecutable();
         String id = job.getId();
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -170,7 +172,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
                     Assert.assertTrue(
                             manager.getJob(job.getId()).getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
                     manager.updateJobOutput(id, ExecutableState.READY);
-                    Assert.assertFalse(
+                    assertFalse(
                             manager.getJob(job.getId()).getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
                 }
             }
@@ -179,7 +181,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testDropJobException() throws IOException {
+    public void testDropJobException() {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
@@ -201,7 +203,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
         manager.deleteJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
-        Assert.assertTrue(!executables.contains(executable));
+        assertFalse(executables.contains(executable));
     }
 
     @Test
@@ -212,15 +214,14 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setParam("test3", "test3");
         executable.setProject("default");
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL);
-        manager.deleteJob(executable.getId());
+        manager.suicideJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
-        Assert.assertTrue(!executables.contains(executable));
+        assertFalse(executables.contains(executable));
     }
 
     @Test
-    public void testDiscardAndDropJob() throws IOException, InterruptedException {
+    public void testDiscardAndDropJob() throws InterruptedException {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
@@ -231,15 +232,15 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         val duration = executable.getDuration();
         Thread.sleep(3000);
-        Assert.assertEquals(duration, executable.getDuration());
+        assertEquals(duration, executable.getDuration());
 
         manager.deleteJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
-        Assert.assertFalse(executables.contains(executable));
+        assertFalse(executables.contains(executable));
     }
 
     @Test
-    public void testResumeAndPauseJob() throws IOException, InterruptedException {
+    public void testResumeAndPauseJob() throws InterruptedException {
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
@@ -249,15 +250,15 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(job);
         manager.pauseJob(job.getId());
         AbstractExecutable anotherJob = manager.getJob(job.getId());
-        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.PAUSED));
+        assertEquals(ExecutableState.PAUSED, anotherJob.getStatus());
         manager.resumeJob(job.getId());
-        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
+        assertEquals(ExecutableState.READY, anotherJob.getStatus());
         manager.pauseJob(job.getId());
         val duration = job.getDuration();
         Thread.sleep(3000);
-        Assert.assertEquals(duration, job.getDuration());
+        assertEquals(duration, job.getDuration());
         manager.resumeJob(job.getId());
-        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
+        assertEquals(ExecutableState.READY, anotherJob.getStatus());
     }
 
     @Test(expected = KylinException.class)
@@ -278,7 +279,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, extraInfo, null, null);
 
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+        assertEquals(ExecutableState.RUNNING, job.getStatus());
 
         job = manager.getJob(executable.getId());
         Assert.assertTrue(job.getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
@@ -286,7 +287,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         job = manager.getJob(executable.getId());
         Assert.assertEquals(job.getStatus(), ExecutableState.READY);
-        Assert.assertFalse(job.getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
+        assertFalse(job.getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
     }
 
     @Test
@@ -295,7 +296,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+        Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to RESUME a RUNNING job");
@@ -308,7 +309,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.READY);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+        Assert.assertEquals(ExecutableState.READY, job.getStatus());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to RESUME a READY job");
@@ -321,7 +322,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.DISCARDED);
+        assertEquals(ExecutableState.DISCARDED, job.getStatus());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to RESUME a DISCARDED job");
@@ -334,9 +335,9 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.ERROR);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.ERROR);
+        assertEquals(ExecutableState.ERROR, job.getStatus());
         manager.resumeJob(job.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+        Assert.assertEquals(ExecutableState.READY, job.getStatus());
     }
 
     @Test
@@ -346,7 +347,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.SUICIDAL);
+        Assert.assertEquals(ExecutableState.SUICIDAL, job.getStatus());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to RESUME a SUICIDAL job");
@@ -361,7 +362,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.SUCCEED);
+        Assert.assertEquals(ExecutableState.SUCCEED, job.getStatus());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to RESUME a SUCCEED job");
@@ -374,7 +375,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         AbstractExecutable job = manager.getJob(executable.getId());
-        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+        assertEquals(ExecutableState.RUNNING, job.getStatus());
 
         // another NExecutableManager in project ssb
         NExecutableManager ssbManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "ssb");
@@ -383,17 +384,17 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         ssbManager.updateJobOutput(ssbExecutable.getId(), ExecutableState.RUNNING);
 
         AbstractExecutable ssbJob = ssbManager.getJob(ssbExecutable.getId());
-        Assert.assertEquals(ssbJob.getStatus(), ExecutableState.RUNNING);
+        assertEquals(ssbJob.getStatus(), ExecutableState.RUNNING);
 
         manager.resumeAllRunningJobs();
 
         job = manager.getJob(executable.getId());
         // it only resume running jobs in project default, so the status of the job convert to ready
-        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+        assertEquals(ExecutableState.READY, job.getStatus());
 
         job = ssbManager.getJob(ssbExecutable.getId());
         // the status of jobs in project ssb is still running
-        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+        assertEquals(ExecutableState.RUNNING, job.getStatus());
 
     }
 

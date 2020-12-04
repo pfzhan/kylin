@@ -72,12 +72,12 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
         return executableManager.getJob(jobId).checkSuicide();
     }
 
-    private boolean markDiscardJob(String jobId) {
+    private boolean markSuicideJob(String jobId) {
         try {
             if (checkSuicide(jobId)) {
                 return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     if (checkSuicide(jobId)) {
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).cancelJob(jobId);
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).suicideJob(jobId);
                         return true;
                     }
                     return false;
@@ -120,8 +120,8 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             int nSuicidal = 0;
             boolean skipSchedule = false;
             for (final String id : executableManager.getJobs()) {
-                if (markDiscardJob(id)) {
-                    nDiscarded++;
+                if (markSuicideJob(id)) {
+                    nSuicidal++;
                     continue;
                 }
 

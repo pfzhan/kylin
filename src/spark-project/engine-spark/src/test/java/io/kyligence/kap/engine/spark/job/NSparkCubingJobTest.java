@@ -423,15 +423,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, df.getSegments().size());
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job.getStatus()));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            execMgr.cancelJob(job.getId());
-            return null;
-        }, getProject());
-        //FIXME Unstable, will fix in #7302
-        //        waitThreadInterrupt(thread, 60000);
-        //        Assert.assertEquals(true, thread.isInterrupted());
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(1, df.getSegments().size());
-        UnitOfWork.doInTransactionWithRetry(() -> {
             execMgr.discardJob(job.getId());
             return null;
         }, getProject());
@@ -465,12 +456,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, firstMergeJob.getStatus()));
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            execMgr.cancelJob(firstMergeJob.getId());
-            return null;
-        }, getProject());
-        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(3, df.getSegments().size());
         UnitOfWork.doInTransactionWithRetry(() -> {
             execMgr.discardJob(firstMergeJob.getId());
             return null;

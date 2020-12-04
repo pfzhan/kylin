@@ -431,7 +431,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             return null;
         }, project);
         executableManager.addJob(job);
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
                 executableManager.getJob(job.getId()).getStatus()));
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
@@ -460,7 +460,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             modelManager.dropModel(model);
             return null;
         }, project);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
+        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
                 executableManager.getJob(job.getId()).getStatus()));
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
@@ -496,7 +496,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             modelManager.dropModel(model);
             return null;
         }, project);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
+        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
                 executableManager.getJob(job.getId()).getStatus()));
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
@@ -625,9 +625,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.DISCARDED,
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
                 executableManager.getJob(job.getId()).getStatus()));
-        assertTimeDiscard(createTime, job.getId());
+        assertTimeSuicide(createTime, job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -694,7 +694,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         val output = executableManager.getOutput(job.getId());
-        Assert.assertEquals(ExecutableState.DISCARDED, output.getState());
+        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
     }
 
     @Test

@@ -65,7 +65,7 @@ public class TableSamplingService extends BasicService {
         tables.forEach(table -> {
             // if existing a related job, discard it
             if (existingJobs.containsKey(table)) {
-                execMgr.cancelJob(existingJobs.get(table).getId());
+                execMgr.discardJob(existingJobs.get(table).getId());
             }
 
             val tableDesc = tableMgr.getTableDesc(table);

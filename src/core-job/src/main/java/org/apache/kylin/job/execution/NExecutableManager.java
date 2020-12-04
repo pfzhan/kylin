@@ -346,7 +346,8 @@ public class NExecutableManager {
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).collect(Collectors.toList());
     }
 
-    public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate, JobTypeEnum... jobTypes) {
+    public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
+            JobTypeEnum... jobTypes) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getJobType() != null && (Lists.newArrayList(jobTypes).contains(e.getJobType())))
                 .filter(e -> predicate.test(e.getStatus())).collect(Collectors.toList());
@@ -460,7 +461,8 @@ public class NExecutableManager {
         if (StringUtils.isNotEmpty(pid)) {
             String nodeInfo = info.get("node_info");
             String host = nodeInfo.split(":")[0];
-            if (!host.equals(AddressUtil.getLocalInstance().split(":")[0]) && !host.equals(AddressUtil.getZkLocalInstance().split(":")[0])) {
+            if (!host.equals(AddressUtil.getLocalInstance().split(":")[0])
+                    && !host.equals(AddressUtil.getZkLocalInstance().split(":")[0])) {
                 exe.setRunAtRemote(host, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
                         config.getRemoteSSHPassword());
             } else {
@@ -508,14 +510,14 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isNotProgressing()) {
-            throw new KylinException(
-                    FAILED_UPDATE_JOB_STATUS,
-                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", job.getStatus(), jobId));
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String
+                    .format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", job.getStatus(), jobId));
         }
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream().filter(task -> task.getStatus().isNotProgressing() || task.getStatus() == ExecutableState.RUNNING)
+            tasks.stream()
+                    .filter(task -> task.getStatus().isNotProgressing() || task.getStatus() == ExecutableState.RUNNING)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
         updateJobOutput(jobId, ExecutableState.READY);
@@ -527,9 +529,8 @@ public class NExecutableManager {
             return;
         }
         if (jobToRestart.getStatus().isFinalState()) {
-            throw new KylinException(
-                    FAILED_UPDATE_JOB_STATUS,
-                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobToRestart.getStatus(), jobId));
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobToRestart.getStatus(), jobId));
         }
 
         // to redesign: merge executableDao ops
@@ -585,12 +586,13 @@ public class NExecutableManager {
                 .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();
     }
 
-    public void cancelJob(String jobId) {
+    public void suicideJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
             return;
         }
-        updateJobOutput(jobId, ExecutableState.DISCARDED);
+        job.cancelJob();
+        updateJobOutput(jobId, ExecutableState.SUICIDAL);
     }
 
     public void discardJob(String jobId) {
@@ -598,8 +600,8 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-        cancelJob(jobId);
         job.cancelJob();
+        updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 
     public void errorJob(String jobId) {
@@ -624,9 +626,8 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isProgressing()) {
-            throw new KylinException(
-                    FAILED_UPDATE_JOB_STATUS,
-                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", job.getStatus(), jobId));
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String
+                    .format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", job.getStatus(), jobId));
         }
 
         updateJobOutput(jobId, ExecutableState.PAUSED);
@@ -676,7 +677,7 @@ public class NExecutableManager {
     }
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-                                Set<String> removeInfo, String output) {
+            Set<String> removeInfo, String output) {
         updateJobOutput(taskOrJobId, newStatus, updateInfo, removeInfo, output, 0);
     }
 
@@ -685,8 +686,8 @@ public class NExecutableManager {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
-            ExecutablePO taskOrJob = Objects.equals(taskOrJobId, jobId) ? job :
-                    job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst().orElse(null);
+            ExecutablePO taskOrJob = Objects.equals(taskOrJobId, jobId) ? job
+                    : job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst().orElse(null);
             jobOutput = taskOrJob.getOutput();
             assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
@@ -696,7 +697,8 @@ public class NExecutableManager {
                             "[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer! There is no valid state transfer from: {} to: {}, job id: {}",
                             oldStatus, newStatus, taskOrJobId);
                     throw new KylinException(ILLEGAL_JOB_STATE_TRANSFER,
-                            String.format(MsgPicker.getMsg().getILLEGAL_STATE_TRANSFER(), jobId, oldStatus.toJobStatus(), newStatus.toJobStatus()));
+                            String.format(MsgPicker.getMsg().getILLEGAL_STATE_TRANSFER(), jobId,
+                                    oldStatus.toJobStatus(), newStatus.toJobStatus()));
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
                 updateJobStatus(jobOutput, oldStatus, newStatus);
@@ -710,9 +712,10 @@ public class NExecutableManager {
             }
             String oldNodeInfo = info.get("node_info");
             String newNodeInfo = AddressUtil.getZkLocalInstance();
-            if (Objects.nonNull(oldNodeInfo) && !Objects.equals(oldNodeInfo, newNodeInfo) && !Objects.equals(taskOrJobId, jobId)) {
-                logger.info("The node running job has changed. Job id: {}, Step name: {}, Switch from {} to {}.",
-                        jobId, taskOrJob.getName(), oldNodeInfo, newNodeInfo);
+            if (Objects.nonNull(oldNodeInfo) && !Objects.equals(oldNodeInfo, newNodeInfo)
+                    && !Objects.equals(taskOrJobId, jobId)) {
+                logger.info("The node running job has changed. Job id: {}, Step name: {}, Switch from {} to {}.", jobId,
+                        taskOrJob.getName(), oldNodeInfo, newNodeInfo);
             }
             info.put("node_info", newNodeInfo);
             jobOutput.setInfo(info);
@@ -818,7 +821,7 @@ public class NExecutableManager {
             return false;
         }
         return to == ExecutableState.PAUSED || to == ExecutableState.READY || to == ExecutableState.DISCARDED
-                || to == ExecutableState.ERROR;
+                || to == ExecutableState.ERROR || to == ExecutableState.SUICIDAL;
     }
 
     public void updateJobOutputToHDFS(String resPath, ExecutableOutputPO obj) {

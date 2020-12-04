@@ -181,7 +181,7 @@ public class SnapshotService extends BasicService {
 
         SnapshotCheckResponse response = new SnapshotCheckResponse();
         conflictJobs.forEach(job -> {
-            execManager.cancelJob(job.getId());
+            execManager.discardJob(job.getId());
             updateSnapcheckResponse(job, response);
         });
         tableNames.forEach(tableName -> {

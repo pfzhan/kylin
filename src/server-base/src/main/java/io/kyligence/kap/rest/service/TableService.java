@@ -877,7 +877,7 @@ public class TableService extends BasicService {
                 .collect(Collectors.toList());
 
         conflictJobs.forEach(job -> {
-            execManager.cancelJob(job.getId());
+            execManager.discardJob(job.getId());
         });
     }
 
