@@ -88,7 +88,7 @@ export default class SourceManagement extends Vue {
   bottom: 0;
   left: 0;
   background: @fff;
-  z-index: 3;
+  z-index: 4;
   padding: 20px;
   .title {
     font-size: 14px;

@@ -111,7 +111,7 @@
         ref="closePopover"
         placement="top"
         width="326"
-        :popper-class="closeFromHeader ? 'popover-running' : ''"
+        :popper-class="popperClass === 'header' ? 'popover-running' : popperClass === 'jumpLinks' ? 'popover-jump-link' : ''"
         v-model="showPopoverTip">
         <p>{{$t('closeModelTip')}}</p>
         <div style="text-align: right; margin: 0">
@@ -179,7 +179,7 @@ export default class Diagnostic extends Vue {
   isShowDiagnosticProcess = false
   showError = false
   showPopoverTip = false
-  closeFromHeader = false
+  popperClass = ''
   validDateTime = false
   isServerChange = false
   serverOptions = []
@@ -189,6 +189,8 @@ export default class Diagnostic extends Vue {
     next: ''
   }
   servers = []
+  popoverCallback = null
+  jumpPage = ''
 
   @Watch('diagDumpIds')
   onChangeDumpList (newVal, oldVal) {
@@ -211,7 +213,18 @@ export default class Diagnostic extends Vue {
     postCloudUrlMessage(this.$route, { name: 'Stack' })
   }
   goto (page) {
-    if (page === 'job') {
+    this.jumpPage = page
+    if (this.isRunning) {
+      this.showPopoverTip = true
+      this.popperClass = 'jumpLinks'
+      this.popoverCallback = this.gotoEventCallback
+    } else {
+      this.gotoEventCallback()
+      this.$emit('close')
+    }
+  }
+  gotoEventCallback () {
+    if (this.jumpPage === 'job') {
       if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
         postCloudUrlMessage(this.$route, { name: 'kapJob' })
       } else {
@@ -220,7 +233,6 @@ export default class Diagnostic extends Vue {
     } else {
       this.$router.push('/admin/project')
     }
-    this.$emit('close')
   }
   // 获取诊断包可下载数/总数
   get getDownloadNum () {
@@ -319,7 +331,7 @@ export default class Diagnostic extends Vue {
   handleClose (para) {
     if (this.isRunning) {
       this.showPopoverTip = true
-      this.closeFromHeader = para === 'header'
+      this.popperClass = para
       return
     }
     this.closeDialog()
@@ -332,6 +344,7 @@ export default class Diagnostic extends Vue {
     this.resetDumpData(true)
     this.stopInterfaceCall(true)
     this.$emit('close')
+    this.popoverCallback && this.popoverCallback()
   }
   // 生成诊断包
   generateDiagnostic () {
@@ -596,6 +609,13 @@ export default class Diagnostic extends Vue {
   .el-popover.popover-running {
     top: 179px !important;
     left: 50% !important;
+    .popper__arrow {
+      display: none;
+    }
+  }
+  .el-popover.popover-jump-link {
+    top: 240px !important;
+    left: 30% !important;
     .popper__arrow {
       display: none;
     }
