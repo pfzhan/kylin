@@ -52,15 +52,15 @@ public class ZipFileUtil {
         try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFilename))) {
             ZipEntry entry;
             while ((entry = zipInputStream.getNextEntry()) != null) {
+                val entryDir = Paths.get(targetDir, entry.getName()).normalize().toString();
+                if (!entryDir.startsWith(normalizedTargetDir)) {
+                    throw new KylinException(CommonErrorCode.INVALID_ZIP_ENTRY,
+                            "Zip Entry <" + entry.getName() + "> is Invalid");
+                }
                 if (entry.isDirectory()) {
-                    val entryDir = Paths.get(targetDir, entry.getName()).normalize().toString();
-                    if (!entryDir.startsWith(normalizedTargetDir)) {
-                        throw new KylinException(CommonErrorCode.INVALID_ZIP_ENTRY,
-                                "Zip Entry <" + entry.getName() + "> is Invalid");
-                    }
                     Files.createDirectories(Paths.get(entryDir));
                 } else {
-                    Files.createDirectories(Paths.get(targetDir, entry.getName()).getParent());
+                    Files.createDirectories(Paths.get(entryDir).getParent());
                     Files.copy(zipInputStream, Paths.get(targetDir, entry.getName()));
                 }
             }
