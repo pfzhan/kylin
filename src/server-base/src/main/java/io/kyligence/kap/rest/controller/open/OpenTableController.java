@@ -125,6 +125,7 @@ public class OpenTableController extends NBasicController {
             throws Exception {
         checkProjectName(tableLoadRequest.getProject());
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
+        validatePriority(tableLoadRequest.getPriority());
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
                 && (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS
                         || tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS)) {
@@ -195,6 +196,7 @@ public class OpenTableController extends NBasicController {
         try {
             checkProjectName(request.getProject());
             checkRequiredArg("need_sampling", request.getNeedSampling());
+            validatePriority(request.getPriority());
             if (StringUtils.isEmpty(request.getTable())) {
                 throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
             }

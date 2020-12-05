@@ -490,6 +490,7 @@ public class NTableController extends NBasicController {
         checkProjectName(request.getProject());
         checkSamplingRows(request.getRows());
         checkSamplingTable(request.getQualifiedTableName());
+        validatePriority(request.getPriority());
 
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
                 request.getRows(), request.getPriority());

@@ -75,7 +75,6 @@ public class ExecutablePO extends RootPersistentEntity {
     public static final int HIGHEST_PRIORITY = 0;
     public static final int DEFAULT_PRIORITY = 3;
     public static final int LOWEST_PRIORITY = 4;
-
     @JsonProperty("name")
     private String name;
 
@@ -121,7 +120,7 @@ public class ExecutablePO extends RootPersistentEntity {
     private int priority = DEFAULT_PRIORITY;
 
     public void setPriority(int p) {
-        priority = isPriorityValid(p) ? DEFAULT_PRIORITY : p;
+        priority = isPriorityValid(p) ? p : DEFAULT_PRIORITY;
     }
 
     @Override
@@ -135,7 +134,11 @@ public class ExecutablePO extends RootPersistentEntity {
     }
 
     public static boolean isPriorityValid(int priority) {
-        return HIGHEST_PRIORITY > priority || LOWEST_PRIORITY < priority;
+        return priority >= HIGHEST_PRIORITY && priority <= LOWEST_PRIORITY;
+    }
+
+    public static boolean isHigherPriority(int p1, int p2) {
+        return p1 < p2;
     }
 
     public void addYarnApplicationJob(String appId) {

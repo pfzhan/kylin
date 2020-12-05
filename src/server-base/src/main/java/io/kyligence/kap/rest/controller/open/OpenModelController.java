@@ -186,6 +186,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
+        validatePriority(buildSegmentsRequest.getPriority());
         NDataModel nDataModel = getModel(modelAlias, buildSegmentsRequest.getProject());
         return modelController.buildSegmentsManually(nDataModel.getId(), buildSegmentsRequest);
     }
@@ -195,6 +196,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model_name") String modelAlias,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
+        validatePriority(request.getPriority());
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.refreshOrMergeSegments(modelId, request);
     }
@@ -317,6 +319,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildIndexRequest request) {
         checkProjectName(request.getProject());
+        validatePriority(request.getPriority());
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.buildIndicesManually(modelId, request);
     }

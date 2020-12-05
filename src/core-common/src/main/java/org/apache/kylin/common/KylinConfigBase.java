@@ -822,6 +822,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.job.max-local-consumption-ratio", "0.5"));
     }
 
+    public boolean isCtlJobPriorCrossProj() {
+        return Boolean.parseBoolean(getOptional("kylin.job.control-job-priority-cross-project", TRUE));
+    }
+
     public String[] getOverCapacityMailingList() {
         return getOptionalStringArray("kylin.capacity.notification-emails", new String[0]);
     }

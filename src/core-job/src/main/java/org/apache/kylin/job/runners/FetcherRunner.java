@@ -213,22 +213,26 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             return false;
         }
         List<Executable> runningJobs = context.getRunningJobs().values().stream()
-                .filter(job -> job.getPriority() < executable.getPriority()).collect(Collectors.toList());
+                .filter(job -> ExecutablePO.isHigherPriority(job.getPriority(), executable.getPriority()))
+                .collect(Collectors.toList());
         if (!runningJobs.isEmpty()) {
             return true;
         }
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NProjectManager projectManager = NProjectManager.getInstance(config);
-        List<ExecutablePO> jobs = Lists.newArrayList();
-        for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
-            if (project.equalsIgnoreCase(projectInstance.getName())) {
-                continue;
+        if (config.isCtlJobPriorCrossProj()) {
+            NProjectManager projectManager = NProjectManager.getInstance(config);
+            List<ExecutablePO> jobs = Lists.newArrayList();
+            for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
+                if (project.equalsIgnoreCase(projectInstance.getName())) {
+                    continue;
+                }
+                NExecutableManager otherExecutableManager = NExecutableManager.getInstance(config, projectInstance.getName());
+                jobs.addAll(otherExecutableManager.getRunningJobs(executable.getPriority()));
             }
-            NExecutableManager otherExecutableManager = NExecutableManager.getInstance(config, projectInstance.getName());
-            jobs.addAll(otherExecutableManager.getRunningJobs(executable.getPriority()));
+            jobs.forEach(job -> logger.info("Found Higher priority job {} in project {} for job {}", job.getId(), job.getProject(), executable.getId()));
+            return !jobs.isEmpty();
         }
-        jobs.forEach(job -> logger.info("Found Higher priority job {} in project {} for job {}", job.getId(), job.getProject(), executable.getId()));
-        return !jobs.isEmpty();
+        return false;
     }
 
     private void scheduleJob(String id) {

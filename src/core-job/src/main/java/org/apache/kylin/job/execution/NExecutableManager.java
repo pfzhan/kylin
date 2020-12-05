@@ -436,7 +436,7 @@ public class NExecutableManager {
     public List<ExecutablePO> getRunningJobs(int priority) {
        return executableDao.getJobs().stream().filter(po -> {
             Output output = getOutput(po.getId());
-            return priority > po.getPriority() && output.getState().isProgressing();
+            return ExecutablePO.isHigherPriority(po.getPriority(), priority) && output.getState().isProgressing();
         }).collect(Collectors.toList());
     }
 

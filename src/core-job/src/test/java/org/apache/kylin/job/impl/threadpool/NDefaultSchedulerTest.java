@@ -1384,12 +1384,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job1);
         executableManager.addJob(job2);
         waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
+        config.setProperty("kylin.job.max-concurrent-jobs", "0");
         Assert.assertNotEquals(memory, NDefaultScheduler.getMemoryRemaining().availablePermits());
         val runningExecutables = executableManager.getRunningExecutables(project, modelId);
         runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
         Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
         Assert.assertEquals(ExecutableState.READY, runningExecutables.get(1).getStatus());
 
+        config.setProperty("kylin.job.max-concurrent-jobs", "1");
         waitForJobByStatus(job1.getId(), 60000, null, executableManager);
         waitForJobByStatus(job2.getId(), 60000, null, executableManager);
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job1.getId()).getState());
@@ -1414,11 +1416,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.job.max-concurrent-jobs", "1");
-        scheduler.init(new JobEngineConfig(config));
-
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
         val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         DefaultChainedExecutable job0 = generateJob(df, project, 4);
         DefaultChainedExecutable job1 = generateJob(df, project, 3);
@@ -1432,6 +1429,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job3);
         executableManager.addJob(job4);
         executableManager.addJob(job5);
+        // start schedule
+        scheduler.init(new JobEngineConfig(config));
+
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
         waitForJobByStatus(job4.getId(), 60000, ExecutableState.SUCCEED, executableManager);
         var runningExecutables = executableManager.getRunningExecutables(project, modelId);
         Assert.assertEquals(5, runningExecutables.size());

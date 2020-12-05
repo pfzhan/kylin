@@ -89,6 +89,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -395,6 +396,12 @@ public class NBasicController {
     public void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
             throw new KylinException(EMPTY_ID, MsgPicker.getMsg().getID_CANNOT_EMPTY());
+        }
+    }
+
+    public void validatePriority(int priority) {
+        if (!ExecutablePO.isPriorityValid(priority)) {
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_PRIORITY());
         }
     }
 

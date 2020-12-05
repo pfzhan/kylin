@@ -230,6 +230,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 
+        map.put("isCtlJobPriorCrossProj", new PropertiesEntity("kylin.job.control-job-priority-cross-project", "true", true));
+
         map.put("getMaxLocalConsumptionRatio",
                 new PropertiesEntity("kylin.job.max-local-consumption-ratio", "0.5", 0.5));
 
@@ -807,7 +809,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(419, methodsCount);
+        Assert.assertEquals(420, methodsCount);
     }
 
     @Test

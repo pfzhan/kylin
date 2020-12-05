@@ -461,6 +461,11 @@ public class CnMessage extends Message {
         return "非法的任务状态转移, id: [%s], 转移前: [%s], 转移后: [%s]";
     }
 
+    @Override
+    public String getINVALID_PRIORITY() {
+        return "无效优先级，必须在0-4范围内";
+    }
+
     // Acl
     @Override
     public String getUSER_NOT_EXIST() {

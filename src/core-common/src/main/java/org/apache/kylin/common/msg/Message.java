@@ -377,6 +377,10 @@ public class Message {
         return "Illegal job state transfer, id: [%s], from: [%s], to: [%s]";
     }
 
+    public String getINVALID_PRIORITY() {
+        return "Invalid priority, must be range in 0-4";
+    }
+
     // Acl
     public String getUSER_NOT_EXIST() {
         return "User '%s' does not exist. Please make sure the user exists.";
