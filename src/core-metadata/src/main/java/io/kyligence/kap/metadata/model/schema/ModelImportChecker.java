@@ -34,6 +34,7 @@ import org.apache.kylin.common.KylinConfig;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.strategy.ComputedColumnStrategy;
+import io.kyligence.kap.metadata.model.schema.strategy.MultiplePartitionStrategy;
 import io.kyligence.kap.metadata.model.schema.strategy.OverWritableStrategy;
 import io.kyligence.kap.metadata.model.schema.strategy.SchemaChangeStrategy;
 import io.kyligence.kap.metadata.model.schema.strategy.TableColumnStrategy;
@@ -46,7 +47,8 @@ import lombok.experimental.UtilityClass;
 public class ModelImportChecker implements IKeep {
 
     private static final List<SchemaChangeStrategy> strategies = Arrays.asList(new ComputedColumnStrategy(),
-            new UnOverWritableStrategy(), new TableColumnStrategy(), new TableStrategy(), new OverWritableStrategy());
+            new UnOverWritableStrategy(), new TableColumnStrategy(), new TableStrategy(), new OverWritableStrategy(),
+            new MultiplePartitionStrategy());
 
     public static SchemaChangeCheckResult check(SchemaUtil.SchemaDifference difference,
             ImportModelContext importModelContext) {

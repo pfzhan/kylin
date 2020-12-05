@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -44,6 +43,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -154,15 +154,26 @@ public class SchemaNode {
                         partitionDesc.getPartitionDateFormat() != null ? partitionDesc.getPartitionDateFormat() : ""));
     }
 
+    public static SchemaNode ofMultiplePartition(MultiPartitionDesc multiPartitionDesc, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_MULTIPLE_PARTITION, modelAlias,
+                ImmutableMap.of("columns", multiPartitionDesc.getColumns(), "partitions",
+                        multiPartitionDesc.getPartitions().stream().map(MultiPartitionDesc.PartitionInfo::getValues)
+                                .map(Arrays::asList).collect(Collectors.toList())));
+    }
+
     // join type
     public static SchemaNode ofJoin(TableRef fkTableRef, TableRef pkTableRef, JoinDesc joinDesc, String modelAlias) {
         return new SchemaNode(SchemaNodeType.MODEL_JOIN,
                 modelAlias + "/" + fkTableRef.getAlias() + "-" + pkTableRef.getAlias(),
-                ImmutableMap.of("join_type", joinDesc.getType(), "primary_keys",
-                        StringUtils.join(joinDesc.getPrimaryKey(), ","), "foreign_keys",
-                        StringUtils.join(joinDesc.getForeignKey(), ","), "non_equal_join_condition",
-                        joinDesc.getNonEquiJoinCondition() != null ? joinDesc.getNonEquiJoinCondition().getExpr()
-                                : ""));
+                ImmutableMap.<String, Object> builder().put("primary_table", pkTableRef.getAlias())
+                        .put("foreign_table", fkTableRef.getAlias()).put("join_type", joinDesc.getType())
+                        .put("primary_keys", Arrays.asList(joinDesc.getPrimaryKey()))
+                        .put("foreign_keys", Arrays.asList(joinDesc.getForeignKey()))
+                        .put("non_equal_join_condition",
+                                joinDesc.getNonEquiJoinCondition() != null
+                                        ? joinDesc.getNonEquiJoinCondition().getExpr()
+                                        : "")
+                        .build());
     }
 
     public static SchemaNode ofFilter(String modelAlias, String condition) {

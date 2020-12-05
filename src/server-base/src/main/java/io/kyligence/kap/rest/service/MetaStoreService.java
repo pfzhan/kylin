@@ -91,6 +91,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.ImportModelContext;
@@ -406,10 +407,22 @@ public class MetaStoreService extends BasicService {
         nDataModel.setProject(project);
         nDataModel.setUuid(originalDataModel.getUuid());
         nDataModel.setLastModified(System.currentTimeMillis());
-        nDataModel.setMvcc(originalDataModel.getMvcc());
+
+        // multiple partition column
+        if (nDataModel.isMultiPartitionModel()) {
+            originalDataModel = modelService.batchUpdateMultiPartition(project, nDataModel.getUuid(),
+                    nDataModel.getMultiPartitionDesc().getPartitions().stream()
+                            .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList()));
+
+            nDataModel.setMultiPartitionDesc(originalDataModel.getMultiPartitionDesc());
+        }
+
         if (!hasModelOverrideProps) {
             nDataModel.setSegmentConfig(originalDataModel.getSegmentConfig());
         }
+
+        nDataModel.setMvcc(originalDataModel.getMvcc());
+
         dataModelManager.updateDataModelDesc(nDataModel);
     }
 

@@ -51,6 +51,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -86,6 +87,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
@@ -375,15 +377,17 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(schemaUpdate.getType() == SchemaNodeType.MODEL_JOIN
                 && schemaUpdate.getFirstSchemaNode().getDetail().equals("P_LINEORDER-CUSTOMER")
                 && schemaUpdate.getFirstSchemaNode().getAttributes().get("join_type").equals("INNER")
-                && schemaUpdate.getFirstSchemaNode().getAttributes().get("primary_keys").equals("CUSTOMER.C_CUSTKEY")
+                && schemaUpdate.getFirstSchemaNode().getAttributes().get("primary_keys")
+                        .equals(Collections.singletonList("CUSTOMER.C_CUSTKEY"))
                 && schemaUpdate.getFirstSchemaNode().getAttributes().get("foreign_keys")
-                        .equals("P_LINEORDER.LO_CUSTKEY")
+                        .equals(Collections.singletonList("P_LINEORDER.LO_CUSTKEY"))
                 && schemaUpdate.getFirstSchemaNode().getAttributes().get("non_equal_join_condition").equals("")
                 && schemaUpdate.getSecondSchemaNode().getDetail().equals("P_LINEORDER-CUSTOMER")
                 && schemaUpdate.getSecondSchemaNode().getAttributes().get("join_type").equals("LEFT")
-                && schemaUpdate.getSecondSchemaNode().getAttributes().get("primary_keys").equals("CUSTOMER.C_NAME")
+                && schemaUpdate.getSecondSchemaNode().getAttributes().get("primary_keys")
+                        .equals(Collections.singletonList("CUSTOMER.C_NAME"))
                 && schemaUpdate.getSecondSchemaNode().getAttributes().get("foreign_keys")
-                        .equals("P_LINEORDER.LO_CUSTKEY")
+                        .equals(Collections.singletonList("P_LINEORDER.LO_CUSTKEY"))
                 && schemaUpdate.getSecondSchemaNode().getAttributes().get("non_equal_join_condition").equals(
                         "\"P_LINEORDER\".\"LO_CUSTKEY\" = \"CUSTOMER\".\"C_NAME\" AND CAST(\"P_LINEORDER\".\"LO_CUSTKEY\" AS BIGINT) < CAST(\"CUSTOMER\".\"C_CITY\" AS BIGINT) AND \"P_LINEORDER\".\"LO_CUSTKEY\" >= \"CUSTOMER\".\"C_CUSTKEY\"")
                 && !schemaUpdate.isOverwritable() && schemaUpdate.isCreatable());
@@ -467,6 +471,53 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
                 .anyMatch(pair -> pair.getType() == SchemaNodeType.MODEL_PARTITION && !pair.isOverwritable()
                         && pair.isCreatable()));
+    }
+
+    @Test
+    public void testCheckModelMetadataModelMultiplePartitionColumnsChanged() throws IOException {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/conflict_multiple_partition_project/target_project_model_metadata_2020_12_02_17_27_25_F5A5FC2CC8452A2D55384F97D90C8CCE.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("conflict_multiple_partition_col_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(pair -> pair.getType() == SchemaNodeType.MODEL_MULTIPLE_PARTITION && !pair.isOverwritable()
+                        && pair.isCreatable() && !Objects.equal(pair.getFirstAttributes().get("columns"),
+                                pair.getSecondAttributes().get("columns"))));
+    }
+
+    @Test
+    public void testCheckModelMetadataModelMultiplePartition() throws IOException {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_project/target_project_model_metadata_2020_12_02_20_50_10_F85294019F1CE7DB159D6C264B672472.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("conflict_multiple_partition_col_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream().anyMatch(
+                pair -> pair.getType() == SchemaNodeType.MODEL_MULTIPLE_PARTITION && pair.isOverwritable() && Objects
+                        .equal(pair.getFirstAttributes().get("columns"), pair.getSecondAttributes().get("columns"))));
+    }
+
+    @Test
+    public void testCheckModelMetadataModelMultiplePartitionWithDifferentPartitionValueOrder() throws IOException {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_with_different_partition_value_order_project/target_project_model_metadata_2020_12_02_20_50_10_63C74A2DCE4A16D1F32D24890E67CEEA.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("conflict_multiple_partition_col_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertEquals(0, modelSchemaChange.getDifferences());
     }
 
     @Test

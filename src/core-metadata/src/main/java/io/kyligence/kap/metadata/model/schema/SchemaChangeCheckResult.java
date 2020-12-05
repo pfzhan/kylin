@@ -281,6 +281,7 @@ public class SchemaChangeCheckResult implements IKeep {
         TABLE_COLUMN_DATATYPE_CHANGED, //
         MISSING_TABLE_COLUMN, //
         MISSING_TABLE, //
+        MULTIPLE_PARTITION_COLUMN_CHANGED, //
         NONE;
     }
 }

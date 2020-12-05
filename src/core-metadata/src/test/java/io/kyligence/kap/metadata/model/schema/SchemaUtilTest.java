@@ -30,6 +30,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -190,15 +192,17 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                 .anyMatch(pair -> pair.getType() == SchemaNodeType.MODEL_JOIN
                         && pair.getFirstSchemaNode().getDetail().equals("P_LINEORDER-CUSTOMER")
                         && pair.getFirstSchemaNode().getAttributes().get("join_type").equals("INNER")
-                        && pair.getFirstSchemaNode().getAttributes().get("primary_keys").equals("CUSTOMER.C_CUSTKEY")
+                        && pair.getFirstSchemaNode().getAttributes().get("primary_keys")
+                                .equals(Collections.singletonList("CUSTOMER.C_CUSTKEY"))
                         && pair.getFirstSchemaNode().getAttributes().get("foreign_keys")
-                                .equals("P_LINEORDER.LO_CUSTKEY")
+                                .equals(Collections.singletonList("P_LINEORDER.LO_CUSTKEY"))
                         && pair.getFirstSchemaNode().getAttributes().get("non_equal_join_condition").equals("")
                         && pair.getSecondSchemaNode().getDetail().equals("P_LINEORDER-CUSTOMER")
                         && pair.getSecondSchemaNode().getAttributes().get("join_type").equals("LEFT")
-                        && pair.getSecondSchemaNode().getAttributes().get("primary_keys").equals("CUSTOMER.C_CUSTKEY")
+                        && pair.getSecondSchemaNode().getAttributes().get("primary_keys")
+                                .equals(Collections.singletonList("CUSTOMER.C_CUSTKEY"))
                         && pair.getSecondSchemaNode().getAttributes().get("foreign_keys")
-                                .equals("P_LINEORDER.LO_CUSTKEY")
+                                .equals(Collections.singletonList("P_LINEORDER.LO_CUSTKEY"))
                         && pair.getSecondSchemaNode().getAttributes().get("non_equal_join_condition").equals("")
                         && !pair.isOverwritable()));
     }
@@ -423,6 +427,62 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(modelSchemaChange.getMissingItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_TABLE
                         && !schemaChange.isImportable() && schemaChange.getDetail().equals("SSB.CUSTOMER_NEW")));
+    }
+
+    @Test
+    public void testConflictMultiplePartitionModel() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/conflict_multiple_partition_project/target_project_model_metadata_2020_12_02_17_27_25_F5A5FC2CC8452A2D55384F97D90C8CCE.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
+        val difference = SchemaUtil.diff(getTargetProject(), KylinConfig.getInstanceFromEnv(),
+                importModelContext.getTargetKylinConfig());
+
+        val schemaChangeResponse = ModelImportChecker.check(difference, importModelContext);
+        Assert.assertFalse(schemaChangeResponse.getModels().isEmpty());
+
+        val modelSchemaChange = schemaChangeResponse.getModels().get("conflict_multiple_partition_col_model");
+
+        Assert.assertEquals(1, modelSchemaChange.getDifferences());
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(updatedItem -> !updatedItem.isOverwritable()
+                        && updatedItem.getFirstDetail().equals("P_LINEORDER.LO_CUSTKEY")
+                        && updatedItem.getSecondDetail().equals("P_LINEORDER.LO_PARTKEY")
+                        && String.join(",", (List<String>) updatedItem.getFirstAttributes().get("columns"))
+                                .equals("P_LINEORDER.LO_CUSTKEY")
+                        && String.join(",", (List<String>) updatedItem.getSecondAttributes().get("columns"))
+                                .equals("P_LINEORDER.LO_PARTKEY")
+                        && ((List<String>) updatedItem.getFirstAttributes().get("partitions")).size() == 2
+                        && ((List<String>) updatedItem.getSecondAttributes().get("partitions")).size() == 3));
+    }
+
+    @Test
+    public void testMultiplePartitionModel() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_project/target_project_model_metadata_2020_12_02_20_50_10_F85294019F1CE7DB159D6C264B672472.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
+        val difference = SchemaUtil.diff(getTargetProject(), KylinConfig.getInstanceFromEnv(),
+                importModelContext.getTargetKylinConfig());
+
+        val schemaChangeResponse = ModelImportChecker.check(difference, importModelContext);
+        Assert.assertFalse(schemaChangeResponse.getModels().isEmpty());
+
+        val modelSchemaChange = schemaChangeResponse.getModels().get("conflict_multiple_partition_col_model");
+
+        Assert.assertEquals(1, modelSchemaChange.getDifferences());
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(updatedItem -> updatedItem.isOverwritable()
+                        && updatedItem.getFirstDetail().equals("P_LINEORDER.LO_CUSTKEY")
+                        && updatedItem.getSecondDetail().equals("P_LINEORDER.LO_CUSTKEY")
+                        && String.join(",", (List<String>) updatedItem.getFirstAttributes().get("columns"))
+                                .equals("P_LINEORDER.LO_CUSTKEY")
+                        && String.join(",", (List<String>) updatedItem.getSecondAttributes().get("columns"))
+                                .equals("P_LINEORDER.LO_CUSTKEY")
+                        && ((List<String>) updatedItem.getFirstAttributes().get("partitions")).size() == 2
+                        && ((List<String>) updatedItem.getSecondAttributes().get("partitions")).size() == 3));
     }
 
     @Test

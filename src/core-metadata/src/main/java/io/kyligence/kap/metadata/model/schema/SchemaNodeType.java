@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.model.schema;
 
+import java.util.List;
 import java.util.Map;
 
 import lombok.Getter;
@@ -63,6 +64,12 @@ public enum SchemaNodeType {
         @Override
         public String getDetail(String key, Map<String, Object> attributes) {
             return (String) attributes.get("column");
+        }
+    },
+    MODEL_MULTIPLE_PARTITION(true) {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return String.join(",", ((List<String>) attributes.get("columns")));
         }
     },
     MODEL_JOIN(true), MODEL_FILTER(true) {

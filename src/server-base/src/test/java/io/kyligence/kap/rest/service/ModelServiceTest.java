@@ -61,6 +61,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -5169,4 +5170,66 @@ public class ModelServiceTest extends CSVSourceTestCase {
         checkPropParameter(request);
     }
 
+
+    @Test
+    public void testBatchUpdateMultiPartition() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+        val dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val df = dfm.getDataflow(modelId);
+        Assert.assertEquals(df.getSegments().size(), 4);
+        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
+        // PartitionDesc change. Multi Partition column change or from none to have or from have to none.
+
+        List<String[]> partitionValues = new ArrayList<>();
+        partitionValues.add(new String[] { "p1" });
+        partitionValues.add(new String[] { "p2" });
+        partitionValues.add(new String[] { "p3" });
+        var dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
+
+        List<List<String>> expectPartitionValues = new ArrayList<>();
+        expectPartitionValues.add(Collections.singletonList("p1"));
+        expectPartitionValues.add(Collections.singletonList("p2"));
+        expectPartitionValues.add(Collections.singletonList("p3"));
+
+        Assert.assertEquals(expectPartitionValues, dataModel.getMultiPartitionDesc().getPartitions().stream()
+                .map(MultiPartitionDesc.PartitionInfo::getValues).map(Arrays::asList).collect(Collectors.toList()));
+
+        partitionValues = new ArrayList<>();
+        partitionValues.add(new String[] { "p2" });
+        partitionValues.add(new String[] { "p1" });
+        partitionValues.add(new String[] { "p5" });
+        dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
+
+        expectPartitionValues = new ArrayList<>();
+        expectPartitionValues.add(Collections.singletonList("p1"));
+        expectPartitionValues.add(Collections.singletonList("p2"));
+        expectPartitionValues.add(Collections.singletonList("p5"));
+        Assert.assertEquals(expectPartitionValues, dataModel.getMultiPartitionDesc().getPartitions().stream()
+                .map(MultiPartitionDesc.PartitionInfo::getValues).map(Arrays::asList).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testBatchUpdateMultiPartitionWithNotExistsModel() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val modelId = "1";
+
+        List<String[]> partitionValues = new ArrayList<>();
+        partitionValues.add(new String[] { "p1" });
+        partitionValues.add(new String[] { "p2" });
+        partitionValues.add(new String[] { "p3" });
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Data Model with name '1' not found.");
+        modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
+    }
+
+    @Test
+    public void testBatchUpdateMultiPartitionWithEmptyPartitionValues() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+
+        List<String[]> partitionValues = new ArrayList<>();
+        NDataModel dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
+        Assert.assertEquals(0, dataModel.getMultiPartitionDesc().getPartitions().size());
+    }
 }

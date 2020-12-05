@@ -2417,6 +2417,40 @@ public class ModelService extends BasicService {
         return responses;
     }
 
+    /**
+     * batch update multiple partition values
+     * @param project
+     * @param modelId
+     * @param partitionValues
+     * @return
+     */
+    @Transaction(project = 0)
+    public NDataModel batchUpdateMultiPartition(String project, String modelId, List<String[]> partitionValues) {
+        NDataModelManager modelManager = getDataModelManager(project);
+        NDataModel dataModel = modelManager.getDataModelDesc(modelId);
+        if (dataModel == null) {
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+        }
+
+        MultiPartitionDesc multiPartitionDesc = dataModel.getMultiPartitionDesc();
+
+        Set<Long> tobeDeletedPartitions = multiPartitionDesc.getPartitions().stream()
+                .filter(partitionInfo -> partitionValues.stream()
+                .noneMatch(pv -> Objects.deepEquals(pv, partitionInfo.getValues())))
+                .map(MultiPartitionDesc.PartitionInfo::getId).collect(Collectors.toSet());
+
+        if (!tobeDeletedPartitions.isEmpty()) {
+            logger.debug("Import model {} delete partitions {}", dataModel.getAlias(), tobeDeletedPartitions);
+            deletePartitions(dataModel.getProject(), null, dataModel.getUuid(), tobeDeletedPartitions);
+        }
+
+        dataModel = modelManager.getDataModelDesc(modelId);
+
+        modelManager.addPartitionsIfAbsent(dataModel, partitionValues);
+
+        return modelManager.getDataModelDesc(modelId);
+    }
+
     @Transaction(project = 0)
     public void addMultiPartitionValues(String project, String modelId, List<String[]> values) {
         aclEvaluate.checkProjectOperationPermission(project);

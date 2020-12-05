@@ -125,6 +125,15 @@ class ModelEdgeCollector {
                     SchemaNode.ofPartition(model.getPartitionDesc(), model.getAlias()));
         }
 
+        if (model.isMultiPartitionModel()) {
+            val colRefs = model.getMultiPartitionDesc().getColumnRefs();
+            val multiplePartitionNode = SchemaNode.ofMultiplePartition(model.getMultiPartitionDesc(), model.getAlias());
+            for (TblColRef colRef : colRefs) {
+                val nameColumn = nameColumnIdMap.get(colRef.getAliasDotName());
+                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getAlias()), multiplePartitionNode);
+            }
+        }
+
         // fact table
         graph.putEdge(SchemaNode.ofTable(model.getRootFactTable()),
                 SchemaNode.ofModelFactTable(model.getRootFactTable(), model.getAlias()));
