@@ -86,7 +86,7 @@ function assemblyImportData (_data) {
   const typeMaps = {
     tables: ['MODEL_TABLE', 'MODEL_FACT', 'MODEL_DIM'],
     columns: ['TABLE_COLUMN'],
-    partitionColumns: ['MODEL_PARTITION'],
+    partitionColumns: ['MODEL_PARTITION', 'MODEL_MULTIPLE_PARTITION'],
     measures: ['MODEL_MEASURE'],
     dimensions: ['MODEL_DIMENSION'],
     indexes: ['WHITE_LIST_INDEX', 'TO_BE_DELETED_INDEX', 'RULE_BASED_INDEX'],

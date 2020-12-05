@@ -65,7 +65,15 @@
                   <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="`${activeTabName}_${index}`">
                     <el-collapse-item :title="$t(item, {num: activeTabLength(item)})" v-if="activeTabLength(item)" :name="item">
                       <template v-if="item === 'partitionColumns'">
-                        <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">{{$t('timePartition')}} {{it.detail}}</p>
+                        <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
+                          <template v-if="it.type === 'MODEL_PARTITION'">
+                            <p>{{$t('timePartition')}} {{it.detail}}</p>
+                          </template>
+                           <template v-else-if="it.type === 'MODEL_MULTIPLE_PARTITION'">
+                            <p class="detail-text">{{$t('subPartition')}} <span class="ellipsis-layout">{{it.attributes.columns.join(',')}}</span></p>
+                            <p class="detail-text">{{$t('subPartitionValues')}} <span class="ellipsis-layout">{{ArrayFlat(it.attributes.partitions).join(',')}}</span></p>
+                          </template>
+                        </div>
                       </template>
                       <template v-else-if="item === 'computedColumns'">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
@@ -76,7 +84,11 @@
                         </p>
                       </template>
                       <template v-else-if="item === 'modelJoin'">
-                        <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">{{`${it.attributes.primary_keys} ${it.attributes.join_type} ${it.attributes.foreign_keys} ${it.attributes.non_equal_join_condition}`}}</p>
+                        <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
+                          <p>{{`${it.attributes.foreign_table} ${it.attributes.join_type} JOIN ${it.attributes.primary_table} ON`}}</p>
+                          <template v-if="!it.attributes.non_equal_join_condition"><p v-for="(v, index) in it.attributes.foreign_keys" :key="index">{{`${v} = ${it.attributes.primary_keys[index]}`}}</p></template>
+                          <p>{{it.attributes.non_equal_join_condition}}</p>
+                        </div>
                       </template>
                       <template v-else-if="item === 'indexes'">
                         <p class="detail-text index-item" v-if="activeModalObj[activeTabName][item].agg"><span>{{$t('aggIndex')}}</span>
@@ -138,12 +150,39 @@
                         </p>
                       </template>
                       <template v-else-if="item === 'modelJoin'">
-                        <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">{{`${it.second_attributes.primary_keys} ${it.second_attributes.join_type} ${it.second_attributes.foreign_keys}`}} {{it.second_attributes.non_equal_join_condition}} <span class="modify-item">{{`${it.first_attributes.primary_keys} ${it.first_attributes.join_type} ${it.first_attributes.foreign_keys} ${it.first_attributes.non_equal_join_condition}`}}</span></p>
+                        <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
+                          <p>{{`${it.second_attributes.foreign_table} ${it.second_attributes.join_type}`}} <span class="modify-item">{{`${it.first_attributes.join_type}`}}</span> JOIN {{`${it.second_attributes.primary_table}`}} ON</p>
+                          <template v-if="!it.second_attributes.non_equal_join_condition"><p v-for="(v, index) in it.second_attributes.foreign_keys" :key="index">{{`${v} = ${it.second_attributes.primary_keys[index]}`}}</p></template>
+                          <p>{{it.second_attributes.non_equal_join_condition}}</p>
+                          <div class="modify-item">
+                            <!-- <p>{{`${it.first_attributes.foreign_table} ${it.first_attributes.join_type} ${it.first_attributes.primary_table}`}}</p> -->
+                            <template v-if="!it.first_attributes.non_equal_join_condition"><p v-for="(v, index) in it.first_attributes.foreign_keys" :key="index">{{`${v} = ${it.first_attributes.primary_keys[index]}`}}</p></template>
+                            <p>{{`${it.first_attributes.non_equal_join_condition}`}}</p>
+                          </div>
+                        </div>
                       </template>
                       <template v-else-if="item === 'partitionColumns' && activeModalObj[activeTabName][item].list.length">
                         <div v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
-                          <p class="detail-text">{{$t('timePartition')}} {{it.second_attributes.column}} <span class="modify-item">{{it.first_attributes.column}}</span></p>
-                          <p class="detail-text">{{$t('timePartitionType')}} {{it.second_attributes.format}} <span class="modify-item">{{it.first_attributes.format}}</span></p>
+                          <template v-if="it.type === 'MODEL_PARTITION'">
+                            <p class="detail-text" v-if="it.second_attributes.column !== it.first_attributes.column">{{$t('timePartition')}} {{it.second_attributes.column}} <span class="modify-item">{{it.first_attributes.column}}</span></p>
+                            <p class="detail-text" v-if="it.second_attributes.format !== it.first_attributes.format">{{$t('timePartitionType')}} {{it.second_attributes.format}} <span class="modify-item">{{it.first_attributes.format}}</span></p>
+                          </template>
+                          <template v-else-if="it.type === 'MODEL_MULTIPLE_PARTITION'">
+                            <div class="detail-text" v-if="it.second_attributes.columns.join(',') !== it.first_attributes.columns.join(',')">
+                              <span>{{$t('subPartition')}}</span>
+                              <div class="sub-partition-columns">
+                                <p>{{it.second_attributes.columns.join(',')}}</p>
+                                <p class="modify-item">{{it.first_attributes.columns.join(',')}}</p>
+                              </div>
+                            </div>
+                            <div class="detail-text" v-if="ArrayFlat(it.second_attributes.partitions).join(',') !== ArrayFlat(it.first_attributes.partitions).join(',')">
+                              <span>{{$t('subPartitionValues')}}</span>
+                              <div class="sub-partition-values">
+                                <p>{{ArrayFlat(it.second_attributes.partitions).join(',')}}</p>
+                                <p class="modify-item">{{ArrayFlat(it.first_attributes.partitions).join(',')}}</p>
+                              </div>
+                            </div>
+                          </template>
                         </div>
                       </template>
                       <template v-else-if="item === 'indexes'">
@@ -160,7 +199,7 @@
             </div>
             <div class="no-data" v-else>
               <template v-if="activeTabName === 'nofound'">
-                <i class="el-icon-ksd-good_health"></i>
+                <i class="nofound-icon el-icon-ksd-good_health"></i>
                 <p>{{$t('noFoundDataTip')}}</p>
               </template>
               <template v-if="activeTabName === 'add'">
@@ -225,7 +264,7 @@ import locales from './locales'
 import { NamedRegex } from 'config'
 import { validator } from './handler'
 import vuex, { actionTypes } from '../../../store'
-import { handleSuccessAsync, handleError } from '../../../util'
+import { handleSuccessAsync, handleError, ArrayFlat } from '../../../util'
 import RenderModelConflicts from './RenderModelConflicts'
 import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
 
@@ -287,6 +326,7 @@ export default class ModelsImportModal extends Vue {
   modelNameError = ''
   isCheckName = false
   getDefaultAction = getDefaultAction
+  ArrayFlat = ArrayFlat
   activeCollapse = ['tables', 'columns', 'partitionColumns', 'measures', 'dimensions', 'indexes', 'computedColumns', 'modelJoin', 'modelFilter']
 
   get rules () {
@@ -400,7 +440,6 @@ export default class ModelsImportModal extends Vue {
         try {
           await this.handleRename(item)
         } catch (e) {
-          console.log(3456789)
           errorApi = true
           break
         }
@@ -409,7 +448,6 @@ export default class ModelsImportModal extends Vue {
     this.isCheckName = false
     if (errorApi) return
     this.$nextTick(() => {
-      console.log(this.disabledNextBtnType.length)
       if (this.disabledNextBtnType.length > 0) return
       this.step = 'third'
     })
@@ -691,6 +729,16 @@ export default class ModelsImportModal extends Vue {
             display: inline-block;
             vertical-align: top;
           }
+          .sub-partition-columns, .sub-partition-values {
+            display: inline-block;
+            vertical-align: top;
+            width: calc(~'100% - 150px');
+            p {
+              width: 100%;
+              text-overflow: ellipsis;
+              overflow: hidden;
+            }
+          }
         }
         .modify-item {
           text-decoration: line-through;
@@ -718,6 +766,9 @@ export default class ModelsImportModal extends Vue {
           color: @text-disabled-color;
           cursor: default;
           margin-bottom: 5px;
+        }
+        .nofound-icon {
+          font-size: 35px;
         }
       }
     }

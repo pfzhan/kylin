@@ -71,7 +71,9 @@ export default {
     confirmImportBtn: 'Import',
     sameCCNameTips: 'There is already a computed column with the same name in the system model, and the expressions are inconsistent. Please modify and import again.',
     sameCCExpressionTips: 'There is already a computed column with the same expressions in the system model, and the names are inconsistent. Please modify and import again.',
-    validateErrorTips: 'The file parsing failed. Please check if the model metadata package is complete.'
+    validateErrorTips: 'The file parsing failed. Please check if the model metadata package is complete.',
+    subPartition: 'Subpartition Columns：',
+    subPartitionValues: 'Subpartition Values：'
   },
   'zh-cn': {
     importModelsMetadata: '导入模型',
@@ -145,6 +147,8 @@ export default {
     confirmImportBtn: '确定导入',
     sameCCNameTips: '系统中模型已存在相同名称的可计算列，且两者表达式不一致，请修改后再导入此模型。',
     sameCCExpressionTips: '系统中模型已存在相同表达式的可计算列，且两者名称不一致，请修改后再导入此模型。',
-    validateErrorTips: '解析失败，请检查模型数据包是否完整。'
+    validateErrorTips: '解析失败，请检查模型数据包是否完整。',
+    subPartition: '子分区列：',
+    subPartitionValues: '子分区值：'
   }
 }
