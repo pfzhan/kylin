@@ -41,7 +41,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -137,12 +136,7 @@ public class NMetaStoreController extends NBasicController {
             throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to import!");
         }
 
-        try {
-            metaStoreService.importModelMetadata(project, metadataFile, request);
-        } catch (RuntimeException exception) {
-            Throwable rootCause = ExceptionUtils.getRootCause(exception);
-            throw new RuntimeException(rootCause);
-        }
+        metaStoreService.importModelMetadata(project, metadataFile, request);
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

@@ -47,6 +47,8 @@ import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
 
+import java.util.Collection;
+
 @Getter
 public class KylinException extends RuntimeException {
     public static final Logger logger = LoggerFactory.getLogger(KylinException.class);
@@ -76,6 +78,13 @@ public class KylinException extends RuntimeException {
         super(msg, cause);
         this.errorCode = errorCodeSupplier.toErrorCode();
         this.code = ResponseCode.CODE_UNDEFINED;
+    }
+
+    public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg, Collection<? extends Throwable> causes) {
+        super(msg);
+        this.errorCode = errorCodeSupplier.toErrorCode();
+        this.code = ResponseCode.CODE_UNDEFINED;
+        causes.forEach(this::addSuppressed);
     }
 
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg, String code) {

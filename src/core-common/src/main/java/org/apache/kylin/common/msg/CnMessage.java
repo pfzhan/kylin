@@ -372,7 +372,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getIMPORT_MODEL_EXCEPTION() {
-        return "模型导入失败, 详情 %s";
+        return "模型导入失败。";
     }
 
     @Override

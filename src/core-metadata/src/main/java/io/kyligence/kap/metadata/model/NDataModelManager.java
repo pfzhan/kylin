@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.ClassUtil;
@@ -229,7 +230,7 @@ public class NDataModelManager {
         List<NDataModel> allModels = crud.listAll();
         for (NDataModel model : allModels.stream().filter(model -> !model.isBroken()).collect(Collectors.toList())) {
             if (model.getAlias().equals(name)) {
-                throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
+                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), name));
             }
         }
 

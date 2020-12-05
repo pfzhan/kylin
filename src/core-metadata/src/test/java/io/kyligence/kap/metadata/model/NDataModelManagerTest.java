@@ -163,7 +163,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void createDataModelDesc_duplicateModelName_fail() throws IOException {
         thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("DataModelDesc 'nmodel_basic' already exists");
+        thrown.expectMessage("Model name 'nmodel_basic' is duplicated, could not be created.");
         NDataModel nDataModel = JsonUtil.deepCopy(
                 (NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"), NDataModel.class);
 

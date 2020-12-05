@@ -301,7 +301,7 @@ public class Message {
     }
 
     public String getIMPORT_MODEL_EXCEPTION() {
-        return "Import model failed, detail is:\n%s";
+        return "Import model failed.";
     }
 
     public String getUN_SUITABLE_IMPORT_TYPE() {

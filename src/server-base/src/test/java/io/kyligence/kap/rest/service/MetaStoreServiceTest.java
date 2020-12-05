@@ -812,8 +812,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
-        models.add(new ModelImportRequest.ModelImport("ssb_model_1", "ssb_model_2",
-                ModelImportRequest.ImportType.OVERWRITE));
+        models.add(new ModelImportRequest.ModelImport("ssb_model_1", null, ModelImportRequest.ImportType.OVERWRITE));
+        models.add(new ModelImportRequest.ModelImport("ssb_model_2", null, ModelImportRequest.ImportType.OVERWRITE));
 
         request.setModels(models);
 
@@ -821,7 +821,76 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("Model [ssb_model_1] not exists, Can not overwrite model.");
+                        .contains("KE-10002016(Failed to import model):Import model failed.\n"
+                                + "Model [ssb_model_1] not exists, Can not overwrite model.\n"
+                                + "Model [ssb_model_2] not exists, Can not overwrite model.");
+            }
+
+            @Override
+            public void describeTo(Description description) {
+
+            }
+        });
+        metaStoreService.importModelMetadata("original_project", multipartFile, request);
+    }
+
+    @Test
+    public void testImportModelMetadataWithCreateDuplicateNameModel() throws Exception {
+        File file = new File(
+                "src/test/resources/ut_model_metadata/metastore_model_metadata_c4a20039c16dfbb5dcc5610c5052d7b3.zip");
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(new ModelImportRequest.ModelImport("ssb_model", "conflict_filter_condition_model",
+                ModelImportRequest.ImportType.NEW));
+        models.add(new ModelImportRequest.ModelImport("model_agg_update", "model_column_update",
+                ModelImportRequest.ImportType.NEW));
+
+        request.setModels(models);
+
+        thrown.expectCause(new BaseMatcher<Throwable>() {
+            @Override
+            public boolean matches(Object item) {
+                return ((Exception) item).getMessage()
+                        .contains("KE-10002009(Model Metadata File Error):Import model failed.\n"
+                                + "Model name 'conflict_filter_condition_model' is duplicated, could not be created.\n"
+                                + "Model name 'model_column_update' is duplicated, could not be created.");
+            }
+
+            @Override
+            public void describeTo(Description description) {
+
+            }
+        });
+        metaStoreService.importModelMetadata("original_project", multipartFile, request);
+    }
+
+    @Test
+    public void testImportModelMetadataWithCreateIllegalNameModel() throws Exception {
+        File file = new File(
+                "src/test/resources/ut_model_metadata/metastore_model_metadata_c4a20039c16dfbb5dcc5610c5052d7b3.zip");
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(
+                new ModelImportRequest.ModelImport("ssb_model", "ssb_model@_test", ModelImportRequest.ImportType.NEW));
+        models.add(new ModelImportRequest.ModelImport("model_agg_update", "#ssb_model_test",
+                ModelImportRequest.ImportType.NEW));
+        models.add(new ModelImportRequest.ModelImport("model_index", "ssb_model_test ",
+                ModelImportRequest.ImportType.NEW));
+        models.add(new ModelImportRequest.ModelImport("model_cc_update", "ssb_test_123",
+                ModelImportRequest.ImportType.NEW));
+
+        request.setModels(models);
+
+        thrown.expectCause(new BaseMatcher<Throwable>() {
+            @Override
+            public boolean matches(Object item) {
+                return ((Exception) item).getMessage()
+                        .contains("KE-10002016(Failed to import model):Import model failed.\n"
+                                + "Invalid model name 'ssb_model@_test', only letters, numbers and underlines are supported.\n"
+                                + "Invalid model name '#ssb_model_test', only letters, numbers and underlines are supported.\n"
+                                + "Invalid model name 'ssb_model_test ', only letters, numbers and underlines are supported.");
             }
 
             @Override

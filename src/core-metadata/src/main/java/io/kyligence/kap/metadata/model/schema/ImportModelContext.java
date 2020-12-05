@@ -292,7 +292,7 @@ public class ImportModelContext implements IKeep {
     }
 
     private void loadModel() {
-        List<String> exceptions = new ArrayList<>();
+        Map<String, Exception> exceptionMap = new HashMap<>();
         importDataModelManager.listAllModels().stream()
                 .filter(dataModel -> !unImportModels.contains(dataModel.getAlias())).forEach(dataModel -> {
                     try {
@@ -329,14 +329,17 @@ public class ImportModelContext implements IKeep {
                         }
                     } catch (Exception e) {
                         log.warn("Import model {} exception", dataModel.getAlias(), e);
-                        exceptions.add(handleException(dataModel.getAlias(), e));
+                        exceptionMap.put(dataModel.getAlias(), e);
                     }
                 });
 
-        if (!exceptions.isEmpty()) {
-            String details = String.join("\n", exceptions);
+        if (!exceptionMap.isEmpty()) {
+            String details = exceptionMap.entrySet().stream()
+                    .map(entry -> handleException(entry.getKey(), entry.getValue())).collect(Collectors.joining("\n"));
+
             throw new KylinException(MODEL_METADATA_FILE_ERROR,
-                    String.format(MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details));
+                    String.format("%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    exceptionMap.values());
         }
     }
 
@@ -467,12 +470,10 @@ public class ImportModelContext implements IKeep {
     }
 
     private String handleException(String modelAlias, Exception exception) {
-        if (exception instanceof KylinException) {
-            return String.format("Model [%s], %s", modelAlias, exception.getMessage());
-        } else if (exception instanceof RuntimeException && exception.getMessage().contains("call on Broken Entity")) {
+        if (exception instanceof RuntimeException && exception.getMessage().contains("call on Broken Entity")) {
             return String.format(MsgPicker.getMsg().getIMPORT_BROKEN_MODEL(), modelAlias);
         }
-        return String.format("Model [%s] %s, can not import.", modelAlias, exception.getMessage());
+        return exception.getMessage();
     }
 
     public static List<RawRecItem> parseRawRecItems(ResourceStore resourceStore, String project, String modelId)

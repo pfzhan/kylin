@@ -507,7 +507,7 @@ public class MetaStoreService extends BasicService {
             throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
 
-        List<String> exceptions = new ArrayList<>();
+        List<Exception> exceptions = new ArrayList<>();
 
         val rawResourceMap = getRawResourceFromUploadFile(metadataFile);
 
@@ -553,13 +553,15 @@ public class MetaStoreService extends BasicService {
                 }
             } catch (Exception e) {
                 logger.warn("Import model {} exception", modelImport.getOriginalName(), e);
-                exceptions.add(e.getMessage());
+                exceptions.add(e);
             }
+        }
 
-            if (!exceptions.isEmpty()) {
-                throw new KylinException(MODEL_IMPORT_ERROR,
-                        String.format(MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), String.join("\n", exceptions)));
-            }
+        if (!exceptions.isEmpty()) {
+            String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
+
+            throw new KylinException(MODEL_IMPORT_ERROR,
+                    String.format("%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details), exceptions);
         }
     }
 
@@ -584,6 +586,13 @@ public class MetaStoreService extends BasicService {
                         modelImport.getOriginalName(), modelImport.getImportType()));
             }
         } else if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
+
+            if (!org.apache.commons.lang.StringUtils.containsOnly(modelImport.getTargetName(),
+                    ModelService.VALID_NAME_FOR_MODEL)) {
+                throw new KylinException(INVALID_MODEL_NAME,
+                        String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), modelImport.getTargetName()));
+            }
+
             NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataModelDescByAlias(modelImport.getTargetName());
 

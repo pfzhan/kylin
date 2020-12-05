@@ -550,10 +550,9 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
         String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Import model failed, detail is:\n" + "Model [none_exists_column] is broken, can not export.\n"
-                        + "Model [illegal_index] is broken, can not export.\n"
-                        + "Model [none_exists_table] is broken, can not export.");
+        thrown.expectMessage("Import model failed.\n" + "Model [none_exists_column] is broken, can not export.\n"
+                + "Model [illegal_index] is broken, can not export.\n"
+                + "Model [none_exists_table] is broken, can not export.");
         new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
     }
 
