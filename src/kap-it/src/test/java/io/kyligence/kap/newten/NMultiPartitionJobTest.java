@@ -51,8 +51,8 @@ import lombok.val;
 public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.model.multi-partition-enabled", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -65,7 +65,6 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -100,7 +99,7 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, hitCubeResult.size());
 
         // will auto offline
-        System.setProperty("kylin.model.multi-partition-enabled", "false");
+        overwriteSystemProp("kylin.model.multi-partition-enabled", "false");
         long startTime2 = SegmentRange.dateToLong("2020-11-06");
         long endTime2 = SegmentRange.dateToLong("2020-11-07");
         val segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(startTime2, endTime2);

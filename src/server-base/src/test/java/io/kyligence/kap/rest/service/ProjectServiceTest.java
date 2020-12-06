@@ -151,7 +151,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         overwriteSystemProp("kylin.cube.low-frequency-threshold", "5");
-        staticCreateTestMetadata();
+        createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
@@ -164,7 +164,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test

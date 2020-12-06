@@ -55,7 +55,7 @@ public class ProcessStatusListener {
     public void onProcessStart(CliCommandExecutor.ProcessStart processStart) {
         int pid = processStart.getPid();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(CHILD_PROCESS_FILE, true))) {
-            writer.write(processStart.getJobId() + "\n");
+            writer.write(pid + "," + processStart.getJobId() + "\n");
             writer.flush();
         } catch (IOException ex) {
             log.error("write child job process {} from {} failed", pid, CHILD_PROCESS_FILE.getAbsolutePath());
@@ -127,7 +127,7 @@ public class ProcessStatusListener {
         }
     }
 
-    private Map<Integer, String> parseProcessFile() {
+    static Map<Integer, String> parseProcessFile() {
         Map<Integer, String> result = Maps.newHashMap();
         try {
             for (String line : FileUtils.readLines(CHILD_PROCESS_FILE)) {

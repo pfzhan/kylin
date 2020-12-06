@@ -63,12 +63,12 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void init() {
-        staticCreateTestMetadata();
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test

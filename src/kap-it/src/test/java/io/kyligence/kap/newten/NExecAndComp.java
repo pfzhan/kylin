@@ -222,7 +222,7 @@ public class NExecAndComp {
                 cubeResult.persist();
                 logger.debug(
                         "result comparision is not available, part of the cube results: " + cubeResult.count());
-                cubeResult.show();
+                logger.debug(cubeResult.showString(10, 20, false));
                 cubeResult.unpersist();
             }
             logger.info("The query ({}) : {} cost {} (ms)", joinType, query, System.currentTimeMillis() - startTime);
@@ -497,7 +497,7 @@ public class NExecAndComp {
 
     private static void printRows(String source, List<Row> rows) {
         logger.debug("***********" + source + " start**********");
-        rows.forEach(row -> System.out.println(row.mkString(" | ")));
+        rows.forEach(row -> logger.info(row.mkString(" | ")));
         logger.debug("***********" + source + " end**********");
     }
 
@@ -533,8 +533,8 @@ public class NExecAndComp {
 
             if (!good) {
                 logger.error("Result not match");
-                expectedResult.show(10000);
-                actualResult.show(10000);
+                logger.info(expectedResult.showString(10000, 20, false));
+                logger.info(actualResult.showString(10000, 20, false));
                 throw new IllegalStateException();
             }
         } finally {

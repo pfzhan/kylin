@@ -54,8 +54,8 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.job.flat-table-join-without-lookup", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.flat-table-join-without-lookup", "true");
         this.createTestMetadata("src/test/resources/ut_meta/flattable_without_join_lookup");
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -69,8 +69,6 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.job.flat-table-join-without-lookup");
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 

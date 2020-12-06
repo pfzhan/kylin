@@ -149,7 +149,9 @@ public class NAutoBasicTest extends NAutoTestBase {
                 "select sum(price * item_count) from test_kylin_fact" };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isFailed());
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[1]).isFailed());
@@ -354,7 +356,9 @@ public class NAutoBasicTest extends NAutoTestBase {
                 + "    group by test_kylin_fact.cal_dt";
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
 
         // confirm auto-modeling is ok
         val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
@@ -388,7 +392,9 @@ public class NAutoBasicTest extends NAutoTestBase {
         val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, project,
                 new String[] { sql });
         smartMaster = new SmartMaster(context2);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
 
         // assert everything is ok after optimize model
         val modelContextsOfSemi = smartMaster.getContext().getModelContexts();
@@ -406,14 +412,18 @@ public class NAutoBasicTest extends NAutoTestBase {
                 "select lstg_format_name from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[0] });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         val modelContexts = context.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         Assert.assertFalse(context.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
 
         val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "newten", sqls);
         SmartMaster smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runUtWithContext(smartUtHook);
+        smartMaster2.runUtWithContext(null);
+        context2.saveMetadata();
+        AccelerationContextUtil.onlineModel(context2);
         val modelContexts2 = context2.getModelContexts();
         Assert.assertEquals(2, modelContexts2.size());
         Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
@@ -431,7 +441,9 @@ public class NAutoBasicTest extends NAutoTestBase {
                 "select lstg_format_name, price from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[0] });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         val modelContexts = context.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         NDataModel targetModel = modelContexts.get(0).getTargetModel();
@@ -474,7 +486,9 @@ public class NAutoBasicTest extends NAutoTestBase {
                         + " group by LSTG_FORMAT_NAME ,slr_segment_cd" };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, project, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
 
         AbstractContext smartContext = smartMaster.getContext();
         Map<String, AccelerateInfo> accelerationInfoMap = smartContext.getAccelerateInfoMap();
@@ -505,7 +519,9 @@ public class NAutoBasicTest extends NAutoTestBase {
         String[] sqls = queries.stream().map(Pair::getSecond).toArray(String[]::new);
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
         SmartMaster master = new SmartMaster(context);
-        master.runUtWithContext(smartUtHook);
+        master.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         return master;
     }
 }

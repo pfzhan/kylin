@@ -46,6 +46,7 @@ public class SmartContext extends AbstractContext {
         super(kylinConfig, project, sqls);
     }
 
+    @Override
     public ModelContext createModelContext(ModelTree modelTree) {
         return new ModelContext(this, modelTree);
     }

@@ -29,23 +29,23 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class SingleSqlNodeReplacerTest extends NLocalFileMetadataTestCase {
 
-    @BeforeClass
-    public static void setUp() {
-        staticCreateTestMetadata();
+    @Before
+    public void setUp() {
+        createTestMetadata();
     }
 
-    @AfterClass
-    public static void after() {
-        staticCleanupTestMetadata();
+    @After
+    public void after() {
+        cleanupTestMetadata();
     }
 
     @Test

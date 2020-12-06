@@ -49,12 +49,12 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
-        staticCreateTestMetadata();
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test

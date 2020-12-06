@@ -122,8 +122,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
@@ -133,8 +133,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        System.clearProperty("HADOOP_USER_NAME");
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     private String getProject() {

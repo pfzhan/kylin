@@ -35,7 +35,6 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ActiveProfiles;
@@ -60,11 +59,6 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
     Broadcaster broadcaster;
     private ClusterManager clusterManager = new DefaultClusterManager(7070);
 
-    @BeforeClass
-    public static void setupResource() {
-        staticCreateTestMetadata();
-    }
-
     @Before
     public void setUp() {
         createTestMetadata();
@@ -74,7 +68,7 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
 
     @After
     public void teardown() throws IOException {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
         broadcaster.close();
     }
 

@@ -32,7 +32,7 @@ public abstract class AbstractProposer {
     final AbstractContext proposeContext;
     final String project;
 
-    public AbstractProposer(AbstractContext proposeContext) {
+    protected AbstractProposer(AbstractContext proposeContext) {
         this.proposeContext = proposeContext;
         this.project = proposeContext.getProject();
     }

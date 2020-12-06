@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -81,17 +82,15 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         sparkConf.set("spark.sql.adaptive.enabled", "true");
         sparkConf.set("spark.sql.sources.bucketing.enabled", "false");
         sparkConf.set("spark.sql.adaptive.shuffle.maxTargetPostShuffleInputSize", "1");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(), TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -109,7 +108,6 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test

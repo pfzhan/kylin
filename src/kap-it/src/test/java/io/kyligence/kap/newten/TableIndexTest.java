@@ -45,7 +45,7 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
@@ -58,7 +58,6 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 

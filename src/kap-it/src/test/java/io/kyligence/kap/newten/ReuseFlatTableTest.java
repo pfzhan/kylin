@@ -47,8 +47,8 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.engine.persist-flattable-enabled", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/reuse_flattable");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -60,10 +60,8 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() throws Exception {
-        System.clearProperty("kylin.engine.persist-flattable-enabled");
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override

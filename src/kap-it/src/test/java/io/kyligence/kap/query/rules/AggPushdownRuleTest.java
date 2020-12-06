@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.query.rules;
 
-import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCleanupTestMetadata;
-import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCreateTestMetadata;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -51,7 +48,7 @@ import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
 
-public class AggPushdownRuleTest extends CalciteRuleTestBase{
+public class AggPushdownRuleTest extends CalciteRuleTestBase {
 
     private final DiffRepository diff = DiffRepository.lookup(AggPushdownRuleTest.class);
     private final String project = "subquery";
@@ -59,8 +56,8 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase{
 
     @Before
     public void setUp() {
-        System.setProperty("calcite.keep-in-clause", "false");
-        staticCreateTestMetadata("src/test/resources/ut_meta/agg_push_down");
+        overwriteSystemProp("calcite.keep-in-clause", "false");
+        createTestMetadata("src/test/resources/ut_meta/agg_push_down");
         rulesDefault.add(KapFilterRule.INSTANCE);
         rulesDefault.add(KapProjectRule.INSTANCE);
         rulesDefault.add(KapAggregateRule.INSTANCE);
@@ -69,7 +66,7 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase{
 
     @After
     public void cleanUp() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
         System.clearProperty("calcite.keep-in-clause");
     }
 

@@ -47,9 +47,9 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.query.match-partial-inner-join-model", "true");
-        System.setProperty("kylin.query.calcite.aggregate-pushdown-enabled", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
+        overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/agg_push_down");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -62,9 +62,6 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.query.match-partial-inner-join-model");
-        System.clearProperty("kylin.query.calcite.aggregate-pushdown-enabled");
     }
 
     @Override

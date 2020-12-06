@@ -80,19 +80,15 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     @Before
     public void setup() throws Exception {
         super.init();
-        System.setProperty("spark.local", "true");
-        System.setProperty("noBuild", "false");
-        System.setProperty("isDeveloperMode", "false");
+        overwriteSystemProp("spark.local", "true");
+        overwriteSystemProp("noBuild", "false");
+        overwriteSystemProp("isDeveloperMode", "false");
     }
 
     @After
     public void after() {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
-
-        System.clearProperty("noBuild");
-        System.clearProperty("isDeveloperMode");
-        System.clearProperty("spark.local");
     }
 
     @Override
@@ -127,9 +123,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
                             cuboid.getLayoutId()), ss);
             layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
                     .sort(NSparkCubingUtil.getColumns(rowKeys));
-            System.out.println("Query cuboid ------------ " + cuboid.getLayoutId());
+            logger.debug("Query cuboid ------------ " + cuboid.getLayoutId());
             layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getLayout());
-            layoutDataset.show(10);
+            logger.debug(layoutDataset.showString(10, 20, false));
 
             NDataSegment segment = cuboid.getSegDetails().getDataSegment();
             Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(
@@ -142,8 +138,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
             Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
                     .sort(NSparkCubingUtil.getColumns(rowKeys));
 
-            System.out.println("Spark sql ------------ ");
-            exceptDs.show(10);
+            logger.debug("Spark sql ------------ ");
+            logger.debug(exceptDs.showString(10, 20, false));
 
             Assert.assertEquals(layoutDataset.count(), exceptDs.count());
             String msg = SparderQueryTest.checkAnswer(layoutDataset, exceptDs, false);

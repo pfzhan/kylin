@@ -63,6 +63,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
@@ -83,6 +84,7 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1134,23 +1136,24 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testRefreshSparkTable() throws Exception {
-        CliCommandExecutor commond = new CliCommandExecutor();
-        commond.execute("rm -rf ./spark-warehouse/test_kylin_refresh", null);
-        val ss = SparkSession.builder().appName("local").master("local[2]").enableHiveSupport().getOrCreate();
+        CliCommandExecutor command = new CliCommandExecutor();
+        String warehousePath = KapConfig.getKylinHomeAtBestEffort() + "/spark-warehouse";
+        val ss = SparkSession.builder().appName("local").master("local[2]")
+                .config(StaticSQLConf.WAREHOUSE_PATH().key(), warehousePath).enableHiveSupport().getOrCreate();
         SparderEnv.setSparkSession(ss);
         // need to use  derby in memory instead of in real file to avoid conflicting with other hiveContext
         ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
                 "jdbc:derby:memory:db;create=true");
-        String warehousePath = "./spark-warehouse/test_kylin_refresh/";
+        warehousePath = warehousePath + "/test_kylin_refresh/";
         PushDownUtil.trySimplePushDownExecute("drop table if exists test_kylin_refresh", null);
         PushDownUtil.trySimplePushDownExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
         PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('a')", null);
         PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('c')", null);
         PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
-        CliCommandExecutor.CliCmdExecResult res = commond.execute("ls " + warehousePath, null, null);
+        CliCommandExecutor.CliCmdExecResult res = command.execute("ls " + warehousePath, null, null);
         val files = Arrays.asList(res.getCmd().split("\n")).stream().filter(file -> file.endsWith("parquet"))
                 .collect(Collectors.toList());
-        commond.execute("rm " + warehousePath + files.get(0), null, null);
+        command.execute("rm " + warehousePath + files.get(0), null, null);
 
         try {
             PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);

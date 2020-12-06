@@ -52,7 +52,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
-        staticCreateTestMetadata();
+        createTestMetadata();
         KylinBuildEnv.getOrCreate(KylinConfig.getInstanceFromEnv());
         Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(100, 100), new ResourceInfo(60480, 100)));

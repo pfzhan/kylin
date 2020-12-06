@@ -88,7 +88,9 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
         log.info("random generated sql is:{}", sql);
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         buildAllCubes(getTestConfig(), getProject());
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> queries = Lists.newArrayList();

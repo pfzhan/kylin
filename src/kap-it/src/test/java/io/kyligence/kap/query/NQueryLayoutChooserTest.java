@@ -316,7 +316,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 + "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
         val smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
         val model = modelManager
                 .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
@@ -345,7 +347,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
         val smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
         val model = modelManager
                 .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
@@ -372,7 +376,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 + "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
         val smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
         val model = modelManager
                 .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());

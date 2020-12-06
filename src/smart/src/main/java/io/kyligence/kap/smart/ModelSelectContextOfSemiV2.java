@@ -57,7 +57,7 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public void saveMetadata() {
-//        throw new NotImplementedException("Save metadata is forbidden in ModelSelectAIAugmentedContext");
+        // Just implement it
     }
 
     @Override

@@ -41,6 +41,7 @@ import lombok.Setter;
 public class DimensionRecItemV2 extends RecItemV2 implements Serializable {
     @JsonProperty("column")
     private NDataModel.NamedColumn column;
+    @JsonProperty("data_type")
     private String dataType;
 
     public int[] genDependIds(Map<String, RawRecItem> uniqueRecItemMap, String uniqueFlag) {

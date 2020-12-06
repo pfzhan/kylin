@@ -137,7 +137,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() {
-        createTestMetadata();
+        super.createTestMetadata();
         getTestConfig().setProperty("kylin.env", "UT");
         nUserController = Mockito.spy(new NUserController());
     }

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -59,7 +60,7 @@ import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryOptimizer;
 import io.kyligence.kap.query.util.HepUtils;
 
-public class CalciteRuleTestBase {
+public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CalciteRuleTestBase.class);
 
     private final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";

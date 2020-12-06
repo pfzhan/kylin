@@ -27,16 +27,22 @@ package io.kyligence.kap.query;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
-import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
-import org.junit.AfterClass;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.KylinTestBase;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.StaticSQLConf;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -46,39 +52,59 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import jersey.repackaged.com.google.common.collect.Lists;
+import lombok.val;
 
 /**
  * if a query test does not contribute to verifying the correctness of cube data, it should be here
  * otherwise, better consider NAutoBuildAndQueryTest or NManualBuildAndQueryTest
  */
-public class NKapQueryTest extends NKylinTestBase {
+public class NKapQueryTest extends KylinTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(NKapQueryTest.class);
-    protected static final String KYLIN_SQL_BASE_DIR = "../../kylin/kylin-it/src/test/resources/query";
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
+
+    protected static SparkConf sparkConf;
+    protected static SparkSession ss;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @BeforeClass
-    public static void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         if (Shell.MAC)
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
         logger.info("setUp in NKapQueryTest");
         joinType = "left";
-        System.setProperty("kylin.query.engine.sparder-enabled", "false");
-        NKylinTestBase.setupAll();
+        overwriteSystemProp("kylin.query.engine.sparder-enabled", "false");
+
+        createTestMetadata();
+        config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
+
+        //setup cube conn
+        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
+
+        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
+        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
+        sparkConf.set("spark.sql.shuffle.partitions", "1");
+
+        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        SparderEnv.setSparkSession(ss);
+
     }
 
-    @AfterClass
-    public static void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         if (Shell.MAC)
             System.clearProperty("org.xerial.snappy.lib.name");//reset
 
         logger.info("tearDown in NKapQueryTest");
         System.clearProperty("kylin.query.engine.sparder-enabled");
-        NKylinTestBase.clean();
-        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
+        if (cubeConnection != null)
+            closeConnection(cubeConnection);
+
+        cleanupTestMetadata();
     }
 
     @Test
@@ -87,7 +113,7 @@ public class NKapQueryTest extends NKylinTestBase {
         thrown.expectMessage("No realization");
         String x = KylinConfig.getInstanceFromEnv().getPushDownRunnerClassName();
         try {
-            System.setProperty("kylin.query.engine.sparder-enabled", "true");
+            overwriteSystemProp("kylin.query.engine.sparder-enabled", "true");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", "");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown-enabled", "false");
 
@@ -140,11 +166,6 @@ public class NKapQueryTest extends NKylinTestBase {
         }
     }
 
-    //
-    //    @Test
-    //    public void testVerifyCountQuery() throws Exception {
-    //        verifyResultRowColCount(KYLIN_SQL_BASE_DIR + File.separator + "sql_verifyCount");
-    //    }
 
     @Test
     public void testFloorConstantQuery() throws Exception {

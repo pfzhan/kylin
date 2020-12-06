@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.ProcessUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -43,7 +42,6 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -55,6 +53,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.ProcessUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -64,7 +63,6 @@ import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
-
 import lombok.val;
 import lombok.var;
 
@@ -88,11 +86,6 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
-
-    @BeforeClass
-    public static void setUpBeforeClass() {
-        staticCreateTestMetadata();
-    }
 
     @Before
     public void setUp() {
