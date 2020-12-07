@@ -232,15 +232,17 @@
               <div class="content-scroll-layout" v-if="allMeasure.length" v-scroll.observe>
                 <ul class="measure-list">
                   <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1, 'error-measure': ['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type.indexOf('varchar') > -1}">
-                    <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
-                      <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name" class="text">{{m.name}}</el-checkbox>
-                      <span v-else class="text">{{m.name}}</span>
-                      <span class="icon-group">
-                        <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
-                        <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
-                        <span class="li-type ky-option-sub-info">{{m.return_type && m.return_type.toLocaleLowerCase()}}</span>
+                    <el-tooltip :content="$t('measureRuleErrorTip', {type: m.expression})" effect="dark" placement="top" :disabled="!(['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type.indexOf('varchar') > -1)">
+                      <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
+                        <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name" class="text">{{m.name}}</el-checkbox>
+                        <span v-else class="text">{{m.name}}</span>
+                        <span class="icon-group">
+                          <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
+                          <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
+                          <span class="li-type ky-option-sub-info">{{m.return_type && m.return_type.toLocaleLowerCase()}}</span>
+                        </span>
                       </span>
-                    </span>
+                    </el-tooltip>
                   </li>
                 </ul>
               </div>
@@ -1620,10 +1622,11 @@ export default class ModelEdit extends Vue {
     })
   }
 
-  // 对于老数据检测 SUM 度量中是否使用 varchar cc 列
+  // 对于老数据检测 SUM 或 PERCENTILE_APPROX 度量中是否使用 varchar cc 列
   checkMeasureWithCC (data) {
+    console.log(data, 111)
     return new Promise((resolve, reject) => {
-      let list = data.simplified_measures.filter(it => it.expression === 'SUM' && it.return_type.indexOf('varchar') > -1)
+      let list = data.simplified_measures.filter(it => (it.expression === 'SUM' || it.expression === 'PERCENTILE_APPROX') && it.return_type.indexOf('varchar') > -1)
       if (list.length) {
         return this.$msgbox({
           title: this.$t('kylinLang.common.tip'),

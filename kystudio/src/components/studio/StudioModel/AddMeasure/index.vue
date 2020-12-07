@@ -468,7 +468,7 @@ export default class AddMeasure extends Vue {
     this.ccObject = ccObject
     this.measure.parameterValue.value = cc.tableAlias + '.' + cc.columnName
     // this.isEdit = false
-    if (cc.datatype === 'VARCHAR' && this.measure.expression === 'SUM(column)') {
+    if (cc.datatype === 'VARCHAR' && (this.measure.expression === 'SUM(column)' || this.measure.expression === 'PERCENTILE_APPROX')) {
       this.$refs.ccEditForm && (this.$refs.ccEditForm.errorMsg = this.$t('createCCMeasureTips'))
       this.ccValidateError = true
     } else {

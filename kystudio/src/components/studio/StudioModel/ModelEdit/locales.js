@@ -74,7 +74,8 @@ export default {
     changeTableJoinCondition: 'Modifying the table\'s type would affect the existing join condition. Please delete or modify the join condition first.',
     lockupTableToFactTableTip: 'Please add join condition from the fact table to a look up table.',
     noStarOrSnowflakeSchema: 'This join condition is not allowed in neither <a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">star</a> or <a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">snowflake</a> schema. Please adjust and try again.',
-    varcharSumMeasureTip: 'Can\'t save model. The following measures can\'t reference column(s) in Varchar type, as the selected function is SUM.',
+    varcharSumMeasureTip: 'Can\'t save model. The following measures can\'t reference column(s) in Varchar type, as the selected function is SUM or PERCENTILE_APPROX.',
+    measureRuleErrorTip: 'This measure\'s function ({type}) is incompatible with the referenced column, which is Varchar.',
     pleaseModify: 'Please modify.',
     iKnow: 'Got It'
   },
@@ -153,7 +154,8 @@ export default {
     changeTableJoinCondition: '修改该表的类型会影响现有的连接条件，请先删除或编辑连接关系。',
     lockupTableToFactTableTip: '请从事实表开始向维度表添加连接条件。',
     noStarOrSnowflakeSchema: '该连接不符合<a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">星型</a>或<a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">雪花模型</a>的规范，请重新连接。',
-    varcharSumMeasureTip: '无法保存模型。以下度量的函数类型 SUM 不支持引用 Varchar 类型的可计算列：',
+    varcharSumMeasureTip: '无法保存模型。以下度量的函数类型 SUM 或 PERCENTILE_APPROX 不支持引用 Varchar 类型的列：',
+    measureRuleErrorTip: '该度量的函数类型 {type} 不支持引用 Varchar 类型的列',
     pleaseModify: '请修改。',
     iKnow: '知道了'
   }
