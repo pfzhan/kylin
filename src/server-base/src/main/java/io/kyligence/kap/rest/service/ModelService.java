@@ -1528,8 +1528,9 @@ public class ModelService extends BasicService {
                     IndexEntity.IndexIdentifier indexIdentifier = layout.getIndex().createIndexIdentifier();
                     if (existingIndexMap.containsKey(indexIdentifier)) {
                         IndexEntity index = existingIndexMap.get(indexIdentifier);
-                        Preconditions.checkArgument(index.getLayout(layoutId) == null);
-                        index.getLayouts().add(layout);
+                        if (index.getLayout(layoutId) == null) {
+                            index.getLayouts().add(layout);
+                        }
                     } else {
                         IndexEntity index = layout.getIndex();
                         existingIndexMap.putIfAbsent(indexIdentifier, index);

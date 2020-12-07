@@ -1425,6 +1425,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(3, modelAfterSuggestModel.getAllMeasures().size());
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelAfterSuggestModel.getUuid());
         Assert.assertEquals(3, indexPlan.getAllLayouts().size());
+
+        // remove proposed indexes
+        indexPlan.getAllLayouts().forEach(l -> indexPlanService.removeIndex(project, targetModel.getUuid(), l.getId()));
+        IndexPlan indexPlanRefreshed = indexPlanManager.getIndexPlan(targetModel.getUuid());
+        Assert.assertTrue(indexPlanRefreshed.getAllLayouts().isEmpty());
+
+        // suggest again and assert result again
+        AbstractContext proposeContextSecond = modelService.suggestModel(project, sqlList, true, true);
+        List<AbstractContext.NModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
+        Assert.assertEquals(1, modelContextsTwice.size());
+        AbstractContext.NModelContext modelContextTwice = modelContextsTwice.get(0);
+        Map<String, LayoutRecItemV2> indexRexItemMapTwice = modelContextTwice.getIndexRexItemMap();
+        Assert.assertEquals(2, indexRexItemMapTwice.size());
     }
 
     @Test
@@ -5169,7 +5182,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setRetentionRange(null);
         checkPropParameter(request);
     }
-
 
     @Test
     public void testBatchUpdateMultiPartition() {
