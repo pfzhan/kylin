@@ -156,7 +156,7 @@
                           <p>{{it.second_attributes.non_equal_join_condition}}</p>
                           <div class="modify-item">
                             <!-- <p>{{`${it.first_attributes.foreign_table} ${it.first_attributes.join_type} ${it.first_attributes.primary_table}`}}</p> -->
-                            <template v-if="!it.first_attributes.non_equal_join_condition"><p v-for="(v, index) in it.first_attributes.foreign_keys" :key="index">{{`${v} = ${it.first_attributes.primary_keys[index]}`}}</p></template>
+                            <template v-if="!it.first_attributes.non_equal_join_condition && isChangeEqualJoin(it)"><p v-for="(v, index) in it.first_attributes.foreign_keys" :key="index">{{`${v} = ${it.first_attributes.primary_keys[index]}`}}</p></template>
                             <p>{{`${it.first_attributes.non_equal_join_condition}`}}</p>
                           </div>
                         </div>
@@ -383,6 +383,16 @@ export default class ModelsImportModal extends Vue {
   get getImportBtnText () {
     const list = this.models.filter(it => it.action === 'noImport')
     return list.length === this.models.length ? this.$t('confirmNoImportBtn') : this.$t('confirmImportBtn')
+  }
+
+  // diff equal 连接关系是否一致
+  isChangeEqualJoin (item) {
+    const targetItem = JSON.parse(JSON.stringify(item))
+    const sortOldF = targetItem.first_attributes.foreign_keys.sort((a, b) => a - b).join(',')
+    const sortNewF = targetItem.second_attributes.foreign_keys.sort((a, b) => a - b).join(',')
+    const sortOldP = targetItem.first_attributes.primary_keys.sort((a, b) => a - b).join(',')
+    const sortNewP = targetItem.second_attributes.primary_keys.sort((a, b) => a - b).join(',')
+    return sortOldF !== sortNewF || sortOldP !== sortNewP
   }
 
   // 判断是否展示 group by 列
