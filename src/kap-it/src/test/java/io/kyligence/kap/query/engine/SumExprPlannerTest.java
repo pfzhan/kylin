@@ -66,6 +66,7 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
 
     @After
     public void teardown() {
+        closeSumCaseWhen();
         staticCleanupTestMetadata();
     }
 
