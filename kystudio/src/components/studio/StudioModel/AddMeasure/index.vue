@@ -187,7 +187,7 @@ import $ from 'jquery'
       addMeasureTitle: 'Add Measure',
       sameColumn: 'Column has been defined as a measure by the same function',
       selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.',
-      createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function SUM.'
+      createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function {expression}.'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -207,7 +207,7 @@ import $ from 'jquery'
       addMeasureTitle: '添加度量',
       sameColumn: '该列已被相同函数定义为度量',
       selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。',
-      createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 SUM 引用。'
+      createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 {expression} 引用。'
     }
   }
 })
@@ -469,7 +469,7 @@ export default class AddMeasure extends Vue {
     this.measure.parameterValue.value = cc.tableAlias + '.' + cc.columnName
     // this.isEdit = false
     if (cc.datatype === 'VARCHAR' && (this.measure.expression === 'SUM(column)' || this.measure.expression === 'PERCENTILE_APPROX')) {
-      this.$refs.ccEditForm && (this.$refs.ccEditForm.errorMsg = this.$t('createCCMeasureTips'))
+      this.$refs.ccEditForm && (this.$refs.ccEditForm.errorMsg = this.$t('createCCMeasureTips', {expression: this.measure.expression}))
       this.ccValidateError = true
     } else {
       this.ccValidateError = false
