@@ -84,6 +84,9 @@ public class AclTCRResponse {
         @JsonProperty("dependent_columns")
         private List<DependentColumnData> dependentColumns;
 
+        @JsonProperty("datatype")
+        private String datatype;
+
         public void setDependentColumns(Collection<DependentColumn> dependentColumns) {
             this.dependentColumns = dependentColumns.stream()
                     .map(col -> new DependentColumnData(col.getDependentColumnIdentity(), col.getDependentValues()))

@@ -52,6 +52,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.service.AccessService;
@@ -134,7 +135,7 @@ public class AclTCRService extends BasicService {
                 && (accessService.isGlobalAdmin(sid) || accessService.hasGlobalAdminGroup(sid));
         boolean adminGroup = !principal && ROLE_ADMIN.equals(sid);
         if (userWithGlobalAdminPermission || adminGroup) {
-            return getAclTCRResponse(aclTCRManager.getAllDbAclTable(project));
+            return getAclTCRResponse(project, aclTCRManager.getAllDbAclTable(project));
         }
         AclTCR authorized = aclTCRManager.getAclTCR(sid, principal);
         if (Objects.isNull(authorized)) {
@@ -142,14 +143,14 @@ public class AclTCRService extends BasicService {
         }
         if (Objects.isNull(authorized.getTable())) {
             //default all tables were authorized
-            return getAclTCRResponse(aclTCRManager.getAllDbAclTable(project));
+            return getAclTCRResponse(project, aclTCRManager.getAllDbAclTable(project));
         }
         if (authorizedOnly) {
-            return tagTableNum(getAclTCRResponse(aclTCRManager.getDbAclTable(project, authorized)),
+            return tagTableNum(getAclTCRResponse(project, aclTCRManager.getDbAclTable(project, authorized)),
                     getDbTblColNum(project));
         }
         //all tables with authorized tcr tagged
-        return getAclTCRResponse(project, aclTCRManager.getDbAclTable(project, authorized));
+        return getAllTablesAclTCRResponse(project, aclTCRManager.getDbAclTable(project, authorized));
     }
 
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
@@ -329,7 +330,7 @@ public class AclTCRService extends BasicService {
         return transformResponseRow(authorizedColumnRow.getRow());
     }
 
-    private List<AclTCRResponse.Column> getColumns(AclTCR.ColumnRow columnRow, boolean isTableAuthorized,
+    private List<AclTCRResponse.Column> getColumns(String project, String tableIdentity, AclTCR.ColumnRow columnRow, boolean isTableAuthorized,
             AclTCR.ColumnRow authorizedColumnRow) {
         if (Objects.isNull(columnRow) || Objects.isNull(columnRow.getColumn())) {
             return Lists.newArrayList();
@@ -339,10 +340,13 @@ public class AclTCRService extends BasicService {
                 : authorizedColumnRow.getColumnSensitiveDataMaskMap();
         final Map<String, Collection<DependentColumn>> dependentColumnMap = isNull ? new HashMap<>()
                 : authorizedColumnRow.getDependentColMap();
+
+        val columnTypeMap = getTableColumnTypeMap(project, tableIdentity);
         return columnRow.getColumn().stream().map(colName -> {
             AclTCRResponse.Column col = new AclTCRResponse.Column();
             col.setColumnName(colName);
             col.setAuthorized(false);
+            col.setDatatype(columnTypeMap.get(colName).toString());
             if (isTableAuthorized && (isNull || Objects.isNull(authorizedColumnRow.getColumn()))) {
                 col.setAuthorized(true);
             } else if (!isNull && Objects.nonNull(authorizedColumnRow.getColumn())) {
@@ -358,7 +362,7 @@ public class AclTCRService extends BasicService {
         }).collect(Collectors.toList());
     }
 
-    private List<AclTCRResponse.Table> getTables(AclTCR.Table table, final AclTCR.Table authorizedTable) {
+    private List<AclTCRResponse.Table> getTables(String project, String databaseName, AclTCR.Table table, final AclTCR.Table authorizedTable) {
         if (Objects.isNull(table)) {
             return Lists.newArrayList();
         }
@@ -373,7 +377,9 @@ public class AclTCRService extends BasicService {
                 authorizedColumnRow = authorizedTable.get(te.getKey());
             }
 
-            val columns = getColumns(te.getValue(), tbl.isAuthorized(), authorizedColumnRow);
+            String tableIdentity = String.format(IDENTIFIER_FORMAT, databaseName, te.getKey());
+
+            val columns = getColumns(project, tableIdentity, te.getValue(), tbl.isAuthorized(), authorizedColumnRow);
             tbl.setTotalColumnNum(columns.size());
             tbl.setAuthorizedColumnNum(
                     columns.stream().filter(AclTCRResponse.Column::isAuthorized).mapToInt(i -> 1).sum());
@@ -383,19 +389,19 @@ public class AclTCRService extends BasicService {
         }).collect(Collectors.toList());
     }
 
-    private List<AclTCRResponse> getAclTCRResponse(String project, final TreeMap<String, AclTCR.Table> authorized) {
+    private List<AclTCRResponse> getAllTablesAclTCRResponse(String project, final TreeMap<String, AclTCR.Table> authorized) {
         return getAclTCRManager(project).getAllDbAclTable(project).entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
             response.setAuthorizedTableNum(
                     Objects.isNull(authorized.get(de.getKey())) ? 0 : authorized.get(de.getKey()).size());
             response.setTotalTableNum(de.getValue().size());
-            response.setTables(getTables(de.getValue(), authorized.get(de.getKey())));
+            response.setTables(getTables(project, de.getKey(), de.getValue(), authorized.get(de.getKey())));
             return response;
         }).collect(Collectors.toList());
     }
 
-    private List<AclTCRResponse> getAclTCRResponse(TreeMap<String, AclTCR.Table> db2AclTable) {
+    private List<AclTCRResponse> getAclTCRResponse(String project, TreeMap<String, AclTCR.Table> db2AclTable) {
         return db2AclTable.entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
@@ -407,6 +413,10 @@ public class AclTCRService extends BasicService {
                 final Map<String, Collection<DependentColumn>> dependentColumnMap = te.getValue() == null
                         ? new HashMap<>()
                         : te.getValue().getDependentColMap();
+
+                String tableIdentity = String.format(IDENTIFIER_FORMAT, de.getKey(), te.getKey());
+
+                val columnTypeMap = getTableColumnTypeMap(project, tableIdentity);
                 AclTCRResponse.Table tbl = new AclTCRResponse.Table();
                 tbl.setTableName(te.getKey());
                 tbl.setAuthorized(true);
@@ -415,6 +425,7 @@ public class AclTCRService extends BasicService {
                 tbl.setColumns(te.getValue().getColumn().stream().map(colName -> {
                     AclTCRResponse.Column col = new AclTCRResponse.Column();
                     col.setColumnName(colName);
+                    col.setDatatype(columnTypeMap.get(colName).toString());
                     col.setAuthorized(true);
                     if (maskMap.get(colName) != null) {
                         col.setDataMaskType(maskMap.get(colName).getType());
@@ -672,6 +683,18 @@ public class AclTCRService extends BasicService {
             dbTblColNum.get(tableDesc.getDatabase()).put(tableDesc.getName(), tableDesc.getColumnCount());
         });
         return dbTblColNum;
+    }
+
+    private Map<String, DataType> getTableColumnTypeMap(String project, String tableIdentity) {
+        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
+
+        if (tableDesc == null) {
+            return Maps.newHashMap();
+        }
+
+        return Arrays.stream(tableDesc.getColumns())
+                .collect(Collectors.toMap(ColumnDesc::getName, ColumnDesc::getType, (u, v) -> u, () -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER)));
     }
 
     @VisibleForTesting

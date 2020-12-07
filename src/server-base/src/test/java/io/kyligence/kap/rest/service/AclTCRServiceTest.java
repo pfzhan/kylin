@@ -461,6 +461,9 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream().anyMatch(t -> t.getColumns()
                 .stream().anyMatch(c -> "ORDER_ID".equals(c.getColumnName()) && c.getDataMaskType() == SensitiveDataMask.MaskType.AS_NULL))));
+
+        Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream().anyMatch(t -> t.getColumns()
+                .stream().anyMatch(c -> "BUYER_ID".equals(c.getColumnName()) && "bigint".equals(c.getDatatype())))));
     }
 
     @Test
