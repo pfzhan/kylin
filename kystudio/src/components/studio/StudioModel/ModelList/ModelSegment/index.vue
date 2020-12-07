@@ -631,7 +631,7 @@ export default class ModelSegment extends Vue {
   }
   async handleRefreshSubSegment () {
     const {index_count, index_count_total} = this.currentSegment
-    await kapConfirm(this.$t('refreshSubSegmentTip', {subSegsLength: this.selectedSubPartitionSegments.length, indexes: `(${index_count}/${index_count_total}`}), {confirmButtonText: this.$t('kylinLang.common.refresh')}, this.$t('refreshSubSegmentTitle'))
+    await kapConfirm(this.$t('refreshSubSegmentTip', {subSegsLength: this.selectedSubPartitionSegments.length, indexes: `(${index_count}/${index_count_total})`}), {confirmButtonText: this.$t('kylinLang.common.refresh')}, this.$t('refreshSubSegmentTitle'))
     try {
       this.refreshSubPartitionLoading = true
       const ids = this.selectedSubPartitionSegments.map((sub) => {

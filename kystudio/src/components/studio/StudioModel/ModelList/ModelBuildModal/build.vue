@@ -98,7 +98,7 @@
             <el-row>
               <el-col :span="11">
               <el-select
-                :disabled="isLoadingNewRange"
+                :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
                 v-model="partitionMeta.multiPartition"
                 :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                 filterable

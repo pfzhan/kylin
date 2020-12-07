@@ -524,6 +524,7 @@ export default class DimensionsModal extends Vue {
       let others = this.otherColumns.length ? this.otherColumns : this.modelDesc.all_named_columns.filter(item => !selectedColumns.includes(item.column))
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
+        this.$set(col, 'tableName', table.alias)
         if (names.includes(col.name)) {
           this.$set(col, 'alias', table.alias + '_' + col.name)
         } else {
@@ -551,6 +552,19 @@ export default class DimensionsModal extends Vue {
       this.renderTableColumnSelected(table)
     })
   }
+  getIdxBySelected (col, columns) {
+    let idx = -1
+    for (let i = 0; i < columns.length; i++) {
+      const curColId = col.tableName + col.alias + col.name
+      const idxColId = columns[i].tableName + columns[i].alias + columns[i].name
+      // 唯一性标识只能通过表的别名 + 列的别名 + 列名的拼接来区分
+      if (curColId === idxColId) {
+        idx = i
+        break
+      }
+    }
+    return idx
+  }
   // 检测是否有重名
   checkHasSameNamedColumn () {
     let columns = []
@@ -572,20 +586,26 @@ export default class DimensionsModal extends Vue {
         this.$set(col, 'validateSameName', false)
         this.$set(col, 'validateNameMaxLen', false)
         this.isClickSubmit = false
-        if (col.isSelected) {
-          if (countObjWithSomeKey(columns, 'alias', col.alias) > 1) {
-            hasPassValidate = false
-            this.$set(col, 'validateSameName', true)
-            this.errorGuidList.push(col.guid || col.table_guid)
-          } else if (!this.checkDimensionNameRegex(col.alias)) {
-            hasPassValidate = false
-            this.$set(col, 'validateNameRule', true)
-            this.errorGuidList.push(col.guid || col.table_guid)
-          } else if (col.alias.length > this.dimMeasNameMaxLength) {
-            hasPassValidate = false
-            this.$set(col, 'validateNameMaxLen', true)
-            this.errorGuidList.push(col.guid || col.table_guid)
-          }
+      })
+      let selectedColumns = columns.filter((col) => {
+        return col.isSelected === true
+      })
+      selectedColumns.forEach((col) => {
+        if (countObjWithSomeKey(selectedColumns, 'alias', col.alias) > 1) {
+          hasPassValidate = false
+          let idx = this.getIdxBySelected(col, columns)
+          this.$set(columns[idx], 'validateSameName', true)
+          this.errorGuidList.push(col.guid || col.table_guid)
+        } else if (!this.checkDimensionNameRegex(col.alias)) {
+          hasPassValidate = false
+          let idx = this.getIdxBySelected(col, columns)
+          this.$set(columns[idx], 'validateNameRule', true)
+          this.errorGuidList.push(col.guid || col.table_guid)
+        } else if (col.alias.length > this.dimMeasNameMaxLength) {
+          hasPassValidate = false
+          let idx = this.getIdxBySelected(col, columns)
+          this.$set(columns[idx], 'validateNameMaxLen', true)
+          this.errorGuidList.push(col.guid || col.table_guid)
         }
       })
       return hasPassValidate
@@ -767,8 +787,8 @@ export default class DimensionsModal extends Vue {
     }
   }
   submit () {
-    this.errorGuidList.length && this.$message.error(this.$t('sameNameTip'))
     this.checkDimensionForm()
+    this.errorGuidList.length && this.$message.error(this.$t('sameNameTip'))
     this.isClickSubmit = true
     if (this.dimensionValidPass) {
       let result = this.getAllSelectedColumns()
