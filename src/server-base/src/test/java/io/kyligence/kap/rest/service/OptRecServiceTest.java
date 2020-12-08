@@ -26,27 +26,70 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
+import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 
 public class OptRecServiceTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
+    ModelService modelService = Mockito.spy(new ModelService());
+
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    @Mock
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
+    @Mock
+    private final IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
+    @Before
+    public void setup() throws Exception {
+        jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+        modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        prepareACL();
+        QueryHistoryTaskScheduler.getInstance(getProject()).init();
+    }
+
+    @After
+    public void teardown() throws Exception {
+        super.tearDown();
+        QueryHistoryTaskScheduler.shutdownByProject(getProject());
+    }
+
+    private void prepareACL() {
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
 
     public OptRecServiceTest() {
         super("../server-base/src/test/resources/ut_rec_v2/opt_service",
@@ -179,9 +222,39 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
 
+        List<NDataModelResponse> modelResponses = modelService.getModels(modelBeforeApprove.getAlias().toLowerCase(),
+                getProject(), true, null, null, "last_modify", true);
+        List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
+
         changeRecTopN(50);
         UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.batchApprove(getProject(), Lists.newArrayList(modelBeforeApprove.getAlias()), "all");
+            optRecService.batchApprove(getProject(), modelIds, "all");
+            return 0;
+        }, "");
+
+        NDataModel modelAfterApprove = getModel();
+        Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(19, modelAfterApprove.getAllNamedColumns().size());
+        Assert.assertEquals(58, modelAfterApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(2, modelAfterApprove.getComputedColumnDescs().size());
+    }
+
+    @Test
+    public void testApproveOneModelWithUpperCase() throws IOException {
+        prepareAllLayoutRecs();
+        NDataModel modelBeforeApprove = getModel();
+        Assert.assertEquals(7, modelBeforeApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
+
+        List<NDataModelResponse> modelResponses = modelService.getModels(modelBeforeApprove.getAlias().toUpperCase(),
+                getProject(), true, null, null, "last_modify", true);
+        List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
+
+        changeRecTopN(50);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            optRecService.batchApprove(getProject(), modelIds, "all");
             return 0;
         }, "");
 

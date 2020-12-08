@@ -93,45 +93,56 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testRenameModel() {
-        NDataModel model1, model2, model3;
-        {
-            String[] sqlStatements = new String[] {
-                    "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
-            val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
-            NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runUtWithContext(smartUtHook);
-            AbstractContext ctx = smartMaster.getContext();
-            AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
-            model1 = modelContext.getTargetModel();
-        }
-        {
-            String[] sqlStatements = new String[] {
-                    "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
-            val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
-            NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runUtWithContext(smartUtHook);
-            AbstractContext ctx = smartMaster.getContext();
-            AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
-            model2 = modelContext.getTargetModel();
-        }
-        String model1Alias = model1.getAlias();
-        String model2Alias = model2.getAlias();
-        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_1", model1Alias);
-        Assert.assertEquals(model1Alias, model2Alias);
-        {
-            String[] sqlStatements = new String[] { "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
-                    + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
-                    + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
-                    + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
-            val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
-            NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runUtWithContext(smartUtHook);
-            AbstractContext ctx = smartMaster.getContext();
-            AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
-            model3 = modelContext.getTargetModel();
-        }
-        String model3Alias = model3.getAlias();
-        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_2", model3Alias);
+        String[] sqlStatements1 = new String[] {
+                "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements1);
+        NSmartMaster smartMaster1 = new NSmartMaster(context1);
+        smartMaster1.runUtWithContext(smartUtHook);
+        AbstractContext ctx1 = smartMaster1.getContext();
+        AbstractContext.NModelContext modelContext1 = ctx1.getModelContexts().get(0);
+        NDataModel model1 = modelContext1.getTargetModel();
+        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_1", model1.getAlias());
+
+        // reuse model, without propose name
+        String[] sqlStatements2 = new String[] {
+                "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o "
+                        + "on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id "
+                        + "WHERE f.lstg_format_name = 'ABIN'" };
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements2);
+        NSmartMaster smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runUtWithContext(smartUtHook);
+        AbstractContext ctx2 = smartMaster2.getContext();
+        AbstractContext.NModelContext modelContext2 = ctx2.getModelContexts().get(0);
+        NDataModel model2 = modelContext2.getTargetModel();
+        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_1", model2.getAlias());
+
+        // mock user change name alias to lower case
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
+        modelManager.updateDataModel(model2.getUuid(), copyForWrite -> {
+            String newAlias = copyForWrite.getAlias().toLowerCase();
+            copyForWrite.setAlias(newAlias);
+        });
+        NDataModel model = modelManager.getDataModelDesc(model2.getUuid());
+        Assert.assertEquals("auto_model_kylin_sales_1", model.getAlias());
+
+        //
+        String[] sqlStatements3 = new String[] { "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
+                + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o "
+                + "on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
+                + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
+                + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
+        val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements3);
+        NSmartMaster smartMaster3 = new NSmartMaster(context3);
+        smartMaster3.runUtWithContext(smartUtHook);
+        AbstractContext ctx3 = smartMaster3.getContext();
+        Assert.assertEquals(2, ctx3.getModelContexts().size());
+        AbstractContext.NModelContext modelContext3 = ctx3.getModelContexts().get(0);
+        NDataModel model3 = modelContext3.getTargetModel();
+        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_2", model3.getAlias());
+        AbstractContext.NModelContext modelContext4 = ctx3.getModelContexts().get(1);
+        NDataModel model4 = modelContext4.getTargetModel();
+        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_3", model4.getAlias());
+
     }
 
     @Test

@@ -425,12 +425,11 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      * approve all recommendations in specified models
      */
     @Transaction(project = 0)
-    public void batchApprove(String project, List<String> modelAlias, String recActionType) {
+    public void batchApprove(String project, List<String> modelIds, String recActionType) {
         aclEvaluate.checkProjectOperationPermission(project);
-        if (CollectionUtils.isEmpty(modelAlias)) {
+        if (CollectionUtils.isEmpty(modelIds)) {
             return;
         }
-        Set<String> targetModelNames = modelAlias.stream().map(String::toLowerCase).collect(Collectors.toSet());
 
         List<NDataflow> dataflowList = getDataflowManager(project).listAllDataflows();
         for (NDataflow df : dataflowList) {
@@ -438,7 +437,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 continue;
             }
             NDataModel model = df.getModel();
-            if (targetModelNames.contains(model.getAlias())) {
+            if (modelIds.contains(model.getUuid())) {
                 approveAllRecItems(project, model.getUuid(), recActionType);
             }
         }

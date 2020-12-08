@@ -26,6 +26,7 @@ package io.kyligence.kap.smart;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
@@ -60,7 +61,8 @@ public class NModelRenameProposer extends NAbstractProposer {
         }
     }
 
-    private String proposeModelAlias(NDataModel model, Set<String> usedNames) {
+    private String proposeModelAlias(NDataModel model, Set<String> usedModelNames) {
+        Set<String> usedNames = usedModelNames.stream().map(String::toUpperCase).collect(Collectors.toSet());
         String rootTableAlias = model.getRootFactTable().getAlias();
         int suffix = 0;
         String targetName;
@@ -69,9 +71,9 @@ public class NModelRenameProposer extends NAbstractProposer {
                 throw new IllegalStateException("Potential infinite loop in getModelName().");
             }
             targetName = NModelRenameProposer.MODEL_ALIAS_PREFIX + rootTableAlias + "_" + suffix;
-        } while (usedNames.contains(targetName));
+        } while (usedNames.contains(targetName.toUpperCase()));
         log.info("The alias of the model({}) was rename to {}.", model.getId(), targetName);
-        usedNames.add(targetName);
+        usedModelNames.add(targetName.toUpperCase());
         return targetName;
     }
 

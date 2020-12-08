@@ -34,7 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.tool.bisync.SyncContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -91,11 +93,9 @@ import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -352,10 +352,12 @@ public class OpenModelController extends NBasicController {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
                 throw new KylinException(INVALID_MODEL_NAME, MsgPicker.getMsg().getEMPTY_MODEL_NAME());
             }
+            List<String> modelIds = Lists.newArrayList();
             for (String modelName : request.getModelNames()) {
-                getModel(modelName, request.getProject());
+                NDataModelResponse modelResponse = getModel(modelName, request.getProject());
+                modelIds.add(modelResponse.getUuid());
             }
-            optRecService.batchApprove(request.getProject(), request.getModelNames(), request.getRecActionType());
+            optRecService.batchApprove(request.getProject(), modelIds, request.getRecActionType());
         } else {
             optRecService.batchApprove(request.getProject(), request.getRecActionType());
         }
@@ -460,12 +462,12 @@ public class OpenModelController extends NBasicController {
     @ApiOperation(value = "export model", notes = "Add URL: {model}")
     @GetMapping(value = "/{model_name:.+}/export")
     @ResponseBody
-    public void exportModel(@PathVariable("model_name") String modelAlias, @RequestParam(value = "project") String project,
-                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                            @RequestParam(value = "server_host", required = false) String host,
-                            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
-                            HttpServletResponse response) throws IOException {
+    public void exportModel(@PathVariable("model_name") String modelAlias,
+            @RequestParam(value = "project") String project, @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String host,
+            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         checkProjectName(project);
         val modelId = getModel(modelAlias, project).getId();
         modelController.exportModel(modelId, project, exportAs, element, host, port, request, response);
