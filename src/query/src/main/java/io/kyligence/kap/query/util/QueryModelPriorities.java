@@ -32,7 +32,7 @@ public class QueryModelPriorities {
     private QueryModelPriorities() {
     }
 
-    private static final Pattern MODEL_PRIORITY_PATTERN = Pattern.compile("SELECT\\W+/\\*\\+\\W*(.+)\\*/");
+    private static final Pattern MODEL_PRIORITY_PATTERN = Pattern.compile("SELECT\\W+/\\*\\+\\W*([^*/]+)\\*/");
 
     private static String getHint(String sql) {
         Matcher matcher = MODEL_PRIORITY_PATTERN.matcher(sql.toUpperCase());

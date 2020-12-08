@@ -41,6 +41,7 @@ public class QueryModelPrioritiesTest {
         Assert.assertEquals("MODEL1,MODEL2,MODEL3", getModelHints("select /*+ MODEL_PRIORITY(model1, model2,     model3)*/"));
         Assert.assertEquals("MODEL1", getModelHints("select   /*+   MODEL_PRIORITY(model1)  */ a from tbl"));
         Assert.assertEquals("MODEL1,MODEL2", getModelHints("select a from table inner join (select /*+ MODEL_PRIORITY(model1, model2) */b from table)"));
+        Assert.assertEquals("MODEL3", getModelHints("select /*+MODEL_PRIORITY(model3)*/ LO_COMMITDATE,LO_CUSTKEY,count(LO_LINENUMBER) from  SSB.LINEORDER  where LO_COMMITDATE in(select /*+ MODEL_PRIORITY(model1)*/LO_COMMITDATE from SSB.LINEORDER) group by LO_CUSTKEY,LO_COMMITDATE"));
     }
 
     private String getModelHints(String sql) {
