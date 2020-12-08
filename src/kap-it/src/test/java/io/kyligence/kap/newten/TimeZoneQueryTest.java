@@ -23,15 +23,19 @@
  */
 package io.kyligence.kap.newten;
 
-import static org.junit.Assert.fail;
-
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
@@ -55,16 +59,9 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
-
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import scala.collection.JavaConversions;
+
+import static org.junit.Assert.fail;
 
 @RunWith(TimeZoneTestRunner.class)
 public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
@@ -88,14 +85,16 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set("spark.sql.adaptive.enabled", "true");
-        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(), TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
+
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/timezone");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));

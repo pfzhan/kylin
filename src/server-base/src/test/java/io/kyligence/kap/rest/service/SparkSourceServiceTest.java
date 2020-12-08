@@ -68,7 +68,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
         ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
                 "jdbc:derby:memory:db;create=true");
         SparderEnv.setSparkSession(ss);
-        createTestMetadata();
+        staticCreateTestMetadata();
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -88,7 +88,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @After
     public void after() throws Exception {
-        createTestMetadata();
+        FileUtils.deleteDirectory(new File("metastore_db"));
         ss.stop();
     }
 

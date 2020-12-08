@@ -37,7 +37,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -127,10 +126,12 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
-        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(), TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
+
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @AfterClass
@@ -324,10 +325,10 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
-        overwriteSystemProp("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        overwriteSystemProp("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        overwriteSystemProp("kylin.query.pushdown.jdbc.username", "sa");
-        overwriteSystemProp("kylin.query.pushdown.jdbc.password", "");
+        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
+        System.setProperty("kylin.query.pushdown.jdbc.password", "");
     }
 
     private void cleanPushdownEnv() throws Exception {
@@ -335,6 +336,10 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         h2Connection.close();
+        System.clearProperty("kylin.query.pushdown.jdbc.url");
+        System.clearProperty("kylin.query.pushdown.jdbc.driver");
+        System.clearProperty("kylin.query.pushdown.jdbc.username");
+        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 
     protected String getProject() {

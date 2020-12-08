@@ -56,7 +56,9 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -92,9 +94,18 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     @Mock
     private IUserGroupService userGroupService = Mockito.spy(IUserGroupService.class);
 
+    @BeforeClass
+    public static void setupResource() {
+        staticCreateTestMetadata();
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        staticCleanupTestMetadata();
+    }
+
     @Before
     public void setup() {
-        createTestMetadata();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(queryService, "userGroupService", userGroupService);
@@ -114,7 +125,6 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
     @After
     public void destroy() {
-        cleanupTestMetadata();
         System.clearProperty("kylin.query.cache-enabled");
     }
 

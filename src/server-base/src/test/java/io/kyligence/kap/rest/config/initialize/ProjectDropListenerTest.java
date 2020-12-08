@@ -23,9 +23,11 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
+import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCleanupTestMetadata;
+import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCreateTestMetadata;
+
 import java.io.IOException;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -40,12 +42,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import lombok.val;
 
-public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
+public class ProjectDropListenerTest {
 
     @Before
     public void setup() {
         System.setProperty("HADOOP_USER_NAME", "root");
-        createTestMetadata();
+        staticCreateTestMetadata();
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         SecurityContextHolder.getContext()
@@ -54,7 +56,7 @@ public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        cleanupTestMetadata();
+        staticCleanupTestMetadata();
     }
 
     @Test

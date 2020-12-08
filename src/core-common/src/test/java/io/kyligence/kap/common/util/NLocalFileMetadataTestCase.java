@@ -25,6 +25,7 @@
 package io.kyligence.kap.common.util;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -138,6 +139,11 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     @Override
     public void createTestMetadata(String... overlay) {
         staticCreateTestMetadata(overlay);
+        getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
+    }
+
+    public void createTestMetadata() {
+        staticCreateTestMetadata();
         val kylinHomePath = new File(getTestConfig().getMetadataUrl().toString()).getParentFile().getAbsolutePath();
         overwriteSystemProp("KYLIN_HOME", kylinHomePath);
         val jobJar = io.kyligence.kap.common.util.FileUtils.findFile(
@@ -162,11 +168,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
-        try {
-            Class.forName("org.h2.Driver");
-        } catch (ClassNotFoundException e) {
-            // ignore it
-        }
     }
 
     private static void cleanSingletonInstances() {
@@ -201,6 +202,19 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         }
     }
 
+    public static void staticCreateTestMetadata() {
+        cleanSingletonInstances();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
+        tempMetadataDirectory = new File(tempMetadataDir);
+        getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
+        try {
+            Class.forName("org.h2.Driver");
+        } catch (ClassNotFoundException e) {
+            // ignore it
+        }
+    }
+
     public static KylinConfig getTestConfig() {
         return KylinConfig.getInstanceFromEnv();
     }
@@ -211,6 +225,17 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         FileUtils.deleteQuietly(directory);
 
         clearTestConfig();
+    }
+
+    protected String getLocalWorkingDirectory() {
+        String dir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        if (dir.startsWith("file://"))
+            dir = dir.substring("file://".length());
+        try {
+            return new File(dir).getCanonicalPath();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     protected ResourceStore getStore() {

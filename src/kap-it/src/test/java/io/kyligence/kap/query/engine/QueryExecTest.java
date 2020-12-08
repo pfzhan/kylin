@@ -42,12 +42,12 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        createTestMetadata();
+        staticCreateTestMetadata();
     }
 
     @After
     public void teardown() {
-        cleanupTestMetadata();
+        staticCleanupTestMetadata();
     }
 
     private Dataset<Row> check(String SQL) throws SQLException {

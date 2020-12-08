@@ -70,9 +70,7 @@ public class NAutoTestBase extends NSuggestTestBase {
         String[] sqls = sqlList.toArray(new String[0]);
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
+        smartMaster.runUtWithContext(smartUtHook);
         return smartMaster;
     }
 

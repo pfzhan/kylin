@@ -77,7 +77,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -121,7 +121,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         SparkSession ss = SparderEnv.getSparkSession();
         populateSSWithCSVData(config, getProject(), ss);
 
-        overwriteSystemProp("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
+        System.setProperty("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
         slowQueryDetector.queryStart("");
         try {
             SparderEnv.cleanCompute();

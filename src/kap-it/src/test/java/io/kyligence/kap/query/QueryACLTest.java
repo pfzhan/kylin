@@ -29,8 +29,6 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import io.kyligence.kap.utils.AccelerationContextUtil;
 import org.apache.kylin.common.QueryContext;
 import org.junit.Assert;
 import org.junit.Before;
@@ -153,11 +151,9 @@ public class QueryACLTest extends NAutoTestBase {
     }
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
-        val context = new SmartContext(getTestConfig(), PROJECT, sqls);
-        val smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
+        val smartContext = new SmartContext(getTestConfig(), PROJECT, sqls);
+        val smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(getTestConfig(), PROJECT);
     }
 

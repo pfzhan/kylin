@@ -142,7 +142,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setupResource() {
         System.setProperty("HADOOP_USER_NAME", "root");
-        super.createTestMetadata();
+        createTestMetadata();
     }
 
     @After

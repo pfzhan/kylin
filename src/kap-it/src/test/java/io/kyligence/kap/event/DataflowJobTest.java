@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event;
 
+import static io.kyligence.kap.newten.NSuggestTestBase.smartUtHook;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.OFFLINE;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
@@ -77,9 +78,9 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setUp() throws Exception {
-        overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "2");
-        overwriteSystemProp("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        System.setProperty("kylin.job.event.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "2");
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         this.createTestMetadata();
         NDefaultScheduler.destroyInstance();
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
@@ -96,6 +97,9 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     public void tearDown() throws Exception {
         NDefaultScheduler.destroyInstance();
         this.cleanupTestMetadata();
+        System.clearProperty("kylin.job.event.poll-interval-second");
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        System.clearProperty("kylin.engine.spark.build-class-name");
 
     }
 
@@ -269,9 +273,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 "group by TEST_ORDER.ORDER_ID,BUYER_ID"};
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sql1);
         val smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(null);
-        context.saveMetadata();
-        AccelerationContextUtil.onlineModel(context);
+        smartMaster.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
 

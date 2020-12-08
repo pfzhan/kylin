@@ -44,8 +44,8 @@ public class NMultipleCuboidsTest extends NLocalWithSparkSessionTest {
     public void setup() {
         this.createTestMetadata("src/test/resources/ut_meta/multiple_cuboids");
         ss.sparkContext().setLogLevel("ERROR");
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        overwriteSystemProp("kylin.engine.spark.cache-threshold", "2");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.engine.spark.cache-threshold", "2");
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()));
@@ -58,6 +58,8 @@ public class NMultipleCuboidsTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        System.clearProperty("kylin.engine.spark.cache-threshold");
     }
 
     @Test

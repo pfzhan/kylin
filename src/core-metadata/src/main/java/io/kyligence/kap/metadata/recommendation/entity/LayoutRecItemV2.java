@@ -105,7 +105,7 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
                 key = RawRecUtil.meaUniqueFlag(measure, ccNameMap);
             }
             if (uniqueContentToRecItemMap.containsKey(key)) {
-                colOrderInDB.add(-uniqueContentToRecItemMap.get(key).getId());
+                colOrderInDB.add(-1 * uniqueContentToRecItemMap.get(key).getId());
             } else {
                 colOrderInDB.add(colId);
             }

@@ -39,7 +39,6 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
@@ -58,10 +57,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JobRunnerFactory {
 
-    private JobRunnerFactory() {
-        // Just implement it
-    }
-
     public static AbstractJobRunner createRunner(KylinConfig config, String type, String project,
             List<String> resources) {
         switch (type) {
@@ -75,7 +70,7 @@ public class JobRunnerFactory {
     }
 
     @RequiredArgsConstructor
-    public abstract static class AbstractJobRunner {
+    public static abstract class AbstractJobRunner {
 
         protected final KylinConfig kylinConfig;
         protected final String project;
@@ -114,7 +109,7 @@ public class JobRunnerFactory {
         }
 
         public String getJobTmpDir() {
-            return KylinConfigBase.getKylinHome() + "/tmp/" + jobId;
+            return KylinConfig.getKylinHome() + "/tmp/" + jobId;
         }
 
         public void setConfigUpdater(Consumer<Properties> consumer) {

@@ -113,7 +113,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        super.createTestMetadata();
+        createTestMetadata();
     }
 
     @After

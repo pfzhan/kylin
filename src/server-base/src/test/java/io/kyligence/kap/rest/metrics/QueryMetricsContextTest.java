@@ -76,12 +76,12 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        createTestMetadata();
+        staticCreateTestMetadata();
     }
 
     @After
     public void teardown() {
-        cleanupTestMetadata();
+        staticCleanupTestMetadata();
         QueryContext.reset();
         QueryMetricsContext.reset();
         OLAPContext.clearThreadLocalContexts();

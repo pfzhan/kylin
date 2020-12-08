@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -85,16 +84,17 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set("spark.sql.adaptive.enabled", "true");
-        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(), TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -107,6 +107,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test

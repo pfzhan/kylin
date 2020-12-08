@@ -154,9 +154,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -198,9 +196,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -241,9 +237,8 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        ProposerJob.propose(smartContext);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -312,9 +307,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assertion of the model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -351,9 +344,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -403,9 +394,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sql });
         val smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -449,9 +438,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price, sum(price+1) from test_kylin_fact group by price" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
-        smartContext.saveMetadata();
-        AccelerationContextUtil.onlineModel(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();

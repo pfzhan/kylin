@@ -262,7 +262,7 @@ public class RawRecService {
                     recItem.cleanLayoutStatistics();
                     recItem.setState(RawRecItem.RawRecState.RECOMMENDED);
                 }
-                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout(), targetModel);
+                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout());
                 if (recItem.isAdditionalRecItemSavable()) {
                     rawRecItems.add(recItem);
                 }
@@ -272,11 +272,11 @@ public class RawRecService {
     }
 
     private void updateLayoutStatistic(RawRecItem recItem, ListMultimap<String, QueryHistory> layoutToQHMap,
-            LayoutEntity layout, NDataModel targetModel) {
+            LayoutEntity layout) {
         if (layoutToQHMap.isEmpty()) {
             return;
         }
-        List<QueryHistory> queryHistories = layoutToQHMap.get(targetModel.getId() + "_" + layout.getId());
+        List<QueryHistory> queryHistories = layoutToQHMap.get(layout.getModel().getId() + "_" + layout.getId());
         if (CollectionUtils.isEmpty(queryHistories)) {
             return;
         }

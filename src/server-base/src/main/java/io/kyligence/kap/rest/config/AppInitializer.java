@@ -32,15 +32,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.config.initialize.AclTCRListener;
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
-import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
-import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
-import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -72,6 +63,14 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AclTCRListener;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
+import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
+import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
+import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
 import io.kyligence.kap.rest.source.NHiveTableName;
@@ -137,7 +136,6 @@ public class AppInitializer {
             EventBusFactory.getInstance().register(epochChangedListener, false);
             EventBusFactory.getInstance().register(broadcastListener, false);
             EventBusFactory.getInstance().register(sourceUsageUpdateListener, false);
-            EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
 
             ExecutableUtils.initJobFactory();
         } else {

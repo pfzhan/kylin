@@ -54,9 +54,10 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -83,10 +84,15 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
+    @BeforeClass
+    public static void setupResource() throws Exception {
+        System.setProperty("HADOOP_USER_NAME", "root");
+        staticCreateTestMetadata();
+
+    }
+
     @Before
     public void setup() throws IOException {
-        overwriteSystemProp("HADOOP_USER_NAME", "root");
-        createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
@@ -95,9 +101,9 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
     }
 
-    @After
-    public void tearDown() {
-        cleanupTestMetadata();
+    @AfterClass
+    public static void tearDown() {
+        staticCleanupTestMetadata();
     }
 
     @Test

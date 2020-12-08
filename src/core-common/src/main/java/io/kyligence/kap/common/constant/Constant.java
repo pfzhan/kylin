@@ -42,12 +42,8 @@
 package io.kyligence.kap.common.constant;
 
 public class Constant {
-    private Constant() {
-        // Just implement
-    }
+    public final static long SECOND = 1000L;
+    public final static long MINUTE = 60 * SECOND;
 
-    public static final long SECOND = 1000L;
-    public static final long MINUTE = 60 * SECOND;
-
-    public static final int AUDIT_MAX_BUFFER_SIZE = 10 * 1024 * 1024;
+    public final static int AUDIT_MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 }

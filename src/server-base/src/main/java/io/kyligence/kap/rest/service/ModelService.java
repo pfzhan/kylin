@@ -1789,6 +1789,7 @@ public class ModelService extends BasicService {
                 .map(Map.Entry::getKey).collect(Collectors.toList());
         NDataModel model = modelContext.getTargetModel();
         IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+        val config = context.getSmartConfig().getKylinConfig();
         ImmutableBiMap<Integer, TblColRef> effectiveDimensions = model.getEffectiveDimensions();
         List<LayoutRecDetailResponse.RecDimension> recDims = model.getAllNamedColumns().stream() //
                 .filter(NDataModel.NamedColumn::isDimension) //

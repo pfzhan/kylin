@@ -29,15 +29,14 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.LinkedHashMap;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
 import org.apache.kylin.source.jdbc.H2Database;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 
 public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
@@ -45,9 +44,9 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
     protected static Connection h2Conn = null;
     protected static H2Database h2Db = null;
 
-    @Before
-    public void setUp() throws Exception {
-        createTestMetadata();
+    @BeforeClass
+    public static void setUp() throws Exception {
+        staticCreateTestMetadata();
         getTestConfig().setProperty("kylin.source.jdbc.dialect", "testing");
 
         connector = SourceConnectorFactory.getJdbcConnector(getTestConfig());
@@ -57,12 +56,12 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
         h2Db.loadAllTables();
     }
 
-    @After
-    public void after() throws Exception {
+    @AfterClass
+    public static void after() throws Exception {
         h2Db.dropAll();
         DBUtils.closeQuietly(h2Conn);
 
-        cleanupTestMetadata();
+        staticCleanupTestMetadata();
     }
 
     @Test

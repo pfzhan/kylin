@@ -95,8 +95,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @Ignore("for developing")
     public void testTmp() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        overwriteSystemProp("noBuild", "true");
-        overwriteSystemProp("isDeveloperMode", "true");
+        System.setProperty("noBuild", "true");
+        System.setProperty("isDeveloperMode", "true");
         buildCubes();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
         List<Pair<String, Throwable>> results = execAndGetResults(

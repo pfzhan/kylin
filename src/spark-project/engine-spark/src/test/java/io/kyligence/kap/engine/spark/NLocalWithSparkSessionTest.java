@@ -115,11 +115,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.shuffle.detectCorrupt", "false");
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
-        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(), TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @AfterClass

@@ -46,7 +46,7 @@ import lombok.val;
 public class NComputColumnTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/comput_column");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -59,6 +59,7 @@ public class NComputColumnTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override

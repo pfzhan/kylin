@@ -84,7 +84,6 @@ public class ComputedColumnDesc implements Serializable {
     @JsonProperty
     @EqualsAndHashCode.Exclude
     private String comment;
-    @JsonProperty("rec_uuid")
     @EqualsAndHashCode.Exclude
     private String uuid;
 

@@ -82,7 +82,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        createTestMetadata();
+        staticCreateTestMetadata();
         killProcessCount = new AtomicInteger();
         val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager = Mockito.spy(originExecutableManager);

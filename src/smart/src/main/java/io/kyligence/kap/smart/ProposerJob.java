@@ -121,9 +121,6 @@ public class ProposerJob extends ExecutableApplication {
                 if (targetModel != null) {
                     targetModel.init(config, tables, Lists.newArrayList(), context.getProject());
                 }
-                modelOutput.getMeasureRecItemMap().forEach((key, m) -> {
-                    m.getMeasure().getFunction().init(targetModel);
-                });
             });
             ContextOutput.merge(context, output);
         } catch (Exception e) {
@@ -200,6 +197,7 @@ public class ProposerJob extends ExecutableApplication {
         try {
             tool.execute(args);
         } catch (Exception e) {
+            e.printStackTrace();
             log.warn("Propose {} failed", args, e);
             System.exit(1);
         }

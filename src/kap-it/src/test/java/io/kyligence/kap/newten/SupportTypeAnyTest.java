@@ -41,7 +41,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 public class SupportTypeAnyTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
@@ -53,6 +53,7 @@ public class SupportTypeAnyTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test

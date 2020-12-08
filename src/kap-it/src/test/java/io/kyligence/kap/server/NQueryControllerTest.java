@@ -98,20 +98,21 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testPushDownQuery() throws Exception {
-        overwriteSystemProp("kylin.query.pushdown.runner-class-name", "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        overwriteSystemProp("kylin.query.pushdown-enabled", "true");
-        overwriteSystemProp("kylin.query.pushdown.cache-enabled", "true");
-        overwriteSystemProp("kylin.query.cache-threshold-duration", "0");
+        System.setProperty("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
+        System.setProperty("kylin.query.pushdown-enabled", "true");
+        System.setProperty("kylin.query.pushdown.cache-enabled", "true");
+        System.setProperty("kylin.query.cache-threshold-duration", "0");
 
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
-        overwriteSystemProp("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        overwriteSystemProp("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        overwriteSystemProp("kylin.query.pushdown.jdbc.username", "sa");
-        overwriteSystemProp("kylin.query.pushdown.jdbc.password", "");
+        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
+        System.setProperty("kylin.query.pushdown.jdbc.password", "");
 
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("default");

@@ -69,6 +69,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     public void teardown() {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test

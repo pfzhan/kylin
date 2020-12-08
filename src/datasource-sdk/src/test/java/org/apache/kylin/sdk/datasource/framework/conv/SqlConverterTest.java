@@ -29,9 +29,9 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -39,14 +39,14 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 public class SqlConverterTest extends NLocalFileMetadataTestCase {
     private final static String TEST_TARGET = "testing";
 
-    @Before
-    public void setUp() {
-        createTestMetadata();
+    @BeforeClass
+    public static void setUp() {
+        staticCreateTestMetadata();
     }
 
-    @After
-    public void after() {
-        cleanupTestMetadata();
+    @AfterClass
+    public static void after() {
+        staticCleanupTestMetadata();
     }
 
     @Test

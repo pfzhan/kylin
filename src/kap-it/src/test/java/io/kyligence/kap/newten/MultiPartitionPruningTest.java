@@ -82,25 +82,29 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest {
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
 
     @Before
     public void setup() throws Exception {
-        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition_pruning");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
-        overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
+        System.setProperty("kylin.model.multi-partition-enabled", "true");
     }
 
     @After
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        System.clearProperty("kylin.model.multi-partition-enabled");
     }
 
     @Override

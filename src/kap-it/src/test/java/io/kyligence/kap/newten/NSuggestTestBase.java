@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -72,9 +73,11 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.util.QueryPatternUtil;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.tool.util.ZipFileUtil;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -514,5 +517,5 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         }
     }
 
-//    public static Consumer<AbstractContext> smartUtHook = AccelerationContextUtil::onlineModel;
+    public static Consumer<AbstractContext> smartUtHook = AccelerationContextUtil::onlineModel;
 }

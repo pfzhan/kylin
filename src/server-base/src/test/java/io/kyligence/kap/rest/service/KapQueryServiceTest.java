@@ -32,8 +32,10 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -53,7 +55,7 @@ import lombok.val;
 public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
-    private KapQueryService kapQueryService;
+    private KapQueryService kapQueryService = Mockito.spy(new KapQueryService());
 
     @Mock
     private AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -61,10 +63,19 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @BeforeClass
+    public static void setupResource() throws Exception {
+        staticCreateTestMetadata();
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        staticCleanupTestMetadata();
+    }
+
     @Before
     public void setup() {
         createTestMetadata();
-        kapQueryService = Mockito.spy(new KapQueryService());
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(kapQueryService, "aclEvaluate", aclEvaluate);
     }
@@ -89,16 +100,17 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testAliasLengthMaxThanConfig() {
         //To check if the config kylin.model.dimension-measure-name.max-length worked for SqlParser
-        List<String> sqls = Lists.newArrayList("select A.a as AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA from A");
+        List<String> sqls = Lists.newArrayList("select A.a as AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA from A");
 
-        List<String> expectedFormattedSqls = Lists.newArrayList("SELECT\n"
-                + "  \"A\".\"A\" AS \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n" + "FROM \"A\"");
+        List<String> expectedFormattedSqls = Lists.newArrayList("SELECT\n" +
+                "  \"A\".\"A\" AS \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n" +
+                "FROM \"A\"");
 
         val formated = kapQueryService.format(sqls);
 

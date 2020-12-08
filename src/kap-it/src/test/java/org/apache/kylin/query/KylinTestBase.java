@@ -66,6 +66,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.LogManager;
 
+import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
@@ -106,12 +107,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.query.engine.QueryExec;
-
 /**
  */
-public class KylinTestBase extends NLocalFileMetadataTestCase {
+public class KylinTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(KylinTestBase.class);
     public static boolean PRINT_RESULT = false;

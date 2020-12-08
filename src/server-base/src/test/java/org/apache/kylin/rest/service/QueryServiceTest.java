@@ -100,6 +100,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -154,10 +155,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private ClusterManager clusterManager = new DefaultClusterManager(8080);
 
-    private QueryService origin;
+    private QueryService origin = new QueryService();
 
     @InjectMocks
-    private QueryService queryService;
+    private QueryService queryService = Mockito.spy(origin);
 
     @InjectMocks
     private AppConfig appConfig = Mockito.spy(new AppConfig());
@@ -179,17 +180,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private int pushdownCount;
 
+    @BeforeClass
+    public static void setupResource() throws Exception {
+        System.setProperty("kylin.query.cache-threshold-duration", String.valueOf(-1));
+        System.setProperty("HADOOP_USER_NAME", "root");
+        staticCreateTestMetadata();
+    }
+
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.query.transaction-enable", "true");
-        System.setProperty("kylin.query.cache-threshold-duration", String.valueOf(-1));
-        System.setProperty("HADOOP_USER_NAME", "root");
 
         createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        origin = new QueryService();
-        queryService = Mockito.spy(origin);
 
         ReflectionTestUtils.setField(queryCacheManager, "cacheManager", cacheManager);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
@@ -207,7 +211,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void cleanup() {
-        cleanupTestMetadata();
         System.clearProperty("kylin.query.transaction-enable");
     }
 

@@ -123,7 +123,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Before
     public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
-        createTestMetadata();
+        staticCreateTestMetadata();
         modelService.setSemanticUpdater(semanticService);
         indexPlanService.setSemanticUpater(semanticService);
         modelService.setIndexPlanService(indexPlanService);

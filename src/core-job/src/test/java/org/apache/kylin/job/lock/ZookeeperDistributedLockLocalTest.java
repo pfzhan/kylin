@@ -75,7 +75,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
 
     @Before
     public void setup() throws Exception {
-        createTestMetadata();
+        staticCreateTestMetadata();
 
         TestingServer zkTestServer = new TestingServer();
         zkTestServer.start();
@@ -88,7 +88,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
 
     @After
     public void after() throws Exception {
-        cleanupTestMetadata();
+        staticCleanupTestMetadata();
         factory.lockForCurrentProcess().purgeLocks(ZK_PFX);
     }
 
