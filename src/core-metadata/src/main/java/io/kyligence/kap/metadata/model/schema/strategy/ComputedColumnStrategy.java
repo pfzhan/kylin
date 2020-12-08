@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Objects;
+
 import io.kyligence.kap.guava20.shaded.common.collect.MapDifference;
 import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
 import io.kyligence.kap.metadata.model.schema.SchemaNode;
@@ -49,8 +51,8 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> newItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                     Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
-                                                                     Set<String> originalModels) {
+            Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
+            Set<String> originalModels) {
         List<SchemaNode> allComputedColumns = difference.getSourceGraph().nodes().stream()
                 .filter(schemaNode -> supportedSchemaNodeTypes().contains(schemaNode.getType()))
                 .collect(Collectors.toList());
@@ -82,7 +84,7 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.UpdatedItem> updateItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                        MapDifference.ValueDifference<SchemaNode> diff, Set<String> importModels, Set<String> originalModels) {
+            MapDifference.ValueDifference<SchemaNode> diff, Set<String> importModels, Set<String> originalModels) {
         List<SchemaNode> allComputedColumns = difference.getSourceGraph().nodes().stream()
                 .filter(schemaNode -> supportedSchemaNodeTypes().contains(schemaNode.getType()))
                 .collect(Collectors.toList());
@@ -111,8 +113,8 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> reduceItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                        Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
-                                                                        Set<String> originalModels) {
+            Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
+            Set<String> originalModels) {
         String modelAlias = entry.getValue().getSubject();
         boolean overwritable = overwritable(importModels, originalModels, modelAlias);
         if (overwritable) {
@@ -133,8 +135,11 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
     private boolean hasComputedColumnNameWithDifferentExpression(SchemaNode node, List<SchemaNode> allComputedColumns) {
         String ccName = node.getDetail();
         String expression = (String) node.getAttributes().get("expression");
-        return allComputedColumns.stream().anyMatch(schemaNode -> schemaNode.getDetail().equals(ccName)
-                && !schemaNode.getAttributes().get("expression").equals(expression));
+
+        return allComputedColumns.stream()
+                .anyMatch(schemaNode -> Objects.equal(node.getAttributes().get("fact_table"),
+                        schemaNode.getAttributes().get("fact_table")) && schemaNode.getDetail().equals(ccName)
+                        && !schemaNode.getAttributes().get("expression").equals(expression));
     }
 
     /**
@@ -146,8 +151,11 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
     private boolean hasExpressionWithDifferentComputedColumn(SchemaNode node, List<SchemaNode> allComputedColumns) {
         String ccName = node.getDetail();
         String expression = (String) node.getAttributes().get("expression");
-        return allComputedColumns.stream().anyMatch(schemaNode -> !schemaNode.getDetail().equals(ccName)
-                && schemaNode.getAttributes().get("expression").equals(expression));
+
+        return allComputedColumns.stream()
+                .anyMatch(schemaNode -> Objects.equal(node.getAttributes().get("fact_table"),
+                        schemaNode.getAttributes().get("fact_table")) && !schemaNode.getDetail().equals(ccName)
+                        && schemaNode.getAttributes().get("expression").equals(expression));
     }
 
 }

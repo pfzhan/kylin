@@ -45,6 +45,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.model.ModelJoinRelationTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -208,6 +209,33 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testConflictWithDifferentJoinRelationType() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/conflict_join_relation_type_project/target_project_model_metadata_2020_12_07_14_26_55_89173666F1E93F7988011666659D95AD.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
+        val difference = SchemaUtil.diff(getTargetProject(), KylinConfig.getInstanceFromEnv(),
+                importModelContext.getTargetKylinConfig());
+
+        val schemaChangeResponse = ModelImportChecker.check(difference, importModelContext);
+        Assert.assertFalse(schemaChangeResponse.getModels().isEmpty());
+
+        val modelSchemaChange = schemaChangeResponse.getModels().get(getTargetModel());
+
+        Assert.assertEquals(1, modelSchemaChange.getDifferences());
+        Assert.assertEquals(1, modelSchemaChange.getUpdateItems().size());
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream().anyMatch(updatedItem -> {
+            Assert.assertEquals(ModelJoinRelationTypeEnum.MANY_TO_ONE,
+                    updatedItem.getFirstAttributes().get("join_relation_type"));
+            Assert.assertEquals(ModelJoinRelationTypeEnum.MANY_TO_MANY,
+                    updatedItem.getSecondAttributes().get("join_relation_type"));
+            return !updatedItem.isOverwritable() && updatedItem.isCreatable();
+        }));
+    }
+
+    @Test
     public void testConflictWithDifferentPartition() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/conflict_partition_col_project/conflict_partition_col_project_model_metadata_2020_11_14_17_09_51_98DA15B726CE71B8FACA563708B8F4E5.zip");
@@ -290,6 +318,30 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                         && pair.getSecondSchemaNode().getAttributes().get("expression")
                                 .equals("P_LINEORDER.LO_CUSTKEY + 2")));
 
+    }
+
+    @Test
+    public void testModelCCInDifferentFactTableUpdate() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/model_cc_in_different_fact_table/target_project_model_metadata_2020_12_07_15_37_19_1C3C399B52A4E4E4F07C017C9692A7CB.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
+        val difference = SchemaUtil.diff(getTargetProject(), KylinConfig.getInstanceFromEnv(),
+                importModelContext.getTargetKylinConfig());
+
+        val schemaChangeResponse = ModelImportChecker.check(difference, importModelContext);
+        Assert.assertFalse(schemaChangeResponse.getModels().isEmpty());
+
+        val modelSchemaChange = schemaChangeResponse.getModels().get(getTargetModel());
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(updatedItem -> updatedItem.getType() == SchemaNodeType.MODEL_CC
+                        && updatedItem.getFirstAttributes().get("fact_table").equals("SSB.P_LINEORDER")
+                        && updatedItem.getSecondAttributes().get("fact_table").equals("SSB.LINEORDER")
+                        && updatedItem.getFirstAttributes().get("expression").equals("P_LINEORDER.LO_CUSTKEY + 1")
+                        && updatedItem.getSecondAttributes().get("expression").equals("LINEORDER.LO_CUSTKEY + 1")
+                        && updatedItem.isOverwritable()));
     }
 
     @Test

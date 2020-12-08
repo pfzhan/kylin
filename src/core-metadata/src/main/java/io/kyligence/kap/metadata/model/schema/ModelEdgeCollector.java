@@ -111,7 +111,7 @@ class ModelEdgeCollector {
             }
             val namedColumn = effectiveNamedColumns.get(id);
             val cc = ccs.get(tblColRef.getName());
-            val ccNode = SchemaNode.ofModelCC(cc, model.getAlias());
+            val ccNode = SchemaNode.ofModelCC(cc, model.getAlias(), model.getRootFactTableName());
             collectExprWithModel(cc.getExpression(), ccNode);
             graph.putEdge(ccNode, SchemaNode.ofModelColumn(namedColumn, model.getAlias()));
         });
@@ -144,7 +144,7 @@ class ModelEdgeCollector {
                     SchemaNode.ofModelDimensionTable(joinTable.getTableRef(), model.getAlias()));
 
             for (int i = 0; i < joinTable.getJoin().getPrimaryKey().length; i++) {
-                SchemaNode join = SchemaNode.ofJoin(joinTable.getJoin().getFKSide(), joinTable.getJoin().getPKSide(),
+                SchemaNode join = SchemaNode.ofJoin(joinTable, joinTable.getJoin().getFKSide(), joinTable.getJoin().getPKSide(),
                         joinTable.getJoin(), model.getAlias());
 
                 String fkCol = joinTable.getJoin().getForeignKey()[i];

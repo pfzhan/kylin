@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -126,9 +127,9 @@ public class SchemaNode {
                 ImmutableMap.of("id", String.valueOf(namedColumn.getId())), "id");
     }
 
-    public static SchemaNode ofModelCC(ComputedColumnDesc cc, String modelAlias) {
+    public static SchemaNode ofModelCC(ComputedColumnDesc cc, String modelAlias, String factTable) {
         return new SchemaNode(SchemaNodeType.MODEL_CC, modelAlias + "/" + cc.getColumnName(),
-                ImmutableMap.of("expression", cc.getExpression()));
+                ImmutableMap.of("expression", cc.getExpression(), "fact_table", factTable), "fact_table");
     }
 
     public static SchemaNode ofDimension(NDataModel.NamedColumn namedColumn, String modelAlias) {
@@ -162,11 +163,14 @@ public class SchemaNode {
     }
 
     // join type
-    public static SchemaNode ofJoin(TableRef fkTableRef, TableRef pkTableRef, JoinDesc joinDesc, String modelAlias) {
+    public static SchemaNode ofJoin(JoinTableDesc joinTableDesc, TableRef fkTableRef, TableRef pkTableRef,
+            JoinDesc joinDesc, String modelAlias) {
         return new SchemaNode(SchemaNodeType.MODEL_JOIN,
                 modelAlias + "/" + fkTableRef.getAlias() + "-" + pkTableRef.getAlias(),
-                ImmutableMap.<String, Object> builder().put("primary_table", pkTableRef.getAlias())
-                        .put("foreign_table", fkTableRef.getAlias()).put("join_type", joinDesc.getType())
+                ImmutableMap.<String, Object> builder()
+                        .put("join_relation_type", joinTableDesc.getJoinRelationTypeEnum())
+                        .put("primary_table", pkTableRef.getAlias()).put("foreign_table", fkTableRef.getAlias())
+                        .put("join_type", joinDesc.getType())
                         .put("primary_keys", Arrays.asList(joinDesc.getPrimaryKey()))
                         .put("foreign_keys", Arrays.asList(joinDesc.getForeignKey()))
                         .put("non_equal_join_condition",
