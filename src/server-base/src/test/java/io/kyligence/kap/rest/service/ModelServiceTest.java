@@ -1437,9 +1437,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // suggest again and assert result again
         AbstractContext proposeContextSecond = modelService.suggestModel(project, sqlList, true, true);
-        List<AbstractContext.ModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
+        List<AbstractContext.NModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
         Assert.assertEquals(1, modelContextsTwice.size());
-        AbstractContext.ModelContext modelContextTwice = modelContextsTwice.get(0);
+        AbstractContext.NModelContext modelContextTwice = modelContextsTwice.get(0);
         Map<String, LayoutRecItemV2> indexRexItemMapTwice = modelContextTwice.getIndexRexItemMap();
         Assert.assertEquals(2, indexRexItemMapTwice.size());
     }
