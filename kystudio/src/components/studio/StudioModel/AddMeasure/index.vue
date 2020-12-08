@@ -418,6 +418,7 @@ export default class AddMeasure extends Vue {
     } else {
       this.ccVisible = false
       this.isEdit = false
+      this.measure.return_type = this.getParameterValue.filter(item => item.name === value).length ? this.getParameterValue.filter(item => item.name === value)[0].datatype : ''
     }
   }
 
@@ -455,6 +456,7 @@ export default class AddMeasure extends Vue {
   newCC () {
     this.resetCCVisble()
     this.measure.parameterValue.value = ''
+    this.measure.return_type = ''
     this.isEdit = true
     this.ccVisible = true
   }
