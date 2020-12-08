@@ -23,8 +23,21 @@
  */
 package io.kyligence.kap.tool.routine;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.metadata.project.ProjectInstance;
+
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
@@ -34,17 +47,6 @@ import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ExecutableApplication;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.metadata.project.ProjectInstance;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Slf4j
@@ -84,13 +86,11 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         }
         MaintainModeTool maintainModeTool = new MaintainModeTool("routine tool");
         maintainModeTool.init();
-        try {
-            maintainModeTool.markEpochs();
-            doCleanup(projectsToCleanup);
-        } finally {
-            maintainModeTool.releaseEpochs();
+        maintainModeTool.markEpochs();
+        if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
+            Runtime.getRuntime().addShutdownHook(new Thread(maintainModeTool::releaseEpochs));
         }
-
+        doCleanup(projectsToCleanup);
     }
 
     private void doCleanup(List<String> projectsToCleanup) {

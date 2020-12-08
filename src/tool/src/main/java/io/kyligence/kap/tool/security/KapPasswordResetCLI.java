@@ -24,8 +24,7 @@
 
 package io.kyligence.kap.tool.security;
 
-import java.net.UnknownHostException;
-
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -46,18 +45,19 @@ import lombok.val;
 public class KapPasswordResetCLI {
     protected static final Logger logger = LoggerFactory.getLogger(KapPasswordResetCLI.class);
 
-    public static void main(String[] args) throws UnknownHostException {
+    public static void main(String[] args) {
         int exit;
         MaintainModeTool maintainModeTool = new MaintainModeTool("admin password resetting");
         maintainModeTool.init();
         try {
             maintainModeTool.markEpochs();
+            if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).isMaintenanceMode()) {
+                Runtime.getRuntime().addShutdownHook(new Thread(maintainModeTool::releaseEpochs));
+            }
             exit = reset() ? 0 : 1;
         } catch (Exception e) {
             exit = 1;
             logger.warn("Fail to reset admin password.", e);
-        } finally {
-            maintainModeTool.releaseEpochs();
         }
         System.exit(exit);
     }

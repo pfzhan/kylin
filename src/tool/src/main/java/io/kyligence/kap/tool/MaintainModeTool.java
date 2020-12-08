@@ -187,29 +187,29 @@ public class MaintainModeTool extends ExecutableApplication {
             log.warn("retry exited maintenance mode...retry:{},reason:{}", retryTimes, reason);
             exitMaintenanceModeWithRetry(retryTimes - 1, reason, prj, skipCheckMaintMode);
         } else {
-            throw new IllegalStateException("Failed to turn on maintain mode!");
+            throw new IllegalStateException("Failed to turn off maintain mode!");
 
         }
     }
 
     public void releaseEpochs() {
-        try {
-            print("Start to release epoch");
+        print("Start to release epoch");
+        if (!epochManager.isMaintenanceMode() && !forceToTurnOff) {
+            System.out.println("System is not in maintenance mode.");
+            log.warn("System is not in maintenance mode.");
+            throw new IllegalStateException("System is not in maintenance mode.");
+        }
 
-            if (!epochManager.isMaintenanceMode() && !forceToTurnOff) {
-                System.out.println("System is not in maintenance mode.");
-                log.warn("System is not in maintenance mode.");
-                System.exit(1);
-            }
+        try {
             System.setProperty(LEADER_RACE_KEY, "true");
             epochManager.setIdentity("");
             exitMaintenanceModeWithRetry(config.getTurnMaintainModeRetryTimes(), null, projects, forceToTurnOff);
         } catch (Exception e) {
-            log.error("Release epoch failed， try to turn off maintain mode manually.", e);
+            log.error("Release epoch failed, try to turn off maintain mode manually.", e);
             System.out.println(StorageCleaner.ANSI_RED
                     + "Turn off maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                     + StorageCleaner.ANSI_RESET);
-            System.exit(1);
+            throw new IllegalStateException("Turn off maintain mode failed.");
         } finally {
             System.clearProperty(LEADER_RACE_KEY);
         }

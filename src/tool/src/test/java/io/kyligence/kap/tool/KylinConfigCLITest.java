@@ -50,7 +50,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 
-import io.kyligence.kap.common.util.EncryptUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.assertj.core.api.Assertions;
@@ -58,6 +57,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
