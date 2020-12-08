@@ -87,10 +87,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private long lastBuildTime; // last segment incr build job
 
     @JsonProperty("source_count")
-    private long sourceCount = -1; // source table records number
+    private long sourceCount = 0; // source table records number
 
     @JsonProperty("source_bytes_size")
-    private long sourceBytesSize = -1;
+    private long sourceBytesSize = 0;
 
     @JsonProperty("column_source_bytes")
     private Map<String, Long> columnSourceBytes = Maps.newHashMap();
