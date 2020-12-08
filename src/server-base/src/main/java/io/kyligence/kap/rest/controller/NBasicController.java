@@ -277,7 +277,8 @@ public class NBasicController {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException e) {
-            throw new KylinException(INVALID_PARAMETER, String.format("'%s' must be a non-negative integer.", fieldName));
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format("'%s' must be a non-negative integer.", fieldName));
         }
     }
 
@@ -352,7 +353,7 @@ public class NBasicController {
         }
     }
 
-    protected void checkSegmentParms(String[] ids , String[] names){
+    protected void checkSegmentParms(String[] ids, String[] names) {
 
         //both not empty
         if (ArrayUtils.isNotEmpty(ids) && ArrayUtils.isNotEmpty(names)) {
@@ -472,7 +473,7 @@ public class NBasicController {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (DateRangeRequest request : requests) {
             if (projectManager != null) {
-                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(request.getProject());
+                ProjectInstance projectInstance = projectManager.getProject(request.getProject());
                 if (projectInstance != null) {
                     request.setProject(projectInstance.getName());
                 }

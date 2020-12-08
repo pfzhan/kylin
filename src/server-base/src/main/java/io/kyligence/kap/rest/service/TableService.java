@@ -857,7 +857,7 @@ public class TableService extends BasicService {
 
     public void batchLoadDataRange(String project, List<DateRangeRequest> requests) throws Exception {
         NProjectManager projectManager = getProjectManager();
-        ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(project);
+        ProjectInstance projectInstance = projectManager.getProject(project);
         if (projectInstance != null) {
             project = projectInstance.getName();
         }
@@ -1175,7 +1175,7 @@ public class TableService extends BasicService {
     }
 
     public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
-                                                  int maxRows, boolean needBuild) {
+            int maxRows, boolean needBuild) {
         return reloadTable(projectName, tableIdentity, needSample, maxRows, needBuild, ExecutablePO.DEFAULT_PRIORITY);
     }
 

@@ -77,7 +77,7 @@ public interface UserInsensitiveRequest extends InsensitiveRequest {
                 }
 
                 NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
-                ManagedUser managedUser = userManager.getIgnoreCase(username);
+                ManagedUser managedUser = userManager.get(username);
                 if (managedUser == null) {
                     return;
                 }

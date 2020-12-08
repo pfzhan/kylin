@@ -90,7 +90,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
             if (userName != null) {
                 NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
-                managedUser = userManager.getIgnoreCase(userName);
+                managedUser = userManager.get(userName);
                 if (managedUser != null) {
                     userName = managedUser.getUsername();
                     authentication = new UsernamePasswordAuthenticationToken(userName, authentication.getCredentials());

@@ -45,12 +45,12 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.extern.slf4j.Slf4j;
 
 public interface ProjectInsensitiveRequest extends InsensitiveRequest {
 
@@ -77,7 +77,7 @@ public interface ProjectInsensitiveRequest extends InsensitiveRequest {
                 }
 
                 NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(projectName);
+                ProjectInstance projectInstance = projectManager.getProject(projectName);
                 if (projectInstance == null) {
                     return;
                 }

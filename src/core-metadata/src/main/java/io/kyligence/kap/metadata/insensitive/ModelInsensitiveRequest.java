@@ -91,7 +91,7 @@ public interface ModelInsensitiveRequest extends InsensitiveRequest {
                 }
 
                 NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(projectName);
+                ProjectInstance projectInstance = projectManager.getProject(projectName);
                 if (projectInstance == null) {
                     continue;
                 }
@@ -111,7 +111,7 @@ public interface ModelInsensitiveRequest extends InsensitiveRequest {
 
     default String getDataModelAlias(String modelAlias, String projectName) {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
-        NDataModel dataModel = modelManager.getDataModelDescByAliasIgnoreCase(modelAlias);
+        NDataModel dataModel = modelManager.getDataModelDescByAlias(modelAlias);
         if (dataModel != null) {
             return dataModel.getAlias();
         }

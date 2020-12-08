@@ -2242,6 +2242,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         val dfManger = getDataflowManager(project);
         NDataflow dataflow = dfManger.getDataflow(modelId);
+        checkSegmentsExistById(modelId, project, segmentIds.toArray(new String[0]));
         if (parallelBuildBySegment) {
             return addIndexesToSegmentsParallelly(project, modelId, segmentIds, indexIds, dataflow);
         } else {
@@ -2747,13 +2748,13 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkSegmentsExistById(String model, String project, String[] ids) {
-        Preconditions.checkNotNull(model);
+    private void checkSegmentsExistById(String modelId, String project, String[] ids) {
+        Preconditions.checkNotNull(modelId);
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(ids);
 
         NDataflowManager dataflowManager = getDataflowManager(project);
-        IndexPlan indexPlan = getIndexPlan(model, project);
+        IndexPlan indexPlan = getIndexPlan(modelId, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
 
         List<String> notExistIds = Stream.of(ids).filter(segmentId -> null == dataflow.getSegment(segmentId))

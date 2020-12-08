@@ -81,7 +81,6 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
-import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
@@ -137,14 +136,13 @@ public class OpenModelController extends NBasicController {
     }
 
     @VisibleForTesting
-    public NDataModelResponse getModel(String modelAlias, String project) {
-        List<NDataModelResponse> responses = modelService.getModels(modelAlias, project, true, null, null,
-                "last_modify", true);
-        if (CollectionUtils.isEmpty(responses)) {
+    public NDataModel getModel(String modelAlias, String project) {
+        NDataModel model = modelService.getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        if (model == null) {
             throw new KylinException(MODEL_NOT_EXIST,
                     String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
-        return responses.get(0);
+        return model;
     }
 
     @GetMapping(value = "/{model_name:.+}/segments")
@@ -160,7 +158,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
-        String modelId = getModel(modelAlias, project).getId();
+        String modelId = getModel(modelAlias, project).getUuid();
         return modelController.getSegments(modelId, project, status, offset, limit, start, end, null, null, false,
                 sortBy, reverse);
     }
@@ -187,8 +185,8 @@ public class OpenModelController extends NBasicController {
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         validatePriority(buildSegmentsRequest.getPriority());
-        NDataModel nDataModel = getModel(modelAlias, buildSegmentsRequest.getProject());
-        return modelController.buildSegmentsManually(nDataModel.getId(), buildSegmentsRequest);
+        String modelId = getModel(modelAlias, buildSegmentsRequest.getProject()).getUuid();
+        return modelController.buildSegmentsManually(modelId, buildSegmentsRequest);
     }
 
     @PutMapping(value = "/{model_name:.+}/segments")
@@ -197,7 +195,7 @@ public class OpenModelController extends NBasicController {
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         validatePriority(request.getPriority());
-        String modelId = getModel(modelAlias, request.getProject()).getId();
+        String modelId = getModel(modelAlias, request.getProject()).getUuid();
         return modelController.refreshOrMergeSegments(modelId, request);
     }
 
@@ -213,7 +211,7 @@ public class OpenModelController extends NBasicController {
         if (purge) {
             ids = new String[0];
         }
-        String modelId = getModel(modelAlias, project).getId();
+        String modelId = getModel(modelAlias, project).getUuid();
         return modelController.deleteSegments(modelId, project, purge, force, ids, names);
     }
 
@@ -226,7 +224,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "names", required = false) String[] names) {
         checkProjectName(project);
         checkSegmentParms(ids, names);
-        String modelId = getModel(modelAlias, project).getId();
+        String modelId = getModel(modelAlias, project).getUuid();
         String[] segIds = modelService.convertSegmentIdWithName(modelId, project, ids, names);
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
         req.setProject(project);
@@ -355,8 +353,7 @@ public class OpenModelController extends NBasicController {
             }
             List<String> modelIds = Lists.newArrayList();
             for (String modelName : request.getModelNames()) {
-                NDataModelResponse modelResponse = getModel(modelName, request.getProject());
-                modelIds.add(modelResponse.getUuid());
+                modelIds.add(getModel(modelName, request.getProject()).getUuid());
             }
             optRecService.batchApprove(request.getProject(), modelIds, request.getRecActionType());
         } else {
@@ -395,7 +392,7 @@ public class OpenModelController extends NBasicController {
     @ApiOperation(value = "check segment range")
     @PostMapping(value = "/{model:.+}/segments/check")
     @ResponseBody
-    public EnvelopeResponse<CheckSegmentResponse> checkSegments(@PathVariable("model") String modelName,
+    public EnvelopeResponse<CheckSegmentResponse> checkSegments(@PathVariable("model") String modelAlias,
             @RequestBody CheckSegmentRequest request) {
         checkProjectName(request.getProject());
         aclEvaluate.checkProjectOperationPermission(request.getProject());
@@ -403,7 +400,7 @@ public class OpenModelController extends NBasicController {
         checkRequiredArg("end", request.getEnd());
         validateDataRange(request.getStart(), request.getEnd());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                modelService.checkSegments(request.getProject(), modelName, request.getStart(), request.getEnd()), "");
+                modelService.checkSegments(request.getProject(), modelAlias, request.getStart(), request.getEnd()), "");
     }
 
     @ApiOperation(value = "updateMultiPartitionMapping")
@@ -470,7 +467,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         checkProjectName(project);
-        val modelId = getModel(modelAlias, project).getId();
+        String modelId = getModel(modelAlias, project).getId();
         modelController.exportModel(modelId, project, exportAs, element, host, port, request, response);
     }
 }

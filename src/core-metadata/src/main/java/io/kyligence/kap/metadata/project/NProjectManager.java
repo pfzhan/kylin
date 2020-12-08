@@ -32,8 +32,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -48,8 +46,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
+import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 
 public class NProjectManager implements IKeepNames {
@@ -95,10 +95,6 @@ public class NProjectManager implements IKeepNames {
     }
 
     public ProjectInstance getProject(String projectName) {
-        return crud.get(projectName);
-    }
-
-    public ProjectInstance getProjectIgnoreCase(String projectName) {
         return crud.listAll().stream()
                 .filter(projectInstance -> projectInstance.getName().equalsIgnoreCase(projectName)).findAny()
                 .orElse(null);

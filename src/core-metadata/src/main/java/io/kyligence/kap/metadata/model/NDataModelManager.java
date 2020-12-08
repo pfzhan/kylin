@@ -27,7 +27,6 @@ package io.kyligence.kap.metadata.model;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -189,11 +188,6 @@ public class NDataModelManager {
     }
 
     public NDataModel getDataModelDescByAlias(String alias) {
-        return crud.listAll().stream().filter(model -> Objects.equals(model.getAlias(), alias)).findFirst()
-                .orElse(null);
-    }
-
-    public NDataModel getDataModelDescByAliasIgnoreCase(String alias) {
         return crud.listAll().stream().filter(model -> model.getAlias().equalsIgnoreCase(alias)).findFirst()
                 .orElse(null);
     }

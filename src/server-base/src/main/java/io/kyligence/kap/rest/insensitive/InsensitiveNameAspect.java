@@ -75,14 +75,14 @@ public class InsensitiveNameAspect {
             switch (parameterNames[i]) {
             case "project":
                 NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase((String) args[i]);
+                ProjectInstance projectInstance = projectManager.getProject((String) args[i]);
                 if (projectInstance != null) {
                     args[i] = projectInstance.getName();
                 }
                 break;
             case "username":
                 NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
-                ManagedUser user = userManager.getIgnoreCase((String) args[i]);
+                ManagedUser user = userManager.get((String) args[i]);
                 if (user != null) {
                     args[i] = user.getUsername();
                 }
@@ -116,7 +116,7 @@ public class InsensitiveNameAspect {
             if (parameterTypes[i] == String.class && Objects.equals("project", parameterNames[i])) {
                 projectName = (String) args[i];
                 NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(projectName);
+                ProjectInstance projectInstance = projectManager.getProject(projectName);
                 if (projectInstance != null) {
                     projectName = projectInstance.getName();
                 }
@@ -127,7 +127,7 @@ public class InsensitiveNameAspect {
             return modelAlias;
         }
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
-        NDataModel dataModel = modelManager.getDataModelDescByAliasIgnoreCase(modelAlias);
+        NDataModel dataModel = modelManager.getDataModelDescByAlias(modelAlias);
         if (dataModel != null) {
             return dataModel.getAlias();
         }

@@ -72,7 +72,7 @@ public class OptRecV2 {
     private final KylinConfig config;
     private final String project;
 
-    private final Map<String, RawRecItem> allModelBasedRecItemMap;
+    private final Map<String, RawRecItem> uniqueFlagToRecItemMap;
     private final BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
     private final List<Integer> rawIds = Lists.newArrayList();
 
@@ -98,14 +98,14 @@ public class OptRecV2 {
         this.uuid = uuid;
         this.project = project;
 
-        allModelBasedRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
-        allModelBasedRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
+        uniqueFlagToRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
+        uniqueFlagToRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
         initRecommendation();
         brokenLayoutRefIds = filterBrokenLayoutRefs();
     }
 
     private void initRecommendation() {
-        log.debug("Start to initialize recommendation({}/{}}", project, getUuid());
+        log.info("Start to initialize recommendation({}/{}}", project, getUuid());
 
         NDataModel model = getModel();
         if (model.isBroken()) {
@@ -121,7 +121,7 @@ public class OptRecV2 {
 
         autoNameForMeasure();
 
-        log.debug("Initialize recommendation({}/{}) successfully.", project, uuid);
+        log.info("Initialize recommendation({}/{}) successfully.", project, uuid);
     }
 
     private void autoNameForMeasure() {
@@ -350,7 +350,7 @@ public class OptRecV2 {
 
     private void initDependencyRef(int dependId, NDataModel dataModel) {
         if (dependId >= 0) {
-            log.debug("DependId({}) is derived from model({}/{})", //
+            log.info("DependId({}) is derived from model({}/{})", //
                     dependId, getProject(), dataModel.getUuid());
             return;
         }
@@ -362,7 +362,7 @@ public class OptRecV2 {
         }
 
         String uniqueFlag = uniqueFlagToId.inverse().get(rawRecItemId);
-        RawRecItem rawRecItem = uniqueFlag == null ? null : allModelBasedRecItemMap.get(uniqueFlag);
+        RawRecItem rawRecItem = uniqueFlag == null ? null : uniqueFlagToRecItemMap.get(uniqueFlag);
         if (rawRecItem == null) {
             logRawRecItemNotFoundError(rawRecItemId);
             ccRefs.put(dependId, BrokenRefProxy.getProxy(CCRef.class, dependId));
@@ -645,7 +645,7 @@ public class OptRecV2 {
     }
 
     private void logRawRecItemHasBeenInitialized(NDataModel dataModel, int rawRecItemId) {
-        log.debug("RawRecItem({}) already initialized for Recommendation({}/{})", //
+        log.info("RawRecItem({}) already initialized for Recommendation({}/{})", //
                 rawRecItemId, getProject(), dataModel.getUuid());
     }
 
@@ -672,28 +672,28 @@ public class OptRecV2 {
         default:
             throw new IllegalArgumentException();
         }
-        log.debug("RawRecItem({}) will be translated to {} in Recommendation({}/{})", //
+        log.info("RawRecItem({}) will be translated to {} in Recommendation({}/{})", //
                 recItem.getId(), type, project, getUuid());
     }
 
     private void logDependencyLost(RawRecItem rawRecItem, int dependId) {
-        log.warn("RawRecItem({}) lost dependency of {} in recommendation({}/{})", //
+        log.info("RawRecItem({}) lost dependency of {} in recommendation({}/{})", //
                 rawRecItem.getId(), dependId, getProject(), getUuid());
     }
 
     private void logSemanticNotMatch(RawRecItem rawRecItem, NDataModel dataModel) {
-        log.warn("RawRecItem({}) has an outdated semanticVersion({}) less than {} in recommendation({}/{})",
+        log.info("RawRecItem({}) has an outdated semanticVersion({}) less than {} in recommendation({}/{})",
                 rawRecItem.getId(), rawRecItem.getSemanticVersion(), //
                 dataModel.getSemanticVersion(), getProject(), getUuid());
     }
 
     private void logConflictWithRealEntity(RawRecItem recItem, long existingId) {
-        log.debug("RawRecItem({}) encounters an existing {}({}) in recommendation({}/{})", //
+        log.info("RawRecItem({}) encounters an existing {}({}) in recommendation({}/{})", //
                 recItem.getId(), recItem.getType().name(), existingId, getProject(), getUuid());
     }
 
     private void logDuplicateRawRecItem(RawRecItem recItem, int anotherRecItemId) {
-        log.debug("RawRecItem({}) duplicates with another RawRecItem({}) in recommendation({}/{})", //
+        log.info("RawRecItem({}) duplicates with another RawRecItem({}) in recommendation({}/{})", //
                 recItem.getId(), anotherRecItemId, getProject(), getUuid());
     }
 

@@ -89,7 +89,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     public static final int V2 = 2;
     public static final String RECOMMENDATION_SOURCE = "recommendation_source";
-    public static final String OPERATION_ERROR_MSG = "The operation types of recommendation includes: add_index, removal_index and both(by default)";
+    public static final String OPERATION_ERROR_MSG = "The operation types of recommendation includes: add_index, removal_index and all(by default)";
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -334,11 +334,22 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     List<Integer> sortBy = Lists.newArrayList(layout.getSortByColumns());
                     List<Integer> partitionBy = Lists.newArrayList(layout.getPartitionByColumns());
 
-                    layout.setColOrder(translateToRealIds(colOrder, "ColOrder"));
-                    layout.setShardByColumns(translateToRealIds(shardBy, "ShardByColumns"));
-                    layout.setSortByColumns(translateToRealIds(sortBy, "SortByColumns"));
-                    layout.setPartitionByColumns(translateToRealIds(partitionBy, "PartitionByColumns"));
+                    List<Integer> nColOrder = translateToRealIds(colOrder, "ColOrder");
+                    List<Integer> nShardBy = translateToRealIds(shardBy, "ShardByColumns");
+                    List<Integer> nSortBy = translateToRealIds(sortBy, "SortByColumns");
+                    List<Integer> nPartitionBy = translateToRealIds(partitionBy, "PartitionByColumns");
+
+                    layout.setColOrder(nColOrder);
+                    layout.setShardByColumns(nShardBy);
+                    layout.setSortByColumns(nSortBy);
+                    layout.setPartitionByColumns(nPartitionBy);
                     updateHandler.add(layout, rawRecItem.isAgg());
+
+                    log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder, nColOrder);
+                    log.info("RawRecItem({}) rewrite shardBy({}) to ({})", rawRecItem.getId(), shardBy, nShardBy);
+                    log.info("RawRecItem({}) rewrite sortBy({}) to ({})", rawRecItem.getId(), sortBy, nSortBy);
+                    log.info("RawRecItem({}) rewrite partitionBy({}) to ({})", rawRecItem.getId(), partitionBy,
+                            nPartitionBy);
                 }
                 updateHandler.complete();
             });
@@ -413,7 +424,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     @Transaction(project = 0)
     public void approve(String project, OptRecRequest request) {
-        aclEvaluate.checkProjectOperationPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
         Map<Integer, String> userDefinedRecNameMap = request.getNames();
         RecApproveContext approveContext = new RecApproveContext(project, modelId, userDefinedRecNameMap);
@@ -426,7 +437,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      */
     @Transaction(project = 0)
     public void batchApprove(String project, List<String> modelIds, String recActionType) {
-        aclEvaluate.checkProjectOperationPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(modelIds)) {
             return;
         }
@@ -448,7 +459,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      */
     @Transaction(project = 0)
     public void batchApprove(String project, String recActionType) {
-        aclEvaluate.checkProjectOperationPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         List<NDataflow> dataflowList = getDataflowManager(project).listAllDataflows();
         for (NDataflow df : dataflowList) {
             if (df.getStatus() != RealizationStatusEnum.ONLINE || df.getModel().isBroken()) {
@@ -460,7 +471,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     }
 
     private void approveAllRecItems(String project, String modelId, String recActionType) {
-        aclEvaluate.checkProjectOperationPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         RecApproveContext approveContext = new RecApproveContext(project, modelId, Maps.newHashMap());
         OptRecRequest request = new OptRecRequest();
         request.setProject(project);
@@ -606,7 +617,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         Set<Integer> allRecItemIds = Sets.newHashSet(optRecV2.getRawIds());
         Set<Integer> brokenRefIds = optRecV2.getBrokenLayoutRefIds();
         if (!allRecItemIds.contains(recItemId) || brokenRefIds.contains(recItemId)) {
-            log.warn("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
+            log.info("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
             throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
         }
         Map<Integer, LayoutRef> layoutRefs = isAdd //

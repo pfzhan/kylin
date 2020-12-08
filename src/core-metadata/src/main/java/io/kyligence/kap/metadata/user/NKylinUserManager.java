@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -60,6 +59,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
 public class NKylinUserManager implements IKeep {
@@ -108,10 +108,6 @@ public class NKylinUserManager implements IKeep {
     }
 
     public ManagedUser get(String name) {
-        return crud.get(name);
-    }
-
-    public ManagedUser getIgnoreCase(String name) {
         return crud.listAll().stream().filter(managedUser -> managedUser.getUsername().equalsIgnoreCase(name)).findAny()
                 .orElse(null);
     }
@@ -141,7 +137,7 @@ public class NKylinUserManager implements IKeep {
     }
 
     public Set<String> getUserGroups(String userName) {
-        ManagedUser user = getIgnoreCase(userName);
+        ManagedUser user = get(userName);
         if (user == null)
             return Sets.newHashSet();
 

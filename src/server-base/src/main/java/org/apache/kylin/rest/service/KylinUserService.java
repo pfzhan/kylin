@@ -143,7 +143,7 @@ public class KylinUserService implements UserService {
         Message msg = MsgPicker.getMsg();
         ManagedUser managedUser = null;
         try {
-            managedUser = getKylinUserManager().getIgnoreCase(userName);
+            managedUser = getKylinUserManager().get(userName);
         } catch (IllegalArgumentException e) {
             logger.error("exception: ", e);
             throw new UsernameNotFoundException(String.format(msg.getUSER_AUTH_FAILED()));
