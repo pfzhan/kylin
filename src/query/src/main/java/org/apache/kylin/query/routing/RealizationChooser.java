@@ -44,11 +44,11 @@ package org.apache.kylin.query.routing;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -59,6 +59,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.alibaba.ttl.TtlRunnable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -146,7 +147,7 @@ public class RealizationChooser {
             CountDownLatch latch = new CountDownLatch(contexts.size());
             ArrayList<Future> futureList = Lists.newArrayList();
             for (OLAPContext ctx : contexts) {
-                Future<?> future = selectCandidateService.submit(() -> {
+                Future<?> future = selectCandidateService.submit(Objects.requireNonNull(TtlRunnable.get(() -> {
                     try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
                             .setAndUnsetThreadLocalConfig(kylinConfig)) {
                         if (project != null) {
@@ -165,7 +166,7 @@ public class RealizationChooser {
                         NProjectLoader.removeCache();
                         latch.countDown();
                     }
-                });
+                })));
                 futureList.add(future);
             }
             latch.await();
@@ -223,7 +224,7 @@ public class RealizationChooser {
         }
 
         // Step 3. find the lowest-cost candidate
-        Collections.sort(candidates);
+        candidates.sort(Candidate.COMPARATOR);
         logger.trace("Cost Sorted Realizations {}", candidates);
         if (!candidates.isEmpty()) {
             Candidate selectedCandidate = candidates.get(0);

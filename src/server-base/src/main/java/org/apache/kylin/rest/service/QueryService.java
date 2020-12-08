@@ -75,6 +75,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.util.QueryModelPriorities;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -481,6 +482,7 @@ public class QueryService extends BasicService {
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
             logger.info("Using project: {}", project);
 
+            QueryContext.current().setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
             String sql = QueryUtil.removeCommentInSql(userSQL);
             QueryContext.current().setUserSQL(userSQL);
 

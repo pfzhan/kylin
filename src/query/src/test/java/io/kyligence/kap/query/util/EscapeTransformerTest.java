@@ -305,6 +305,16 @@ public class EscapeTransformerTest {
     }
 
     @Test
+    public void testReserveHintQuery() throws Exception {
+        String originalSQL = "select /**/ /*+*//*+ some hint */ --test comment will remove\n" +
+                " \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
+        String transformedSQL = new CommentParser(originalSQL).Input();
+
+        String expectedSQL = "select  /*+*//*+ some hint */ \n \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl";
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
     public void testTransformJDBCFuncQuery() {
         String originSql = "SELECT \"CALCS\".\"DATETIME0\", {DATE '2004-07-01'}, {fn TIMESTAMPDIFF(SQL_TSI_DAY,{ts '2004-07-01 00:00:00'},{fn CONVERT(\"CALCS\".\"DATETIME0\", DATE)})} AS \"TEMP_Test__2422160351__0_\"\n"
                 + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" + "GROUP BY \"CALCS\".\"DATETIME0\"";

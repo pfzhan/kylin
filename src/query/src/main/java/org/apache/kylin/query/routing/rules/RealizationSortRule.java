@@ -43,7 +43,6 @@
 
 package org.apache.kylin.query.routing.rules;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.kylin.query.routing.Candidate;
@@ -69,6 +68,6 @@ public class RealizationSortRule extends RoutingRule {
         }
         logger.debug(sb.toString());
 
-        Collections.sort(candidates);
+        candidates.sort(Candidate.COMPARATOR);
     }
 }

@@ -43,6 +43,7 @@
 package org.apache.kylin.query.routing;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -52,10 +53,14 @@ import org.apache.kylin.query.relnode.OLAPContextProp;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Candidate implements Comparable<Candidate> {
+public class Candidate {
+
+    public static final CandidateComparator COMPARATOR = new CandidateComparator();
 
     // ============================================================================
 
@@ -82,6 +87,10 @@ public class Candidate implements Comparable<Candidate> {
         this.ctx = ctx;
     }
 
+    // for testing only
+    Candidate() {
+    }
+
     public IRealization getRealization() {
         return realization;
     }
@@ -99,21 +108,43 @@ public class Candidate implements Comparable<Candidate> {
     }
 
     @Override
-    public int compareTo(Candidate o) {
-        int comp = this.realization.getCost() - o.realization.getCost();
-        if (comp != 0)
-            return comp;
-
-        comp = Double.compare(this.capability.getSelectedCandidate().getCost(),
-                o.capability.getSelectedCandidate().getCost());
-        if (comp != 0)
-            return comp;
-
-        return this.realization.getModel().getId().compareTo(o.realization.getModel().getId());
-    }
-
-    @Override
     public String toString() {
         return realization.toString();
+    }
+
+    public static class CandidateComparator implements Comparator<Candidate> {
+
+        @Override
+        public int compare(Candidate c1, Candidate c2) {
+            IRealization real1 = c1.getRealization();
+            IRealization real2 = c2.getRealization();
+
+            if (QueryContext.current().getModelPriorities().length > 0) {
+
+                Map<String, Integer> priorities = new HashMap<>();
+                for (int i = 0; i < QueryContext.current().getModelPriorities().length; i++) {
+                    priorities.put(QueryContext.current().getModelPriorities()[i], i);
+                }
+
+                int comp = priorities.getOrDefault(real1.getModel().getAlias().toUpperCase(), Integer.MAX_VALUE)
+                        - priorities.getOrDefault(real2.getModel().getAlias().toUpperCase(), Integer.MAX_VALUE);
+                if (comp != 0) {
+                    return comp;
+                }
+            }
+
+            int comp = real1.getCost() - real2.getCost();
+            if (comp != 0) {
+                return comp;
+            }
+
+            comp = Double.compare(c1.capability.getSelectedCandidate().getCost(),
+                    c2.capability.getSelectedCandidate().getCost());
+            if (comp != 0) {
+                return comp;
+            }
+
+            return real1.getModel().getId().compareTo(real2.getModel().getId());
+        }
     }
 }

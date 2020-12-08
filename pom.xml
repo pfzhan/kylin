@@ -140,6 +140,7 @@
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
         <unboundid-ldapsdk.version>3.1.1</unboundid-ldapsdk.version>
+        <transmittable-thread-local.version>2.12.0</transmittable-thread-local.version>
 
         <!-- Maven -->
         <maven.surefire.version>2.22.2</maven.surefire.version>
@@ -1331,6 +1332,13 @@
                 <artifactId>unboundid-ldapsdk</artifactId>
                 <version>${unboundid-ldapsdk.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- transmittable-thread-local -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>transmittable-thread-local</artifactId>
+                <version>${transmittable-thread-local.version}</version>
             </dependency>
 
         </dependencies>

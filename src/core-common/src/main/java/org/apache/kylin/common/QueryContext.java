@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -69,7 +70,7 @@ public class QueryContext implements Closeable {
 
     public static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
-    private static final ThreadLocal<QueryContext> contexts = new ThreadLocal<QueryContext>() {
+    private static final TransmittableThreadLocal<QueryContext> contexts = new TransmittableThreadLocal<QueryContext>() {
         @Override
         protected QueryContext initialValue() {
             return new QueryContext();
@@ -98,6 +99,10 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     private String userSQL;
+
+    @Getter
+    @Setter
+    private String[] modelPriorities = new String[0];
 
     private QueryContext() {
         // use QueryContext.current() instead
