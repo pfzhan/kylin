@@ -1535,6 +1535,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.valueOf(this.getOptional("kylin.query.query-with-execute-as", FALSE));
     }
 
+    public boolean isJoinMatchOptimizationEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.join-match-optimization-enabled", FALSE));
+    }
+
     // ============================================================================
     // SERVER
     // ============================================================================

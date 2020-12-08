@@ -92,12 +92,24 @@ public class JoinsGraph implements Serializable {
             nonEquiJoinCondition = join.getNonEquiJoinCondition();
         }
 
+        public boolean isJoinMatched(JoinDesc other) {
+            return join.equals(other);
+        }
+
         public boolean isNonEquiJoin() {
             return nonEquiJoinCondition != null;
         }
 
         public boolean isLeftJoin() {
             return join.isLeftJoin();
+        }
+
+        public boolean isLeftOrInnerJoin() {
+            return join.isLeftOrInnerJoin();
+        }
+
+        public boolean isInnerJoin() {
+            return join.isInnerJoin();
         }
 
         private TableRef left() {
@@ -152,7 +164,9 @@ public class JoinsGraph implements Serializable {
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder("Edge: ");
-            sb.append(left()).append(isLeftJoin() ? " LEFT JOIN " : " INNER JOIN ").append(right()).append(" ON ")
+            sb.append(left())
+                    .append(isLeftJoin() ? " LEFT JOIN " : isLeftOrInnerJoin() ? " LEFT OR INNER JOIN " : " INNER JOIN ")
+                    .append(right()).append(" ON ")
                     .append(Arrays.toString(Arrays.stream(leftCols).map(ColumnDesc::getName).toArray())).append(" = ")
                     .append(Arrays.toString(Arrays.stream(rightCols).map(ColumnDesc::getName).toArray()));
             return sb.toString();
@@ -179,7 +193,7 @@ public class JoinsGraph implements Serializable {
     public static class DefaultJoinEdgeMatcher implements IJoinEdgeMatcher {
         @Override
         public boolean matches(@NonNull Edge join1, @NonNull Edge join2) {
-            if (join1.isLeftJoin() != join2.isLeftJoin()) {
+            if (join1.isLeftJoin() != join2.isLeftJoin() && !join1.isLeftOrInnerJoin() && !join2.isLeftOrInnerJoin()) {
                 return false;
             }
 
@@ -217,6 +231,7 @@ public class JoinsGraph implements Serializable {
     @Getter
     private TableRef center;
     private Map<String, TableRef> nodes = new HashMap<>();
+    private Set<Edge> edges = new HashSet<>();
     private Map<TableRef, List<Edge>> edgesFromNode = new HashMap<>();
     private Map<TableRef, List<Edge>> edgesToNode = new HashMap<>();
 
@@ -266,6 +281,26 @@ public class JoinsGraph implements Serializable {
             edgesToNode.computeIfAbsent(fkTable, fk -> Lists.newArrayList());
             edgesToNode.get(fkTable).add(edge);
         }
+        edges.add(edge);
+    }
+
+    public void setJoinToLeftOrInner(JoinDesc join) {
+        if (!join.isLeftJoin()) {
+            join.setType("LEFT_OR_INNER");
+            return;
+        }
+
+        join.setType("LEFT_OR_INNER");
+        TableRef fkTable = join.getFKSide();
+        TableRef pkTable = join.getPKSide();
+        Edge edge = edges.stream().filter(e -> e.isJoinMatched(join)).findFirst().orElse(null);
+        if (edge == null) {
+            return;
+        }
+        edgesFromNode.computeIfAbsent(pkTable, pk -> Lists.newArrayList());
+        edgesFromNode.get(pkTable).add(edge);
+        edgesToNode.computeIfAbsent(fkTable, fk -> Lists.newArrayList());
+        edgesToNode.get(fkTable).add(edge);
     }
 
     private void validate(List<JoinDesc> joins) {
@@ -312,6 +347,26 @@ public class JoinsGraph implements Serializable {
         return false;
     }
 
+    public static JoinsGraph normalizeJoinGraph(JoinsGraph joinsGraph) {
+        Set<Edge> edgesSet = joinsGraph.edges;
+        for (Edge edge : edgesSet) {
+            if (!edge.isLeftJoin() || edge.isLeftOrInnerJoin()) {
+                TableRef leftTable = edge.left();
+                List<Edge> edgeList = joinsGraph.edgesToNode.get(leftTable);
+                if (CollectionUtils.isEmpty(edgeList)) {
+                    continue;
+                }
+                for (Edge targetEdge : edgeList) {
+                    if (!edge.equals(targetEdge) && leftTable.equals(targetEdge.right()) && !targetEdge.isLeftOrInnerJoin()) {
+                        joinsGraph.setJoinToLeftOrInner(targetEdge.join);
+                        normalizeJoinGraph(joinsGraph);
+                    }
+                }
+            }
+        }
+        return joinsGraph;
+    }
+
     public List<TableRef> getAllTblRefNodes() {
         return nodes == null ? Lists.newArrayList() : Lists.newArrayList(nodes.values());
     }
@@ -341,17 +396,74 @@ public class JoinsGraph implements Serializable {
         return true;
     }
 
+    private boolean isAllJoinInner(JoinsGraph joinsGraph, TableRef tableRef) {
+        List<Edge> edgesFromNode = joinsGraph.edgesFromNode.get(tableRef);
+        List<Edge> edgesToNode = joinsGraph.edgesToNode.get(tableRef);
+
+        if (edgesFromNode == null) {
+            return false;
+        }
+
+        if (edgesToNode == null) {
+            return false;
+        }
+
+        if (edgesToNode.size() != edgesFromNode.size()) {
+            return false;
+        }
+
+        for (Edge edge : edgesFromNode) {
+            if (edge.join.isLeftJoin()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private boolean checkInnerJoinNum(JoinsGraph pattern, TableRef queryTableRef, TableRef patternTableRef,
             boolean matchPartial) {
         if (matchPartial) {
             return true;
         }
         // fully match: unmatched if extra inner join edge on either graph
-        List<Edge> queryEdges = this.edgesFrom(queryTableRef);
-        int cntInnerQueryEdges = (int) queryEdges.stream().filter(e -> !e.isLeftJoin()).count();
-        List<Edge> patternEdges = pattern.edgesFrom(patternTableRef);
-        int cntInnerPatternEdges = (int) patternEdges.stream().filter(e -> !e.isLeftJoin()).count();
-        return cntInnerQueryEdges == cntInnerPatternEdges;
+        //  matched if:   query graph join count:   model graph join count:
+        //  1)                        inner join <= inner join
+        //  2)   inner join + left or inner join >= inner join
+        List<Edge> innerQueryEdges = this.edgesFrom(queryTableRef).stream()
+                .filter(e -> e.isInnerJoin()).collect(Collectors.toList());
+        List<Edge> notLeftQueryEdges = this.edgesFrom(queryTableRef).stream()
+                .filter(e -> !e.isLeftJoin()).collect(Collectors.toList());
+        List<Edge> innerPatternEdges = pattern.edgesFrom(patternTableRef).stream()
+                .filter(e -> e.isInnerJoin()).collect(Collectors.toList());
+
+        // if all joins are inner joins, compare sum of both sides
+        if (isAllJoinInner(this, queryTableRef) && isAllJoinInner(pattern, patternTableRef)) {
+            int cntInnerQueryEdges = innerQueryEdges.size();
+            int cntNotLeftQueryEdges = notLeftQueryEdges.size();
+            int cntInnerPatternEdges = innerPatternEdges.size();
+            return cntInnerQueryEdges <= cntInnerPatternEdges && cntNotLeftQueryEdges >= cntInnerPatternEdges;
+        }
+
+        // if not all joins are inner, compare left side and right side separately
+        //  Calculate join count in query graph
+        int cntLeftSideInnerQueryEdges = (int) innerQueryEdges.stream()
+                .filter(edge -> edge.right().equals(queryTableRef)).count();
+        int cntRightSideInnerQueryEdges = (int) innerQueryEdges.stream()
+                .filter(edge -> edge.left().equals(queryTableRef)).count();
+        int cntLeftSideNotLeftQueryEdges = (int) notLeftQueryEdges.stream()
+                .filter(edge -> edge.right().equals(queryTableRef)).count();
+        int cntRightSideNotLeftQueryEdges = (int) notLeftQueryEdges.stream()
+                .filter(edge -> edge.left().equals(queryTableRef)).count();
+        // Calculate join count in model graph
+        int cntLeftSideInnerPatternEdges = (int) innerPatternEdges.stream()
+                .filter(edge -> edge.right().equals(patternTableRef)).count();
+        int cntRightSideInnerPatternEdges = (int) innerPatternEdges.stream()
+                .filter(edge -> edge.left().equals(patternTableRef)).count();
+
+        boolean isLeftEqual = cntLeftSideInnerQueryEdges <= cntLeftSideInnerPatternEdges && cntLeftSideNotLeftQueryEdges >= cntLeftSideInnerPatternEdges;
+        boolean isRightEqual = cntRightSideInnerQueryEdges <= cntRightSideInnerPatternEdges && cntRightSideNotLeftQueryEdges >= cntRightSideInnerPatternEdges;
+        return isLeftEqual && isRightEqual;
     }
 
     private void innerMatch(JoinsGraph pattern, Map<TableRef, TableRef> trialMatches, boolean matchPartial,

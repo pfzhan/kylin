@@ -28,11 +28,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
-import lombok.var;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -42,6 +40,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -52,8 +51,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexTableInputRef;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.DateString;
@@ -62,17 +63,25 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
+import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPFilterRel;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 import io.kyligence.kap.query.util.RexUtils;
+import lombok.val;
+import lombok.var;
 
 public class KapFilterRel extends OLAPFilterRel implements KapRel {
     private static final String DATE = "date";
@@ -160,6 +169,37 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         return kylinConfig.isHeterogeneousSegmentEnabled() || kylinConfig.isMultiPartitionEnabled();
     }
 
+    private boolean isJoinMatchOptimizationEnabled() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        return kylinConfig.isJoinMatchOptimizationEnabled();
+    }
+
+    private void collectNotNullTableWithFilterCondition(OLAPContext context) {
+        if (context == null || CollectionUtils.isEmpty(context.allTableScans)) {
+            return;
+        }
+
+        RexBuilder rexBuilder = new RexBuilder(new JavaTypeFactoryImpl(new KylinRelDataTypeSystem()));
+        // Convert to Disjunctive Normal Form(DNF), i.e., only root node's op could be OR
+        RexNode newDnf = RexUtil.toDnf(rexBuilder, condition);
+        Set<TableRef> leftOrInnerTables =
+                context.allTableScans.stream().map(OLAPTableScan::getTableRef).collect(Collectors.toSet());
+        Set<TableRef> orNotNullTables = Sets.newHashSet();
+        MatchWithFilterVisitor visitor = new MatchWithFilterVisitor(this.columnRowType, orNotNullTables);
+
+        if (SqlStdOperatorTable.OR.equals(((RexCall) newDnf).getOperator())) {
+            for (RexNode rexNode : ((RexCall) newDnf).getOperands()) {
+                rexNode.accept(visitor);
+                leftOrInnerTables.retainAll(orNotNullTables);
+                orNotNullTables.clear();
+            }
+        } else {
+            newDnf.accept(visitor);
+            leftOrInnerTables.retainAll(orNotNullTables);
+        }
+        context.getNotNullTables().addAll(leftOrInnerTables);
+    }
+
     private void updateContextFilter() {
         // optimize the filter, the optimization has to be segment-irrelevant
         Set<TblColRef> filterColumns = Sets.newHashSet();
@@ -167,6 +207,9 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         this.condition.accept(visitor);
         if (isHeterogeneousSegmentOrMultiPartEnabled(this.context)) {
             context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
+        }
+        if (isJoinMatchOptimizationEnabled()) {
+            collectNotNullTableWithFilterCondition(context);
         }
         for (TblColRef tblColRef : filterColumns) {
             if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
@@ -236,6 +279,9 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             this.condition.accept(visitor);
             if (isHeterogeneousSegmentOrMultiPartEnabled(context)) {
                 context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
+            }
+            if (isJoinMatchOptimizationEnabled()) {
+                collectNotNullTableWithFilterCondition(context);
             }
             // optimize the filter, the optimization has to be segment-irrelevant
             for (TblColRef tblColRef : filterColumns) {
@@ -440,6 +486,61 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         @Override
         public RexNode visitPatternFieldRef(RexPatternFieldRef fieldRef) {
             return fieldRef;
+        }
+    }
+
+    private class MatchWithFilterVisitor extends RexVisitorImpl<RexNode> {
+
+        final Set<SqlOperator> isNullOperators = ImmutableSet.of(
+                SqlStdOperatorTable.NOT, SqlStdOperatorTable.IS_NULL, SqlStdOperatorTable.IS_NOT_TRUE,
+                SqlStdOperatorTable.IS_NOT_FALSE, SqlStdOperatorTable.NOT_EQUALS);
+
+        private ColumnRowType columnRowType;
+        private Set<TableRef> notNullTables;
+
+        protected MatchWithFilterVisitor(ColumnRowType columnRowType, Set<TableRef> notNullTables) {
+            super(true);
+            this.columnRowType = columnRowType;
+            this.notNullTables = notNullTables;
+        }
+
+        @Override
+        public RexCall visitCall(RexCall call) {
+            if (!deep) {
+                return null;
+            }
+
+            RexCall r = null;
+
+            // only support `is not distinct from` as not null condition
+            // i.e., CASE(IS NULL(DEFAULT.TEST_MEASURE.NAME2), false, =(DEFAULT.TEST_MEASURE.NAME2, '123'))
+            // TODO: support `CASE WHEN`
+            if (SqlStdOperatorTable.CASE.equals(call.getOperator())) {
+                List<RexNode> rexNodes = call.getOperands();
+                boolean isOpNull = SqlStdOperatorTable.IS_NULL.equals(((RexCall)rexNodes.get(0)).getOperator());
+                boolean isSecondFalse = call.getOperands().get(1).isAlwaysFalse();
+                if (isOpNull && isSecondFalse) {
+                    r = (RexCall) call.getOperands().get(2).accept(this);
+                    return r;
+                }
+                return null;
+            }
+
+            if (isNullOperators.contains(call.getOperator())) {
+                return null;
+            }
+
+            for (RexNode operand : call.operands) {
+                r = (RexCall) operand.accept(this);
+            }
+            return r;
+        }
+
+        @Override
+        public RexCall visitInputRef(RexInputRef inputRef) {
+            TableRef notNullTable = columnRowType.getColumnByIndex(inputRef.getIndex()).getTableRef();
+            notNullTables.add(notNullTable);
+            return null;
         }
     }
 }

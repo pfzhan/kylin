@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -396,6 +397,116 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
         NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
 
+    }
+
+    @Test
+    public void testMatchJoinWithFiter() {
+        try {
+            final List<String> filters = ImmutableList.of(
+                    " b.SITE_NAME is not null",
+                    " b.SITE_NAME is not null and b.SITE_NAME is null",
+                    " b.SITE_NAME = '英国'",
+                    " b.SITE_NAME < '英国'",
+                    " b.SITE_NAME > '英国'",
+                    " b.SITE_NAME >= '英国'",
+                    " b.SITE_NAME <= '英国'",
+                    " b.SITE_NAME like '%英国%'",
+                    " b.SITE_NAME similar to '%英国%'",
+                    " b.SITE_NAME is not distinct from '%英国%'",
+                    " b.SITE_NAME between '1' and '2'",
+                    " b.SITE_NAME not between '1' and '2'",
+                    " b.SITE_NAME <= '英国' OR b.SITE_NAME >= '英国'"
+            );
+            getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
+            for (String filter : filters) {
+                String sql = "select CAL_DT from test_kylin_fact a \n"
+                        + " inner join EDW.test_sites b \n"
+                        + " on a.LSTG_SITE_ID = b.SITE_ID \n"
+                        + " where " + filter;
+                OLAPContext context = prepareOlapContext(sql).get(0);
+                NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+                Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+                context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+                Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
+                        .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+                Assert.assertEquals(20000010001L, pair.getFirst().getCuboidLayout().getId());
+            }
+        } finally {
+            getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");
+        }
+    }
+
+    @Test
+    public void testCanNotMatchJoinWithFiter() {
+        try {
+            final List<String> filters = ImmutableList.of(
+                    " b.SITE_NAME is null",
+                    " b.SITE_NAME <> '英国'",
+                    " b.SITE_NAME not like '%英国%'",
+                    " b.SITE_NAME not similar to '%英国%'",
+                    " cast(b.SITE_NAME as boolean) is not false",
+                    " cast(b.SITE_NAME as boolean) is not true",
+                    " b.SITE_NAME is distinct from '%英国%'",
+                    " b.SITE_NAME is not null or a.TRANS_ID is not null",
+                    " case when b.SITE_NAME is not null then false else true end" // TODO
+            );
+            getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
+            for (String filter : filters) {
+                String sql = "select CAL_DT from test_kylin_fact a \n"
+                        + " inner join EDW.test_sites b \n"
+                        + " on a.LSTG_SITE_ID = b.SITE_ID \n"
+                        + " where " + filter;
+                OLAPContext context = prepareOlapContext(sql).get(0);
+                NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+                Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+                Assert.assertEquals(null, sqlAlias2ModelName);
+            }
+        } finally {
+            getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");
+        }
+    }
+
+    @Test
+    public void testMatchJoinWithEnhancedMode() {
+        try {
+            getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
+            String sql = "SELECT \n" +
+                    "COUNT(\"TEST_KYLIN_FACT\".\"SELLER_ID\")\n" +
+                    "FROM \n" +
+                    "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n" +
+                    "LEFT JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n" +        // left or inner join
+                    "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n" +
+                    "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n" +
+                    "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n" +
+                    "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n" +
+                    "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n" +
+                    "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n" +
+                    "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND " +
+                    "\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n" +
+                    "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n" +
+                    "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n" +
+                    "LEFT JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n" +  // left or inner join
+                    "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n" +
+                    "LEFT JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n" +   // left or inner join
+                    "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n" +
+                    "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n" +
+                    "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n" +
+                    "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n" +
+                    "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\"\n" +
+                    "GROUP BY \"TEST_KYLIN_FACT\".\"TRANS_ID\"";
+            OLAPContext context = prepareOlapContext(sql).get(0);
+            NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+            Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+            Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
+                    .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+            Assert.assertEquals(1L, pair.getFirst().getCuboidLayout().getId());
+        } finally {
+            getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");
+        }
     }
 
     public boolean containMeasure(List<NDataModel.Measure> allMeasures, String expression, String parameter) {

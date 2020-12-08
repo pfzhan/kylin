@@ -101,6 +101,10 @@ public class JoinDesc implements Serializable {
         return "LEFT".equalsIgnoreCase(type);
     }
 
+    public boolean isLeftOrInnerJoin() {
+        return "LEFT_OR_INNER".equalsIgnoreCase(type);
+    }
+
     public String getPrimaryTable() {
         return primaryTable;
     }
@@ -115,6 +119,14 @@ public class JoinDesc implements Serializable {
 
     public void setForeignTable(String foreignTable) {
         this.foreignTable = foreignTable;
+    }
+
+    public TableRef getPrimaryTableRef() {
+        return primaryTableRef;
+    }
+
+    public TableRef getForeignTableRef() {
+        return foreignTableRef;
     }
 
     public void setPrimaryTableRef(TableRef primaryTableRef) {

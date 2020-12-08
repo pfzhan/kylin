@@ -462,6 +462,18 @@ public class RealizationChooser {
             }
             matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
             if (!matched) {
+                KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+                if (kylinConfig.isJoinMatchOptimizationEnabled()) {
+                    logger.debug(
+                            "Query match join with join match optimization mode, trying to match with newly rewrite join graph.");
+                    ctx.matchJoinWithFilterTransformation();
+                    ctx.matchJoinWithEnhancementTransformation();
+                    matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
+                    logger.debug("Match result for match join with join match optimization mode is: {}", matched);
+                }
+            }
+
+            if (!matched) {
                 logger.debug("Context join graph missed model {}, model join graph {}", model, model.getJoinsGraph());
                 logger.debug("Missed match nodes - Context {}, Model {}",
                         ctx.getJoinsGraph().unmatched(model.getJoinsGraph()),

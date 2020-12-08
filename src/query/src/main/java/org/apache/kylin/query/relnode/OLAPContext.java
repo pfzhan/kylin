@@ -56,11 +56,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -68,6 +70,8 @@ import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -81,6 +85,8 @@ import lombok.Setter;
 /**
  */
 public class OLAPContext {
+
+    private static final Logger logger = LoggerFactory.getLogger(OLAPContext.class);
 
     public static final String PRM_ACCEPT_PARTIAL_RESULT = "AcceptPartialResult";
 
@@ -207,6 +213,8 @@ public class OLAPContext {
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
     @Getter
     private List<RexNode> expandedFilterConditions = new LinkedList<>();
+    @Getter
+    private Set<TableRef> notNullTables = new HashSet<>(); // tables which have not null filter(s), can be used in join-match-optimization
     public List<JoinDesc> joins = new LinkedList<>();
     @Getter
     @Setter
@@ -426,5 +434,23 @@ public class OLAPContext {
                 + ", allOlapJoins=" + allOlapJoins + ", groupByColumns=" + groupByColumns + ", innerGroupByColumns="
                 + innerGroupByColumns + ", innerFilterColumns=" + innerFilterColumns + ", aggregations=" + aggregations
                 + ", filterColumns=" + filterColumns + '}';
+    }
+
+    public void matchJoinWithFilterTransformation() {
+        Set<TableRef> leftOrInnerTables = getNotNullTables();
+        if (CollectionUtils.isEmpty(leftOrInnerTables)) {
+            return;
+        }
+
+        for (JoinDesc join : joins) {
+            if (leftOrInnerTables.contains(join.getPKSide())) {
+                joinsGraph.setJoinToLeftOrInner(join);
+                logger.debug("Current join: {} is set to LEFT_OR_INNER", join);
+            }
+        }
+    }
+
+    public void matchJoinWithEnhancementTransformation() {
+        this.setJoinsGraph(JoinsGraph.normalizeJoinGraph(joinsGraph));
     }
 }
