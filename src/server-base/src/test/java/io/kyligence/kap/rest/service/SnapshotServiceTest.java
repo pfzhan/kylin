@@ -164,31 +164,33 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
         Set<String> databases = Sets.newHashSet();
-        snapshotService.buildSnapshots(PROJECT, databases, tables, false, 3);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, false, 0);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
 
         final AbstractExecutable job1 = allExecutables.get(0);
+        Assert.assertEquals(0, job1.getPriority());
         Assert.assertTrue(job1 instanceof NSparkSnapshotJob);
-        NSparkSnapshotJob samplingJob1 = (NSparkSnapshotJob) job1;
-        Assert.assertEquals("SNAPSHOT_BUILD", samplingJob1.getName());
-        Assert.assertEquals(PROJECT, samplingJob1.getProject());
-        final String tableNameOfSamplingJob1 = samplingJob1.getParam(NBatchConstants.P_TABLE_NAME);
+        NSparkSnapshotJob snapshotJob1 = (NSparkSnapshotJob) job1;
+        Assert.assertEquals("SNAPSHOT_BUILD", snapshotJob1.getName());
+        Assert.assertEquals(PROJECT, snapshotJob1.getProject());
+        final String tableNameOfSamplingJob1 = snapshotJob1.getParam(NBatchConstants.P_TABLE_NAME);
         Assert.assertTrue(tables.contains(tableNameOfSamplingJob1));
-        Assert.assertEquals(PROJECT, samplingJob1.getParam(NBatchConstants.P_PROJECT_NAME));
-        Assert.assertEquals("ADMIN", samplingJob1.getSubmitter());
+        Assert.assertEquals(PROJECT, snapshotJob1.getParam(NBatchConstants.P_PROJECT_NAME));
+        Assert.assertEquals("ADMIN", snapshotJob1.getSubmitter());
 
         final AbstractExecutable job2 = allExecutables.get(1);
+        Assert.assertEquals(0, job2.getPriority());
         Assert.assertTrue(job2 instanceof NSparkSnapshotJob);
-        NSparkSnapshotJob samplingJob2 = (NSparkSnapshotJob) job2;
-        Assert.assertEquals("SNAPSHOT_BUILD", samplingJob2.getName());
-        final String tableNameOfSamplingJob2 = samplingJob2.getParam(NBatchConstants.P_TABLE_NAME);
-        Assert.assertEquals(PROJECT, samplingJob2.getProject());
+        NSparkSnapshotJob snapshotJob2 = (NSparkSnapshotJob) job2;
+        Assert.assertEquals("SNAPSHOT_BUILD", snapshotJob2.getName());
+        final String tableNameOfSamplingJob2 = snapshotJob2.getParam(NBatchConstants.P_TABLE_NAME);
+        Assert.assertEquals(PROJECT, snapshotJob2.getProject());
         Assert.assertTrue(tables.contains(tableNameOfSamplingJob2));
-        Assert.assertEquals(PROJECT, samplingJob2.getParam(NBatchConstants.P_PROJECT_NAME));
-        Assert.assertEquals("ADMIN", samplingJob2.getSubmitter());
+        Assert.assertEquals(PROJECT, snapshotJob2.getParam(NBatchConstants.P_PROJECT_NAME));
+        Assert.assertEquals("ADMIN", snapshotJob2.getSubmitter());
         Assert.assertEquals(tables, Sets.newHashSet(tableNameOfSamplingJob1, tableNameOfSamplingJob2));
 
         // refresh failed

@@ -3275,7 +3275,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
         val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "1577811661000", "1609430400000");
+                "1577811661000", "1609430400000", true, Sets.newHashSet(), null, 0);
 
         Assert.assertEquals(jobInfo.getJobs().size(), 1);
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
@@ -3291,6 +3291,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String pattern = "yyyy-MM-dd";
         Assert.assertEquals(2, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
+        Assert.assertEquals(0, executables.get(1).getPriority());
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertEquals(DateFormat.getFormatTimeStamp("1577808000000", pattern),
@@ -3400,13 +3401,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflow = dataflowManager.updateDataflow(dataflowUpdate);
         Assert.assertEquals(0, dataflow.getSegments().size());
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,  Sets.newHashSet(), null, 0);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());
         val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
+        AbstractExecutable job = executables.get(0);
+        Assert.assertEquals(0, job.getPriority());
+        Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
         thrown.expectInTransaction(KylinException.class);
         thrown.expectMessageInTransaction(String
                 .format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
@@ -3768,11 +3771,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 3);
+        val response = modelService.buildIndicesManually(modelId, project, 0);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(1, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
+        Assert.assertEquals(0, executables.get(0).getPriority());
 
     }
 

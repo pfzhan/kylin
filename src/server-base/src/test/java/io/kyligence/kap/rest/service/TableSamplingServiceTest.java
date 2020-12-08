@@ -112,13 +112,14 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         final String table1 = "DEFAULT.TEST_KYLIN_FACT";
         final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
-        tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
+        tableSamplingService.sampling(tables, PROJECT, SAMPLING_ROWS, 0);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(2, allExecutables.size());
 
         final AbstractExecutable job1 = allExecutables.get(0);
+        Assert.assertEquals(0, job1.getPriority());
         Assert.assertTrue(job1 instanceof NTableSamplingJob);
         NTableSamplingJob samplingJob1 = (NTableSamplingJob) job1;
         Assert.assertEquals("TABLE_SAMPLING", samplingJob1.getName());
@@ -129,6 +130,7 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("ADMIN", samplingJob1.getSubmitter());
 
         final AbstractExecutable job2 = allExecutables.get(1);
+        Assert.assertEquals(0, job2.getPriority());
         Assert.assertTrue(job2 instanceof NTableSamplingJob);
         NTableSamplingJob samplingJob2 = (NTableSamplingJob) job2;
         Assert.assertEquals("TABLE_SAMPLING", samplingJob2.getName());

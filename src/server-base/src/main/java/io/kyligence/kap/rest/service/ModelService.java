@@ -2153,7 +2153,8 @@ public class ModelService extends BasicService {
             return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
                     getSourceUsageManager().licenseCheckWrap(project,
                             () -> getJobManager(project).addSegmentJob(new JobParam(newSegment, modelId, getUsername())
-                                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())))));
+                                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
+                                    .withPriority(params.getPriority())))));
         }
         if (!needBuild) {
             return new LinkedList<>();
@@ -2193,7 +2194,7 @@ public class ModelService extends BasicService {
             return null;
         }
         JobParam jobParam = new JobParam(newSegment, modelId, getUsername())
-                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables());
+                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority());
         if (modelDescInTransaction.isMultiPartitionModel()) {
             val model = getDataModelManager(project).getDataModelDesc(modelId);
             jobParam.setTargetPartitions(
