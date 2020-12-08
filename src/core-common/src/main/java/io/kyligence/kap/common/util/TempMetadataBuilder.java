@@ -37,7 +37,7 @@ public class TempMetadataBuilder {
     public static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
     public static final String SPARK_PROJECT_KAP_META_TEST_DATA = "../../examples/test_case_data/localmeta";
     public static final String TEMP_TEST_METADATA = "../examples/test_data/"
-            + ProcessUtils.getCurrentId(System.currentTimeMillis() + "");
+            + ProcessUtil.getProcessId(System.currentTimeMillis() + "");
 
     private static final Logger logger = LoggerFactory.getLogger(TempMetadataBuilder.class);
 

@@ -42,10 +42,11 @@
 
 package org.apache.kylin.job.common;
 
-import org.apache.kylin.common.util.BufferedLogger;
+import java.util.Map;
+
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.job.execution.ExecutableContext;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -68,11 +69,15 @@ public class ShellExecutable extends AbstractExecutable {
     protected ExecuteResult doWork(ExecutableContext context) {
         try {
             logger.info("executing:{}", getCmd());
-            val patternedLogger = new BufferedLogger(logger);
-            val result = context.getConfig().getCliCommandExecutor().execute(getCmd(), patternedLogger);
+            final PatternedLogger patternedLogger = new PatternedLogger(logger);
+            final val result = context.getConfig().getCliCommandExecutor().execute(getCmd(),
+                    patternedLogger);
 
             Preconditions.checkState(result.getCode() == 0);
-            return ExecuteResult.createSucceed(result.getCmd());
+            Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
+            val ret = ExecuteResult.createSucceed(result.getCmd());
+            ret.getExtraInfo().putAll(extraInfo);
+            return ret;
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }

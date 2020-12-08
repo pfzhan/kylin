@@ -46,7 +46,7 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.tool.OptionBuilder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 

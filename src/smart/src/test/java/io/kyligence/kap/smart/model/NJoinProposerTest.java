@@ -36,7 +36,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
@@ -55,7 +55,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" + "LEFT JOIN TEST_ORDER as TEST_ORDER\n"
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
-        SmartMaster smartMaster = new SmartMaster(
+        NSmartMaster smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql }));
         smartMaster.runUtWithContext(smartUtHook);
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sql).isNotSucceed());
@@ -66,7 +66,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
         final String sql1 = "select sum(ITEM_COUNT) as ITEM_CNT\n" + "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n"
                 + "LEFT JOIN TEST_ORDER as ORDERS\n" + "ON TEST_KYLIN_FACT.ORDER_ID = ORDERS.ORDER_ID\n"
                 + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" + "ON ORDERS.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID";
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql1 }));
         smartMaster1.runUtWithContext(smartUtHook);
         Assert.assertFalse(smartMaster1.getContext().getAccelerateInfoMap().get(sql1).isNotSucceed());
@@ -85,7 +85,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
                 + "group by item_count, lstg_format_name\n" //
                 + "order by item_count, lstg_format_name\n" //
                 + "limit 10";
-        SmartMaster master = new SmartMaster(
+        NSmartMaster master = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql }));
         master.runUtWithContext(smartUtHook);
         val newModels = NDataModelManager.getInstance(getTestConfig(), proj).listAllModels();
@@ -94,7 +94,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
         val originModelGragh = newModels.get(0).getJoinsGraph();
 
         // secondly propose, still work in SMART-Mode
-        SmartMaster master1 = new SmartMaster(
+        NSmartMaster master1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql }));
         master1.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
@@ -114,7 +114,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
         val originModel = originModels.get(0);
         val context = AccelerationContextUtil.newModelReuseContext(getTestConfig(), getProject(),
                 new String[] { sql });
-        SmartMaster semiAutoMaster = new SmartMaster(context);
+        NSmartMaster semiAutoMaster = new NSmartMaster(context);
         semiAutoMaster.runUtWithContext(smartUtHook);
         val semiAutoModels = modelManager.listAllModels();
         Assert.assertEquals(1, semiAutoModels.size());

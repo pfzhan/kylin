@@ -38,7 +38,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import io.kyligence.kap.common.constant.Constants;
+import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;

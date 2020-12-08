@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.Getter;
@@ -90,7 +90,7 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
 
         long proposeStartTime = System.currentTimeMillis();
         AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         long proposeEndTime = System.currentTimeMillis();
 
@@ -146,7 +146,7 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
         for (int i = 0; i < numOfQueries; i++) {
             long proposeStartTime = System.currentTimeMillis();
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[i] });
-            SmartMaster smartMaster = new SmartMaster(context);
+            NSmartMaster smartMaster = new NSmartMaster(context);
             smartMaster.runUtWithContext(smartUtHook);
 
             long proposeEndTime = System.currentTimeMillis();

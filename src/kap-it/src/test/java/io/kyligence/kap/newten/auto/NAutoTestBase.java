@@ -37,7 +37,7 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.newten.NSuggestTestBase;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
@@ -64,12 +64,12 @@ public class NAutoTestBase extends NSuggestTestBase {
     }
 
     @Override
-    protected SmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
+    protected NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
         List<String> sqlList = collectQueries(testScenarios);
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
         String[] sqls = sqlList.toArray(new String[0]);
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         return smartMaster;
     }
@@ -79,11 +79,11 @@ public class NAutoTestBase extends NSuggestTestBase {
 
         // 1. execute auto-modeling propose
         long startTime = System.currentTimeMillis();
-        final SmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
+        final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
         log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
         if (expectModelNum != null) {
-            Assert.assertEquals(expectModelNum.intValue(), smartMaster.context.getProposedModels().size());
+            Assert.assertEquals(expectModelNum.intValue(), smartMaster.getRecommendedModels().size());
         }
 
         buildAndCompare(compareMap, testScenarios);

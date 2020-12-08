@@ -42,8 +42,8 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.smart.SmartContext;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
 
@@ -151,8 +151,8 @@ public class QueryACLTest extends NAutoTestBase {
     }
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
-        val smartContext = new SmartContext(getTestConfig(), PROJECT, sqls);
-        val smartMaster = new SmartMaster(smartContext);
+        val smartContext = new NSmartContext(getTestConfig(), PROJECT, sqls);
+        val smartMaster = new NSmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(getTestConfig(), PROJECT);
     }

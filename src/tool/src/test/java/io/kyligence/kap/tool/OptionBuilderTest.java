@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.junit.Assert;
 import org.junit.Test;

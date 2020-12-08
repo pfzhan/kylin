@@ -65,7 +65,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NQueryScopeProposer extends NAbstractModelProposer {
 
-    NQueryScopeProposer(AbstractContext.ModelContext modelContext) {
+    NQueryScopeProposer(AbstractContext.NModelContext modelContext) {
         super(modelContext);
     }
 
@@ -117,9 +117,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         private int maxMeasureId = NDataModel.MEASURE_ID_BASE - 1;
 
         private final NDataModel dataModel;
-        private final AbstractContext.ModelContext modelContext;
+        private final AbstractContext.NModelContext modelContext;
 
-        protected ScopeBuilder(NDataModel dataModel, AbstractContext.ModelContext modelContext) {
+        protected ScopeBuilder(NDataModel dataModel, AbstractContext.NModelContext modelContext) {
             this.dataModel = dataModel;
             this.modelContext = modelContext;
 

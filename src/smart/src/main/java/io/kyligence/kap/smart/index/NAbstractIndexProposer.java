@@ -36,9 +36,9 @@ import io.kyligence.kap.smart.AbstractContext;
 
 abstract class NAbstractIndexProposer {
 
-    final AbstractContext.ModelContext context;
+    final AbstractContext.NModelContext context;
 
-    NAbstractIndexProposer(AbstractContext.ModelContext context) {
+    NAbstractIndexProposer(AbstractContext.NModelContext context) {
         this.context = context;
     }
 

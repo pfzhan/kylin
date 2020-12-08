@@ -263,15 +263,18 @@
         <module>src/query</module>
         <module>src/kap-it</module>
         <module>src/smart</module>
+        <module>src/tomcat-ext</module>
         <module>src/udf</module>
         <module>src/core-common</module>
         <module>src/core-metadata</module>
+        <module>src/core-metrics</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
         <module>src/server</module>
         <module>src/spark-project</module>
         <module>src/assembly</module>
         <module>src/tool</module>
+        <module>src/tool-assembly</module>
         <module>src/datasource-sdk</module>
     </modules>
 

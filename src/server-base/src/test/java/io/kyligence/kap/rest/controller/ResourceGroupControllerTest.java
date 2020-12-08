@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.util.List;
 import java.util.Map;
 
@@ -69,8 +71,6 @@ import io.kyligence.kap.rest.handler.resourcegroup.ResourceGroupMappingInfoValid
 import io.kyligence.kap.rest.request.resourecegroup.ResourceGroupRequest;
 import io.kyligence.kap.rest.service.resourcegroup.ResourceGroupService;
 import lombok.val;
-
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
     private MockMvc mockMvc;

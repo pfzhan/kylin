@@ -104,7 +104,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
@@ -244,10 +244,10 @@ public class ModelSemanticHelper extends BasicService {
 
         AbstractContext context = new ModelCreateContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 new String[] { nonEquiSql });
-        SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.executePropose();
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runSuggestModel();
 
-        List<AbstractContext.ModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
+        List<AbstractContext.NModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
         if (CollectionUtils.isEmpty(suggModelContexts) || Objects.isNull(suggModelContexts.get(0).getTargetModel())) {
 
             AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(nonEquiSql);

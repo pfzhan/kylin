@@ -31,15 +31,15 @@ import io.kyligence.kap.smart.AbstractContext;
 
 public class NIndexMaster {
 
-    private final AbstractContext.ModelContext context;
+    private final AbstractContext.NModelContext context;
     private final NProposerProvider proposerProvider;
 
-    public NIndexMaster(AbstractContext.ModelContext context) {
+    public NIndexMaster(AbstractContext.NModelContext context) {
         this.context = context;
         this.proposerProvider = NProposerProvider.create(this.context);
     }
 
-    public AbstractContext.ModelContext getContext() {
+    public AbstractContext.NModelContext getContext() {
         return this.context;
     }
 

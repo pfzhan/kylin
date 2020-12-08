@@ -90,7 +90,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.tool.OptionBuilder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

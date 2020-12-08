@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NPartitionProposer extends NAbstractModelProposer {
 
-    NPartitionProposer(AbstractContext.ModelContext modelContext) {
+    NPartitionProposer(AbstractContext.NModelContext modelContext) {
         super(modelContext);
     }
 

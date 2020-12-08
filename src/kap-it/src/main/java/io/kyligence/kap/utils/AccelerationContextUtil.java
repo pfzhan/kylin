@@ -37,7 +37,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.SmartContext;
+import io.kyligence.kap.smart.NSmartContext;
 import lombok.val;
 import lombok.var;
 
@@ -47,7 +47,7 @@ public class AccelerationContextUtil {
     }
 
     public static AbstractContext newSmartContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
-        return new SmartContext(kylinConfig, project, sqlArray);
+        return new NSmartContext(kylinConfig, project, sqlArray);
     }
 
     public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,

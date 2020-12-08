@@ -31,7 +31,6 @@ import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARA
 import java.io.File;
 import java.util.concurrent.Future;
 
-import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.exception.KylinException;

@@ -315,11 +315,11 @@ public class GreedyModelTreesBuilder {
             mergeJoins(ctx.joins, alias2JoinTables, tableRef2Alias, aliasRefMap);
         }
 
-        public AbstractContext.ModelContext mergeModelContext(AbstractContext proposeContext,
-                                                              AbstractContext.ModelContext modelContext, AbstractContext.ModelContext another) {
+        public AbstractContext.NModelContext mergeModelContext(AbstractContext proposeContext,
+                AbstractContext.NModelContext modelContext, AbstractContext.NModelContext another) {
             List<OLAPContext> olapCtxs = Lists.newArrayList(modelContext.getModelTree().getOlapContexts());
             olapCtxs.addAll(another.getModelTree().getOlapContexts());
-            return new AbstractContext.ModelContext(proposeContext, buildOne(olapCtxs, true));
+            return new AbstractContext.NModelContext(proposeContext, buildOne(olapCtxs, true));
         }
 
         private static void mergeJoins(List<JoinDesc> joins, Map<String, JoinTableDesc> alias2JoinTables,

@@ -77,7 +77,7 @@ public class JdbcRawRecStore {
     private final SqlSessionFactory sqlSessionFactory;
 
     public JdbcRawRecStore(KylinConfig config) throws Exception {
-        StorageURL url = config.getQueryHistoryUrl();
+        StorageURL url = config.getMetadataUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
         table = new RawRecItemTable(genRawRecTableName(url));

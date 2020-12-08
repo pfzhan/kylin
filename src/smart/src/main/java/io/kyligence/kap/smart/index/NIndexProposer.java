@@ -38,7 +38,7 @@ import io.kyligence.kap.smart.AbstractContext;
 
 class NIndexProposer extends NAbstractIndexProposer {
 
-    NIndexProposer(AbstractContext.ModelContext context) {
+    NIndexProposer(AbstractContext.NModelContext context) {
         super(context);
     }
 

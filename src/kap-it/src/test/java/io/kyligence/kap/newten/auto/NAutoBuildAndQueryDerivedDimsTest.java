@@ -36,7 +36,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 
 public class NAutoBuildAndQueryDerivedDimsTest extends NAutoTestBase {
@@ -151,10 +151,10 @@ public class NAutoBuildAndQueryDerivedDimsTest extends NAutoTestBase {
     }
 
     private NDataModel proposeSmartModel(String testFolder, int startIndex, JoinType joinType) throws IOException {
-        SmartMaster smartMaster = proposeWithSmartMaster(getProject(),
+        NSmartMaster nSmartMaster = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.NONE, testFolder, joinType, startIndex, startIndex + 1));
 
-        Assert.assertEquals(smartMaster.getContext().getModelContexts().size(), 1);
-        return smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(nSmartMaster.getContext().getModelContexts().size(), 1);
+        return nSmartMaster.getContext().getModelContexts().get(0).getTargetModel();
     }
 }

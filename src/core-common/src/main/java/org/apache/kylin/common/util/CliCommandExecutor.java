@@ -43,20 +43,27 @@
 package org.apache.kylin.common.util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.JobProcessContext;
+import org.apache.kylin.common.KapConfig;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.util.ProcessUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.val;
 
 /**
@@ -72,6 +79,7 @@ public class CliCommandExecutor {
     private int remoteTimeoutSeconds = 3600;
 
     // records down child process ids
+    private static File childProcessFile = new File(KapConfig.getKylinHomeAtBestEffort(), "child_process");
 
     public CliCommandExecutor() {
     }
@@ -135,6 +143,7 @@ public class CliCommandExecutor {
         return r;
     }
 
+
     private Pair<Integer, String> runRemoteCommand(String command, Logger logAppender) throws ShellException {
         try {
             SSHClient ssh = new SSHClient(remoteHost, port, remoteUser, remotePwd);
@@ -149,8 +158,9 @@ public class CliCommandExecutor {
         }
     }
 
-    private CliCmdExecResult runNativeCommand(String command, Logger logAppender, String jobId) throws ShellException {
-        int pid = 0;
+    private CliCmdExecResult runNativeCommand(String command, Logger logAppender, String jobId)
+            throws ShellException {
+        String pid = "";
 
         try {
 
@@ -169,9 +179,13 @@ public class CliCommandExecutor {
             builder.environment().putAll(System.getenv());
             builder.redirectErrorStream(true);
             Process proc = builder.start();
-            pid = ProcessUtils.getPid(proc);
-            logger.info("sub process {} on behalf of job {}, start to run...", pid, jobId);
-            EventBusFactory.getInstance().postSync(new ProcessStart(pid, jobId));
+            pid = getPid(proc);
+
+            if (StringUtils.isNotBlank(jobId)) {
+                persistJobChildProcess(pid);
+                logger.info("sub process {} on behalf of job {}, start to run...", pid, jobId);
+                JobProcessContext.registerProcess(jobId, proc);
+            }
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
             String line;
@@ -194,7 +208,7 @@ public class CliCommandExecutor {
                 if (b.length() > (100 << 20)) {
                     logger.info("[LESS_LIKELY_THINGS_HAPPENED]Sub process log larger than 100M");
                 }
-                return new CliCmdExecResult(exitCode, b, pid + "");
+                return new CliCmdExecResult(exitCode, b, pid);
 
             } catch (InterruptedException e) {
                 logger.warn("Thread is interrupted, cmd: {}, pid: {}", cmd, pid, e);
@@ -204,37 +218,56 @@ public class CliCommandExecutor {
         } catch (Exception e) {
             throw new ShellException(e);
         } finally {
-            EventBusFactory.getInstance().postSync(new ProcessFinished(pid));
+            if (StringUtils.isNotBlank(jobId)) {
+                removeJobChildProcess(pid);
+                JobProcessContext.removeProcess(jobId);
+            }
         }
     }
 
-    @Setter
-    @Getter
-    @AllArgsConstructor
-    @ToString
-    public static class ProcessStart {
-
-        int pid;
-
-        String jobId;
+    private void persistJobChildProcess(String pid) {
+        synchronized (childProcessFile) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(childProcessFile, true))) {
+                writer.write(pid + "\n");
+                writer.flush();
+            } catch (IOException ex) {
+                logger.error("write child job process {} from {} failed", pid, childProcessFile.getAbsolutePath());
+            }
+        }
     }
 
-    @Setter
-    @Getter
-    @AllArgsConstructor
-    @ToString
-    public static class ProcessFinished {
+    private void removeJobChildProcess(String pid) {
+        synchronized (childProcessFile) {
+            if (!childProcessFile.exists())
+                return;
 
-        int pid;
+            List<String> existChildPids = Lists.newArrayList();
+
+            try {
+                existChildPids = FileUtils.readLines(childProcessFile);
+            } catch (IOException e) {
+                logger.error("read child job process from {} failed", childProcessFile.getAbsolutePath());
+            }
+
+            if (!existChildPids.contains(pid))
+                return;
+
+            existChildPids.remove(pid);
+
+            try {
+                FileUtils.writeLines(childProcessFile, existChildPids);
+            } catch (IOException e) {
+                logger.error("remove child job process {} from {} failed", pid, childProcessFile.getAbsolutePath());
+            }
+        }
     }
 
-    @Setter
-    @Getter
-    @AllArgsConstructor
-    public static class JobKilled {
-
-        String jobId;
-
+    private String getPid(Process process) throws IllegalAccessException, NoSuchFieldException {
+        String className = process.getClass().getName();
+        Preconditions.checkState(className.equals("java.lang.UNIXProcess"));
+        Field f = process.getClass().getDeclaredField("pid");
+        f.setAccessible(true);
+        return String.valueOf(f.getInt(process));
     }
 
     @AllArgsConstructor

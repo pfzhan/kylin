@@ -34,9 +34,9 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.common.PatternedLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +82,7 @@ public class KapGetClusterInfo {
         String url = yarnMasterUrlBase + YARN_METRICS_SUFFIX;
         String command = "curl -s -k --negotiate -u : " + url;
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        val patternedLogger = new BufferedLogger(logger);
+        PatternedLogger patternedLogger = new PatternedLogger(logger);
 
         val response = config.getCliCommandExecutor().execute(command, patternedLogger).getCmd();
         if (response == null) {

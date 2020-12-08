@@ -52,11 +52,11 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -295,7 +295,13 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
-        val patternedLogger = new BufferedLogger(logger);
+        val config = getConfig();
+        PatternedLogger patternedLogger;
+        if (config.isJobLogPrintEnabled()) {
+            patternedLogger = new PatternedLogger(logger);
+        } else {
+            patternedLogger = new PatternedLogger(null);
+        }
 
         try {
             killOrphanApplicationIfExists(getId());
@@ -317,7 +323,10 @@ public class NSparkExecutable extends AbstractExecutable {
                 }
             }
 
-            return ExecuteResult.createSucceed(r.getCmd());
+            Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
+            val ret = ExecuteResult.createSucceed(r.getCmd());
+            ret.getExtraInfo().putAll(extraInfo);
+            return ret;
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }

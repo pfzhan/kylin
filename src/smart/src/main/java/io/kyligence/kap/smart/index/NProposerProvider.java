@@ -28,13 +28,13 @@ import io.kyligence.kap.smart.AbstractContext;
 
 public class NProposerProvider {
 
-    private NProposerProvider(AbstractContext.ModelContext context) {
+    private NProposerProvider(AbstractContext.NModelContext context) {
         this.context = context;
     }
 
-    private AbstractContext.ModelContext context;
+    private AbstractContext.NModelContext context;
 
-    public static NProposerProvider create(AbstractContext.ModelContext context) {
+    public static NProposerProvider create(AbstractContext.NModelContext context) {
         return new NProposerProvider(context);
     }
 

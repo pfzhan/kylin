@@ -44,5 +44,5 @@ package org.apache.kylin.common.util;
 /**
  */
 public interface Application {
-    void execute(String[] args);
+    public void execute(String[] args);
 }

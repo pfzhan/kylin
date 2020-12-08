@@ -45,7 +45,7 @@ then
     export KYLIN_CONF=$CONF_DIR
     export LOG4J_DIR=${KYLIN_HOME}/build/conf
     export SPARK_DIR=${KYLIN_HOME}/build/spark/
-    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/src/assembly/target/kap-assembly-*.jar`
+    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/src/tool-assembly/target/kap-tool-assembly-*.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
     export SPARK_ENV_PROPS=`$KYLIN_HOME/build/bin/get-properties.sh kylin.storage.columnar.spark-env.`
@@ -57,7 +57,7 @@ else
     export CONF_DIR=${KYLIN_HOME}/conf
     export LOG4J_DIR=${KYLIN_HOME}/conf
     export SPARK_DIR=${KYLIN_HOME}/spark/
-    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/lib/newten-job*.jar`
+    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/tool/kap-tool-*.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
     export SPARK_ENV_PROPS=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-env.`

@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 public class NConfigControllerTest extends NLocalFileMetadataTestCase {
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;

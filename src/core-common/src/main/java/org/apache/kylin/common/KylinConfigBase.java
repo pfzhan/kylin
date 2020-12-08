@@ -58,9 +58,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
@@ -79,11 +82,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.ClusterConstant;
-import io.kyligence.kap.common.util.FileUtils;
-import lombok.val;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -502,6 +504,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.valueOf(getOptional("kylin.metadata.audit-log.max-size", "3000000"));
     }
 
+    public boolean isMetadataWaitSyncEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.wait-sync-enabled", TRUE));
+    }
+
+    // for test only
     @VisibleForTesting
     public void setMetadataUrl(String metadataUrl) {
         setProperty("kylin.metadata.url", metadataUrl);
@@ -703,12 +710,6 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
     // JOB
     // ============================================================================
-    public String getJobTmpDir(String project, boolean withScheme) {
-        if (!withScheme) {
-            return getHdfsWorkingDirectoryWithoutScheme() + project + "/job_tmp/";
-        }
-        return getHdfsWorkingDirectory(project) + "job_tmp/";
-    }
 
     public String getJobTmpDir(String project) {
         return getHdfsWorkingDirectoryWithoutScheme() + project + "/job_tmp/";
@@ -730,7 +731,8 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Path getFlatTableDir(String project, String dataFlowId, String segmentId) {
-        String path = getHdfsWorkingDirectory() + project + "/flat_table/" + dataFlowId + PATH_DELIMITER + segmentId;
+        String path = getHdfsWorkingDirectory() + project + "/flat_table/" + dataFlowId + PATH_DELIMITER
+                + segmentId;
         return new Path(path);
     }
 
@@ -1073,7 +1075,28 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.storage.default-storage-type", "0"));
     }
 
-    private static final String JOB_JAR_NAME_PATTERN = "newten-job(.?)\\.jar";
+    private static final Pattern JOB_JAR_NAME_PATTERN = Pattern.compile("newten-job(.?)\\.jar");
+
+    private static String getFileName(String homePath, Pattern pattern) {
+        File home = new File(homePath);
+        SortedSet<String> files = Sets.newTreeSet();
+        if (home.exists() && home.isDirectory()) {
+            File[] listFiles = home.listFiles();
+            if (listFiles != null) {
+                for (File file : listFiles) {
+                    final Matcher matcher = pattern.matcher(file.getName());
+                    if (matcher.matches()) {
+                        files.add(file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        if (files.isEmpty()) {
+            throw new RuntimeException("cannot find " + pattern.toString() + " in " + homePath);
+        } else {
+            return files.last();
+        }
+    }
 
     public String getExtraJarsPath() {
         return getOptional("kylin.engine.extra-jars-path", "");
@@ -1088,17 +1111,12 @@ public abstract class KylinConfigBase implements Serializable {
         if (StringUtils.isEmpty(kylinHome)) {
             return "";
         }
-        val jar = FileUtils.findFile(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
-        if (jar == null) {
-            return "";
-        }
-        return jar.getAbsolutePath();
+        return getFileName(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
     }
 
     public String getSnapshotBuildClassName(){
         return getOptional("kylin.engine.spark.snapshot-build-class-name", "io.kyligence.kap.engine.spark.job.SnapshotBuildJob");
     }
-
     public String getSparkBuildClassName() {
         return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.SegmentBuildJob");
     }
@@ -2059,13 +2077,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Math.max(1L, Long.parseLong(getOptional("kylin.task.jstack-dump-log-files-max-count", "20")));
     }
 
-    public StorageURL getQueryHistoryUrl() {
-        if (StringUtils.isEmpty(getOptional("kylin.query.queryhistory.url"))) {
-            return getMetadataUrl();
-        }
-        return StorageURL.valueOf(getOptional("kylin.query.queryhistory.url"));
-    }
-
     public int getQueryHistoryMaxSize() {
         return Integer.parseInt(getOptional("kylin.query.queryhistory.max-size", "10000000"));
     }
@@ -2370,7 +2381,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getJobResourceLackIgnoreExceptionClasses() {
         return getOptionalStringArray("kylin.job.resource-lack-ignore-exception-classes",
-                new String[] { "com.amazonaws.services.s3.model.AmazonS3Exception" });
+                new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"});
     }
 
     public String getAADUsernameClaim() {

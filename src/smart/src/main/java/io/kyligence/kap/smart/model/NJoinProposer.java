@@ -42,7 +42,7 @@ import lombok.val;
 
 public class NJoinProposer extends NAbstractModelProposer {
 
-    public NJoinProposer(AbstractContext.ModelContext modelContext) {
+    public NJoinProposer(AbstractContext.NModelContext modelContext) {
         super(modelContext);
     }
 

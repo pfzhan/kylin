@@ -26,7 +26,7 @@ package org.apache.kylin.rest.service;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 
-import static io.kyligence.kap.common.constant.Constants.UNLIMITED;
+import static io.kyligence.kap.common.license.Constants.UNLIMITED;
 
 public class DefaultLicenseExtractor implements LicenseExtractorFactory.ILicenseExtractor {
     @Override

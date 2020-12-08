@@ -123,4 +123,3 @@ VERSION
 *.crc
 _SUCCESS
 metastore_db
-ci.log*

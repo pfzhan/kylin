@@ -63,9 +63,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.constant.Constants;
+import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
 import io.kyligence.kap.rest.request.LicenseRequest;
@@ -111,8 +110,6 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasics() throws IOException {
         getTestConfig().setProperty("kylin.env", "PROD");
-        FileUtils.copyFile(new File("../examples/LICENSE"),
-                new File(TempMetadataBuilder.TEMP_TEST_METADATA, "LICENSE"));
         licenseInfoService.init();
         Assert.assertEquals("2019-06-01,2019-07-30", System.getProperty(Constants.KE_DATES));
         Assert.assertEquals("professional", System.getProperty(Constants.KE_LICENSE_LEVEL));

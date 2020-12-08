@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.OptionsHelper;

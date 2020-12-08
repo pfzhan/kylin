@@ -78,7 +78,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
 
@@ -86,10 +86,10 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         // so it will proposer a new model that A inner join B.
         String[] sql2 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
-        SmartMaster smartMaster2 = new SmartMaster(
+        NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
-        List<NDataModel> recommendedModels = smartMaster2.context.getProposedModels();
+        List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(1, recommendedModels.get(0).getJoinTables().size());
         Assert.assertEquals("TEST_KYLIN_FACT", recommendedModels.get(0).getRootFactTable().getAlias());
@@ -103,7 +103,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
 
@@ -112,10 +112,10 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         String[] sql2 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
-        SmartMaster smartMaster2 = new SmartMaster(
+        NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
-        List<NDataModel> recommendedModels = smartMaster2.context.getProposedModels();
+        List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(2, recommendedModels.get(0).getJoinTables().size());
         Assert.assertEquals("TEST_KYLIN_FACT", recommendedModels.get(0).getRootFactTable().getAlias());
@@ -130,7 +130,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
 
@@ -139,10 +139,10 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         String[] sql2 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
-        SmartMaster smartMaster2 = new SmartMaster(
+        NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
-        List<NDataModel> recommendedModels = smartMaster2.context.getProposedModels();
+        List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(2, recommendedModels.get(0).getJoinTables().size());
         Assert.assertEquals("TEST_KYLIN_FACT", recommendedModels.get(0).getRootFactTable().getAlias());
@@ -157,7 +157,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
         NDataModel dataModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
@@ -165,7 +165,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         // A inner join B
         String[] sql2 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
-        SmartMaster smartMaster2 = new SmartMaster(
+        NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
         ModelTree modelTree = smartMaster2.getContext().getModelContexts().get(0).getModelTree();
@@ -186,7 +186,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "left join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
         NDataModel dataModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
@@ -194,7 +194,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         // A inner join B
         String[] sql2 = new String[] { "select * from test_kylin_fact "
                 + "left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
-        SmartMaster smartMaster2 = new SmartMaster(
+        NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
         ModelTree modelTree = smartMaster2.getContext().getModelContexts().get(0).getModelTree();
@@ -214,7 +214,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
-        SmartMaster smartMaster1 = new SmartMaster(
+        NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
         NDataModel dataModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
@@ -245,7 +245,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "default");
 
-        val smartMaster = new SmartMaster(
+        val smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "default", sqls));
         smartMaster.runUtWithContext(smartUtHook);
 
@@ -297,7 +297,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         AccelerationContextUtil.transferProjectToPureExpertMode(getTestConfig(), "default");
 
-        val smartMaster = new SmartMaster(
+        val smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "default", sqls));
         smartMaster.runUtWithContext(smartUtHook);
 
@@ -341,7 +341,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 "select * from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id" };
         val sql2 = new String[] { "select count(*) from test_account group by account_id" };
 
-        val smartMaster1 = new SmartMaster(AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
+        val smartMaster1 = new NSmartMaster(AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runUtWithContext(smartUtHook);
 
         Assert.assertEquals(1, dfManager.listUnderliningDataModels().size());
@@ -351,7 +351,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, indexPlan.getAllLayouts().size());
         Assert.assertTrue(indexPlan.getAllLayouts().get(0).getIndex().isTableIndex());
 
-        val smartMaster2 = new SmartMaster(AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
+        val smartMaster2 = new NSmartMaster(AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
 
         Assert.assertEquals(2, dfManager.listUnderliningDataModels().size());
@@ -430,8 +430,8 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
     }
 
     private void runSuggestModelAndSave(AbstractContext smartContext){
-        val smartMaster = new SmartMaster(smartContext);
-        smartMaster.executePropose();
+        val smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runSuggestModel();
         smartContext.saveMetadata();
         AccelerationContextUtil.onlineModel(smartContext);
     }

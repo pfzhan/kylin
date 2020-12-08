@@ -73,13 +73,13 @@ import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
-import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -1799,7 +1799,7 @@ public class TableService extends BasicService {
                 return;
             }
             CliCommandExecutor exec = new CliCommandExecutor();
-            val patternedLogger = new BufferedLogger(logger);
+            PatternedLogger patternedLogger = new PatternedLogger(logger);
             val sampleSh = checkSSBEnv();
             try {
                 exec.execute(sampleSh, patternedLogger);

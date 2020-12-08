@@ -60,7 +60,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NSuggestTestBase;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
@@ -115,12 +115,12 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         emptyModelAndIndexPlan(project, originModelIds, originModels, originIndexPlans);
     }
 
-    protected SmartMaster runWithSmartContext(String project, TestScenario... testScenarios) throws IOException {
+    protected NSmartMaster runWithSmartContext(String project, TestScenario... testScenarios) throws IOException {
         List<String> sqlList = collectQueries(testScenarios);
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
         String[] sqls = sqlList.toArray(new String[0]);
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         return smartMaster;
     }
@@ -174,7 +174,7 @@ public class SemiAutoTestBase extends NSuggestTestBase {
             throws Exception {
 
         long startTime = System.currentTimeMillis();
-        final SmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
+        final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
         updateAccelerateInfoMap(smartMaster);
         final Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap = collectCompareEntity(smartMaster);
         log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
@@ -200,13 +200,13 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         return compareMap;
     }
 
-    private void updateAccelerateInfoMap(SmartMaster smartMaster) {
+    private void updateAccelerateInfoMap(NSmartMaster smartMaster) {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val targetIndexPlanMap = smartMaster.getContext().getModelContexts().stream()
-                .map(AbstractContext.ModelContext::getTargetIndexPlan)
+                .map(AbstractContext.NModelContext::getTargetIndexPlan)
                 .collect(Collectors.toMap(RootPersistentEntity::getId, i -> i));
         val targetModelMap = smartMaster.getContext().getModelContexts().stream()
-                .map(AbstractContext.ModelContext::getTargetModel)
+                .map(AbstractContext.NModelContext::getTargetModel)
                 .collect(Collectors.toMap(RootPersistentEntity::getId, i -> i));
         smartMaster.getContext().getAccelerateInfoMap().forEach((sql, info) -> {
             info.getRelatedLayouts().forEach(r -> {
@@ -249,18 +249,18 @@ public class SemiAutoTestBase extends NSuggestTestBase {
     }
 
     @Override
-    protected SmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
+    protected NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
         List<String> sqlList = collectQueries(testScenarios);
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
         String[] sqls = sqlList.toArray(new String[0]);
         AbstractContext context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), project,
                 sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         return smartMaster;
     }
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(SmartMaster smartMaster) {
+    protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(NSmartMaster smartMaster) {
         Map<String, RecAndQueryCompareUtil.CompareEntity> map = Maps.newHashMap();
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((sql, accelerateInfo) -> {

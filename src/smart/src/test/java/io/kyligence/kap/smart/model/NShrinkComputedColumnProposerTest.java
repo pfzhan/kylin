@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
@@ -57,7 +57,7 @@ public class NShrinkComputedColumnProposerTest extends NLocalWithSparkSessionTes
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                 new String[] { sql, sql1 });
-        SmartMaster smartMaster = new SmartMaster(context);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         Assert.assertTrue(smartMaster.getContext().getAccelerateInfoMap().get(sql).isNotSucceed());
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sql1).isNotSucceed());

@@ -37,12 +37,12 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ChainedProposer extends AbstractProposer {
+public class ChainedProposer extends NAbstractProposer {
 
     @Getter
-    private final ImmutableList<AbstractProposer> proposerList;
+    private final ImmutableList<NAbstractProposer> proposerList;
 
-    public ChainedProposer(AbstractContext proposeContext, ImmutableList<AbstractProposer> proposerList) {
+    public ChainedProposer(AbstractContext proposeContext, ImmutableList<NAbstractProposer> proposerList) {
         super(proposeContext);
         this.proposerList = proposerList;
         assert !proposerList.contains(this);
@@ -50,7 +50,7 @@ public class ChainedProposer extends AbstractProposer {
 
     @Override
     public void execute() {
-        for (AbstractProposer proposer : proposerList) {
+        for (NAbstractProposer proposer : proposerList) {
             long start = System.currentTimeMillis();
             log.info("Enter the step of `{}`", proposer.getIdentifierName());
 
@@ -60,25 +60,25 @@ public class ChainedProposer extends AbstractProposer {
             log.info("The step of `{}` completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                     proposer.getIdentifierName(), //
                     System.currentTimeMillis() - start, //
-                    nums.get(SmartMaster.AccStatusType.SUCCESS), //
-                    nums.get(SmartMaster.AccStatusType.PENDING), //
-                    nums.get(SmartMaster.AccStatusType.FAILED));
+                    nums.get(NSmartMaster.AccStatusType.SUCCESS), //
+                    nums.get(NSmartMaster.AccStatusType.PENDING), //
+                    nums.get(NSmartMaster.AccStatusType.FAILED));
         }
     }
 
-    private Map<SmartMaster.AccStatusType, Integer> getAccelerationNumMap() {
-        Map<SmartMaster.AccStatusType, Integer> result = Maps.newHashMap();
-        result.putIfAbsent(SmartMaster.AccStatusType.SUCCESS, 0);
-        result.putIfAbsent(SmartMaster.AccStatusType.PENDING, 0);
-        result.putIfAbsent(SmartMaster.AccStatusType.FAILED, 0);
+    private Map<NSmartMaster.AccStatusType, Integer> getAccelerationNumMap() {
+        Map<NSmartMaster.AccStatusType, Integer> result = Maps.newHashMap();
+        result.putIfAbsent(NSmartMaster.AccStatusType.SUCCESS, 0);
+        result.putIfAbsent(NSmartMaster.AccStatusType.PENDING, 0);
+        result.putIfAbsent(NSmartMaster.AccStatusType.FAILED, 0);
         val accelerateInfoMap = proposeContext.getAccelerateInfoMap();
         for (Map.Entry<String, AccelerateInfo> entry : accelerateInfoMap.entrySet()) {
             if (entry.getValue().isPending()) {
-                result.computeIfPresent(SmartMaster.AccStatusType.PENDING, (k, v) -> v + 1);
+                result.computeIfPresent(NSmartMaster.AccStatusType.PENDING, (k, v) -> v + 1);
             } else if (entry.getValue().isFailed()) {
-                result.computeIfPresent(SmartMaster.AccStatusType.FAILED, (k, v) -> v + 1);
+                result.computeIfPresent(NSmartMaster.AccStatusType.FAILED, (k, v) -> v + 1);
             } else {
-                result.computeIfPresent(SmartMaster.AccStatusType.SUCCESS, (k, v) -> v + 1);
+                result.computeIfPresent(NSmartMaster.AccStatusType.SUCCESS, (k, v) -> v + 1);
             }
         }
         return result;

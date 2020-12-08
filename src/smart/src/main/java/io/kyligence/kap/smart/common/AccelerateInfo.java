@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.smart.common;
 
-import java.io.Serializable;
 import java.util.Set;
 
-import lombok.NoArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 
 import com.google.common.base.Preconditions;
@@ -37,13 +35,15 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
 @Setter
 @Getter
+@NoArgsConstructor
 @ToString
-public class AccelerateInfo implements Serializable {
+public class AccelerateInfo {
 
     private Set<QueryLayoutRelation> relatedLayouts = Sets.newHashSet();
     private Throwable failedCause;
@@ -64,9 +64,8 @@ public class AccelerateInfo implements Serializable {
     @Getter
     @ToString
     @AllArgsConstructor
-    @NoArgsConstructor
     @EqualsAndHashCode
-    public static class QueryLayoutRelation implements Serializable {
+    public static class QueryLayoutRelation {
 
         @ToString.Exclude
         private String sql;

@@ -31,13 +31,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NProposerProvider {
 
-    private NProposerProvider(AbstractContext.ModelContext modelContext) {
+    private NProposerProvider(AbstractContext.NModelContext modelContext) {
         this.modelContext = modelContext;
     }
 
-    private AbstractContext.ModelContext modelContext;
+    private AbstractContext.NModelContext modelContext;
 
-    public static NProposerProvider create(AbstractContext.ModelContext modelContext) {
+    public static NProposerProvider create(AbstractContext.NModelContext modelContext) {
         return new NProposerProvider(modelContext);
     }
 

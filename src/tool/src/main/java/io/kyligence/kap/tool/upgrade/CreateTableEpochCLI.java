@@ -26,7 +26,7 @@ package io.kyligence.kap.tool.upgrade;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.JdbcEpochStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.tool.OptionBuilder;
 import io.kyligence.kap.tool.util.MetadataUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.Option;

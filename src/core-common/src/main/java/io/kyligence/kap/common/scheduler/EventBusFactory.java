@@ -44,9 +44,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EventBusFactory {
     private final KylinConfig kylinConfig;
-    private ExecutorService executor;
-    private EventBus asyncEventBus;
-    private EventBus syncEventBus;
+    private ExecutorService executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
+    private EventBus asyncEventBus = new AsyncEventBus(executor);
+    private EventBus syncEventBus = new EventBus();
 
     private final Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
 
@@ -56,9 +56,6 @@ public class EventBusFactory {
 
     private EventBusFactory() {
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
-        asyncEventBus = new AsyncEventBus(executor);
-        syncEventBus = new EventBus();
     }
 
     public void register(Object listener, boolean isSync) {
@@ -91,12 +88,11 @@ public class EventBusFactory {
     }
 
     public void postAsync(Object event) {
-        log.debug("Post event {} async", event);
+        log.debug("Post event {}", event);
         asyncEventBus.post(event);
     }
 
     public void postSync(Object event) {
-        log.debug("Post event {} sync", event);
         syncEventBus.post(event);
     }
 
@@ -113,6 +109,5 @@ public class EventBusFactory {
         }
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
         asyncEventBus = new AsyncEventBus(executor);
-        syncEventBus = new EventBus();
     }
 }

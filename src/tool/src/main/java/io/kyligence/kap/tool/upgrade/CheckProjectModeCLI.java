@@ -26,7 +26,7 @@ package io.kyligence.kap.tool.upgrade;
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.tool.OptionBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;

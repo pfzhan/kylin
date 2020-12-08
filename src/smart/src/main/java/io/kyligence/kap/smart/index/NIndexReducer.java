@@ -38,7 +38,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
-import io.kyligence.kap.smart.AbstractContext.ModelContext;
+import io.kyligence.kap.smart.AbstractContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +46,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class NIndexReducer extends NAbstractIndexProposer {
 
-    NIndexReducer(ModelContext context) {
+    NIndexReducer(NModelContext context) {
         super(context);
     }
 

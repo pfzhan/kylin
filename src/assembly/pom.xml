@@ -73,10 +73,6 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-sparder</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-tool</artifactId>
-        </dependency>
         <!-- Env -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

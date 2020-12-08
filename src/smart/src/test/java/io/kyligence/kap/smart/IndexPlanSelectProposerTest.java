@@ -50,13 +50,13 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
     @Test
     public void test() {
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, DEFAULT_PROJECT, sqls);
-        SmartMaster smartMaster = new SmartMaster(context);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
 
         // validate select the expected model
         smartMaster.selectModel();
         AbstractContext ctx = smartMaster.getContext();
-        AbstractContext.ModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getTargetModel().getUuid());
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOriginModel().getUuid());
 

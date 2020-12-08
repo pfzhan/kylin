@@ -160,7 +160,15 @@ EOL
 }
 
 function runTool() {
-    runToolInternal "$@"
+    prepareEnv
+
+    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
+        kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties"
+    else
+        kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
+    fi
+
+    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" "$@"
     exit $?
 }
 
@@ -171,7 +179,7 @@ function runToolInternal() {
     else
         kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
     fi
-    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
+    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" "$@"
 }
 
 function killChildProcess {

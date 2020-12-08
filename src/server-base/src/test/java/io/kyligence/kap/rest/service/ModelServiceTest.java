@@ -228,8 +228,7 @@ import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ProposerJob;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -1294,10 +1293,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // prepare table desc snapshot path
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        val tableManager = NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject());
-        val table = tableManager.copyForWrite(tableManager.getTableDesc("DEFAULT.TEST_ORDER"));
-        table.setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
-        tableManager.updateTableDesc(table);
+        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject())
+                .getTableDesc("DEFAULT.TEST_ORDER")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
 
         List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
         Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
@@ -1312,13 +1310,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
                 dataflow.getProject());
-        val table1 = tableMetadataManager.copyForWrite(tableMetadataManager.getTableDesc("EDW.TEST_CAL_DT"));
-        table1.setLastSnapshotPath("default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc");
-        tableMetadataManager.updateTableDesc(table1);
-
-        val table2 = tableMetadataManager.copyForWrite(tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER"));
-        table2.setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
-        tableMetadataManager.updateTableDesc(table2);
+        tableMetadataManager.getTableDesc("EDW.TEST_CAL_DT")
+                .setLastSnapshotPath("default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc");
+        tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         projectManager.updateProject(getProject(), copyForWrite -> {
@@ -1378,10 +1373,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // prepare initial model
         String sql = "select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
                 + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt";
-        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project, new String[] { sql });
-        SmartMaster smartMaster = new SmartMaster(smartContext);
+        AbstractContext smartContext = NSmartMaster.proposeForAutoMode(getTestConfig(), project, new String[] { sql },
+                null);
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
         smartMaster.runUtWithContext(null);
-        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         NDataModel targetModel = modelContexts.get(0).getTargetModel();
 
@@ -1411,9 +1407,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true, true);
 
         // assert optimization result
-        List<AbstractContext.ModelContext> modelContextsAfterOptimization = proposeContext.getModelContexts();
+        List<AbstractContext.NModelContext> modelContextsAfterOptimization = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextsAfterOptimization.size());
-        AbstractContext.ModelContext modelContextAfterOptimization = modelContextsAfterOptimization.get(0);
+        AbstractContext.NModelContext modelContextAfterOptimization = modelContextsAfterOptimization.get(0);
         Map<String, LayoutRecItemV2> indexRexItemMap = modelContextAfterOptimization.getIndexRexItemMap();
         Assert.assertEquals(2, indexRexItemMap.size()); // if no merge, the result will be 3.
 
@@ -1455,7 +1451,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
         modelService.saveRecResult(modelSuggestionResponse, project);
 
-        List<AbstractContext.ModelContext> modelContexts = proposeContext.getModelContexts();
+        List<AbstractContext.NModelContext> modelContexts = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         NDataModel targetModel = modelContexts.get(0).getTargetModel();
         long dimensionCountRefreshed = targetModel.getAllNamedColumns().stream()
@@ -1468,10 +1464,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testSuggestOrOptimizeModels() throws Exception {
         String project = "newten";
         // prepare initial model
-        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project,
-                new String[] { "select price from test_kylin_fact" });
-        smartContext.saveMetadata();
-        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        AbstractContext smartContext = NSmartMaster.proposeForAutoMode(getTestConfig(), project,
+                new String[] { "select price from test_kylin_fact" }, null);
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         NDataModel targetModel = modelContexts.get(0).getTargetModel();
 

@@ -27,6 +27,7 @@ package org.apache.kylin.job.impl.threadpool;
 import static org.awaitility.Awaitility.await;
 
 import java.io.FileNotFoundException;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ShellException;
@@ -1846,21 +1848,21 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
         execThread.start();
 
-//        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
-//            Process process = JobProcessContext.getProcess(jobId);
-//            Assert.assertNotNull(process);
-//            Assert.assertTrue(process.isAlive());
-//        });
-//
-//        try {
-//            overwriteSystemProp("KYLIN_HOME",
-//                    Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
-//            executableManager.destroyProcess(jobId);
-//        } finally {
-//            System.clearProperty("KYLIN_HOME");
-//        }
-//
-//        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> Assert.assertNull(JobProcessContext.getProcess(jobId)));
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
+            Process process = JobProcessContext.getProcess(jobId);
+            Assert.assertNotNull(process);
+            Assert.assertTrue(process.isAlive());
+        });
+
+        try {
+            overwriteSystemProp("KYLIN_HOME",
+                    Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
+            executableManager.destroyProcess(jobId);
+        } finally {
+            System.clearProperty("KYLIN_HOME");
+        }
+
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> Assert.assertNull(JobProcessContext.getProcess(jobId)));
 
     }
 

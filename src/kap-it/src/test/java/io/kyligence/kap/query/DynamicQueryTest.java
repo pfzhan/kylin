@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import java.text.SimpleDateFormat;
@@ -73,7 +73,7 @@ public class DynamicQueryTest extends NAutoTestBase {
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
         val context = AccelerationContextUtil.newSmartContext(KylinConfig.getInstanceFromEnv(), PROJECT, sqls);
-        val smartMaster = new SmartMaster(context);
+        val smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(KylinConfig.getInstanceFromEnv(), PROJECT);
     }

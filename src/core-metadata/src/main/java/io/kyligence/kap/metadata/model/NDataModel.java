@@ -968,7 +968,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            String project, boolean rename) {
+                     String project, boolean rename) {
         init(config, originalTables, otherModels, project, rename, false);
     }
 
@@ -1323,7 +1323,8 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public static String concatResourcePath(String name, String project) {
-        return "/" + project + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
+        return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
+                .append("/").append(name).append(MetadataConstants.FILE_SURFIX).toString();
 
     }
 
