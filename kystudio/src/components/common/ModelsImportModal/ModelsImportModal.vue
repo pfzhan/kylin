@@ -88,6 +88,7 @@
                           <p>{{`${it.attributes.foreign_table} ${it.attributes.join_type} JOIN ${it.attributes.primary_table} ON`}}</p>
                           <template v-if="!it.attributes.non_equal_join_condition"><p v-for="(v, index) in it.attributes.foreign_keys" :key="index">{{`${v} = ${it.attributes.primary_keys[index]}`}}</p></template>
                           <p>{{it.attributes.non_equal_join_condition}}</p>
+                          <p>{{it.attributes.join_relation_type}}</p>
                         </div>
                       </template>
                       <template v-else-if="item === 'indexes'">
@@ -151,13 +152,15 @@
                       </template>
                       <template v-else-if="item === 'modelJoin'">
                         <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
-                          <p>{{`${it.second_attributes.foreign_table} ${it.second_attributes.join_type}`}} <span class="modify-item">{{`${it.first_attributes.join_type}`}}</span> JOIN {{`${it.second_attributes.primary_table}`}} ON</p>
+                          <p>{{`${it.second_attributes.foreign_table} ${it.second_attributes.join_type}`}} <span class="modify-item" v-if="it.second_attributes.join_type !== it.first_attributes.join_type">{{`${it.first_attributes.join_type}`}}</span> JOIN {{`${it.second_attributes.primary_table}`}} ON</p>
                           <template v-if="!it.second_attributes.non_equal_join_condition"><p v-for="(v, index) in it.second_attributes.foreign_keys" :key="index">{{`${v} = ${it.second_attributes.primary_keys[index]}`}}</p></template>
                           <p>{{it.second_attributes.non_equal_join_condition}}</p>
+                          <p v-if="it.second_attributes.join_relation_type !== it.first_attributes.join_relation_type">{{it.second_attributes.join_relation_type}}</p>
                           <div class="modify-item">
                             <!-- <p>{{`${it.first_attributes.foreign_table} ${it.first_attributes.join_type} ${it.first_attributes.primary_table}`}}</p> -->
                             <template v-if="!it.first_attributes.non_equal_join_condition && isChangeEqualJoin(it)"><p v-for="(v, index) in it.first_attributes.foreign_keys" :key="index">{{`${v} = ${it.first_attributes.primary_keys[index]}`}}</p></template>
                             <p>{{`${it.first_attributes.non_equal_join_condition}`}}</p>
+                            <p v-if="it.second_attributes.join_relation_type !== it.first_attributes.join_relation_type">{{it.first_attributes.join_relation_type}}</p>
                           </div>
                         </div>
                       </template>
