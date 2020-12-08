@@ -62,6 +62,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.SystemPropertyOverride;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -1314,6 +1315,49 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertTrue(e instanceof SparkException || e.getCause() instanceof SparkException);
             Assert.assertTrue(e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)
                     || e.getCause().getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED));
+        }
+    }
+
+    @Test
+    public void testQueryWithAdminPermission() throws Exception {
+        QueryService queryService = Mockito.spy(new QueryService());
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setExecuteAs("ADMIN");
+        sqlRequest.setProject("default");
+        sqlRequest.setSql("select 1");
+
+        try (SystemPropertyOverride ignored = new SystemPropertyOverride()
+                .prop("kylin.query.security.acl-tcr-enabled", "true").override()) {
+            // role admin
+            {
+                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("ROLE_ADMIN"), false)).when(queryService)
+                        .getExecuteAclInfo("default", "ADMIN");
+                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+            }
+
+            // project admin permission
+            {
+                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), true)).when(queryService)
+                        .getExecuteAclInfo("default", "ADMIN");
+                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+            }
+
+            // normal user
+            {
+                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
+                        .getExecuteAclInfo("default", "ADMIN");
+                Assert.assertFalse(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+            }
+        }
+
+        try (SystemPropertyOverride ignored = new SystemPropertyOverride()
+                .prop("kylin.query.security.acl-tcr-enabled", "false").override()) {
+            // acl disabled
+            {
+                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
+                        .getExecuteAclInfo("default", "ADMIN");
+                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+            }
         }
     }
 }

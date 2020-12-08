@@ -702,7 +702,7 @@ public class QueryService extends BasicService {
         }
     }
 
-    private boolean isACLDisabledOrAdmin(String project, QueryContext.AclInfo aclInfo) {
+    boolean isACLDisabledOrAdmin(String project, QueryContext.AclInfo aclInfo) {
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         if (!projectKylinConfig.isAclTCREnabled()) {
