@@ -102,8 +102,9 @@
                         </p>
                       </template>
                       <template v-else-if="activeModalObj[activeTabName][item]">
-                        <p class="detail-text break-word" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
-                          <span v-custom-tooltip="{text: it.detail}">{{it.detail}}</span>
+                        <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
+                          <span v-if="item === 'modelFilter'">{{it.detail}}</span>
+                          <span v-else v-custom-tooltip="{text: it.detail, w: 0}"><span>{{it.detail}}</span></span>
                         </p>
                       </template>
                       <!-- 分页 -->
@@ -124,9 +125,9 @@
                           <p v-if="it.first_attributes.returntype !== it.second_attributes.returntype" class="break-word"><span class="title">{{$t('measureFunctionParams')}}</span>{{it.second_attributes.returntype}} <span class="modify-item">{{it.first_attributes.returntype}}</span></p>
                           <div v-if="it.second_attributes.expression === 'TOP_N' && it.first_attributes.parameters[0].value !== it.second_attributes.parameters[0].value">
                             <span class="title">Order/SUM By：</span>
-                            <div class="order-by-content">
+                            <div class="order-by-content break-word">
                               <p>{{it.second_attributes.parameters[0].value}}</p>
-                              <p class="modify-item break-word">{{it.first_attributes.parameters[0].value}}</p>
+                              <p class="modify-item">{{it.first_attributes.parameters[0].value}}</p>
                             </div>
                           </div>
                           <div v-if="it.second_attributes.expression === 'TOP_N' && displayGroupByColumns(it)">
@@ -136,7 +137,7 @@
                               <p><span class="modify-item" v-custom-tooltip="{text: it.first_attributes.parameters.slice(1).map(it => it.value).join(', '), w: 0}">{{it.first_attributes.parameters.slice(1).map(it => it.value).join(', ')}}</span></p>
                             </div>
                           </div>
-                          <p v-if="it.second_attributes.expression !== 'TOP_N' && it.first_attributes.parameters[0].value !== it.second_attributes.parameters[0].value"><span class="title">参数：</span>{{it.second_attributes.parameters[0].value}} <span class="modify-item">{{it.first_attributes.parameters[0].value}}</span></p>
+                          <p v-if="it.second_attributes.expression !== 'TOP_N' && it.first_attributes.parameters[0].value !== it.second_attributes.parameters[0].value" class="break-word"><span class="title">{{$t('params')}}</span>{{it.second_attributes.parameters[0].value}} <span class="modify-item">{{it.first_attributes.parameters[0].value}}</span></p>
                         </div>
                       </template>
                       <template v-else-if="item === 'modelFilter'">
@@ -151,7 +152,7 @@
                         </p>
                       </template>
                       <template v-else-if="item === 'modelJoin'">
-                        <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
+                        <div class="detail-text break-word" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
                           <p>{{`${it.second_attributes.foreign_table} ${it.second_attributes.join_type}`}} <span class="modify-item" v-if="it.second_attributes.join_type !== it.first_attributes.join_type">{{`${it.first_attributes.join_type}`}}</span> JOIN {{`${it.second_attributes.primary_table}`}} ON</p>
                           <template v-if="!it.second_attributes.non_equal_join_condition"><p v-for="(v, index) in it.second_attributes.foreign_keys" :key="index">{{`${v} = ${it.second_attributes.primary_keys[index]}`}}</p></template>
                           <p>{{it.second_attributes.non_equal_join_condition}}</p>
@@ -167,22 +168,22 @@
                       <template v-else-if="item === 'partitionColumns' && activeModalObj[activeTabName][item].list.length">
                         <div v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
                           <template v-if="it.type === 'MODEL_PARTITION'">
-                            <p class="detail-text" v-if="it.second_attributes.column !== it.first_attributes.column">{{$t('timePartition')}} {{it.second_attributes.column}} <span class="modify-item">{{it.first_attributes.column}}</span></p>
-                            <p class="detail-text" v-if="it.second_attributes.format !== it.first_attributes.format">{{$t('timePartitionType')}} {{it.second_attributes.format}} <span class="modify-item">{{it.first_attributes.format}}</span></p>
+                            <p class="detail-text break-word" v-if="it.second_attributes.column !== it.first_attributes.column">{{$t('timePartition')}} {{it.second_attributes.column}} <span class="modify-item">{{it.first_attributes.column}}</span></p>
+                            <p class="detail-text break-word" v-if="it.second_attributes.format !== it.first_attributes.format">{{$t('timePartitionType')}} {{it.second_attributes.format}} <span class="modify-item">{{it.first_attributes.format}}</span></p>
                           </template>
                           <template v-else-if="it.type === 'MODEL_MULTIPLE_PARTITION'">
                             <div class="detail-text" v-if="it.second_attributes.columns.join(',') !== it.first_attributes.columns.join(',')">
                               <span>{{$t('subPartition')}}</span>
-                              <div class="sub-partition-columns">
-                                <p class="break-word">{{it.second_attributes.columns.join(',')}}</p>
-                                <p class="modify-item break-word">{{it.first_attributes.columns.join(',')}}</p>
+                              <div class="sub-partition-columns break-word">
+                                <p>{{it.second_attributes.columns.join(',')}}</p>
+                                <p class="modify-item">{{it.first_attributes.columns.join(',')}}</p>
                               </div>
                             </div>
                             <div class="detail-text" v-if="ArrayFlat(it.second_attributes.partitions).join(',') !== ArrayFlat(it.first_attributes.partitions).join(',')">
                               <span>{{$t('subPartitionValues')}}</span>
-                              <div class="sub-partition-values">
-                                <p class="break-word">{{ArrayFlat(it.second_attributes.partitions).join(',')}}</p>
-                                <p class="modify-item break-word">{{ArrayFlat(it.first_attributes.partitions).join(',')}}</p>
+                              <div class="sub-partition-values break-word">
+                                <p>{{ArrayFlat(it.second_attributes.partitions).join(',')}}</p>
+                                <p class="modify-item">{{ArrayFlat(it.first_attributes.partitions).join(',')}}</p>
                               </div>
                             </div>
                           </template>
@@ -586,6 +587,7 @@ export default class ModelsImportModal extends Vue {
           this.activeModalObj = this.models[0]
         } catch (e) {
           const { code } = e.body
+          this.isSubmiting = false
           if (!code) {
             handleError(e)
             return
