@@ -58,13 +58,15 @@ public class MultiplePartitionStrategy extends UnOverWritableStrategy {
             List<List<String>> leftPartitions = (List<List<String>>) diff.leftValue().getAttributes().get("partitions");
             List<List<String>> rightPartitions = (List<List<String>>) diff.rightValue().getAttributes().get("partitions");
 
-            // ignore orders
-            List<String[]> duplicateValues = MultiPartitionUtil.findDuplicateValues(
-                    leftPartitions.stream().map(item -> item.toArray(new String[0])).collect(Collectors.toList()),
-                    rightPartitions.stream().map(item -> item.toArray(new String[0])).collect(Collectors.toList()));
+            if (leftPartitions.size() == rightPartitions.size()) {
+                // ignore orders
+                List<String[]> duplicateValues = MultiPartitionUtil.findDuplicateValues(
+                        leftPartitions.stream().map(item -> item.toArray(new String[0])).collect(Collectors.toList()),
+                        rightPartitions.stream().map(item -> item.toArray(new String[0])).collect(Collectors.toList()));
 
-            if (duplicateValues.size() == rightPartitions.size()) {
-                return Collections.emptyList();
+                if (duplicateValues.size() == rightPartitions.size()) {
+                    return Collections.emptyList();
+                }
             }
         }
 

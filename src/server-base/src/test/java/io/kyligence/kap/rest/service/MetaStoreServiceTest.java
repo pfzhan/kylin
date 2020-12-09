@@ -521,6 +521,31 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testCheckModelMetadataModelMultiplePartitionWithPartitionValueReduce() throws IOException {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_with_partition_value_reduce_project/target_project_model_metadata_2020_12_02_20_50_10_DAEEA810EA44E80BD3FA70CFE6AB1CAA.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("conflict_multiple_partition_col_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertEquals(1, modelSchemaChange.getDifferences());
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(updatedItem -> updatedItem.isOverwritable()
+                        && updatedItem.getFirstDetail().equals("P_LINEORDER.LO_CUSTKEY")
+                        && updatedItem.getSecondDetail().equals("P_LINEORDER.LO_CUSTKEY")
+                        && String.join(",", (List<String>) updatedItem.getFirstAttributes().get("columns"))
+                        .equals("P_LINEORDER.LO_CUSTKEY")
+                        && String.join(",", (List<String>) updatedItem.getSecondAttributes().get("columns"))
+                        .equals("P_LINEORDER.LO_CUSTKEY")
+                        && ((List<String>) updatedItem.getFirstAttributes().get("partitions")).size() == 3
+                        && ((List<String>) updatedItem.getSecondAttributes().get("partitions")).size() == 2));
+    }
+
+    @Test
     public void testCheckModelMetadataModelMissingTable() throws IOException {
         val file = new File(
                 "src/test/resources/ut_model_metadata/metastore_model_metadata_c4a20039c16dfbb5dcc5610c5052d7b3.zip");
