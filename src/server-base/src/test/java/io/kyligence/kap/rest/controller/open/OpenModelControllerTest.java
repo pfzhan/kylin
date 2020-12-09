@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
@@ -42,6 +43,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -53,6 +55,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -272,6 +275,52 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null);
+    }
+
+    @Test
+    public void testCompleteSegmentsWithoutIdsAndNames() throws Exception {
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String project = "default";
+        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
+        req.setProject(project);
+        req.setParallelBuildBySegment(false);
+        mockGetModelName(modelName, project, modelId);
+        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+                .addIndexesToSegments(modelId, req);
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
+                        .param("project", "default") //
+                        .param("parallel", "false") //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        String contentAsString = result.getResponse().getContentAsString();
+        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER()));
+    }
+
+    @Test
+    public void testCompleteSegmentsWithIdsAndNames() throws Exception {
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String project = "default";
+        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        String[] names = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
+        req.setProject(project);
+        req.setParallelBuildBySegment(false);
+        mockGetModelName(modelName, project, modelId);
+        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+                .addIndexesToSegments(modelId, req);
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
+                        .param("project", "default") //
+                        .param("parallel", "false") //
+                        .param("ids", ids) //
+                        .param("names", names) //
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        String contentAsString = result.getResponse().getContentAsString();
+        Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER()));
     }
 
     @Test

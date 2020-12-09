@@ -225,6 +225,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "ids", required = false) String[] ids,
             @RequestParam(value = "names", required = false) String[] names) {
         checkProjectName(project);
+        checkSegmentParms(ids, names);
         String modelId = getModel(modelAlias, project).getId();
         String[] segIds = modelService.convertSegmentIdWithName(modelId, project, ids, names);
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
