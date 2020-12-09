@@ -174,7 +174,7 @@
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
-        <recommendations :modelDesc="model" @accept="acceptRecommend" v-show="switchIndexValue === 1"/>
+        <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 1"/>
       </div>
     </div>
 
