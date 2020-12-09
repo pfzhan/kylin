@@ -1024,6 +1024,7 @@ export default class ModelList extends Vue {
       //   })
       this.handleEnableModel(objectClone(modelDesc))
     } else if (command === 'exportMetadata') {
+      if (scope.row.status === 'BROKEN') return
       const project = this.currentSelectedProject
       const form = { ids: [modelDesc.uuid] }
       if (this.$store.state.config.platform === 'iframe') {
