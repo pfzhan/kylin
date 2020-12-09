@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnumToDisplay;
 import lombok.Getter;
@@ -47,17 +48,18 @@ public class SegmentPartitionResponse {
     @JsonProperty("last_modified_time")
     private long lastModifiedTime;
 
-    @JsonProperty("row_count")
-    private long rowCount;
+    @JsonProperty("source_count")
+    private long sourceCount;
 
     @JsonProperty("bytes_size")
     private long bytesSize;
 
-    public SegmentPartitionResponse(long id, String[] values, PartitionStatusEnum status, long lastModifiedTime, long rowCount, long bytesSize) {
+    public SegmentPartitionResponse(long id, String[] values, PartitionStatusEnum status, // 
+            long lastModifiedTime, long sourceCount, long bytesSize) {
         this.partitionId = id;
         this.values = values;
         this.lastModifiedTime = lastModifiedTime;
-        this.rowCount = rowCount;
+        this.sourceCount = sourceCount;
         this.bytesSize = bytesSize;
         setPartitionStatusToDisplay(status);
     }

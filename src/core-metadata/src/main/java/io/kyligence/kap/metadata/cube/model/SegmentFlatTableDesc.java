@@ -34,7 +34,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -63,7 +62,7 @@ public class SegmentFlatTableDesc {
 
     private final List<TblColRef> columns = Lists.newLinkedList();
     private final List<Integer> columnIds = Lists.newArrayList();
-    private final Map<Integer, String> columnId2Identifier = Maps.newHashMap();
+    private final Map<Integer, String> columnId2Canonical = Maps.newHashMap();
 
     public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree) {
         this.config = config;
@@ -76,8 +75,8 @@ public class SegmentFlatTableDesc {
         this.dataModel = dataSegment.getModel();
         this.indexPlan = dataSegment.getIndexPlan();
 
-        // Initialize
-        init();
+        // Initialize flat table columns.
+        initColumns();
     }
 
     public String getProject() {
@@ -149,8 +148,8 @@ public class SegmentFlatTableDesc {
         return Collections.unmodifiableSet(indexPlan.getEffectiveMeasures().values());
     }
 
-    public String getIdentifier(Integer columnId) {
-        return columnId2Identifier.get(columnId);
+    public String getCanonicalName(Integer columnId) {
+        return columnId2Canonical.get(columnId);
     }
 
     // Join lookup tables
@@ -181,24 +180,43 @@ public class SegmentFlatTableDesc {
     }
 
     // Check what columns from hive tables are required, and index them
-    protected void init() {
-
-        for (Map.Entry<Integer, TblColRef> dimEntry : indexPlan.getEffectiveDimCols().entrySet()) {
-            initAddColumn(dimEntry.getValue());
-        }
-
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : indexPlan.getEffectiveMeasures().entrySet()) {
-            FunctionDesc func = measureEntry.getValue().getFunction();
-            List<TblColRef> colRefs = func.getColRefs();
-            if (Objects.nonNull(colRefs)) {
-                for (TblColRef colRef : colRefs) {
-                    initAddColumn(colRef);
-                }
-            }
+    protected void initColumns() {
+        if (shouldPersistFlatTable()) {
+            addModelColumns();
+        } else {
+            addIndexPlanColumns();
         }
     }
 
-    protected final void initAddColumn(TblColRef colRef) {
+    private void addModelColumns() {
+        // Add dimension columns
+        dataModel.getEffectiveDimensions().values() //
+                .stream().filter(Objects::nonNull) //
+                .forEach(this::addColumn);
+        // Add measure columns
+        dataModel.getEffectiveMeasures().values().stream() //
+                .filter(Objects::nonNull) //
+                .filter(measure -> Objects.nonNull(measure.getFunction())) //
+                .filter(measure -> Objects.nonNull(measure.getFunction().getColRefs())) //
+                .flatMap(measure -> measure.getFunction().getColRefs().stream()) //
+                .forEach(this::addColumn);
+    }
+
+    protected final void addIndexPlanColumns() {
+        // Add dimension columns
+        indexPlan.getEffectiveDimCols().values() //
+                .stream().filter(Objects::nonNull) //
+                .forEach(this::addColumn);
+        // Add measure columns
+        indexPlan.getEffectiveMeasures().values().stream() //
+                .filter(Objects::nonNull) //
+                .filter(measure -> Objects.nonNull(measure.getFunction())) //
+                .filter(measure -> Objects.nonNull(measure.getFunction().getColRefs())) //
+                .flatMap(measure -> measure.getFunction().getColRefs().stream()) //
+                .forEach(this::addColumn);
+    }
+
+    protected final void addColumn(TblColRef colRef) {
         if (columnIndexMap.containsKey(colRef.getIdentity())) {
             return;
         }
@@ -209,6 +227,6 @@ public class SegmentFlatTableDesc {
         Preconditions.checkArgument(id != -1,
                 "Column: " + colRef.getIdentity() + " is not in model: " + dataModel.getUuid());
         columnIds.add(id);
-        columnId2Identifier.put(id, colRef.getIdentity());
+        columnId2Canonical.put(id, colRef.getCanonicalName());
     }
 }

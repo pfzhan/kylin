@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
@@ -67,9 +68,17 @@ public class MLPFlatTableDesc extends SegmentFlatTableDesc {
     }
 
     @Override
-    protected void init() {
-        super.init();
+    protected void initColumns() {
         // Ensure the partition columns were included.
-        dataSegment.getModel().getMultiPartitionDesc().getColumnRefs().forEach(this::initAddColumn);
+        addPartitionColumns();
+        // By design, only indexPlan columns would be included.
+        addIndexPlanColumns();
+    }
+
+    private void addPartitionColumns() {
+        dataModel.getMultiPartitionDesc() //
+                .getColumnRefs() //
+                .stream().filter(Objects::nonNull) //
+                .forEach(this::addColumn);
     }
 }

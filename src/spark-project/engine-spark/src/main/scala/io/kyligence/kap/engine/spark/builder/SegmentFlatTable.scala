@@ -300,13 +300,19 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   protected final def gatherStatistics(tableDS: Dataset[Row]): Statistics = {
     // zipWithIndex before filter
-    val columnIndices = tableDS.columns.zipWithIndex.filterNot(_._1.endsWith(ENCODE_SUFFIX))
+    val canonicalIndices = tableDS.columns //
+      .zipWithIndex //
+      .filterNot(_._1.endsWith(ENCODE_SUFFIX)) //
+      .map { case (name, index) =>
+        val canonical = tableDesc.getCanonicalName(Integer.parseInt(name))
+        (canonical, index)
+      }.filterNot(t => Objects.isNull(t._1))
+    logInfo(s"CANONICAL INDICES ${canonicalIndices.mkString("[", ", ", "]")}")
     // By design, action-take is not sampling.
     val sampled = tableDS.take(sampleRowCount).flatMap(row => //
-      columnIndices.map { case (name, index) => //
+      canonicalIndices.map { case (canonical, index) => //
         val bytes = utf8Length(row.get(index))
-        val identifier = tableDesc.getIdentifier(Integer.parseInt(name))
-        (identifier, bytes) //
+        (canonical, bytes) //
       }).groupBy(_._1).mapValues(_.map(_._2).sum)
     val totalRowCount = tableDS.count()
     val evaluated = evaluateColumnBytes(totalRowCount, sampled)

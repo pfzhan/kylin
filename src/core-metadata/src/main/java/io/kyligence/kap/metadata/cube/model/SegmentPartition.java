@@ -27,8 +27,6 @@ package io.kyligence.kap.metadata.cube.model;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,7 +34,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
-import lombok.val;
 
 /**
  * Partitions build job information in segment, almost like {@link NDataSegment}
@@ -66,17 +63,10 @@ public class SegmentPartition implements Serializable, IKeep {
     @JsonProperty("source_count")
     private long sourceCount = -1;
 
-    @JsonProperty("source_bytes_size")
-    private long sourceBytesSize = -1;
-
     @JsonProperty("column_source_bytes")
     private Map<String, Long> columnSourceBytes = Maps.newHashMap();
 
-    private Long storageSize = null;
-
-    private Long storageFileCount = null;
-
-    private Long rowCount = null;
+    private long storageSize = -1;
 
     // ============================================================================
     public SegmentPartition() {
@@ -118,11 +108,6 @@ public class SegmentPartition implements Serializable, IKeep {
         this.sourceCount = sourceCount;
     }
 
-    public void setSourceBytesSize(long sourceBytesSize) {
-        checkIsNotCachedAndShared();
-        this.sourceBytesSize = sourceBytesSize;
-    }
-
     public void setColumnSourceBytes(Map<String, Long> columnSourceBytes) {
         checkIsNotCachedAndShared();
         this.columnSourceBytes = columnSourceBytes;
@@ -131,11 +116,6 @@ public class SegmentPartition implements Serializable, IKeep {
     public void setStorageSize(Long storageSize) {
         checkIsNotCachedAndShared();
         this.storageSize = storageSize;
-    }
-
-    public void setStorageFileCount(Long storageFileCount) {
-        checkIsNotCachedAndShared();
-        this.storageFileCount = storageFileCount;
     }
 
     public void checkIsNotCachedAndShared() {
@@ -154,41 +134,22 @@ public class SegmentPartition implements Serializable, IKeep {
         return false;
     }
 
-    public void setRowCount(Long rowCount) {
-        checkIsNotCachedAndShared();
-        this.rowCount = rowCount;
+    public long getSourceCount() {
+        if (sourceCount == -1) {
+            return 0L;
+        }
+        return sourceCount;
     }
 
     public long getStorageSize() {
-        if (storageSize == null) {
-            storageSize = 0L;
-            val dataLayouts = getSegment().getSegDetails().getLayouts();
-            for (NDataLayout dataLayout : dataLayouts) {
-                if (CollectionUtils.isEmpty(dataLayout.getMultiPartition()))
-                    continue;
-
-                storageSize += dataLayout.getMultiPartition().stream()
-                        .filter(partition -> partition.getPartitionId() == partitionId)
-                        .mapToLong(LayoutPartition::getByteSize).sum();
-            }
+        if (storageSize == -1) {
+            storageSize = getSegment().getSegDetails() //
+                    .getLayouts().stream() //
+                    .flatMap(layout -> layout.getMultiPartition().stream()) //
+                    .filter(partition -> partition.getPartitionId() == partitionId) //
+                    .mapToLong(LayoutPartition::getByteSize).sum();
         }
         return storageSize;
-    }
-
-    public long getRowCount() {
-        if (rowCount == null) {
-            rowCount = 0L;
-            val dataLayouts = getSegment().getSegDetails().getLayouts();
-            for (NDataLayout dataLayout : dataLayouts) {
-                if (CollectionUtils.isEmpty(dataLayout.getMultiPartition()))
-                    continue;
-
-                rowCount += dataLayout.getMultiPartition().stream()
-                        .filter(partition -> partition.getPartitionId() == partitionId)
-                        .mapToLong(LayoutPartition::getRows).sum();
-            }
-        }
-        return rowCount;
     }
 
     @Override

@@ -429,7 +429,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         models = modelService.getModels("", "default", false, "", null, "expansionrate", true);
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
         models = modelService.getModels("", "default", false, "", null, "expansionrate", false);
-        Assert.assertEquals("nmodel_basic_inner", models.get(4).getAlias());
+        Assert.assertEquals("nmodel_full_measure_test", models.get(4).getAlias());
 
     }
 
@@ -615,12 +615,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, partitions1.get(0).getPartitionId());
         Assert.assertArrayEquals(new String[] { "0" }, partitions1.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions1.get(0).getStatus());
-        Assert.assertEquals(14, partitions1.get(0).getRowCount());
+        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(1397, partitions1.get(0).getBytesSize());
         Assert.assertEquals(4, partitions1.get(4).getPartitionId());
         Assert.assertArrayEquals(new String[] { "4" }, partitions1.get(4).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.LOADING, partitions1.get(4).getStatus());
-        Assert.assertEquals(0, partitions1.get(4).getRowCount());
+        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(0, partitions1.get(4).getBytesSize());
 
         val partitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id, null, "last_modified_time",
@@ -629,12 +629,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, partitions2.get(0).getPartitionId());
         Assert.assertArrayEquals(new String[] { "0" }, partitions2.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.REFRESHING, partitions2.get(0).getStatus());
-        Assert.assertEquals(14, partitions2.get(0).getRowCount());
+        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(1397, partitions2.get(0).getBytesSize());
         Assert.assertEquals(1, partitions2.get(1).getPartitionId());
         Assert.assertArrayEquals(new String[] { "1" }, partitions2.get(1).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions2.get(1).getStatus());
-        Assert.assertEquals(14, partitions2.get(1).getRowCount());
+        Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(1397, partitions2.get(1).getBytesSize());
 
         // filter by status

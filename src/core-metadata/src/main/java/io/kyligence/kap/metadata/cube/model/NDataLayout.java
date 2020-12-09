@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfigExt;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -144,11 +143,7 @@ public class NDataLayout implements Serializable {
     }
 
     public long getRows() {
-        if (CollectionUtils.isEmpty(multiPartition)) {
-            return rows;
-        }
-
-        return multiPartition.stream().mapToLong(LayoutPartition::getRows).sum();
+        return rows;
     }
 
     public void setRows(long rows) {
@@ -157,11 +152,7 @@ public class NDataLayout implements Serializable {
     }
 
     public long getByteSize() {
-        if (CollectionUtils.isEmpty(multiPartition)) {
-            return byteSize;
-        }
-
-        return multiPartition.stream().mapToLong(LayoutPartition::getByteSize).sum();
+        return byteSize;
     }
 
     public void setByteSize(long byteSize) {
@@ -170,11 +161,7 @@ public class NDataLayout implements Serializable {
     }
 
     public long getSourceRows() {
-        if (CollectionUtils.isEmpty(multiPartition)) {
-            return sourceRows;
-        }
-
-        return multiPartition.stream().mapToLong(LayoutPartition::getSourceRows).sum();
+        return sourceRows;
     }
 
     public void setSourceRows(long sourceRows) {
@@ -183,11 +170,7 @@ public class NDataLayout implements Serializable {
     }
 
     public long getSourceByteSize() {
-        if (CollectionUtils.isEmpty(multiPartition)) {
-            return sourceByteSize;
-        }
-
-        return multiPartition.stream().mapToLong(LayoutPartition::getSourceByteSize).sum();
+        return sourceByteSize;
     }
 
     public void setSourceByteSize(long sourceByteSize) {

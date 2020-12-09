@@ -3801,7 +3801,7 @@ public class ModelService extends BasicService {
             val lastModifiedTime = partition.getLastBuildTime() != 0 ? partition.getLastBuildTime()
                     : partition.getCreateTimeUTC();
             return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(), partition.getStatus(),
-                    lastModifiedTime, partition.getRowCount(), partition.getStorageSize());
+                    lastModifiedTime, partition.getSourceCount(), partition.getStorageSize());
         }).filter(partitionResponse -> {
             if (CollectionUtils.isEmpty(status) || status.contains(partitionResponse.getStatus().name())) {
                 return true;
