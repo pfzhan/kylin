@@ -27,14 +27,14 @@ package io.kyligence.kap.engine.spark.application;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +43,7 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.http.HttpHeaders;
@@ -102,15 +103,16 @@ public abstract class SparkApplication implements Application, IKeep {
     protected String project;
     protected int layoutSize = -1;
     protected BuildJobInfos infos;
+    /**
+     * path for spark app args on HDFS
+     */
+    protected String path;
 
     public void execute(String[] args) {
         try {
-            String argsLine = Files.readAllLines(Paths.get(args[0])).get(0);
-            if (argsLine.isEmpty()) {
-                throw new RuntimeException(String.format("Args file %s is empty", args[0]));
-            }
+            path = args[0];
+            String argsLine = readArgsFromHDFS();
             params = JsonUtil.readValueAsMap(argsLine);
-            checkArgs();
             logger.info("Execute {} with args : {}", this.getClass().getName(), argsLine);
             execute();
         } catch (Exception e) {
@@ -134,9 +136,6 @@ public abstract class SparkApplication implements Application, IKeep {
         return params.containsKey(key);
     }
 
-    public void checkArgs() {
-        // do nothing
-    }
 
     /**
      * http request the spark job controller
@@ -147,7 +146,6 @@ public abstract class SparkApplication implements Application, IKeep {
         String serverIp = System.getProperty("spark.driver.rest.server.ip", "127.0.0.1");
         String port = System.getProperty("spark.driver.rest.server.port", "7070");
         String requestApi = String.format("http://%s:%s" + url, serverIp, port);
-
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPut httpPut = new HttpPut(requestApi);
             httpPut.addHeader(HttpHeaders.CONTENT_TYPE, HTTP_VND_APACHE_KYLIN_JSON);
@@ -166,6 +164,19 @@ public abstract class SparkApplication implements Application, IKeep {
             logger.error("http request {} failed!", requestApi, e);
         }
         return false;
+    }
+
+    public String readArgsFromHDFS() {
+        val fs = HadoopUtil.getFileSystem(path);
+        String argsLine = null;
+        Path filePath = new Path(path);
+        try (FSDataInputStream inputStream = fs.open(filePath)) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+            argsLine = br.readLine();
+        } catch (IOException e) {
+            logger.error("Error occurred when reading args file: {}", path, e);
+        }
+        return argsLine;
     }
 
     /**

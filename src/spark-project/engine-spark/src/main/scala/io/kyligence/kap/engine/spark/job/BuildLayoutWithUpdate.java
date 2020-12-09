@@ -177,7 +177,7 @@ public class BuildLayoutWithUpdate {
         }
     }
 
-    private void shutDown() {
+    public void shutDown() {
         pool.shutdown();
         try {
             pool.awaitTermination(10, TimeUnit.SECONDS);

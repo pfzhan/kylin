@@ -101,7 +101,7 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         System.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
 
         System.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
-        System.setProperty("hdp.version", "version");
+        System.setProperty("hdp.version", "current");
 
     }
 

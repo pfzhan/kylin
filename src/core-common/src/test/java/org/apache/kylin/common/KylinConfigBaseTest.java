@@ -134,6 +134,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("isCheckCopyOnWrite", new PropertiesEntity("kylin.metadata.check-copy-on-write", "false", false));
 
+        map.put("getServerName", new PropertiesEntity("kylin.server.name", "127.0.0.1", "127.0.0.1"));
+
         map.put("getServerPort", new PropertiesEntity("server.port", "7070", "7070"));
 
         map.put("isServerHttpsEnabled", new PropertiesEntity("kylin.server.https.enable", "false", false));
@@ -809,7 +811,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(421, methodsCount);
+        Assert.assertEquals(424, methodsCount);
     }
 
     @Test

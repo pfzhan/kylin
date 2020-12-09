@@ -23,6 +23,8 @@
  */
 package org.apache.kylin.job.runners;
 
+import lombok.var;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
@@ -63,7 +65,11 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
             logger.error("unknown error execute job: " + executable.getId(), e);
         } finally {
             context.removeRunningJob(executable);
-            val usingMemory = executable.computeStepDriverMemory();
+            val config = KylinConfig.getInstanceFromEnv();
+            var usingMemory = 0;
+            if (!config.getSparkMaster().equals("yarn-cluster")) {
+                usingMemory = executable.computeStepDriverMemory();
+            }
             logger.info("Before global memory release {}", NDefaultScheduler.getMemoryRemaining().availablePermits());
             NDefaultScheduler.getMemoryRemaining().release(usingMemory);
             logger.info("After global memory release {}", NDefaultScheduler.getMemoryRemaining().availablePermits());

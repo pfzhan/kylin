@@ -582,7 +582,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             }
             Mockito.doReturn(executable.getParams()).when(executable).filterEmptySegments(Mockito.anyMap());
             executable.setParam(P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(randomLayouts));
-            executable.dumpArgs();
             Set<Long> layouts = NSparkCubingUtil.str2Longs(executable.getParam(P_LAYOUT_IDS));
             randomLayouts.removeAll(layouts);
             Assert.assertEquals(0, randomLayouts.size());
