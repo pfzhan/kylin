@@ -1722,6 +1722,14 @@ public class Message {
         return "Failed to update multi-partition mapping, invalid request";
     }
 
+    public String getCONCURRENT_SUBMIT_JOB_LIMIT() {
+        return "Can’t submit building jobs, as it exceeds the concurrency limit (%s).  Please try submitting fewer jobs at a time.";
+    }
+
+    public String getMODEL_IS_NOT_MLP() {
+        return "Model '%s' does not have sub partition.";
+    }
+
     public String getGLOBAL_ADMIN_ABANDON() {
         return "Global admin is not supported to update permission.";
     }

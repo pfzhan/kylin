@@ -78,6 +78,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     MODEL_METADATA_CONFLICT_ERROR("KE-10002014"),
     MODEL_EXPORT_ERROR("KE-10002015"),
     MODEL_IMPORT_ERROR("KE-10002016"),
+    MODEL_IS_NOT_MLP("KE-10002017"),
 
     // 10003XXX user
     USER_NOT_EXIST("KE-10003001"), //
@@ -147,6 +148,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     EMPTY_JOB_ID("KE-10013003"), //
     INVALID_SAMPLING_RANGE("KE-10013004"), //
     ILLEGAL_JOB_STATE_TRANSFER("KE-10013005"), //
+    CONCURRENT_SUBMIT_JOB_LIMIT("KE-10013006"), //
 
     // 10014XXX sql expression
     INVALID_FILTER_CONDITION("KE-10014001"), //

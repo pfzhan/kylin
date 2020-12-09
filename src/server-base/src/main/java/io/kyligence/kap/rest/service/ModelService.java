@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
@@ -50,6 +51,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITIO
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_IS_NOT_MLP;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_ONLINE_ABANDON;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -2438,7 +2440,7 @@ public class ModelService extends BasicService {
 
         Set<Long> tobeDeletedPartitions = multiPartitionDesc.getPartitions().stream()
                 .filter(partitionInfo -> partitionValues.stream()
-                .noneMatch(pv -> Objects.deepEquals(pv, partitionInfo.getValues())))
+                        .noneMatch(pv -> Objects.deepEquals(pv, partitionInfo.getValues())))
                 .map(MultiPartitionDesc.PartitionInfo::getId).collect(Collectors.toSet());
 
         if (!tobeDeletedPartitions.isEmpty()) {
@@ -3251,14 +3253,12 @@ public class ModelService extends BasicService {
                     String.format(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
         }
         if (null != volatileRange && volatileRange.isVolatileRangeEnabled()
-                && (volatileRange.getVolatileRangeNumber() < 0
-                        || null == volatileRange.getVolatileRangeType())) {
+                && (volatileRange.getVolatileRangeNumber() < 0 || null == volatileRange.getVolatileRangeType())) {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
         }
         if (null != retentionRange && retentionRange.isRetentionRangeEnabled()
-                && (null == autoMergeEnabled || !autoMergeEnabled
-                        || retentionRange.getRetentionRangeNumber() < 0
+                && (null == autoMergeEnabled || !autoMergeEnabled || retentionRange.getRetentionRangeNumber() < 0
                         || !retentionRange.getRetentionRangeType().equals(Collections.max(timeRanges)))) {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
@@ -3527,6 +3527,7 @@ public class ModelService extends BasicService {
             throw new KylinException(MODEL_NOT_EXIST,
                     "Model " + modelId + " does not exist or broken in project " + project);
         }
+        checkModelIsMLP(modelId, project);
 
         val multiPartitionDesc = model.getMultiPartitionDesc();
         val msg = MsgPicker.getMsg();
@@ -3815,6 +3816,8 @@ public class ModelService extends BasicService {
     public JobInfoResponse buildSegmentPartitionByValue(String project, String modelId, String segmentId,
             List<String[]> partitionValues, boolean parallelBuild) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkSegmentsExistById(modelId, project, new String[] { segmentId });
+        checkModelIsMLP(modelId, project);
         val dfm = getDataflowManager(project);
         val df = dfm.getDataflow(modelId);
         val segment = df.getSegment(segmentId);
@@ -3835,6 +3838,7 @@ public class ModelService extends BasicService {
             String segmentId, Set<Long> partitionIds) {
         val jobIds = Lists.<String> newArrayList();
         if (parallelBuild) {
+            checkConcurrentSubmit(partitionIds.size());
             partitionIds.forEach(partitionId -> {
                 val jobParam = new JobParam(Sets.newHashSet(segmentId), null, modelId, getUsername(),
                         Sets.newHashSet(partitionId), null);
@@ -3854,6 +3858,8 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public JobInfoResponse refreshSegmentPartition(PartitionsRefreshRequest param, String modelId) {
         val project = param.getProject();
+        checkSegmentsExistById(modelId, project, new String[] { param.getSegmentId() });
+        checkModelIsMLP(modelId, project);
         val dfm = getDataflowManager(project);
         val df = dfm.getDataflow(modelId);
         val segment = df.getSegment(param.getSegmentId());
@@ -3885,6 +3891,8 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void deletePartitions(String project, String segmentId, String modelId, Set<Long> partitions) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkSegmentsExistById(modelId, project, new String[] { segmentId });
+        checkModelIsMLP(modelId, project);
         if (CollectionUtils.isEmpty(partitions)) {
             return;
         }
@@ -3903,6 +3911,23 @@ public class ModelService extends BasicService {
                 val multiPartitionDesc = copyForWrite.getMultiPartitionDesc();
                 multiPartitionDesc.removePartitionValue(Lists.newArrayList(partitions));
             });
+        }
+    }
+
+    private void checkModelIsMLP(String modelId, String project) {
+        NDataModel model = getModelById(modelId, project);
+        if (!model.isMultiPartitionModel()) {
+            throw new KylinException(MODEL_IS_NOT_MLP,
+                    String.format(MsgPicker.getMsg().getMODEL_IS_NOT_MLP(), model.getAlias()));
+        }
+    }
+
+    private void checkConcurrentSubmit(int partitionSize) {
+        int runningJobLimit = getConfig().getMaxConcurrentJobLimit();
+        int submitJobLimit = runningJobLimit * 5;
+        if (partitionSize > submitJobLimit) {
+            throw new KylinException(CONCURRENT_SUBMIT_JOB_LIMIT,
+                    String.format(MsgPicker.getMsg().getCONCURRENT_SUBMIT_JOB_LIMIT(), submitJobLimit));
         }
     }
 }

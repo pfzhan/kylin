@@ -1962,6 +1962,16 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getMODEL_IS_NOT_MLP() {
+        return "模型 '%s' 没有子分区。";
+    }
+
+    @Override
+    public String getCONCURRENT_SUBMIT_JOB_LIMIT() {
+        return "无法提交构建任务，单次最多可提交 X 个构建任务。请尝试分批提交。";
+    }
+
+    @Override
     public String getGLOBAL_ADMIN_ABANDON() {
         return "系统管理员不支持被更新权限.";
     }

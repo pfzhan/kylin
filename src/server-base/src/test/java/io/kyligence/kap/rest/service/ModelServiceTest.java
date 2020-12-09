@@ -91,6 +91,7 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -730,6 +731,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof KylinException);
             Assert.assertTrue(ex.getMessage().contains("Failed to update multi-partition mapping, invalid request"));
+        }
+        // wrong type model
+        val project2 = "default";
+        val modelId2 = "82fa7671-a935-45f5-8779-85703601f49a";
+        val mappingRequest2 = new MultiPartitionMappingRequest();
+        mappingRequest2.setProject(project2);
+        try {
+            modelService.updateMultiPartitionMapping(project2, modelId2, mappingRequest2);
+        } catch (Exception ex) {
+            Assert.assertTrue(ex instanceof KylinException);
+            Assert.assertTrue(ex.getMessage().contains("does not have sub partition"));
         }
     }
 
@@ -3401,7 +3413,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflow = dataflowManager.updateDataflow(dataflowUpdate);
         Assert.assertEquals(0, dataflow.getSegments().size());
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,  Sets.newHashSet(), null, 0);
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
+                Sets.newHashSet(), null, 0);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());
@@ -4890,6 +4903,25 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals("Add Job failed due to partition [un] is duplicated.", e.getMessage());
+            Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
+        }
+
+        val segmentId4 = "ff839b0b-2c23-4420-b332-0df70e36c343";
+        try (SetAndUnsetSystemProp prop = new SetAndUnsetSystemProp("kylin.job.max-concurrent-jobs", "1")) {
+            val buildPartitions2 = Lists.<String[]> newArrayList();
+            buildPartitions2.add(new String[] { "ASIA" });
+            buildPartitions2.add(new String[] { "EUROPE" });
+            buildPartitions2.add(new String[] { "MIDDLE EAST" });
+            buildPartitions2.add(new String[] { "AMERICA" });
+            buildPartitions2.add(new String[] { "MOROCCO" });
+            buildPartitions2.add(new String[] { "INDONESIA" });
+            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(
+                    "Can’t submit building jobs, as it exceeds the concurrency limit (5).  Please try submitting fewer jobs at a time.",
+                    e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
     }
