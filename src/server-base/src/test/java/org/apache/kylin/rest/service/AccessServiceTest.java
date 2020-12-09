@@ -50,64 +50,144 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.SidPermissionWithAclResponse;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.MutableAclRecord;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
+import org.apache.kylin.rest.util.SpringContext;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
+import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.Permission;
+import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.security.acls.model.Sid;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
+import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ProjectService;
 
-/**
- */
-public class AccessServiceTest extends ServiceTestBase {
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({SpringContext.class, UserGroupInformation.class})
+public class AccessServiceTest extends NLocalFileMetadataTestCase {
 
-    @Autowired
-    @Qualifier("accessService")
-    AccessService accessService;
+    @InjectMocks
+    AccessService accessService = Mockito.spy(AccessService.class);
 
-    @Autowired
-    @Qualifier("projectService")
-    ProjectService projectService;
+    @InjectMocks
+    ProjectService projectService = Mockito.spy(ProjectService.class);;
 
-    @Autowired
-    @Qualifier("userGroupService")
-    private IUserGroupService userGroupService;
+    @InjectMocks
+    private IUserGroupService userGroupService = Mockito.spy(IUserGroupService.class);;
 
     @Mock
     AclService aclService = Mockito.spy(AclService.class);
 
+    @Mock
+    UserService userService = Mockito.spy(UserService.class);
+
+    @Mock
+    AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+
+    @Mock
+    AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
+    @Mock
+    AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @Ignore("The strange problem has not been solved")
+    @Before
+    public void setup() throws IOException {
+        PowerMockito.mockStatic(SpringContext.class);
+
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
+        Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+
+        // Init users
+        ManagedUser adminUser = new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
+                new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
+        ManagedUser modelerUser = new ManagedUser("MODELER", "MODELER", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
+                new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
+        ManagedUser analystUser = new ManagedUser("ANALYST", "ANALYST", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.ROLE_ANALYST)));
+
+        List<ManagedUser> users = Lists.newArrayList(adminUser, modelerUser, analystUser);
+
+        Mockito.when(userService.listUsers()).thenReturn(users);
+        Mockito.when(userService.loadUserByUsername("ADMIN")).thenReturn(adminUser);
+        Mockito.when(userService.loadUserByUsername("MODELER")).thenReturn(modelerUser);
+        Mockito.when(userService.loadUserByUsername("ANALYST")).thenReturn(analystUser);
+        Mockito.when(userService.userExists("ADMIN")).thenReturn(true);
+        Mockito.when(userService.userExists("MODELER")).thenReturn(true);
+        Mockito.when(userService.userExists("ANALYST")).thenReturn(true);
+        Mockito.when(userService.getGlobalAdmin()).thenReturn(Sets.newHashSet("ADMIN"));
+
+        // for SpringContext.getBean() in AclManager
+
+        ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
+        PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class)).thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class)).thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
+
     @Test
-    public void testBasics() throws JsonProcessingException {
+    public void testBasics() {
         Sid adminSid = accessService.getSid("ADMIN", true);
         Assert.assertNotNull(adminSid);
         Assert.assertNotNull(AclPermissionFactory.getPermissions());
@@ -186,7 +266,6 @@ public class AccessServiceTest extends ServiceTestBase {
         Assert.assertNull(attachedEntityAcl);
     }
 
-    @Ignore("The strange problem has not been solved")
     @Test
     public void testBatchGrantAndRevoke() {
         AclEntity ae = new AclServiceTest.MockAclEntity("batch-grant");
@@ -214,7 +293,7 @@ public class AccessServiceTest extends ServiceTestBase {
         e = acl.getEntries();
         Assert.assertEquals(0, e.size());
 
-        thrown.expect(TransactionException.class);
+        thrown.expect(KylinException.class);
         accessService.batchRevoke(null, requests);
     }
 
@@ -245,7 +324,6 @@ public class AccessServiceTest extends ServiceTestBase {
         accessService.checkGlobalAdmin(Arrays.asList("ANALYSIS", "MODEL", "AAA"));
     }
 
-    @Ignore("The strange problem has not been solved")
     @Test
     public void testGenerateAceResponsesByFuzzMatching() throws Exception {
         AclEntity ae = new AclServiceTest.MockAclEntity("test");
@@ -257,7 +335,7 @@ public class AccessServiceTest extends ServiceTestBase {
         sidToPerm.put(new PrincipalSid("role_ADMIN"), AclPermission.ADMINISTRATION);
         accessService.batchGrant(ae, sidToPerm);
         List<AccessEntryResponse> result = accessService.generateAceResponsesByFuzzMatching(ae, "", false);
-        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(2, result.size());
         Assert.assertEquals("ANALYST", ((GrantedAuthoritySid) result.get(0).getSid()).getGrantedAuthority());
     }
 
@@ -275,7 +353,6 @@ public class AccessServiceTest extends ServiceTestBase {
         Assert.assertEquals(1, result.size());
     }
 
-    @Ignore("The strange problem has not been solved")
     @Test
     public void testRevokeWithSid() {
         AclEntity ae = new AclServiceTest.MockAclEntity("test-domain-object");
@@ -287,7 +364,7 @@ public class AccessServiceTest extends ServiceTestBase {
         Acl acl = accessService.revokeWithSid(ae, "MODELER", true);
         Assert.assertEquals(1, accessService.generateAceResponses(acl).size());
 
-        thrown.expect(TransactionException.class);
+        thrown.expect(KylinException.class);
         accessService.revokeWithSid(null, "MODELER", true);
     }
 
@@ -303,7 +380,6 @@ public class AccessServiceTest extends ServiceTestBase {
         Assert.assertEquals(21, result.size());
     }
 
-    @Ignore("The strange problem has not been solved")
     @Test
     public void testGetGrantedProjectsOfUserOrGroup() throws IOException {
         // admin user
@@ -316,23 +392,21 @@ public class AccessServiceTest extends ServiceTestBase {
 
         // granted admin group
         addGroupAndGrantPermission("ADMIN_GROUP", AclPermission.ADMINISTRATION);
+        Mockito.when(userGroupService.exists("ADMIN_GROUP")).thenReturn(true);
         result = accessService.getGrantedProjectsOfUserOrGroup("ADMIN_GROUP", false);
         Assert.assertEquals(1, result.size());
 
         // granted normal group
         addGroupAndGrantPermission("MANAGEMENT_GROUP", AclPermission.MANAGEMENT);
+        Mockito.when(userGroupService.exists("MANAGEMENT_GROUP")).thenReturn(true);
         result = accessService.getGrantedProjectsOfUserOrGroup("MANAGEMENT_GROUP", false);
         Assert.assertEquals(1, result.size());
 
         // does not grant, normal group
         userGroupService.addGroup("NORMAL_GROUP");
+        Mockito.when(userGroupService.exists("NORMAL_GROUP")).thenReturn(true);
         result = accessService.getGrantedProjectsOfUserOrGroup("NORMAL_GROUP", false);
         Assert.assertEquals(0, result.size());
-
-        // add ANALYST user to a granted normal group
-        userGroupService.modifyGroupUsers("MANAGEMENT_GROUP", Lists.newArrayList("ANALYST"));
-        result = accessService.getGrantedProjectsOfUserOrGroup("ANALYST", true);
-        Assert.assertEquals(1, result.size());
 
         // not exist user
         thrown.expectMessage("Operation failed, user:[nouser] not exists, please add it first");
@@ -345,11 +419,11 @@ public class AccessServiceTest extends ServiceTestBase {
         accessService.getGrantedProjectsOfUserOrGroup("nogroup", false);
     }
 
-    @Ignore("The strange problem has not been solved")
     @Test
     public void testGetUserOrGroupAclPermissions() throws IOException {
         // test admin user
         List<String> projects = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
+        Mockito.when(userGroupService.exists("ROLE_ADMIN")).thenReturn(true);
         List<SidPermissionWithAclResponse> responses = accessService.getUserOrGroupAclPermissions(projects, "ADMIN",
                 true);
         Assert.assertEquals(21, responses.size());
@@ -357,16 +431,19 @@ public class AccessServiceTest extends ServiceTestBase {
 
         // test normal group
         addGroupAndGrantPermission("MANAGEMENT_GROUP", AclPermission.MANAGEMENT);
+        Mockito.when(userGroupService.exists("MANAGEMENT_GROUP")).thenReturn(true);
         projects = accessService.getGrantedProjectsOfUserOrGroup("MANAGEMENT_GROUP", false);
         responses = accessService.getUserOrGroupAclPermissions(projects, "MANAGEMENT_GROUP", false);
         Assert.assertEquals(1, responses.size());
         Assert.assertEquals("MANAGEMENT", responses.get(0).getProjectPermission());
 
         // add ANALYST user to a granted normal group
-        userGroupService.modifyGroupUsers("MANAGEMENT_GROUP", Lists.newArrayList("ANALYST"));
+        addGroupAndGrantPermission("ROLE_ANALYST", AclPermission.OPERATION);
+        Mockito.when(userGroupService.exists("ROLE_ANALYST")).thenReturn(true);
+        userGroupService.modifyGroupUsers("ROLE_ANALYST", Lists.newArrayList("ANALYST"));
         responses = accessService.getUserOrGroupAclPermissions(projects, "ANALYST", true);
         Assert.assertEquals(1, responses.size());
-        Assert.assertEquals("MANAGEMENT", responses.get(0).getProjectPermission());
+        Assert.assertEquals("OPERATION", responses.get(0).getProjectPermission());
     }
 
     private void addGroupAndGrantPermission(String group, Permission permission) throws IOException {

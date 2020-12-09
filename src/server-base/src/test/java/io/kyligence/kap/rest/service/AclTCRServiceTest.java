@@ -109,6 +109,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
         initUsers();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));

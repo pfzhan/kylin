@@ -41,42 +41,74 @@
  */
 package org.apache.kylin.rest.service;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.apache.kylin.rest.util.SpringContext;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.AlreadyExistsException;
 import org.springframework.security.acls.model.ObjectIdentity;
 import org.springframework.security.acls.model.Permission;
+import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-/**
- */
-public class AclServiceTest extends ServiceTestBase {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-    @Autowired
-    @Qualifier("aclService")
-    AclService aclService;
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({SpringContext.class, UserGroupInformation.class})
+public class AclServiceTest extends NLocalFileMetadataTestCase {
 
-    @Ignore("The strange problem has not been solved")
+    @InjectMocks
+    AclService aclService = Mockito.spy(AclService.class);
+
+    @Before
+    public void setup() throws IOException {
+        PowerMockito.mockStatic(SpringContext.class);
+
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
+        ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
+        PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class)).thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class)).thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
+
     @Test
-    public void testBasics() throws Exception {
+    public void testBasics() {
         switchToAdmin();
         ObjectIdentityImpl parentOid = oid("parent-obj");
         MutableAclRecord parentAcl = (MutableAclRecord) aclService.createAcl(parentOid);
@@ -115,7 +147,6 @@ public class AclServiceTest extends ServiceTestBase {
         Assert.assertNull(aclService.readAcl(childOid));
     }
 
-    @Ignore("The strange problem has not been solved")
     @Test
     public void testBatchUpsertAce() {
         switchToAdmin();
