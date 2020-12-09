@@ -245,9 +245,8 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             val config = KylinConfig.getInstanceFromEnv();
             val executableManager = NExecutableManager.getInstance(config, project);
             executable = executableManager.getJob(id);
-            if (!config.getSparkMaster().equals("yarn-cluster")) {
-                useMemoryCapacity = executable.computeStepDriverMemory();
-            }
+            useMemoryCapacity = executable.computeStepDriverMemory();
+
             memoryLock = NDefaultScheduler.getMemoryRemaining().tryAcquire(useMemoryCapacity);
             if (memoryLock) {
                 jobDesc = executable.toString();

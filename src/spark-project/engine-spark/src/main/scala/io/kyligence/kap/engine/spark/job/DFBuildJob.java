@@ -171,7 +171,6 @@ public class DFBuildJob extends SparkApplication {
         updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
 
         tailingCleanups(segmentIds, persistedFlatTable, persistedViewFactTable);
-        buildLayoutWithUpdate.shutDown();
     }
 
     protected void buildSnapshot() throws IOException {

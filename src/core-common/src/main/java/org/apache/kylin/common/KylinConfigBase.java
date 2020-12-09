@@ -569,10 +569,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metadata.check-copy-on-write", FALSE));
     }
 
-    public String getServerName() {
-        return getOptional("kylin.server.name", "127.0.0.1");
-    }
-
     public String getServerPort() {
         return getOptional("server.port", "7070");
     }
@@ -727,10 +723,6 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getJobTmpOutputStorePath(String project, String jobId) {
         return getJobTmpDir(project) + getNestedPath(jobId) + "/execute_output.json";
-    }
-
-    public String getJobTmpArgsDir(String project, String jobId) {
-        return getJobTmpDir(project) + getNestedPath(jobId) + "/spark_args.json";
     }
 
     public Path getJobTmpShareDir(String project, String jobId) {
@@ -1125,11 +1117,6 @@ public abstract class KylinConfigBase implements Serializable {
     public String getSnapshotBuildClassName(){
         return getOptional("kylin.engine.spark.snapshot-build-class-name", "io.kyligence.kap.engine.spark.job.SnapshotBuildJob");
     }
-
-    public String getSparkMaster() {
-        return getOptional("kylin.engine.spark-conf.spark.master", "yarn-client").toLowerCase();
-    }
-
     public String getSparkBuildClassName() {
         return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.SegmentBuildJob");
     }

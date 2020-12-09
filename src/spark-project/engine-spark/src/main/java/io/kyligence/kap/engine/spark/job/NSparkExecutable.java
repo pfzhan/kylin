@@ -26,6 +26,9 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +43,6 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
@@ -197,8 +199,7 @@ public class NSparkExecutable extends AbstractExecutable {
             }, context.getEpochId(), project);
         }
 
-        String jobId = getId();
-        String filePath = createArgsFileOnHDFS(config, jobId);
+        String filePath = dumpArgs();
         if (config.isUTEnv()) {
             return runLocalMode(filePath);
         } else {
@@ -207,22 +208,26 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    protected String createArgsFileOnHDFS(KylinConfig config, String jobId) throws ExecuteException {
-        Path path = new Path(config.getJobTmpArgsDir(project, jobId));
-        val fs = HadoopUtil.getWorkingFileSystem();
-        try (FSDataOutputStream out = fs.create(path)) {
+    String dumpArgs() throws ExecuteException {
+        File tmpDir = null;
+        try {
             val params = filterEmptySegments(getParams());
-
-            out.write(JsonUtil.writeValueAsBytes(params));
+            tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
+            FileUtils.writeByteArrayToFile(tmpDir, JsonUtil.writeValueAsBytes(params));
+            String paramsToLog = JsonUtil.writeValueAsString(params);
+            logger.info("Spark job args json is : {}.", paramsToLog);
+            return tmpDir.getCanonicalPath();
         } catch (IOException e) {
-            try {
-                fs.delete(path, true);
-            } catch (IOException e1) {
-                throw new ExecuteException("Write spark args failed! Error for delete file: " + path.toString(), e1);
+            if (tmpDir != null && tmpDir.exists()) {
+                try {
+                    Files.delete(tmpDir.toPath());
+                } catch (IOException e1) {
+                    throw new ExecuteException(
+                            "Write cuboidLayoutIds failed: Error for delete file " + tmpDir.getPath(), e1);
+                }
             }
-            throw new ExecuteException("Write spark args failed: ", e);
+            throw new ExecuteException("Write cuboidLayoutIds failed: ", e);
         }
-        return path.toString();
     }
 
     /**
@@ -348,7 +353,6 @@ public class NSparkExecutable extends AbstractExecutable {
         if (!sparkConfigOverride.containsKey("spark.driver.memory")) {
             sparkConfigOverride.put("spark.driver.memory", computeStepDriverMemory() + "m");
         }
-
         if (UserGroupInformation.isSecurityEnabled()) {
             sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
@@ -365,7 +369,12 @@ public class NSparkExecutable extends AbstractExecutable {
 
         KapConfig kapConfig = KapConfig.wrap(config);
 
-        String serverIp = config.getServerName();
+        String serverIp = "127.0.0.1";
+        try {
+            serverIp = InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            logger.warn("use the InetAddress get local ip failed!", e);
+        }
         String serverPort = config.getServerPort();
 
         String hdfsWorkingDir = config.getHdfsWorkingDirectory();

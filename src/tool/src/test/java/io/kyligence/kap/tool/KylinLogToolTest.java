@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.TimeZone;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.SetAndUnsetSystemProp;
@@ -132,8 +131,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
     public void testExtractOtherLogs() throws IOException {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
-        TimeZone timeZone = TimeZone.getDefault();
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"));
+
         File accessLog1 = new File(ToolUtil.getLogFolder(), "access_log.2020-01-01.log");
         File accessLog2 = new File(ToolUtil.getLogFolder(), "access_log.2020-01-02.log");
         File gcLog = new File(ToolUtil.getLogFolder(), "kylin.gc.1");
@@ -163,7 +161,6 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(new File(mainDir, "logs/shell.1").exists());
         Assert.assertFalse(new File(mainDir, "logs/jstack.timed.log.1577894300000").exists());
         Assert.assertTrue(new File(mainDir, "logs/jstack.timed.log.1577894400000").exists());
-        TimeZone.setDefault(timeZone);
     }
 
     @Test

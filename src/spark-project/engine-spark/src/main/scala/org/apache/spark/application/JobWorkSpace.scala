@@ -31,9 +31,6 @@ import io.kyligence.kap.engine.spark.scheduler._
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
 
-/**
- * Spark driver part, construct the real spark job [SparkApplication]
- */
 object JobWorkSpace extends Logging {
   def execute(args: Array[String]): Unit = {
     try {
@@ -42,10 +39,7 @@ object JobWorkSpace extends Logging {
       val worker = new JobWorker(application, appArgs, eventLoop)
       val monitor = new JobMonitor(eventLoop)
       val workspace = new JobWorkSpace(eventLoop, monitor, worker)
-      val statusCode = workspace.run()
-      if (statusCode != 0) {
-        System.exit(statusCode)
-      }
+      System.exit(workspace.run())
     } catch {
       case throwable: Throwable =>
         logError("Error occurred when init job workspace.", throwable)
