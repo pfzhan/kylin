@@ -78,7 +78,7 @@ if [[ -f LICENSE ]]; then
     cp LICENSE $kap_dir
     gzip -d dist/${package_name}
     tar_name=`ls dist/Kyligence-Enterprise*.tar`
-    tar -uf ${tar_name} $kap_dir/LICENSE
+    tar -uf ${tar_name} ${kap_dir%/}/LICENSE
     gzip ${tar_name}
     rm -rf $kap_dir
 fi
