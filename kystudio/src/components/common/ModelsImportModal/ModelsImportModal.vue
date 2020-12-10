@@ -84,7 +84,7 @@
                         </p>
                       </template>
                       <template v-else-if="item === 'modelJoin'">
-                        <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
+                        <div class="detail-text break-word" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
                           <p>{{`${it.attributes.foreign_table} ${it.attributes.join_type} JOIN ${it.attributes.primary_table} ON`}}</p>
                           <template v-if="!it.attributes.non_equal_join_condition"><p v-for="(v, index) in it.attributes.foreign_keys" :key="index">{{`${v} = ${it.attributes.primary_keys[index]}`}}</p></template>
                           <p>{{it.attributes.non_equal_join_condition}}</p>
@@ -103,7 +103,7 @@
                       </template>
                       <template v-else-if="activeModalObj[activeTabName][item]">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
-                          <span v-if="item === 'modelFilter'">{{it.detail}}</span>
+                          <span class="break-word" v-if="item === 'modelFilter'">{{it.detail}}</span>
                           <span v-else v-custom-tooltip="{text: it.detail, w: 0}"><span>{{it.detail}}</span></span>
                         </p>
                       </template>
@@ -148,7 +148,7 @@
                           <el-tooltip :content="it.reason === 'SAME_CC_NAME_HAS_DIFFERENT_EXPR' ? $t('sameCCNameTips') : it.reason === 'DIFFERENT_CC_NAME_HAS_SAME_EXPR' ? $t('sameCCExpressionTips') : ''" effect="dark" placement="top">
                             <i class="el-icon-ksd-alert_1" v-if="['SAME_CC_NAME_HAS_DIFFERENT_EXPR', 'DIFFERENT_CC_NAME_HAS_SAME_EXPR'].includes(it.reason)"></i>
                           </el-tooltip>
-                          <span class="break-word">{{it.first_detail}}：{{it.second_attributes.expression}}</span> <span class="modify-item">{{it.first_attributes.expression}}</span>
+                          <span class="break-word">{{it.first_detail}}：{{it.second_attributes.expression}}</span> <span class="modify-item break-word">{{it.first_attributes.expression}}</span>
                         </p>
                       </template>
                       <template v-else-if="item === 'modelJoin'">
