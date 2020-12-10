@@ -359,6 +359,10 @@ public abstract class AbstractExecutable implements Executable {
 
         if (checkSuicide()) {
             if (applyChange) {
+                AbstractExecutable job = getManager().getJob(getId());
+                if (job != null) {
+                    job.cancelJob();
+                }
                 updateJobOutput(project, getId(), ExecutableState.SUICIDAL, null,
                         "suicide as its subject(model, segment or table) no longer exists", null);
             }
