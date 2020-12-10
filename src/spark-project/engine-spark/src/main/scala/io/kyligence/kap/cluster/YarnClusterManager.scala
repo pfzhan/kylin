@@ -23,7 +23,7 @@
 package io.kyligence.kap.cluster
 
 import java.io.IOException
-import java.util.{ArrayList, Collections, EnumSet, Set, List}
+import java.util.{ArrayList, EnumSet, List, Set}
 
 import com.google.common.collect.Sets
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
@@ -111,10 +111,10 @@ class YarnClusterManager extends IClusterManager with Logging {
     withYarnClient(yarnClient => {
       if (queues.isEmpty) {
         val applications = yarnClient.getApplications(EnumSet.of(YarnApplicationState.RUNNING))
-        if (null == applications) Collections.emptyList()
+        if (null == applications) new ArrayList[String]()
         else applications.asScala.map(_.getName).asJava
       } else {
-        val runningJobs: List[String] = Collections.emptyList()
+        val runningJobs: List[String] = new ArrayList[String]()
         for (queue <- queues.asScala) {
           val applications = yarnClient.getQueueInfo(queue).getApplications
           if (null != applications) {
