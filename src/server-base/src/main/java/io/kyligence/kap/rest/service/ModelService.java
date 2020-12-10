@@ -3522,6 +3522,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updateMultiPartitionMapping(String project, String modelId, MultiPartitionMappingRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         val model = getDataModelManager(project).getDataModelDesc(modelId);
         if (model == null || model.isBroken()) {
             throw new KylinException(MODEL_NOT_EXIST,
