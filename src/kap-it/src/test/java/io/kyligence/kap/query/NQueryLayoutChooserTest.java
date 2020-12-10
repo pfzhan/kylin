@@ -404,12 +404,20 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                     " b.SITE_NAME > '英国'",
                     " b.SITE_NAME >= '英国'",
                     " b.SITE_NAME <= '英国'",
+                    " b.SITE_NAME <> '英国'",
                     " b.SITE_NAME like '%英国%'",
+                    " b.SITE_NAME not like '%英国%'",
+                    " b.SITE_NAME not in ('英国%')",
                     " b.SITE_NAME similar to '%英国%'",
+                    " b.SITE_NAME not similar to '%英国%'",
                     " b.SITE_NAME is not distinct from '%英国%'",
                     " b.SITE_NAME between '1' and '2'",
                     " b.SITE_NAME not between '1' and '2'",
-                    " b.SITE_NAME <= '英国' OR b.SITE_NAME >= '英国'"
+                    " b.SITE_NAME <= '英国' OR b.SITE_NAME >= '英国'",
+                    " b.SITE_NAME = '英国' is not false",
+                    " b.SITE_NAME = '英国' is not true",
+                    " b.SITE_NAME = '英国' is false",
+                    " b.SITE_NAME = '英国' is true"
             );
             getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "true");
             for (String filter : filters) {
@@ -436,12 +444,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         try {
             final List<String> filters = ImmutableList.of(
                     " b.SITE_NAME is null",
-                    " b.SITE_NAME <> '英国'",
-                    " b.SITE_NAME not like '%英国%'",
-                    " b.SITE_NAME not similar to '%英国%'",
-                    " cast(b.SITE_NAME as boolean) is not false",
-                    " cast(b.SITE_NAME as boolean) is not true",
                     " b.SITE_NAME is distinct from '%英国%'",
+                    " b.SITE_NAME is not distinct from null",
                     " b.SITE_NAME is not null or a.TRANS_ID is not null",
                     " case when b.SITE_NAME is not null then false else true end" // TODO
             );

@@ -54,7 +54,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.DateString;
@@ -73,7 +72,6 @@ import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -491,10 +489,6 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
 
     private class MatchWithFilterVisitor extends RexVisitorImpl<RexNode> {
 
-        final Set<SqlOperator> isNullOperators = ImmutableSet.of(
-                SqlStdOperatorTable.NOT, SqlStdOperatorTable.IS_NULL, SqlStdOperatorTable.IS_NOT_TRUE,
-                SqlStdOperatorTable.IS_NOT_FALSE, SqlStdOperatorTable.NOT_EQUALS);
-
         private ColumnRowType columnRowType;
         private Set<TableRef> notNullTables;
 
@@ -526,7 +520,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
                 return null;
             }
 
-            if (isNullOperators.contains(call.getOperator())) {
+            if (SqlStdOperatorTable.IS_NULL.equals(call.getOperator())) {
                 return null;
             }
 
