@@ -24,7 +24,7 @@ export default {
     aggAdvanced: 'Advanced Setting',
     colon: ': ',
     maxDimComTips: 'MDC (Max Dimension Combination) is the max number of dimensions in aggregate index. Please set this number carefully according to your query characteristics. The MDC set here applies to all aggregate groups without separate MDC.',
-    cardinalityMultiple: 'The Product of Cardinality：',
+    cardinalityMultiple: 'The Product of Cardinality: ',
     showAll: 'Show More'
   },
   'zh-cn': {

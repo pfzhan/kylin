@@ -60,7 +60,7 @@ import { NamedRegex } from 'config'
       sameName: 'The name of computed column can\'t be duplicated within the same model',
       columnName: 'Column Name',
       name: 'Name',
-      errorMsg: 'Error Message：',
+      errorMsg: 'Error Message: ',
       expression: 'Expression',
       returnType: 'Return Type',
       paramValue: 'Param Value',

@@ -96,7 +96,7 @@ export default {
     min_length_value: 'Min Length Value',
     min_value: 'Min Value',
     null_count: 'Null Count',
-    cardinalityMultiple: 'The Product of Cardinality：',
+    cardinalityMultiple: 'The Product of Cardinality: ',
     noIncludesTip: 'No included dimensions.'
   },
   'zh-cn': {

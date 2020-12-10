@@ -13,7 +13,7 @@ export default {
     custom: 'Customize',
     customTimeTip: 'The time range you can fill in is from five minutes to a month',
     selectDatePlaceholder: 'Select Date',
-    server: 'Server：',
+    server: 'Server: ',
     downloadTip: 'After the diagnostic package is successfully generated, it will be downloaded automatically',
     requireOverTime1: 'Request timeout. The server failed to generate the diagnostic package. Please try again or refer to the ',
     requireOverTime2: ' to check diagnosis tools.',
