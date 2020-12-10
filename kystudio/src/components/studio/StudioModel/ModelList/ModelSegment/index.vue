@@ -16,7 +16,7 @@
       </el-popover>
       <div class="ksd-title-label-small ksd-mb-10">
         <span>{{$t('segmentList')}}<i v-popover:segmentPopover class="el-icon-question ksd-ml-2"></i></span>
-        <span class="right ky-a-like" v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span>
+        <!-- <span class="right ky-a-like" v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span> -->
       </div>
       <div class="left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button-group v-if="$store.state.project.emptySegmentEnable">
@@ -271,7 +271,7 @@
         <span class="ksd-title-label">{{$t('subParValuesTitle')}}</span>
         <span class="segment-range">(Segment {{currentSegment.startTime | toServerGMTDate}} {{$t('kylinLang.query.to')}} {{currentSegment.endTime | toServerGMTDate}})</span>
       </div>
-      <span class="ksd-fright ky-a-like" v-if="$store.state.project.multi_partition_enabled" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span>
+      <span class="ksd-fright ky-a-like" v-if="$store.state.project.multi_partition_enabled && availableMenus.includes('modelsubpartitionvalues')" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span>
     </div>
     <div class="clearfix">
       <div class="ksd-fleft ksd-mt-10 ky-no-br-space" v-if="isShowSegmentActions">
@@ -315,7 +315,7 @@
           <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('sourceRecords')" width="140" align="right" prop="source_count" sortable="custom">
+      <el-table-column :label="$t('sourceRecords')" width="160" align="right" prop="source_count" sortable="custom">
       </el-table-column>
       <el-table-column :label="$t('storageSize')" width="140" align="right" prop="bytes_size" sortable="custom">
         <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
@@ -400,7 +400,8 @@ import arealabel from '../../../../common/area_label.vue'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'isAutoProject'
+      'isAutoProject',
+      'availableMenus'
     ])
   },
   components: {
@@ -528,6 +529,7 @@ export default class ModelSegment extends Vue {
       const partitionValuesArr = split_array(this.partition_values, 1)
       await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, partition_values: partitionValuesArr, parallel_build_by_segment: this.isMultipleBuild })
       this.buildSubParValueLoading = false
+      this.buildSubParValueVisible = false
       this.$message({
         dangerouslyUseHTMLString: true,
         type: 'success',
@@ -539,17 +541,15 @@ export default class ModelSegment extends Vue {
           </div>
         )
       })
-      this.buildSubParValueVisible = false
       this.isMultipleBuild = false
       this.addedPartitionValues = []
       this.partition_values = []
       this.loadSubPartitions()
     } catch (e) {
       handleError(e)
-      this.addedPartitionValues = []
+      // this.addedPartitionValues = []
       this.partition_values = []
       this.buildSubParValueLoading = false
-      this.buildSubParValueVisible = false
       this.isMultipleBuild = false
     }
   }
@@ -563,13 +563,17 @@ export default class ModelSegment extends Vue {
     this.isSubPartitionList = true
   }
   async loadSubPartitions () {
-    const res = await this.fetchSubPartitions(Object.assign({}, {project: this.currentSelectedProject}, this.subSegmentfilter))
-    const { value } = await handleSuccessAsync(res)
-    this.subPartitionSegmentList = value
-    this.subBuildedPartitionValues = this.subPartitionSegmentList.map((p) => {
-      return p.values[0]
-    })
-    this.pageSizeChange(0)
+    try {
+      const res = await this.fetchSubPartitions(Object.assign({}, {project: this.currentSelectedProject}, this.subSegmentfilter))
+      const { value } = await handleSuccessAsync(res)
+      this.subPartitionSegmentList = value
+      this.subBuildedPartitionValues = this.subPartitionSegmentList.map((p) => {
+        return p.values[0]
+      })
+      this.pageSizeChange(0)
+    } catch (e) {
+      handleError(e)
+    }
   }
   pageSizeChange (currentPage, pageSize) {
     const {sort_by, reverse} = this.subSegmentfilter

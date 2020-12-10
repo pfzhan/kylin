@@ -157,7 +157,7 @@ export default {
         { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin,projectAuthority" },
         { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelSubPartitionValues,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelSubPartitionValues,snapshot,monitor,job,admin" },
         { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,modelSubPartitionValues,snapshot,monitor,job" },
-        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,snapshot,index,monitor,job" },
+        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,snapshot,index,monitor,job,modelSubPartitionValues" },
         { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,snapshot,index" },
         { "key": "systemUser-default-*", "value": "dashboard" }
       ]
@@ -207,8 +207,8 @@ export default {
       "entries": [
         { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues" },
         { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues" },
-        { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
-        { "key": "systemUser-operation", "value": "purge,exportTDS" },
+        { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,manageSubPartitionValues" },
+        { "key": "systemUser-operation", "value": "purge,exportTDS,manageSubPartitionValues" },
         { "key": "systemUser-read", "value": "exportTDS" }
       ]
     },
