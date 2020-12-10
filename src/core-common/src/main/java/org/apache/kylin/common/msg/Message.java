@@ -1723,7 +1723,7 @@ public class Message {
     }
 
     public String getCONCURRENT_SUBMIT_JOB_LIMIT() {
-        return "Can’t submit building jobs, as it exceeds the concurrency limit (%s).  Please try submitting fewer jobs at a time.";
+        return "Can't submit building jobs, as it exceeds the concurrency limit (%s).  Please try submitting fewer jobs at a time.";
     }
 
     public String getMODEL_IS_NOT_MLP() {

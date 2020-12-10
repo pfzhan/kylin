@@ -1968,7 +1968,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getCONCURRENT_SUBMIT_JOB_LIMIT() {
-        return "无法提交构建任务，单次最多可提交 X 个构建任务。请尝试分批提交。";
+        return "无法提交构建任务，单次最多可提交 %s 个构建任务。请尝试分批提交。";
     }
 
     @Override

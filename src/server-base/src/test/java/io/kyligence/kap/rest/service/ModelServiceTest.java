@@ -4920,7 +4920,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(
-                    "Can’t submit building jobs, as it exceeds the concurrency limit (5).  Please try submitting fewer jobs at a time.",
+                    "Can't submit building jobs, as it exceeds the concurrency limit (5).  Please try submitting fewer jobs at a time.",
                     e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
