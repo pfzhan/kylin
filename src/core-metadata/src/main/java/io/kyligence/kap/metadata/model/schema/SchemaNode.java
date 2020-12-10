@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.model.schema;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -140,13 +141,17 @@ public class SchemaNode {
     }
 
     public static SchemaNode ofMeasure(NDataModel.Measure measure, String modelAlias) {
-        return new SchemaNode(SchemaNodeType.MODEL_MEASURE, modelAlias + "/" + measure.getName(), ImmutableMap.of(
-                "name", measure.getName(), "expression", measure.getFunction().getExpression(), "returntype",
-                measure.getFunction().getReturnType(), "parameters",
-                measure.getFunction().getParameters().stream()
-                        .map(parameterDesc -> new FunctionParameter(parameterDesc.getType(), parameterDesc.getValue()))
-                        .collect(Collectors.toList()),
-                "id", String.valueOf(measure.getId())), "id");
+        List<FunctionParameter> parameters = new ArrayList<>();
+        if (measure.getFunction().getParameters() != null) {
+            parameters = measure.getFunction().getParameters().stream()
+                    .map(parameterDesc -> new FunctionParameter(parameterDesc.getType(), parameterDesc.getValue()))
+                    .collect(Collectors.toList());
+        }
+        return new SchemaNode(SchemaNodeType.MODEL_MEASURE, modelAlias + "/" + measure.getName(),
+                ImmutableMap.of("name", measure.getName(), "expression", measure.getFunction().getExpression(),
+                        "returntype", measure.getFunction().getReturnType(), "parameters", parameters, "id",
+                        String.valueOf(measure.getId())),
+                "id");
     }
 
     public static SchemaNode ofPartition(PartitionDesc partitionDesc, String modelAlias) {

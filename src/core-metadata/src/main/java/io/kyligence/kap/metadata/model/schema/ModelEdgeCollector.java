@@ -171,6 +171,8 @@ class ModelEdgeCollector {
         });
         model.getEffectiveMeasures().forEach((id, measure) -> {
             val params = measure.getFunction().getParameters();
+            SchemaNode measureNode = SchemaNode.ofMeasure(measure, model.getAlias());
+            graph.addNode(measureNode);
             if (CollectionUtils.isEmpty(params)) {
                 return;
             }
@@ -180,8 +182,7 @@ class ModelEdgeCollector {
                 }
                 val colRef = param.getColRef();
                 val nameColumn = nameColumnIdMap.get(colRef.getAliasDotName());
-                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getAlias()),
-                        SchemaNode.ofMeasure(measure, model.getAlias()));
+                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getAlias()), measureNode);
             }
         });
     }

@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -593,6 +594,13 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(1, modelSchemaChange.getNewItems().stream()
                 .filter(schemaChange -> schemaChange.getType() == SchemaNodeType.WHITE_LIST_INDEX).count());
+
+        Assert.assertTrue(modelSchemaChange.getNewItems().stream()
+                .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_MEASURE
+                        && Objects.equals(schemaChange.getAttributes().get("expression"), "COUNT")
+                        && ((List<SchemaNode.FunctionParameter>) schemaChange.getAttributes().get("parameters"))
+                                .stream().anyMatch(
+                                        functionParameter -> Objects.equals(functionParameter.getType(), "constant"))));
     }
 
     @Test
