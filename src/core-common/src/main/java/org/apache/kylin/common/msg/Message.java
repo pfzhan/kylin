@@ -1636,7 +1636,7 @@ public class Message {
     }
 
     public String getNotSupportNestedDependentCol() {
-        return "Not Supported setting association rules on association columns.";
+        return "Not Supported setting association rules on association columns [%s].";
     }
 
     // Snapshots

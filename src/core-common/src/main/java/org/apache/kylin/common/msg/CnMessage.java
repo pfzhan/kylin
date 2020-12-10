@@ -1866,7 +1866,7 @@ public class CnMessage extends Message {
     }
 
     public String getNotSupportNestedDependentCol() {
-        return "不支持在关联列上设置关联规则";
+        return "不支持在关联列 [%s] 上设置关联规则";
     }
 
     // Snapshots

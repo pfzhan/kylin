@@ -27,11 +27,14 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import lombok.var;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
@@ -40,6 +43,8 @@ import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -702,5 +707,314 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             }
         });
         aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testMergeACLTCRWithRevokeGrantColumns() throws IOException {
+        // grant acl tcr
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
+        Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+
+        List<AclTCRResponse> response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        AtomicInteger totalTableNum = new AtomicInteger();
+        AtomicInteger authorizedTableNum = new AtomicInteger();
+
+        AtomicInteger totalColumnNum = new AtomicInteger();
+        AtomicInteger authorizedColumnNum = new AtomicInteger();
+
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM")).anyMatch(table -> {
+                            totalTableNum.set(aclTCRResponse.getTotalTableNum());
+                            authorizedTableNum.set(aclTCRResponse.getAuthorizedTableNum());
+                            totalColumnNum.set(table.getTotalColumnNum());
+                            authorizedColumnNum.set(table.getAuthorizedColumnNum());
+                            return table.getColumns().stream().anyMatch(
+                                    column -> column.isAuthorized() && column.getColumnName().equals("DIM_CRE_USER"));
+                        })));
+
+        Assert.assertTrue(totalTableNum.get() > 0);
+        Assert.assertTrue(authorizedTableNum.get() > 0);
+        Assert.assertTrue(totalColumnNum.get() > 0);
+        Assert.assertTrue(authorizedColumnNum.get() > 0);
+
+        // revoke column
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("EDW");
+        AclTCRRequest.Table tableRequest = new AclTCRRequest.Table();
+        tableRequest.setTableName("TEST_SELLER_TYPE_DIM");
+        tableRequest.setAuthorized(true);
+
+        AclTCRRequest.Column columnRequest = new AclTCRRequest.Column();
+        columnRequest.setColumnName("DIM_CRE_USER");
+        columnRequest.setAuthorized(false);
+        tableRequest.setColumns(Collections.singletonList(columnRequest));
+        request.setTables(Collections.singletonList(tableRequest));
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
+                        .anyMatch(table -> table.getAuthorizedColumnNum() == authorizedColumnNum.get() - 1
+                                && table.getColumns().stream().anyMatch(column -> !column.isAuthorized()
+                                        && column.getColumnName().equals("DIM_CRE_USER")))));
+
+
+        // grant columnRequest
+        columnRequest.setColumnName("DIM_CRE_USER");
+        columnRequest.setAuthorized(true);
+
+        tableRequest.setColumns(Collections.singletonList(columnRequest));
+        request.setTables(Collections.singletonList(tableRequest));
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
+                        .anyMatch(table -> table.getAuthorizedColumnNum() == authorizedColumnNum.get()
+                                && table.getColumns().stream().anyMatch(column -> column.isAuthorized()
+                                && column.getColumnName().equals("DIM_CRE_USER")))));
+    }
+
+    @Test
+    public void testMergeACLTCRWithRevokeGrantTable() throws IOException {
+        // grant acl tcr
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
+        Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+
+        AtomicInteger totalTableNum = new AtomicInteger();
+        AtomicInteger authorizedTableNum = new AtomicInteger();
+
+        AtomicInteger totalColumnNum = new AtomicInteger();
+        AtomicInteger authorizedColumnNum = new AtomicInteger();
+
+        var response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM")).anyMatch(table -> {
+                            totalTableNum.set(aclTCRResponse.getTotalTableNum());
+                            authorizedTableNum.set(aclTCRResponse.getAuthorizedTableNum());
+                            totalColumnNum.set(table.getTotalColumnNum());
+                            authorizedColumnNum.set(table.getAuthorizedColumnNum());
+                            return table.getColumns().stream().anyMatch(
+                                    column -> column.isAuthorized() && column.getColumnName().equals("DIM_CRE_USER"));
+                        })));
+
+        // revoke tableRequest
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("EDW");
+        AclTCRRequest.Table tableRequest = new AclTCRRequest.Table();
+        tableRequest.setTableName("TEST_SELLER_TYPE_DIM");
+        tableRequest.setAuthorized(false);
+
+        request.setTables(Collections.singletonList(tableRequest));
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM") && !table.isAuthorized())
+                        .anyMatch(table -> table.getAuthorizedColumnNum() == 0
+                                && table.getColumns().stream().noneMatch(AclTCRResponse.Column::isAuthorized))));
+
+        // grant tableRequest
+        tableRequest.setAuthorized(true);
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM") && table.isAuthorized())
+                        .anyMatch(table -> table.getAuthorizedColumnNum() == authorizedColumnNum.get()
+                                && table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized))));
+    }
+
+    @Test
+    public void testMergeACLTCRWithBatchUpdateRowAcl() throws IOException {
+        // grant acl tcr
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
+        Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+
+        // revoke columnRequest
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("EDW");
+        AclTCRRequest.Table tableRequest = new AclTCRRequest.Table();
+        tableRequest.setAuthorized(true);
+        tableRequest.setTableName("TEST_SELLER_TYPE_DIM");
+
+        AclTCRRequest.Row row = new AclTCRRequest.Row();
+        tableRequest.setRows(new ArrayList<>());
+        row.setColumnName("DIM_CRE_USER");
+        row.setItems(Arrays.asList("user1", "user2"));
+        tableRequest.getRows().add(row);
+
+        row = new AclTCRRequest.Row();
+        row.setColumnName("DIM_CRE_DATE");
+        row.setItems(Arrays.asList("2020-01-01 00:00:00", "2020-01-02 00:00:00"));
+
+        tableRequest.getRows().add(row);
+
+        request.setTables(Collections.singletonList(tableRequest));
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        var response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
+                        .anyMatch(table -> table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized)
+                                && table.getRows().size() == 2)));
+
+
+        tableRequest.setRows(new ArrayList<>());
+        row.setColumnName("DIM_CRE_USER");
+        row.setItems(Arrays.asList("user1", "user2"));
+        tableRequest.getRows().add(row);
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
+                        .anyMatch(table -> table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized)
+                                && table.getRows().size() == 1)));
+
+
+        tableRequest.setRows(new ArrayList<>());
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream().filter(aclTCRResponse -> aclTCRResponse.getDatabaseName().equals("EDW"))
+                .anyMatch(aclTCRResponse -> aclTCRResponse.getTables().stream()
+                        .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
+                        .anyMatch(table -> table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized)
+                                && table.getRows().size() == 0)));
+
+
+
+    }
+
+    @Test
+    public void testMergeACLTCRWithGrantRowAclWithUnauthorizedColumn() throws IOException {
+        // grant acl tcr
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
+        Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+
+        // revoke column
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("EDW");
+        AclTCRRequest.Table tableRequest = new AclTCRRequest.Table();
+        tableRequest.setTableName("TEST_SELLER_TYPE_DIM");
+        tableRequest.setAuthorized(true);
+
+        AclTCRRequest.Column columnRequest = new AclTCRRequest.Column();
+        columnRequest.setColumnName("DIM_CRE_USER");
+        columnRequest.setAuthorized(false);
+        tableRequest.setColumns(Collections.singletonList(columnRequest));
+        request.setTables(Collections.singletonList(tableRequest));
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+
+        // grant acl
+        AclTCRRequest.Row row = new AclTCRRequest.Row();
+        tableRequest.setRows(new ArrayList<>());
+        row.setColumnName("DIM_CRE_USER");
+        row.setItems(Arrays.asList("user1", "user2"));
+        tableRequest.getRows().add(row);
+
+
+        thrown.expectCause(new BaseMatcher<Throwable>() {
+            @Override
+            public boolean matches(Object item) {
+                if (item instanceof KylinException) {
+                    return ((KylinException) item).getMessage().contains("The current user/group does not have permission of column DIM_CRE_USER.");
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+
+            }
+        });
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+    }
+
+    @Test
+    public void testMergeACLTCRWithDependencyColumnDependsOnDependencyColumn() throws IOException {
+        // grant acl tcr
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
+        Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+
+        // revoke column
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("EDW");
+        AclTCRRequest.Table tableRequest = new AclTCRRequest.Table();
+        tableRequest.setTableName("TEST_SELLER_TYPE_DIM");
+        tableRequest.setAuthorized(true);
+        tableRequest.setColumns(new ArrayList<>());
+
+        AclTCRRequest.Column columnRequest = new AclTCRRequest.Column();
+        columnRequest.setDependentColumns(new ArrayList<>());
+        columnRequest.setColumnName("DIM_CRE_USER");
+        columnRequest.setAuthorized(true);
+        AclTCRRequest.DependentColumnData dependentColumnData = new AclTCRRequest.DependentColumnData();
+        dependentColumnData.setColumnIdentity("EDW.TEST_SELLER_TYPE_DIM.DIM_CRE_DATE");
+        dependentColumnData.setValues(new String[]{"2020-01-01 00:00:00", "2020-01-02 00:00:00"});
+
+        columnRequest.getDependentColumns().add(dependentColumnData);
+        tableRequest.getColumns().add(columnRequest);
+
+        columnRequest = new AclTCRRequest.Column();
+        columnRequest.setDependentColumns(new ArrayList<>());
+        columnRequest.setColumnName("DIM_CRE_DATE");
+        columnRequest.setAuthorized(true);
+        dependentColumnData = new AclTCRRequest.DependentColumnData();
+        dependentColumnData.setColumnIdentity("EDW.TEST_SELLER_TYPE_DIM.DIM_CRE_USER");
+        dependentColumnData.setValues(new String[]{"user1", "user2"});
+
+        columnRequest.getDependentColumns().add(dependentColumnData);
+
+        tableRequest.getColumns().add(columnRequest);
+        request.setTables(Collections.singletonList(tableRequest));
+
+        thrown.expectCause(new BaseMatcher<Throwable>() {
+            @Override
+            public boolean matches(Object item) {
+                if (item instanceof KylinException) {
+                    return ((KylinException) item).getMessage().contains("Not Supported setting association rules on association columns [DIM_CRE_DATE, DIM_CRE_USER]");
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+
+            }
+        });
+
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
     }
 }
