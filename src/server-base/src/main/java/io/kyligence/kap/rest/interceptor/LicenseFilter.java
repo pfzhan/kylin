@@ -47,7 +47,7 @@ import lombok.val;
 public class LicenseFilter implements Filter {
 
     private static final String PREFIX = "/kylin/api/";
-    private static String[] apiWhiteList = { "config", "system", "error" };
+    private static String[] apiWhiteList = { "config", "system", "error", "health", "prometheus"};
 
     @Autowired
     private LicenseInfoService licenseInfoService;
