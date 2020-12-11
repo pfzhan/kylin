@@ -49,6 +49,7 @@ import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -860,6 +861,38 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(7).getState());
         Assert.assertEquals(25.75, rawRecItems.get(8).getCost(), 0.01);
         Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(8).getState());
+
+        // change to old version RawRecItem with recSource is null then updateCost and validate
+        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelId = modelContexts.get(0).getTargetModel().getUuid();
+        List<RawRecItem> layoutRecItems = jdbcRawRecStore.queryAll();
+        layoutRecItems.forEach(recItem -> recItem.setRecSource(null));
+        jdbcRawRecStore.update(layoutRecItems);
+        for (RawRecItem recItem : jdbcRawRecStore.queryAll()) {
+            Assert.assertNull(recItem.getRecSource());
+        }
+        RawRecManager.getInstance(getProject()).clearExistingCandidates(getProject(), modelId);
+        List<RawRecItem> recItemsAfterClear = jdbcRawRecStore.queryAll();
+        recItemsAfterClear.forEach(recItem -> Assert.assertEquals(RawRecItem.RawRecState.INITIAL, recItem.getState()));
+        recItemsAfterClear.forEach(recItem -> {
+            if (recItem.isLayoutRec()) {
+                recItem.setRecSource("QUERY_HISTORY");
+            }
+        });
+        jdbcRawRecStore.update(recItemsAfterClear);
+        jdbcRawRecStore.queryAll().forEach(recItem -> {
+            if (recItem.isLayoutRec()) {
+                Assert.assertEquals("QUERY_HISTORY", recItem.getRecSource());
+            }
+        });
+        RawRecManager.getInstance(getProject()).updateRecommendedTopN(getProject(), modelId, 100);
+        List<RawRecItem> allRecItems = jdbcRawRecStore.queryAll();
+        allRecItems.forEach(recItem -> {
+            if (recItem.isLayoutRec()) {
+                Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, recItem.getState());
+            }
+        });
 
         // reset
         FavoriteRuleManager.getInstance(kylinConfig, getProject()).updateRule(

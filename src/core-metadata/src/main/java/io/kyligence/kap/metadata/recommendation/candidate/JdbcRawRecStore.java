@@ -505,7 +505,7 @@ public class JdbcRawRecStore {
         }
 
         oneBatch.forEach(recItem -> {
-            if (recItem.getRecSource().equalsIgnoreCase(RawRecItem.IMPORTED)) {
+            if (RawRecItem.IMPORTED.equalsIgnoreCase(recItem.getRecSource())) {
                 recItem.setUpdateTime(currentTime);
                 return;
             }
@@ -610,7 +610,7 @@ public class JdbcRawRecStore {
                 .set(table.maxTime).equalToWhenPresent(recItem::getMaxTime) //
                 .set(table.minTime).equalToWhenPresent(recItem::getMinTime) //
                 .set(table.queryHistoryInfo).equalToWhenPresent(recItem::getQueryHistoryInfo) //
-                .set(table.recSource).equalToWhenPresent(recItem::getRecSource) //
+                .set(table.recSource).equalTo(recItem::getRecSource) //
                 .where(table.id, isEqualTo(recItem::getId)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }

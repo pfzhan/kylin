@@ -118,7 +118,7 @@ public class RawRecItem implements IKeep {
     @JsonIgnore
     public boolean isAdditionalRecItemSavable() {
         Preconditions.checkState(isAddLayoutRec());
-        if (recSource.equalsIgnoreCase(RawRecItem.IMPORTED)) {
+        if (RawRecItem.IMPORTED.equalsIgnoreCase(recSource)) {
             return true;
         }
         return getLayoutMetric() != null;

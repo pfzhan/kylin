@@ -98,7 +98,7 @@ public class RawRecManager {
         long updateTime = System.currentTimeMillis();
         existingCandidates.forEach(rawRecItem -> {
             rawRecItem.setUpdateTime(updateTime);
-            if (!rawRecItem.getRecSource().equalsIgnoreCase(RawRecItem.IMPORTED)) {
+            if (!RawRecItem.IMPORTED.equalsIgnoreCase(rawRecItem.getRecSource())) {
                 rawRecItem.setState(RawRecItem.RawRecState.INITIAL);
             }
         });
