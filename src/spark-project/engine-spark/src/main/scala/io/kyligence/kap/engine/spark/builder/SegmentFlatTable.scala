@@ -302,6 +302,12 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   }
 
   protected final def gatherStatistics(tableDS: Dataset[Row]): Statistics = {
+    val totalRowCount = tableDS.count()
+    if (!shouldPersistFT) {
+      // By design, evaluating column bytes should be based on existed flat table.
+      logInfo(s"Flat table not persisted, only compute row count.")
+      return Statistics(totalRowCount, Map.empty[String, Long])
+    }
     // zipWithIndex before filter
     val canonicalIndices = tableDS.columns //
       .zipWithIndex //
@@ -317,7 +323,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
         val bytes = utf8Length(row.get(index))
         (canonical, bytes) //
       }).groupBy(_._1).mapValues(_.map(_._2).sum)
-    val totalRowCount = tableDS.count()
     val evaluated = evaluateColumnBytes(totalRowCount, sampled)
     Statistics(totalRowCount, evaluated)
   }
