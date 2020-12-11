@@ -520,6 +520,19 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRefreshSegmentMultiPartition() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataflow df = mgr.getDataflow("b780e4e4-69af-449e-b09f-05c90dfa04b6");
+        NDataSegment segment = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).get(0);
+        NDataSegment newSegment = mgr.refreshSegment(df, segment.getSegRange());
+        Assert.assertEquals(segment.getSegRange(), newSegment.getSegRange());
+        Assert.assertEquals(SegmentStatusEnum.NEW, newSegment.getStatus());
+        Assert.assertEquals(0, newSegment.getMultiPartitions().get(0).getSourceCount());
+        Assert.assertEquals(0, newSegment.getMultiPartitions().get(0).getStorageSize());
+    }
+
+    @Test
     public void testGetDataflow2() throws IOException {
         KylinConfig testConfig = getTestConfig();
         String uuid = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";

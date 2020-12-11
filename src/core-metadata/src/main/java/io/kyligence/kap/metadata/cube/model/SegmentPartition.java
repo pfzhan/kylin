@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -143,7 +144,11 @@ public class SegmentPartition implements Serializable, IKeep {
 
     public long getStorageSize() {
         if (storageSize == -1) {
-            storageSize = getSegment().getSegDetails() //
+            final NDataSegment dataSegment = getSegment();
+            if (Objects.isNull(dataSegment)) {
+                return 0;
+            }
+            storageSize = dataSegment.getSegDetails() //
                     .getLayouts().stream() //
                     .flatMap(layout -> layout.getMultiPartition().stream()) //
                     .filter(partition -> partition.getPartitionId() == partitionId) //

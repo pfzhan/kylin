@@ -382,7 +382,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
 
         newSegment.setSegmentRange(toRefreshSeg.getSegRange());
-        newSegment.setMultiPartitions(toRefreshSeg.getMultiPartitions());
+        newSegment.setMultiPartitions(toRefreshSeg.getMultiPartitions().stream() //
+                .map(partition -> new SegmentPartition(partition.getPartitionId())) //
+                .collect(Collectors.toList()));
 
         NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
