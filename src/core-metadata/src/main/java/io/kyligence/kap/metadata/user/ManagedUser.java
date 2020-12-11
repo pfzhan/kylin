@@ -81,6 +81,9 @@ import lombok.Setter;
 @JsonFilter("passwordFilter")
 public class ManagedUser extends RootPersistentEntity implements UserDetails, UserInsensitiveRequest {
 
+    // for spring session save serializable object(ManagerUser), do not modify
+    private static final long serialVersionUID = 1L;
+
     @JsonProperty
     private String username;
     @JsonProperty
