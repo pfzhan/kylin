@@ -3395,6 +3395,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testBuildSegmentManually_PartitionValue_Not_Support() throws Exception {
+        List<String[]> multiPartitionValues = Lists.newArrayList();
+        multiPartitionValues.add(new String[] { "cn" });
+        try {
+            modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
+                    Sets.newHashSet(), multiPartitionValues);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(
+                    "The subpartition column of model 'nmodel_basic' has not been set yet. Please set it first."));
+        }
+    }
+
+    @Test
     public void testBuildSegmentsManually_NoPartition_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");

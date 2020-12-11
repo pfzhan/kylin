@@ -44,6 +44,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MO
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_TYPE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MULTI_PARTITION_MAPPING_REQUEST;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
@@ -51,9 +52,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITIO
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_IS_NOT_MLP;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_ONLINE_ABANDON;
+import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_VALUE_NOT_SUPPORT;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
@@ -2104,9 +2105,13 @@ public class ModelService extends BasicService {
     }
 
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
-            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValuess, int priority)
+            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues, int priority)
             throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
+            throw new KylinException(PARTITION_VALUE_NOT_SUPPORT,
+                    String.format(MsgPicker.getMsg().getPARTITION_VALUE_NOT_SUPPORT(), modelDesc.getAlias()));
+        }
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
@@ -2114,7 +2119,7 @@ public class ModelService extends BasicService {
         } else {
             return incrementBuildSegmentsManually(
                     new IncrementBuildSegmentParams(project, modelId, start, end, modelDesc.getPartitionDesc(),
-                            modelDesc.getMultiPartitionDesc(), Lists.newArrayList(), needBuild, multiPartitionValuess)
+                            modelDesc.getMultiPartitionDesc(), Lists.newArrayList(), needBuild, multiPartitionValues)
                                     .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority));
         }
     }
@@ -3918,7 +3923,7 @@ public class ModelService extends BasicService {
     private void checkModelIsMLP(String modelId, String project) {
         NDataModel model = getModelById(modelId, project);
         if (!model.isMultiPartitionModel()) {
-            throw new KylinException(MODEL_IS_NOT_MLP,
+            throw new KylinException(INVALID_MODEL_TYPE,
                     String.format(MsgPicker.getMsg().getMODEL_IS_NOT_MLP(), model.getAlias()));
         }
     }
