@@ -75,7 +75,6 @@ class MLPFlatTable(private val sparkSession: SparkSession, //
   def gatherPartitionStatistics(partitionId: Long, tableDS: Dataset[Row]): Statistics = {
     logInfo(s"Gather statistics PARTITION-FLAT-TABLE $partitionId segment $segmentId")
     sparkSession.sparkContext.setJobDescription(s"Gather statistics PARTITION-FLAT-TABLE $partitionId")
-    // zipWithIndex before filter
     val statistics = gatherStatistics(tableDS)
     sparkSession.sparkContext.setJobDescription(null)
     statistics

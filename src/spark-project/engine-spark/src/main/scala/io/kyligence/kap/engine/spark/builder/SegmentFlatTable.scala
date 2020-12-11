@@ -259,7 +259,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   private def tryRecoverFTDS(): Option[Dataset[Row]] = {
     if (!isFTReady) {
-      logInfo(s"No available FLAT-TABLE.")
+      logInfo(s"No available FLAT-TABLE segment $segmentId")
       return None
     }
     // +----------+---+---+---+---+-----------+-----------+
@@ -283,12 +283,15 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
         .map(id => id + ENCODE_SUFFIX)
 
     if (nones.nonEmpty) {
-      logInfo(s"Update FLAT-TABLE, expected columns [${nones.mkString(",")}] segment $segmentId")
-      None
-    } else {
-      logInfo(s"Skip FLAT-TABLE segment $segmentId")
-      Some(tableDS)
+      // The previous flat table missed some columns.
+      // Flat table would be updated at afterwards step.
+      logInfo(s"Update FLAT-TABLE columns should have been included " + //
+        s"${nones.mkString("[", ",", "]")} segment $segmentId")
+      return None
     }
+    // The previous flat table could be reusable.
+    logInfo(s"Skip FLAT-TABLE segment $segmentId")
+    Some(tableDS)
   }
 
   private def newTableDS(tableRef: TableRef): Dataset[Row] = {

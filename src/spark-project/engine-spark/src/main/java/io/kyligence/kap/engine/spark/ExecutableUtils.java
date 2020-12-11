@@ -29,14 +29,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
-import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
 
@@ -66,10 +67,19 @@ public class ExecutableUtils {
     }
 
     public static Set<Long> getPartitionIds(AbstractExecutable buildTask) {
-        if(CollectionUtils.isEmpty(buildTask.getTargetPartitions())){
+        if (CollectionUtils.isEmpty(buildTask.getTargetPartitions())) {
             return new HashSet<>();
         }
         return buildTask.getTargetPartitions();
+    }
+
+    public static boolean needBuildSnapshots(AbstractExecutable buildTask) {
+        if (buildTask instanceof NSparkCubingStep) {
+            String p = buildTask.getParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS);
+            return StringUtils.isBlank(p) || Boolean.parseBoolean(p);
+        } else {
+            return false;
+        }
     }
 
     public static void initJobFactory() {

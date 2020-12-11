@@ -34,7 +34,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.clearspring.analytics.util.Lists;
@@ -111,9 +110,6 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             mergedSegment.setStatus(SegmentStatusEnum.READY);
 
         toUpdateSegments.add(mergedSegment);
-        if (JobParam.isRefreshJob(jobType)) {
-            mergeSnapshotMeta(distDataflow, remoteResourceStore);
-        }
 
         if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
             Optional<Long> reduce = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize)
@@ -154,9 +150,6 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             mergedSegment.setStatus(SegmentStatusEnum.READY);
 
         toUpdateSegments.add(mergedSegment);
-        if (JobParam.isRefreshJob(jobType)) {
-            mergeSnapshotMeta(distDataflow, remoteResourceStore);
-        }
 
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
@@ -204,6 +197,10 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             val partitionIds = ExecutableUtils.getPartitionIds(abstractExecutable);
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
                     abstractExecutable.getJobType(), partitionIds);
+            if (ExecutableUtils.needBuildSnapshots(abstractExecutable)) {
+                NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dataFlowId);
+                mergeSnapshotMeta(dataflow, buildResourceStore);
+            }
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
             KylinConfig config = KylinConfig.getInstanceFromEnv();
