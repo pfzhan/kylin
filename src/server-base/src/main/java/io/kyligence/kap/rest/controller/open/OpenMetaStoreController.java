@@ -74,18 +74,18 @@ public class OpenMetaStoreController extends NBasicController {
     @GetMapping(value = "/previews/models")
     @ResponseBody
     public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        return metaStoreController.previewModels(project);
+        String projectName = checkProjectName(project);
+        return metaStoreController.previewModels(projectName);
     }
 
     @PostMapping(value = "/backup/models")
     @ResponseBody
     public EnvelopeResponse<String> exportModelMetadata(@RequestParam(value = "project") String project,
             @RequestBody OpenModelPreviewRequest request, HttpServletResponse response) throws Exception {
-        checkProjectName(project);
-        checkExportModelsValid(project, request);
-        ModelPreviewRequest modelPreviewRequest = convertToModelPreviewRequest(project, request);
-        metaStoreController.exportModelMetadata(project, modelPreviewRequest, response);
+        String projectName = checkProjectName(project);
+        checkExportModelsValid(projectName, request);
+        ModelPreviewRequest modelPreviewRequest = convertToModelPreviewRequest(projectName, request);
+        metaStoreController.exportModelMetadata(projectName, modelPreviewRequest, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -102,7 +102,8 @@ public class OpenMetaStoreController extends NBasicController {
     public EnvelopeResponse<String> importModelMetadata(@RequestParam(value = "project") String project,
             @RequestPart(value = "file") MultipartFile metadataFile, @RequestPart("request") ModelImportRequest request)
             throws Exception {
-        metaStoreController.importModelMetadata(project, metadataFile, request);
+        String projectName = checkProjectName(project);
+        metaStoreController.importModelMetadata(projectName, metadataFile, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

@@ -130,9 +130,9 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
             @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
             @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
-        checkProjectName(project);
-        return modelController.getModels(modelAlias, exactMatch, project, owner, status, table, offset, limit, sortBy,
-                reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
+        String projectName = checkProjectName(project);
+        return modelController.getModels(modelAlias, exactMatch, projectName, owner, status, table, offset, limit,
+                sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
     }
 
     @VisibleForTesting
@@ -157,9 +157,9 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkProjectName(project);
-        String modelId = getModel(modelAlias, project).getUuid();
-        return modelController.getSegments(modelId, project, status, offset, limit, start, end, null, null, false,
+        String projectName = checkProjectName(project);
+        String modelId = getModel(modelAlias, projectName).getUuid();
+        return modelController.getSegments(modelId, projectName, status, offset, limit, start, end, null, null, false,
                 sortBy, reverse);
     }
 
@@ -174,16 +174,18 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, project).getId();
-        return modelController.getMultiPartition(modelId, project, segId, status, pageOffset, pageSize, sortBy, reverse);
+        return modelController.getMultiPartition(modelId, projectName, segId, status, pageOffset, pageSize, sortBy,
+                reverse);
     }
 
     @PostMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        checkProjectName(buildSegmentsRequest.getProject());
+        String projectName = checkProjectName(buildSegmentsRequest.getProject());
+        buildSegmentsRequest.setProject(projectName);
         validatePriority(buildSegmentsRequest.getPriority());
         String modelId = getModel(modelAlias, buildSegmentsRequest.getProject()).getUuid();
         return modelController.buildSegmentsManually(modelId, buildSegmentsRequest);
@@ -193,7 +195,8 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model_name") String modelAlias,
             @RequestBody SegmentsRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         validatePriority(request.getPriority());
         String modelId = getModel(modelAlias, request.getProject()).getUuid();
         return modelController.refreshOrMergeSegments(modelId, request);
@@ -207,12 +210,12 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
             @RequestParam(value = "ids", required = false) String[] ids, //
             @RequestParam(value = "names", required = false) String[] names) {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         if (purge) {
             ids = new String[0];
         }
-        String modelId = getModel(modelAlias, project).getUuid();
-        return modelController.deleteSegments(modelId, project, purge, force, ids, names);
+        String modelId = getModel(modelAlias, projectName).getUuid();
+        return modelController.deleteSegments(modelId, projectName, purge, force, ids, names);
     }
 
     @PostMapping(value = "/{model_name}/segments/completion")
@@ -222,12 +225,12 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "parallel", required = false, defaultValue = "false") boolean parallel,
             @RequestParam(value = "ids", required = false) String[] ids,
             @RequestParam(value = "names", required = false) String[] names) {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         checkSegmentParms(ids, names);
-        String modelId = getModel(modelAlias, project).getUuid();
-        String[] segIds = modelService.convertSegmentIdWithName(modelId, project, ids, names);
+        String modelId = getModel(modelAlias, projectName).getUuid();
+        String[] segIds = modelService.convertSegmentIdWithName(modelId, projectName, ids, names);
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
-        req.setProject(project);
+        req.setProject(projectName);
         req.setParallelBuildBySegment(parallel);
         req.setSegmentIds(Lists.newArrayList(segIds));
         return modelController.addIndexesToSegments(modelId, req);
@@ -237,8 +240,8 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias) {
-        checkProjectName(project);
-        NModelDescResponse result = modelService.getModelDesc(modelAlias, project);
+        String projectName = checkProjectName(project);
+        NModelDescResponse result = modelService.getModelDesc(modelAlias, projectName);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
@@ -247,7 +250,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> updatePartitionDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias,
             @RequestBody ModelParatitionDescRequest modelParatitionDescRequest) {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         String partitionDateFormat = null;
         if (modelParatitionDescRequest.getPartitionDesc() != null) {
             checkRequiredArg("partition_date_column",
@@ -258,15 +261,15 @@ public class OpenModelController extends NBasicController {
         }
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
-        modelService.updateDataModelParatitionDesc(project, modelAlias, modelParatitionDescRequest);
+        modelService.updateDataModelParatitionDesc(projectName, modelAlias, modelParatitionDescRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @PostMapping(value = "/validation")
     @ResponseBody
     public EnvelopeResponse<List<String>> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
-        checkProjectName(request.getProject());
-
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         List<NDataModel> models = modelService.couldAnsweredByExistedModels(request.getProject(), request.getSqls());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 models.stream().map(NDataModel::getAlias).collect(Collectors.toList()), "");
@@ -304,7 +307,8 @@ public class OpenModelController extends NBasicController {
     @PostMapping(value = "/model_validation")
     @ResponseBody
     public EnvelopeResponse<OpenModelValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         aclEvaluate.checkProjectWritePermission(request.getProject());
         if (CollectionUtils.isEmpty(request.getSqls())) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());
@@ -317,7 +321,8 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildIndexRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         validatePriority(request.getPriority());
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.buildIndicesManually(modelId, request);
@@ -329,19 +334,20 @@ public class OpenModelController extends NBasicController {
             @PathVariable(value = "model_name") String modelAlias, //
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "recActionType", required = false, defaultValue = "all") String recActionType) {
-        checkProjectName(project);
-        checkProjectNotSemiAuto(project);
-        String modelId = getModel(modelAlias, project).getId();
+        String projectName = checkProjectName(project);
+        checkProjectNotSemiAuto(projectName);
+        String modelId = getModel(modelAlias, projectName).getId();
         checkRequiredArg(NModelController.MODEL_ID, modelId);
-        OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(project, modelId, recActionType);
+        OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(projectName, modelId, recActionType);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                new OpenOptRecLayoutsResponse(project, modelId, response), "");
+                new OpenOptRecLayoutsResponse(projectName, modelId, response), "");
     }
 
     @PutMapping(value = "/recommendations/batch")
     @ResponseBody
     public EnvelopeResponse<String> batchApproveRecommendations(@RequestBody OpenBatchApproveRecItemsRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         boolean filterByModels = request.isFilterByModes();
         if (request.getRecActionType() == null || StringUtils.isEmpty(request.getRecActionType().trim())) {
@@ -365,7 +371,8 @@ public class OpenModelController extends NBasicController {
     @PostMapping(value = "/model_suggestion")
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
@@ -374,7 +381,8 @@ public class OpenModelController extends NBasicController {
     @PostMapping(value = "/model_optimization")
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
@@ -384,9 +392,9 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> deleteModel(@PathVariable("model_name") String modelAlias,
             @RequestParam("project") String project) {
-        checkProjectName(project);
-        String modelId = getModel(modelAlias, project).getId();
-        return modelController.deleteModel(modelId, project);
+        String projectName = checkProjectName(project);
+        String modelId = getModel(modelAlias, projectName).getId();
+        return modelController.deleteModel(modelId, projectName);
     }
 
     @ApiOperation(value = "check segment range")
@@ -394,7 +402,8 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<CheckSegmentResponse> checkSegments(@PathVariable("model") String modelAlias,
             @RequestBody CheckSegmentRequest request) {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         aclEvaluate.checkProjectOperationPermission(request.getProject());
         checkRequiredArg("start", request.getStart());
         checkRequiredArg("end", request.getEnd());
@@ -407,8 +416,9 @@ public class OpenModelController extends NBasicController {
     @PutMapping(value = "/{model_name:.+}/multi_partition/mapping")
     @ResponseBody
     public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model_name") String modelAlias,
-                                                                @RequestBody MultiPartitionMappingRequest mappingRequest) {
-        checkProjectName(mappingRequest.getProject());
+            @RequestBody MultiPartitionMappingRequest mappingRequest) {
+        String projectName = checkProjectName(mappingRequest.getProject());
+        mappingRequest.setProject(projectName);
         val modelId = getModel(modelAlias, mappingRequest.getProject()).getId();
         modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -418,8 +428,9 @@ public class OpenModelController extends NBasicController {
     @PostMapping(value = "/{model_name:.+}/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model_name") String modelAlias,
-                                                        @RequestBody PartitionsBuildRequest param) {
-        checkProjectName(param.getProject());
+            @RequestBody PartitionsBuildRequest param) {
+        String projectName = checkProjectName(param.getProject());
+        param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.buildMultiPartition(modelId, param);
     }
@@ -428,8 +439,9 @@ public class OpenModelController extends NBasicController {
     @PutMapping(value = "/{model_name:.+}/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model_name") String modelAlias,
-                                                          @RequestBody PartitionsRefreshRequest param) {
-        checkProjectName(param.getProject());
+            @RequestBody PartitionsRefreshRequest param) {
+        String projectName = checkProjectName(param.getProject());
+        param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.refreshMultiPartition(modelId, param);
     }
@@ -438,21 +450,21 @@ public class OpenModelController extends NBasicController {
     @DeleteMapping(value = "/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelAlias,
-                                                         @RequestParam("project") String project,
-                                                         @RequestParam("segment") String segment,
-                                                         @RequestParam(value = "ids") String[] ids) {
-        checkProjectName(project);
+            @RequestParam("project") String project, @RequestParam("segment") String segment,
+            @RequestParam(value = "ids") String[] ids) {
+        String projectName = checkProjectName(project);
         checkRequiredArg("ids", ids);
-        val modelId = getModel(modelAlias, project).getId();
-        return modelController.deleteMultiPartition(modelId, project, segment, ids);
+        val modelId = getModel(modelAlias, projectName).getId();
+        return modelController.deleteMultiPartition(modelId, projectName, segment, ids);
     }
 
     @ApiOperation(value = "update partition")
     @PutMapping(value = "/{model_name:.+}/partition")
     @ResponseBody
     public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model_name") String modelAlias,
-                                                            @RequestBody PartitionColumnRequest param) throws Exception {
-        checkProjectName(param.getProject());
+            @RequestBody PartitionColumnRequest param) throws Exception {
+        String projectName = checkProjectName(param.getProject());
+        param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.updatePartitionSemantic(modelId, param);
     }
@@ -466,8 +478,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "server_host", required = false) String host,
             @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
-        checkProjectName(project);
-        String modelId = getModel(modelAlias, project).getId();
-        modelController.exportModel(modelId, project, exportAs, element, host, port, request, response);
+        String projectName = checkProjectName(project);
+        String modelId = getModel(modelAlias, projectName).getId();
+        modelController.exportModel(modelId, projectName, exportAs, element, host, port, request, response);
     }
 }

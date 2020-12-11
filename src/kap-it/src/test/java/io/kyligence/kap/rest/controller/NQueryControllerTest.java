@@ -66,7 +66,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("DEFAULT");
         sqlRequest.setSql("SELECT * FROM TEST_KYLIN_FACT");
-        System.setProperty("kylin.query.pushdown-enabled", "false");
+        overwriteSystemProp("kylin.query.pushdown-enabled", "false");
 
         final MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
@@ -80,8 +80,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
         final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage")
                 .read(result.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
-        System.clearProperty("kylin.query.pushdown-enabled");
+        Assert.assertTrue(StringUtils.contains(exceptionMsg, "No model found for OLAPContext"));
     }
 
     @Test

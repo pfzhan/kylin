@@ -339,7 +339,7 @@ public class NBasicController {
         return data;
     }
 
-    public void checkProjectName(String project) {
+    public String checkProjectName(String project) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
             throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
@@ -351,6 +351,7 @@ public class NBasicController {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
+        return prjInstance.getName();
     }
 
     protected void checkSegmentParms(String[] ids, String[] names) {

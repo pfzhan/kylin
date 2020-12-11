@@ -94,25 +94,29 @@ public class OpenAccessController extends NBasicController {
     @GetMapping(value = "/project")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ProjectPermissionResponse>>> getProjectAccessPermissions(
-        @RequestParam("project") String project,
-        @RequestParam(value = "name", required = false) String name,
-        @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
-        @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-        @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) throws IOException {
-        checkProjectName(project);
-        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, getProjectUuid(project));
-        List<AccessEntryResponse> aeResponses = accessService.generateAceResponsesByFuzzMatching(ae, name, isCaseSensitive);
-        List<ProjectPermissionResponse> permissionResponses = convertAceResponseToProjectPermissionResponse(aeResponses);
+            @RequestParam("project") String project, @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
+        String projectName = checkProjectName(project);
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, getProjectUuid(projectName));
+        List<AccessEntryResponse> aeResponses = accessService.generateAceResponsesByFuzzMatching(ae, name,
+                isCaseSensitive);
+        List<ProjectPermissionResponse> permissionResponses = convertAceResponseToProjectPermissionResponse(
+                aeResponses);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(permissionResponses, pageOffset, pageSize),
-                "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                DataResult.get(permissionResponses, pageOffset, pageSize), "");
     }
 
     @PostMapping(value = "/project")
     @ResponseBody
-    public EnvelopeResponse<String> grantProjectPermission(
-        @RequestBody BatchProjectPermissionRequest permissionRequest) throws IOException {
-        checkProjectName(permissionRequest.getProject());
+    public EnvelopeResponse<String> grantProjectPermission(@RequestBody BatchProjectPermissionRequest permissionRequest)
+            throws IOException {
+        String projectName = checkProjectName(permissionRequest.getProject());
+        permissionRequest.setProject(projectName);
+
         checkType(permissionRequest.getType());
         checkNames(permissionRequest.getNames());
         ExternalAclProvider.checkExternalPermission(permissionRequest.getPermission());
@@ -130,9 +134,11 @@ public class OpenAccessController extends NBasicController {
 
     @PutMapping(value = "/project")
     @ResponseBody
-    public EnvelopeResponse<String> updateProjectPermission(
-            @RequestBody ProjectPermissionRequest permissionRequest) throws IOException {
-        checkProjectName(permissionRequest.getProject());
+    public EnvelopeResponse<String> updateProjectPermission(@RequestBody ProjectPermissionRequest permissionRequest)
+            throws IOException {
+        String projectName = checkProjectName(permissionRequest.getProject());
+        permissionRequest.setProject(projectName);
+
         checkType(permissionRequest.getType());
         checkName(permissionRequest.getName());
         ExternalAclProvider.checkExternalPermission(permissionRequest.getPermission());
@@ -150,20 +156,18 @@ public class OpenAccessController extends NBasicController {
 
     @DeleteMapping(value = "/project")
     @ResponseBody
-    public EnvelopeResponse<String> revokeProjectPermission(
-        @RequestParam("project") String project,
-        @RequestParam("type") String type,
-        @RequestParam("name") String name) throws IOException {
-        checkProjectName(project);
+    public EnvelopeResponse<String> revokeProjectPermission(@RequestParam("project") String project,
+            @RequestParam("type") String type, @RequestParam("name") String name) throws IOException {
+        String projectName = checkProjectName(project);
+        String projectUuid = getProjectUuid(projectName);
         checkType(type);
         checkSidExists(type, name);
-        checkSidGranted(project, name);
+        checkSidGranted(projectUuid, name);
 
         boolean principal = MetadataConstants.TYPE_USER.equalsIgnoreCase(type);
         if (principal) {
             accessService.checkGlobalAdmin(name);
         }
-        String projectUuid = getProjectUuid(project);
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectUuid);
         accessService.revokeWithSid(ae, name, principal);
         aclTCRService.revokeAclTCR(projectUuid, name, principal);
@@ -174,11 +178,11 @@ public class OpenAccessController extends NBasicController {
     @GetMapping(value = "/acls")
     @ResponseBody
     public EnvelopeResponse<List<SidPermissionWithAclResponse>> getUserOrGroupAclPermissions(
-            @RequestParam("type") String type,
-            @RequestParam(value = "name") String name,
+            @RequestParam("type") String type, @RequestParam(value = "name") String name,
             @RequestParam(value = "project", required = false) String project) throws IOException {
+        String projectName = "";
         if (StringUtils.isNotBlank(project)) {
-            checkProjectName(project);
+            projectName = checkProjectName(project);
         }
         checkType(type);
         checkSidExists(type, name);
@@ -189,10 +193,11 @@ public class OpenAccessController extends NBasicController {
         if (StringUtils.isBlank(project)) {
             projects = accessService.getGrantedProjectsOfUserOrGroup(name, principal);
         } else {
-            projects.add(project);
+            projects.add(projectName);
         }
 
-        List<SidPermissionWithAclResponse> response = accessService.getUserOrGroupAclPermissions(projects, name, principal);
+        List<SidPermissionWithAclResponse> response = accessService.getUserOrGroupAclPermissions(projects, name,
+                principal);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -201,8 +206,8 @@ public class OpenAccessController extends NBasicController {
         accessService.checkSid(name, principal);
     }
 
-    private void checkSidGranted(String project, String name) throws IOException {
-        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, getProjectUuid(project));
+    private void checkSidGranted(String projectUuid, String name) throws IOException {
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectUuid);
         List<AccessEntryResponse> aeResponses = accessService.generateAceResponsesByFuzzMatching(ae, name, false);
         if (CollectionUtils.isEmpty(aeResponses)) {
             throw new KylinException(UNAUTHORIZED_ENTITY, MsgPicker.getMsg().getUNAUTHORIZED_SID());
@@ -228,8 +233,10 @@ public class OpenAccessController extends NBasicController {
         }
     }
 
+    /**
+     * This method will not check project, user must prepare illegal project name which the same as ProjectInstance#getName
+     */
     private String getProjectUuid(String project) {
-        checkProjectName(project);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance prjInstance = projectManager.getProject(project);
         return prjInstance.getUuid();
@@ -246,7 +253,8 @@ public class OpenAccessController extends NBasicController {
         return accessRequest;
     }
 
-    private List<AccessRequest> convertBatchPermissionRequestToAccessRequests(BatchProjectPermissionRequest permissionRequest) {
+    private List<AccessRequest> convertBatchPermissionRequestToAccessRequests(
+            BatchProjectPermissionRequest permissionRequest) {
         List<AccessRequest> accessRequests = new ArrayList<>();
         String type = permissionRequest.getType();
         String externalPermission = permissionRequest.getPermission().toUpperCase();
@@ -263,7 +271,8 @@ public class OpenAccessController extends NBasicController {
         return accessRequests;
     }
 
-    private List<ProjectPermissionResponse> convertAceResponseToProjectPermissionResponse(List<AccessEntryResponse> aclResponseList) {
+    private List<ProjectPermissionResponse> convertAceResponseToProjectPermissionResponse(
+            List<AccessEntryResponse> aclResponseList) {
         List<ProjectPermissionResponse> responseList = new ArrayList<>();
         for (AccessEntryResponse aclResponse : aclResponseList) {
             String type = "";

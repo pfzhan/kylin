@@ -115,7 +115,8 @@ public class OpenTableController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit)
             throws IOException {
-        List<TableDesc> result = tableService.getTableDesc(project, withExt, table, database, isFuzzy);
+        String projectName = checkProjectName(project);
+        List<TableDesc> result = tableService.getTableDesc(projectName, withExt, table, database, isFuzzy);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
 
@@ -123,7 +124,8 @@ public class OpenTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
             throws Exception {
-        checkProjectName(tableLoadRequest.getProject());
+        String projectName = checkProjectName(tableLoadRequest.getProject());
+        tableLoadRequest.setProject(projectName);
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
         validatePriority(tableLoadRequest.getPriority());
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
@@ -153,7 +155,8 @@ public class OpenTableController extends NBasicController {
     @PostMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> setDateRanges(@RequestBody DateRangeRequest request) throws Exception {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         checkRequiredArg("tableName", request.getTable());
 
         getTable(request.getProject(), request.getTable());
@@ -169,7 +172,8 @@ public class OpenTableController extends NBasicController {
     @PutMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
-        checkProjectName(request.getProject());
+        String projectName = checkProjectName(request.getProject());
+        request.setProject(projectName);
         checkRequiredArg("tableName", request.getTable());
 
         getTable(request.getProject(), request.getTable());
@@ -179,10 +183,10 @@ public class OpenTableController extends NBasicController {
     @GetMapping(value = "/pre_reload")
     @ResponseBody
     public EnvelopeResponse<OpenPreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
-                                                                       @RequestParam(value = "table") String table) {
+            @RequestParam(value = "table") String table) {
         try {
-            checkProjectName(project);
-            OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(project, table);
+            String projectName = checkProjectName(project);
+            OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(projectName, table);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
@@ -192,20 +196,24 @@ public class OpenTableController extends NBasicController {
 
     @PostMapping(value = "/reload")
     @ResponseBody
-    public EnvelopeResponse<OpenReloadTableResponse> reloadTable(@RequestBody OpenReloadTableRequest request) throws KylinException {
+    public EnvelopeResponse<OpenReloadTableResponse> reloadTable(@RequestBody OpenReloadTableRequest request)
+            throws KylinException {
         try {
-            checkProjectName(request.getProject());
+            String projectName = checkProjectName(request.getProject());
+            request.setProject(projectName);
             checkRequiredArg("need_sampling", request.getNeedSampling());
             validatePriority(request.getPriority());
             if (StringUtils.isEmpty(request.getTable())) {
                 throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
             }
-            if (request.getNeedSampling() && (request.getSamplingRows() < MIN_SAMPLING_ROWS || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
+            if (request.getNeedSampling() && (request.getSamplingRows() < MIN_SAMPLING_ROWS
+                    || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
                 throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
             }
 
-            Pair<String, List<String>> pair =  tableService.reloadTable(request.getProject(), request.getTable().toUpperCase(), request.getNeedSampling(),
-                    request.getSamplingRows(), request.getNeedBuilding(), request.getPriority());
+            Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),
+                    request.getTable().toUpperCase(), request.getNeedSampling(), request.getSamplingRows(),
+                    request.getNeedBuilding(), request.getPriority());
 
             OpenReloadTableResponse response = new OpenReloadTableResponse();
             response.setSamplingId(pair.getFirst());
@@ -220,14 +228,14 @@ public class OpenTableController extends NBasicController {
 
     @GetMapping(value = "/column_format")
     @ResponseBody
-    public EnvelopeResponse<OpenPartitionColumnFormatResponse> getPartitioinColumnFormat(@RequestParam(value = "project") String project,
-                                                                                         @RequestParam(value = "table") String table,
-                                                                                         @RequestParam(value = "column_name") String columnName) throws Exception {
-        checkProjectName(project);
+    public EnvelopeResponse<OpenPartitionColumnFormatResponse> getPartitioinColumnFormat(
+            @RequestParam(value = "project") String project, @RequestParam(value = "table") String table,
+            @RequestParam(value = "column_name") String columnName) throws Exception {
+        String projectName = checkProjectName(project);
         checkRequiredArg(TABLE, table);
         checkRequiredArg("column_name", columnName);
 
-        String columnFormat = tableService.getPartitionColumnFormat(project, table.toUpperCase(), columnName);
+        String columnFormat = tableService.getPartitionColumnFormat(projectName, table.toUpperCase(), columnName);
         OpenPartitionColumnFormatResponse columnFormatResponse = new OpenPartitionColumnFormatResponse();
         columnFormatResponse.setColumnName(columnName);
         columnFormatResponse.setColumnFormat(columnFormat);
