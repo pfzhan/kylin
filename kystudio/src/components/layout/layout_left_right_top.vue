@@ -930,7 +930,7 @@ export default class LayoutLeftRightTop extends Vue {
     if (date === 'No') {
       return 0
     } else {
-      var currentDate = moment(new Date()).add('year', 0).format('YYYY-MM-DD')
+      var currentDate = moment(new Date()).add(0, 'year').format('YYYY-MM-DD')
       var timeLeft = moment(date).diff(moment(currentDate), 'days')
       if (timeLeft <= 30) {
         if (!this.$store.state.config.overLock && this.$store.state.config.platform !== 'iframe' && !isEvaluation) {
@@ -938,6 +938,7 @@ export default class LayoutLeftRightTop extends Vue {
           this.$store.state.config.overLock = true
         }
         localStorage.setItem('buyit', true)
+        return timeLeft
       }
     }
   }
