@@ -46,11 +46,11 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     // 00000XXX general
     UNKNOWN_ERROR_CODE("KE-00000001"), //
 
+    // 00000XXX general
+    TIMEOUT("KE-00000002"), //
+
     // 00006XXX column
     INVALID_TIME_PARTITION_COLUMN("KE-00006001"), //
-
-    // 00023XXX diag
-    DIAG_TIMEOUT("KE-00023003"), //
 
     // 00025XXX shell
     FAILED_EXECUTE_SHELL("KE-00025001"), //

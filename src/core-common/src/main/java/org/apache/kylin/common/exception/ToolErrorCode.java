@@ -60,6 +60,7 @@ public enum ToolErrorCode implements ErrorCodeSupplier {
     // 50023XXX diag
     DIAG_STARTTIME_PARAMETER_NOT_EXIST("KE-50023001"), //
     DIAG_ENDTIME_PARAMETER_NOT_EXIST("KE-50023002"), //
+    DIAG_TIMEOUT("KE-50023003"), //
 
     // 50025XXX shell
     INVALID_SHELL_PARAMETER("KE-50025001");//

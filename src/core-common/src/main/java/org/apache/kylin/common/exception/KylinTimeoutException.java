@@ -42,14 +42,14 @@
 
 package org.apache.kylin.common.exception;
 
-import static org.apache.kylin.common.exception.CommonErrorCode.DIAG_TIMEOUT;
+import static org.apache.kylin.common.exception.CommonErrorCode.TIMEOUT;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class KylinTimeoutException extends KylinException {
 
     public KylinTimeoutException(String message) {
-        super(DIAG_TIMEOUT, message);
+        super(TIMEOUT, message);
     }
 
     public static boolean causedByTimeout(Throwable e) {
