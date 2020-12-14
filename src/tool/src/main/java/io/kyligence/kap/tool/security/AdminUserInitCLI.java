@@ -66,9 +66,7 @@ public class AdminUserInitCLI {
     public static void main(String[] args) {
         try {
             boolean randomPasswordEnabled = KylinConfig.getInstanceFromEnv().getRandomAdminPasswordEnabled();
-            if (randomPasswordEnabled) {
-                initAdminUser();
-            }
+            initAdminUser(randomPasswordEnabled);
         } catch (Exception e) {
             logger.error("Create Admin user failed.", e);
             System.exit(1);
@@ -76,10 +74,14 @@ public class AdminUserInitCLI {
         System.exit(0);
     }
 
-    public static void initAdminUser() throws Exception {
+    public static void initAdminUser(boolean randomPasswordEnabled) throws Exception {
         val config = KylinConfig.getInstanceFromEnv();
 
         NKylinUserManager userManager = NKylinUserManager.getInstance(config);
+        if (!randomPasswordEnabled) {
+            return;
+        }
+
         if (CollectionUtils.isNotEmpty(userManager.list())) {
             logger.info("The user has been initialized and does not need to be initialized again");
             return;

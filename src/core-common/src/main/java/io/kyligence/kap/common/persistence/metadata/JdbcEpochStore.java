@@ -127,6 +127,7 @@ public class JdbcEpochStore extends EpochStore {
             jdbcTemplate.execute(getEpochSql(sql, table));
             return 1;
         });
+        log.info("Succeed to create table: {}", table);
     }
 
     @Override

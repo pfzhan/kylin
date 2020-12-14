@@ -66,7 +66,7 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         System.setOut(new PrintStream(output));
 
         // metadata without user, create admin user
-        AdminUserInitCLI.initAdminUser();
+        AdminUserInitCLI.initAdminUser(true);
         // clear cache, reload metadata
         ResourceStore.clearCache(config);
         config.clearManagers();
@@ -82,7 +82,7 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         System.setOut(System.out);
 
         // already have admin user
-        AdminUserInitCLI.initAdminUser();
+        AdminUserInitCLI.initAdminUser(true);
         // clear cache, reload metadata
         ResourceStore.clearCache(config);
         config.clearManagers();

@@ -297,6 +297,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
         jdbcTemplate.execute(String.format(sql, table, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
                 AUDIT_LOG_TABLE_MVCC));
+        log.info("Succeed to create table: {}", table);
     }
 
     @Override

@@ -73,7 +73,6 @@ public class JdbcMetadataStore extends MetadataStore {
     static final String META_TABLE_TS = "META_TABLE_TS";
     static final String META_TABLE_MVCC = "META_TABLE_MVCC";
 
-
     private static final String SELECT_TERM = "select ";
 
     private static final String SELECT_ALL_KEY_SQL = SELECT_TERM + META_TABLE_KEY + " from %s";
@@ -176,7 +175,9 @@ public class JdbcMetadataStore extends MetadataStore {
             }
             long epochId = epoch.getEpochId();
             if (oriEpochId != epochId)
-                throw new IllegalStateException(String.format("EpochId for path %s dose not match, origin epoch id is %s, but epoch id in db is %s.", unitPath, oriEpochId, epochId));
+                throw new IllegalStateException(String.format(
+                        "EpochId for path %s dose not match, origin epoch id is %s, but epoch id in db is %s.",
+                        unitPath, oriEpochId, epochId));
         }
     }
 
@@ -329,6 +330,7 @@ public class JdbcMetadataStore extends MetadataStore {
         var sql = properties.getProperty("create.metadata.store.table");
         jdbcTemplate
                 .execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
+        log.info("Succeed to create table: {}", table);
     }
 
 }
