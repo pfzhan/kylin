@@ -118,14 +118,23 @@ object StandaloneClusterManager extends Logging {
   private val SPARK_LOCAL = "local"
   private val SPARK_MASTER = "spark.master"
   private val SPARK_RPC_TIMEOUT = "spark.rpc.askTimeout"
+  private val SPARK_AUTHENTICATE = "spark.authenticate"
+  private val SPARK_AUTHENTICATE_SECRET = "spark.authenticate.secret"
+  private val SPARK_NETWORK_CRYPTO_ENABLED = "spark.network.crypto.enabled"
 
   private lazy val masterEndpoints = {
+    val overrideConfig = KylinConfig.getInstanceFromEnv.getSparkConfigOverride
     val conf = new SparkConf()
     if (!conf.contains(SPARK_MASTER) || conf.get(SPARK_MASTER).startsWith(SPARK_LOCAL)) {
-      conf.set(SPARK_MASTER, KylinConfig.getInstanceFromEnv.getSparkConfigOverride.get(SPARK_MASTER))
+      conf.set(SPARK_MASTER, overrideConfig.get(SPARK_MASTER))
     }
     if (!conf.contains(SPARK_RPC_TIMEOUT)) {
       conf.set(SPARK_RPC_TIMEOUT, "10s")
+    }
+    if (overrideConfig.containsKey(SPARK_AUTHENTICATE) && "true".equals(overrideConfig.get(SPARK_AUTHENTICATE))) {
+      conf.set(SPARK_AUTHENTICATE, "true")
+      conf.set(SPARK_AUTHENTICATE_SECRET, overrideConfig.getOrDefault(SPARK_AUTHENTICATE_SECRET, "kylin"))
+      conf.set(SPARK_NETWORK_CRYPTO_ENABLED, overrideConfig.getOrDefault(SPARK_NETWORK_CRYPTO_ENABLED, "true"))
     }
     logInfo(s"Spark master ${conf.get(SPARK_MASTER)}")
     val rpcEnv = RpcEnv.create(CLIENT_NAME, Utils.localHostName(), 0, conf)
