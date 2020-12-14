@@ -60,7 +60,7 @@ public abstract class AbstractContext {
     private final ChainedProposer processProposers;
 
     @Setter
-    private List<AbstractContext.NModelContext> modelContexts;
+    private List<ModelContext> modelContexts;
     private final Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
     @Getter(lazy = true)
     private final Map<String, RawRecItem> recItemMap = Maps.newHashMap();
@@ -78,8 +78,8 @@ public abstract class AbstractContext {
         this.partialMatch = false;
     }
 
-    public NModelContext createModelContext(ModelTree modelTree) {
-        return new NModelContext(this, modelTree);
+    public ModelContext createModelContext(ModelTree modelTree) {
+        return new ModelContext(this, modelTree);
     }
 
     public abstract IndexPlan getOriginIndexPlan(String modelId);
@@ -96,7 +96,7 @@ public abstract class AbstractContext {
 
     public abstract String getIdentifier();
 
-    public void recordException(AbstractContext.NModelContext modelCtx, Exception e) {
+    public void recordException(ModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
             String sql = olapCtx.sql;
             final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sql);
@@ -114,7 +114,7 @@ public abstract class AbstractContext {
     }
 
     @Getter
-    public static class NModelContext {
+    public static class ModelContext {
         @Setter
         private ModelTree modelTree; // query
 
@@ -162,7 +162,7 @@ public abstract class AbstractContext {
             return result;
         }
 
-        public NModelContext(AbstractContext proposeContext, ModelTree modelTree) {
+        public ModelContext(AbstractContext proposeContext, ModelTree modelTree) {
             this.proposeContext = proposeContext;
             this.modelTree = modelTree;
         }

@@ -73,13 +73,13 @@ import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -1559,11 +1559,12 @@ public class TableService extends BasicService {
 
         BiFunction<Set<String>, Boolean, Map<String, AffectedModelContext>> toAffectedModels = (cols, isDelete) -> {
             Set<SchemaNode> affectedNodes = Sets.newHashSet();
-            val columnMap = Arrays.stream(originTableDesc.getColumns()).collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
+            val columnMap = Arrays.stream(originTableDesc.getColumns())
+                    .collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
             cols.forEach(colName -> {
                 if (columnMap.get(colName) != null) {
-                    affectedNodes.addAll(Graphs.reachableNodes(dependencyGraph,
-                            SchemaNode.ofTableColumn(columnMap.get(colName))));
+                    affectedNodes.addAll(
+                            Graphs.reachableNodes(dependencyGraph, SchemaNode.ofTableColumn(columnMap.get(colName))));
                 }
             });
             val nodesMap = affectedNodes.stream().filter(SchemaNode::isModelNode)
@@ -1603,7 +1604,8 @@ public class TableService extends BasicService {
 
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
-        val columnMap = Arrays.stream(tableDesc.getColumns()).collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
+        val columnMap = Arrays.stream(tableDesc.getColumns())
+                .collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
         for (MapDifference.ValueDifference<Pair<String, String>> value : changeTypeDifference.values()) {
             Graphs.reachableNodes(dependencyGraph,
                     SchemaNode.ofTableColumn(columnMap.get(value.leftValue().getFirst()))).stream()
@@ -1638,8 +1640,8 @@ public class TableService extends BasicService {
                                     newMeasure.setFunction(newFunction);
                                     newMeasure.setName(measure.getName());
 
-                                    Set<Pair<NDataModel.Measure, NDataModel.Measure>> measureList = result.getOrDefault(modelAlias,
-                                            new HashSet<>());
+                                    Set<Pair<NDataModel.Measure, NDataModel.Measure>> measureList = result
+                                            .getOrDefault(modelAlias, new HashSet<>());
 
                                     measureList.add(Pair.newPair(measure, newMeasure));
 
@@ -1799,7 +1801,7 @@ public class TableService extends BasicService {
                 return;
             }
             CliCommandExecutor exec = new CliCommandExecutor();
-            PatternedLogger patternedLogger = new PatternedLogger(logger);
+            val patternedLogger = new BufferedLogger(logger);
             val sampleSh = checkSSBEnv();
             try {
                 exec.execute(sampleSh, patternedLogger);

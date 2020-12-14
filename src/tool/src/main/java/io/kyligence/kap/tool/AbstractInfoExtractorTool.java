@@ -73,6 +73,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.tool.constant.DiagSubTaskEnum;
 import io.kyligence.kap.tool.constant.StageEnum;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;

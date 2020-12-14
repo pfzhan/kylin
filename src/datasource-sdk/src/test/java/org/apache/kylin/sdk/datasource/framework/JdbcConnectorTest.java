@@ -29,24 +29,24 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.LinkedHashMap;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
 import org.apache.kylin.source.jdbc.H2Database;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
     protected static JdbcConnector connector = null;
     protected static Connection h2Conn = null;
     protected static H2Database h2Db = null;
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+    @Before
+    public void setUp() throws Exception {
+        createTestMetadata();
         getTestConfig().setProperty("kylin.source.jdbc.dialect", "testing");
 
         connector = SourceConnectorFactory.getJdbcConnector(getTestConfig());
@@ -56,12 +56,12 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
         h2Db.loadAllTables();
     }
 
-    @AfterClass
-    public static void after() throws Exception {
+    @After
+    public void after() throws Exception {
         h2Db.dropAll();
         DBUtils.closeQuietly(h2Conn);
 
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test
@@ -91,7 +91,7 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
 
         connector.executeUpdate("select 1"); // expected no exceptions
 
-        connector.executeUpdate(new String[] {"select 1"});// expected no exceptions
+        connector.executeUpdate(new String[] { "select 1" });// expected no exceptions
 
         SqlConverter.IConfigurer configurer = connector.getSqlConverter().getConfigurer();
         Assert.assertTrue(configurer.allowFetchNoRows());
@@ -105,7 +105,6 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(Types.VARCHAR, connector.toKylinTypeId("CHARACTER VARYING", 0));
     }
 
-
     @Test(expected = SQLException.class)
     public void testRetryAndClose() throws IOException, SQLException {
         getTestConfig().setProperty("kylin.source.jdbc.dialect", "testing");
@@ -115,7 +114,6 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
         connector.close();
         connector.getConnection();
     }
-
 
     @Test
     public void testWithCache() throws SQLException, IOException {

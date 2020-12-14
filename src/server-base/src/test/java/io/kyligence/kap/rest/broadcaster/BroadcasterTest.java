@@ -35,7 +35,6 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,16 +53,11 @@ import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import lombok.Getter;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = { SpringContext.class})
+@ContextConfiguration(classes = { SpringContext.class })
 @ActiveProfiles("testing")
 public class BroadcasterTest extends NLocalFileMetadataTestCase {
     Broadcaster broadcaster;
     private ClusterManager clusterManager = new DefaultClusterManager(7070);
-
-    @BeforeClass
-    public static void setupResource() {
-        staticCreateTestMetadata();
-    }
 
     @Before
     public void setUp() {
@@ -74,7 +68,7 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
 
     @After
     public void teardown() throws IOException {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
         broadcaster.close();
     }
 
@@ -142,7 +136,6 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
         final Logger logger = Logger.getRootLogger();
         logger.addAppender(appender);
 
-
         AuditLogBroadcastEventNotifier notifier = new AuditLogBroadcastEventNotifier();
         broadcaster.announce(new Broadcaster.BroadcastEvent(), notifier);
 
@@ -171,7 +164,4 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
             return false;
         }
     }
-
 }
-
-

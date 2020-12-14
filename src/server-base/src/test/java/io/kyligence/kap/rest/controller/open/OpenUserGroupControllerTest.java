@@ -24,9 +24,8 @@
 
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import io.kyligence.kap.rest.request.UserGroupRequest;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -57,6 +56,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.controller.NUserGroupController;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 
@@ -71,7 +71,6 @@ public class OpenUserGroupControllerTest {
 
     @InjectMocks
     private OpenUserGroupController openUserGroupController = Mockito.spy(new OpenUserGroupController());
-
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
@@ -96,7 +95,8 @@ public class OpenUserGroupControllerTest {
                 .param("group_name", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openUserGroupController).listGroups(Mockito.anyString(), Mockito.anyBoolean(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verify(openUserGroupController).listGroups(Mockito.anyString(), Mockito.anyBoolean(), Mockito.anyInt(),
+                Mockito.anyInt());
     }
 
     @Test
@@ -106,14 +106,11 @@ public class OpenUserGroupControllerTest {
                 .when(userGroupController).getUsersByGroupName("g1@.h", "", 0, 10);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/group_members/{group_name:.+}", "g1@.h")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("username", "")
-                .param("page_offset", "0")
+                .contentType(MediaType.APPLICATION_JSON).param("username", "").param("page_offset", "0")
                 .param("page_size", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openUserGroupController)
-                .getUsersByGroup("g1@.h", "", 0, 10);
+        Mockito.verify(openUserGroupController).getUsersByGroup("g1@.h", "", 0, 10);
     }
 
     @Test
@@ -130,8 +127,7 @@ public class OpenUserGroupControllerTest {
         Mockito.doNothing().when(userGroupService).addGroup("g1");
         UserGroupRequest request = new UserGroupRequest();
         request.setGroupName("g1");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -152,8 +148,7 @@ public class OpenUserGroupControllerTest {
         Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
         UserGroupRequest request = new UserGroupRequest();
         request.setGroupName("g1@.h");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());

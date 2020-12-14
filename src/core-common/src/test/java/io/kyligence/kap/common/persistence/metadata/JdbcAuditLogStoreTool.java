@@ -25,9 +25,9 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import java.util.UUID;
 
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import lombok.val;
 
 public class JdbcAuditLogStoreTool {
@@ -42,7 +42,8 @@ public class JdbcAuditLogStoreTool {
             val projectName = "p" + i;
             String unitId = UUID.randomUUID().toString();
             jdbcTemplate.update(String.format(JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
-                    "/" + projectName + "/aa", "aa".getBytes(), System.currentTimeMillis(), 0, unitId, null, AddressUtil.getLocalInstance());
+                    "/" + projectName + "/aa", "aa".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                    AddressUtil.getLocalInstance());
         }
 
         return auditLogStore;

@@ -42,8 +42,9 @@
 
 package org.apache.kylin.query.udf.formatUdf;
 
-import org.apache.calcite.linq4j.function.Parameter;
 import java.sql.Timestamp;
+
+import org.apache.calcite.linq4j.function.Parameter;
 
 /**
  *  Refer to to_timestamp() on spark SQL.
@@ -55,33 +56,33 @@ public class ToTimestampUDF {
             return null;
         }
         Timestamp timestamp = null;
-        switch (fmt){
-            case "yyyy-MM-dd hh:mm:ss":
-                timestamp =  Timestamp.valueOf(timestampStr);
-                break;
-            case "yyyy-MM-dd hh:mm" :
-                timestampStr = timestampStr.substring(0, 16) + ":00";
-                timestamp = Timestamp.valueOf(timestampStr);
-                break;
-            case "yyyy-MM-dd hh":
-                timestampStr = timestampStr.substring(0, 13) + ":00:00";
-                timestamp = Timestamp.valueOf(timestampStr);
-                break;
-            case "yyyy-MM-dd":
-                timestampStr = timestampStr.substring(0, 10) + " 00:00:00";
-                timestamp = Timestamp.valueOf(timestampStr);
-                break;
-            case "yyyy-MM":
-                timestampStr = timestampStr.substring(0, 7) + "-01 00:00:00";
-                timestamp = Timestamp.valueOf(timestampStr);
-                break;
-            case "yyyy":
-            case "y":
-                timestampStr = timestampStr.substring(0, 4) + "-01-01 00:00:00";
-                timestamp = Timestamp.valueOf(timestampStr);
-                break;
-            default:
-                //timestamp = null;
+        switch (fmt) {
+        case "yyyy-MM-dd hh:mm:ss":
+            timestamp = Timestamp.valueOf(timestampStr);
+            break;
+        case "yyyy-MM-dd hh:mm":
+            timestampStr = timestampStr.substring(0, 16) + ":00";
+            timestamp = Timestamp.valueOf(timestampStr);
+            break;
+        case "yyyy-MM-dd hh":
+            timestampStr = timestampStr.substring(0, 13) + ":00:00";
+            timestamp = Timestamp.valueOf(timestampStr);
+            break;
+        case "yyyy-MM-dd":
+            timestampStr = timestampStr.substring(0, 10) + " 00:00:00";
+            timestamp = Timestamp.valueOf(timestampStr);
+            break;
+        case "yyyy-MM":
+            timestampStr = timestampStr.substring(0, 7) + "-01 00:00:00";
+            timestamp = Timestamp.valueOf(timestampStr);
+            break;
+        case "yyyy":
+        case "y":
+            timestampStr = timestampStr.substring(0, 4) + "-01-01 00:00:00";
+            timestamp = Timestamp.valueOf(timestampStr);
+            break;
+        default:
+            //timestamp = null;
         }
         return timestamp;
     }

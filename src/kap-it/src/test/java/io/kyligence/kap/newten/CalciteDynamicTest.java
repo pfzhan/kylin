@@ -44,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-
 import scala.collection.JavaConversions;
 
 public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
@@ -66,22 +65,20 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
         System.clearProperty("isDeveloperMode");
     }
 
-
     @Test
     public void testCalciteGroupByDynamicParam() throws Exception {
         fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa", getProject());
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), getProject(), SparderEnv.getSparkSession());
-        String sqlOrigin = "SELECT (case when 1=1 then SELLER_ID else TRANS_ID end) as id,  SUM(price) as PRICE\n" +
-                "FROM TEST_KYLIN_FACT\n" +
-                "GROUP BY (case when 1=1 then SELLER_ID else TRANS_ID end) limit 5";
+        String sqlOrigin = "SELECT (case when 1=1 then SELLER_ID else TRANS_ID end) as id,  SUM(price) as PRICE\n"
+                + "FROM TEST_KYLIN_FACT\n" + "GROUP BY (case when 1=1 then SELLER_ID else TRANS_ID end) limit 5";
         String parameter = "1";
         // benchmark
         List<List<String>> benchmark = NExecAndComp.queryCubeWithJDBC(getProject(), sqlOrigin);
         // setTimestamp
-        String sqlWithPlaceholder = sqlOrigin.replace("case when 1=1",
-                "case when ?=1");
-        List<Row> rows = NExecAndComp.queryCube(getProject(), sqlWithPlaceholder,
-                Arrays.asList(new String[]{parameter, parameter})).collectAsList();
+        String sqlWithPlaceholder = sqlOrigin.replace("case when 1=1", "case when ?=1");
+        List<Row> rows = NExecAndComp
+                .queryCube(getProject(), sqlWithPlaceholder, Arrays.asList(new String[] { parameter, parameter }))
+                .collectAsList();
         List<List<String>> results = transformToString(rows);
         for (int i = 0; i < benchmark.size(); i++) {
             if (!ListUtils.isEqualList(benchmark.get(i), results.get(i))) {
@@ -93,18 +90,17 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
     }
 
     private List<List<String>> transformToString(List<Row> rows) {
-        return rows.stream()
-                .map(row -> JavaConversions.seqAsJavaList(row.toSeq()).stream().map(r -> {
-                    if (r == null) {
-                        return null;
-                    } else {
-                        String s = r.toString();
-                        if (r instanceof Timestamp) {
-                            return s.substring(0, s.length() - 2);
-                        } else {
-                            return s;
-                        }
-                    }
-                }).collect(Collectors.toList())).collect(Collectors.toList());
+        return rows.stream().map(row -> JavaConversions.seqAsJavaList(row.toSeq()).stream().map(r -> {
+            if (r == null) {
+                return null;
+            } else {
+                String s = r.toString();
+                if (r instanceof Timestamp) {
+                    return s.substring(0, s.length() - 2);
+                } else {
+                    return s;
+                }
+            }
+        }).collect(Collectors.toList())).collect(Collectors.toList());
     }
 }

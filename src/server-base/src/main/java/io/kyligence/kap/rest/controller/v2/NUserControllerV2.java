@@ -23,17 +23,18 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NUserController;
-import lombok.val;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,11 +49,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Maps;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NUserController;
+import lombok.val;
 
 @Controller
 @RequestMapping("/api")

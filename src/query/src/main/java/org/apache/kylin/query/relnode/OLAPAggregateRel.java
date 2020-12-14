@@ -382,9 +382,9 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             }
 
             //if not dim as measure (using some measure), differentiate it with a new class
-            if (cubeFunc.getMeasureType() != null &&
-            // DimCountDistinct case
-                    cubeFunc.getMeasureType().needRewriteField()) {
+            if (cubeFunc.getMeasureType() != null
+                    // DimCountDistinct case
+                    && cubeFunc.getMeasureType().needRewriteField()) {
                 aggCall = new KylinAggregateCall(aggCall, cubeFunc);
             }
         } else {
@@ -484,7 +484,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
     protected void addToContextGroupBy(List<TblColRef> colRefs) {
         for (TblColRef col : colRefs) {
-            if (col.isInnerColumn() == false && this.context.belongToContextTables(col))
+            if (!col.isInnerColumn() && this.context.belongToContextTables(col))
                 this.context.getGroupByColumns().add(col);
         }
     }

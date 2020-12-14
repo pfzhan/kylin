@@ -50,18 +50,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProjectInfoParser implements IKeep {
     private static final Pattern[] URL_PROJECT_PATTERNS = new Pattern[] {
-            Pattern.compile("^/kylin/api/projects/([^/]+)/(backup|default_database" +
-                    "|query_accelerate_threshold|storage" +
-                    "|storage_quota|shard_num_config" +
-                    "|garbage_cleanup_config|job_notification_config" +
-                    "|push_down_config|push_down_project_config|computed_column_config" +
-                    "|segment_config|project_general_info" +
-                    "|project_config|source_type" +
-                    "|yarn_queue|project_kerberos_info" +
-                    "|owner|config)$"),
+            Pattern.compile(
+                    "^/kylin/api/projects/([^/]+)/(backup|default_database" + "|query_accelerate_threshold|storage"
+                            + "|storage_quota|shard_num_config" + "|garbage_cleanup_config|job_notification_config"
+                            + "|push_down_config|push_down_project_config|computed_column_config"
+                            + "|segment_config|project_general_info" + "|project_config|source_type"
+                            + "|yarn_queue|project_kerberos_info" + "|owner|config)$"),
             Pattern.compile("^/kylin/api/projects/([^/]+)$"),
-            Pattern.compile("^/kylin/api/models/([^/]+)/[^/]+/partition_desc$")
-    };
+            Pattern.compile("^/kylin/api/models/([^/]+)/[^/]+/partition_desc$") };
 
     private ProjectInfoParser() {
         throw new IllegalStateException("Utility class");
@@ -102,7 +98,6 @@ public class ProjectInfoParser implements IKeep {
 
         @Getter
         private final byte[] body;
-
 
         public RepeatableBodyRequestWrapper(HttpServletRequest request) throws IOException {
             super(request);

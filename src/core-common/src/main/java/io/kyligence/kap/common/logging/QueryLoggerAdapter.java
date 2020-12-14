@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.common.logging;
 
+import java.io.Serializable;
+
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MarkerIgnoringBase;
 import org.slf4j.spi.LocationAwareLogger;
-
-import java.io.Serializable;
 
 public class QueryLoggerAdapter extends MarkerIgnoringBase implements LocationAwareLogger, Serializable {
 

@@ -30,13 +30,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class InMemResourceStoreTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class InMemResourceStoreTest extends NLocalFileMetadataTestCase {
 
     private CleanMetadataHelper cleanMetadataHelper = null;
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("kylin.env", "UT");
+        overwriteSystemProp("kylin.env", "UT");
         cleanMetadataHelper = new CleanMetadataHelper();
         cleanMetadataHelper.setUp();
     }
@@ -44,7 +46,6 @@ public class InMemResourceStoreTest {
     @After
     public void after() throws Exception {
         cleanMetadataHelper.tearDown();
-        System.clearProperty("kylin.env");
     }
 
     @Test

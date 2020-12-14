@@ -46,10 +46,7 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" +
-                "{\n" +
-                "    \"project\": \"a\"" +
-                "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes());
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -72,10 +69,7 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" +
-                "{\n" +
-                "    \"project\": \"a\"" +
-                "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes());
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -99,10 +93,7 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         request.setMethod("GET");
         request.setRequestURI("/kylin/api/projects");
         request.setContentType("application/json");
-        request.setContent(("" +
-                "{\n" +
-                "    \"project\": \"a\"" +
-                "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes());
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -116,7 +107,6 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         filter.doFilter(request, response, chain);
         Assert.assertNull(request.getAttribute("error"));
     }
-
 
     private void setResourceGroupEnabled() {
         val manager = ResourceGroupManager.getInstance(getTestConfig());

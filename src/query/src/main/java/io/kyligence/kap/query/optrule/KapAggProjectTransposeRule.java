@@ -63,15 +63,13 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 
 public class KapAggProjectTransposeRule extends RelOptRule {
     public static final KapAggProjectTransposeRule AGG_PROJECT_FILTER_JOIN = new KapAggProjectTransposeRule(
-            operand(KapAggregateRel.class, operand(KapProjectRel.class, operand(KapFilterRel.class,
-                    operand(KapJoinRel.class, any())))),
-            RelFactories.LOGICAL_BUILDER, "KapAggProjectTransposeRule:agg-project-filter-join"
-    );
+            operand(KapAggregateRel.class,
+                    operand(KapProjectRel.class, operand(KapFilterRel.class, operand(KapJoinRel.class, any())))),
+            RelFactories.LOGICAL_BUILDER, "KapAggProjectTransposeRule:agg-project-filter-join");
 
     public static final KapAggProjectTransposeRule AGG_PROJECT_JOIN = new KapAggProjectTransposeRule(
             operand(KapAggregateRel.class, operand(KapProjectRel.class, operand(KapJoinRel.class, any()))),
-            RelFactories.LOGICAL_BUILDER, "KapAggProjectTransposeRule:agg-project-join"
-    );
+            RelFactories.LOGICAL_BUILDER, "KapAggProjectTransposeRule:agg-project-join");
 
     public KapAggProjectTransposeRule(RelOptRuleOperand operand) {
         super(operand);
@@ -81,7 +79,8 @@ public class KapAggProjectTransposeRule extends RelOptRule {
         super(operand, description);
     }
 
-    public KapAggProjectTransposeRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
+    public KapAggProjectTransposeRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory,
+            String description) {
         super(operand, relBuilderFactory, description);
     }
 
@@ -146,9 +145,9 @@ public class KapAggProjectTransposeRule extends RelOptRule {
         mappingWithOrder.addAll(newGroupSet.asList());
 
         //Add the columns of "project projects" to group set
-        for (RexNode rexNode: project.getProjects()) {
+        for (RexNode rexNode : project.getProjects()) {
             if (rexNode instanceof RexInputRef) {
-                int index = ((RexInputRef)rexNode).getIndex();
+                int index = ((RexInputRef) rexNode).getIndex();
                 if (!mappingWithOrder.contains(index)) {
                     mappingWithOrder.add(index);
                 }
@@ -157,34 +156,28 @@ public class KapAggProjectTransposeRule extends RelOptRule {
             }
         }
 
-        List<Integer> mappingWithOrderList=Lists.newArrayList(mappingWithOrder);
+        List<Integer> mappingWithOrderList = Lists.newArrayList(mappingWithOrder);
         final RelNode projectInput = project.getInput();
-        final Mappings.TargetMapping mapping = Mappings.target(
-                a0 -> mappingWithOrderList.indexOf(a0),
-                projectInput.getRowType().getFieldCount(),
-                mappingWithOrder.size());
+        final Mappings.TargetMapping mapping = Mappings.target(a0 -> mappingWithOrderList.indexOf(a0),
+                projectInput.getRowType().getFieldCount(), mappingWithOrder.size());
 
         //Process agg calls
-        final ImmutableList.Builder<AggregateCall> aggCalls =
-                ImmutableList.builder();
-        final ImmutableList.Builder<AggregateCall> topAggCalls =
-                ImmutableList.builder();
+        final ImmutableList.Builder<AggregateCall> aggCalls = ImmutableList.builder();
+        final ImmutableList.Builder<AggregateCall> topAggCalls = ImmutableList.builder();
 
         Map<Integer, RelDataType> countArgMap = new HashMap<>();
         processAggCalls(aggregate, project, aggCalls, topAggCalls, countArgMap);
 
         ImmutableList<AggregateCall> aggregateCalls = aggCalls.build();
-        final Aggregate newAggregate =
-                aggregate.copy(aggregate.getTraitSet(), project.getInput(),
-                        aggregate.indicator, newGroupSet, null,
-                        aggregateCalls);
+        final Aggregate newAggregate = aggregate.copy(aggregate.getTraitSet(), project.getInput(), aggregate.indicator,
+                newGroupSet, null, aggregateCalls);
 
         List<RexNode> projects = Lists.newArrayList();
         for (Ord<RexNode> rel : Ord.zip(project.getProjects())) {
             RexNode node = rel.e;
             if (node instanceof RexInputRef && countArgMap.containsKey(rel.i)) {
-                projects.add(new RexInputRef(((RexInputRef) node).getName(),
-                        ((RexInputRef) node).getIndex(), countArgMap.get(rel.i)));
+                projects.add(new RexInputRef(((RexInputRef) node).getName(), ((RexInputRef) node).getIndex(),
+                        countArgMap.get(rel.i)));
             } else {
                 projects.add(node);
             }
@@ -200,16 +193,17 @@ public class KapAggProjectTransposeRule extends RelOptRule {
             newProjects.add(rexNodes.next());
         }
 
-        final RelDataType newRowType =
-                RexUtil.createStructType(newAggregate.getCluster().getTypeFactory(), newProjects,
-                        project.getRowType().getFieldNames(), SqlValidatorUtil.F_SUGGESTER);
+        final RelDataType newRowType = RexUtil.createStructType(newAggregate.getCluster().getTypeFactory(), newProjects,
+                project.getRowType().getFieldNames(), SqlValidatorUtil.F_SUGGESTER);
         final Project newProject = project.copy(project.getTraitSet(), newAggregate, newProjects, newRowType);
         final Aggregate topAggregate = aggregate.copy(aggregate.getTraitSet(), newProject, aggregate.indicator,
                 aggregate.getGroupSet(), null, topAggCalls.build());
         call.transformTo(topAggregate);
     }
 
-    private void processAggCalls(KapAggregateRel aggregate, KapProjectRel project, ImmutableList.Builder<AggregateCall> aggCalls, ImmutableList.Builder<AggregateCall> topAggCalls, Map<Integer, RelDataType> countArgMap) {
+    private void processAggCalls(KapAggregateRel aggregate, KapProjectRel project,
+            ImmutableList.Builder<AggregateCall> aggCalls, ImmutableList.Builder<AggregateCall> topAggCalls,
+            Map<Integer, RelDataType> countArgMap) {
         for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             final ImmutableList.Builder<Integer> newArgs = ImmutableList.builder();
             for (int arg : aggregateCall.getArgList()) {
@@ -222,8 +216,8 @@ public class KapAggProjectTransposeRule extends RelOptRule {
                 }
             }
             int newFilterArg = -1;
-            if (aggregateCall.filterArg >= 0 &&
-                    project.getProjects().get(aggregateCall.filterArg) instanceof RexInputRef) {
+            if (aggregateCall.filterArg >= 0
+                    && project.getProjects().get(aggregateCall.filterArg) instanceof RexInputRef) {
                 newFilterArg = ((RexInputRef) project.getProjects().get(aggregateCall.filterArg)).getIndex();
             }
             aggCalls.add(aggregateCall.copy(newArgs.build(), newFilterArg));
@@ -232,18 +226,17 @@ public class KapAggProjectTransposeRule extends RelOptRule {
                 topAggCalls.add(aggregateCall);
             } else {
                 countArgMap.put(aggregateCall.getArgList().get(0), aggregateCall.type);
-                topAggCalls.add(AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
-                        aggregateCall.getArgList(), -1, aggregateCall.type, aggregateCall.name));
+                topAggCalls.add(AggregateCall.create(SqlStdOperatorTable.SUM0, false, false, aggregateCall.getArgList(),
+                        -1, aggregateCall.type, aggregateCall.name));
             }
         }
     }
-
 
     private void getColumnsFromExpression(RexCall rexCall, ImmutableBitSet.Builder builder) {
         List<RexNode> rexNodes = rexCall.operands;
         for (RexNode rexNode : rexNodes) {
             if (rexNode instanceof RexInputRef) {
-                builder.set(((RexInputRef)rexNode).getIndex());
+                builder.set(((RexInputRef) rexNode).getIndex());
             } else if (rexNode instanceof RexCall) {
                 getColumnsFromExpression((RexCall) rexNode, builder);
             }
@@ -254,7 +247,7 @@ public class KapAggProjectTransposeRule extends RelOptRule {
         List<RexNode> rexNodes = rexCall.operands;
         for (RexNode rexNode : rexNodes) {
             if (rexNode instanceof RexInputRef) {
-                mapping.add(((RexInputRef)rexNode).getIndex());
+                mapping.add(((RexInputRef) rexNode).getIndex());
             } else if (rexNode instanceof RexCall) {
                 getColumnsFromProjects((RexCall) rexNode, mapping);
             }

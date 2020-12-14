@@ -337,8 +337,8 @@ public class QueryService extends BasicService {
             snapShots = Lists.newArrayList();
         } else {
             snapShots = response.getNativeRealizations().stream()
-                    .flatMap(nativeQueryRealization -> nativeQueryRealization.getSnapshots().stream())
-                    .distinct().collect(Collectors.toList());
+                    .flatMap(nativeQueryRealization -> nativeQueryRealization.getSnapshots().stream()).distinct()
+                    .collect(Collectors.toList());
         }
 
         LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
@@ -347,8 +347,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.PROJECT, request.getProject()).put(LogReport.REALIZATION_NAMES, modelNames)
                 .put(LogReport.INDEX_LAYOUT_IDS, layoutIds).put(LogReport.IS_PARTIAL_MATCH_MODEL, isPartialMatchModel)
                 .put(LogReport.SCAN_ROWS, response.getScanRows())
-                .put(LogReport.TOTAL_SCAN_ROWS, response.getTotalScanRows())
-                .put(LogReport.SNAPSHOTS, snapShots)
+                .put(LogReport.TOTAL_SCAN_ROWS, response.getTotalScanRows()).put(LogReport.SNAPSHOTS, snapShots)
                 .put(LogReport.SCAN_BYTES, response.getScanBytes())
                 .put(LogReport.TOTAL_SCAN_BYTES, response.getTotalScanBytes())
                 .put(LogReport.RESULT_ROW_COUNT, resultRowCount)
@@ -500,7 +499,8 @@ public class QueryService extends BasicService {
                 sqlResponse = new SQLResponse(null, null, 0, false, null);
             }
 
-            if (sqlResponse == null && isQueryCacheEnabled && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            if (sqlResponse == null && isQueryCacheEnabled
+                    && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 sqlResponse = queryCacheManager.searchQuery(sqlRequest);
                 Trace.addTimelineAnnotation("query cache searched");
             }
@@ -684,7 +684,9 @@ public class QueryService extends BasicService {
 
                 // skip masking if executing user has admin permission
                 if (!isACLDisabledOrAdmin(sqlRequest.getProject(), queryParams.getAclInfo())) {
-                    QueryResultMasks.init(sqlRequest.getProject(), NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(sqlRequest.getProject()).getConfig());
+                    QueryResultMasks.init(sqlRequest.getProject(),
+                            NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                                    .getProject(sqlRequest.getProject()).getConfig());
                 }
                 return execute(correctedSql, sqlRequest, queryExec);
             }, sqlRequest.getProject());
@@ -1092,9 +1094,9 @@ public class QueryService extends BasicService {
         for (int i = 0; i < columnCount; ++i) {
             int nullable = fieldList.get(i).isNullable() ? 1 : 0;
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true,
-                    fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null,
-                    null, null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(),
-                    fieldList.get(i).getDataType(), fieldList.get(i).getDataTypeName(), false, false, false));
+                    fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null, null,
+                    null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
+                    fieldList.get(i).getDataTypeName(), false, false, false));
         }
 
         return buildSqlResponse(isPushDown, results, columnMetas, sqlRequest.getProject());
@@ -1383,8 +1385,9 @@ public class QueryService extends BasicService {
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
                 .put(DURATION, "Duration: ").put(PROJECT, "Project: ").put(REALIZATION_NAMES, "Realization Names: ")
-                .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ").put(SNAPSHOTS, "Snapshot Names: ").put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ")
-                .put(SCAN_ROWS, "Scan rows: ").put(TOTAL_SCAN_ROWS, "Total Scan rows: ").put(SCAN_BYTES, "Scan bytes: ")
+                .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ").put(SNAPSHOTS, "Snapshot Names: ")
+                .put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ").put(SCAN_ROWS, "Scan rows: ")
+                .put(TOTAL_SCAN_ROWS, "Total Scan rows: ").put(SCAN_BYTES, "Scan bytes: ")
                 .put(TOTAL_SCAN_BYTES, "Total Scan Bytes: ").put(RESULT_ROW_COUNT, "Result Row Count: ")
                 .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ").put(ACCEPT_PARTIAL, "Accept Partial: ")
                 .put(PARTIAL_RESULT, "Is Partial Result: ").put(HIT_EXCEPTION_CACHE, "Hit Exception Cache: ")
@@ -1421,20 +1424,19 @@ public class QueryService extends BasicService {
                     + O2N.get(QUERY_ID) + get(QUERY_ID) + newLine + O2N.get(SQL) + get(SQL) + newLine + O2N.get(USER)
                     + get(USER) + newLine + O2N.get(SUCCESS) + get(SUCCESS) + newLine + O2N.get(DURATION)
                     + get(DURATION) + newLine + O2N.get(PROJECT) + get(PROJECT) + newLine + O2N.get(REALIZATION_NAMES)
-                    + get(REALIZATION_NAMES) + newLine + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS)  + newLine
-                    + O2N.get(SNAPSHOTS) + get(SNAPSHOTS) + newLine
-                    + O2N.get(IS_PARTIAL_MATCH_MODEL) + get(IS_PARTIAL_MATCH_MODEL) + newLine + O2N.get(SCAN_ROWS)
-                    + get(SCAN_ROWS) + newLine + O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine
-                    + O2N.get(SCAN_BYTES) + get(SCAN_BYTES) + newLine + O2N.get(TOTAL_SCAN_BYTES)
-                    + get(TOTAL_SCAN_BYTES) + newLine + O2N.get(RESULT_ROW_COUNT) + get(RESULT_ROW_COUNT) + newLine
-                    + O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine + O2N.get(ACCEPT_PARTIAL)
-                    + get(ACCEPT_PARTIAL) + newLine + O2N.get(PARTIAL_RESULT) + get(PARTIAL_RESULT) + newLine
-                    + O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine + O2N.get(STORAGE_CACHE_USED)
-                    + get(STORAGE_CACHE_USED) + newLine + O2N.get(PUSH_DOWN) + get(PUSH_DOWN) + newLine
-                    + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine + O2N.get(TIMEOUT) + get(TIMEOUT) + newLine
-                    + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA)
-                    + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG) + get(ERROR_MSG)
-                    + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED)
+                    + get(REALIZATION_NAMES) + newLine + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine
+                    + O2N.get(SNAPSHOTS) + get(SNAPSHOTS) + newLine + O2N.get(IS_PARTIAL_MATCH_MODEL)
+                    + get(IS_PARTIAL_MATCH_MODEL) + newLine + O2N.get(SCAN_ROWS) + get(SCAN_ROWS) + newLine
+                    + O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine + O2N.get(SCAN_BYTES) + get(SCAN_BYTES)
+                    + newLine + O2N.get(TOTAL_SCAN_BYTES) + get(TOTAL_SCAN_BYTES) + newLine + O2N.get(RESULT_ROW_COUNT)
+                    + get(RESULT_ROW_COUNT) + newLine + O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine
+                    + O2N.get(ACCEPT_PARTIAL) + get(ACCEPT_PARTIAL) + newLine + O2N.get(PARTIAL_RESULT)
+                    + get(PARTIAL_RESULT) + newLine + O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine
+                    + O2N.get(STORAGE_CACHE_USED) + get(STORAGE_CACHE_USED) + newLine + O2N.get(PUSH_DOWN)
+                    + get(PUSH_DOWN) + newLine + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine + O2N.get(TIMEOUT)
+                    + get(TIMEOUT) + newLine + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA)
+                    + get(TIMELINE_SCHEMA) + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG)
+                    + get(ERROR_MSG) + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED)
                     + get(PUSH_DOWN_FORCED) + newLine
                     + "==========================[QUERY]===============================" + newLine;
         }

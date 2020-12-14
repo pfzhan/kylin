@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.rest.controller.v3;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V3_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V3_JSON;
 
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -78,7 +78,8 @@ public class KICompatibleController {
             @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
             @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
             @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
-        val result = modelController.getModels(null, true, project, null, null, null, offset, limit, sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
+        val result = modelController.getModels(null, true, project, null, null, null, offset, limit, sortBy, reverse,
+                modelAliasOrOwner, lastModifyFrom, lastModifyTo);
         Map<String, Object> response = Maps.newHashMap();
         response.put("models", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());
@@ -87,7 +88,7 @@ public class KICompatibleController {
 
     @GetMapping(value = "/index_plans/rule", produces = { HTTP_VND_APACHE_KYLIN_V3_JSON })
     public EnvelopeResponse<RuleBasedIndex> getRule(@RequestParam("project") String project,
-                                                    @RequestParam("model") String modelId) {
+            @RequestParam("model") String modelId) {
         return indexPlanController.getRule(project, modelId);
     }
 

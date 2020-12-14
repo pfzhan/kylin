@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.rest.security.AclEntityType.PROJECT_INSTANCE;
 
 import java.util.ArrayList;
@@ -112,15 +112,12 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
         Mockito.when(accessService.generateAceResponsesByFuzzMatching(null, "test", false))
                 .thenReturn(accessEntryResponses);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/project")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("name", "test")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/project").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("name", "test")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openAccessController).getProjectAccessPermissions("default", "test",
-                false, 0, 10);
+        Mockito.verify(openAccessController).getProjectAccessPermissions("default", "test", false, 0, 10);
     }
 
     @Test
@@ -131,8 +128,7 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
         batchProjectPermissionRequest.setPermission("QUERY");
         batchProjectPermissionRequest.setNames(Lists.newArrayList("test"));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/project")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/project").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(batchProjectPermissionRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
@@ -148,8 +144,7 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
         projectPermissionRequest.setPermission("QUERY");
         projectPermissionRequest.setName("test");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/access/project")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/access/project").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(projectPermissionRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
@@ -167,11 +162,8 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
         AclEntity ae = accessService.getAclEntity(PROJECT_INSTANCE, "1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b");
         Mockito.doNothing().when(accessService).grant(ae, "1", true, "ADMIN");
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/project")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("type", "user")
-                .param("name", "test")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/project").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("type", "user").param("name", "test")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
@@ -180,11 +172,8 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRevokeProjectPermissionWithException() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/project")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("type", "user")
-                .param("name", "test")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/project").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("type", "user").param("name", "test")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
 
@@ -193,11 +182,8 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetUserOrGroupAclPermissions() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("type", "user")
-                .param("name", "test")
-                .param("project", "default")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls").contentType(MediaType.APPLICATION_JSON)
+                .param("type", "user").param("name", "test").param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
@@ -206,11 +192,8 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetUserOrGroupAclPermissionsWithProjectBlank() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("type", "user")
-                .param("name", "test")
-                .param("project", "")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls").contentType(MediaType.APPLICATION_JSON)
+                .param("type", "user").param("name", "test").param("project", "")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
@@ -219,11 +202,8 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetUserOrGroupAclPermissionsWithTypeError() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("type", "error")
-                .param("name", "test")
-                .param("project", "")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls").contentType(MediaType.APPLICATION_JSON)
+                .param("type", "error").param("name", "test").param("project", "")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
 

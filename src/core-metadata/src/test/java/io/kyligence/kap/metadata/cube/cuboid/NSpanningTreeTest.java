@@ -162,13 +162,13 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         val cube = mgr.getIndexPlanByModelAlias("nmodel_basic_inner");
         try {
-            System.setProperty("kylin.cube.aggrgroup.max-combination", "1");
+            overwriteSystemProp("kylin.cube.aggrgroup.max-combination", "1");
             cube.getSpanningTree();
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("Too many cuboids for the cube. Cuboid combination reached 19 and limit is 10. Abort calculation.", e.getCause().getCause().getMessage());
-        } finally {
-            System.clearProperty("kylin.cube.aggrgroup.max-combination");
+            Assert.assertEquals(
+                    "Too many cuboids for the cube. Cuboid combination reached 19 and limit is 10. Abort calculation.",
+                    e.getCause().getCause().getMessage());
         }
     }
 

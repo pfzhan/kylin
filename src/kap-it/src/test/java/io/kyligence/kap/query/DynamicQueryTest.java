@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.query;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class DynamicQueryTest extends NAutoTestBase {
     private static final String PROJECT = "newten";
@@ -73,14 +74,14 @@ public class DynamicQueryTest extends NAutoTestBase {
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
         val context = AccelerationContextUtil.newSmartContext(KylinConfig.getInstanceFromEnv(), PROJECT, sqls);
-        val smartMaster = new NSmartMaster(context);
+        val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(KylinConfig.getInstanceFromEnv(), PROJECT);
     }
 
     @Test
     public void testDynamicParamOnMilliSecTimestamp() throws Exception {
-        proposeAndBuildIndex(new String[]{"select time2 from test_measure"});
+        proposeAndBuildIndex(new String[] { "select time2 from test_measure" });
         String sql = "select time2 from test_measure where time2=?";
         QueryExec queryExec = new QueryExec(PROJECT, KylinConfig.getInstanceFromEnv());
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");

@@ -83,11 +83,11 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private boolean forcedToPushDown = false;
     private long queryStartTime;
     private String stopId;
-    private String format="csv";
-    private String encode="utf-8";
+    private String format = "csv";
+    private String encode = "utf-8";
 
     @JsonProperty("file_name")
-    private String fileName="result";
+    private String fileName = "result";
 
     private Map<String, String> backdoorToggles;
 
@@ -100,13 +100,13 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
         if (cacheKey != null)
             return cacheKey;
 
-        cacheKey = Lists.newArrayList(sql.replaceAll("[ ]", " ") //
-                , project //
-                , offset //
-                , limit //
-                , acceptPartial //
-                , backdoorToggles //
-                , username);
+        cacheKey = Lists.newArrayList(sql.replaceAll("[ ]", " "), //
+                project, //
+                offset, //
+                limit, //
+                acceptPartial, //
+                backdoorToggles, //
+                username);
         return cacheKey;
     }
 

@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.query.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -44,12 +43,13 @@ import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.slf4j.Logger;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.query.CalciteSystemProperty;
 import io.kyligence.kap.query.util.RexUtils;
-import org.slf4j.Logger;
 
 public class ContextUtil {
     /**
@@ -107,14 +107,14 @@ public class ContextUtil {
         // 1. the parent node of TopRel in subContext is not NULL and is instance Of KapJoinRel.
         // 2. JoinRels in the path from currentNode to the ParentOfContextTopRel node are all of the same type (left/inner/cross)
         // 3. all aggregate is derived from the same subContext
-        return (subContext.getParentOfTopNode() instanceof KapJoinRel || subContext.getParentOfTopNode() instanceof KapNonEquiJoinRel)
+        return (subContext.getParentOfTopNode() instanceof KapJoinRel
+                || subContext.getParentOfTopNode() instanceof KapNonEquiJoinRel)
                 && areSubJoinRelsSameType(currentRel, subContext, null, null)
                 && derivedFromSameContext(new HashSet<>(), currentRel, subContext, false);
     }
 
     public static void dumpCalcitePlan(String msg, RelNode relNode, Logger logger) {
-        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value()) &&
-            logger.isDebugEnabled()) {
+        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value()) && logger.isDebugEnabled()) {
             logger.debug("{} :{}{}", msg, System.getProperty("line.separator"), RelOptUtil.toString(relNode));
         }
     }
@@ -129,17 +129,20 @@ public class ContextUtil {
         if (currentNode instanceof KapAggregateRel) {
             hasCountConstant = hasCountConstant((KapAggregateRel) currentNode);
             Set<Integer> inputColsIndex = collectAggInputIndex(((KapAggregateRel) currentNode));
-            return derivedFromSameContext(inputColsIndex, ((KapAggregateRel) currentNode).getInput(), subContext, hasCountConstant);
+            return derivedFromSameContext(inputColsIndex, ((KapAggregateRel) currentNode).getInput(), subContext,
+                    hasCountConstant);
 
         } else if (currentNode instanceof KapProjectRel) {
-            Set<Integer> indexOfInputRel = indexOfInputCols.stream().map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
-                    .flatMap(rex -> RexUtils.getAllInputRefs(rex).stream())
-                    .map(RexSlot::getIndex)
+            Set<Integer> indexOfInputRel = indexOfInputCols.stream()
+                    .map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
+                    .flatMap(rex -> RexUtils.getAllInputRefs(rex).stream()).map(RexSlot::getIndex)
                     .collect(Collectors.toSet());
             if (!indexOfInputCols.isEmpty() && indexOfInputRel.isEmpty()) {
-                throw new IllegalStateException("Error on collection index, index " + indexOfInputCols + " child index " + indexOfInputRel);
+                throw new IllegalStateException(
+                        "Error on collection index, index " + indexOfInputCols + " child index " + indexOfInputRel);
             }
-            return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext, hasCountConstant);
+            return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext,
+                    hasCountConstant);
 
         } else if (currentNode instanceof KapJoinRel || currentNode instanceof KapNonEquiJoinRel) {
             return isJoinFromSameContext(indexOfInputCols, (Join) currentNode, subContext, hasCountConstant);
@@ -148,7 +151,8 @@ public class ContextUtil {
             RexNode condition = ((KapFilterRel) currentNode).getCondition();
             if (condition instanceof RexCall)
                 indexOfInputCols.addAll(collectColsFromFilterRel((RexCall) condition));
-            return derivedFromSameContext(indexOfInputCols, ((KapFilterRel) currentNode).getInput(), subContext, hasCountConstant);
+            return derivedFromSameContext(indexOfInputCols, ((KapFilterRel) currentNode).getInput(), subContext,
+                    hasCountConstant);
 
         } else {
             //https://github.com/Kyligence/KAP/issues/9952
@@ -158,9 +162,8 @@ public class ContextUtil {
     }
 
     private static boolean hasCountConstant(KapAggregateRel aggRel) {
-        return aggRel.aggCalls.stream().anyMatch(func ->
-                !func.isDistinct() && func.getArgList().isEmpty()
-                        && func.getAggregation() instanceof SqlCountAggFunction);
+        return aggRel.aggCalls.stream().anyMatch(func -> !func.isDistinct() && func.getArgList().isEmpty()
+                && func.getAggregation() instanceof SqlCountAggFunction);
     }
 
     private static Set<Integer> collectAggInputIndex(KapAggregateRel aggRel) {

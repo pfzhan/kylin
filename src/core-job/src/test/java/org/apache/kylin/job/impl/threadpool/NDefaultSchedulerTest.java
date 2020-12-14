@@ -27,7 +27,6 @@ package org.apache.kylin.job.impl.threadpool;
 import static org.awaitility.Awaitility.await;
 
 import java.io.FileNotFoundException;
-import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,10 +36,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -431,8 +427,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             return null;
         }, project);
         executableManager.addJob(job);
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
-                executableManager.getJob(job.getId()).getStatus()));
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(
+                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -460,8 +456,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             modelManager.dropModel(model);
             return null;
         }, project);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
-                executableManager.getJob(job.getId()).getStatus()));
+        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
+                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -496,8 +492,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             modelManager.dropModel(model);
             return null;
         }, project);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
-                executableManager.getJob(job.getId()).getStatus()));
+        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
+                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -625,8 +621,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.SUICIDAL,
-                executableManager.getJob(job.getId()).getStatus()));
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(
+                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
         assertTimeSuicide(createTime, job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
@@ -1424,7 +1420,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         scheduler.init(new JobEngineConfig(config));
         scheduler2.init(new JobEngineConfig(config));
 
-
         if (!scheduler.hasStarted() || !scheduler2.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
@@ -1717,6 +1712,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    @Repeat
     public void testRetryableException() {
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -1763,40 +1759,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         System.clearProperty("kylin.scheduler.schedule-job-timeout-minute");
-    }
-
-    @Test
-    public void testKillProcess() {
-        final String jobId = "job000000001";
-        final String execCmd = "nohup sleep 30 & sleep 30";
-
-        Thread execThread = new Thread(() -> {
-            CliCommandExecutor exec = new CliCommandExecutor();
-            try {
-                exec.execute(execCmd, null, jobId);
-            } catch (ShellException e) {
-                // do nothing
-                e.printStackTrace();
-            }
-        });
-        execThread.start();
-
-        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
-            Process process = JobProcessContext.getProcess(jobId);
-            Assert.assertNotNull(process);
-            Assert.assertTrue(process.isAlive());
-        });
-
-        try {
-            overwriteSystemProp("KYLIN_HOME",
-                    Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
-            executableManager.destroyProcess(jobId);
-        } finally {
-            System.clearProperty("KYLIN_HOME");
-        }
-
-        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> Assert.assertNull(JobProcessContext.getProcess(jobId)));
-
     }
 
     @Test

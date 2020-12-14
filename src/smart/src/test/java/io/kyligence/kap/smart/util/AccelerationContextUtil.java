@@ -42,7 +42,7 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.SmartContext;
 import lombok.val;
 import lombok.var;
 
@@ -52,7 +52,7 @@ public class AccelerationContextUtil {
     }
 
     public static AbstractContext newSmartContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
-        return new NSmartContext(kylinConfig, project, sqlArray);
+        return new SmartContext(kylinConfig, project, sqlArray);
     }
 
     public static AbstractSemiContextV2 newModelReuseContext(KylinConfig kylinConfig, String project,
@@ -78,7 +78,7 @@ public class AccelerationContextUtil {
             void saveModel() {
                 NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                         getProject());
-                for (AbstractContext.NModelContext modelCtx : getModelContexts()) {
+                for (ModelContext modelCtx : getModelContexts()) {
                     if (modelCtx.skipSavingMetadata()) {
                         continue;
                     }
@@ -96,7 +96,7 @@ public class AccelerationContextUtil {
                         getProject());
                 NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                         getProject());
-                for (AbstractContext.NModelContext modelContext : getModelContexts()) {
+                for (ModelContext modelContext : getModelContexts()) {
                     if (modelContext.skipSavingMetadata()) {
                         continue;
                     }

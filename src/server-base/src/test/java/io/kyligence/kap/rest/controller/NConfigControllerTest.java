@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,8 +40,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
 public class NConfigControllerTest extends NLocalFileMetadataTestCase {
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
 
@@ -53,7 +53,7 @@ public class NConfigControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(nConfigController)
+        mockMvc = MockMvcBuilders.standaloneSetup(nConfigController) //
                 .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
     }

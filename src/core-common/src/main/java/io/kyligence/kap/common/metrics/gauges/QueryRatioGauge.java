@@ -26,8 +26,8 @@ package io.kyligence.kap.common.metrics.gauges;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.RatioGauge;
-import lombok.AllArgsConstructor;
 
+import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class QueryRatioGauge extends RatioGauge {

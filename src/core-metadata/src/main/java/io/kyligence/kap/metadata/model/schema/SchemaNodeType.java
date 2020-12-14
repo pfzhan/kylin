@@ -113,8 +113,7 @@ public enum SchemaNodeType {
             return (String) attributes.get("id");
         }
     }, //
-    AGG_GROUP, INDEX_AGG_SHARD, INDEX_AGG_EXTEND_PARTITION, //
-    ;
+    AGG_GROUP, INDEX_AGG_SHARD, INDEX_AGG_EXTEND_PARTITION;
 
     @Getter
     boolean causeModelBroken;

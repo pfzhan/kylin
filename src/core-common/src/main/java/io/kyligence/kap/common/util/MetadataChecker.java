@@ -98,7 +98,6 @@ public class MetadataChecker {
 
     }
 
-
     public VerifyResult verify() {
         VerifyResult verifyResult = new VerifyResult();
 
@@ -160,7 +159,8 @@ public class MetadataChecker {
             if (Paths.get(ResourceStore.GLOBAL_PROJECT).getName(0).toString().equals(project)) {
                 continue;
             }
-            if (!allFiles.contains(Paths.get(File.separator + "_global", "project", project + JSON_SUFFIX).toString())) {
+            if (!allFiles
+                    .contains(Paths.get(File.separator + "_global", "project", project + JSON_SUFFIX).toString())) {
                 verifyResult.illegalProjects.add(project);
                 verifyResult.illegalFiles.add(file);
             }
@@ -195,7 +195,8 @@ public class MetadataChecker {
             }
 
             // check model desc
-            if (resoucePath.contains(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT) && resoucePath.endsWith(JSON_SUFFIX)) {
+            if (resoucePath.contains(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
+                    && resoucePath.endsWith(JSON_SUFFIX)) {
                 verifyResult.existModelDescFile = true;
                 continue;
             }
@@ -207,7 +208,7 @@ public class MetadataChecker {
             }
 
             // check table
-            if (resoucePath.contains(ResourceStore.TABLE_RESOURCE_ROOT)  && resoucePath.endsWith(JSON_SUFFIX)) {
+            if (resoucePath.contains(ResourceStore.TABLE_RESOURCE_ROOT) && resoucePath.endsWith(JSON_SUFFIX)) {
                 verifyResult.existTable = true;
                 continue;
             }

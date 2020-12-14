@@ -60,10 +60,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE //
-        , getterVisibility = JsonAutoDetect.Visibility.NONE //
-        , isGetterVisibility = JsonAutoDetect.Visibility.NONE //
-        , setterVisibility = JsonAutoDetect.Visibility.NONE) //
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 //all row conditions in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
 public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.Cond>> implements Serializable, IKeep {
 

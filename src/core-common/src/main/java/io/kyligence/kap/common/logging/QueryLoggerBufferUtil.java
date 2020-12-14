@@ -24,16 +24,16 @@
 
 package io.kyligence.kap.common.logging;
 
-import org.apache.commons.lang3.reflect.MethodUtils;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.SetThreadName;
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import org.apache.commons.lang3.reflect.MethodUtils;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.SetThreadName;
+import org.slf4j.Logger;
 
 public class QueryLoggerBufferUtil {
 

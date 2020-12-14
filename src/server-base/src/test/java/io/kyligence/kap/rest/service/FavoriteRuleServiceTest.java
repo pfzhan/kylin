@@ -84,7 +84,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test

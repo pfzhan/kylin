@@ -59,9 +59,7 @@ import java.util.List;
 public class QueryCacheManager {
 
     enum Type {
-        SUCCESS_QUERY_CACHE("StorageCache"),
-        EXCEPTION_QUERY_CACHE("ExceptionQueryCache"),
-        SCHEMA_CACHE("SchemaCache");
+        SUCCESS_QUERY_CACHE("StorageCache"), EXCEPTION_QUERY_CACHE("ExceptionQueryCache"), SCHEMA_CACHE("SchemaCache");
 
         private String rootCacheName;
 
@@ -103,8 +101,8 @@ public class QueryCacheManager {
         long durationThreshold = kylinConfig.getQueryDurationCacheThreshold();
         long scanCountThreshold = kylinConfig.getQueryScanCountCacheThreshold();
         long scanBytesThreshold = kylinConfig.getQueryScanBytesCacheThreshold();
-        long responseSize = sqlResponse.getResults().isEmpty() ?
-                0 : sqlResponse.getResults().get(0).size() * sqlResponse.getResults().size();
+        long responseSize = sqlResponse.getResults().isEmpty() ? 0
+                : sqlResponse.getResults().get(0).size() * sqlResponse.getResults().size();
         return checkCondition(QueryUtil.isSelectStatement(sqlRequest.getSql()), "query is non-select")
                 && checkCondition(!sqlResponse.isException(), "query has exception") //
                 && checkCondition(!sqlResponse.isQueryPushDown() || kylinConfig.isPushdownQueryCacheEnabled(),
@@ -117,8 +115,7 @@ public class QueryCacheManager {
                         sqlResponse.getDuration(), durationThreshold, sqlResponse.getTotalScanRows(),
                         scanCountThreshold, sqlResponse.getTotalScanBytes(), scanBytesThreshold)
                 && checkCondition(responseSize < kylinConfig.getLargeQueryThreshold(),
-                        "query response is too large: {} ({})", responseSize,
-                        kylinConfig.getLargeQueryThreshold());
+                        "query response is too large: {} ({})", responseSize, kylinConfig.getLargeQueryThreshold());
     }
 
     void doCacheSuccessQuery(SQLRequest sqlRequest, SQLResponse sqlResponse) {

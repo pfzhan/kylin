@@ -139,7 +139,7 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
     }
 
     public List<Counter<T>> topK(int k) {
-        if (ordered == false) {
+        if (!ordered) {
             sortAndRetain();
         }
         List<Counter<T>> topK = new ArrayList<>(k);
@@ -207,7 +207,7 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
         double m1 = thisFull ? this.counterList.getLast().count : 0.0;
         double m2 = anotherFull ? another.counterList.getLast().count : 0.0;
 
-        if (anotherFull == true) {
+        if (anotherFull) {
             for (Counter<T> entry : this.counterMap.values()) {
                 entry.count += m2;
             }
@@ -249,7 +249,7 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
         double[] counters = new double[size()];
         int index = 0;
 
-        if (this.descending == true) {
+        if (this.descending) {
             Iterator<Counter<T>> iterator = counterList.descendingIterator();
             while (iterator.hasNext()) {
                 Counter<T> b = iterator.next();
@@ -266,7 +266,7 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
 
     @Override
     public Iterator<Counter<T>> iterator() {
-        if (this.descending == true) {
+        if (this.descending) {
             return this.counterList.descendingIterator();
         } else {
             throw new IllegalStateException(); // support in future

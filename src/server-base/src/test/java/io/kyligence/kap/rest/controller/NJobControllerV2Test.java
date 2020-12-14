@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,8 +113,8 @@ public class NJobControllerV2Test {
                 false);
         Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
-                .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10").param("timeFilter", "1")
-                .param("jobName", "").param("status", "0")
+                .param("projectName", "default").param("pageOffset", "0").param("pageSize", "10")
+                .param("timeFilter", "1").param("jobName", "").param("status", "0")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 

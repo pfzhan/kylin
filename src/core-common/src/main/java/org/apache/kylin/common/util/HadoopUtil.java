@@ -248,7 +248,7 @@ public class HadoopUtil {
     }
 
     public static Path getFilterOnlyPath(FileSystem fs, Path baseDir, final String filter) throws IOException {
-        if (fs.exists(baseDir) == false) {
+        if (!fs.exists(baseDir)) {
             return null;
         }
 
@@ -284,7 +284,7 @@ public class HadoopUtil {
         return path;
     }
 
-    public static boolean isHdfsCompatibleSchema(String path, KylinConfig kylinConfig){
+    public static boolean isHdfsCompatibleSchema(String path, KylinConfig kylinConfig) {
         var schemas = kylinConfig.getHdfsMetaStoreFileSystemSchemas();
         return Arrays.stream(schemas).anyMatch(s -> path.startsWith(s + "://"));
     }

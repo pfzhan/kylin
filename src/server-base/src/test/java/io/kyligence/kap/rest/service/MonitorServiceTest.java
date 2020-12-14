@@ -61,7 +61,7 @@ public class MonitorServiceTest extends CSVSourceTestCase {
         super.setup();
         getTestConfig().setProperty("kylin.monitor.interval", "1");
         getTestConfig().setProperty("kylin.monitor.job-statistic-interval", "10");
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(monitorService, "clusterManager", clusterManager);
         ReflectionTestUtils.setField(monitorService, "projectService", projectService);
         Mockito.doReturn(monitorDao).when(monitorService).getMonitorDao();
@@ -112,8 +112,6 @@ public class MonitorServiceTest extends CSVSourceTestCase {
         return Lists.newArrayList(createQueryMetric(21000L, "127.0.0.1", "7070", 3000L, 0),
                 createQueryMetric(21000L, "127.0.0.1", "7071", 2000L, 0));
     }
-
-
 
     private void mockData_happyPath() {
         Mockito.doReturn(Lists.newArrayList()).when(monitorDao).readJobStatusMonitorMetricFromInfluxDB(1000L, 2000L);
@@ -177,16 +175,14 @@ public class MonitorServiceTest extends CSVSourceTestCase {
 
         );
         i = 0;
-        res.addAll(
-                Lists.newArrayList(createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 20L, 10L, 4L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 6L, 4L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 7L, 4L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 9L, 2L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 28L, 5L, 2L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 10L, 3L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 9L, 4L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 6L, 7L))
-        );
+        res.addAll(Lists.newArrayList(createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 20L, 10L, 4L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 6L, 4L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 7L, 4L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 9L, 2L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 28L, 5L, 2L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 10L, 3L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 9L, 4L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 6L, 7L)));
         return res;
     }
 
@@ -227,17 +223,13 @@ public class MonitorServiceTest extends CSVSourceTestCase {
 
         );
         i = 0;
-        res.addAll(
-                Lists.newArrayList(createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 20L, 10L, 4L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 6L, 4L),
-                        createJobMetric(20030L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 7L, 4L)));
-        i+=2;
-        res.addAll(
-                Lists.newArrayList(
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 10L, 3L),
-                        createJobMetric(20050L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 9L, 4L),
-                        createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 6L, 7L))
-        );
+        res.addAll(Lists.newArrayList(createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 20L, 10L, 4L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 6L, 4L),
+                createJobMetric(20030L + (i++) * 1000L, "127.0.0.1", "7070", 24L, 7L, 4L)));
+        i += 2;
+        res.addAll(Lists.newArrayList(createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 10L, 3L),
+                createJobMetric(20050L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 9L, 4L),
+                createJobMetric(20000L + (i++) * 1000L, "127.0.0.1", "7070", 30L, 6L, 7L)));
         return res;
     }
 

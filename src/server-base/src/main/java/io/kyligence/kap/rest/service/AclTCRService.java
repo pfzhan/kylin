@@ -335,10 +335,10 @@ public class AclTCRService extends BasicService {
             return Lists.newArrayList();
         }
         boolean isNull = Objects.isNull(authorizedColumnRow);
-        final Map<String, SensitiveDataMask> maskMap = isNull ?
-                new HashMap<>() : authorizedColumnRow.getColumnSensitiveDataMaskMap();
-        final Map<String, Collection<DependentColumn>> dependentColumnMap =
-                isNull ? new HashMap<>() : authorizedColumnRow.getDependentColMap();
+        final Map<String, SensitiveDataMask> maskMap = isNull ? new HashMap<>()
+                : authorizedColumnRow.getColumnSensitiveDataMaskMap();
+        final Map<String, Collection<DependentColumn>> dependentColumnMap = isNull ? new HashMap<>()
+                : authorizedColumnRow.getDependentColMap();
         return columnRow.getColumn().stream().map(colName -> {
             AclTCRResponse.Column col = new AclTCRResponse.Column();
             col.setColumnName(colName);
@@ -402,10 +402,11 @@ public class AclTCRService extends BasicService {
             response.setAuthorizedTableNum(de.getValue().size());
             response.setTotalTableNum(de.getValue().size());
             response.setTables(de.getValue().entrySet().stream().map(te -> {
-                final Map<String, SensitiveDataMask> maskMap =
-                        te.getValue() == null ? new HashMap<>() : te.getValue().getColumnSensitiveDataMaskMap();
-                final Map<String, Collection<DependentColumn>> dependentColumnMap =
-                        te.getValue() == null ? new HashMap<>() : te.getValue().getDependentColMap();
+                final Map<String, SensitiveDataMask> maskMap = te.getValue() == null ? new HashMap<>()
+                        : te.getValue().getColumnSensitiveDataMaskMap();
+                final Map<String, Collection<DependentColumn>> dependentColumnMap = te.getValue() == null
+                        ? new HashMap<>()
+                        : te.getValue().getDependentColMap();
                 AclTCRResponse.Table tbl = new AclTCRResponse.Table();
                 tbl.setTableName(te.getKey());
                 tbl.setAuthorized(true);
@@ -464,8 +465,9 @@ public class AclTCRService extends BasicService {
             if (Objects.nonNull(columnRow.getColumn())
                     && Optional.ofNullable(getTableManager(project).getTableDesc(dbTblName).getColumns())
                             .map(Arrays::stream).orElseGet(Stream::empty).map(ColumnDesc::getName)
-                            .allMatch(colName -> columnRow.getColumn().contains(colName) &&
-                                    columnRow.getColumnSensitiveDataMask() == null && columnRow.getDependentColumns() == null)) {
+                            .allMatch(colName -> columnRow.getColumn().contains(colName)
+                                    && columnRow.getColumnSensitiveDataMask() == null
+                                    && columnRow.getDependentColumns() == null)) {
                 columnRow.setColumn(null);
             }
 
@@ -505,8 +507,8 @@ public class AclTCRService extends BasicService {
         String dbTblName = String.format(IDENTIFIER_FORMAT, req.getDatabaseName(), table.getTableName());
         AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
         AclTCR.Column aclColumn;
-        if (Optional.ofNullable(table.getColumns()).map(List::stream).orElseGet(Stream::empty)
-                .allMatch(col -> col.isAuthorized() && col.getDataMaskType() == null && col.getDependentColumns() == null)) {
+        if (Optional.ofNullable(table.getColumns()).map(List::stream).orElseGet(Stream::empty).allMatch(
+                col -> col.isAuthorized() && col.getDataMaskType() == null && col.getDependentColumns() == null)) {
             aclColumn = null;
         } else {
             aclColumn = new AclTCR.Column();
@@ -528,7 +530,8 @@ public class AclTCRService extends BasicService {
         for (AclTCRRequest.Column column : table.getColumns()) {
             if (column.getDependentColumns() != null) {
                 for (AclTCRRequest.DependentColumnData dependentColumn : column.getDependentColumns()) {
-                    dependentColumns.add(new DependentColumn(column.getColumnName(), dependentColumn.getColumnIdentity(), dependentColumn.getValues()));
+                    dependentColumns.add(new DependentColumn(column.getColumnName(),
+                            dependentColumn.getColumnIdentity(), dependentColumn.getValues()));
                 }
             }
         }
@@ -540,8 +543,8 @@ public class AclTCRService extends BasicService {
             aclRow = null;
         } else {
             aclRow = new AclTCR.Row();
-            table.getRows().stream().filter(r -> CollectionUtils.isNotEmpty(r.getItems())).map(
-                    r -> new AbstractMap.SimpleEntry<>(r.getColumnName(), Sets.newHashSet(r.getItems())))
+            table.getRows().stream().filter(r -> CollectionUtils.isNotEmpty(r.getItems()))
+                    .map(r -> new AbstractMap.SimpleEntry<>(r.getColumnName(), Sets.newHashSet(r.getItems())))
                     .collect(Collectors.<Map.Entry<String, HashSet<String>>, String, Set<String>> toMap(
                             Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> {
                                 v1.addAll(v2);
@@ -574,75 +577,73 @@ public class AclTCRService extends BasicService {
     }
 
     private void checkDependentColumnUpdate(List<AclTCR> aclTCRList) {
-        Set<String> dependentColumnIdentities = aclTCRList.stream()
-                .filter(acl -> acl != null && acl.getTable() != null)
+        Set<String> dependentColumnIdentities = aclTCRList.stream().filter(acl -> acl != null && acl.getTable() != null)
                 .flatMap(acl -> acl.getTable().values().stream())
                 .filter(cr -> cr != null && cr.getDependentColumns() != null)
-                .flatMap(cr -> cr.getDependentColumns().stream())
-                .map(DependentColumn::getDependentColumnIdentity)
+                .flatMap(cr -> cr.getDependentColumns().stream()).map(DependentColumn::getDependentColumnIdentity)
                 .collect(Collectors.toSet());
 
         for (AclTCR acl : aclTCRList) {
             if (acl == null || acl.getTable() == null) {
                 continue;
             }
-            acl.getTable().forEach(
-                    (tableName, cr) -> {
-                        if (cr != null && cr.getDependentColumns() != null) {
-                            for (DependentColumn dependentColumn : cr.getDependentColumns()) {
-                                if (dependentColumnIdentities.contains(tableName + "." + dependentColumn.getColumn())) {
-                                    throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getNotSupportNestedDependentCol());
-                                }
-                            }
+            acl.getTable().forEach((tableName, cr) -> {
+                if (cr != null && cr.getDependentColumns() != null) {
+                    for (DependentColumn dependentColumn : cr.getDependentColumns()) {
+                        if (dependentColumnIdentities.contains(tableName + "." + dependentColumn.getColumn())) {
+                            throw new KylinException(INVALID_PARAMETER,
+                                    MsgPicker.getMsg().getNotSupportNestedDependentCol());
                         }
                     }
+                }
+            }
 
             );
         }
 
         for (String dependentColumnIdentity : dependentColumnIdentities) {
             if (aclTCRList.stream().noneMatch(acl -> acl.isColumnAuthorized(dependentColumnIdentity))) {
-                throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getInvalidColumnAccess(), dependentColumnIdentity));
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(MsgPicker.getMsg().getInvalidColumnAccess(), dependentColumnIdentity));
             }
         }
     }
 
     public void checkAclRequestParam(String project, List<AclTCRRequest> requests) {
         NTableMetadataManager tableManager = getTableMetadataManager(project);
-        requests.stream().forEach(d -> d.getTables().stream()
-                .filter(AclTCRRequest.Table::isAuthorized)
-                .filter(table -> !Optional.ofNullable(table.getRows()).map(List::stream).orElseGet(Stream::empty)
-                        .allMatch(r -> CollectionUtils.isEmpty(r.getItems())))
-                .forEach(table -> {
-                    String tableName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), table.getTableName());
-                    TableDesc tableDesc = tableManager.getTableDesc(tableName);
-                    table.getRows().stream()
-                            .filter(r -> CollectionUtils.isNotEmpty(r.getItems()))
-                            .forEach(rows -> {
-                                ColumnDesc columnDesc = tableDesc.findColumnByName(rows.getColumnName());
-                                if (!columnDesc.getType().isNumberFamily()) {
-                                    return;
-                                }
-                                String columnName = tableName + "." + rows.getColumnName();
-                                rows.getItems().forEach(item -> {
-                                    try {
-                                        Double.parseDouble(item);
-                                    } catch (Exception e) {
-                                        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getCOLUMN_PARAMETER_INVALID(columnName));
-                                    }
-                                });
+        requests.stream()
+                .forEach(d -> d.getTables().stream().filter(AclTCRRequest.Table::isAuthorized)
+                        .filter(table -> !Optional.ofNullable(table.getRows()).map(List::stream)
+                                .orElseGet(Stream::empty).allMatch(r -> CollectionUtils.isEmpty(r.getItems())))
+                        .forEach(table -> {
+                            String tableName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(),
+                                    table.getTableName());
+                            TableDesc tableDesc = tableManager.getTableDesc(tableName);
+                            table.getRows().stream().filter(r -> CollectionUtils.isNotEmpty(r.getItems()))
+                                    .forEach(rows -> {
+                                        ColumnDesc columnDesc = tableDesc.findColumnByName(rows.getColumnName());
+                                        if (!columnDesc.getType().isNumberFamily()) {
+                                            return;
+                                        }
+                                        String columnName = tableName + "." + rows.getColumnName();
+                                        rows.getItems().forEach(item -> {
+                                            try {
+                                                Double.parseDouble(item);
+                                            } catch (Exception e) {
+                                                throw new KylinException(INVALID_PARAMETER,
+                                                        MsgPicker.getMsg().getCOLUMN_PARAMETER_INVALID(columnName));
+                                            }
+                                        });
 
-                            });
+                                    });
 
-                }));
+                        }));
 
-        requests.forEach(d -> d.getTables().stream()
-                .filter(AclTCRRequest.Table::isAuthorized)
-                .forEach(table -> {
-                    String tableName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), table.getTableName());
-                    TableDesc tableDesc = tableManager.getTableDesc(tableName);
-                    checkSensitiveDataMaskRequest(table, tableDesc);
-                }));
+        requests.forEach(d -> d.getTables().stream().filter(AclTCRRequest.Table::isAuthorized).forEach(table -> {
+            String tableName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), table.getTableName());
+            TableDesc tableDesc = tableManager.getTableDesc(tableName);
+            checkSensitiveDataMaskRequest(table, tableDesc);
+        }));
     }
 
     private void checkSensitiveDataMaskRequest(AclTCRRequest.Table table, TableDesc tableDesc) {
@@ -651,10 +652,12 @@ public class AclTCRService extends BasicService {
         }
         for (AclTCRRequest.Column column : table.getColumns()) {
             if (column.getDataMaskType() != null && !column.isAuthorized()) {
-                throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getInvalidColumnAccess(), column.getColumnName()));
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(MsgPicker.getMsg().getInvalidColumnAccess(), column.getColumnName()));
             }
 
-            if (column.getDataMaskType() != null && !SensitiveDataMask.isValidDataType(tableDesc.findColumnByName(column.getColumnName()).getDatatype())) {
+            if (column.getDataMaskType() != null && !SensitiveDataMask
+                    .isValidDataType(tableDesc.findColumnByName(column.getColumnName()).getDatatype())) {
                 throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getInvalidSensitiveDataMaskColumnType());
             }
         }

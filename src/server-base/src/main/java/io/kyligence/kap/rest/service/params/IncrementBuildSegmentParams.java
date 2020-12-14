@@ -56,8 +56,8 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
     }
 
     public IncrementBuildSegmentParams(String project, String modelId, String start, String end,
-            PartitionDesc partitionDesc, MultiPartitionDesc multiPartitionDesc, List<SegmentTimeRequest> segmentHoles, boolean needBuild,
-            List<String[]> multiPartitionValues) {
+            PartitionDesc partitionDesc, MultiPartitionDesc multiPartitionDesc, List<SegmentTimeRequest> segmentHoles,
+            boolean needBuild, List<String[]> multiPartitionValues) {
         super(project, modelId, needBuild);
         this.start = start;
         this.end = end;
@@ -68,8 +68,8 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
     }
 
     public IncrementBuildSegmentParams(String project, String modelId, String start, String end,
-            PartitionDesc partitionDesc, MultiPartitionDesc multiPartitionDesc,  String partitionColFormat, List<SegmentTimeRequest> segmentHoles,
-            boolean needBuild, List<String[]> multiPartitionValues) {
+            PartitionDesc partitionDesc, MultiPartitionDesc multiPartitionDesc, String partitionColFormat,
+            List<SegmentTimeRequest> segmentHoles, boolean needBuild, List<String[]> multiPartitionValues) {
         super(project, modelId, needBuild);
         this.start = start;
         this.end = end;

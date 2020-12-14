@@ -43,7 +43,7 @@ public class JobInfoResponseWithFailure extends JobInfoResponse {
 
     public void addFailedSeg(NDataflow dataflow, JobSubmissionException jobSubmissionException) {
         for (Map.Entry<String, KylinException> entry : jobSubmissionException.getSegmentFailInfos().entrySet()) {
-            String segId  = entry.getKey();
+            String segId = entry.getKey();
             KylinException error = entry.getValue();
 
             FailedSegmentJobWithReason failedSeg = new FailedSegmentJobWithReason(dataflow, dataflow.getSegment(segId));

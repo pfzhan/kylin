@@ -26,7 +26,6 @@ package io.kyligence.kap.common.persistence;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -38,6 +37,7 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;

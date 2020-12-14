@@ -97,11 +97,11 @@ public class NForestSpanningTreeV2 extends NForestSpanningTree implements IKeepN
             logger.info("Adjust spanning tree." + //
             " Current index plan: {}." + //
             " Current index entity: {}." + //
-            " Its children: {}\n" //
-            , index.getIndexPlan().getUuid() //
-            , index.getId() //
-            , Arrays.toString(getChildrenByIndexPlan(index).stream() //
-                    .map(IndexEntity::getId).toArray())//
+            " Its children: {}\n", //
+                    index.getIndexPlan().getUuid(), //
+                    index.getId(), //
+                    Arrays.toString(getChildrenByIndexPlan(index).stream() //
+                            .map(IndexEntity::getId).toArray())//
             );
         });
 

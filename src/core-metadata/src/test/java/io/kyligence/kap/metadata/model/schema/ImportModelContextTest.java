@@ -55,7 +55,7 @@ public class ImportModelContextTest extends NLocalFileMetadataTestCase {
 
     @After
     public void teardown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test

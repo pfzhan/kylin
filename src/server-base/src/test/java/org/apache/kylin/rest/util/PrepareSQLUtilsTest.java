@@ -41,28 +41,30 @@ public class PrepareSQLUtilsTest {
         verifyPrepareResult(prepareSQL, params, expectedResult);
     }
 
-    void verifyPrepareResult(String prepareSQL, PrepareSqlRequest.StateParam[] params,  String expectedResult) {
+    void verifyPrepareResult(String prepareSQL, PrepareSqlRequest.StateParam[] params, String expectedResult) {
         Assert.assertEquals(expectedResult, PrepareSQLUtils.fillInParams(prepareSQL, params));
     }
 
     @Test
     public void testPrepareSQL() {
-        verifyPrepareResult("select a from b where c = ? and d = ?", new String[]{"123", "d'2019-01-01'"},
+        verifyPrepareResult("select a from b where c = ? and d = ?", new String[] { "123", "d'2019-01-01'" },
                 "select a from b where c = '123' and d = 'd'2019-01-01''");
-        verifyPrepareResult("select \"a\" from \"b\" where \"c\" = ? and \"e\" = 'abc' and d = ?;", new String[]{"123", "d'2019-01-01'"},
+        verifyPrepareResult("select \"a\" from \"b\" where \"c\" = ? and \"e\" = 'abc' and d = ?;",
+                new String[] { "123", "d'2019-01-01'" },
                 "select \"a\" from \"b\" where \"c\" = '123' and \"e\" = 'abc' and d = 'd'2019-01-01'';");
-        verifyPrepareResult("select * from (select \"a\", '?' as q from \"b\" where \"c\" = ? and \"e\" = 'abc' and d = ?) join (select \"b\" from z where x = ?)",
-                new String[]{"123", "d'2019-01-01'", "abcdef"},
+        verifyPrepareResult(
+                "select * from (select \"a\", '?' as q from \"b\" where \"c\" = ? and \"e\" = 'abc' and d = ?) join (select \"b\" from z where x = ?)",
+                new String[] { "123", "d'2019-01-01'", "abcdef" },
                 "select * from (select \"a\", '?' as q from \"b\" where \"c\" = '123' and \"e\" = 'abc' and d = 'd'2019-01-01'') join (select \"b\" from z where x = 'abcdef')");
-        verifyPrepareResult("select a from b where c = ? and d = ? and e = ? and f = ? and g = ?", new PrepareSqlRequest.StateParam[]{
+        verifyPrepareResult("select a from b where c = ? and d = ? and e = ? and f = ? and g = ?",
+                new PrepareSqlRequest.StateParam[] {
                         new PrepareSqlRequest.StateParam(Integer.class.getCanonicalName(), "123"),
                         new PrepareSqlRequest.StateParam(Double.class.getCanonicalName(), "123.0"),
                         new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), "a string"),
                         new PrepareSqlRequest.StateParam(Date.class.getCanonicalName(), "2019-01-01"),
-                        new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(), "2019-01-01 00:12:34.123"),
-                },
+                        new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(),
+                                "2019-01-01 00:12:34.123"), },
                 "select a from b where c = 123 and d = 123.0 and e = 'a string' and f = date'2019-01-01' and g = timestamp'2019-01-01 00:12:34.123'");
     }
-
 
 }

@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,8 +34,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +41,9 @@ import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Exchanger;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -91,15 +93,15 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         BASE = new File(TEST_BASE_DIR);
         FileUtil.setWritable(BASE, true);
         FileUtil.fullyDelete(BASE);
-        assertTrue(!BASE.exists());
+        assertFalse(BASE.exists());
     }
 
     @After
     public void after() throws Exception {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
         FileUtil.setWritable(BASE, true);
         FileUtil.fullyDelete(BASE);
-        assertTrue(!BASE.exists());
+        assertFalse(BASE.exists());
     }
 
     @Test
@@ -175,9 +177,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault);
 
-        assertEquals("name,age,city\n" +
-                "a1,b1,c1\r\n" +
-                "a2,b2,c2\r\n", baos.toString());
+        assertEquals("name,age,city\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
     }
 
     @Test
@@ -548,7 +548,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }
         try (FSDataOutputStream os = fileSystem
                 .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
-             OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) { //
             osw.write(formatDefault);
 
         } catch (IOException e) {
@@ -564,7 +564,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }
         try (FSDataOutputStream os = fileSystem
                 .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
-             OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) { //
             osw.write(encodeDefault);
 
         } catch (IOException e) {

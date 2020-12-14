@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
@@ -94,7 +94,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
 
@@ -208,8 +208,8 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
         MockMultipartFile requestFile = new MockMultipartFile("request", "request", "application/json",
                 JsonUtil.writeValueAsString(request).getBytes());
 
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/import/models").file(multipartFile).file(requestFile)
-                .contentType(MediaType.MULTIPART_FORM_DATA_VALUE).param("project", "default")
+        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/import/models").file(multipartFile)
+                .file(requestFile).contentType(MediaType.MULTIPART_FORM_DATA_VALUE).param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 

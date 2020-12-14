@@ -25,12 +25,12 @@ package io.kyligence.kap.common.logging.appender;
 
 import org.apache.log4j.FileAppender;
 
-import io.kyligence.kap.common.util.ProcessUtil;
+import io.kyligence.kap.common.util.ProcessUtils;
 
 public class KyFileAppender extends FileAppender {
     @Override
     public void setFile(String file) {
-        super.setFile(file + "." + ProcessUtil.getProcessId("0"));
+        super.setFile(file + "." + ProcessUtils.getCurrentId("0"));
     }
 
 }

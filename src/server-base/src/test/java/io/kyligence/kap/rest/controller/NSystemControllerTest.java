@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.util.List;
 
@@ -226,10 +226,8 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetHostname() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/system/host")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(APPLICATION_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/system/host").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController, Mockito.times(1)).getHostname();
     }
 }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.common.persistence.transaction;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,8 +48,6 @@ public class BroadcastEventReadyNotifier extends SchedulerEventNotifier {
          */
         LEADER_NODES,
 
-        ALL_NODES,
-        JOB_NODES,
-        QUERY_NODES
+        ALL_NODES, JOB_NODES, QUERY_NODES
     }
 }

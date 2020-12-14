@@ -320,7 +320,7 @@ public class ITJDBCDriverTest extends SandboxMetadataTestCase {
             System.out.println("Get a line: LSTG_FORMAT_NAME=" + lstg + ", GMV=" + gmv + ", TRANS_CNT=" + trans_count);
         }
 
-        Assert.assertTrue(count == 2);
+        Assert.assertEquals(2, count);
         statement.close();
         rs.close();
         conn.close();

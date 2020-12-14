@@ -23,14 +23,15 @@
  */
 package org.apache.kylin.common.storage;
 
-import lombok.Data;
+import java.io.IOException;
+
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.AccessControlException;
 
-import java.io.IOException;
+import lombok.Data;
 
 // for reflection
 public class DefaultStorageProvider implements IStorageProvider {

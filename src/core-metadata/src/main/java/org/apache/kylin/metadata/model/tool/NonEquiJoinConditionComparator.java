@@ -53,7 +53,8 @@ public class NonEquiJoinConditionComparator {
     }
 
     private static TruthTable createTruthTable(NonEquiJoinCondition nonEquiJoinCondition) {
-        TruthTable.TruthTableBuilder<NonEquiJoinCondition> builder = new TruthTable.TruthTableBuilder<>(new NonEquiJoinConditionOperandComparator());
+        TruthTable.TruthTableBuilder<NonEquiJoinCondition> builder = new TruthTable.TruthTableBuilder<>(
+                new NonEquiJoinConditionOperandComparator());
         buildExpr(nonEquiJoinCondition, builder);
         return builder.build();
     }
@@ -64,24 +65,27 @@ public class NonEquiJoinConditionComparator {
         compositeOperatorMapping.put(SqlKind.OR, TruthTable.Operator.OR);
         compositeOperatorMapping.put(SqlKind.NOT, TruthTable.Operator.NOT);
     }
-    private static void buildExpr(NonEquiJoinCondition nonEquiJoinCondition, TruthTable.TruthTableBuilder<NonEquiJoinCondition> builder) {
+
+    private static void buildExpr(NonEquiJoinCondition nonEquiJoinCondition,
+            TruthTable.TruthTableBuilder<NonEquiJoinCondition> builder) {
         switch (nonEquiJoinCondition.getOp()) {
-            case AND:
-            case NOT:
-            case OR:
-                builder.compositeStart(compositeOperatorMapping.get(nonEquiJoinCondition.getOp()));
-                for (int i = 0; i < nonEquiJoinCondition.getOperands().length; i++) {
-                    buildExpr(nonEquiJoinCondition.getOperands()[i], builder);
-                }
-                builder.compositeEnd();
-                break;
-            default:
-                addOperand(nonEquiJoinCondition, builder);
-                break;
+        case AND:
+        case NOT:
+        case OR:
+            builder.compositeStart(compositeOperatorMapping.get(nonEquiJoinCondition.getOp()));
+            for (int i = 0; i < nonEquiJoinCondition.getOperands().length; i++) {
+                buildExpr(nonEquiJoinCondition.getOperands()[i], builder);
+            }
+            builder.compositeEnd();
+            break;
+        default:
+            addOperand(nonEquiJoinCondition, builder);
+            break;
         }
     }
 
-    private static void addOperand(NonEquiJoinCondition nonEquiJoinCondition, TruthTable.TruthTableBuilder<NonEquiJoinCondition> builder) {
+    private static void addOperand(NonEquiJoinCondition nonEquiJoinCondition,
+            TruthTable.TruthTableBuilder<NonEquiJoinCondition> builder) {
         NonEquiJoinCondition normalized = nonEquiJoinCondition.copy();
         if (inverseCondOperator(normalized)) {
             builder.compositeStart(TruthTable.Operator.NOT);
@@ -107,6 +111,7 @@ public class NonEquiJoinConditionComparator {
         operatorInverseMapping.put(SqlKind.LESS_THAN, SqlKind.GREATER_THAN_OR_EQUAL);
         operatorInverseMapping.put(SqlKind.LESS_THAN_OR_EQUAL, SqlKind.GREATER_THAN);
     }
+
     private static boolean inverseCondOperator(NonEquiJoinCondition cond) {
         if (operatorInverseMapping.containsKey(cond.getOp())) {
             cond.setOp(operatorInverseMapping.get(cond.getOp()));
@@ -125,7 +130,8 @@ public class NonEquiJoinConditionComparator {
 
         // sort IN args
         if (nonEquiJoinCondition.getOp() == SqlKind.IN) {
-            Arrays.sort(nonEquiJoinCondition.getOperands(), 1, nonEquiJoinCondition.getOperands().length, Comparator.comparing(NonEquiJoinCondition::toString));
+            Arrays.sort(nonEquiJoinCondition.getOperands(), 1, nonEquiJoinCondition.getOperands().length,
+                    Comparator.comparing(NonEquiJoinCondition::toString));
         }
     }
 
@@ -133,10 +139,10 @@ public class NonEquiJoinConditionComparator {
 
         @Override
         public int compare(NonEquiJoinCondition cond1, NonEquiJoinCondition cond2) {
-            if(!(Objects.equals(cond1.getOp(), cond2.getOp()) &&
-                    cond1.getOperands().length == cond2.getOperands().length &&
-                    Objects.equals(cond1.getType(), cond2.getType()) &&
-                    Objects.equals(cond1.getDataType(), cond2.getDataType()))) {
+            if (!(Objects.equals(cond1.getOp(), cond2.getOp())
+                    && cond1.getOperands().length == cond2.getOperands().length
+                    && Objects.equals(cond1.getType(), cond2.getType())
+                    && Objects.equals(cond1.getDataType(), cond2.getDataType()))) {
                 return 1;
             }
 

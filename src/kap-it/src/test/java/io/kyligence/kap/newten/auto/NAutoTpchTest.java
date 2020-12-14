@@ -40,7 +40,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class NAutoTpchTest extends NAutoTestBase {
@@ -53,7 +53,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         new TestScenario(CompareLevel.SAME, "sql_tpch", 5, 10).execute();
         new TestScenario(CompareLevel.SAME, "sql_tpch", 10, 15).execute();
         // ignore for KE-16343
-//        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 16).execute();
+        // new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 16).execute();
         new TestScenario(CompareLevel.SAME, "sql_tpch", 16, 22).execute();
     }
 
@@ -70,7 +70,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         // 1st round, recommend model with a single fact table
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 getProject());
-        NSmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
+        SmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 0, 1, null));
         Assert.assertEquals(1, smartMaster1.getContext().getAccelerateInfoMap().size());
         Set<NDataModel> selectedDataModels1 = Sets.newHashSet();
@@ -84,7 +84,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         JoinsGraph graph1 = proposedModel1.getJoinsGraph();
 
         // 2nd round, reuse the model and increase more Joins which is through accelerating 2 different olapCtx
-        NSmartMaster smartMaster2 = proposeWithSmartMaster(getProject(),
+        SmartMaster smartMaster2 = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 1, 3, null));
         Set<NDataModel> selectedDataModels2 = Sets.newHashSet();
         smartMaster2.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
@@ -99,7 +99,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
 
         // 3rd round, accelerate a sql that its join info equaled with current model, so it won't change previous model
-        NSmartMaster smartMaster3 = proposeWithSmartMaster(getProject(),
+        SmartMaster smartMaster3 = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, false, "sql_tpch/sql_tpch_reprosal/", 3, 4, null));
         Set<NDataModel> selectedDataModels3 = Sets.newHashSet();
         smartMaster3.getContext().getAccelerateInfoMap().forEach((s, accelerateInfo) -> {
@@ -118,14 +118,13 @@ public class NAutoTpchTest extends NAutoTestBase {
     @Test
     public void testBatchProposeSQLAndReuseInnerJoinModel() throws Exception {
         //1st round, propose initial model
-        NSmartMaster smartMaster = proposeWithSmartMaster(getProject(),
-                new TestScenario(CompareLevel.SAME, "sql_tpch"));
+        SmartMaster smartMaster = proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.SAME, "sql_tpch"));
         NDataModel originModel = smartMaster.getContext().getModelContexts().stream()
                 .filter(ctx -> ctx.getTargetModel().getJoinTables().size() == 6).collect(Collectors.toList()).get(0)
                 .getTargetModel();
         JoinsGraph originJoinGragh = originModel.getJoinsGraph();
 
-        NSmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
+        SmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.SAME, "sql_tpch/sql_tpch_reprosal/", 3, 4));
         AccelerateInfo accelerateInfo = smartMaster1.getContext().getAccelerateInfoMap().values()
                 .toArray(new AccelerateInfo[] {})[0];

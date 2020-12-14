@@ -240,11 +240,11 @@ import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractContext.NModelContext;
+import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.tool.bisync.BISyncModel;
@@ -1647,7 +1647,7 @@ public class ModelService extends BasicService {
 
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
-        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
         smartMaster.executePropose();
         return smartMaster.getRecommendedModels();
     }
@@ -1681,7 +1681,7 @@ public class ModelService extends BasicService {
         AbstractContext proposeContext = reuseExistedModel
                 ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), createNewModel)
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
-        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
         smartMaster.runSuggestModel();
         return smartMaster.getContext();
     }
@@ -1690,7 +1690,7 @@ public class ModelService extends BasicService {
         List<NRecommendedModelResponse> responseOfNewModels = Lists.newArrayList();
         List<NRecommendedModelResponse> responseOfReusedModels = Lists.newArrayList();
 
-        for (NModelContext modelContext : context.getModelContexts()) {
+        for (ModelContext modelContext : context.getModelContexts()) {
             if (modelContext.isTargetModelMissing()) {
                 continue;
             }
@@ -1704,7 +1704,7 @@ public class ModelService extends BasicService {
         return new ModelSuggestionResponse(responseOfReusedModels, responseOfNewModels);
     }
 
-    private void collectResponseOfReusedModels(AbstractContext.NModelContext modelContext,
+    private void collectResponseOfReusedModels(ModelContext modelContext,
             List<NRecommendedModelResponse> responseOfReusedModels) {
         Map<Long, Set<String>> layoutToSqlSet = mapLayoutToSqlSet(modelContext);
         Map<String, ComputedColumnDesc> oriCCMap = Maps.newHashMap();
@@ -1769,7 +1769,7 @@ public class ModelService extends BasicService {
         responseOfReusedModels.add(response);
     }
 
-    private Map<Long, Set<String>> mapLayoutToSqlSet(NModelContext modelContext) {
+    private Map<Long, Set<String>> mapLayoutToSqlSet(ModelContext modelContext) {
         if (modelContext == null) {
             return Maps.newHashMap();
         }
@@ -1787,7 +1787,7 @@ public class ModelService extends BasicService {
         return layoutToSqlSet;
     }
 
-    private void collectResponseOfNewModels(AbstractContext.NModelContext modelContext,
+    private void collectResponseOfNewModels(ModelContext modelContext,
             List<NRecommendedModelResponse> responseOfNewModels) {
         Set<String> sqlSet = Sets.newHashSet();
         modelContext.getModelTree().getOlapContexts().forEach(ctx -> sqlSet.add(ctx.sql));

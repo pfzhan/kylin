@@ -24,15 +24,17 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.SecretKeyUtil;
-import io.kyligence.kap.rest.response.HealthResponse;
-import io.kyligence.kap.rest.service.HealthService;
-import io.kyligence.kap.tool.daemon.ServiceOpLevelEnum;
-import io.kyligence.kap.tool.daemon.checker.KEStatusChecker;
-import io.kyligence.kap.tool.util.ToolUtil;
-import lombok.Getter;
-import lombok.extern.log4j.Log4j;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.crypto.SecretKey;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -44,15 +46,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.crypto.SecretKey;
-import javax.servlet.http.HttpServletRequest;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import io.kyligence.kap.common.util.SecretKeyUtil;
+import io.kyligence.kap.rest.response.HealthResponse;
+import io.kyligence.kap.rest.service.HealthService;
+import io.kyligence.kap.tool.daemon.ServiceOpLevelEnum;
+import io.kyligence.kap.tool.daemon.checker.KEStatusChecker;
+import io.kyligence.kap.tool.util.ToolUtil;
+import lombok.Getter;
+import lombok.extern.log4j.Log4j;
 
 @Log4j
 @Controller
@@ -153,10 +156,7 @@ public class HealthController extends NBasicController {
                 return false;
             }
             long timestamp = Long.parseLong(parts[1]);
-            if (System.currentTimeMillis() - timestamp > VALIDATION_DURATION) {
-                return false;
-            }
-            return true;
+            return System.currentTimeMillis() - timestamp <= VALIDATION_DURATION;
         } catch (Exception e) {
             log.error("Validate token failed! ", e);
             return false;

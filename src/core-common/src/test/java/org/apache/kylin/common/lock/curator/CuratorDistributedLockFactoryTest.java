@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -55,10 +54,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.junit.After;
@@ -68,6 +63,11 @@ import org.junit.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 
 public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCase {
 
@@ -91,7 +91,8 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
     public void testBasic() throws Exception {
         String path = "/test/distributed_lock_factory_test/test_basic/" + UUID.randomUUID().toString();
 
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());) {
+        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
+                zkTestServer.getConnectString());) {
             CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
 
             Assert.assertFalse(lock.isAcquiredInThisThread());
@@ -109,9 +110,10 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
-             SetAndUnsetSystemProp retry = new SetAndUnsetSystemProp("kap.env.zookeeper-max-retries", "1");
-             SetAndUnsetSystemProp time = new SetAndUnsetSystemProp("kap.env.zookeeper-base-sleep-time", "1000");) {
+        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
+                zkTestServer.getConnectString());
+                SetAndUnsetSystemProp retry = new SetAndUnsetSystemProp("kap.env.zookeeper-max-retries", "1");
+                SetAndUnsetSystemProp time = new SetAndUnsetSystemProp("kap.env.zookeeper-base-sleep-time", "1000");) {
 
             executorService.submit(() -> {
                 CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
@@ -139,7 +141,8 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
         Assert.assertFalse(locked);
 
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string", zkTestServer2.getConnectString());) {
+        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
+                zkTestServer2.getConnectString());) {
             executorService.submit(() -> {
                 CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
 
@@ -199,7 +202,8 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testConcurrence() throws InterruptedException, ExecutionException {
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());) {
+        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
+                zkTestServer.getConnectString());) {
             String path = "/test/distributed_lock_factory_test/test_concurrence/" + UUID.randomUUID().toString();
             int threadNum = 10;
             int times = 10;

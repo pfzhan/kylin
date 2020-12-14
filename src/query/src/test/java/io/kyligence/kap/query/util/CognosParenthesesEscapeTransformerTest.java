@@ -107,18 +107,12 @@ public class CognosParenthesesEscapeTransformerTest {
     public void advanced4Test() throws Exception {
         CognosParenthesesEscapeTransformer converter = new CognosParenthesesEscapeTransformer();
 
-        String originalSql = "select count(*) COU FrOm --comment0\n" +
-                "---comment1\n" +
-                "(  --comment2\n" +
-                "test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT\n" +
-                ")\n" +
-                "left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID";
-        String expectedSql = "select count(*) COU FrOm \n" +
-                "\n" +
-                "  \n" +
-                "test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT\n" +
-                "\n" +
-                "left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID";
+        String originalSql = "select count(*) COU FrOm --comment0\n" + "---comment1\n" + "(  --comment2\n"
+                + "test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT\n" + ")\n"
+                + "left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID";
+        String expectedSql = "select count(*) COU FrOm \n" + "\n" + "  \n"
+                + "test_kylin_fact left join EDW.TEST_CAL_DT on TEST_CAL_DT.CAL_DT = test_kylin_fact.CAL_DT\n" + "\n"
+                + "left join TEST_ACCOUNT on SELLER_ID = ACCOUNT_ID";
         originalSql = QueryUtil.removeCommentInSql(originalSql);
         String transformed = converter.completion(originalSql);
         Assert.assertEquals(expectedSql, transformed);

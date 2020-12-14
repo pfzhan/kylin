@@ -241,7 +241,7 @@ public class NDataLayout implements Serializable {
     // ============================================================================
 
     public boolean isCachedAndShared() {
-        if (segDetails == null || segDetails.isCachedAndShared() == false)
+        if (segDetails == null || !segDetails.isCachedAndShared())
             return false;
 
         for (NDataLayout cached : segDetails.getLayouts()) {

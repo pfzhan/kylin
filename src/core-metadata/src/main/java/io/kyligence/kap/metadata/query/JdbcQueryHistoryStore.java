@@ -92,7 +92,7 @@ public class JdbcQueryHistoryStore {
     String qhRealizationTableName;
 
     public JdbcQueryHistoryStore(KylinConfig config) throws Exception {
-        StorageURL url = config.getMetadataUrl();
+        StorageURL url = config.getQueryHistoryUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         dataSource = JdbcDataSource.getDataSource(props);
         qhTableName = StorageURL.replaceUrl(url) + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
@@ -175,8 +175,8 @@ public class JdbcQueryHistoryStore {
     public QueryHistory queryOldestQueryHistory(long maxSize) {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);
-            SelectStatementProvider statementProvider = select(getSelectFields(queryHistoryTable)). //
-                    from(queryHistoryTable) //
+            SelectStatementProvider statementProvider = select(getSelectFields(queryHistoryTable))
+                    .from(queryHistoryTable) //
                     .orderBy(queryHistoryTable.id.descending()) //
                     .limit(1) //
                     .offset(maxSize - 1) //

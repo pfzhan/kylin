@@ -66,7 +66,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.LogManager;
 
-import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
@@ -107,9 +106,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.query.engine.QueryExec;
+
 /**
  */
-public class KylinTestBase {
+public class KylinTestBase extends NLocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(KylinTestBase.class);
     public static boolean PRINT_RESULT = false;
@@ -320,7 +322,8 @@ public class KylinTestBase {
         }
     }
 
-    protected Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String sql, boolean isForced) throws Exception {
+    protected Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String sql, boolean isForced)
+            throws Exception {
         SQLException mockException = new SQLException("", new NoRealizationFoundException(""));
 
         return tryPushDownSelectQuery(ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", mockException,
@@ -810,7 +813,6 @@ public class KylinTestBase {
 
         //setup cube conn
         String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-//        cubeConnection = QueryConnection.getConnection(project);
 
         //setup h2
         h2Connection = DriverManager.getConnection("jdbc:h2:mem:db" + (h2InstanceCount++) + ";CACHE_SIZE=32072", "sa",

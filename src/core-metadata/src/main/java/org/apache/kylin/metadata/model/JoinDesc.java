@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -75,8 +74,6 @@ public class JoinDesc implements Serializable {
     private String primaryTable;
     @JsonProperty("foreign_table")
     private String foreignTable;
-
-
 
     private TblColRef[] primaryKeyColumns;
     private TblColRef[] foreignKeyColumns;
@@ -205,7 +202,8 @@ public class JoinDesc implements Serializable {
     }
 
     public void sortByFK() {
-        Preconditions.checkState(primaryKey.length == foreignKey.length && primaryKey.length == primaryKeyColumns.length && foreignKey.length == foreignKeyColumns.length);
+        Preconditions.checkState(primaryKey.length == foreignKey.length && primaryKey.length == primaryKeyColumns.length
+                && foreignKey.length == foreignKeyColumns.length);
         boolean cont = true;
         int n = foreignKey.length;
         for (int i = 0; i < n - 1 && cont; i++) {
@@ -255,7 +253,6 @@ public class JoinDesc implements Serializable {
             return false;
         JoinDesc other = (JoinDesc) obj;
 
-
         // note pk/fk are sorted, sortByFK()
         if (!Arrays.equals(foreignKey, other.foreignKey))
             return false;
@@ -293,13 +290,13 @@ public class JoinDesc implements Serializable {
             return false;
 
         for (int i = 0; i < a.length; i++) {
-            if (a[i].getColumnDesc().equals(b[i].getColumnDesc()) == false)
+            if (!a[i].getColumnDesc().equals(b[i].getColumnDesc()))
                 return false;
         }
         return true;
     }
 
-    public boolean isNonEquiJoin(){
+    public boolean isNonEquiJoin() {
         return Objects.nonNull(nonEquiJoinCondition);
     }
 
@@ -319,7 +316,6 @@ public class JoinDesc implements Serializable {
         private TableRef foreignTableRef;
         private NonEquiJoinCondition nonEquiJoinCondition;
         private String type;
-
 
         public JoinDescBuilder addPrimaryKeys(String[] pkColNames, TblColRef[] colRefs) {
             pks.addAll(Arrays.asList(pkColNames));

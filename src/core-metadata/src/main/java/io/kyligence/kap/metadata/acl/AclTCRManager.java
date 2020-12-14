@@ -208,13 +208,14 @@ public class AclTCRManager {
     public Multimap<String, String> getAuthorizedColumnsGroupByTable(String userName, Set<String> groups) {
         val allAclTCRs = getAclTCRs(userName, groups);
         if (isTablesAuthorized(allAclTCRs)) {
-            return ArrayListMultimap.<String, String>create();
+            return ArrayListMultimap.<String, String> create();
         }
 
-        val authorizedColsMap = HashMultimap.<String, String>create();
+        val authorizedColsMap = HashMultimap.<String, String> create();
         allAclTCRs.stream().forEach(aclTCR -> aclTCR.getTable().entrySet().stream().forEach(entry -> {
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(entry.getKey());
-            if (Objects.isNull(tableDesc) || Objects.isNull(entry.getValue()) || Objects.isNull(entry.getValue().getColumn())) {
+            if (Objects.isNull(tableDesc) || Objects.isNull(entry.getValue())
+                    || Objects.isNull(entry.getValue().getColumn())) {
                 return;
             }
             authorizedColsMap.putAll(tableDesc.getIdentity(), entry.getValue().getColumn());
@@ -223,7 +224,8 @@ public class AclTCRManager {
         return authorizedColsMap;
     }
 
-    public Map<String, List<TableDesc>> getAuthorizedTablesAndColumns(String userName, Set<String> groups, boolean fullyAuthorized) {
+    public Map<String, List<TableDesc>> getAuthorizedTablesAndColumns(String userName, Set<String> groups,
+            boolean fullyAuthorized) {
         if (fullyAuthorized) {
             return NTableMetadataManager.getInstance(config, project).listTablesGroupBySchema();
         }
@@ -233,7 +235,7 @@ public class AclTCRManager {
             return NTableMetadataManager.getInstance(config, project).listTablesGroupBySchema();
         }
 
-        val schemasMap = Maps. <String, List<TableDesc>> newHashMap();
+        val schemasMap = Maps.<String, List<TableDesc>> newHashMap();
         allAclTCRs.stream().map(aclTCR -> aclTCR.getTable().keySet()).flatMap(Set::stream).forEach(tableName -> {
             val originTableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
             val authorizedTableDesc = getAuthorizedTableDesc(originTableDesc, allAclTCRs);
@@ -248,8 +250,8 @@ public class AclTCRManager {
             return null;
         }
         val table = new TableDesc(originTable);
-        table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
-                .filter(c -> allAclTCRs.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
+        table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty).filter(
+                c -> allAclTCRs.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
                 .toArray(ColumnDesc[]::new));
         return table;
     }
@@ -268,7 +270,7 @@ public class AclTCRManager {
     }
 
     public Optional<String> failFastUnauthorizedTableColumn(String username, Set<String> groups,
-                                                            Map<String, Set<String>> tableColumns) {
+            Map<String, Set<String>> tableColumns) {
         if (MapUtils.isEmpty(tableColumns)) {
             return Optional.empty();
         }
@@ -287,7 +289,7 @@ public class AclTCRManager {
             }
             if (CollectionUtils.isEmpty(entry.getValue())
                     || Objects.isNull(authorizedTableColumns.get(entry.getKey()))) {
-                return Optional.<String>empty();
+                return Optional.<String> empty();
             }
             // fail-fast column
             return entry.getValue().stream()
@@ -297,7 +299,7 @@ public class AclTCRManager {
     }
 
     public AclTCRDigest getAllUnauthorizedTableColumn(String username, Set<String> groups,
-                                                      Map<String, Set<String>> tableColumns) {
+            Map<String, Set<String>> tableColumns) {
         Set<String> unauthTables = Sets.newHashSet();
         Set<String> unauthColumns = Sets.newHashSet();
         if (MapUtils.isEmpty(tableColumns)) {

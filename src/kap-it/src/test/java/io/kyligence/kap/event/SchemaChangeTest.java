@@ -62,6 +62,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -70,6 +71,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
@@ -126,12 +128,11 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
+                TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @AfterClass
@@ -224,6 +225,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         assertSqls();
     }
 
+    @Ignore
     @Test
     public void testChangeColumnType() throws Exception {
         changeColumns(TABLE_IDENTITY, Sets.newHashSet("SRC_ID"), columnDesc -> {
@@ -325,10 +327,10 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.username", "sa");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.password", "");
     }
 
     private void cleanPushdownEnv() throws Exception {
@@ -336,10 +338,6 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 
     protected String getProject() {

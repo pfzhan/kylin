@@ -23,13 +23,6 @@
  */
 package io.kyligence.kap.common.util;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.kylin.common.KylinConfig;
-
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -40,6 +33,15 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class SecretKeyUtil {
     private static final String STRING_ENCODE = "UTF-8";

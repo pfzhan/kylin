@@ -49,12 +49,12 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
-        staticCreateTestMetadata();
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test
@@ -81,7 +81,8 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject").toFile().mkdir();
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject/test.json").toFile().createNewFile();
         val verifyResultWithIllegalProject = metadataChecker.verify();
-        Assertions.assertThat(verifyResultWithIllegalProject.getIllegalProjects()).hasSize(1).contains("IllegalProject");
+        Assertions.assertThat(verifyResultWithIllegalProject.getIllegalProjects()).hasSize(1)
+                .contains("IllegalProject");
         Assertions.assertThat(verifyResultWithIllegalProject.getIllegalFiles()).hasSize(1)
                 .contains("/IllegalProject/test.json");
         assertFalse(verifyResultWithIllegalProject.isQualified());

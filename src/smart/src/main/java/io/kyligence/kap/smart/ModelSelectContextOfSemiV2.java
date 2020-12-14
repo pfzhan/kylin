@@ -45,9 +45,9 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public ChainedProposer createPreProcessProposers() {
-        ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
-                new NSQLAnalysisProposer(this), //
-                new NModelSelectProposer(this));
+        ImmutableList<AbstractProposer> proposers = ImmutableList.of(//
+                new SQLAnalysisProposer(this), //
+                new ModelSelectProposer(this));
         return new ChainedProposer(this, proposers);
     }
 

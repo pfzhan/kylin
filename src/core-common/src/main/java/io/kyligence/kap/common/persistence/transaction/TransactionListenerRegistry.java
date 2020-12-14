@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
-import com.google.common.collect.Sets;
-
 import java.util.Set;
+
+import com.google.common.collect.Sets;
 
 public class TransactionListenerRegistry {
 

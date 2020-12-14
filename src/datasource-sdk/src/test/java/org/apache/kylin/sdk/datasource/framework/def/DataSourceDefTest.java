@@ -26,23 +26,23 @@ package org.apache.kylin.sdk.datasource.framework.def;
 import java.sql.Types;
 import java.util.List;
 
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class DataSourceDefTest extends NLocalFileMetadataTestCase {
 
-    @BeforeClass
-    public static void setUp() {
-        staticCreateTestMetadata();
+    @Before
+    public void setUp() {
+        createTestMetadata();
     }
 
-    @AfterClass
-    public static void after() {
-        staticCleanupTestMetadata();
+    @After
+    public void after() {
+        cleanupTestMetadata();
     }
 
     @Test

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,12 +50,13 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 
 public class HiveCmdBuilderTest {
 
@@ -86,12 +86,15 @@ public class HiveCmdBuilderTest {
         hiveCmdBuilder.addStatement("SHOW\n TABLES;");
         hiveCmdBuilder.setHiveConfProps(hiveProps);
         hiveCmdBuilder.overwriteHiveProps(hivePropsOverwrite);
-        assertEquals("hive -e \"USE default;\nDROP TABLE test;\nSHOW\n TABLES;\n\" --hiveconf hive.execution.engine=tez", hiveCmdBuilder.build());
+        assertEquals(
+                "hive -e \"USE default;\nDROP TABLE test;\nSHOW\n TABLES;\n\" --hiveconf hive.execution.engine=tez",
+                hiveCmdBuilder.build());
     }
 
     @Test
     public void testBeeline() throws IOException {
-        String lineSeparator = java.security.AccessController.doPrivileged(new sun.security.action.GetPropertyAction("line.separator"));
+        String lineSeparator = java.security.AccessController
+                .doPrivileged(new sun.security.action.GetPropertyAction("line.separator"));
         System.setProperty("kylin.source.hive.client", "beeline");
         System.setProperty("kylin.source.hive.beeline-params", "-u jdbc_url");
 
@@ -107,7 +110,9 @@ public class HiveCmdBuilderTest {
         hqlFile = hqlFile.substring(0, hqlFile.length() - ";exit $ret_code".length());
 
         String hqlStatement = FileUtils.readFileToString(new File(hqlFile), Charset.defaultCharset());
-        Assert.assertEquals("USE default;" + lineSeparator + "DROP TABLE test;" + lineSeparator + "SHOW\n TABLES;" + lineSeparator, hqlStatement);
+        Assert.assertEquals(
+                "USE default;" + lineSeparator + "DROP TABLE test;" + lineSeparator + "SHOW\n TABLES;" + lineSeparator,
+                hqlStatement);
 
         FileUtils.forceDelete(new File(hqlFile));
     }

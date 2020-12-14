@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -91,20 +90,23 @@ public class BasicMeasureType extends MeasureType {
         DataType rtype = dataType;
 
         if (funcName.equals(FunctionDesc.FUNC_SUM)) {
-            if (rtype.isNumberFamily() == false) {
-                throw new IllegalArgumentException("Return type for function " + funcName + " must be one of " + DataType.NUMBER_FAMILY);
+            if (!rtype.isNumberFamily()) {
+                throw new IllegalArgumentException(
+                        "Return type for function " + funcName + " must be one of " + DataType.NUMBER_FAMILY);
             }
         } else if (funcName.equals(FunctionDesc.FUNC_COUNT)) {
-            if (rtype.isIntegerFamily() == false) {
-                throw new IllegalArgumentException("Return type for function " + funcName + " must be one of " + DataType.INTEGER_FAMILY);
+            if (!rtype.isIntegerFamily()) {
+                throw new IllegalArgumentException(
+                        "Return type for function " + funcName + " must be one of " + DataType.INTEGER_FAMILY);
             }
         } else if (funcName.equals(FunctionDesc.FUNC_MAX) || funcName.equals(FunctionDesc.FUNC_MIN)) {
-            if (rtype.isNumberFamily() == false) {
-                throw new IllegalArgumentException("Return type for function " + funcName + " must be one of " + DataType.NUMBER_FAMILY);
+            if (!rtype.isNumberFamily()) {
+                throw new IllegalArgumentException(
+                        "Return type for function " + funcName + " must be one of " + DataType.NUMBER_FAMILY);
             }
         } else {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            if (config.isQueryIgnoreUnknownFunction() == false)
+            if (!config.isQueryIgnoreUnknownFunction())
                 throw new IllegalArgumentException("Unrecognized function: [" + funcName + "]");
         }
     }
@@ -145,7 +147,8 @@ public class BasicMeasureType extends MeasureType {
             else if (dataType.isNumberFamily())
                 return new DoubleMinAggregator();
         }
-        throw new IllegalArgumentException("No aggregator for func '" + funcName + "' and return type '" + dataType + "'");
+        throw new IllegalArgumentException(
+                "No aggregator for func '" + funcName + "' and return type '" + dataType + "'");
     }
 
     private boolean isSum() {

@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
@@ -90,7 +90,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() throws Exception {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
 

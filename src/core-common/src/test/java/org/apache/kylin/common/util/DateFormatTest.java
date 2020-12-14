@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,7 +42,12 @@
 
 package org.apache.kylin.common.util;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
+import java.time.DateTimeException;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.Date;
+
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -52,11 +56,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.time.DateTimeException;
-import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.Date;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 
 /**
  * Created by dongli on 1/4/16.
@@ -96,26 +96,25 @@ public class DateFormatTest {
 
         String correctTime = null;
         switch (zoneId) {
-            case "GMT+08:00":
-                correctTime = "1262275200000";
-                break;
-            case "America/Chicago":
-                correctTime = "1262325600000";
-                break;
-            case "America/Los_Angeles":
-                correctTime = "1262332800000";
-                break;
-            case "UTC":
-                correctTime = "1262304000000";
-                break;
-            default:
-                Assert.fail("can not find the zoneId: " + zoneId);
+        case "GMT+08:00":
+            correctTime = "1262275200000";
+            break;
+        case "America/Chicago":
+            correctTime = "1262325600000";
+            break;
+        case "America/Los_Angeles":
+            correctTime = "1262332800000";
+            break;
+        case "UTC":
+            correctTime = "1262304000000";
+            break;
+        default:
+            Assert.fail("can not find the zoneId: " + zoneId);
         }
 
-
         DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(DateFormat.DEFAULT_DATE_PATTERN);
-        Date date = DateTime.parse(testDate, dateTimeFormatter).
-                withZone(DateTimeZone.getDefault()).toLocalDateTime().toDate();
+        Date date = DateTime.parse(testDate, dateTimeFormatter).withZone(DateTimeZone.getDefault()).toLocalDateTime()
+                .toDate();
 
         Assert.assertEquals(correctTime, String.valueOf(date.getTime()));
 
@@ -131,29 +130,23 @@ public class DateFormatTest {
         Assert.assertEquals(String.valueOf(date.getTime()),
                 DateFormat.getFormattedDate("2010.01.01", DateFormat.DEFAULT_DATE_PATTERN_WITH_DOT));
 
-        Assert.assertEquals(String.valueOf(date.getTime()),
-                DateFormat.getFormattedDate("2010-01-01 00:00:00",
-                        DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS));
+        Assert.assertEquals(String.valueOf(date.getTime()), DateFormat.getFormattedDate("2010-01-01 00:00:00",
+                DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS));
+
+        Assert.assertEquals(String.valueOf(date.getTime()), DateFormat.getFormattedDate("2010-01-01 00:00:00.000",
+                DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS));
+
+        Assert.assertNotEquals(String.valueOf(date.getTime()), DateFormat.getFormattedDate("2010-01-01 02:02:02",
+                DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS));
+
+        Assert.assertNotEquals(String.valueOf(date.getTime()), DateFormat.getFormattedDate("2010-01-01 02:02:02.333",
+                DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS));
 
         Assert.assertEquals(String.valueOf(date.getTime()),
-                DateFormat.getFormattedDate("2010-01-01 00:00:00.000",
-                        DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS));
-
-        Assert.assertNotEquals(String.valueOf(date.getTime()),
-                DateFormat.getFormattedDate("2010-01-01 02:02:02",
-                        DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS));
-
-        Assert.assertNotEquals(String.valueOf(date.getTime()),
-                DateFormat.getFormattedDate("2010-01-01 02:02:02.333",
-                        DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS));
+                DateFormat.getFormattedDate("201001", DateFormat.COMPACT_MONTH_PATTERN));
 
         Assert.assertEquals(String.valueOf(date.getTime()),
-                DateFormat.getFormattedDate("201001",
-                        DateFormat.COMPACT_MONTH_PATTERN));
-
-        Assert.assertEquals(String.valueOf(date.getTime()),
-                DateFormat.getFormattedDate("2010-01",
-                        DateFormat.DEFAULT_MONTH_PATTERN));
+                DateFormat.getFormattedDate("2010-01", DateFormat.DEFAULT_MONTH_PATTERN));
 
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2020-05-01 01:01:01.333"));
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2020/05/01 01:01:01.333"));
@@ -167,8 +160,7 @@ public class DateFormatTest {
 
         try {
             Assert.assertEquals(String.valueOf(date.getTime()),
-                    DateFormat.getFormattedDate("18:18",
-                            DateFormat.DEFAULT_TIME_PATTERN_WITHOUT_SECONDS));
+                    DateFormat.getFormattedDate("18:18", DateFormat.DEFAULT_TIME_PATTERN_WITHOUT_SECONDS));
             Assert.fail();
         } catch (DateTimeException e) {
 
@@ -178,8 +170,7 @@ public class DateFormatTest {
 
         try {
             Assert.assertEquals(String.valueOf(date.getTime()),
-                    DateFormat.getFormattedDate("18:18:18",
-                            DateFormat.DEFAULT_TIME_PATTERN));
+                    DateFormat.getFormattedDate("18:18:18", DateFormat.DEFAULT_TIME_PATTERN));
             Assert.fail();
         } catch (DateTimeException e) {
 
@@ -189,8 +180,7 @@ public class DateFormatTest {
 
         try {
             Assert.assertEquals(String.valueOf(date.getTime()),
-                    DateFormat.getFormattedDate("18:18:18:888",
-                            DateFormat.DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P2));
+                    DateFormat.getFormattedDate("18:18:18:888", DateFormat.DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P2));
             Assert.fail();
         } catch (DateTimeException e) {
 
@@ -198,11 +188,9 @@ public class DateFormatTest {
             Assert.fail();
         }
 
-        for (String tDate : Arrays.asList(
-                "20100101", "2010/01/01", "2010.01.01",
-                "18:18:18", "18:18:18.888", "18:18",
-                "2010-01-01 ", "2010-01-01 02:02:02", "2010-01-01 02:02:02.333",
-                "2010-01-0", "010-01-01", "2010", "2010-01", "-2010-01-01")) {
+        for (String tDate : Arrays.asList("20100101", "2010/01/01", "2010.01.01", "18:18:18", "18:18:18.888", "18:18",
+                "2010-01-01 ", "2010-01-01 02:02:02", "2010-01-01 02:02:02.333", "2010-01-0", "010-01-01", "2010",
+                "2010-01", "-2010-01-01")) {
             try {
                 DateFormat.getFormattedDate(tDate, DateFormat.DEFAULT_DATE_PATTERN);
                 Assert.fail();
@@ -213,11 +201,9 @@ public class DateFormatTest {
             }
         }
 
-        for (String tDate : Arrays.asList(
-                "20100101", "2010/01/01", "2010.01.01",
-                "18:18:18", "18:18:18.888", "18:18",
-                "2010-01-01 00", "2010-01-01 02:02", "2010-01-01 02:02.333",
-                "2010-01-0", "010-01-01", "2010", "2010-01", "-2010-01-01")) {
+        for (String tDate : Arrays.asList("20100101", "2010/01/01", "2010.01.01", "18:18:18", "18:18:18.888", "18:18",
+                "2010-01-01 00", "2010-01-01 02:02", "2010-01-01 02:02.333", "2010-01-0", "010-01-01", "2010",
+                "2010-01", "-2010-01-01")) {
             try {
                 DateFormat.getFormattedDate(tDate, DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS);
                 Assert.fail();

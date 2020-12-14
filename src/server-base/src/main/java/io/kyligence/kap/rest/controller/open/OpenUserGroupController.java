@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -127,8 +127,7 @@ public class OpenUserGroupController extends NBasicController {
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> addUserGroupWithBody(@RequestBody UserGroupRequest request)
-            throws IOException {
+    public EnvelopeResponse<String> addUserGroupWithBody(@RequestBody UserGroupRequest request) throws IOException {
         return userGroupController.addUserGroup(request);
     }
 
@@ -144,8 +143,7 @@ public class OpenUserGroupController extends NBasicController {
     @DeleteMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> delUserGroupWithBody(@RequestBody UserGroupRequest request)
-            throws IOException {
+    public EnvelopeResponse<String> delUserGroupWithBody(@RequestBody UserGroupRequest request) throws IOException {
         userGroupController.checkGroupName(request.getGroupName());
         String groupUuid = userGroupService.getUuidByGroupName(request.getGroupName());
         return userGroupController.delUserGroup(groupUuid);

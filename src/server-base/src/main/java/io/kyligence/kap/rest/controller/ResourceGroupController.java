@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.Collection;
 import java.util.List;
@@ -48,7 +48,7 @@ import io.kyligence.kap.rest.service.resourcegroup.ResourceGroupService;
 
 @Controller
 @RequestMapping(value = "/api/resource_groups", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
-public class ResourceGroupController extends NBasicController{
+public class ResourceGroupController extends NBasicController {
     @Autowired
     private ResourceGroupService resourceGroupService;
 
@@ -88,7 +88,8 @@ public class ResourceGroupController extends NBasicController{
         if (checkListChanged(request.getKylinInstances(), originResourceGroup.getKylinInstances())) {
             return true;
         }
-        return checkListChanged(request.getResourceGroupMappingInfoList(), originResourceGroup.getResourceGroupMappingInfoList());
+        return checkListChanged(request.getResourceGroupMappingInfoList(),
+                originResourceGroup.getResourceGroupMappingInfoList());
     }
 
     private boolean checkListChanged(Collection<?> list1, Collection<?> list2) {

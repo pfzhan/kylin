@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
@@ -192,7 +192,8 @@ public class NProjectController extends NBasicController {
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
-        List<String> list = clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost).collect(Collectors.toList());
+        List<String> list = clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost)
+                .collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(list)) {
             String leader = list.get(new Random().nextInt(list.size()));
             try {
@@ -545,7 +546,7 @@ public class NProjectController extends NBasicController {
     @PutMapping(value = "/{project:.+}/multi_partition_config")
     @ResponseBody
     public EnvelopeResponse<String> updateMultiPartitionConfig(@PathVariable("project") String project,
-                                                     @RequestBody MultiPartitionConfigRequest request) {
+            @RequestBody MultiPartitionConfigRequest request) {
         checkRequiredArg("multi_partition_enabled", request.getMultiPartitionEnabled());
         projectService.updateMultiPartitionConfig(project, request, modelService);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

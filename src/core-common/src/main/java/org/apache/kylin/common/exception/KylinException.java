@@ -41,13 +41,13 @@
  */
 package org.apache.kylin.common.exception;
 
+import java.util.Collection;
+
 import org.apache.kylin.common.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
-
-import java.util.Collection;
 
 @Getter
 public class KylinException extends RuntimeException {

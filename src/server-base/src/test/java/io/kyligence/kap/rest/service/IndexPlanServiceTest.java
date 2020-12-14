@@ -115,7 +115,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @Before
     public void setup() {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         super.setup();
         indexPlanService.setSemanticUpater(semanticService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);

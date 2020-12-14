@@ -82,12 +82,11 @@ import static org.apache.kylin.metadata.datatype.DataType.INTEGER;
 import static org.apache.kylin.metadata.datatype.DataType.SMALL_INT;
 import static org.apache.kylin.metadata.datatype.DataType.TINY_INT;
 
-
 /**
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class  FunctionDesc implements Serializable {
+public class FunctionDesc implements Serializable {
 
     public static FunctionDesc newInstance(String expression, List<ParameterDesc> parameters, String returnType) {
         FunctionDesc r = new FunctionDesc();
@@ -110,17 +109,18 @@ public class  FunctionDesc implements Serializable {
         return proposeReturnType(expression, colDataType, override, false);
     }
 
-    public static String proposeReturnType(String expression, String colDataType, Map<String, String> override, boolean saveCheck) {
+    public static String proposeReturnType(String expression, String colDataType, Map<String, String> override,
+            boolean saveCheck) {
         String returnType = override.getOrDefault(expression,
                 EXPRESSION_DEFAULT_TYPE_MAP.getOrDefault(expression, colDataType));
         if (saveCheck && colDataType != null && DataType.getType(colDataType).isStringFamily()) {
             switch (expression) {
-                case FunctionDesc.FUNC_SUM:
-                case FunctionDesc.FUNC_PERCENTILE:
-                    throw new KylinException(INVALID_MEASURE_DATA_TYPE,
-                            String.format("Invalid column type %s for measure %s", colDataType, expression));
-                default:
-                    break;
+            case FunctionDesc.FUNC_SUM:
+            case FunctionDesc.FUNC_PERCENTILE:
+                throw new KylinException(INVALID_MEASURE_DATA_TYPE,
+                        String.format("Invalid column type %s for measure %s", colDataType, expression));
+            default:
+                break;
             }
         }
 
@@ -169,8 +169,8 @@ public class  FunctionDesc implements Serializable {
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
     public static final ImmutableSet<String> BUILT_IN_AGGREGATIONS = ImmutableSet.<String> builder()
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).add(FUNC_COUNT, FUNC_SUM, FUNC_PERCENTILE).build();
-    public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder()
-            .add(FUNC_CORR).build();
+    public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder().add(FUNC_CORR)
+            .build();
 
     private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
 
@@ -213,7 +213,8 @@ public class  FunctionDesc implements Serializable {
         for (ParameterDesc p : getParameters()) {
             if (p.isColumnType()) {
                 TblColRef colRef = model.findColumn(p.getValue());
-                returnDataType = DataType.getType(proposeReturnType(expression, colRef.getDatatype(), Maps.newHashMap(), model.isSaveCheck()));
+                returnDataType = DataType.getType(
+                        proposeReturnType(expression, colRef.getDatatype(), Maps.newHashMap(), model.isSaveCheck()));
                 p.setValue(colRef.getIdentity());
                 p.setColRef(colRef);
             }
@@ -297,7 +298,8 @@ public class  FunctionDesc implements Serializable {
         if (CollectionUtils.isEmpty(parameters))
             return Lists.newArrayList();
 
-        return parameters.stream().filter(ParameterDesc::isColumnType).map(ParameterDesc::getColRef).collect(Collectors.toList());
+        return parameters.stream().filter(ParameterDesc::isColumnType).map(ParameterDesc::getColRef)
+                .collect(Collectors.toList());
     }
 
     public ColumnDesc newFakeRewriteColumn(String rewriteFiledName, TableDesc sourceTable) {
@@ -331,7 +333,8 @@ public class  FunctionDesc implements Serializable {
     }
 
     public boolean isCountOnColumn() {
-        return FUNC_COUNT.equalsIgnoreCase(expression) && CollectionUtils.isNotEmpty(parameters) && parameters.get(0).isColumnType();
+        return FUNC_COUNT.equalsIgnoreCase(expression) && CollectionUtils.isNotEmpty(parameters)
+                && parameters.get(0).isColumnType();
     }
 
     public boolean isAggregateOnConstant() {
@@ -339,7 +342,8 @@ public class  FunctionDesc implements Serializable {
     }
 
     public boolean isCountConstant() {//count(*) and count(1)
-        return FUNC_COUNT.equalsIgnoreCase(expression) && (CollectionUtils.isEmpty(parameters) || parameters.get(0).isConstant());
+        return FUNC_COUNT.equalsIgnoreCase(expression)
+                && (CollectionUtils.isEmpty(parameters) || parameters.get(0).isConstant());
     }
 
     public boolean isCountDistinct() {
@@ -424,8 +428,7 @@ public class  FunctionDesc implements Serializable {
         switch (expression) {
         case FUNC_SUM:
         case FUNC_TOP_N:
-            List<String> suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT,
-                    FLOAT, DOUBLE, DECIMAL);
+            List<String> suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT, FLOAT, DOUBLE, DECIMAL);
             return suitableTypes.contains(dataType.getName());
         case FUNC_PERCENTILE:
             suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT);
@@ -495,7 +498,8 @@ public class  FunctionDesc implements Serializable {
                 + "]";
     }
 
-    private boolean parametersEqualInArbitraryOrder(List<ParameterDesc> parameters, List<ParameterDesc> otherParameters) {
+    private boolean parametersEqualInArbitraryOrder(List<ParameterDesc> parameters,
+            List<ParameterDesc> otherParameters) {
         return parameters.containsAll(otherParameters) && otherParameters.containsAll(parameters);
     }
 }

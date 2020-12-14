@@ -24,10 +24,11 @@
 
 package io.kyligence.kap.tool.security;
 
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -41,13 +42,12 @@ import org.junit.rules.TemporaryFolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
-
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
 
@@ -57,7 +57,8 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
-        getTestConfig().setMetadataUrl("testKapPasswordResetCLITest@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        getTestConfig().setMetadataUrl(
+                "testKapPasswordResetCLITest@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
     }
 
     @After
@@ -84,7 +85,6 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(modifyUser.getPassword(), manger.get(user.getUsername()).getPassword());
         Assert.assertTrue(pwdEncoder.matches("KYLIN2", manger.get(user.getUsername()).getPassword()));
 
-
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         System.setOut(new PrintStream(output));
 
@@ -92,12 +92,13 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
 
         ResourceStore.clearCache(config);
         config.clearManagers();
-        val afterManager =  NKylinUserManager.getInstance(config);
+        val afterManager = NKylinUserManager.getInstance(config);
 
         Assert.assertTrue(!pwdEncoder.matches("KYLIN", afterManager.get(user.getUsername()).getPassword()));
-        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "Reset password of [" +
-                StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "] succeed. The password is "));
-        Assert.assertTrue(output.toString().endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
+        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "Reset password of ["
+                + StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "] succeed. The password is "));
+        Assert.assertTrue(
+                output.toString().endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
 
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();

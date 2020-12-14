@@ -28,12 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.relnode.ContextUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
@@ -56,9 +50,17 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.spark_project.guava.collect.Sets;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.relnode.ContextUtil;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 
@@ -71,7 +73,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     public static void initSpark() {
         if (Shell.MAC)
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
-        if(ss != null && !ss.sparkContext().isStopped()) {
+        if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
         }
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
@@ -84,17 +86,16 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set("spark.sql.adaptive.enabled", "true");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
+                TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
-
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -107,7 +108,6 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
@@ -149,14 +149,15 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
         String not_equal0 = base + "where TEST_TIME_ENC <> TIMESTAMP '2012-01-01 00:00:00'";
 
-        String not0 = base + "where not (TEST_TIME_ENC < TIMESTAMP '2011-01-01 00:00:00' or TEST_TIME_ENC >= TIMESTAMP '2013-01-01 00:00:00')";
+        String not0 = base
+                + "where not (TEST_TIME_ENC < TIMESTAMP '2011-01-01 00:00:00' or TEST_TIME_ENC >= TIMESTAMP '2013-01-01 00:00:00')";
 
         String in_pruning0 = base
                 + "where TEST_TIME_ENC in (TIMESTAMP '2009-01-01 00:00:00',TIMESTAMP '2008-01-01 00:00:00',TIMESTAMP '2016-01-01 00:00:00')";
         String in_pruning1 = base
                 + "where TEST_TIME_ENC in (TIMESTAMP '2008-01-01 00:00:00',TIMESTAMP '2016-01-01 00:00:00')";
 
-        val expectedRanges = Lists.<Pair<String, String>>newArrayList();
+        val expectedRanges = Lists.<Pair<String, String>> newArrayList();
         val segmentRange1 = Pair.newPair("2009-01-01 00:00:00", "2011-01-01 00:00:00");
         val segmentRange2 = Pair.newPair("2011-01-01 00:00:00", "2013-01-01 00:00:00");
         val segmentRange3 = Pair.newPair("2013-01-01 00:00:00", "2015-01-01 00:00:00");
@@ -212,42 +213,34 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testShardPruning() throws Exception {
-        try {
-            System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
+        overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "100");
 
-            val dfId = "8c670664-8d05-466a-802f-83c023b56c77";
-            buildMultiSegs(dfId);
+        val dfId = "8c670664-8d05-466a-802f-83c023b56c77";
+        buildMultiSegs(dfId);
 
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-            basicPruningScenario(dfId);
-            pruningWithVariousTypesScenario(dfId);
-        } finally {
-            System.clearProperty("kylin.storage.columnar.shard-rowcount");
-        }
+        basicPruningScenario(dfId);
+        pruningWithVariousTypesScenario(dfId);
     }
 
     @Test
     public void testPruningWithChineseCharacter() throws Exception {
-        System.setProperty("kylin.storage.columnar.shard-rowcount", "1");
-        try {
-            val dfId = "9cde9d25-9334-4b92-b229-a00f49453757";
-            fullBuildCube(dfId, getProject());
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "1");
+        val dfId = "9cde9d25-9334-4b92-b229-a00f49453757";
+        fullBuildCube(dfId, getProject());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-            val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
-            val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
+        val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
+        val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
 
-            assertResultsAndScanFiles(dfId, chinese0, 1, false, Lists.newArrayList());
-            assertResultsAndScanFiles(dfId, chinese1, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, chinese0, 1, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, chinese1, 3, false, Lists.newArrayList());
 
-            List<Pair<String, String>> query = new ArrayList<>();
-            query.add(Pair.newPair("", chinese0));
-            query.add(Pair.newPair("", chinese1));
-            NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
-        } finally {
-            System.clearProperty("kylin.storage.columnar.shard-rowcount");
-        }
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("", chinese0));
+        query.add(Pair.newPair("", chinese1));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
     private void pruningWithVariousTypesScenario(String dfId) throws Exception {
@@ -329,36 +322,50 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         val sql = "select test_date_enc, count(*) FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
 
-        val and_pruning0 = sql + "where test_date_enc > (Date '2011-01-01') and test_date_enc < (Date '2012-01-01') group by test_date_enc";
-        val and_pruning1 = sql + "where test_date_enc > '2011-01-01' and test_date_enc < '2012-01-01' group by test_date_enc";
+        val and_pruning0 = sql
+                + "where test_date_enc > (Date '2011-01-01') and test_date_enc < (Date '2012-01-01') group by test_date_enc";
+        val and_pruning1 = sql
+                + "where test_date_enc > '2011-01-01' and test_date_enc < '2012-01-01' group by test_date_enc";
 
-        val or_pruning0 = sql + "where test_date_enc > '2012-01-01' or test_date_enc = '2008-01-01' group by test_date_enc";
-        val or_pruning1 = sql + "where test_date_enc < '2011-01-01' or test_date_enc > '2013-01-01' group by test_date_enc";
+        val or_pruning0 = sql
+                + "where test_date_enc > '2012-01-01' or test_date_enc = '2008-01-01' group by test_date_enc";
+        val or_pruning1 = sql
+                + "where test_date_enc < '2011-01-01' or test_date_enc > '2013-01-01' group by test_date_enc";
 
         val pruning0 = sql + "where test_date_enc > '2020-01-01' group by test_date_enc";
         val pruning1 = sql + "where test_date_enc < '2008-01-01' group by test_date_enc";
         val pruning2 = sql + "where test_date_enc = '2012-01-01' group by test_date_enc";
 
-        val not_pruning0 = sql + "where not (test_date_enc < '2011-01-01' or test_date_enc >= '2013-01-01') group by test_date_enc";
+        val not_pruning0 = sql
+                + "where not (test_date_enc < '2011-01-01' or test_date_enc >= '2013-01-01') group by test_date_enc";
         val not_pruning1 = sql + "where not test_date_enc = '2012-01-01' group by test_date_enc";
 
-        val nested_query0 = "with test_order as (select * from \"default\".test_order where test_date_enc > '2012-01-01' and test_date_enc < '2013-01-01')" + sql + "group by test_date_enc";
-        val nested_query1 = "select * from (select * from (" + sql + "where test_date_enc > '2011-01-01' group by test_date_enc) where test_date_enc < '2012-01-01')";
+        val nested_query0 = "with test_order as (select * from \"default\".test_order where test_date_enc > '2012-01-01' and test_date_enc < '2013-01-01')"
+                + sql + "group by test_date_enc";
+        val nested_query1 = "select * from (select * from (" + sql
+                + "where test_date_enc > '2011-01-01' group by test_date_enc) where test_date_enc < '2012-01-01')";
 
         // date functions are not supported yet
-        val date_function_query0 = "select * from (select year(test_date_enc) as test_date_enc_year from (" + sql  + "where test_date_enc > '2011-01-01' and test_date_enc < '2013-01-01' group by test_date_enc)) where test_date_enc_year = '2014'";
+        val date_function_query0 = "select * from (select year(test_date_enc) as test_date_enc_year from (" + sql
+                + "where test_date_enc > '2011-01-01' and test_date_enc < '2013-01-01' group by test_date_enc)) where test_date_enc_year = '2014'";
 
         val between_query0 = sql + "where test_date_enc between '2011-01-01' and '2012-12-31' group by test_date_enc";
 
-        val in_query0 = sql + "where test_date_enc in (Date '2011-06-01', Date '2012-06-01', Date '2012-12-31') group by test_date_enc";
-        val in_query1 = sql + "where test_date_enc in ('2011-06-01', '2012-06-01', '2012-12-31') group by test_date_enc";
-        val not_in_query0 = sql + "where test_date_enc not in (Date '2011-06-01', Date '2012-06-01', Date '2013-06-01') group by test_date_enc";
-        val not_in_query1 = sql + "where test_date_enc not in ('2011-06-01', '2012-06-01', '2013-06-01') group by test_date_enc";
+        val in_query0 = sql
+                + "where test_date_enc in (Date '2011-06-01', Date '2012-06-01', Date '2012-12-31') group by test_date_enc";
+        val in_query1 = sql
+                + "where test_date_enc in ('2011-06-01', '2012-06-01', '2012-12-31') group by test_date_enc";
+        val not_in_query0 = sql
+                + "where test_date_enc not in (Date '2011-06-01', Date '2012-06-01', Date '2013-06-01') group by test_date_enc";
+        val not_in_query1 = sql
+                + "where test_date_enc not in ('2011-06-01', '2012-06-01', '2013-06-01') group by test_date_enc";
 
-        val complex_query0 = sql + "where test_date_enc in ('2011-01-01', '2012-01-01', '2013-01-01', '2014-01-01') and test_date_enc > '2013-01-01' group by test_date_enc";
-        val complex_query1 = sql + "where test_date_enc in (Date '2011-01-01', Date '2012-01-01', Date '2013-01-01', Date '2014-01-01') and test_date_enc > Date '2013-01-01' group by test_date_enc";
+        val complex_query0 = sql
+                + "where test_date_enc in ('2011-01-01', '2012-01-01', '2013-01-01', '2014-01-01') and test_date_enc > '2013-01-01' group by test_date_enc";
+        val complex_query1 = sql
+                + "where test_date_enc in (Date '2011-01-01', Date '2012-01-01', Date '2013-01-01', Date '2014-01-01') and test_date_enc > Date '2013-01-01' group by test_date_enc";
 
-        val expectedRanges = Lists.<Pair<String, String>>newArrayList();
+        val expectedRanges = Lists.<Pair<String, String>> newArrayList();
         val segmentRange1 = Pair.newPair("2009-01-01", "2011-01-01");
         val segmentRange2 = Pair.newPair("2011-01-01", "2013-01-01");
         val segmentRange3 = Pair.newPair("2013-01-01", "2015-01-01");
@@ -395,9 +402,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         expectedRanges.add(segmentRange2);
         assertResultsAndScanFiles(modelId, nested_query0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, nested_query1, 1, false, expectedRanges);
-
         assertResultsAndScanFiles(modelId, between_query0, 1, false, expectedRanges);
-
         assertResultsAndScanFiles(modelId, in_query0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, in_query1, 1, false, expectedRanges);
         expectedRanges.clear();
@@ -416,21 +421,15 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         assertResultsAndScanFiles(modelId, complex_query0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, complex_query1, 1, false, expectedRanges);
 
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("", and_pruning0));
-        query.add(Pair.newPair("", and_pruning1));
-        query.add(Pair.newPair("", or_pruning0));
-        query.add(Pair.newPair("", or_pruning1));
-        query.add(Pair.newPair("", pruning2));
-        query.add(Pair.newPair("", not_pruning0));
-        query.add(Pair.newPair("", not_pruning1));
-        query.add(Pair.newPair("", nested_query0));
-        query.add(Pair.newPair("", nested_query1));
-        query.add(Pair.newPair("", in_query0));
-        query.add(Pair.newPair("", in_query1));
-        query.add(Pair.newPair("", date_function_query0));
-        query.add(Pair.newPair("", complex_query0));
-        query.add(Pair.newPair("", complex_query1));
+        List<Pair<String, String>> query = Lists.newArrayList(//
+                Pair.newPair("", and_pruning0), Pair.newPair("", and_pruning1), //
+                Pair.newPair("", or_pruning0), Pair.newPair("", or_pruning1), //
+                Pair.newPair("", pruning2), //
+                Pair.newPair("", not_pruning0), Pair.newPair("", not_pruning1), //
+                Pair.newPair("", nested_query0), Pair.newPair("", nested_query1), //
+                Pair.newPair("", in_query0), Pair.newPair("", in_query1), //
+                Pair.newPair("", date_function_query0), //
+                Pair.newPair("", complex_query0), Pair.newPair("", complex_query1));
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
 
         // kylin.query.heterogeneous-segment-enabled is turned off
@@ -503,7 +502,8 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         return "file_pruning";
     }
 
-    private long assertResultsAndScanFiles(String modelId, String sql, long numScanFiles, boolean emptyLayout, List<Pair<String, String>> expectedRanges) throws Exception {
+    private long assertResultsAndScanFiles(String modelId, String sql, long numScanFiles, boolean emptyLayout,
+            List<Pair<String, String>> expectedRanges) throws Exception {
         val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
         val context = ContextUtil.listContexts().get(0);
         if (emptyLayout) {
@@ -528,7 +528,8 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         }).get();
     }
 
-    private void assertPrunedSegmentRange(String dfId, List<NDataSegment> prunedSegments, List<Pair<String, String>> expectedRanges) {
+    private void assertPrunedSegmentRange(String dfId, List<NDataSegment> prunedSegments,
+            List<Pair<String, String>> expectedRanges) {
         val model = NDataModelManager.getInstance(getTestConfig(), getProject()).getDataModelDesc(dfId);
         val partitionColDateFormat = model.getPartitionDesc().getPartitionDateFormat();
 

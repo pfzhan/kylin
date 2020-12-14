@@ -60,7 +60,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 /**
  * sql: select sum(price*3) from KYLIN_SALES;
  *
@@ -125,13 +124,14 @@ public class SumBasicOperatorRule extends RelOptRule {
             ContextUtil.dumpCalcitePlan("old plan", oldAgg, logger);
 
             List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(oldAgg, oldProject);
-            Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups =
-                    SumExpressionUtil.collectGroupExprAndGroup(oldAgg, oldProject);
+            Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups = SumExpressionUtil
+                    .collectGroupExprAndGroup(oldAgg, oldProject);
             List<GroupExpression> groupExpressions = groups.getFirst();
             ImmutableList<ImmutableBitSet> newGroupSets = groups.getSecond();
 
             // #1 Build bottom project
-            List<RexNode> bottomProjectList = buildBottomProject(relBuilder, oldProject, groupExpressions, aggExpressions);
+            List<RexNode> bottomProjectList = buildBottomProject(relBuilder, oldProject, groupExpressions,
+                    aggExpressions);
             relBuilder.project(bottomProjectList);
 
             // #2 Build bottom aggregate
@@ -139,13 +139,13 @@ public class SumBasicOperatorRule extends RelOptRule {
             for (SumExpressionUtil.GroupExpression group : groupExpressions) {
                 for (int i = 0; i < group.getBottomAggInput().length; i++) {
                     groupSetBuilder.set(group.getBottomAggInput()[i]);
-            }
+                }
             }
             ImmutableBitSet bottomAggGroupSet = groupSetBuilder.build();
             RelBuilder.GroupKey groupKey = relBuilder.groupKey(bottomAggGroupSet, null);
 
-            List<AggregateCall> bottomAggregates = buildBottomAggregate(relBuilder,
-                    aggExpressions, bottomAggGroupSet.cardinality());
+            List<AggregateCall> bottomAggregates = buildBottomAggregate(relBuilder, aggExpressions,
+                    bottomAggGroupSet.cardinality());
 
             relBuilder.aggregate(groupKey, bottomAggregates);
 
@@ -167,8 +167,8 @@ public class SumBasicOperatorRule extends RelOptRule {
                 topGroupSetBuilder.set(i);
             }
             ImmutableBitSet topGroupSet = topGroupSetBuilder.build();
-            List<AggregateCall> topAggregates = buildTopAggregate(oldAgg.getAggCallList(),
-                    topGroupSet.cardinality(), aggExpressions);
+            List<AggregateCall> topAggregates = buildTopAggregate(oldAgg.getAggCallList(), topGroupSet.cardinality(),
+                    aggExpressions);
             RelBuilder.GroupKey topGroupKey = relBuilder.groupKey(topGroupSet, newGroupSets);
             relBuilder.aggregate(topGroupKey, topAggregates);
 
@@ -181,8 +181,7 @@ public class SumBasicOperatorRule extends RelOptRule {
     }
 
     private List<RexNode> buildBottomProject(RelBuilder relBuilder, Project oldProject,
-                                             List<GroupExpression> groupExpressions,
-                                             List<AggExpression> aggExpressions) {
+            List<GroupExpression> groupExpressions, List<AggExpression> aggExpressions) {
         List<RexNode> bottomProjectList = Lists.newArrayList();
 
         for (GroupExpression groupExpr : groupExpressions) {
@@ -202,7 +201,7 @@ public class SumBasicOperatorRule extends RelOptRule {
                 if (sumExpr.getBottomAggInput().length != 0)
                     sumExpr.getBottomAggInput()[0] = bottomProjectList.size();
                 bottomProjectList.addAll(sumColumn);
-            } else if (sumExpr.getExpression() != null){
+            } else if (sumExpr.getExpression() != null) {
                 sumExpr.getBottomAggInput()[0] = bottomProjectList.size();
                 bottomProjectList.add(sumExpr.getExpression());
             }
@@ -210,9 +209,7 @@ public class SumBasicOperatorRule extends RelOptRule {
         return bottomProjectList;
     }
 
-    private List<AggregateCall> buildBottomAggregate(
-            RelBuilder relBuilder,
-            List<AggExpression> aggExpressions,
+    private List<AggregateCall> buildBottomAggregate(RelBuilder relBuilder, List<AggExpression> aggExpressions,
             int bottomAggOffset) {
         int sumOpIndex = 0;
         List<AggregateCall> bottomAggregates = Lists.newArrayList();
@@ -223,11 +220,12 @@ public class SumBasicOperatorRule extends RelOptRule {
                         "SumBasicOperatorRule only handles aggregation of single source column");
                 String aggName = "SUM_OP$" + (sumOpIndex++);
                 List<Integer> aggList = Lists.newArrayList(aggExpression.getBottomAggInput()[0]);
-                aggCall = AggregateCall.create(SqlStdOperatorTable.SUM, false, false,
-                        aggList, -1, bottomAggOffset, relBuilder.peek(), null, aggName);
+                aggCall = AggregateCall.create(SqlStdOperatorTable.SUM, false, false, aggList, -1, bottomAggOffset,
+                        relBuilder.peek(), null, aggName);
             } else {
                 AggregateCall oldAggCall = aggExpression.getAggCall();
-                List<Integer> args = Arrays.stream(aggExpression.getBottomAggInput()).boxed().collect(Collectors.toList());
+                List<Integer> args = Arrays.stream(aggExpression.getBottomAggInput()).boxed()
+                        .collect(Collectors.toList());
                 int filterArg = oldAggCall.filterArg;
                 aggCall = oldAggCall.copy(args, filterArg);
             }
@@ -238,28 +236,30 @@ public class SumBasicOperatorRule extends RelOptRule {
     }
 
     private List<RexNode> buildTopProjectList(RelBuilder relBuilder, Project oldProject,
-                                              List<AggExpression> aggExpressions, List<GroupExpression> groupExpressions) {
+            List<AggExpression> aggExpressions, List<GroupExpression> groupExpressions) {
         List<RexNode> topProjectList = Lists.newArrayList();
 
         for (GroupExpression groupExpr : groupExpressions) {
-            int[] aggAdjustments = SumExpressionUtil.generateAdjustments(groupExpr.getBottomProjInput(), groupExpr.getTopProjInput());
-            RexNode projectExpr = groupExpr.getExpression().accept(
-                    new RelOptUtil.RexInputConverter(relBuilder.getRexBuilder(), oldProject.getInput().getRowType().getFieldList(),
+            int[] aggAdjustments = SumExpressionUtil.generateAdjustments(groupExpr.getBottomProjInput(),
+                    groupExpr.getTopProjInput());
+            RexNode projectExpr = groupExpr.getExpression()
+                    .accept(new RelOptUtil.RexInputConverter(relBuilder.getRexBuilder(),
+                            oldProject.getInput().getRowType().getFieldList(),
                             relBuilder.peek().getRowType().getFieldList(), aggAdjustments));
-            projectExpr = relBuilder.getRexBuilder().ensureType(groupExpr.getExpression().getType(), projectExpr, false);
+            projectExpr = relBuilder.getRexBuilder().ensureType(groupExpr.getExpression().getType(), projectExpr,
+                    false);
             topProjectList.add(projectExpr);
         }
 
         for (AggExpression sumExpr : aggExpressions) {
-            RexNode rexNode = relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(),
-                    sumExpr.getTopProjInput()[0]);
+            RexNode rexNode = relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(), sumExpr.getTopProjInput()[0]);
             if (checkExpressionSupported(sumExpr)) {
                 RexNode expr = sumExpr.getExpression();
-                int[] adjustments = SumExpressionUtil.generateAdjustments(sumExpr.getBottomProjInput(), sumExpr.getTopProjInput());
+                int[] adjustments = SumExpressionUtil.generateAdjustments(sumExpr.getBottomProjInput(),
+                        sumExpr.getTopProjInput());
                 rexNode = expr.accept(new RelOptUtil.RexInputConverter(relBuilder.getRexBuilder(),
                         oldProject.getInput().getRowType().getFieldList(),
-                        relBuilder.peek().getRowType().getFieldList(),
-                        adjustments));
+                        relBuilder.peek().getRowType().getFieldList(), adjustments));
                 rexNode = relBuilder.getRexBuilder().ensureType(sumExpr.getAggCall().getType(), rexNode, false);
             }
             topProjectList.add(rexNode);
@@ -267,15 +267,16 @@ public class SumBasicOperatorRule extends RelOptRule {
         return topProjectList;
     }
 
-    private List<AggregateCall> buildTopAggregate(List<AggregateCall> oldAggregates,
-                                                  int groupOffset, List<AggExpression> aggExpressions) {
+    private List<AggregateCall> buildTopAggregate(List<AggregateCall> oldAggregates, int groupOffset,
+            List<AggExpression> aggExpressions) {
         List<AggregateCall> topAggregates = Lists.newArrayList();
         for (int aggIndex = 0; aggIndex < oldAggregates.size(); aggIndex++) {
             AggExpression aggExpression = aggExpressions.get(aggIndex);
             AggregateCall aggCall = aggExpression.getAggCall();
             String aggName = "AGG$" + aggIndex;
-            SqlAggFunction aggFunction = SqlKind.COUNT.equals(aggCall.getAggregation().getKind()) ?
-                    SqlStdOperatorTable.SUM : aggCall.getAggregation();
+            SqlAggFunction aggFunction = SqlKind.COUNT.equals(aggCall.getAggregation().getKind())
+                    ? SqlStdOperatorTable.SUM
+                    : aggCall.getAggregation();
             topAggregates.add(AggregateCall.create(aggFunction, false, false,
                     Lists.newArrayList(groupOffset + aggIndex), -1, aggCall.getType(), aggName));
         }
@@ -293,7 +294,6 @@ public class SumBasicOperatorRule extends RelOptRule {
         if (!SumExpressionUtil.isSum(aggType)) {
             return false;
         }
-
 
         if (!(expr instanceof RexCall)) {
             return false;

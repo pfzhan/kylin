@@ -81,9 +81,10 @@ public class MergeSegmentHandler extends AbstractJobHandler {
             if (seg.getSegRange().overlaps(newSegment.getSegRange()) && null == layoutIds) {
                 layoutIds = seg.getLayoutsMap().keySet();
             }
-            if (seg.getSegRange().overlaps(newSegment.getSegRange()) &&
-                    !seg.getLayoutsMap().keySet().equals(layoutIds)) {
-                log.warn("Segment's layout is not matched,segID:{}, {} -> {}", seg.getId(), layoutIds, seg.getLayoutsMap().keySet());
+            if (seg.getSegRange().overlaps(newSegment.getSegRange())
+                    && !seg.getLayoutsMap().keySet().equals(layoutIds)) {
+                log.warn("Segment's layout is not matched,segID:{}, {} -> {}", seg.getId(), layoutIds,
+                        seg.getLayoutsMap().keySet());
                 throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_FAIL());
             }
         }

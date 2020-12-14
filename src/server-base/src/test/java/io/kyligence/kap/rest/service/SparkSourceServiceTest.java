@@ -60,7 +60,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     protected static SparkSession ss;
     private NProjectManager projectManager;
     @InjectMocks
-    private SparkSourceService sparkSourceService = Mockito.spy(new SparkSourceService());
+    private final SparkSourceService sparkSourceService = Mockito.spy(new SparkSourceService());
 
     @Before
     public void setUp() throws Exception {
@@ -68,7 +68,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
         ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
                 "jdbc:derby:memory:db;create=true");
         SparderEnv.setSparkSession(ss);
-        staticCreateTestMetadata();
+        createTestMetadata();
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -88,7 +88,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @After
     public void after() throws Exception {
-        FileUtils.deleteDirectory(new File("metastore_db"));
+        cleanupTestMetadata();
         ss.stop();
     }
 
@@ -151,11 +151,11 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     @Test
     public void testExportTables() throws IOException {
         String expectedTableStructure = "CREATE EXTERNAL TABLE `default`.`hive_bigints`(`id` BIGINT) "
-            + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' "
-            + "WITH SERDEPROPERTIES (   'serialization.format' = '1' ) STORED AS   "
-            + "INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'   "
-            + "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat' "
-            + "LOCATION 'file:/tmp/parquet_data' ";
+                + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' "
+                + "WITH SERDEPROPERTIES (   'serialization.format' = '1' ) STORED AS   "
+                + "INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'   "
+                + "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat' "
+                + "LOCATION 'file:/tmp/parquet_data' ";
         sparkSourceService.executeSQL(
                 "CREATE EXTERNAL TABLE hive_bigints(id bigint)  STORED AS PARQUET LOCATION '/tmp/parquet_data'");
 
@@ -180,6 +180,6 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @Test
     public void testTableExists() throws IOException {
-        Assert.assertEquals(true, sparkSourceService.tableExists("default", "COUNTRY"));
+        Assert.assertTrue(sparkSourceService.tableExists("default", "COUNTRY"));
     }
 }

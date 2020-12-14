@@ -328,7 +328,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
     }
 
-    public static class KafkaOffsetPartitionedSegmentRange extends BasicSegmentRange  {
+    public static class KafkaOffsetPartitionedSegmentRange extends BasicSegmentRange {
 
         @JsonProperty("source_partition_offset_start")
         private Map<Integer, Long> sourcePartitionOffsetStart;
@@ -391,7 +391,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
         @Override
         public boolean overlaps(SegmentRange o) {
-           return false;
+            return false;
         }
 
         @Override

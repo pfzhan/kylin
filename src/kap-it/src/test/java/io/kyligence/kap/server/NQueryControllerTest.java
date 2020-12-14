@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.server;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.io.File;
@@ -61,7 +61,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         sqlRequest.setProject("default");
         sqlRequest.setSql("-- This is comment" + '\n' + "SELECT * FROM TEST_KYLIN_FACT");
         sqlRequest.setUser_defined_tag("user_tag");
-        System.setProperty("kylin.query.pushdown-enabled", "false");
+        overwriteSystemProp("kylin.query.pushdown-enabled", "false");
 
         final MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
@@ -76,7 +76,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage")
                 .read(result.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
-        System.clearProperty("kylin.query.pushdown-enabled");
     }
 
     @Test
@@ -98,21 +97,21 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testPushDownQuery() throws Exception {
-        System.setProperty("kylin.query.pushdown.runner-class-name",
+        overwriteSystemProp("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        System.setProperty("kylin.query.pushdown-enabled", "true");
-        System.setProperty("kylin.query.pushdown.cache-enabled", "true");
-        System.setProperty("kylin.query.cache-threshold-duration", "0");
+        overwriteSystemProp("kylin.query.pushdown-enabled", "true");
+        overwriteSystemProp("kylin.query.pushdown.cache-enabled", "true");
+        overwriteSystemProp("kylin.query.cache-threshold-duration", "0");
 
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.username", "sa");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.password", "");
 
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("default");
@@ -148,14 +147,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andDo(MockMvcResultHandlers.print()).andReturn();
 
         h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.runner-class-name");
-        System.clearProperty("kylin.query.pushdown.converter-class-names");
-        System.clearProperty("kylin.query.pushdown-enabled");
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
-        System.clearProperty("kylin.query.pushdown.cache-enabled");
     }
 
     @Test

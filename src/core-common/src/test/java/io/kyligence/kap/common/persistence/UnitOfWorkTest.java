@@ -76,8 +76,10 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         try {
             val ret = UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                resourceStore.checkAndPutResource("/_global/path/to/res", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore.checkAndPutResource("/_global/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore.checkAndPutResource("/_global/path/to/res", ByteStreams.asByteSource("{}".getBytes()),
+                        -1L);
+                resourceStore.checkAndPutResource("/_global/path/to/res2", ByteStreams.asByteSource("{}".getBytes()),
+                        -1L);
                 throw new IllegalArgumentException("surprise");
             }, UnitOfWork.GLOBAL_UNIT);
         } catch (Exception ignore) {
@@ -148,9 +150,12 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
             resourceStore.checkAndPutResource("/_global/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore2 = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                resourceStore2.checkAndPutResource("/_global/path2/to/res2/1", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore2.checkAndPutResource("/_global/path2/to/res2/2", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore2.checkAndPutResource("/_global/path2/to/res2/3", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/_global/path2/to/res2/1",
+                        ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/_global/path2/to/res2/2",
+                        ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/_global/path2/to/res2/3",
+                        ByteStreams.asByteSource("{}".getBytes()), -1L);
                 Assert.assertEquals(resourceStore, resourceStore2);
                 return 0;
             }, UnitOfWork.GLOBAL_UNIT);
@@ -173,29 +178,26 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         resourceStore.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
         Object condition = new Object();
         AtomicBoolean stop = new AtomicBoolean();
-        Thread readLockHelder = new Thread(
-            () -> {
-                UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
-                    .readonly(true).maxRetry(1).processor(
-                        () -> {
+        Thread readLockHelder = new Thread(() -> {
+            UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(true).maxRetry(1).processor(() -> {
+                        synchronized (condition) {
+                            condition.notify();
+                        }
+                        boolean interrupted = false;
+                        while (!interrupted && !Thread.interrupted() && !stop.get()) {
                             synchronized (condition) {
-                              condition.notify();
+                                condition.notify();
                             }
-                            boolean interrupted = false;
-                            while (!interrupted && !Thread.interrupted() && !stop.get()) {
-                                synchronized (condition) {
-                                    condition.notify();
-                                }
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    interrupted = true;
-                                }
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                interrupted = true;
                             }
-                            return 0;
-                        }).build());
-            }
-        );
+                        }
+                        return 0;
+                    }).build());
+        });
         readLockHelder.start();
         synchronized (condition) {
             try {
@@ -210,31 +212,29 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
                     .readonly(true).maxRetry(1).processor(() -> {
                         long cost = System.currentTimeMillis() - readStart;
                         Assert.assertTrue(cost < 500);
-                        Assert.assertEquals(0,
-                                ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource("/_global/path/to/res1").getMvcc());
+                        Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                                .getResource("/_global/path/to/res1").getMvcc());
                         return 0;
                     }).build());
         } catch (Exception e) {
             Assert.fail();
         }
-        new Thread(
-                () -> {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    stop.set(true);
-                }
-        ).start();
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            stop.set(true);
+        }).start();
         long writeStart = System.currentTimeMillis();
         try {
             UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
                     .readonly(false).maxRetry(1).processor(() -> {
                         long cost = System.currentTimeMillis() - writeStart;
                         Assert.assertTrue(cost > 1500);
-                        Assert.assertEquals(0,
-                                ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource("/_global/path/to/res1").getMvcc());
+                        Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                                .getResource("/_global/path/to/res1").getMvcc());
                         return 0;
                     }).build());
         } catch (Exception e) {
@@ -247,34 +247,33 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testWriteLockExclusive() {
         Object condition = new Object();
         AtomicBoolean stop = new AtomicBoolean();
-        Thread writeLockHelder = new Thread(
-            () -> {
-                UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
-                    .readonly(false).maxRetry(1).processor(
-                        () -> {
-                            val resourceStoreInTransaction = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                            resourceStoreInTransaction.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+        Thread writeLockHelder = new Thread(() -> {
+            UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(false).maxRetry(1).processor(() -> {
+                        val resourceStoreInTransaction = ResourceStore
+                                .getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                        resourceStoreInTransaction.checkAndPutResource("/_global/path/to/res1",
+                                ByteStreams.asByteSource("{}".getBytes()), -1L);
+                        synchronized (condition) {
+                            condition.notify();
+                        }
+                        boolean interrupted = false;
+                        while (!interrupted && !Thread.interrupted() && !stop.get()) {
                             synchronized (condition) {
                                 condition.notify();
                             }
-                            boolean interrupted = false;
-                            while (!interrupted && !Thread.interrupted() && !stop.get()) {
-                                synchronized (condition) {
-                                    condition.notify();
-                                }
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    interrupted = true;
-                                }
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                interrupted = true;
                             }
-                            synchronized (condition) {
-                                condition.notify();
-                            }
-                            return 0;
-                        }).build());
-            }
-        );
+                        }
+                        synchronized (condition) {
+                            condition.notify();
+                        }
+                        return 0;
+                    }).build());
+        });
         writeLockHelder.start();
         synchronized (condition) {
             try {
@@ -283,26 +282,24 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
                 e.printStackTrace();
             }
         }
-        new Thread(
-            () -> {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                stop.set(true);
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        ).start();
+            stop.set(true);
+        }).start();
         long start = System.currentTimeMillis();
         try {
             UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
-                .readonly(true).maxRetry(1).processor(() -> {
-                    long cost = System.currentTimeMillis() - start;
-                    Assert.assertTrue(cost > 1500);
-                    Assert.assertEquals(0,
-                            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource("/_global/path/to/res1").getMvcc());
-                    return 0;
-                }).build());
+                    .readonly(true).maxRetry(1).processor(() -> {
+                        long cost = System.currentTimeMillis() - start;
+                        Assert.assertTrue(cost > 1500);
+                        Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                                .getResource("/_global/path/to/res1").getMvcc());
+                        return 0;
+                    }).build());
         } catch (Exception e) {
             Assert.fail();
         }
@@ -312,43 +309,40 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateInReadTransaction() {
         try {
-            System.setProperty("kylin.env", "PROD");
-            UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
-                        .readonly(true).maxRetry(1).processor(() -> {
-                    val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                    resourceStore.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                    return 0;
-                }).build());
+            overwriteSystemProp("kylin.env", "PROD");
+            UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
+                    .readonly(true).maxRetry(1).processor(() -> {
+                        val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                        resourceStore.checkAndPutResource("/_global/path/to/res1",
+                                ByteStreams.asByteSource("{}".getBytes()), -1L);
+                        return 0;
+                    }).build());
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals(TransactionException.class, e.getClass());
-        } finally {
-            System.clearProperty("kylin.env");
         }
     }
 
     @Test
     public void testReadTransaction() {
-        ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
-                .checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+        ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource("/_global/path/to/res1",
+                ByteStreams.asByteSource("{}".getBytes()), -1L);
         UnitOfWork.doInTransactionWithRetry(
-            UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
-                    .readonly(true).maxRetry(1).processor(() -> {
-                val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res1").getMvcc());
-                return 0;
-            }).build());
+                UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT).readonly(true).maxRetry(1).processor(() -> {
+                    val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    Assert.assertEquals(0, resourceStore.getResource("/_global/path/to/res1").getMvcc());
+                    return 0;
+                }).build());
     }
 
     @Test
     public void testWriteTransaction() {
 
-        UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT)
-                        .readonly(false).maxRetry(1).processor(() -> {
+        UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT).readonly(false)
+                .maxRetry(1).processor(() -> {
                     val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                    resourceStore.checkAndPutResource("/_global/path/to/res1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                    resourceStore.checkAndPutResource("/_global/path/to/res1",
+                            ByteStreams.asByteSource("{}".getBytes()), -1L);
                     return 0;
                 }).build());
         Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())

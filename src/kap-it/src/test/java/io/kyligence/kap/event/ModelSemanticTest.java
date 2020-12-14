@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.event;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -58,6 +58,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -97,12 +98,11 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
+                TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @AfterClass
@@ -115,9 +115,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @Before
     public void setupHandlers() {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "3");
-        System.setProperty("kylin.job.event.poll-interval-second", "1");
-        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "3");
+        overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.spark.build-class-name",
+                "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         NDefaultScheduler.destroyInstance();
         val scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()));
@@ -161,9 +162,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     @After
     public void tearDown() throws IOException {
         NDefaultScheduler.getInstance(getProject()).shutdown();
-        System.clearProperty("kylin.job.event.poll-interval-second");
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.engine.spark.build-class-name");
         super.tearDown();
     }
 

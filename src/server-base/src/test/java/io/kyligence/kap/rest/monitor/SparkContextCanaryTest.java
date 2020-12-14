@@ -23,19 +23,20 @@
  */
 package io.kyligence.kap.rest.monitor;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
 public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
         this.createTestMetadata();
-        System.setProperty("spark.local", "true");
+        overwriteSystemProp("spark.local", "true");
         SparderEnv.init();
     }
 
@@ -43,7 +44,6 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
     public void after() {
         this.cleanupTestMetadata();
         SparderEnv.getSparkSession().stop();
-        System.clearProperty("spark.local");
     }
 
     @Test
@@ -71,7 +71,7 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         // set kylin.canary.sqlcontext-error-response-ms to 1
         // And SparkContextCanary numberCount will timeout
         Assert.assertEquals(0, SparkContextCanary.getErrorAccumulated());
-        System.setProperty("kylin.canary.sqlcontext-error-response-ms", "1");
+        overwriteSystemProp("kylin.canary.sqlcontext-error-response-ms", "1");
         SparkContextCanary.monitor();
 
         // errorAccumulated increase
@@ -84,8 +84,5 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, SparkContextCanary.getErrorAccumulated());
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
-
-        System.clearProperty("kylin.canary.sqlcontext-error-response-ms");
-
     }
 }

@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.tool;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,6 +31,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.TreeMap;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class DumpHadoopSystemPropsTest {
 
@@ -50,7 +50,8 @@ public class DumpHadoopSystemPropsTest {
         System.setProperty("mapreduce.system.unique", "test");
 
         String propsURL = mockTempPropsFile().getAbsolutePath();
-        TreeMap<String, String> propsMap = (TreeMap<String, String>) diffSystemProps.invoke(new DumpHadoopSystemProps(), propsURL);
+        TreeMap<String, String> propsMap = (TreeMap<String, String>) diffSystemProps.invoke(new DumpHadoopSystemProps(),
+                propsURL);
         Assert.assertEquals(2, propsMap.size());
         Assert.assertEquals("mapred.same.key", propsMap.firstKey());
         Assert.assertEquals("value2", propsMap.firstEntry().getValue());
@@ -60,19 +61,22 @@ public class DumpHadoopSystemPropsTest {
         Method diffSystemEnvs = DumpHadoopSystemProps.class.getDeclaredMethod("diffSystemEnvs", String.class);
         diffSystemEnvs.setAccessible(true);
         String envsURL = mockTempEnvFile().getAbsolutePath();
-        TreeMap<String, String> envsMap = (TreeMap<String, String>) diffSystemEnvs.invoke(new DumpHadoopSystemProps(), envsURL);
+        TreeMap<String, String> envsMap = (TreeMap<String, String>) diffSystemEnvs.invoke(new DumpHadoopSystemProps(),
+                envsURL);
         Assert.assertEquals(1, envsMap.size());
         Assert.assertEquals("mapred.map.child.env", envsMap.firstKey());
         Assert.assertEquals("myenv", envsMap.firstEntry().getValue());
 
         // test output() function
-        Method output = DumpHadoopSystemProps.class.getDeclaredMethod("output", TreeMap.class, TreeMap.class, File.class);
+        Method output = DumpHadoopSystemProps.class.getDeclaredMethod("output", TreeMap.class, TreeMap.class,
+                File.class);
         output.setAccessible(true);
         File tempFile = File.createTempFile("systemProps", ".tmp");
         output.invoke(new DumpHadoopSystemProps(), propsMap, envsMap, tempFile);
         BufferedReader in = new BufferedReader(new FileReader(tempFile));
         Assert.assertEquals("export mapred.map.child.env=myenv", in.readLine());
-        Assert.assertEquals("export kylin_hadoop_opts=\" -Dmapred.same.key=value2  -Dmapred.tip.id=10 \"", in.readLine());
+        Assert.assertEquals("export kylin_hadoop_opts=\" -Dmapred.same.key=value2  -Dmapred.tip.id=10 \"",
+                in.readLine());
         Assert.assertEquals("rm -f " + tempFile.getAbsolutePath(), in.readLine());
 
         in.close();

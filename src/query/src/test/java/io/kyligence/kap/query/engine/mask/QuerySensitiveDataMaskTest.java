@@ -45,30 +45,27 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         this.createTestMetadata();
         SensitiveDataMaskInfo maskInfo = new SensitiveDataMaskInfo();
-        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT", Lists.newArrayList(
-                new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.DEFAULT)
-        ));
-        maskInfo.addMasks("DEFAULT", "TEST_ACCOUNT", Lists.newArrayList(
-                new SensitiveDataMask("ACCOUNT_ID", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("ACCOUNT_BUYER_LEVEL", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("ACCOUNT_SELLER_LEVEL", SensitiveDataMask.MaskType.AS_NULL),
-                new SensitiveDataMask("ACCOUNT_CONTACT", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("ACCOUNT_COUNTRY", SensitiveDataMask.MaskType.DEFAULT)
-        ));
-        maskInfo.addMasks("DEFAULT", "TEST_MEASURE", Lists.newArrayList(
-                new SensitiveDataMask("ID1", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("ID4", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("PRICE1", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("PRICE2", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("PRICE3", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("PRICE5", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("PRICE6", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("PRICE7", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("NAME1", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("NAME2", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("TIME1", SensitiveDataMask.MaskType.DEFAULT),
-                new SensitiveDataMask("TIME2", SensitiveDataMask.MaskType.DEFAULT)
-        ));
+        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT",
+                Lists.newArrayList(new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.DEFAULT)));
+        maskInfo.addMasks("DEFAULT", "TEST_ACCOUNT",
+                Lists.newArrayList(new SensitiveDataMask("ACCOUNT_ID", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("ACCOUNT_BUYER_LEVEL", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("ACCOUNT_SELLER_LEVEL", SensitiveDataMask.MaskType.AS_NULL),
+                        new SensitiveDataMask("ACCOUNT_CONTACT", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("ACCOUNT_COUNTRY", SensitiveDataMask.MaskType.DEFAULT)));
+        maskInfo.addMasks("DEFAULT", "TEST_MEASURE",
+                Lists.newArrayList(new SensitiveDataMask("ID1", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("ID4", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("PRICE1", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("PRICE2", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("PRICE3", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("PRICE5", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("PRICE6", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("PRICE7", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("NAME1", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("NAME2", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("TIME1", SensitiveDataMask.MaskType.DEFAULT),
+                        new SensitiveDataMask("TIME2", SensitiveDataMask.MaskType.DEFAULT)));
         mask = new QuerySensitiveDataMask("DEFAULT", maskInfo);
     }
 
@@ -80,13 +77,12 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSetMultiMask() {
         SensitiveDataMaskInfo maskInfo = new SensitiveDataMaskInfo();
-        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT", Lists.newArrayList(
-                new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.AS_NULL)
-        ));
-        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT", Lists.newArrayList(
-                new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.DEFAULT)
-        ));
-        Assert.assertEquals(SensitiveDataMask.MaskType.DEFAULT, maskInfo.getMask("DEFAULT", "TEST_KYLIN_FACT", "PRICE").getType());
+        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT",
+                Lists.newArrayList(new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.AS_NULL)));
+        maskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT",
+                Lists.newArrayList(new SensitiveDataMask("PRICE", SensitiveDataMask.MaskType.DEFAULT)));
+        Assert.assertEquals(SensitiveDataMask.MaskType.DEFAULT,
+                maskInfo.getMask("DEFAULT", "TEST_KYLIN_FACT", "PRICE").getType());
     }
 
     @Test
@@ -98,7 +94,8 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
 
         mask.doSetRootRelNode(relNode);
         mask.init();
-        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, null, SensitiveDataMask.MaskType.DEFAULT, null};
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] { SensitiveDataMask.MaskType.DEFAULT,
+                null, SensitiveDataMask.MaskType.DEFAULT, null };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 
@@ -111,7 +108,8 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
 
         mask.doSetRootRelNode(relNode);
         mask.init();
-        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, null};
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] { SensitiveDataMask.MaskType.DEFAULT,
+                null };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 
@@ -124,7 +122,8 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
 
         mask.doSetRootRelNode(relNode);
         mask.init();
-        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, SensitiveDataMask.MaskType.DEFAULT};
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] { SensitiveDataMask.MaskType.DEFAULT,
+                SensitiveDataMask.MaskType.DEFAULT };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 
@@ -137,7 +136,8 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
 
         mask.doSetRootRelNode(relNode);
         mask.init();
-        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, SensitiveDataMask.MaskType.DEFAULT, null};
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] { SensitiveDataMask.MaskType.DEFAULT,
+                SensitiveDataMask.MaskType.DEFAULT, null };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 
@@ -150,22 +150,24 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
 
         mask.doSetRootRelNode(relNode);
         mask.init();
-        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, SensitiveDataMask.MaskType.DEFAULT, null};
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] { SensitiveDataMask.MaskType.DEFAULT,
+                SensitiveDataMask.MaskType.DEFAULT, null };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 
     @Test
     public void testWindow() throws SqlParseException {
-        String sql = "SELECT SUM(PRICE) OVER (PARTITION BY SELLER_ID ORDER BY TRANS_ID) AS ROW_NUM, " +
-                "COUNT(1) OVER (PARTITION BY CAL_DT ORDER BY TRANS_ID) AS ROW_NUM, TRANS_ID, SELLER_ID " +
-                "FROM TEST_KYLIN_FACT";
+        String sql = "SELECT SUM(PRICE) OVER (PARTITION BY SELLER_ID ORDER BY TRANS_ID) AS ROW_NUM, "
+                + "COUNT(1) OVER (PARTITION BY CAL_DT ORDER BY TRANS_ID) AS ROW_NUM, TRANS_ID, SELLER_ID "
+                + "FROM TEST_KYLIN_FACT";
 
         QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
         RelNode relNode = queryExec.parseAndOptimize(sql);
 
         mask.doSetRootRelNode(relNode);
         mask.init();
-        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] {SensitiveDataMask.MaskType.DEFAULT, null, null, null};
+        SensitiveDataMask.MaskType[] expected = new SensitiveDataMask.MaskType[] { SensitiveDataMask.MaskType.DEFAULT,
+                null, null, null };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
 }

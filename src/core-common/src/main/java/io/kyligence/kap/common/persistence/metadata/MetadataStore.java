@@ -30,7 +30,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -47,6 +46,7 @@ import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -149,7 +149,8 @@ public abstract class MetadataStore {
                 if (IMMUTABLE_PREFIX.contains(res.getResPath())) {
                     return;
                 }
-                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null, UnitOfWork.DEFAULT_EPOCH_ID);
+                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null,
+                        UnitOfWork.DEFAULT_EPOCH_ID);
             } catch (Exception e) {
                 throw new IllegalArgumentException("put resource " + res.getResPath() + " failed", e);
             }

@@ -60,7 +60,7 @@ public abstract class AbstractJdbcMetadataTestCase extends NLocalFileMetadataTes
         try {
             return EpochStore.getEpochStore(getTestConfig());
         } catch (Exception e) {
-            throw new RuntimeException("cannnot init epoch store!");
+            throw new RuntimeException("cannot init epoch store!");
         }
     }
 }

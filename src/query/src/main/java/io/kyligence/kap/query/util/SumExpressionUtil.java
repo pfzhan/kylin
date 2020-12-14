@@ -24,11 +24,12 @@
 
 package io.kyligence.kap.query.util;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.query.exception.SumExprUnSupportException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
@@ -47,11 +48,12 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.Pair;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.exception.SumExprUnSupportException;
 
 public class SumExpressionUtil {
 
@@ -148,7 +150,6 @@ public class SumExpressionUtil {
             this.bottomAggConditionsInput = newArray(bottomProjConditionsInput.length);
             this.topProjConditionsInput = newArray(bottomProjConditionsInput.length);
         }
-
 
         public List<RexNode> getConditions() {
             return conditions;
@@ -281,11 +282,8 @@ public class SumExpressionUtil {
             return false;
         SqlKind kind = call.getAggregation().getKind();
 
-        return  SqlKind.SUM.equals(kind)
-                || SqlKind.SUM0.equals(kind)
-                || SqlKind.COUNT.equals(kind)
-                || SqlKind.MAX.equals(kind)
-                || SqlKind.MIN.equals(kind);
+        return SqlKind.SUM.equals(kind) || SqlKind.SUM0.equals(kind) || SqlKind.COUNT.equals(kind)
+                || SqlKind.MAX.equals(kind) || SqlKind.MIN.equals(kind);
     }
 
     public static boolean hasSumCaseWhen(AggregateCall call, RexNode expression) {
@@ -295,7 +293,7 @@ public class SumExpressionUtil {
         return false;
     }
 
-    public static  boolean isSum(SqlKind kind){
+    public static boolean isSum(SqlKind kind) {
         return SqlKind.SUM.equals(kind) || SqlKind.SUM0.equals(kind);
     }
 
@@ -404,8 +402,8 @@ public class SumExpressionUtil {
         }
     }
 
-    public static Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>>
-    collectGroupExprAndGroup(Aggregate oldAgg, Project oldProject) {
+    public static Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> collectGroupExprAndGroup(Aggregate oldAgg,
+            Project oldProject) {
         List<GroupExpression> groupExpressions = Lists.newArrayListWithCapacity(oldAgg.getGroupCount());
         Map<Integer, Integer> old2new = Maps.newHashMap();
         for (int groupBy : oldAgg.getGroupSet()) {
@@ -430,11 +428,11 @@ public class SumExpressionUtil {
         return Pair.newPair(groupExpressions, collectGroupSets(oldAgg.getGroupSets(), old2new).orElse(null));
     }
 
-    private static Optional<ImmutableList<ImmutableBitSet>>
-    collectGroupSets(ImmutableList<ImmutableBitSet> oldGroupSets, Map<Integer, Integer> old2new) {
+    private static Optional<ImmutableList<ImmutableBitSet>> collectGroupSets(
+            ImmutableList<ImmutableBitSet> oldGroupSets, Map<Integer, Integer> old2new) {
 
         if (oldGroupSets.size() <= 1) {
-            return  Optional.empty();
+            return Optional.empty();
         }
 
         List<ImmutableBitSet> groupSets = Lists.newArrayListWithCapacity(oldGroupSets.size());
@@ -471,7 +469,6 @@ public class SumExpressionUtil {
         if (!condition)
             throw new SumExprUnSupportException(errorMsg);
     }
-
 
     public static int[] generateAdjustments(int[] src, int[] dst) {
         SumExpressionUtil.assertCondition(src.length == dst.length, "Failed to generate adjustments");

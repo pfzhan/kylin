@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -177,11 +177,9 @@ public class OpenUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
         ManagedUser request = new ManagedUser();
         request.setUsername("u1");
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/user", "u1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user", "u1").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(openUserController).deleteUser(request);

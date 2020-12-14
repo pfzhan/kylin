@@ -43,7 +43,7 @@ public class SegmentHelperTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
 

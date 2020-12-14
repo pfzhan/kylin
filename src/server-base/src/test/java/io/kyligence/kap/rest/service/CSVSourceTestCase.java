@@ -87,10 +87,10 @@ public class CSVSourceTestCase extends ServiceTestBase {
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.username", "sa");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.password", "");
     }
 
     protected void cleanPushdownEnv() throws Exception {
@@ -99,10 +99,6 @@ public class CSVSourceTestCase extends ServiceTestBase {
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 
     public EpochManager spyEpochManager() throws Exception {
@@ -125,8 +121,8 @@ public class CSVSourceTestCase extends ServiceTestBase {
     }
 
     protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        List<AbstractExecutable> runningExecutables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
-                model);
+        List<AbstractExecutable> runningExecutables = NExecutableManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project, model);
         runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
         return runningExecutables;
     }

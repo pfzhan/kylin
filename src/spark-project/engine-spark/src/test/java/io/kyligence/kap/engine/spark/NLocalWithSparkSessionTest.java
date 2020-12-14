@@ -115,12 +115,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.shuffle.detectCorrupt", "false");
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
+                TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @AfterClass
@@ -138,7 +138,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         this.createTestMetadata();
         ExecutableUtils.initJobFactory();
         zkTestServer = new TestingServer(true);
-        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
@@ -146,7 +146,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         this.cleanupTestMetadata();
         if (zkTestServer != null) {
             zkTestServer.close();
-            System.clearProperty("kylin.env.zookeeper-connect-string");
         }
     }
 
@@ -196,29 +195,29 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
         if (type.isIntegerFamily())
             switch (type.getName()) {
-                case "tinyint":
-                    return DataTypes.ByteType;
-                case "smallint":
-                    return DataTypes.ShortType;
-                case "integer":
-                case "int4":
-                    return DataTypes.IntegerType;
-                default:
-                    return DataTypes.LongType;
+            case "tinyint":
+                return DataTypes.ByteType;
+            case "smallint":
+                return DataTypes.ShortType;
+            case "integer":
+            case "int4":
+                return DataTypes.IntegerType;
+            default:
+                return DataTypes.LongType;
             }
 
         if (type.isNumberFamily())
             switch (type.getName()) {
-                case "float":
-                    return DataTypes.FloatType;
-                case "double":
-                    return DataTypes.DoubleType;
-                default:
-                    if (type.getPrecision() == -1 || type.getScale() == -1) {
-                        return DataTypes.createDecimalType(19, 4);
-                    } else {
-                        return DataTypes.createDecimalType(type.getPrecision(), type.getScale());
-                    }
+            case "float":
+                return DataTypes.FloatType;
+            case "double":
+                return DataTypes.DoubleType;
+            default:
+                if (type.getPrecision() == -1 || type.getScale() == -1) {
+                    return DataTypes.createDecimalType(19, 4);
+                } else {
+                    return DataTypes.createDecimalType(type.getPrecision(), type.getScale());
+                }
             }
 
         if (type.isStringFamily())
@@ -258,17 +257,17 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
-                               boolean isAppend) throws Exception {
+            boolean isAppend) throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-                               boolean isAppend) throws Exception {
+            boolean isAppend) throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, prj, isAppend, null);
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-                               boolean isAppend, List<String[]> partitionValues) throws Exception {
+            boolean isAppend, List<String[]> partitionValues) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NDataflow df = dsMgr.getDataflow(cubeName);
@@ -278,7 +277,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, String prj,
-                                boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
+            boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
@@ -286,14 +285,17 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         Set<JobBucket> buckets = Sets.newHashSet();
         if (CollectionUtils.isNotEmpty(partitionValues)) {
             NDataModelManager modelManager = NDataModelManager.getInstance(config, prj);
-            Set<Long> targetPartitions = modelManager.getDataModelDesc(cubeName).getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
+            Set<Long> targetPartitions = modelManager.getDataModelDesc(cubeName).getMultiPartitionDesc()
+                    .getPartitionIdsByValues(partitionValues);
             val bucketStart = new AtomicLong(segment.getMaxBucketId());
             toBuildLayouts.forEach(layout -> {
                 targetPartitions.forEach(partition -> {
-                    buckets.add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition));
+                    buckets.add(
+                            new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition));
                 });
             });
-            dsMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.getSegment(segment.getId()).setMaxBucketId(bucketStart.get()));
+            dsMgr.updateDataflow(df.getId(),
+                    copyForWrite -> copyForWrite.getSegment(segment.getId()).setMaxBucketId(bucketStart.get()));
         }
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), toBuildLayouts, "ADMIN", buckets);
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
@@ -346,7 +348,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                 true);
     }
 
-    public void buildMultiSegmentPartitions(String dfName, String segStart, String segEnd, List<Long> layouts, List<Long> partitionIds) throws Exception {
+    public void buildMultiSegmentPartitions(String dfName, String segStart, String segEnd, List<Long> layouts,
+            List<Long> partitionIds) throws Exception {
         val config = getTestConfig();
         val project = getProject();
         val dfManager = NDataflowManager.getInstance(config, project);
@@ -360,7 +363,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         val dataSegment = dfManager.appendSegment(df, segmentRange, SegmentStatusEnum.NEW, partitionValues);
 
         // build segment with partitions
-        val jobParam = new JobParam(Sets.newHashSet(dataSegment.getId()), Sets.newHashSet(layouts), dfName, "ADMIN", Sets.newHashSet(partitionIds), null);
+        val jobParam = new JobParam(Sets.newHashSet(dataSegment.getId()), Sets.newHashSet(layouts), dfName, "ADMIN",
+                Sets.newHashSet(partitionIds), null);
         jobParam.setJobTypeEnum(JobTypeEnum.INC_BUILD);
         val jobManager = JobManager.getInstance(config, project);
 

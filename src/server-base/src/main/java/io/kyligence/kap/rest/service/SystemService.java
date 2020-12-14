@@ -46,8 +46,8 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.BasicService;
@@ -61,7 +61,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.DestroyProcessUtils;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
@@ -128,7 +128,7 @@ public class SystemService extends BasicService {
         exportFile.mkdirs();
 
         CliCommandExecutor commandExecutor = new CliCommandExecutor();
-        PatternedLogger patternedLogger = new PatternedLogger(logger);
+        val patternedLogger = new BufferedLogger(logger);
 
         String[] arguments;
         // full
@@ -145,7 +145,8 @@ public class SystemService extends BasicService {
         Future task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
-                String finalCommand = String.format("%s/bin/diag.sh %s", KylinConfig.getKylinHome(), StringUtils.join(arguments, " "));
+                String finalCommand = String.format("%s/bin/diag.sh %s", KylinConfig.getKylinHome(),
+                        StringUtils.join(arguments, " "));
                 commandExecutor.execute(finalCommand, patternedLogger, uuid);
 
                 DiagInfo diagInfo = diagMap.getIfPresent(uuid);
@@ -245,7 +246,8 @@ public class SystemService extends BasicService {
     public void updateDiagProgress(DiagProgressRequest diagProgressRequest) {
         DiagInfo diagInfo = diagMap.getIfPresent(diagProgressRequest.getDiagId());
         if (Objects.isNull(diagInfo)) {
-            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), diagProgressRequest.getDiagId()));
+            throw new KylinException(DIAG_UUID_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getINVALID_ID(), diagProgressRequest.getDiagId()));
         }
         diagInfo.setStage(diagProgressRequest.getStage());
         diagInfo.setProgress(diagProgressRequest.getProgress());
@@ -258,6 +260,6 @@ public class SystemService extends BasicService {
         if (diagInfo == null) {
             throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
-        DestroyProcessUtils.destroyProcessByJobId(uuid);
+        EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(uuid));
     }
 }

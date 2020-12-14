@@ -42,11 +42,10 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.rest.request.SnapshotRequest;
-import io.kyligence.kap.rest.service.SnapshotService;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
+import java.util.Set;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -67,9 +66,12 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Set;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Sets;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.SnapshotRequest;
+import io.kyligence.kap.rest.service.SnapshotService;
 
 public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
 
@@ -125,9 +127,10 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
         Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false, 3);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
@@ -159,9 +162,10 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
         Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables, false, 3);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
@@ -205,13 +209,13 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     public void testGetSnapshots() throws Exception {
         String project = "default";
         String table = "";
-        Set<String > statusFilter = Sets.newHashSet();
+        Set<String> statusFilter = Sets.newHashSet();
         String sortBy = "last_modified_time";
         boolean isReversed = true;
-        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, sortBy, isReversed);
+        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, sortBy,
+                isReversed);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, sortBy, isReversed);
     }
@@ -220,14 +224,15 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     public void testGetSnapshotsWithInvalidSortBy() throws Exception {
         String project = "default";
         String table = "";
-        Set<String > statusFilter = Sets.newHashSet();
+        Set<String> statusFilter = Sets.newHashSet();
         String sortBy = "UNKNOWN";
         boolean isReversed = true;
-        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, sortBy, isReversed);
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots")
-                .param("project", project).param("sort_by", sortBy)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+        Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, sortBy,
+                isReversed);
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project).param("sort_by", sortBy)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, sortBy, isReversed);
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -240,8 +245,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         String project = "default";
         Mockito.doAnswer(x -> null).when(snapshotService).getTables(project, "", 0, 10);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots/tables").param("project", project)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSnapshotController).getTables(project, "", 0, 10);
     }
@@ -252,9 +256,8 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         String database = "SSB";
         String table = "";
         Mockito.doAnswer(x -> null).when(snapshotService).getTableNameResponses(project, database, table);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots/tables/more")
-                .param("project", project).param("database", database)
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/snapshots/tables/more").param("project", project)
+                .param("database", database).contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSnapshotController).loadMoreTables(project, table, database, 0, 10);

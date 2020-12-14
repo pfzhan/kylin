@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,13 +49,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.shaded.curator.org.apache.curator.RetryPolicy;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFrameworkFactory;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.imps.CuratorFrameworkState;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
-import io.kyligence.kap.shaded.curator.org.apache.curator.retry.ExponentialBackoffRetry;
-import io.kyligence.kap.shaded.curator.org.apache.curator.utils.ZKPaths;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.zookeeper.KeeperException;
@@ -68,6 +60,14 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.shaded.curator.org.apache.curator.RetryPolicy;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFrameworkFactory;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.imps.CuratorFrameworkState;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
+import io.kyligence.kap.shaded.curator.org.apache.curator.retry.ExponentialBackoffRetry;
+import io.kyligence.kap.shaded.curator.org.apache.curator.utils.ZKPaths;
 
 public class ZKUtil {
     private static final Logger logger = LoggerFactory.getLogger(ZKUtil.class);
@@ -93,27 +93,27 @@ public class ZKUtil {
 
     private static Cache<KylinConfig, CuratorFramework> CACHE = CacheBuilder.newBuilder()
             .removalListener((RemovalNotification<KylinConfig, CuratorFramework> notification) -> {
-                    logger.info("CuratorFramework for zkString " + notification.getKey() + " is removed due to "
-                            + notification.getCause());
-                    CuratorFramework curator = notification.getValue();
-                    try {
-                        if (curator != null) {
-                            curator.close();
-                        }
-                    } catch (Exception ex) {
-                        logger.error("Error at closing " + curator, ex);
+                logger.info("CuratorFramework for zkString " + notification.getKey() + " is removed due to "
+                        + notification.getCause());
+                CuratorFramework curator = notification.getValue();
+                try {
+                    if (curator != null) {
+                        curator.close();
                     }
+                } catch (Exception ex) {
+                    logger.error("Error at closing " + curator, ex);
                 }
-            ).expireAfterWrite(1, TimeUnit.DAYS).build();
+            }).expireAfterWrite(1, TimeUnit.DAYS).build();
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                logger.info("Going to remove {} cached curator clients", CACHE.size());
-                CACHE.invalidateAll();
+            logger.info("Going to remove {} cached curator clients", CACHE.size());
+            CACHE.invalidateAll();
         }));
     }
 
-    public static CuratorFramework getZookeeperClient(KylinConfig config, ConnectionStateListener listener) throws Exception {
+    public static CuratorFramework getZookeeperClient(KylinConfig config, ConnectionStateListener listener)
+            throws Exception {
         if (config == null) {
             throw new IllegalArgumentException("KylinConfig can not be null");
         }
@@ -126,7 +126,8 @@ public class ZKUtil {
         return getZookeeperClient(config, null);
     }
 
-    private static CuratorFramework getZookeeperClient(final KylinConfig config, final RetryPolicy retryPolicy, ConnectionStateListener listener) throws Exception {
+    private static CuratorFramework getZookeeperClient(final KylinConfig config, final RetryPolicy retryPolicy,
+            ConnectionStateListener listener) throws Exception {
         String zkString = getZKConnectString(config);
 
         try {
@@ -153,7 +154,8 @@ public class ZKUtil {
         return config.getZookeeperConnectString();
     }
 
-    private static CuratorFramework newZookeeperClient(String zkString, RetryPolicy retryPolicy, ConnectionStateListener listener) throws Exception {
+    private static CuratorFramework newZookeeperClient(String zkString, RetryPolicy retryPolicy,
+            ConnectionStateListener listener) throws Exception {
         logger.info("zookeeper connection string: {} with namespace {}", zkString, ZK_ROOT);
 
         CuratorFramework instance = getCuratorFramework(zkString, ZK_ROOT, retryPolicy);
@@ -176,7 +178,8 @@ public class ZKUtil {
         return new ExponentialBackoffRetry(baseSleepTimeMs, maxRetries);
     }
 
-    private static synchronized void createzkRootIfNecessary(CuratorFramework instance, String zkString) throws Exception {
+    private static synchronized void createzkRootIfNecessary(CuratorFramework instance, String zkString)
+            throws Exception {
         try {
             RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
             if (instance.checkExists().forPath("/") == null) {

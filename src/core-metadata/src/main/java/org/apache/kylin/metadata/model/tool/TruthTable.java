@@ -83,26 +83,26 @@ public class TruthTable {
 
     private boolean doEval(Expr expr, Input input) {
         switch (expr.operator) {
-            case IDENTITY:
-                return input.getValue(expr);
-            case NOT:
-                return !doEval(expr.exprs[0], input);
-            case AND:
-                for (Expr innerExpr : expr.exprs) {
-                    if (!doEval(innerExpr, input)) {
-                        return false;
-                    }
+        case IDENTITY:
+            return input.getValue(expr);
+        case NOT:
+            return !doEval(expr.exprs[0], input);
+        case AND:
+            for (Expr innerExpr : expr.exprs) {
+                if (!doEval(innerExpr, input)) {
+                    return false;
                 }
-                return true;
-            case OR:
-                for (Expr innerExpr : expr.exprs) {
-                    if (doEval(innerExpr, input)) {
-                        return true;
-                    }
+            }
+            return true;
+        case OR:
+            for (Expr innerExpr : expr.exprs) {
+                if (doEval(innerExpr, input)) {
+                    return true;
                 }
-                return false;
-            default:
-                throw new IllegalStateException("Invalid Operator" + expr.operator);
+            }
+            return false;
+        default:
+            throw new IllegalStateException("Invalid Operator" + expr.operator);
         }
     }
 
@@ -156,7 +156,8 @@ public class TruthTable {
             }
             Map<Expr, Boolean> input = new HashMap<>();
             if (logger.isTraceEnabled()) {
-                logger.trace("Generating next input {}, max inputValues bits {}", Integer.toBinaryString(inputBits), Integer.toBinaryString(inputMax - 1));
+                logger.trace("Generating next input {}, max inputValues bits {}", Integer.toBinaryString(inputBits),
+                        Integer.toBinaryString(inputMax - 1));
             }
             for (int i = 0; i < inputSize; i++) {
                 boolean value = (inputBits & (1 << i)) != 0;
@@ -168,10 +169,7 @@ public class TruthTable {
     }
 
     enum Operator {
-        AND,
-        OR,
-        NOT,
-        IDENTITY
+        AND, OR, NOT, IDENTITY
     }
 
     private static class Expr<T> {
@@ -199,9 +197,8 @@ public class TruthTable {
             }
 
             Expr that = (Expr) obj;
-            if (!(operator == that.operator &&
-                    exprs.length == that.exprs.length &&
-                    operandComparator.compare(operandRef, (T) that.operandRef) == 0)) {
+            if (!(operator == that.operator && exprs.length == that.exprs.length
+                    && operandComparator.compare(operandRef, (T) that.operandRef) == 0)) {
                 return false;
             }
             for (int i = 0; i < exprs.length; i++) {
@@ -226,20 +223,14 @@ public class TruthTable {
 
         @Override
         public String toString() {
-            return "Expr{" +
-                    "operator=" + operator +
-                    ", exprs=" + Arrays.toString(exprs) +
-                    ", operandRef=" + operandRef +
-                    '}';
+            return "Expr{" + "operator=" + operator + ", exprs=" + Arrays.toString(exprs) + ", operandRef=" + operandRef
+                    + '}';
         }
     }
 
     @Override
     public String toString() {
-        return "TruthTable{" +
-                "allOperands=" + allOperands +
-                ", expr=" + expr +
-                '}';
+        return "TruthTable{" + "allOperands=" + allOperands + ", expr=" + expr + '}';
     }
 
     public static class TruthTableBuilder<T> extends ExprBuilder<T> {
@@ -272,7 +263,8 @@ public class TruthTable {
         }
 
         public ExprBuilder compositeEnd() {
-            Expr<T> composited = new Expr<>(operatorStack.pop(), exprsStack.pop().toArray(new Expr[0]), operandComparator);
+            Expr<T> composited = new Expr<>(operatorStack.pop(), exprsStack.pop().toArray(new Expr[0]),
+                    operandComparator);
             exprsStack.peek().add(composited);
             return this;
         }

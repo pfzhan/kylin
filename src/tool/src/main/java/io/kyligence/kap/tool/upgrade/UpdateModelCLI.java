@@ -23,17 +23,15 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
-import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
-import io.kyligence.kap.tool.OptionBuilder;
-import lombok.extern.slf4j.Slf4j;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.TABLE_INDEX_START_ID;
+import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -41,14 +39,18 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
 
-import static io.kyligence.kap.metadata.cube.model.IndexEntity.TABLE_INDEX_START_ID;
-import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
+import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 4.1 -> 4.2

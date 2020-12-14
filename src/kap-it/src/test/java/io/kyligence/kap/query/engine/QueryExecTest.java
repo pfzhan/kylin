@@ -23,7 +23,8 @@
  */
 package io.kyligence.kap.query.engine;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.sql.SQLException;
+
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
@@ -34,7 +35,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.SQLException;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class QueryExecTest extends NLocalFileMetadataTestCase {
 
@@ -42,12 +43,12 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        staticCreateTestMetadata();
+        createTestMetadata();
     }
 
     @After
     public void teardown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     private Dataset<Row> check(String SQL) throws SQLException {
@@ -69,10 +70,9 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
         // Can not reproduce https://github.com/Kyligence/KAP/issues/15261 at 4.x
         // we needn't introduce KapAggregateReduceFunctionsRule as we did in 3.x
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
-        String SQL =
-                "select sum(t.a1 * 2)  from (" +
-                   "select sum(price/2) as a1, sum(ITEM_COUNT) as a2 from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME" +
-                ") t";
+        String SQL = "select sum(t.a1 * 2)  from ("
+                + "select sum(price/2) as a1, sum(ITEM_COUNT) as a2 from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"
+                + ") t";
         Assert.assertNotNull(check(SQL));
     }
 
@@ -89,17 +89,13 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSumCaseWhenHasNull() throws SQLException {
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
-        String SQLWithZero =
-                "select CAL_DT,\n" +
-                        "       sum(case when LSTG_FORMAT_NAME in ('ABIN', 'XYZ') then 2 else 0 end)\n" +
-                        "from TEST_KYLIN_FACT\n" +
-                        "group by CAL_DT";
+        String SQLWithZero = "select CAL_DT,\n"
+                + "       sum(case when LSTG_FORMAT_NAME in ('ABIN', 'XYZ') then 2 else 0 end)\n"
+                + "from TEST_KYLIN_FACT\n" + "group by CAL_DT";
         check(SQLWithZero);
-        String SQLWithNull =
-                "select CAL_DT,\n" +
-                        "       sum(case when LSTG_FORMAT_NAME in ('ABIN', 'XYZ') then 2 else null end)\n" +
-                        "from TEST_KYLIN_FACT\n" +
-                        "group by CAL_DT";
+        String SQLWithNull = "select CAL_DT,\n"
+                + "       sum(case when LSTG_FORMAT_NAME in ('ABIN', 'XYZ') then 2 else null end)\n"
+                + "from TEST_KYLIN_FACT\n" + "group by CAL_DT";
         check(SQLWithNull);
     }
 }

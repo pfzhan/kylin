@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.io.IOException;
 
@@ -127,7 +127,8 @@ public class AclTCRControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.doReturn(true).when(userService).userExists(Mockito.anyString());
         Mockito.doReturn(true).when(userGroupService).exists(Mockito.anyString());
-        Mockito.doReturn(true).when(accessService).hasProjectPermission(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean());
+        Mockito.doReturn(true).when(accessService).hasProjectPermission(Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyBoolean());
 
         Mockito.doNothing().when(aclTCRService).updateAclTCR(Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyBoolean(), Mockito.anyList());

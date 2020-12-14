@@ -38,7 +38,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -49,15 +49,13 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        System.setProperty(Constants.KE_LICENSE_VOLUME, Constants.UNLIMITED);
-        System.setProperty("kylin.env", "DEV");
+        overwriteSystemProp(Constants.KE_LICENSE_VOLUME, Constants.UNLIMITED);
+        overwriteSystemProp("kylin.env", "DEV");
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
-        System.clearProperty(Constants.KE_LICENSE_VOLUME);
-        System.clearProperty("kylin.env");
     }
 
     @Rule

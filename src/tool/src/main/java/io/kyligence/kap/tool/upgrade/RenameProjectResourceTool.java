@@ -75,6 +75,7 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -90,7 +91,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import io.kyligence.kap.tool.OptionBuilder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

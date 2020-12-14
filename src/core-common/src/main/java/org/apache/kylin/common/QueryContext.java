@@ -42,10 +42,6 @@
 
 package org.apache.kylin.common;
 
-import com.alibaba.ttl.TransmittableThreadLocal;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -55,11 +51,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
+
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Holds per query information and statistics.
  */
 public class QueryContext implements Closeable {
-
 
     public static final String PUSHDOWN_RDBMS = "RDBMS";
     public static final String PUSHDOWN_HIVE = "HIVE";

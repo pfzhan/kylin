@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.util.ArrayList;
@@ -200,7 +200,8 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         accessRequest.setSid(sid);
         List<AccessRequest> requests = Lists.newArrayList(accessRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}/deletion", type, uuid)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(requests)).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(requests))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nAccessController).deleteAces(type, uuid, requests);
     }
@@ -212,16 +213,10 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(list).when(projectService).getReadableProjects("default", true);
         Mockito.doReturn(new HashSet<>()).when(accessService).getProjectAdminUsers("default");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/available/{entity_type:.+}", type)
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("model", uuid)
-                .param("name", "")
-                .param("is_case_sensitive", "false")
-                .param("page_offset", "0")
-                .param("page_size", "10")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()
-        );
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("model", uuid)
+                .param("name", "").param("is_case_sensitive", "false").param("page_offset", "0")
+                .param("page_size", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nAccessController).getAvailableUsers(type, "default", uuid, "", false, 0, 10);
     }
@@ -237,34 +232,20 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(new HashSet<>()).when(accessService).getProjectManagementUsers("default");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/available/{entity_type:.+}", type)
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("model", uuid)
-                .param("name", "")
-                .param("is_case_sensitive", "false")
-                .param("page_offset", "0")
-                .param("page_size", "10")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()
-                );
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("model", uuid)
+                .param("name", "").param("is_case_sensitive", "false").param("page_offset", "0")
+                .param("page_size", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nAccessController).getAvailableUsers(type, "default", uuid, "",
-                false, 0, 10);
-
+        Mockito.verify(nAccessController).getAvailableUsers(type, "default", uuid, "", false, 0, 10);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/available/{entity_type:.+}", type)
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("model", UUID.randomUUID().toString())
-                .param("name", "")
-                .param("is_case_sensitive", "false")
-                .param("page_offset", "0")
-                .param("page_size", "10")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("model", UUID.randomUUID().toString()).param("name", "").param("is_case_sensitive", "false")
+                .param("page_offset", "0").param("page_size", "10")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()
-                );
-        Mockito.verify(nAccessController).getAvailableUsers(type, "default", uuid, "",
-                false, 0, 10);
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nAccessController).getAvailableUsers(type, "default", uuid, "", false, 0, 10);
     }
 
     private void testGrantPermissionForUser(String sid, String expectedMsg) throws Exception {

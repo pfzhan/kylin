@@ -66,7 +66,7 @@ import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
@@ -78,9 +78,10 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("kylin.job.event.poll-interval-second", "1");
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "2");
-        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        overwriteSystemProp("kylin.job.event.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "2");
+        overwriteSystemProp("kylin.engine.spark.build-class-name",
+                "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         this.createTestMetadata();
         NDefaultScheduler.destroyInstance();
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
@@ -97,10 +98,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     public void tearDown() throws Exception {
         NDefaultScheduler.destroyInstance();
         this.cleanupTestMetadata();
-        System.clearProperty("kylin.job.event.poll-interval-second");
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.engine.spark.build-class-name");
-
     }
 
     @Test
@@ -246,11 +243,9 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val dataflowManager = NDataflowManager.getInstance(testConfig, DEFAULT_PROJECT);
         val indexManager = NIndexPlanManager.getInstance(testConfig, DEFAULT_PROJECT);
         // offline model forcely
-        indexManager.updateIndexPlan(modelId, copyForWrite ->
-                copyForWrite.getOverrideProps().put(KylinConfig.MODEL_OFFLINE_FLAG, "true")
-        );
-        dataflowManager.updateDataflow(modelId,
-                copyForWrite -> copyForWrite.setStatus(ONLINE));
+        indexManager.updateIndexPlan(modelId,
+                copyForWrite -> copyForWrite.getOverrideProps().put(KylinConfig.MODEL_OFFLINE_FLAG, "true"));
+        dataflowManager.updateDataflow(modelId, copyForWrite -> copyForWrite.setStatus(ONLINE));
         prepareFirstSegment(modelId);
         val df2 = dataflowManager.getDataflow(modelId);
         Assert.assertEquals(df2.getStatus(), OFFLINE);
@@ -267,12 +262,12 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
-        val sql1 = new String[]{"select TEST_ORDER.ORDER_ID,BUYER_ID from \"DEFAULT\".TEST_ORDER " +
-                "left join \"DEFAULT\".TEST_KYLIN_FACT on TEST_ORDER.ORDER_ID=TEST_KYLIN_FACT.ORDER_ID " +
-                "and BUYER_ID>=SELLER_ID and BUYER_ID<LEAF_CATEG_ID " +
-                "group by TEST_ORDER.ORDER_ID,BUYER_ID"};
+        val sql1 = new String[] { "select TEST_ORDER.ORDER_ID,BUYER_ID from \"DEFAULT\".TEST_ORDER "
+                + "left join \"DEFAULT\".TEST_KYLIN_FACT on TEST_ORDER.ORDER_ID=TEST_KYLIN_FACT.ORDER_ID "
+                + "and BUYER_ID>=SELLER_ID and BUYER_ID<LEAF_CATEG_ID " //
+                + "group by TEST_ORDER.ORDER_ID,BUYER_ID" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sql1);
-        val smartMaster = new NSmartMaster(context);
+        val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -285,7 +280,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
         val df = dfManager.getDataflow(model.getId());
         dfManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        val jobId = JobManager.getInstance(getTestConfig(), project).addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
+        val jobId = JobManager.getInstance(getTestConfig(), project)
+                .addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
         waitJobFinish(jobId, 240 * 1000, project);
         Assert.assertEquals(dfManager.getDataflow(model.getId()).getStatus(), OFFLINE);
         scheduler.shutdown();

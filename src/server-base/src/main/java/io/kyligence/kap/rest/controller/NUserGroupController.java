@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
 
@@ -115,8 +115,7 @@ public class NUserGroupController extends NBasicController {
     @GetMapping(value = "/groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<List<String>> listUserAuthorities()
-            throws IOException {
+    public EnvelopeResponse<List<String>> listUserAuthorities() throws IOException {
         List<String> groups = userGroupService.listAllAuthorities();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, groups, "get groups");
     }

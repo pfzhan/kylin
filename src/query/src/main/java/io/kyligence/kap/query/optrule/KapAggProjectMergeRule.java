@@ -54,14 +54,12 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 public class KapAggProjectMergeRule extends RelOptRule {
     public static final KapAggProjectMergeRule AGG_PROJECT_JOIN = new KapAggProjectMergeRule(
             operand(KapAggregateRel.class, operand(KapProjectRel.class, operand(KapJoinRel.class, any()))),
-            RelFactories.LOGICAL_BUILDER, "KapAggProjectMergeRule:agg-project-join"
-    );
+            RelFactories.LOGICAL_BUILDER, "KapAggProjectMergeRule:agg-project-join");
 
     public static final KapAggProjectMergeRule AGG_PROJECT_FILTER_JOIN = new KapAggProjectMergeRule(
-            operand(KapAggregateRel.class, operand(KapProjectRel.class, operand(KapFilterRel.class,
-                    operand(KapJoinRel.class, any())))),
-            RelFactories.LOGICAL_BUILDER, "KapAggProjectMergeRule:agg-project-filter-join"
-    );
+            operand(KapAggregateRel.class,
+                    operand(KapProjectRel.class, operand(KapFilterRel.class, operand(KapJoinRel.class, any())))),
+            RelFactories.LOGICAL_BUILDER, "KapAggProjectMergeRule:agg-project-filter-join");
 
     public KapAggProjectMergeRule(RelOptRuleOperand operand) {
         super(operand);
@@ -109,8 +107,7 @@ public class KapAggProjectMergeRule extends RelOptRule {
         }
     }
 
-    public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
-                                Project project) {
+    public static RelNode apply(RelOptRuleCall call, Aggregate aggregate, Project project) {
         final List<Integer> newKeys = Lists.newArrayList();
         final Map<Integer, Integer> map = new HashMap<>();
         for (int key : aggregate.getGroupSet()) {
@@ -125,13 +122,11 @@ public class KapAggProjectMergeRule extends RelOptRule {
         final ImmutableBitSet newGroupSet = aggregate.getGroupSet().permute(map);
         ImmutableList<ImmutableBitSet> newGroupingSets = null;
         if (aggregate.getGroupType() != Aggregate.Group.SIMPLE) {
-            newGroupingSets =
-                    ImmutableBitSet.ORDERING.immutableSortedCopy(
-                            ImmutableBitSet.permute(aggregate.getGroupSets(), map));
+            newGroupingSets = ImmutableBitSet.ORDERING
+                    .immutableSortedCopy(ImmutableBitSet.permute(aggregate.getGroupSets(), map));
         }
 
-        final ImmutableList.Builder<AggregateCall> aggCalls =
-                ImmutableList.builder();
+        final ImmutableList.Builder<AggregateCall> aggCalls = ImmutableList.builder();
         for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             final ImmutableList.Builder<Integer> newArgs = ImmutableList.builder();
             for (int arg : aggregateCall.getArgList()) {
@@ -143,17 +138,15 @@ public class KapAggProjectMergeRule extends RelOptRule {
                 newArgs.add(((RexInputRef) rex).getIndex());
             }
             int newFilterArg = -1;
-            if (aggregateCall.filterArg >= 0 &&
-                    project.getProjects().get(aggregateCall.filterArg) instanceof RexInputRef) {
+            if (aggregateCall.filterArg >= 0
+                    && project.getProjects().get(aggregateCall.filterArg) instanceof RexInputRef) {
                 newFilterArg = ((RexInputRef) project.getProjects().get(aggregateCall.filterArg)).getIndex();
             }
             aggCalls.add(aggregateCall.copy(newArgs.build(), newFilterArg));
         }
 
-        final Aggregate newAggregate =
-                aggregate.copy(aggregate.getTraitSet(), project.getInput(),
-                        aggregate.indicator, newGroupSet, newGroupingSets,
-                        aggCalls.build());
+        final Aggregate newAggregate = aggregate.copy(aggregate.getTraitSet(), project.getInput(), aggregate.indicator,
+                newGroupSet, newGroupingSets, aggCalls.build());
 
         // Add a project if the group set is not in the same order or
         // contains duplicates.
@@ -165,8 +158,8 @@ public class KapAggProjectMergeRule extends RelOptRule {
         return newRel;
     }
 
-    private static void processNewKeyNotExists(RelBuilder relBuilder, List<Integer> newKeys, ImmutableBitSet newGroupSet,
-                                        Aggregate aggregate, Aggregate newAggregate) {
+    private static void processNewKeyNotExists(RelBuilder relBuilder, List<Integer> newKeys,
+            ImmutableBitSet newGroupSet, Aggregate aggregate, Aggregate newAggregate) {
         if (!newKeys.equals(newGroupSet.asList())) {
             final List<Integer> posList = Lists.newArrayList();
             for (int newKey : newKeys) {
@@ -177,9 +170,8 @@ public class KapAggProjectMergeRule extends RelOptRule {
                     posList.add(aggregate.getGroupCount() + newGroupSet.indexOf(newKey));
                 }
             }
-            for (int i = newAggregate.getGroupCount()
-                    + newAggregate.getIndicatorCount();
-                 i < newAggregate.getRowType().getFieldCount(); i++) {
+            for (int i = newAggregate.getGroupCount() + newAggregate.getIndicatorCount(); i < newAggregate.getRowType()
+                    .getFieldCount(); i++) {
                 posList.add(i);
             }
             relBuilder.project(relBuilder.fields(posList));

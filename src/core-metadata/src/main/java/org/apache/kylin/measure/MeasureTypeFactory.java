@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -189,7 +188,7 @@ abstract public class MeasureTypeFactory<T> {
         MeasureType<?> type = factory.createMeasureType(factory.getAggrFunctionName(),
                 DataType.getType(factory.getAggrDataTypeName()));
         Map<String, Class<?>> udafs = type.getRewriteCalciteAggrFunctions();
-        if (type.needRewrite() == false || udafs == null)
+        if (!type.needRewrite() || udafs == null)
             return;
 
         for (String udaf : udafs.keySet()) {
@@ -221,8 +220,7 @@ abstract public class MeasureTypeFactory<T> {
     public static MeasureType<?> createNoRewriteFieldsMeasureType(String funcName, DataType dataType) {
         // currently only has DimCountDistinctAgg
         if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_COUNT_DISTINCT)) {
-            return new DimCountDistinctMeasureType.Factory().createMeasureType(funcName,
-                    dataType);
+            return new DimCountDistinctMeasureType.Factory().createMeasureType(funcName, dataType);
         }
 
         throw new UnsupportedOperationException("No measure type found.");

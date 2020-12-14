@@ -54,8 +54,8 @@ import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartContext;
+import io.kyligence.kap.smart.SmartMaster;
 import lombok.val;
 
 public class NTopNTest extends NLocalWithSparkSessionTest {
@@ -64,7 +64,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -78,7 +78,6 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
@@ -208,7 +207,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             OLAPContext context = getOlapContext(nameAndQueryPair.getSecond()).get(0);
             Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
             context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-            val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+            val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(),
+                    context.getSQLDigest());
             Assert.assertNotNull(pair);
             Assert.assertEquals(1, pair.getSecond().size());
             Assert.assertFalse(pair.getSecond().get(0) instanceof CapabilityResult.DimensionAsMeasure);
@@ -218,8 +218,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     }
 
     private List<OLAPContext> getOlapContext(String sql) {
-        val context = new NSmartContext(KylinConfig.getInstanceFromEnv(), getProject(), new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        val context = new SmartContext(KylinConfig.getInstanceFromEnv(), getProject(), new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.analyzeSQLs();
         List<OLAPContext> ctxs = Lists.newArrayList();
         smartMaster.getContext().getModelContexts()

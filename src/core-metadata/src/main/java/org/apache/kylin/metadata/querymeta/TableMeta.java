@@ -179,18 +179,11 @@ public class TableMeta implements Serializable {
     public String toString() {
         List<ColumnMeta> columnMetas = new ArrayList<>(columns);
         columnMetas.sort(Comparator.comparingInt(ColumnMeta::getORDINAL_POSITION));
-        return "TableMeta{" +
-                "TABLE_CAT='" + TABLE_CAT + '\n' +
-                ", TABLE_SCHEM='" + TABLE_SCHEM + '\n' +
-                ", TABLE_NAME='" + TABLE_NAME + '\n' +
-                ", TABLE_TYPE='" + TABLE_TYPE + '\n' +
-                ", REMARKS='" + REMARKS + '\n' +
-                ", TYPE_CAT='" + TYPE_CAT + '\n' +
-                ", TYPE_SCHEM='" + TYPE_SCHEM + '\n' +
-                ", TYPE_NAME='" + TYPE_NAME + '\n' +
-                ", SELF_REFERENCING_COL_NAME='" + SELF_REFERENCING_COL_NAME + '\n' +
-                ", REF_GENERATION='" + REF_GENERATION + '\n' +
-                ", columns=" + columnMetas.stream().map(ColumnMeta::toString).reduce("", (r, s) -> r + s + '\n') +
-                '}';
+        return "TableMeta{" + "TABLE_CAT='" + TABLE_CAT + '\n' + ", TABLE_SCHEM='" + TABLE_SCHEM + '\n'
+                + ", TABLE_NAME='" + TABLE_NAME + '\n' + ", TABLE_TYPE='" + TABLE_TYPE + '\n' + ", REMARKS='" + REMARKS
+                + '\n' + ", TYPE_CAT='" + TYPE_CAT + '\n' + ", TYPE_SCHEM='" + TYPE_SCHEM + '\n' + ", TYPE_NAME='"
+                + TYPE_NAME + '\n' + ", SELF_REFERENCING_COL_NAME='" + SELF_REFERENCING_COL_NAME + '\n'
+                + ", REF_GENERATION='" + REF_GENERATION + '\n' + ", columns="
+                + columnMetas.stream().map(ColumnMeta::toString).reduce("", (r, s) -> r + s + '\n') + '}';
     }
 }

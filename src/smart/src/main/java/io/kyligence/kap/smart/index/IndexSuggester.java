@@ -77,7 +77,7 @@ class IndexSuggester {
     private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
 
     private final AbstractContext proposeContext;
-    private final AbstractContext.NModelContext modelContext;
+    private final AbstractContext.ModelContext modelContext;
     private final IndexPlan indexPlan;
     private final NDataModel model;
     private final ProjectInstance projectInstance;
@@ -86,7 +86,7 @@ class IndexSuggester {
     private final Map<IndexIdentifier, IndexEntity> collector;
     private final SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
-    IndexSuggester(AbstractContext.NModelContext modelContext, IndexPlan indexPlan,
+    IndexSuggester(AbstractContext.ModelContext modelContext, IndexPlan indexPlan,
             Map<IndexIdentifier, IndexEntity> collector) {
 
         this.modelContext = modelContext;

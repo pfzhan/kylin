@@ -54,12 +54,13 @@ import org.slf4j.LoggerFactory;
 import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Strings;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryOptimizer;
 import io.kyligence.kap.query.util.HepUtils;
 
-public class CalciteRuleTestBase {
+public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CalciteRuleTestBase.class);
 
     private final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
@@ -75,72 +76,66 @@ public class CalciteRuleTestBase {
         public StringOutput(boolean separate) {
             this.separate = separate;
         }
-        public void dump(Logger log){
+
+        public void dump(Logger log) {
             log.debug("planBefore: {}{}", NL, builderBefore.toString());
             if (separate)
                 log.debug("planAfter: {}{}", NL, builderAfter.toString());
         }
-        private void output(StringBuilder builder, String name , String plan){
+
+        private void output(StringBuilder builder, String name, String plan) {
             builder.append("        <Resource name=\"").append(name).append("\">").append(NL);
             builder.append("            <![CDATA[");
             builder.append(plan);
             builder.append("]]>").append(NL);
             builder.append("        </Resource>").append(NL);
         }
-        public void output(RelNode relBefore, RelNode relAfter, String prefix){
-            String before = Strings.isNullOrEmpty(prefix) ? "planBefore"  : prefix + ".planBefore";
-            final String planBefore = NL + RelOptUtil.toString(relBefore);
-            output(builderBefore,
-                    separate ? prefix : before,
-                    planBefore);
 
-            String after = Strings.isNullOrEmpty(prefix) ? "planAfter"  : prefix + ".planAfter";
+        public void output(RelNode relBefore, RelNode relAfter, String prefix) {
+            String before = Strings.isNullOrEmpty(prefix) ? "planBefore" : prefix + ".planBefore";
+            final String planBefore = NL + RelOptUtil.toString(relBefore);
+            output(builderBefore, separate ? prefix : before, planBefore);
+
+            String after = Strings.isNullOrEmpty(prefix) ? "planAfter" : prefix + ".planAfter";
             final String planAfter = NL + RelOptUtil.toString(relAfter);
-            output(separate ? builderAfter : builderBefore,
-                    separate ? prefix       : after,
-                    planAfter);
+            output(separate ? builderAfter : builderBefore, separate ? prefix : after, planAfter);
         }
     }
 
-    protected Pair<String, String> readOneSQL(KylinConfig config, String project, String folder, String file) throws IOException {
+    protected Pair<String, String> readOneSQL(KylinConfig config, String project, String folder, String file)
+            throws IOException {
         final String queryFolder = IT_SQL_KAP_DIR + folder;
-        List<Pair<String, String>> queries = NExecAndComp
-                .fetchQueries(queryFolder)
-                .stream().filter(e -> {
-                    if (Strings.isNullOrEmpty(file))
-                        return true;
-                    else
-                        return e.getFirst().contains(file);})
-                .map(e-> {
-                    QueryParams queryParams = new QueryParams(config, e.getSecond(), project,
-                            0, 0, "DEFAULT", false);
-                    String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
-                    return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);})
-                .collect(Collectors.toList());
+        List<Pair<String, String>> queries = NExecAndComp.fetchQueries(queryFolder).stream().filter(e -> {
+            if (Strings.isNullOrEmpty(file))
+                return true;
+            else
+                return e.getFirst().contains(file);
+        }).map(e -> {
+            QueryParams queryParams = new QueryParams(config, e.getSecond(), project, 0, 0, "DEFAULT", false);
+            String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
+            return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);
+        }).collect(Collectors.toList());
         Assert.assertEquals(1, queries.size());
         return queries.get(0);
     }
 
-    protected List<Pair<String, String>> readALLSQLs(KylinConfig config, String project, String folder) throws IOException {
+    protected List<Pair<String, String>> readALLSQLs(KylinConfig config, String project, String folder)
+            throws IOException {
         final String queryFolder = IT_SQL_KAP_DIR + folder;
-        return NExecAndComp
-                .fetchQueries(queryFolder)
-                .stream()
-                .map(e-> {
-                    QueryParams queryParams = new QueryParams(config, e.getSecond(), project,
-                            0, 0, "DEFAULT", false);
-                    String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
-                    return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);})
-                .collect(Collectors.toList());
+        return NExecAndComp.fetchQueries(queryFolder).stream().map(e -> {
+            QueryParams queryParams = new QueryParams(config, e.getSecond(), project, 0, 0, "DEFAULT", false);
+            String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
+            return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);
+        }).collect(Collectors.toList());
     }
 
-    void checkDiff(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff){
-        String before = Strings.isNullOrEmpty(prefix) ? "planBefore"  : prefix + ".planBefore";
+    void checkDiff(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff) {
+        String before = Strings.isNullOrEmpty(prefix) ? "planBefore" : prefix + ".planBefore";
         String beforeExpected = "${" + before + "}";
         final String planBefore = NL + RelOptUtil.toString(relBefore);
         diff.assertEquals(before, beforeExpected, planBefore);
 
-        String after = Strings.isNullOrEmpty(prefix) ? "planAfter"  : prefix + ".planAfter";
+        String after = Strings.isNullOrEmpty(prefix) ? "planAfter" : prefix + ".planAfter";
         String afterExpected = "${" + after + "}";
         final String planAfter = NL + RelOptUtil.toString(relAfter);
         diff.assertEquals(after, afterExpected, planAfter);
@@ -153,7 +148,7 @@ public class CalciteRuleTestBase {
         Assert.assertThat(relAfter, notNullValue());
         logger.debug("check plan for {}.sql: {}{}", prefix, NL, sql);
 
-        if(StrOut != null) {
+        if (StrOut != null) {
             StrOut.output(relBefore, relAfter, prefix);
         } else {
             checkDiff(relBefore, relAfter, prefix, diff);
@@ -164,7 +159,8 @@ public class CalciteRuleTestBase {
         checkPlanning(relBefore, relAfter, prefix, diff, false);
     }
 
-    protected void checkPlanning(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff, boolean unchanged) {
+    protected void checkPlanning(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff,
+            boolean unchanged) {
         assertThat(relBefore, notNullValue());
         assertThat(relAfter, notNullValue());
         final String planBefore = NL + RelOptUtil.toString(relBefore);
@@ -199,7 +195,8 @@ public class CalciteRuleTestBase {
         }
     }
 
-    protected RelNode toCalcitePlan(String project, String SQL, KylinConfig kylinConfig, List<RelOptRule> rulesToRemoved, List<RelOptRule> rulesToAdded) {
+    protected RelNode toCalcitePlan(String project, String SQL, KylinConfig kylinConfig,
+            List<RelOptRule> rulesToRemoved, List<RelOptRule> rulesToAdded) {
         QueryExec qe = new QueryExec(project, kylinConfig);
         if (rulesToRemoved != null && !rulesToRemoved.isEmpty()) {
             qe.plannerRemoveRules(rulesToRemoved);
@@ -215,8 +212,8 @@ public class CalciteRuleTestBase {
     }
 
     protected RelNode optimizeSQL(RelRoot relRoot, RelOptRule rule) {
-        final HepProgram hepProgram = HepProgram.builder()
-                .addRuleInstance(rule)
+        final HepProgram hepProgram = HepProgram.builder() //
+                .addRuleInstance(rule) //
                 .build();
         final HepPlanner planner = new HepPlanner(hepProgram);
         List<RelMetadataProvider> list = Lists.newArrayList();
@@ -227,8 +224,8 @@ public class CalciteRuleTestBase {
     }
 
     protected RelNode optimizeSQL(RelRoot relRoot, List<RelOptRule> rule) {
-        final HepProgram hepProgram = HepProgram.builder()
-                .addRuleCollection(rule)
+        final HepProgram hepProgram = HepProgram.builder() //
+                .addRuleCollection(rule) //
                 .build();
         return findBestExp(hepProgram, relRoot);
     }

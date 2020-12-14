@@ -47,8 +47,8 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.engine.persist-flattable-enabled", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/reuse_flattable");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -60,10 +60,8 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() throws Exception {
-        System.clearProperty("kylin.engine.persist-flattable-enabled");
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -95,7 +93,8 @@ public class ReuseFlatTableTest extends NLocalWithSparkSessionTest {
             copyForWrite.setIndexes(Lists.newArrayList(indexEntity));
         });
         buildSegment(dfID, firstSegment,
-                Sets.newLinkedHashSet(dfManager.getDataflow(dfID).getIndexPlan().getAllLayouts()), getProject(), true, null);
+                Sets.newLinkedHashSet(dfManager.getDataflow(dfID).getIndexPlan().getAllLayouts()), getProject(), true,
+                null);
         String query = "select count(distinct trans_id) from TEST_KYLIN_FACT";
         long result = NExecAndComp.queryCube(getProject(), query).collectAsList().get(0).getLong(0);
         long expect = ss.sql("select count(distinct trans_id) from TEST_KYLIN_FACT").collectAsList().get(0).getLong(0);

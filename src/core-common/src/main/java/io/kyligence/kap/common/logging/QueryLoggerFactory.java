@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.common.logging;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.helpers.NOPLoggerFactory;
 import org.slf4j.helpers.Util;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public final class QueryLoggerFactory implements ILoggerFactory {
 

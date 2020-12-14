@@ -25,14 +25,12 @@ package io.kyligence.kap.tool.daemon;
 
 public enum HandleStateEnum {
 
-    NORMAL, //
+    NORMAL,
 
-    HANDLE_FAILED, //
+    HANDLE_FAILED,
 
-    HANDLE_WARN, //
+    HANDLE_WARN,
 
-    STOP_CHECK, //
-
-    ;
+    STOP_CHECK
 
 }

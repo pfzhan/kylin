@@ -42,6 +42,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -52,7 +53,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
-import org.junit.rules.TemporaryFolder;
 
 public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
 
@@ -80,7 +80,7 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
     public void testExtractAppId() throws IOException {
         val tool = new YarnApplicationTool();
         val tmpFile = File.createTempFile("yarn_app_id_", ".tmp");
-        tool.execute(new String[] { "-project", project, "-job", jobId, "-dir",  tmpFile.getAbsolutePath()});
+        tool.execute(new String[] { "-project", project, "-job", jobId, "-dir", tmpFile.getAbsolutePath() });
         val savedYarnAppId = FileUtils.readFileToString(tmpFile);
         Assert.assertEquals(YARN_APPLICATION_ID, savedYarnAppId);
         FileUtils.forceDeleteOnExit(tmpFile);

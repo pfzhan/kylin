@@ -24,16 +24,18 @@
 
 package org.apache.kylin.common.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.SizeConvertUtil;
-import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.SizeConvertUtil;
 
 public class MailHelper {
 
@@ -61,7 +63,8 @@ public class MailHelper {
         return Pair.newPair(title, body);
     }
 
-    public static boolean notifyUser(KylinConfig kylinConfig, BasicEmailNotificationContent content, List<String> users) {
+    public static boolean notifyUser(KylinConfig kylinConfig, BasicEmailNotificationContent content,
+            List<String> users) {
         try {
             if (users.isEmpty()) {
                 logger.debug("no need to send email, user list is empty.");
@@ -95,8 +98,9 @@ public class MailHelper {
         String readableCurrentCapacity = SizeConvertUtil.getReadableFileSize(currentCapacity);
         String readableLicenseVolume = SizeConvertUtil.getReadableFileSize(licenseVolume);
         double overCapacityThreshold = KylinConfig.getInstanceFromEnv().getOverCapacityThreshold() * 100;
-        content.setConclusion(content.CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD.replaceAll("\\$\\{volume_used\\}",
-                readableCurrentCapacity).replaceAll("\\$\\{volume_total\\}", readableLicenseVolume)
+        content.setConclusion(content.CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD
+                .replaceAll("\\$\\{volume_used\\}", readableCurrentCapacity)
+                .replaceAll("\\$\\{volume_total\\}", readableLicenseVolume)
                 .replaceAll("\\$\\{capacity_threshold\\}", BigDecimal.valueOf(overCapacityThreshold).toString()));
         content.setSolution(content.SOLUTION_FOR_OVER_CAPACITY_THRESHOLD);
         return content;

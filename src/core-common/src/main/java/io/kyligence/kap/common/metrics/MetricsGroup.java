@@ -37,7 +37,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -53,6 +52,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricSet;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
@@ -84,7 +84,7 @@ public class MetricsGroup {
     }
 
     public static boolean hostTagCounterInc(MetricsName name, MetricsCategory category, String entity,
-                                            long increments) {
+            long increments) {
         return counterInc(name, category, entity, getHostTagMap(entity), increments);
     }
 
@@ -93,7 +93,7 @@ public class MetricsGroup {
     }
 
     public static boolean counterInc(MetricsName name, MetricsCategory category, String entity,
-                                     Map<String, String> tags) {
+            Map<String, String> tags) {
         return counterInc(name, category, entity, tags, 1);
     }
 
@@ -102,7 +102,7 @@ public class MetricsGroup {
     }
 
     public static boolean counterInc(MetricsName name, MetricsCategory category, String entity,
-                                     Map<String, String> tags, long increments) {
+            Map<String, String> tags, long increments) {
         if (increments < 0) {
             return false;
         }
@@ -119,7 +119,7 @@ public class MetricsGroup {
     }
 
     public static boolean hostTagHistogramUpdate(MetricsName name, MetricsCategory category, String entity,
-                                                 long updateTo) {
+            long updateTo) {
         return histogramUpdate(name, category, entity, getHostTagMap(entity), updateTo);
     }
 
@@ -128,7 +128,7 @@ public class MetricsGroup {
     }
 
     public static boolean histogramUpdate(MetricsName name, MetricsCategory category, String entity,
-                                          Map<String, String> tags, long updateTo) {
+            Map<String, String> tags, long updateTo) {
         if (updateTo < 0) {
             return false;
         }
@@ -149,7 +149,7 @@ public class MetricsGroup {
     }
 
     public static boolean meterMark(MetricsName name, MetricsCategory category, String entity,
-                                    Map<String, String> tags) {
+            Map<String, String> tags) {
         try {
             final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (meter != null) {
@@ -238,7 +238,7 @@ public class MetricsGroup {
 
     @VisibleForTesting
     public static Counter getCounter(MetricsName name, MetricsCategory category, String entity,
-                                      Map<String, String> tags) {
+            Map<String, String> tags) {
         final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
         return counters.get(metricName);
     }
@@ -350,7 +350,7 @@ public class MetricsGroup {
     }
 
     public static <T> boolean newGauge(MetricsName name, MetricsCategory category, String entity,
-                                       Map<String, String> tags, Gauge<T> metric) {
+            Map<String, String> tags, Gauge<T> metric) {
         return newGauge(name.getVal(), category, entity, tags, metric);
     }
 
@@ -359,7 +359,7 @@ public class MetricsGroup {
     }
 
     private static boolean newGauge(String name, MetricsCategory category, String entity, Map<String, String> tags,
-                                    Metric metric) {
+            Metric metric) {
         try {
             return registerGaugeIfAbsent(name, category, entity, tags, metric);
         } catch (Exception e) {
@@ -373,7 +373,7 @@ public class MetricsGroup {
     }
 
     public static boolean newCounter(MetricsName name, MetricsCategory category, String entity,
-                                     Map<String, String> tags) {
+            Map<String, String> tags) {
         try {
             final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (counter != null) {
@@ -390,7 +390,7 @@ public class MetricsGroup {
     }
 
     public static boolean newHistogram(MetricsName name, MetricsCategory category, String entity,
-                                       Map<String, String> tags) {
+            Map<String, String> tags) {
         try {
             final Histogram histogram = registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (histogram != null) {
@@ -407,7 +407,7 @@ public class MetricsGroup {
     }
 
     private static boolean newMeter(MetricsName name, MetricsCategory category, String entity,
-                                    Map<String, String> tags) {
+            Map<String, String> tags) {
         try {
             final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (meter != null) {
@@ -450,7 +450,7 @@ public class MetricsGroup {
     }
 
     private static boolean registerGaugeIfAbsent(String name, MetricsCategory category, String entity,
-                                                 Map<String, String> tags, Metric metric) {
+            Map<String, String> tags, Metric metric) {
         final String metricName = metricName(name, category.getVal(), entity, tags);
         if (!gauges.contains(metricName)) {
             synchronized (gauges) {

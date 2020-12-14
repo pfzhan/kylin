@@ -40,6 +40,6 @@ public class EventModelResponse {
     private String modelAlias;
 
     public void updateSize() {
-        this.size ++;
+        this.size++;
     }
 }

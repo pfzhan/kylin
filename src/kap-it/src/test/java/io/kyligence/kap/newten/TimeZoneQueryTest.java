@@ -23,19 +23,15 @@
  */
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import static org.junit.Assert.fail;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
@@ -59,9 +55,16 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
-import scala.collection.JavaConversions;
 
-import static org.junit.Assert.fail;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import scala.collection.JavaConversions;
 
 @RunWith(TimeZoneTestRunner.class)
 public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
@@ -85,16 +88,15 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         // For sinai_poc/query03, enable implicit cross join conversion
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set("spark.sql.adaptive.enabled", "true");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
+                TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/timezone");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -127,7 +129,8 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
         Assert.assertTrue(jdbc.size() == calciteDf.size());
         for (int i = 0; i < jdbc.size(); i++) {
-            if (!ListUtils.isEqualList(calciteDf.get(i), pushDown.get(i)) && !ListUtils.isEqualList(calciteDf.get(i), jdbc.get(i))) {
+            if (!ListUtils.isEqualList(calciteDf.get(i), pushDown.get(i))
+                    && !ListUtils.isEqualList(calciteDf.get(i), jdbc.get(i))) {
                 String expected = Strings.join(pushDown.get(i), ",");
                 String actual = Strings.join(jdbc.get(i), ",");
                 String actual2 = Strings.join(calciteDf.get(i), ",");
@@ -136,26 +139,19 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         }
         System.out.println();
 
-
     }
 
     @Test
     public void testTimestampWithDynamicParam() throws Exception {
-        String sqlOrign =
-                "select TEST_ORDER.TEST_TIME_ENC as ts1, " +
-                        "CAL_DT as dt1, " +
-                        "cast (TEST_ORDER_STRING.TEST_TIME_ENC as timestamp) as ts2, " +
-                        "cast(TEST_ORDER_STRING.TEST_DATE_ENC  as date) as dt2," +
-                        "TEST_ORDER.ORDER_ID, " +
-                        "count(*) " +
-                        "FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT " +
-                        "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID " +
-                        "LEFT JOIN TEST_ORDER_STRING " +
-                        "ON TEST_ORDER.ORDER_ID = TEST_ORDER_STRING.ORDER_ID " +
-                        "where TEST_ORDER.TEST_TIME_ENC='2013-01-01 12:02:11' " +
-                        "group by TEST_ORDER.ORDER_ID ,TEST_ORDER_STRING.TEST_TIME_ENC , " +
-                        "TEST_ORDER_STRING.TEST_DATE_ENC ,CAL_DT, TEST_ORDER.TEST_TIME_ENC " +
-                        "order by TEST_ORDER.ORDER_ID ";
+        String sqlOrign = "select TEST_ORDER.TEST_TIME_ENC as ts1, " + "CAL_DT as dt1, "
+                + "cast (TEST_ORDER_STRING.TEST_TIME_ENC as timestamp) as ts2, "
+                + "cast(TEST_ORDER_STRING.TEST_DATE_ENC  as date) as dt2," + "TEST_ORDER.ORDER_ID, " + "count(*) "
+                + "FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT " + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID "
+                + "LEFT JOIN TEST_ORDER_STRING " + "ON TEST_ORDER.ORDER_ID = TEST_ORDER_STRING.ORDER_ID "
+                + "where TEST_ORDER.TEST_TIME_ENC='2013-01-01 12:02:11' "
+                + "group by TEST_ORDER.ORDER_ID ,TEST_ORDER_STRING.TEST_TIME_ENC , "
+                + "TEST_ORDER_STRING.TEST_DATE_ENC ,CAL_DT, TEST_ORDER.TEST_TIME_ENC "
+                + "order by TEST_ORDER.ORDER_ID ";
         String paramString = "2013-01-01 12:02:11";
         buildSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001L);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -165,27 +161,30 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         String sqlWithPlaceholder = sqlOrign.replace("where TEST_ORDER.TEST_TIME_ENC='2013-01-01 12:02:11' ",
                 "where TEST_ORDER.TEST_TIME_ENC=? ");
         List<Row> rows = NExecAndComp.queryCube(getProject(), sqlWithPlaceholder,
-                Arrays.asList(new Timestamp[] {Timestamp.valueOf(paramString)})).collectAsList();
+                Arrays.asList(new Timestamp[] { Timestamp.valueOf(paramString) })).collectAsList();
         List<List<String>> setTimestampResults = transformToString(rows);
         // setTimestamp pushdown
-        PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[]{
-                new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(), paramString)};
+        PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[] {
+                new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(), paramString) };
         String sqlPushDown = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params);
-        List<List<String>> setTimestampPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown, UUID.randomUUID(), getProject()).getFirst();
+        List<List<String>> setTimestampPushdownResults = SparkSqlClient
+                .executeSql(ss, sqlPushDown, UUID.randomUUID(), getProject()).getFirst();
         // setString
-        List<Row> rows2 = NExecAndComp.queryCube(getProject(), sqlWithPlaceholder,
-                Arrays.asList(new String[] {paramString})).collectAsList();
+        List<Row> rows2 = NExecAndComp
+                .queryCube(getProject(), sqlWithPlaceholder, Arrays.asList(new String[] { paramString }))
+                .collectAsList();
         List<List<String>> setStringResults = transformToString(rows2);
         // setString pushdown
-        PrepareSqlRequest.StateParam[] params2 = new PrepareSqlRequest.StateParam[]{
-                new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), paramString)};
+        PrepareSqlRequest.StateParam[] params2 = new PrepareSqlRequest.StateParam[] {
+                new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), paramString) };
         String sqlPushDown2 = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params2);
-        List<List<String>> setStringPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown2, UUID.randomUUID(), getProject()).getFirst();
+        List<List<String>> setStringPushdownResults = SparkSqlClient
+                .executeSql(ss, sqlPushDown2, UUID.randomUUID(), getProject()).getFirst();
 
-        Assert.assertTrue(benchmark.size() == setTimestampResults.size());
-        Assert.assertTrue(benchmark.size() == setTimestampPushdownResults.size());
-        Assert.assertTrue(benchmark.size() == setStringResults.size());
-        Assert.assertTrue(benchmark.size() == setStringPushdownResults.size());
+        Assert.assertEquals(benchmark.size(), setTimestampResults.size());
+        Assert.assertEquals(benchmark.size(), setTimestampPushdownResults.size());
+        Assert.assertEquals(benchmark.size(), setStringResults.size());
+        Assert.assertEquals(benchmark.size(), setStringPushdownResults.size());
 
         for (int i = 0; i < benchmark.size(); i++) {
             if (!ListUtils.isEqualList(benchmark.get(i), setTimestampResults.get(i))
@@ -198,7 +197,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 String actual3 = Strings.join(setStringResults.get(i), ",");
                 String actual4 = Strings.join(setStringPushdownResults.get(i), ",");
                 fail("expected: " + expected + ", setTimestampResults: " + actual1 + ", setTimestampPushdownResults: "
-                    + actual2 + ", setStringResults: " + actual3 + ", setStringPushdownResults: " + actual4);
+                        + actual2 + ", setStringResults: " + actual3 + ", setStringPushdownResults: " + actual4);
             }
         }
     }
@@ -213,20 +212,17 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         }
     }
 
-
     @Test
     public void testConstantTimestamp() throws Exception {
         {
-            String[] sqls = {
-                    "select current_timestamp",
-                    "select timestamp'2020-03-30 11:03:37'",
-                    "select timestamp'2012-02-09 11:23:23.21'"
-            };
+            String[] sqls = { "select current_timestamp", "select timestamp'2020-03-30 11:03:37'",
+                    "select timestamp'2012-02-09 11:23:23.21'" };
             for (String sql : sqls) {
                 // try matching timestamp to minutes mutilple times
                 int max_try = 10;
                 while (max_try-- > 0) {
-                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject()).getFirst();
+                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject())
+                            .getFirst();
                     List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
 
                     // match timestamp to minute
@@ -247,21 +243,19 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
     }
 
     private List<List<String>> transformToString(List<Row> rows) {
-        return rows.stream()
-                .map(row -> JavaConversions.seqAsJavaList(row.toSeq()).stream().map(r -> {
-                    if (r == null) {
-                        return null;
-                    } else {
-                        String s = r.toString();
-                        if (r instanceof Timestamp) {
-                            return s.substring(0, s.length() - 2);
-                        } else {
-                            return s;
-                        }
-                    }
-                }).collect(Collectors.toList())).collect(Collectors.toList());
+        return rows.stream().map(row -> JavaConversions.seqAsJavaList(row.toSeq()).stream().map(r -> {
+            if (r == null) {
+                return null;
+            } else {
+                String s = r.toString();
+                if (r instanceof Timestamp) {
+                    return s.substring(0, s.length() - 2);
+                } else {
+                    return s;
+                }
+            }
+        }).collect(Collectors.toList())).collect(Collectors.toList());
     }
-
 
     private void buildSegs(String dfName, long... layoutID) throws Exception {
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());

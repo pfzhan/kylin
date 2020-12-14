@@ -43,11 +43,11 @@
 package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;
@@ -63,8 +63,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -109,6 +107,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -475,7 +476,7 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         AclRecord record = acl.getAclRecord();
-        if (record.getOwner().equals(sid) == false)
+        if (!record.getOwner().equals(sid))
             return;
 
         // prevent changing owner's admin permission
@@ -493,7 +494,8 @@ public class AccessService extends BasicService {
      * @param username user name
      * @return <permission, <from group, group name if not null>>
      */
-    private Pair<String, Pair<Boolean, String>> getUserMaximumPermissionWithSourceInProject(String project, String username) throws IOException {
+    private Pair<String, Pair<Boolean, String>> getUserMaximumPermissionWithSourceInProject(String project,
+            String username) throws IOException {
         if (isGlobalAdmin(username)) {
             return Pair.newPair(ExternalAclProvider.ADMINISTRATION, Pair.newPair(Boolean.FALSE, null));
         }
@@ -606,20 +608,23 @@ public class AccessService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public List<SidPermissionWithAclResponse> getUserOrGroupAclPermissions(List<String> projects, String userOrGroupName, boolean principal)
-            throws IOException {
+    public List<SidPermissionWithAclResponse> getUserOrGroupAclPermissions(List<String> projects,
+            String userOrGroupName, boolean principal) throws IOException {
         checkSid(userOrGroupName, principal);
         List<SidPermissionWithAclResponse> sidPermissionWithAclResponse = new ArrayList<>();
         for (String project : projects) {
-            SidPermissionWithAclResponse permissionWithAclResponse = principal ? getUserPermissionWithAclResponse(project, userOrGroupName)
+            SidPermissionWithAclResponse permissionWithAclResponse = principal
+                    ? getUserPermissionWithAclResponse(project, userOrGroupName)
                     : getGroupPermissionWithAclResponse(project, userOrGroupName);
             sidPermissionWithAclResponse.add(permissionWithAclResponse);
         }
         return sidPermissionWithAclResponse;
     }
 
-    private SidPermissionWithAclResponse getUserPermissionWithAclResponse(String project, String username) throws IOException {
-        Pair<String, Pair<Boolean, String>> permissionInfo = getUserMaximumPermissionWithSourceInProject(project, username);
+    private SidPermissionWithAclResponse getUserPermissionWithAclResponse(String project, String username)
+            throws IOException {
+        Pair<String, Pair<Boolean, String>> permissionInfo = getUserMaximumPermissionWithSourceInProject(project,
+                username);
         if (Boolean.FALSE.equals(permissionInfo.getSecond().getFirst())) {
             List<AclTCRResponse> aclTCRResponses = aclTCRService.getAclTCRResponse(project, username, true, false);
             return new SidPermissionWithAclResponse(project, permissionInfo.getFirst(), aclTCRResponses);
@@ -628,7 +633,8 @@ public class AccessService extends BasicService {
         }
     }
 
-    private SidPermissionWithAclResponse getGroupPermissionWithAclResponse(String project, String groupName) throws IOException {
+    private SidPermissionWithAclResponse getGroupPermissionWithAclResponse(String project, String groupName)
+            throws IOException {
         String permission = getGroupPermissionInProject(project, groupName);
         List<AclTCRResponse> aclTCRResponses = aclTCRService.getAclTCRResponse(project, groupName, false, false);
         return new SidPermissionWithAclResponse(project, permission, aclTCRResponses);
@@ -637,22 +643,20 @@ public class AccessService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public Set<String> getProjectAdminUsers(String project) throws IOException {
         List<ManagedUser> allUsers = userService.listUsers();
-        return allUsers.stream()
-                .filter(user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
+        return allUsers.stream().filter(
+                user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
                         || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION))
-                .map(ManagedUser::getUsername)
-                .collect(Collectors.toSet());
+                .map(ManagedUser::getUsername).collect(Collectors.toSet());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public Set<String> getProjectManagementUsers(String project) throws IOException {
         List<ManagedUser> allUsers = userService.listUsers();
-        return allUsers.stream()
-                .filter(user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
+        return allUsers.stream().filter(
+                user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
                         || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION)
                         || AclPermissionUtil.isSpecificPermissionInProject(user, project, AclPermission.MANAGEMENT))
-                .map(ManagedUser::getUsername)
-                .collect(Collectors.toSet());
+                .map(ManagedUser::getUsername).collect(Collectors.toSet());
     }
 
     public List<String> getGroupsOfCurrentUser() {

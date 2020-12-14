@@ -77,14 +77,11 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
         sparkConf.set("spark.sql.autoBroadcastJoinThreshold", "1");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/join_opt");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -97,33 +94,28 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
     public void testShardJoinInOneSeg() throws Exception {
-        System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
-        try {
-            fullBuildCube("8c670664-8d05-466a-802f-83c023b56c77", getProject());
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-            // calcite will transform this "in" to join
-            val sql1 = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
-            val sql2 = "select count(*) from TEST_KYLIN_FACT where LSTG_FORMAT_NAME in (select LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME)";
-            val sql3 = "select count(*) from TEST_KYLIN_FACT t1 join "
-                    + "(select TRANS_ID,LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by TRANS_ID,LSTG_FORMAT_NAME) t2 "
-                    + "on t1.TRANS_ID = t2.TRANS_ID and t1.LSTG_FORMAT_NAME = t2.LSTG_FORMAT_NAME";
-            List<String> query = new ArrayList<>();
-            query.add(sql1);
-            query.add(sql2);
-            query.add(sql3);
-            NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "100");
+        fullBuildCube("8c670664-8d05-466a-802f-83c023b56c77", getProject());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        // calcite will transform this "in" to join
+        val sql1 = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
+        val sql2 = "select count(*) from TEST_KYLIN_FACT where LSTG_FORMAT_NAME in (select LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME)";
+        val sql3 = "select count(*) from TEST_KYLIN_FACT t1 join "
+                + "(select TRANS_ID,LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by TRANS_ID,LSTG_FORMAT_NAME) t2 "
+                + "on t1.TRANS_ID = t2.TRANS_ID and t1.LSTG_FORMAT_NAME = t2.LSTG_FORMAT_NAME";
+        List<String> query = new ArrayList<>();
+        query.add(sql1);
+        query.add(sql2);
+        query.add(sql3);
+        NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
 
-            basicScenario(sql1);
-            testExchangePruningAfterAgg(sql2);
-            testMultiShards(sql3);
-        } finally {
-            System.clearProperty("kylin.storage.columnar.shard-rowcount");
-        }
+        basicScenario(sql1);
+        testExchangePruningAfterAgg(sql2);
+        testMultiShards(sql3);
     }
 
     private void testMultiShards(String sql) throws SQLException {
@@ -146,22 +138,18 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testShardJoinInMultiSeg() throws Exception {
-        System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
-        try {
-            buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-            // calcite will transform this "in" to join
-            val sql = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
-            List<String> query = new ArrayList<>();
-            query.add(sql);
-            NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "100");
+        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        // calcite will transform this "in" to join
+        val sql = "select count(*) from TEST_KYLIN_FACT where SELLER_ID in (select SELLER_ID from TEST_KYLIN_FACT group by SELLER_ID)";
+        List<String> query = new ArrayList<>();
+        query.add(sql);
+        NExecAndComp.execAndCompareQueryList(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
 
-            // assert exists exchange
-            // assert exists sort
-            assertPlan(sql, true, true);
-        } finally {
-            System.clearProperty("kylin.storage.columnar.shard-rowcount");
-        }
+        // assert exists exchange
+        // assert exists sort
+        assertPlan(sql, true, true);
     }
 
     @Test

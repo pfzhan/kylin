@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,8 +44,8 @@ package org.apache.kylin.common.metrics.metrics2;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
+import org.apache.kylin.common.KylinConfig;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.joshelser.dropwizard.metrics.hadoop.HadoopMetrics2Reporter;

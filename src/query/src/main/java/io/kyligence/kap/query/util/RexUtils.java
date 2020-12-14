@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -45,6 +44,8 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.relnode.KapAggregateRel;
 import io.kyligence.kap.query.relnode.KapJoinRel;
@@ -63,10 +64,11 @@ public class RexUtils {
     public static boolean joinMoreThanOneTable(Join join) {
         Set<Integer> left = new HashSet<>();
         Set<Integer> right = new HashSet<>();
-        Set<Integer> indexes =
-                getAllInputRefs(join.getCondition()).stream().map(RexSlot::getIndex).collect(Collectors.toSet());
+        Set<Integer> indexes = getAllInputRefs(join.getCondition()).stream().map(RexSlot::getIndex)
+                .collect(Collectors.toSet());
         splitJoinInputIndex(join, indexes, left, right);
-        return !(colsComeFromSameSideOfJoin(join.getLeft(), left) && colsComeFromSameSideOfJoin(join.getRight(), right));
+        return !(colsComeFromSameSideOfJoin(join.getLeft(), left)
+                && colsComeFromSameSideOfJoin(join.getRight(), right));
     }
 
     private static boolean colsComeFromSameSideOfJoin(RelNode rel, Set<Integer> indexes) {
@@ -83,11 +85,8 @@ public class RexUtils {
                 return false;
             }
         } else if (rel instanceof Project) {
-            Set<Integer> inputIndexes = indexes.stream()
-                    .map(idx -> ((Project) rel).getProjects().get(idx))
-                    .flatMap(rex -> getAllInputRefs(rex).stream())
-                    .map(RexSlot::getIndex)
-                    .collect(Collectors.toSet());
+            Set<Integer> inputIndexes = indexes.stream().map(idx -> ((Project) rel).getProjects().get(idx))
+                    .flatMap(rex -> getAllInputRefs(rex).stream()).map(RexSlot::getIndex).collect(Collectors.toSet());
             return colsComeFromSameSideOfJoin(((Project) rel).getInput(), inputIndexes);
         } else if (rel instanceof TableScan || rel instanceof Values) {
             return true;
@@ -96,7 +95,8 @@ public class RexUtils {
         }
     }
 
-    public static void splitJoinInputIndex(Join joinRel, Collection<Integer> indexes, Set<Integer> leftInputIndexes, Set<Integer> rightInputIndexes) {
+    public static void splitJoinInputIndex(Join joinRel, Collection<Integer> indexes, Set<Integer> leftInputIndexes,
+            Set<Integer> rightInputIndexes) {
         indexes.forEach(idx -> {
             if (idx < joinRel.getLeft().getRowType().getFieldCount()) {
                 leftInputIndexes.add(idx);
@@ -133,8 +133,7 @@ public class RexUtils {
     }
 
     private static Set<RexInputRef> getAllInputRefsCall(RexCall rexCall) {
-        return rexCall.getOperands().stream()
-                .flatMap(rexNode -> getAllInputRefs(rexNode).stream())
+        return rexCall.getOperands().stream().flatMap(rexNode -> getAllInputRefs(rexNode).stream())
                 .collect(Collectors.toSet());
     }
 
@@ -213,7 +212,8 @@ public class RexUtils {
     public static boolean isMerelyTableColumnReference(KapJoinRel rel, RexNode condition) {
         // since join rel's columns are just consist of the all the columns from all sub queries
         // we can simply use the input ref index extracted from the condition rex node as the column idx of the join rel
-        return isMerelyTableColumnReference(rel, getAllInputRefs(condition).stream().map(RexSlot::getIndex).collect(Collectors.toSet()));
+        return isMerelyTableColumnReference(rel,
+                getAllInputRefs(condition).stream().map(RexSlot::getIndex).collect(Collectors.toSet()));
     }
 
     /**
@@ -239,10 +239,10 @@ public class RexUtils {
                     continue;
                 }
                 // cast(col1 as ...)
-                if (predicateChild instanceof RexCall &&
-                        predicateChild.getKind() == SqlKind.CAST
+                if (predicateChild instanceof RexCall && predicateChild.getKind() == SqlKind.CAST
                         && ((RexCall) predicateChild).getOperands().get(0) instanceof RexInputRef) {
-                    predicateOperands.set(predicateOpIdx, ((RexCall) predicateOperands.get(predicateOpIdx)).getOperands().get(0));
+                    predicateOperands.set(predicateOpIdx,
+                            ((RexCall) predicateOperands.get(predicateOpIdx)).getOperands().get(0));
                     colEqualPredWithCast = true;
                 }
             }

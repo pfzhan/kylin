@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.List;
 
@@ -130,8 +130,7 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
                     req.setWithModelOnline(true);
                     val modelId = req.getNewModels().get(0).getId();
                     mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_recommendation")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(JsonUtil.writeValueAsString(req))
+                            .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(req))
                             .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_JSON)))
                             .andExpect(MockMvcResultMatchers.status().isOk()) //
                             .andExpect(result2 -> {

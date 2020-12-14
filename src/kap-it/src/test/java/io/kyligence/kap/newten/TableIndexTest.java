@@ -45,7 +45,7 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
@@ -58,7 +58,6 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
@@ -79,7 +78,8 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("query_table_index3", "select max(PRICE) from TEST_KYLIN_FACT group by PRICE"));
         query.add(Pair.newPair("query_table_index4", "select min(PRICE) from TEST_KYLIN_FACT group by PRICE"));
         query.add(Pair.newPair("query_table_index5", "select count(PRICE) from TEST_KYLIN_FACT group by PRICE"));
-        query.add(Pair.newPair("query_table_index6", "select count(distinct PRICE) from TEST_KYLIN_FACT group by PRICE"));
+        query.add(
+                Pair.newPair("query_table_index6", "select count(distinct PRICE) from TEST_KYLIN_FACT group by PRICE"));
 
         query.add(Pair.newPair("query_table_index7", "select sum(PRICE) from TEST_KYLIN_FACT"));
         query.add(Pair.newPair("query_table_index8", "select max(PRICE) from TEST_KYLIN_FACT"));
@@ -87,41 +87,31 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("query_table_index10", "select count(PRICE) from TEST_KYLIN_FACT"));
         query.add(Pair.newPair("query_table_index11", "select count(distinct PRICE) from TEST_KYLIN_FACT"));
 
-        query.add(Pair.newPair("query_table_index12", "select sum(PRICE),sum(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-        query.add(Pair.newPair("query_table_index13", "select max(PRICE),max(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-        query.add(Pair.newPair("query_table_index14", "select min(PRICE),min(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-        query.add(Pair.newPair("query_table_index15", "select count(PRICE),count(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
-        query.add(Pair.newPair("query_table_index16", "select count(distinct PRICE),count(distinct ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
+        query.add(Pair.newPair("query_table_index12",
+                "select sum(PRICE),sum(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
+        query.add(Pair.newPair("query_table_index13",
+                "select max(PRICE),max(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
+        query.add(Pair.newPair("query_table_index14",
+                "select min(PRICE),min(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
+        query.add(Pair.newPair("query_table_index15",
+                "select count(PRICE),count(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
+        query.add(Pair.newPair("query_table_index16",
+                "select count(distinct PRICE),count(distinct ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
 
         query.add(Pair.newPair("query_agg_index1", "select sum(ORDER_ID) from TEST_KYLIN_FACT"));
-        query.add(Pair.newPair("query_agg_index2", "select sum(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
+        query.add(Pair.newPair("query_agg_index2",
+                "select sum(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
 
         query.add(Pair.newPair("query_agg_inner_col_index1",
-                "select \n" +
-                        "  sum(ORDER_ID + 1), \n" +
-                        "  count( distinct \n" +
-                        "    case when LSTG_FORMAT_NAME <> '' then LSTG_FORMAT_NAME else 'unknown' end\n" +
-                        "  ) from TEST_KYLIN_FACT \n" +
-                        "group by \n" +
-                        "  LSTG_FORMAT_NAME\n"));
+                "select \n" + "  sum(ORDER_ID + 1), \n" + "  count( distinct \n"
+                        + "    case when LSTG_FORMAT_NAME <> '' then LSTG_FORMAT_NAME else 'unknown' end\n"
+                        + "  ) from TEST_KYLIN_FACT \n" + "group by \n" + "  LSTG_FORMAT_NAME\n"));
         query.add(Pair.newPair("query_agg_inner_col_index2",
-        "select \n" +
-                "  sum(ORDER_ID + 1), \n" +
-                "  count( distinct \n" +
-                "    case when LSTG_FORMAT_NAME <> '' then LSTG_FORMAT_NAME else 'unknown' end\n" +
-                "  ) \n" +
-                "from \n" +
-                "  (\n" +
-                "    select \n" +
-                "      a1.ORDER_ID - 10 as ORDER_ID, \n" +
-                "      a1.LSTG_FORMAT_NAME\n" +
-                "    from \n" +
-                "      TEST_KYLIN_FACT a1\n" +
-                "  ) \n" +
-                "where \n" +
-                "  order_id > 10 \n" +
-                "group by \n" +
-                "  LSTG_FORMAT_NAME\n"));
+                "select \n" + "  sum(ORDER_ID + 1), \n" + "  count( distinct \n"
+                        + "    case when LSTG_FORMAT_NAME <> '' then LSTG_FORMAT_NAME else 'unknown' end\n" + "  ) \n"
+                        + "from \n" + "  (\n" + "    select \n" + "      a1.ORDER_ID - 10 as ORDER_ID, \n"
+                        + "      a1.LSTG_FORMAT_NAME\n" + "    from \n" + "      TEST_KYLIN_FACT a1\n" + "  ) \n"
+                        + "where \n" + "  order_id > 10 \n" + "group by \n" + "  LSTG_FORMAT_NAME\n"));
 
         NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null);
     }

@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.MetricsGroup;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -61,6 +60,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
@@ -68,6 +68,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.MetadataChecker;
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.tool.util.ScreenPrintUtil;
 import lombok.Getter;
@@ -200,8 +201,7 @@ public class MetadataTool extends ExecutableApplication {
                 backup(optionsHelper);
             } catch (Exception be) {
                 if (isGlobal) {
-                    MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.GLOBAL,
-                            GLOBAL);
+                    MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.GLOBAL, GLOBAL);
                 } else {
                     MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.PROJECT,
                             optionsHelper.getOptionValue(OPTION_PROJECT));
@@ -210,8 +210,8 @@ public class MetadataTool extends ExecutableApplication {
             } finally {
                 if (isGlobal) {
                     MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP, MetricsCategory.GLOBAL, GLOBAL);
-                    MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.GLOBAL,
-                            GLOBAL, System.currentTimeMillis() - startAt);
+                    MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.GLOBAL, GLOBAL,
+                            System.currentTimeMillis() - startAt);
                 } else {
                     MetricsGroup.hostTagCounterInc(MetricsName.METADATA_BACKUP, MetricsCategory.PROJECT,
                             optionsHelper.getOptionValue(OPTION_PROJECT));

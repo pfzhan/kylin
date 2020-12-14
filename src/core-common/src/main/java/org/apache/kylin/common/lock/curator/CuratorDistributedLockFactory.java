@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,15 +45,16 @@ package org.apache.kylin.common.lock.curator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.DistributedLockException;
 import org.apache.kylin.common.lock.curator.CuratorDistributedLock.LockEntry;
 import org.apache.kylin.common.util.ZKUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionStateListener;
 
 @SuppressWarnings({ "WeakerAccess" })
 public class CuratorDistributedLockFactory {
@@ -92,28 +92,28 @@ public class CuratorDistributedLockFactory {
                 logger.error("Failed to get zk Session Id of {}", curatorFramework, e);
             }
             switch (connectionState) {
-                case LOST:
-                case SUSPENDED:
-                    logger.error("zk connection {}, zk Session Id: {}", connectionState, sessionId);
+            case LOST:
+            case SUSPENDED:
+                logger.error("zk connection {}, zk Session Id: {}", connectionState, sessionId);
 
-                    ConcurrentMap<LockEntry, Boolean> locks = CuratorDistributedLock.lockedThreads.get(curatorFramework);
-                    if (locks != null && !locks.isEmpty()) {
-                        for (Map.Entry<LockEntry, Boolean> entry : locks.entrySet()) {
-                            LockEntry lockEntry = entry.getKey();
-                            if (entry.getValue()) {
-                                lockEntry.getThread().interrupt();
-                                logger.error(
+                ConcurrentMap<LockEntry, Boolean> locks = CuratorDistributedLock.lockedThreads.get(curatorFramework);
+                if (locks != null && !locks.isEmpty()) {
+                    for (Map.Entry<LockEntry, Boolean> entry : locks.entrySet()) {
+                        LockEntry lockEntry = entry.getKey();
+                        if (entry.getValue()) {
+                            lockEntry.getThread().interrupt();
+                            logger.error(
                                     "Thread interrupt: {}, zk lock {} for path: {}, lock acquired: {}, zk Session Id: {}",
                                     lockEntry.thread.getId(), connectionState, lockEntry.path, entry.getValue(),
                                     sessionId);
-                            }
                         }
-
-                        CuratorDistributedLock.lockedThreads.get(curatorFramework).clear();
                     }
-                    break;
-                default:
-                    logger.info("zk connection state changed to: {}, zk Session Id: {}", connectionState, sessionId);
+
+                    CuratorDistributedLock.lockedThreads.get(curatorFramework).clear();
+                }
+                break;
+            default:
+                logger.info("zk connection state changed to: {}, zk Session Id: {}", connectionState, sessionId);
             }
         }
     }

@@ -47,7 +47,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.date.Constant;
+import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;
@@ -66,8 +66,9 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
@@ -136,6 +137,7 @@ public class AppInitializer {
             EventBusFactory.getInstance().register(epochChangedListener, false);
             EventBusFactory.getInstance().register(broadcastListener, false);
             EventBusFactory.getInstance().register(sourceUsageUpdateListener, false);
+            EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
 
             ExecutableUtils.initJobFactory();
         } else {

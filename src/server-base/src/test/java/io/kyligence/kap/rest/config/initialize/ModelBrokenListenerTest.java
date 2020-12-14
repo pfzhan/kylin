@@ -78,8 +78,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @Before
     public void setup() {
         logger.info("ModelBrokenListenerTest setup");
-        System.setProperty("HADOOP_USER_NAME", "root");
-        System.setProperty("kylin.job.event.poll-interval-second", "3");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("kylin.job.event.poll-interval-second", "3");
         super.setup();
         EventBusFactory.getInstance().register(modelBrokenListener, false);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
@@ -94,7 +94,6 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         logger.info("ModelBrokenListenerTest cleanup");
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
-        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
         super.cleanup();
     }
 
@@ -112,15 +111,13 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         generateJob(modelId, project);
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
+        overwriteSystemProp("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
 
         tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertNull(modelManager.getDataModelDesc(modelId));
         });
-
-        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
     }
 
     @Test

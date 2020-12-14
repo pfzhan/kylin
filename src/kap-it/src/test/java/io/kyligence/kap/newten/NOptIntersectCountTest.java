@@ -54,7 +54,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/opt_intersect_count");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -96,16 +96,15 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
             return list;
         }).collect(Collectors.toList()).toString();
 
-        Assert.assertEquals("[[18, Shenzhen, male, handsome, 1]," + //
-                " [18, Shenzhen, male, rich, 1]," + //
-                " [18, Shenzhen, male, tall, 1]," + //
-                " [19, Beijing, female, handsome, 1]," + //
-                " [19, Beijing, female, rich, 1]," + //
-                " [19, Beijing, female, tall, 2]," + //
-                " [20, Shanghai, male, handsome, 2]," + //
-                " [20, Shanghai, male, rich, 2]," + //
-                " [20, Shanghai, male, tall, 1]]" //
-                , ret);
+        Assert.assertEquals("[[18, Shenzhen, male, handsome, 1]," //
+                + " [18, Shenzhen, male, rich, 1]," //
+                + " [18, Shenzhen, male, tall, 1]," //
+                + " [19, Beijing, female, handsome, 1]," //
+                + " [19, Beijing, female, rich, 1]," //
+                + " [19, Beijing, female, tall, 2]," //
+                + " [20, Shanghai, male, handsome, 2]," //
+                + " [20, Shanghai, male, rich, 2]," //
+                + " [20, Shanghai, male, tall, 1]]", ret);
     }
 
     private int getCountDistinctValue(byte[] bytes) {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -57,14 +56,12 @@ public class RealizationSortRule extends RoutingRule {
 
     @Override
     public void apply(List<Candidate> candidates) {
-        if(candidates.isEmpty())
-            return ;
+        if (candidates.isEmpty())
+            return;
         StringBuilder sb = new StringBuilder();
         for (Candidate candidate : candidates) {
-            sb.append(candidate.getRealization().getCanonicalName())
-              .append(" cost ")
-              .append(candidate.getCapability().cost)
-              .append(". ");
+            sb.append(candidate.getRealization().getCanonicalName()).append(" cost ")
+                    .append(candidate.getCapability().cost).append(". ");
         }
         logger.debug(sb.toString());
 

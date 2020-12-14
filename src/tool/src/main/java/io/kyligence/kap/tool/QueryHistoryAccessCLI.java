@@ -66,7 +66,8 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
             QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
-                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea", Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
+                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea",
+                    Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
             realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
             realizationMetrics.setDuration(4591L);
             realizationMetrics.setQueryTime(1586405449387L);
@@ -104,7 +105,7 @@ public class QueryHistoryAccessCLI {
         long repetition = Long.parseLong(args[0]);
 
         while (repetition > 0) {
-            if (false == cli.testAccessQueryHistory()) {
+            if (!cli.testAccessQueryHistory()) {
                 logger.error("Test failed.");
                 System.exit(1);
             }

@@ -23,11 +23,15 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.tool.OptionBuilder;
-import lombok.extern.slf4j.Slf4j;
+import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnRed;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
@@ -37,14 +41,12 @@ import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
 
-import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnRed;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 4.1 -> 4.2

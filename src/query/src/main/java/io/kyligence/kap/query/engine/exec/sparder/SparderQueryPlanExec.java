@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.KapConfig;
@@ -37,17 +36,19 @@ import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
-import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
+import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapContext;
 import io.kyligence.kap.query.relnode.KapRel;
 import io.kyligence.kap.query.util.QueryContextCutter;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * implement and execute a physical plan with Sparder
@@ -64,9 +65,8 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         // skip if no segment is selected
         // check contentQuery and runConstantQueryLocally for UT cases to make sure SparderEnv.getDF is not null
         // TODO refactor IT tests and remove this runConstantQueryLocally checking
-        if (!(dataContext instanceof SimpleDataContext) ||
-                !(((SimpleDataContext) dataContext)).isContentQuery() ||
-                KapConfig.wrap(((SimpleDataContext) dataContext).getKylinConfig()).runConstantQueryLocally()) {
+        if (!(dataContext instanceof SimpleDataContext) || !(((SimpleDataContext) dataContext)).isContentQuery()
+                || KapConfig.wrap(((SimpleDataContext) dataContext).getKylinConfig()).runConstantQueryLocally()) {
             val contexts = ContextUtil.listContexts();
             for (OLAPContext context : contexts) {
                 if (context.olapSchema != null && context.storageContext.isEmptyLayout()) {

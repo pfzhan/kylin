@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.tool.bisync.tableau.datasource.connection.relation;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-
 import java.util.Objects;
+
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class Clause {
 
@@ -60,8 +60,7 @@ public class Clause {
             return false;
         }
         Clause clause = (Clause) o;
-        return Objects.equals(getType(), clause.getType()) &&
-                Objects.equals(getExpression(), clause.getExpression());
+        return Objects.equals(getType(), clause.getType()) && Objects.equals(getExpression(), clause.getExpression());
     }
 
     @Override

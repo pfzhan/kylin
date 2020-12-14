@@ -54,7 +54,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/agg_exact_match");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -67,7 +67,6 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -76,7 +75,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testInClause() throws Exception{
+    public void testInClause() throws Exception {
         fullBuildCube("c9ddd37e-c870-4ccf-a131-5eef8fe6cb7e", getProject());
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -96,7 +95,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         String not_in2 = base + "where substring(LSTG_FORMAT_NAME, 1, 1) not in ('A','F')"
                 + " or substring(LSTG_FORMAT_NAME, 1, 1) not in ('O','B')";
 
-        System.setProperty("calcite.keep-in-clause", "true");
+        overwriteSystemProp("calcite.keep-in-clause", "true");
         Dataset<Row> df1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in1);
         Dataset<Row> df2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in2);
         Dataset<Row> df3 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
@@ -109,7 +108,7 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         ArrayList<String> querys = Lists.newArrayList(in1, in2, not_in1, not_in2);
         NExecAndComp.execAndCompareQueryList(querys, getProject(), NExecAndComp.CompareLevel.SAME, "left");
 
-        System.setProperty("calcite.keep-in-clause", "false");
+        overwriteSystemProp("calcite.keep-in-clause", "false");
         Dataset<Row> df5 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in1);
         Dataset<Row> df6 = NExecAndComp.queryCubeAndSkipCompute(getProject(), in2);
         Dataset<Row> df7 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_in2);
@@ -132,7 +131,6 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         Dataset<Row> m1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match1);
         Assert.assertFalse(existsAgg(m1));
 
-
         String exactly_match2 = "select count(*) from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
         Dataset<Row> m2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match2);
         Assert.assertFalse(existsAgg(m2));
@@ -153,7 +151,6 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("", exactly_match3));
         query.add(Pair.newPair("", exactly_match4));
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
-
 
         String not_match1 = "select count(*) from TEST_KYLIN_FACT";
         Dataset<Row> n1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), not_match1);

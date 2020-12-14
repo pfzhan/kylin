@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_EMAIL;
@@ -44,10 +44,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
-import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -80,6 +76,10 @@ import org.springframework.web.multipart.MultipartFile;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
+import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.BackupRequest;

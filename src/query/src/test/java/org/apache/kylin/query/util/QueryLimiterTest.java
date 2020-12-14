@@ -41,12 +41,7 @@
  */
 package org.apache.kylin.query.util;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.query.exception.BusyQueryException;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static org.awaitility.Awaitility.await;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -54,7 +49,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static org.awaitility.Awaitility.await;
+import org.apache.kylin.query.exception.BusyQueryException;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class QueryLimiterTest extends NLocalFileMetadataTestCase {
     private volatile boolean queryRejected = false;
@@ -62,13 +63,12 @@ public class QueryLimiterTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
-        System.setProperty("kylin.guardian.downgrade-mode-parallel-query-threshold", "3");
+        overwriteSystemProp("kylin.guardian.downgrade-mode-parallel-query-threshold", "3");
     }
 
     @After
     public void after() throws Exception {
         cleanupTestMetadata();
-        System.clearProperty("kylin.downgrade-mode.parallel-query-threshold");
     }
 
     @Test

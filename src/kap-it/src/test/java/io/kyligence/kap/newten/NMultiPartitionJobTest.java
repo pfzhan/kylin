@@ -51,8 +51,8 @@ import lombok.val;
 public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.model.multi-partition-enabled", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/multi_partition");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -65,7 +65,6 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -87,20 +86,20 @@ public class NMultiPartitionJobTest extends NLocalWithSparkSessionTest {
         long endTime = SegmentRange.dateToLong("2020-11-06");
         val segmentRange = new SegmentRange.TimePartitionedSegmentRange(startTime, endTime);
 
-        val buildPartitions = Lists.<String[]>newArrayList();
-        buildPartitions.add(new String[]{"usa"});
-        buildPartitions.add(new String[]{"cn"});
-        buildPartitions.add(new String[]{"africa"});
+        val buildPartitions = Lists.<String[]> newArrayList();
+        buildPartitions.add(new String[] { "usa" });
+        buildPartitions.add(new String[] { "cn" });
+        buildPartitions.add(new String[] { "africa" });
 
         buildCuboid(dfID, segmentRange, Sets.newLinkedHashSet(layouts), getProject(), true, buildPartitions);
-        String sqlHitCube = " select count(1) from TEST_BANK_INCOME t1 inner join TEST_BANK_LOCATION t2 on t1. COUNTRY = t2. COUNTRY " +
-                " where  t1.dt = '2020-11-05' ";
-        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube)
-                .collectAsList().stream().map(Row::toString).collect(Collectors.toList());
+        String sqlHitCube = " select count(1) from TEST_BANK_INCOME t1 inner join TEST_BANK_LOCATION t2 on t1. COUNTRY = t2. COUNTRY "
+                + " where  t1.dt = '2020-11-05' ";
+        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream()
+                .map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(1, hitCubeResult.size());
 
         // will auto offline
-        System.setProperty("kylin.model.multi-partition-enabled", "false");
+        overwriteSystemProp("kylin.model.multi-partition-enabled", "false");
         long startTime2 = SegmentRange.dateToLong("2020-11-06");
         long endTime2 = SegmentRange.dateToLong("2020-11-07");
         val segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(startTime2, endTime2);

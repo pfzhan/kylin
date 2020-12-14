@@ -74,7 +74,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
                 .build();
         Assert.assertFalse(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
                 KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()));
-        System.setProperty("kylin.query.match-partial-inner-join-model", "true");
+        overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
         Assert.assertTrue(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
                 KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()));
     }

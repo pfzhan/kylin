@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -76,7 +75,11 @@ public class ColumnMeta implements Serializable {
     public ColumnMeta() {
     }
 
-    public ColumnMeta(String tABLE_CAT, String tABLE_SCHEM, String tABLE_NAME, String cOLUMN_NAME, int dATA_TYPE, String tYPE_NAME, int cOLUMN_SIZE, int bUFFER_LENGTH, int dECIMAL_DIGITS, int nUM_PREC_RADIX, int nULLABLE, String rEMARKS, String cOLUMN_DEF, int sQL_DATA_TYPE, int sQL_DATETIME_SUB, int cHAR_OCTET_LENGTH, int oRDINAL_POSITION, String iS_NULLABLE, String sCOPE_CATLOG, String sCOPE_SCHEMA, String sCOPE_TABLE, short sOURCE_DATA_TYPE, String iS_AUTOINCREMENT) {
+    public ColumnMeta(String tABLE_CAT, String tABLE_SCHEM, String tABLE_NAME, String cOLUMN_NAME, int dATA_TYPE,
+            String tYPE_NAME, int cOLUMN_SIZE, int bUFFER_LENGTH, int dECIMAL_DIGITS, int nUM_PREC_RADIX, int nULLABLE,
+            String rEMARKS, String cOLUMN_DEF, int sQL_DATA_TYPE, int sQL_DATETIME_SUB, int cHAR_OCTET_LENGTH,
+            int oRDINAL_POSITION, String iS_NULLABLE, String sCOPE_CATLOG, String sCOPE_SCHEMA, String sCOPE_TABLE,
+            short sOURCE_DATA_TYPE, String iS_AUTOINCREMENT) {
         super();
         TABLE_CAT = tABLE_CAT;
         TABLE_SCHEM = tABLE_SCHEM;
@@ -289,30 +292,15 @@ public class ColumnMeta implements Serializable {
 
     @Override
     public String toString() {
-        return "ColumnMeta{" +
-                "TABLE_CAT='" + TABLE_CAT + '\n' +
-                ", TABLE_SCHEM='" + TABLE_SCHEM + '\n' +
-                ", TABLE_NAME='" + TABLE_NAME + '\n' +
-                ", COLUMN_NAME='" + COLUMN_NAME + '\n' +
-                ", DATA_TYPE=" + DATA_TYPE +
-                ", TYPE_NAME='" + TYPE_NAME + '\n' +
-                ", COLUMN_SIZE=" + COLUMN_SIZE +
-                ", BUFFER_LENGTH=" + BUFFER_LENGTH +
-                ", DECIMAL_DIGITS=" + DECIMAL_DIGITS +
-                ", NUM_PREC_RADIX=" + NUM_PREC_RADIX +
-                ", NULLABLE=" + NULLABLE +
-                ", REMARKS='" + REMARKS + '\n' +
-                ", COLUMN_DEF='" + COLUMN_DEF + '\n' +
-                ", SQL_DATA_TYPE=" + SQL_DATA_TYPE +
-                ", SQL_DATETIME_SUB=" + SQL_DATETIME_SUB +
-                ", CHAR_OCTET_LENGTH=" + CHAR_OCTET_LENGTH +
-                ", ORDINAL_POSITION=" + ORDINAL_POSITION +
-                ", IS_NULLABLE='" + IS_NULLABLE + '\n' +
-                ", SCOPE_CATLOG='" + SCOPE_CATLOG + '\n' +
-                ", SCOPE_SCHEMA='" + SCOPE_SCHEMA + '\n' +
-                ", SCOPE_TABLE='" + SCOPE_TABLE + '\n' +
-                ", SOURCE_DATA_TYPE=" + SOURCE_DATA_TYPE +
-                ", IS_AUTOINCREMENT='" + IS_AUTOINCREMENT + '\n' +
-                '}';
+        return "ColumnMeta{" + "TABLE_CAT='" + TABLE_CAT + '\n' + ", TABLE_SCHEM='" + TABLE_SCHEM + '\n'
+                + ", TABLE_NAME='" + TABLE_NAME + '\n' + ", COLUMN_NAME='" + COLUMN_NAME + '\n' + ", DATA_TYPE="
+                + DATA_TYPE + ", TYPE_NAME='" + TYPE_NAME + '\n' + ", COLUMN_SIZE=" + COLUMN_SIZE + ", BUFFER_LENGTH="
+                + BUFFER_LENGTH + ", DECIMAL_DIGITS=" + DECIMAL_DIGITS + ", NUM_PREC_RADIX=" + NUM_PREC_RADIX
+                + ", NULLABLE=" + NULLABLE + ", REMARKS='" + REMARKS + '\n' + ", COLUMN_DEF='" + COLUMN_DEF + '\n'
+                + ", SQL_DATA_TYPE=" + SQL_DATA_TYPE + ", SQL_DATETIME_SUB=" + SQL_DATETIME_SUB + ", CHAR_OCTET_LENGTH="
+                + CHAR_OCTET_LENGTH + ", ORDINAL_POSITION=" + ORDINAL_POSITION + ", IS_NULLABLE='" + IS_NULLABLE + '\n'
+                + ", SCOPE_CATLOG='" + SCOPE_CATLOG + '\n' + ", SCOPE_SCHEMA='" + SCOPE_SCHEMA + '\n'
+                + ", SCOPE_TABLE='" + SCOPE_TABLE + '\n' + ", SOURCE_DATA_TYPE=" + SOURCE_DATA_TYPE
+                + ", IS_AUTOINCREMENT='" + IS_AUTOINCREMENT + '\n' + '}';
     }
 }

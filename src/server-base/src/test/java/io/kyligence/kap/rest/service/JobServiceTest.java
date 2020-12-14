@@ -103,16 +103,16 @@ import lombok.val;
 public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
-    private JobService jobService = Mockito.spy(new JobService());
+    private final JobService jobService = Mockito.spy(new JobService());
 
     @Mock
-    private TableExtService tableExtService = Mockito.spy(TableExtService.class);
+    private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
 
     @Mock
-    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -122,8 +122,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
@@ -133,8 +133,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        System.clearProperty("HADOOP_USER_NAME");
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     private String getProject() {
@@ -542,9 +541,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutputToHDFS(KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath("default",
                 "e1ad7bb0-522e-456a-859d-2eab1df448de"), executableOutputPO);
 
-        String[] actualLines = jobService.getAllJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de", "e1ad7bb0-522e-456a-859d-2eab1df448de")
-                .split("\n");
-
+        String[] actualLines = jobService.getAllJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de",
+                "e1ad7bb0-522e-456a-859d-2eab1df448de").split("\n");
 
         Assert.assertTrue(Arrays.deepEquals(exceptLines, actualLines));
     }

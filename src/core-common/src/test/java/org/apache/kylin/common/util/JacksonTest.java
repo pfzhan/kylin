@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,12 +45,14 @@ package org.apache.kylin.common.util;
 import java.io.IOException;
 import java.util.HashMap;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.val;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.val;
 
 public class JacksonTest {
     @Test
@@ -61,7 +62,6 @@ public class JacksonTest {
         a.put("3", "3");
         a.put("2", "2");
 
-
         JacksonBean bean = new JacksonBean();
         bean.setA("valuea");
         bean.setConfiguration(a);
@@ -69,11 +69,13 @@ public class JacksonTest {
         String s = JsonUtil.writeValueAsString(bean);
         System.out.println(s);
 
-        JacksonBean desBean = (JacksonBean) JsonUtil.readValue("{\"a\":\"valuea\",\"b\":0,\"configuration\":{\"2\":\"2\",\"3\":\"3\",\"1\":\"1\"}}", JacksonBean.class);
-        
+        JacksonBean desBean = (JacksonBean) JsonUtil.readValue(
+                "{\"a\":\"valuea\",\"b\":0,\"configuration\":{\"2\":\"2\",\"3\":\"3\",\"1\":\"1\"}}",
+                JacksonBean.class);
+
         String x2 = JsonUtil.writeValueAsString(desBean);
         System.out.println(x2);
-        
+
         System.out.println(desBean);
     }
 

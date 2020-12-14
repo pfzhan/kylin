@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -47,32 +45,30 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 
 public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
     private static final String DF_NAME1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
-    private static final String SQL = "select\n" +
-            " count(1) as TRANS_CNT \n" +
-            " from test_kylin_fact \n" +
-            " group by trans_id";
+    private static final String SQL = "select\n" + " count(1) as TRANS_CNT \n" + " from test_kylin_fact \n"
+            + " group by trans_id";
 
-    private static final String SQL_DERIVED = "SELECT \n" +
-            "test_cal_dt.season_beg_dt\n" +
-            "FROM test_kylin_fact LEFT JOIN edw.test_cal_dt as test_cal_dt \n" +
-            "ON test_kylin_fact.cal_dt=test_cal_dt.cal_dt \n" +
-            "WHERE test_kylin_fact.cal_dt>'2009-06-01' and test_kylin_fact.cal_dt<'2013-01-01' \n" +
-            "GROUP BY test_cal_dt.season_beg_dt";
+    private static final String SQL_DERIVED = "SELECT \n" + "test_cal_dt.season_beg_dt\n"
+            + "FROM test_kylin_fact LEFT JOIN edw.test_cal_dt as test_cal_dt \n"
+            + "ON test_kylin_fact.cal_dt=test_cal_dt.cal_dt \n"
+            + "WHERE test_kylin_fact.cal_dt>'2009-06-01' and test_kylin_fact.cal_dt<'2013-01-01' \n"
+            + "GROUP BY test_cal_dt.season_beg_dt";
 
     private KylinConfig config;
     private NDataflowManager dsMgr;
     private NExecutableManager execMgr;
-
 
     @Before
     public void init() throws Exception {
@@ -83,13 +79,11 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         NIndexPlanManager ipMgr = NIndexPlanManager.getInstance(config, getProject());
         String cubeId = dsMgr.getDataflow(DF_NAME1).getIndexPlan().getUuid();
         IndexPlan cube = ipMgr.getIndexPlan(cubeId);
-        Set<Long> tobeRemovedLayouts = cube.getAllLayouts().stream()
-                .filter(layout -> layout.getId() != 10001L)
-                .map(LayoutEntity::getId)
-                .collect(Collectors.toSet());
+        Set<Long> tobeRemovedLayouts = cube.getAllLayouts().stream().filter(layout -> layout.getId() != 10001L)
+                .map(LayoutEntity::getId).collect(Collectors.toSet());
 
         cube = ipMgr.updateIndexPlan(dsMgr.getDataflow(DF_NAME1).getIndexPlan().getUuid(), copyForWrite -> {
-           copyForWrite.removeLayouts(tobeRemovedLayouts, true, true);
+            copyForWrite.removeLayouts(tobeRemovedLayouts, true, true);
         });
         System.out.println(cube.getAllLayouts());
     }
@@ -137,14 +131,17 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
     private void buildCube(String dfName, long start, long end) throws Exception {
         NDataflow df = dsMgr.getDataflow(dfName);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<LayoutEntity> newLinkedHashSet(layouts), true);
     }
 
     private void mergeSegments(String start, String end, boolean force) throws Exception {
         NDataflow df = dsMgr.getDataflow(DF_NAME1);
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        NDataSegment emptyMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong(start), SegmentRange.dateToLong(end)), force);
-        NSparkMergingJob emptyMergeJob = NSparkMergingJob.merge(emptyMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
+        NDataSegment emptyMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong(start), SegmentRange.dateToLong(end)), force);
+        NSparkMergingJob emptyMergeJob = NSparkMergingJob.merge(emptyMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
         execMgr.addJob(emptyMergeJob);
         Assert.assertEquals(ExecutableState.SUCCEED, wait(emptyMergeJob));
         AfterMergeOrRefreshResourceMerger merger = new AfterMergeOrRefreshResourceMerger(config, getProject());

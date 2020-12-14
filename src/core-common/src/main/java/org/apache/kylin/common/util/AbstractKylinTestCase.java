@@ -70,15 +70,7 @@ public abstract class AbstractKylinTestCase {
     }
 
     protected void restoreAllSystemProp() {
-        systemProp.forEach((prop, value) -> {
-            if (value == null) {
-                log.info("Clear {}", prop);
-                System.clearProperty(prop);
-            } else {
-                log.info("restore {}", prop);
-                System.setProperty(prop, value);
-            }
-        });
+        systemProp.forEach((prop, value) -> System.clearProperty(prop));
         systemProp.clear();
     }
 

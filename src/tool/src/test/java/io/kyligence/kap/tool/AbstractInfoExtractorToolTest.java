@@ -23,8 +23,11 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.tool.util.ToolUtil;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
@@ -38,10 +41,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.tool.util.ToolUtil;
 
 public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
     @Rule
@@ -136,10 +138,7 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
 
-        String sourceKylinHome = System.getProperty("KYLIN_HOME");
-        if (null == sourceKylinHome) {
-            System.setProperty("KYLIN_HOME", mainDir.getAbsolutePath());
-        }
+        overwriteSystemProp("KYLIN_HOME", mainDir.getAbsolutePath());
         MockInfoExtractorTool mock = new MockInfoExtractorTool();
 
         List<File> clearFileList = new ArrayList<>();
@@ -154,10 +153,6 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         FileUtils.forceMkdir(output);
 
         mock.extractCommitFile(output);
-
-        if (null != sourceKylinHome) {
-            System.setProperty("KYLIN_HOME", sourceKylinHome);
-        }
 
         for (File file : clearFileList) {
             FileUtils.deleteQuietly(file);
@@ -177,7 +172,7 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
 
         for (File file1 : mainDir.listFiles()) {
             for (File file2 : file1.listFiles()) {
-                if(!file2.getName().contains("_base_") || !file2.getName().endsWith(".zip")) {
+                if (!file2.getName().contains("_base_") || !file2.getName().endsWith(".zip")) {
                     Assert.fail();
                 }
             }

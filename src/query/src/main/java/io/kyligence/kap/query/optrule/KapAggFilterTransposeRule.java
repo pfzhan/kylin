@@ -65,7 +65,8 @@ public class KapAggFilterTransposeRule extends RelOptRule {
         super(operand, description);
     }
 
-    public KapAggFilterTransposeRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
+    public KapAggFilterTransposeRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory,
+            String description) {
         super(operand, relBuilderFactory, description);
     }
 
@@ -83,8 +84,7 @@ public class KapAggFilterTransposeRule extends RelOptRule {
         final KapFilterRel filter = call.rel(1);
 
         // Do the columns used by the filter appear in the output of the aggregate?
-        final ImmutableBitSet filterColumns =
-                RelOptUtil.InputFinder.bits(filter.getCondition());
+        final ImmutableBitSet filterColumns = RelOptUtil.InputFinder.bits(filter.getCondition());
         final ImmutableBitSet newGroupSet = aggregate.getGroupSet().union(filterColumns);
         final RelNode input = filter.getInput();
         final RelMetadataQuery mq = call.getMetadataQuery();
@@ -96,20 +96,14 @@ public class KapAggFilterTransposeRule extends RelOptRule {
             return;
         }
 
-        boolean allColumnsInAggregate = aggregate.getGroupSet().
-                contains(filterColumns);
+        boolean allColumnsInAggregate = aggregate.getGroupSet().contains(filterColumns);
 
-        final Aggregate newAggregate =
-                aggregate.copy(aggregate.getTraitSet(), input,
-                        false, newGroupSet, null, aggregate.getAggCallList());
-        final Mappings.TargetMapping mapping = Mappings.target(
-                a0 -> newGroupSet.indexOf(a0),
-                input.getRowType().getFieldCount(),
+        final Aggregate newAggregate = aggregate.copy(aggregate.getTraitSet(), input, false, newGroupSet, null,
+                aggregate.getAggCallList());
+        final Mappings.TargetMapping mapping = Mappings.target(newGroupSet::indexOf, input.getRowType().getFieldCount(),
                 newGroupSet.cardinality());
-        final RexNode newCondition =
-                RexUtil.apply(mapping, filter.getCondition());
-        final Filter newFilter = filter.copy(filter.getTraitSet(),
-                newAggregate, newCondition);
+        final RexNode newCondition = RexUtil.apply(mapping, filter.getCondition());
+        final Filter newFilter = filter.copy(filter.getTraitSet(), newAggregate, newCondition);
         if (allColumnsInAggregate && aggregate.getGroupType() == Aggregate.Group.SIMPLE) {
             // Everything needed by the filter is returned by the aggregate.
             assert newGroupSet.equals(aggregate.getGroupSet());
@@ -126,11 +120,9 @@ public class KapAggFilterTransposeRule extends RelOptRule {
         }
         ImmutableList<ImmutableBitSet> newGroupingSets2 = null;
         if (aggregate.getGroupType() != Aggregate.Group.SIMPLE) {
-            ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder =
-                    ImmutableList.builder();
+            ImmutableList.Builder<ImmutableBitSet> newGroupingSetsBuilder = ImmutableList.builder();
             for (ImmutableBitSet groupingSet : aggregate.getGroupSets()) {
-                final ImmutableBitSet.Builder newGroupingSet =
-                        ImmutableBitSet.builder();
+                final ImmutableBitSet.Builder newGroupingSet = ImmutableBitSet.builder();
                 for (int c : groupingSet) {
                     newGroupingSet.set(newGroupSet.indexOf(c));
                 }
@@ -141,8 +133,7 @@ public class KapAggFilterTransposeRule extends RelOptRule {
         final List<AggregateCall> topAggCallList = Lists.newArrayList();
         int i = newGroupSet.cardinality();
         for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-            final SqlAggFunction rollup =
-                    SubstitutionVisitor.getRollup(aggregateCall.getAggregation());
+            final SqlAggFunction rollup = SubstitutionVisitor.getRollup(aggregateCall.getAggregation());
             if (rollup == null) {
                 // This aggregate cannot be rolled up.
                 return;
@@ -151,15 +142,11 @@ public class KapAggFilterTransposeRule extends RelOptRule {
                 // Cannot roll up distinct.
                 return;
             }
-            topAggCallList.add(
-                    AggregateCall.create(rollup, aggregateCall.isDistinct(),
-                            aggregateCall.isApproximate(), ImmutableList.of(i++), -1,
-                            aggregateCall.type, aggregateCall.name));
+            topAggCallList.add(AggregateCall.create(rollup, aggregateCall.isDistinct(), aggregateCall.isApproximate(),
+                    ImmutableList.of(i++), -1, aggregateCall.type, aggregateCall.name));
         }
-        final Aggregate topAggregate =
-                aggregate.copy(aggregate.getTraitSet(), newFilter,
-                        aggregate.indicator, topGroupSet.build(),
-                        newGroupingSets2, topAggCallList);
+        final Aggregate topAggregate = aggregate.copy(aggregate.getTraitSet(), newFilter, aggregate.indicator,
+                topGroupSet.build(), newGroupingSets2, topAggCallList);
         call.transformTo(topAggregate);
     }
 }

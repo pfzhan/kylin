@@ -125,10 +125,10 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     }
 
     private void validate(String funcName, DataType dataType, boolean checkDataType) {
-        if (FUNC_TOP_N.equals(funcName) == false)
+        if (!FUNC_TOP_N.equals(funcName))
             throw new IllegalArgumentException();
 
-        if (DATATYPE_TOPN.equals(dataType.getName()) == false)
+        if (!DATATYPE_TOPN.equals(dataType.getName()))
             throw new IllegalArgumentException();
 
         if (dataType.getPrecision() < 1 || dataType.getPrecision() > 10000)
@@ -227,7 +227,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
                     needReEncode = hasDictEncoding;
                 }
 
-                if (needReEncode == false) {
+                if (!needReEncode) {
                     // no need re-encode
                     return topNCounter;
                 }
@@ -264,7 +264,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     public List<TblColRef> getColumnsNeedDictionary(FunctionDesc functionDesc) {
         List<TblColRef> columnsNeedDict = Lists.newArrayList();
         List<TblColRef> allCols = functionDesc.getColRefs();
-        int start = (functionDesc.getParameters().get(0).isColumnType() == true) ? 1 : 0;
+        int start = (functionDesc.getParameters().get(0).isColumnType()) ? 1 : 0;
         for (int i = start; i < allCols.size(); i++) {
             TblColRef tblColRef = allCols.get(i);
             String encoding = getEncoding(functionDesc, tblColRef).getFirst();
@@ -367,7 +367,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             return false;
         }
 
-        if (sum.isSum() == false)
+        if (!sum.isSum())
             return false;
 
         if (CollectionUtils.isEmpty(sum.getParameters()) || CollectionUtils.isEmpty(sum.getColRefs()))
@@ -398,12 +398,12 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
 
         if (!sqlDigest.aggregations.isEmpty()) {
             FunctionDesc origFunc = sqlDigest.aggregations.iterator().next();
-            if (origFunc.isSum() == false && origFunc.isCount() == false) {
+            if (!origFunc.isSum() && !origFunc.isCount()) {
                 logger.warn("When query with topN, only SUM/Count function is allowed.");
                 return;
             }
 
-            if (isTopNCompatibleSum(involvedMeasure.getFunction(), origFunc) == false) {
+            if (!isTopNCompatibleSum(involvedMeasure.getFunction(), origFunc)) {
                 return;
             }
 
@@ -521,7 +521,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     }
 
     private TblColRef getTopNNumericColumn(FunctionDesc functionDesc) {
-        if (functionDesc.getParameters().get(0).isColumnType() == true) {
+        if (functionDesc.getParameters().get(0).isColumnType()) {
             return functionDesc.getColRefs().get(0);
         }
         return null;
@@ -529,7 +529,7 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
 
     private List<TblColRef> getTopNLiteralColumn(FunctionDesc functionDesc) {
         List<TblColRef> allColumns = functionDesc.getColRefs();
-        if (functionDesc.getParameters().get(0).isColumnType() == false) {
+        if (!functionDesc.getParameters().get(0).isColumnType()) {
             return allColumns;
         }
         return allColumns.subList(1, allColumns.size());

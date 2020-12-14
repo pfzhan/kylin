@@ -23,9 +23,10 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import io.kyligence.kap.rest.request.OpenReloadTableRequest;
+import java.util.List;
+
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -57,12 +58,11 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
-
-import java.util.List;
 
 public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
@@ -99,7 +99,8 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("default");
-        Mockito.doReturn(Lists.newArrayList(projectInstance)).when(projectService).getReadableProjects(projectInstance.getName(), true);
+        Mockito.doReturn(Lists.newArrayList(projectInstance)).when(projectService)
+                .getReadableProjects(projectInstance.getName(), true);
         Mockito.doReturn(true).when(aclEvaluate).hasProjectWritePermission(Mockito.any());
 
         createTestMetadata();
@@ -200,8 +201,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/pre_reload") //
                 .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", project)
-                .param("table", tableName)
+                .param("project", project).param("table", tableName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).preReloadTable(project, tableName);
@@ -217,9 +217,8 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         request.setTable(tableName);
         request.setNeedSampling(false);
 
-        Mockito.doReturn(new Pair<String, List<String>>()).when(tableService)
-                .reloadTable(request.getProject(), request.getTable(), request.getNeedSampling(), 0, false,
-                        ExecutablePO.DEFAULT_PRIORITY);
+        Mockito.doReturn(new Pair<String, List<String>>()).when(tableService).reloadTable(request.getProject(),
+                request.getTable(), request.getNeedSampling(), 0, false, ExecutablePO.DEFAULT_PRIORITY);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
@@ -248,9 +247,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/column_format") //
                 .contentType(MediaType.APPLICATION_JSON) //
-                .param("project", project)
-                .param("table", tableName)
-                .param("column_name", columnName)
+                .param("project", project).param("table", tableName).param("column_name", columnName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).getPartitioinColumnFormat(project, tableName, columnName);

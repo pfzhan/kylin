@@ -82,7 +82,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        staticCreateTestMetadata();
+        createTestMetadata();
         killProcessCount = new AtomicInteger();
         val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager = Mockito.spy(originExecutableManager);
@@ -118,23 +118,17 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         waitForJobByStatus(jobId, maxWaitTime, null, executableManager);
     }
 
-    protected void waitForJobByStatus(String jobId, int maxWaitTime,
-                                      final ExecutableState state, final NExecutableManager executableManager) {
+    protected void waitForJobByStatus(String jobId, int maxWaitTime, final ExecutableState state,
+            final NExecutableManager executableManager) {
         await().atMost(maxWaitTime, TimeUnit.MILLISECONDS).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();
             if (state != null) {
-                if (status == state) {
-                    return true;
-                }
-                return false;
+                return status == state;
             }
-            if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
+            return status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
                     || status == ExecutableState.PAUSED || status == ExecutableState.DISCARDED
-                    || status == ExecutableState.SUICIDAL) {
-                return true;
-            }
-            return false;
+                    || status == ExecutableState.SUICIDAL;
         });
     }
 

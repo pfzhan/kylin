@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -63,10 +65,9 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.service.JobService;
 import io.swagger.annotations.ApiOperation;
-import javax.servlet.http.HttpServletResponse;
 
 @Controller
-@RequestMapping(value = "/api/jobs", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
+@RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NJobController extends NBasicController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";
@@ -127,8 +128,8 @@ public class NJobController extends NBasicController {
     @DeleteMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
-                                            @RequestParam(value = "job_ids", required = false) List<String> jobIds,
-                                            @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
+            @RequestParam(value = "job_ids", required = false) List<String> jobIds,
+            @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
         checkJobStatus(statuses);
         if (StringUtils.isBlank(project) && CollectionUtils.isEmpty(jobIds)) {
             throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to delete!");
@@ -168,7 +169,7 @@ public class NJobController extends NBasicController {
     @GetMapping(value = "/{job_id:.+}/detail")
     @ResponseBody
     public EnvelopeResponse<List<ExecutableStepResponse>> getJobDetail(@PathVariable(value = "job_id") String jobId,
-                                                                       @RequestParam(value = "project") String project) {
+            @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
@@ -178,7 +179,7 @@ public class NJobController extends NBasicController {
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output")
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getJobOutput(@PathVariable("job_id") String jobId,
-                                                              @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project) {
+            @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project) {
         checkProjectName(project);
         Map<String, String> result = new HashMap<>();
         result.put(JOB_ID_ARG_NAME, jobId);
@@ -191,22 +192,23 @@ public class NJobController extends NBasicController {
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log")
     @ResponseBody
     public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,
-                                                    @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project,
-                                                    HttpServletResponse response) {
+            @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project,
+            HttpServletResponse response) {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
         String downloadFilename = String.format("%s_%s.log", project, stepId);
 
         String jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
-        setDownloadResponse(new ByteArrayInputStream(jobOutput.getBytes()), downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+        setDownloadResponse(new ByteArrayInputStream(jobOutput.getBytes()), downloadFilename,
+                MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/statistics")
     @ResponseBody
     public EnvelopeResponse<JobStatisticsResponse> getJobStats(@RequestParam(value = "project") String project,
-                                                               @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
+            @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime),
                 "");
@@ -215,8 +217,8 @@ public class NJobController extends NBasicController {
     @GetMapping(value = "/statistics/count")
     @ResponseBody
     public EnvelopeResponse<Map<String, Integer>> getJobCount(@RequestParam(value = "project") String project,
-                                                              @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
-                                                              @RequestParam(value = "dimension") String dimension) {
+            @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
+            @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 jobService.getJobCount(project, startTime, endTime, dimension), "");
@@ -225,8 +227,8 @@ public class NJobController extends NBasicController {
     @GetMapping(value = "/statistics/duration_per_byte")
     @ResponseBody
     public EnvelopeResponse<Map<String, Double>> getJobDurationPerByte(@RequestParam(value = "project") String project,
-                                                                       @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
-                                                                       @RequestParam(value = "dimension") String dimension) {
+            @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
+            @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");

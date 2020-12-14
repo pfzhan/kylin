@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,7 +49,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
@@ -70,6 +68,8 @@ import org.apache.kylin.metadata.tuple.Tuple;
 import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 public class RawMeasureType extends MeasureType<List<ByteArray>> {
     private static final long serialVersionUID = 1L;
@@ -114,10 +114,10 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
     }
 
     private void validate(String funcName, DataType dataType, boolean checkDataType) {
-        if (FUNC_RAW.equals(funcName) == false)
+        if (!FUNC_RAW.equals(funcName))
             throw new IllegalArgumentException();
 
-        if (DATATYPE_RAW.equals(dataType.getName()) == false)
+        if (!DATATYPE_RAW.equals(dataType.getName()))
             throw new IllegalArgumentException();
 
     }
@@ -134,7 +134,8 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
 
             //encode measure value to dictionary
             @Override
-            public List<ByteArray> valueOf(String[] values, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> dictionaryMap) {
+            public List<ByteArray> valueOf(String[] values, MeasureDesc measureDesc,
+                    Map<TblColRef, Dictionary<String>> dictionaryMap) {
                 if (values.length != 1)
                     throw new IllegalArgumentException();
 
@@ -155,7 +156,8 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
 
             //merge measure dictionary
             @Override
-            public List<ByteArray> reEncodeDictionary(List<ByteArray> value, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> oldDicts, Map<TblColRef, Dictionary<String>> newDicts) {
+            public List<ByteArray> reEncodeDictionary(List<ByteArray> value, MeasureDesc measureDesc,
+                    Map<TblColRef, Dictionary<String>> oldDicts, Map<TblColRef, Dictionary<String>> newDicts) {
                 TblColRef colRef = getRawColumn(measureDesc.getFunction());
                 Dictionary<String> sourceDict = oldDicts.get(colRef);
                 Dictionary<String> mergedDict = newDicts.get(colRef);
@@ -193,7 +195,8 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
         return Collections.singletonList(literalCol);
     }
 
-    public CapabilityResult.CapabilityInfluence influenceCapabilityCheck(Collection<TblColRef> unmatchedDimensions, Collection<FunctionDesc> unmatchedAggregations, SQLDigest digest, final MeasureDesc measureDesc) {
+    public CapabilityResult.CapabilityInfluence influenceCapabilityCheck(Collection<TblColRef> unmatchedDimensions,
+            Collection<FunctionDesc> unmatchedAggregations, SQLDigest digest, final MeasureDesc measureDesc) {
         //is raw query
         if (!digest.isRawQuery)
             return null;
@@ -261,7 +264,8 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
     }
 
     @Override
-    public IAdvMeasureFiller getAdvancedTupleFiller(FunctionDesc function, TupleInfo tupleInfo, Map<TblColRef, Dictionary<String>> dictionaryMap) {
+    public IAdvMeasureFiller getAdvancedTupleFiller(FunctionDesc function, TupleInfo tupleInfo,
+            Map<TblColRef, Dictionary<String>> dictionaryMap) {
         final TblColRef literalCol = getRawColumn(function);
         final Dictionary<String> rawColDict = dictionaryMap.get(literalCol);
         final int literalTupleIdx = tupleInfo.hasColumn(literalCol) ? tupleInfo.getColumnIndex(literalCol) : -1;

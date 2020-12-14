@@ -39,11 +39,12 @@ public class SqlParamsFinderTest {
     public void testParamFinder() throws SqlParseException {
         SqlParser sqlParser1 = SqlParser.create("POWER($0, $1) + AVG(LN($3)) + EXP($5)");
         SqlNode sqlPattern = sqlParser1.parseExpression();
-        SqlParser sqlParser2 = SqlParser.create("POWER(3, POWER(2, POWER(2, 3))) + AVG(LN(EXP(4))) + EXP(CAST('2018-03-22' AS DATE))");
+        SqlParser sqlParser2 = SqlParser
+                .create("POWER(3, POWER(2, POWER(2, 3))) + AVG(LN(EXP(4))) + EXP(CAST('2018-03-22' AS DATE))");
         SqlNode sqlCall = sqlParser2.parseExpression();
 
-        SqlParamsFinder sqlParamsFinder = new SqlParamsFinder((SqlCall)sqlPattern, (SqlCall)sqlCall);
-        Map<Integer, SqlNode> paramNodes =  sqlParamsFinder.getParamNodes();
+        SqlParamsFinder sqlParamsFinder = new SqlParamsFinder((SqlCall) sqlPattern, (SqlCall) sqlCall);
+        Map<Integer, SqlNode> paramNodes = sqlParamsFinder.getParamNodes();
 
         Assert.assertEquals("3", paramNodes.get(0).toString());
         Assert.assertEquals("POWER(2, POWER(2, 3))", paramNodes.get(1).toString());
@@ -58,8 +59,8 @@ public class SqlParamsFinderTest {
         SqlNode sqlPattern = sqlParser1.parseExpression();
         SqlParser sqlParser2 = SqlParser.create("STDDEV_POP(C1) OVER (ORDER BY C1)");
         SqlNode sqlCall = sqlParser2.parseExpression();
-        SqlParamsFinder sqlParamsFinder = SqlParamsFinder.newInstance((SqlCall)sqlPattern, (SqlCall)sqlCall, true);
-        Map<Integer, SqlNode> paramNodes =  sqlParamsFinder.getParamNodes();
+        SqlParamsFinder sqlParamsFinder = SqlParamsFinder.newInstance((SqlCall) sqlPattern, (SqlCall) sqlCall, true);
+        Map<Integer, SqlNode> paramNodes = sqlParamsFinder.getParamNodes();
 
         Assert.assertEquals("C1", paramNodes.get(0).toString());
         Assert.assertEquals("(ORDER BY `C1`)", paramNodes.get(1).toString());

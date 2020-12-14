@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
@@ -75,7 +75,7 @@ public class NDefaultDataBaseNotSetTest extends NAutoTestBase {
                 "select initcapb(LO_ORDERPRIOTITY),substr(LO_ORDERPRIOTITY,2),instr(LO_ORDERPRIOTITY,'A'),"
                         + "ifnull(LO_LINENUMBER,0),rlike(LO_ORDERPRIOTITY,'*') from SSB.P_LINEORDER" };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, "ssb", sqls);
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
 
         val modelContext = smartMaster.getContext().getModelContexts().get(0);

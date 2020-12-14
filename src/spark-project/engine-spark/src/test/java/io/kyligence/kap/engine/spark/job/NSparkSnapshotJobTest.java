@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -39,6 +36,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+
 @SuppressWarnings("serial")
 public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
@@ -47,9 +48,9 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         ss.sparkContext().setLogLevel("ERROR");
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.engine.persist-flattable-threshold", "0");
-        System.setProperty("kylin.engine.persist-flatview", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
+        overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -79,7 +80,8 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
-        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), getProject(), "ADMIN", false);
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), getProject(), "ADMIN",
+                false);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());

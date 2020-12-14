@@ -42,8 +42,11 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.controller.v2.NProjectControllerV2;
-import io.kyligence.kap.rest.service.ProjectService;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -64,10 +67,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.rest.controller.v2.NProjectControllerV2;
+import io.kyligence.kap.rest.service.ProjectService;
 
 public class NProjectControllerV2Test {
 

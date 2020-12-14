@@ -75,7 +75,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
 
     @Before
     public void setup() throws Exception {
-        staticCreateTestMetadata();
+        createTestMetadata();
 
         TestingServer zkTestServer = new TestingServer();
         zkTestServer.start();
@@ -88,7 +88,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
 
     @After
     public void after() throws Exception {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
         factory.lockForCurrentProcess().purgeLocks(ZK_PFX);
     }
 
@@ -146,12 +146,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
         assertNull(d.peekLock(path));
 
         assertTrue(c.lock(path));
-        new Thread() {
-            @Override
-            public void run() {
-                d.lock(path, 12000);
-            }
-        }.start();
+        new Thread(() -> d.lock(path, 12000)).start();
         c.unlock(path);
 
         Thread.sleep(15000);
@@ -236,7 +231,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
         }
     }
 
-    class ClientThread extends Thread {
+    static class ClientThread extends Thread {
         DistributedLock client;
         String[] lockPaths;
         int nLocks;
@@ -289,5 +284,5 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
                 }
             }
         }
-    };
+    }
 }

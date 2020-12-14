@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -92,9 +91,9 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBasic() throws IOException {
+    public void testBasic() {
 
-        Assert.assertTrue(userService instanceof OpenUserService);
+        Assert.assertNotNull(userService);
 
         // test list users
         List<ManagedUser> managedUsers = userService.listUsers();
@@ -106,13 +105,13 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
                 adminUsers.add(user);
             }
         }
-        Assert.assertTrue(userName.size() == 2);
+        Assert.assertEquals(2, userName.size());
         Assert.assertTrue(userName.contains("admin"));
         Assert.assertTrue(userName.contains("test"));
 
         //test list admin
         List<String> admins = userService.listAdminUsers();
-        Assert.assertTrue(admins.size() == adminUsers.size());
+        Assert.assertEquals(admins.size(), adminUsers.size());
         for (ManagedUser user : adminUsers) {
             if (!admins.contains(user.getUsername())) {
                 throw new RuntimeException("test get admin fail");
@@ -123,16 +122,16 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(userService.userExists("test"));
         Assert.assertFalse(userService.userExists("test2"));
 
-        Assert.assertTrue(userGroupService instanceof OpenUserGroupService);
+        Assert.assertNotNull(userGroupService);
         List<String> allUserGroups = userGroupService.getAllUserGroups();
-        Assert.assertTrue(allUserGroups.size() == 2);
+        Assert.assertEquals(2, allUserGroups.size());
         Assert.assertTrue(allUserGroups.contains(Constant.ROLE_ADMIN));
         Assert.assertTrue(allUserGroups.contains(Constant.ROLE_ANALYST));
 
         //test get user by group
         List<ManagedUser> groupMembersByName = userGroupService.getGroupMembersByName(Constant.ROLE_ADMIN);
-        Assert.assertTrue(groupMembersByName.size() == 1);
-        Assert.assertTrue(groupMembersByName.get(0).getUsername().equals("admin"));
+        Assert.assertEquals(1, groupMembersByName.size());
+        Assert.assertEquals("admin", groupMembersByName.get(0).getUsername());
     }
 
     @Test

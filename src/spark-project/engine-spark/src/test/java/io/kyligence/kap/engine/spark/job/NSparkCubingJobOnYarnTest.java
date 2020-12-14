@@ -28,8 +28,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -45,22 +43,23 @@ import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
 @Ignore("for test spark job on yarn")
 public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
-        System.setProperty("kylin.hadoop.conf.dir",
-                "../examples/test_case_data/sandbox");
-        System.setProperty("SPARK_HOME", "../../build/spark");
+        overwriteSystemProp("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
+        overwriteSystemProp("SPARK_HOME", "../../build/spark");
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
@@ -70,7 +69,6 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
@@ -78,8 +76,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
         config.setProperty("kylin.env", "DEV");
-        config.setProperty("kylin.engine.spark.job-jar",
-                "../assembly/target/ke-assembly-4.0.0-SNAPSHOT-job.jar");
+        config.setProperty("kylin.engine.spark.job-jar", "../assembly/target/ke-assembly-4.0.0-SNAPSHOT-job.jar");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         NExecutableManager execMgr = NExecutableManager.getInstance(config, "default");
@@ -89,10 +86,12 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
 
-        NDataSegment oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2012-06-01")));
+        NDataSegment oneSeg = dsMgr.appendSegment(df,
+                new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2012-06-01")));
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
 
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN", null);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN",
+                null);
 
         // launch the job
         execMgr.addJob(job);
@@ -100,9 +99,9 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("2013-06-01")));
+        oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("2013-06-01")));
 
         job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN", null);
 
@@ -114,9 +113,11 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        oneSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2013-06-01")), false);
+        oneSeg = dsMgr.mergeSegments(df,
+                new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2013-06-01")), false);
 
-        NSparkMergingJob mergeJob = NSparkMergingJob.merge(oneSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
+        NSparkMergingJob mergeJob = NSparkMergingJob.merge(oneSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
 
         // launch the job
         execMgr.addJob(mergeJob);

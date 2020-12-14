@@ -168,9 +168,7 @@ public enum MetricsName {
 
     //spark query load
     QUERY_LOAD("query_load", ClusterConstant.ALL, ClusterConstant.QUERY), //
-    CPU_CORES("cpu_cores", ClusterConstant.ALL, ClusterConstant.QUERY)
-
-    ;
+    CPU_CORES("cpu_cores", ClusterConstant.ALL, ClusterConstant.QUERY);
 
     private final String value;
 

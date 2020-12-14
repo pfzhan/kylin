@@ -188,7 +188,7 @@ public class ModelDataGenerator {
         Set<String> dbs = new HashSet<>();
         for (TableDesc t : tables) {
             String db = t.getDatabase();
-            if (StringUtils.isBlank(db) == false && "DEFAULT".equals(db) == false)
+            if (!StringUtils.isBlank(db) && !"DEFAULT".equals(db))
                 dbs.add(db);
         }
 
@@ -289,7 +289,7 @@ public class ModelDataGenerator {
     }
 
     public List<String> getPkValues(ColumnDesc pk) throws IOException {
-        if (existsInStore(pk.getTable()) == false)
+        if (!existsInStore(pk.getTable()))
             return null;
 
         List<String> r = new ArrayList<>();

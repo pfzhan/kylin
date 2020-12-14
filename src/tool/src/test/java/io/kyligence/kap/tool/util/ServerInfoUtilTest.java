@@ -23,7 +23,11 @@
  */
 package io.kyligence.kap.tool.util;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
@@ -32,10 +36,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ServerInfoUtilTest extends NLocalFileMetadataTestCase {
 
@@ -50,10 +51,7 @@ public class ServerInfoUtilTest extends NLocalFileMetadataTestCase {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
 
-        String sourceKylinHome = System.getProperty("KYLIN_HOME");
-        if (null == sourceKylinHome) {
-            System.setProperty("KYLIN_HOME", mainDir.getAbsolutePath());
-        }
+        overwriteSystemProp("KYLIN_HOME", mainDir.getAbsolutePath());
 
         List<File> clearFileList = new ArrayList<>();
         String sha1 = "6a38664fe087f7f466ec4ad9ac9dc28415d99e52@KAP\nBuild with MANUAL at 2019-08-31 20:02:22";
@@ -71,10 +69,6 @@ public class ServerInfoUtilTest extends NLocalFileMetadataTestCase {
         }
 
         String buf = ServerInfoUtil.getKylinClientInformation();
-
-        if (null != sourceKylinHome) {
-            System.setProperty("KYLIN_HOME", sourceKylinHome);
-        }
 
         for (File file : clearFileList) {
             FileUtils.deleteQuietly(file);

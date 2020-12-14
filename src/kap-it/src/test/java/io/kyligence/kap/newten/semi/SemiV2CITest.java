@@ -86,8 +86,8 @@ import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
-import io.kyligence.kap.smart.NModelSelectProposer;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.ModelSelectProposer;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
@@ -153,11 +153,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
@@ -195,11 +195,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
@@ -237,11 +237,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
@@ -306,13 +306,13 @@ public class SemiV2CITest extends SemiAutoTestBase {
         String query1 = "select sum(item_count*price) from test_kylin_fact";
         AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1 });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assertion of the model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
-        AbstractContext.NModelContext modelContext = modelContexts.get(0);
+        AbstractContext.ModelContext modelContext = modelContexts.get(0);
         NDataModel targetModel = modelContext.getTargetModel();
         List<RawRecItem> rawRecItemsBefore = jdbcRawRecStore.queryAll();
         Assert.assertTrue(rawRecItemsBefore.isEmpty());
@@ -320,7 +320,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // mock propose with suggest model with saving recommendation to raw-rec-table
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
         String query2 = "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name";
-        AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
+        AbstractSemiContextV2 semiContextV2 = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
                 new String[] { query2 }, null);
         rawRecService.transferAndSaveRecommendations(semiContextV2);
 
@@ -344,11 +344,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeOptimization = modelManager.getDataModelDesc(modelID);
@@ -369,7 +369,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, false);
         AccelerateInfo failedInfo = proposeContext.getAccelerateInfoMap().get(sqlList.get(0));
         Assert.assertTrue(failedInfo.isNotSucceed());
-        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG, failedInfo.getPendingMsg());
+        Assert.assertEquals(ModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG, failedInfo.getPendingMsg());
 
         rawRecService.transferAndSaveRecommendations(proposeContext);
 
@@ -394,11 +394,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
                 + "group by test_order.order_id,buyer_id";
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeOptimization = modelManager.getDataModelDesc(modelID);
@@ -438,11 +438,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price, sum(price+1) from test_kylin_fact group by price" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // assert origin model
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeOptimization = modelManager.getDataModelDesc(modelID);

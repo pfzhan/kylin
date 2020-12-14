@@ -23,16 +23,17 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -74,8 +75,8 @@ public class NAsyncQueryController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NAsyncQueryController.class);
 
-    private static final List<String> FILE_ENCODING=Lists.newArrayList("utf-8", "gbk");
-    private static final List<String> FILE_FORMAT=Lists.newArrayList("csv", "json", "xlsx");
+    private static final List<String> FILE_ENCODING = Lists.newArrayList("utf-8", "gbk");
+    private static final List<String> FILE_FORMAT = Lists.newArrayList("csv", "json", "xlsx");
 
     @Autowired
     @Qualifier("kapQueryService")
@@ -95,14 +96,14 @@ public class NAsyncQueryController extends NBasicController {
         checkProjectName(sqlRequest.getProject());
         if (!FILE_ENCODING.contains(sqlRequest.getEncode().toLowerCase())) {
             return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
-                    new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED,
-                    "Format " + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
+                    new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED, "Format "
+                            + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
                     "");
         }
         if (!FILE_FORMAT.contains(sqlRequest.getFormat().toLowerCase())) {
             return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
-                    new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED,
-                            "Format " + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
+                    new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED, "Format "
+                            + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
                     "");
         }
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
@@ -137,7 +138,8 @@ public class NAsyncQueryController extends NBasicController {
                         exceptionHandle.set(response.getExceptionMessage());
                     } else {
                         asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
-                        asyncQueryService.saveFileInfo(sqlRequest.getProject(), format, encode, sqlRequest.getFileName(), queryContext.getQueryId());
+                        asyncQueryService.saveFileInfo(sqlRequest.getProject(), format, encode,
+                                sqlRequest.getFileName(), queryContext.getQueryId());
                         compileResultRef.set(true);
                     }
                     asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
@@ -299,7 +301,8 @@ public class NAsyncQueryController extends NBasicController {
             response.setContentType("application/" + format + ";charset=" + encode);
         }
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "." + format + "\"");
-        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, includeHeader || include_header, response, format, encode);
+        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, includeHeader || include_header,
+                response, format, encode);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

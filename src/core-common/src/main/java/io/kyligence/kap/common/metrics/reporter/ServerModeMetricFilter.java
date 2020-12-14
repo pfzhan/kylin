@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.common.metrics.reporter;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 
 import com.codahale.metrics.Metric;
@@ -34,6 +33,7 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.util.AddressUtil;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ServerModeMetricFilter implements MetricFilter {

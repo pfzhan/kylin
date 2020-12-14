@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.tool.security;
 
-import io.kyligence.kap.tool.garbage.StorageCleaner;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
@@ -36,10 +38,8 @@ import org.junit.rules.TemporaryFolder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
-
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 
 public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
     @Rule
@@ -74,10 +74,14 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(afterCreateAdminManager.exists("ADMIN"));
 
         // assert output on console
-        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "Create default user finished. The username of initialized user is [" +
-                StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "], which password is "));
-        Assert.assertTrue(output.toString().endsWith("Please keep the password properly. " +
-                "And if you forget the password, you can reset it according to user manual." + StorageCleaner.ANSI_RESET + "\n"));
+        Assert.assertTrue(output.toString()
+                .startsWith(StorageCleaner.ANSI_RED
+                        + "Create default user finished. The username of initialized user is ["
+                        + StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "], which password is "));
+        Assert.assertTrue(output.toString()
+                .endsWith("Please keep the password properly. "
+                        + "And if you forget the password, you can reset it according to user manual."
+                        + StorageCleaner.ANSI_RESET + "\n"));
 
         System.setOut(System.out);
 

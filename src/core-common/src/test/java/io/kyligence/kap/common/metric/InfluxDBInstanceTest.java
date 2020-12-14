@@ -23,7 +23,17 @@
  */
 package io.kyligence.kap.common.metric;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.shaded.influxdb.okhttp3.Interceptor;
@@ -36,14 +46,6 @@ import io.kyligence.kap.shaded.influxdb.okhttp3.ResponseBody;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.Map;
 
 public class InfluxDBInstanceTest extends NLocalFileMetadataTestCase {
 

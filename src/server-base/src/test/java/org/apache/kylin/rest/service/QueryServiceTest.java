@@ -62,7 +62,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.SystemPropertyOverride;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -97,10 +96,8 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.spark.SparkException;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -117,6 +114,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.SystemPropertyOverride;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -155,10 +153,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private ClusterManager clusterManager = new DefaultClusterManager(8080);
 
-    private QueryService origin = new QueryService();
+    private QueryService origin;
 
     @InjectMocks
-    private QueryService queryService = Mockito.spy(origin);
+    private QueryService queryService;
 
     @InjectMocks
     private AppConfig appConfig = Mockito.spy(new AppConfig());
@@ -180,20 +178,17 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private int pushdownCount;
 
-    @BeforeClass
-    public static void setupResource() throws Exception {
-        System.setProperty("kylin.query.cache-threshold-duration", String.valueOf(-1));
-        System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
-    }
-
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.query.transaction-enable", "true");
+        overwriteSystemProp("kylin.query.transaction-enable", "true");
+        overwriteSystemProp("kylin.query.cache-threshold-duration", String.valueOf(-1));
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
 
         createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        origin = new QueryService();
+        queryService = Mockito.spy(origin);
 
         ReflectionTestUtils.setField(queryCacheManager, "cacheManager", cacheManager);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
@@ -211,7 +206,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void cleanup() {
-        System.clearProperty("kylin.query.transaction-enable");
+        cleanupTestMetadata();
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {
@@ -230,9 +225,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryResult queryResult = Mockito.mock(QueryResult.class);
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
-        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
         Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
-        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
@@ -280,11 +275,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
     }
 
-    @AfterClass
-    public static void tearDown() {
-        staticCleanupTestMetadata();
-    }
-
     @Test
     public void testQueryPushDown() throws Throwable {
 
@@ -325,9 +315,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(queryExec.executeQuery(correctedSql))
                 .thenThrow(new RuntimeException("shouldnt execute queryexec"));
-        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
         Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
-        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
@@ -335,7 +325,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
 
-        Assert.assertEquals(true, response.isQueryPushDown());
+        Assert.assertTrue(response.isQueryPushDown());
 
     }
 
@@ -1253,8 +1243,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setExecuteAs("unknown");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Configuration item \"kylin.query.query-with-execute-as\" " +
-                "is not enabled. So you cannot use the \"executeAs\" parameter now");
+        thrown.expectMessage("Configuration item \"kylin.query.query-with-execute-as\" "
+                + "is not enabled. So you cannot use the \"executeAs\" parameter now");
         queryService.doQueryWithCache(request, false);
     }
 
@@ -1270,8 +1260,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
             request.setQueryId(UUID.randomUUID().toString());
             thrown.expect(KylinException.class);
-            thrown.expectMessage("User [testuser] does not have permissions for all tables, rows, " +
-                    "and columns in the project [default] and cannot use the executeAs parameter");
+            thrown.expectMessage("User [testuser] does not have permissions for all tables, rows, "
+                    + "and columns in the project [default] and cannot use the executeAs parameter");
             queryService.doQueryWithCache(request, false);
         } finally {
             SecurityContextHolder.getContext()
@@ -1333,23 +1323,26 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 .prop("kylin.query.security.acl-tcr-enabled", "true").override()) {
             // role admin
             {
-                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("ROLE_ADMIN"), false)).when(queryService)
-                        .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("ROLE_ADMIN"), false))
+                        .when(queryService).getExecuteAclInfo("default", "ADMIN");
+                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default",
+                        queryService.getExecuteAclInfo("default", "ADMIN")));
             }
 
             // project admin permission
             {
                 Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), true)).when(queryService)
                         .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default",
+                        queryService.getExecuteAclInfo("default", "ADMIN")));
             }
 
             // normal user
             {
                 Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
                         .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertFalse(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+                Assert.assertFalse(queryService.isACLDisabledOrAdmin("default",
+                        queryService.getExecuteAclInfo("default", "ADMIN")));
             }
         }
 
@@ -1359,7 +1352,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             {
                 Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
                         .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default",
+                        queryService.getExecuteAclInfo("default", "ADMIN")));
             }
         }
     }

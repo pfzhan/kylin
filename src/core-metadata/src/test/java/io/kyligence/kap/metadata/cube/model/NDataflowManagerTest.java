@@ -342,7 +342,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains("The indexes included in the selected segments are not fully identical"));
+            Assert.assertTrue(
+                    e.getMessage().contains("The indexes included in the selected segments are not fully identical"));
         }
     }
 
@@ -496,11 +497,11 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         reloadThread.join();
 
         // check result and error
-        if (exceptions.isEmpty() == false) {
+        if (!exceptions.isEmpty()) {
             fail();
         }
-        for (int i = 0; i < n; i++) {
-            NDataflow dataflow = mgr.getDataflow(dataflowIds[i]);
+        for (String dataflowId : dataflowIds) {
+            NDataflow dataflow = mgr.getDataflow(dataflowId);
             Assert.assertEquals(updatesPerCube, dataflow.getSegments().size());
         }
 

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -117,7 +116,7 @@ public class DFSFileTableReader implements TableReader {
                 this.readerList.add(rowReader);
             }
         } catch (IOException e) {
-            if (isExceptionSayingNotSeqFile(e) == false)
+            if (!isExceptionSayingNotSeqFile(e))
                 throw e;
 
             this.readerList = new ArrayList<RowReader>();
@@ -212,7 +211,8 @@ public class DFSFileTableReader implements TableReader {
         if (expectedColumnNumber > 0) {
             for (String delim : DETECT_DELIMS) {
                 if (StringSplitter.split(line, delim).length == expectedColumnNumber) {
-                    logger.info("Auto detect delim to be '" + delim + "', split line to " + expectedColumnNumber + " columns -- " + line);
+                    logger.info("Auto detect delim to be '" + delim + "', split line to " + expectedColumnNumber
+                            + " columns -- " + line);
                     return delim;
                 }
             }

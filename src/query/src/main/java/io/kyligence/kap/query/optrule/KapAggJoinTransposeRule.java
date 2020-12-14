@@ -66,8 +66,8 @@ import io.kyligence.kap.query.util.KapQueryUtil;
 
 public class KapAggJoinTransposeRule extends RelOptRule {
     public static final KapAggJoinTransposeRule INSTANCE_JOIN_RIGHT_AGG = new KapAggJoinTransposeRule(
-            operand(KapAggregateRel.class, operand(KapJoinRel.class, any())),
-            RelFactories.LOGICAL_BUILDER, "KapAggJoinTransposeRule:agg-join-rightAgg");
+            operand(KapAggregateRel.class, operand(KapJoinRel.class, any())), RelFactories.LOGICAL_BUILDER,
+            "KapAggJoinTransposeRule:agg-join-rightAgg");
 
     private final boolean allowFunctions = true;
 
@@ -107,15 +107,15 @@ public class KapAggJoinTransposeRule extends RelOptRule {
 
         // If it is not an inner join, we do not push the
         // aggregate operator
-        if (join.getJoinType() != JoinRelType.INNER ||
-                (!allowFunctions && !aggregate.getAggCallList().isEmpty())) {
+        if (join.getJoinType() != JoinRelType.INNER || (!allowFunctions && !aggregate.getAggCallList().isEmpty())) {
             return;
         }
 
         // Do the columns used by the join appear in the output of the aggregate?
         final ImmutableBitSet aggregateColumns = aggregate.getGroupSet();
         final RelMetadataQuery mq = call.getMetadataQuery();
-        final ImmutableBitSet keyColumns = keyColumns(aggregateColumns, mq.getPulledUpPredicates(join).pulledUpPredicates);
+        final ImmutableBitSet keyColumns = keyColumns(aggregateColumns,
+                mq.getPulledUpPredicates(join).pulledUpPredicates);
         final ImmutableBitSet joinColumns = RelOptUtil.InputFinder.bits(join.getCondition());
         final boolean allColumnsInAggregate = keyColumns.contains(joinColumns);
         final ImmutableBitSet belowAggregateColumns = aggregateColumns.union(joinColumns);
@@ -124,8 +124,8 @@ public class KapAggJoinTransposeRule extends RelOptRule {
         final List<Integer> leftKeys = Lists.newArrayList();
         final List<Integer> rightKeys = Lists.newArrayList();
         final List<Boolean> filterNulls = Lists.newArrayList();
-        RexNode nonEquiConj = RelOptUtil.splitJoinCondition(join.getLeft(), join.getRight(),
-                        join.getCondition(), leftKeys, rightKeys, filterNulls);
+        RexNode nonEquiConj = RelOptUtil.splitJoinCondition(join.getLeft(), join.getRight(), join.getCondition(),
+                leftKeys, rightKeys, filterNulls);
         // If it contains non-equi join conditions, we bail out
         if (!nonEquiConj.isAlwaysTrue()) {
             return;
@@ -139,7 +139,7 @@ public class KapAggJoinTransposeRule extends RelOptRule {
     }
 
     private void aggPushDown(KapAggregateRel aggregate, KapJoinRel join, ImmutableBitSet belowAggregateColumns,
-                             RelMetadataQuery mq, RelBuilder relBuilder, boolean allColumnsInAggregate) {
+            RelMetadataQuery mq, RelBuilder relBuilder, boolean allColumnsInAggregate) {
         final Map<Integer, Integer> map = new HashMap<>();
         final List<Side> sides = new ArrayList<>();
         int uniqueCount = 0;
@@ -154,10 +154,8 @@ public class KapAggJoinTransposeRule extends RelOptRule {
             for (Ord<Integer> c : Ord.zip(belowAggregateKeyNotShifted)) {
                 map.put(c.e, belowOffset + c.i);
             }
-            final Mappings.TargetMapping mapping = s == 0
-                    ? Mappings.createIdentity(fieldCount)
-                    : Mappings.createShiftMapping(fieldCount + offset, 0, offset,
-                    fieldCount);
+            final Mappings.TargetMapping mapping = s == 0 ? Mappings.createIdentity(fieldCount)
+                    : Mappings.createShiftMapping(fieldCount + offset, 0, offset, fieldCount);
             final ImmutableBitSet belowAggregateKey = belowAggregateKeyNotShifted.shift(-offset);
             final Boolean unique0 = mq.areColumnsUnique(joinInput, belowAggregateKey);
             final boolean unique = unique0 != null && unique0;
@@ -183,7 +181,7 @@ public class KapAggJoinTransposeRule extends RelOptRule {
     }
 
     private void processUnique(Side side, RelBuilder relBuilder, RelNode joinInput, KapAggregateRel aggregate,
-                               ImmutableBitSet fieldSet, Mappings.TargetMapping mapping, ImmutableBitSet belowAggregateKey) {
+            ImmutableBitSet fieldSet, Mappings.TargetMapping mapping, ImmutableBitSet belowAggregateKey) {
         final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
         side.aggregate = false;
         relBuilder.push(joinInput);
@@ -193,12 +191,11 @@ public class KapAggJoinTransposeRule extends RelOptRule {
         }
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
             final SqlAggFunction aggregation = aggCall.e.getAggregation();
-            final SqlSplittableAggFunction splitter = Preconditions.checkNotNull(
-                    aggregation.unwrap(SqlSplittableAggFunction.class));
-            if (!aggCall.e.getArgList().isEmpty()
-                    && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
-                final RexNode singleton = splitter.singleton(rexBuilder,
-                        joinInput.getRowType(), aggCall.e.transform(mapping));
+            final SqlSplittableAggFunction splitter = Preconditions
+                    .checkNotNull(aggregation.unwrap(SqlSplittableAggFunction.class));
+            if (!aggCall.e.getArgList().isEmpty() && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
+                final RexNode singleton = splitter.singleton(rexBuilder, joinInput.getRowType(),
+                        aggCall.e.transform(mapping));
                 if (singleton instanceof RexInputRef) {
                     side.split.put(aggCall.i, ((RexInputRef) singleton).getIndex());
                 } else {
@@ -212,7 +209,7 @@ public class KapAggJoinTransposeRule extends RelOptRule {
     }
 
     private void processUnUnique(Side side, KapAggregateRel aggregate, RelBuilder relBuilder, RelNode joinInput,
-                                 ImmutableBitSet fieldSet, Mappings.TargetMapping mapping, ImmutableBitSet belowAggregateKey) {
+            ImmutableBitSet fieldSet, Mappings.TargetMapping mapping, ImmutableBitSet belowAggregateKey) {
         side.aggregate = true;
         final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
         List<AggregateCall> belowAggCalls = new ArrayList<>();
@@ -221,13 +218,13 @@ public class KapAggJoinTransposeRule extends RelOptRule {
         final int newGroupKeyCount = belowAggregateKey.cardinality();
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
             final SqlAggFunction aggregation = aggCall.e.getAggregation();
-            final SqlSplittableAggFunction splitter = Preconditions.checkNotNull(
-                    aggregation.unwrap(SqlSplittableAggFunction.class));
+            final SqlSplittableAggFunction splitter = Preconditions
+                    .checkNotNull(aggregation.unwrap(SqlSplittableAggFunction.class));
             final AggregateCall call1;
             if (fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
                 final AggregateCall splitCall = splitter.split(aggCall.e, mapping);
-                call1 = splitCall.adaptTo(joinInput, splitCall.getArgList(),
-                        splitCall.filterArg, oldGroupKeyCount, newGroupKeyCount);
+                call1 = splitCall.adaptTo(joinInput, splitCall.getArgList(), splitCall.filterArg, oldGroupKeyCount,
+                        newGroupKeyCount);
             } else {
                 call1 = splitter.other(rexBuilder.getTypeFactory(), aggCall.e);
             }
@@ -239,18 +236,14 @@ public class KapAggJoinTransposeRule extends RelOptRule {
                 .aggregate(relBuilder.groupKey(belowAggregateKey, null), belowAggCalls).build();
     }
 
-    private static void updateCondition(List<Side> sides, Map<Integer, Integer> map, KapAggregateRel aggregate, KapJoinRel join,
-                                        int belowOffset, RelBuilder relBuilder, boolean allColumnsInAggregate) {
-        final Mapping mapping = (Mapping) Mappings.target(
-                a0 -> map.get(a0),
-                join.getRowType().getFieldCount(),
+    private static void updateCondition(List<Side> sides, Map<Integer, Integer> map, KapAggregateRel aggregate,
+            KapJoinRel join, int belowOffset, RelBuilder relBuilder, boolean allColumnsInAggregate) {
+        final Mapping mapping = (Mapping) Mappings.target(a0 -> map.get(a0), join.getRowType().getFieldCount(),
                 belowOffset);
         final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
         final RexNode newCondition = RexUtil.apply(mapping, join.getCondition());
         // Create new join
-        relBuilder.push(sides.get(0).newInput)
-                .push(sides.get(1).newInput)
-                .join(join.getJoinType(), newCondition);
+        relBuilder.push(sides.get(0).newInput).push(sides.get(1).newInput).join(join.getJoinType(), newCondition);
 
         // Aggregate above to sum up the sub-totals
         final List<AggregateCall> newAggCalls = new ArrayList<>();
@@ -259,14 +252,12 @@ public class KapAggJoinTransposeRule extends RelOptRule {
         final List<RexNode> projects = new ArrayList<>(rexBuilder.identityProjects(relBuilder.peek().getRowType()));
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
             final SqlAggFunction aggregation = aggCall.e.getAggregation();
-            final SqlSplittableAggFunction splitter =
-                    Preconditions.checkNotNull(
-                            aggregation.unwrap(SqlSplittableAggFunction.class));
+            final SqlSplittableAggFunction splitter = Preconditions
+                    .checkNotNull(aggregation.unwrap(SqlSplittableAggFunction.class));
             final Integer leftSubTotal = sides.get(0).split.get(aggCall.i);
             final Integer rightSubTotal = sides.get(1).split.get(aggCall.i);
-            newAggCalls.add(splitter.topSplit(rexBuilder, registry(projects),
-                    groupIndicatorCount, relBuilder.peek().getRowType(), aggCall.e,
-                    leftSubTotal == null ? -1 : leftSubTotal,
+            newAggCalls.add(splitter.topSplit(rexBuilder, registry(projects), groupIndicatorCount,
+                    relBuilder.peek().getRowType(), aggCall.e, leftSubTotal == null ? -1 : leftSubTotal,
                     rightSubTotal == null ? -1 : rightSubTotal + newLeftWidth));
         }
 
@@ -280,15 +271,14 @@ public class KapAggJoinTransposeRule extends RelOptRule {
                 projects2.add(relBuilder.field(key));
             }
             for (AggregateCall newAggCall : newAggCalls) {
-                final SqlSplittableAggFunction splitter =
-                        newAggCall.getAggregation().unwrap(SqlSplittableAggFunction.class);
+                final SqlSplittableAggFunction splitter = newAggCall.getAggregation()
+                        .unwrap(SqlSplittableAggFunction.class);
                 if (splitter != null) {
                     final RelDataType rowType = relBuilder.peek().getRowType();
                     projects2.add(splitter.singleton(rexBuilder, rowType, newAggCall));
                 }
             }
-            if (projects2.size()
-                    == aggregate.getGroupSet().cardinality() + newAggCalls.size()) {
+            if (projects2.size() == aggregate.getGroupSet().cardinality() + newAggCalls.size()) {
                 // We successfully converted agg calls into projects.
                 relBuilder.project(projects2);
                 aggConvertedToProjects = true;
@@ -296,19 +286,15 @@ public class KapAggJoinTransposeRule extends RelOptRule {
         }
 
         if (!aggConvertedToProjects) {
-            relBuilder.aggregate(
-                    relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
-                            Mappings.apply2(mapping, aggregate.getGroupSets())),
-                    newAggCalls);
+            relBuilder.aggregate(relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
+                    Mappings.apply2(mapping, aggregate.getGroupSets())), newAggCalls);
         }
     }
-
 
     /** Computes the closure of a set of columns according to a given list of
      * constraints. Each 'x = y' constraint causes bit y to be set if bit x is
      * set, and vice versa. */
-    private static ImmutableBitSet keyColumns(ImmutableBitSet aggregateColumns,
-                                              ImmutableList<RexNode> predicates) {
+    private static ImmutableBitSet keyColumns(ImmutableBitSet aggregateColumns, ImmutableList<RexNode> predicates) {
         SortedMap<Integer, BitSet> equivalence = new TreeMap<>();
         for (RexNode predicate : predicates) {
             populateEquivalences(equivalence, predicate);
@@ -323,36 +309,33 @@ public class KapAggJoinTransposeRule extends RelOptRule {
         return keyColumns;
     }
 
-    private static void populateEquivalences(Map<Integer, BitSet> equivalence,
-                                             RexNode predicate) {
+    private static void populateEquivalences(Map<Integer, BitSet> equivalence, RexNode predicate) {
         switch (predicate.getKind()) {
-            case EQUALS:
-                RexCall call = (RexCall) predicate;
-                final List<RexNode> operands = call.getOperands();
-                if (operands.get(0) instanceof RexInputRef) {
-                    final RexInputRef ref0 = (RexInputRef) operands.get(0);
-                    if (operands.get(1) instanceof RexInputRef) {
-                        final RexInputRef ref1 = (RexInputRef) operands.get(1);
-                        populateEquivalence(equivalence, ref0.getIndex(), ref1.getIndex());
-                        populateEquivalence(equivalence, ref1.getIndex(), ref0.getIndex());
-                    }
+        case EQUALS:
+            RexCall call = (RexCall) predicate;
+            final List<RexNode> operands = call.getOperands();
+            if (operands.get(0) instanceof RexInputRef) {
+                final RexInputRef ref0 = (RexInputRef) operands.get(0);
+                if (operands.get(1) instanceof RexInputRef) {
+                    final RexInputRef ref1 = (RexInputRef) operands.get(1);
+                    populateEquivalence(equivalence, ref0.getIndex(), ref1.getIndex());
+                    populateEquivalence(equivalence, ref1.getIndex(), ref0.getIndex());
                 }
-                break;
-            default:
-                return;
+            }
+            break;
+        default:
+            return;
         }
     }
 
-    private static void populateEquivalence(Map<Integer, BitSet> equivalence,
-                                            int i0, int i1) {
+    private static void populateEquivalence(Map<Integer, BitSet> equivalence, int i0, int i1) {
         BitSet bitSet = equivalence.computeIfAbsent(i0, bitset -> new BitSet());
         bitSet.set(i1);
     }
 
     /** Creates a {@link org.apache.calcite.sql.SqlSplittableAggFunction.Registry}
      * that is a view of a list. */
-    private static <E> SqlSplittableAggFunction.Registry<E> registry(
-            final List<E> list) {
+    private static <E> SqlSplittableAggFunction.Registry<E> registry(final List<E> list) {
         return e -> {
             int i = list.indexOf(e);
             if (i < 0) {

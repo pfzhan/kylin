@@ -104,7 +104,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
@@ -181,13 +181,15 @@ public class ModelSemanticHelper extends BasicService {
                 @Override
                 public NonEquiJoinCondition visitColumn(NonEquiJoinCondition cond) {
                     TableRef originalTableRef;
-                    if (cond.getColRef().getTableRef().getTableIdentity().equals(modelJoinDesc.getPKSide().getTableIdentity())) {
+                    if (cond.getColRef().getTableRef().getTableIdentity()
+                            .equals(modelJoinDesc.getPKSide().getTableIdentity())) {
                         originalTableRef = modelJoinDesc.getPKSide();
                     } else {
                         originalTableRef = modelJoinDesc.getFKSide();
                     }
 
-                    return new NonEquiJoinCondition(originalTableRef.getColumn(cond.getColRef().getName()), cond.getDataType());
+                    return new NonEquiJoinCondition(originalTableRef.getColumn(cond.getColRef().getName()),
+                            cond.getDataType());
                 }
             }.visit(suggModelJoin.getNonEquiJoinCondition());
             suggModelJoin.setNonEquiJoinCondition(nonEquiCondWithAliasRestored);
@@ -244,10 +246,10 @@ public class ModelSemanticHelper extends BasicService {
 
         AbstractContext context = new ModelCreateContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 new String[] { nonEquiSql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
+        SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runSuggestModel();
 
-        List<AbstractContext.NModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
+        List<AbstractContext.ModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
         if (CollectionUtils.isEmpty(suggModelContexts) || Objects.isNull(suggModelContexts.get(0).getTargetModel())) {
 
             AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(nonEquiSql);
@@ -397,7 +399,8 @@ public class ModelSemanticHelper extends BasicService {
         updateModelColumnForTableAliasModify(expectedModel, matchAlias);
 
         expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables,
-                getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject(), false, saveCheck);
+                getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject(), false,
+                saveCheck);
 
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
@@ -705,7 +708,8 @@ public class ModelSemanticHelper extends BasicService {
         return StringUtils.trim(oldFilterCondition).equals(StringUtils.trim(newFilterCondition));
     }
 
-    public static boolean isMultiPartitionDescSame(MultiPartitionDesc oldPartitionDesc, MultiPartitionDesc newPartitionDesc) {
+    public static boolean isMultiPartitionDescSame(MultiPartitionDesc oldPartitionDesc,
+            MultiPartitionDesc newPartitionDesc) {
         String oldColumns = oldPartitionDesc == null ? "" : StringUtils.join(oldPartitionDesc.getColumns(), ",");
         String newColumns = newPartitionDesc == null ? "" : StringUtils.join(newPartitionDesc.getColumns(), ",");
         return oldColumns.equals(newColumns);
@@ -721,7 +725,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
-                                            NIndexPlanManager indexPlanManager) {
+            NIndexPlanManager indexPlanManager) {
         return indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
                     .filter(index -> measures.containsAll(index.getMeasures())).collect(Collectors.toList()));
@@ -743,7 +747,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void removeUselessDimensions(IndexPlan indexPlan, Set<Integer> availableDimensions, boolean onlyDataflow,
-                                         KylinConfig config) {
+            KylinConfig config) {
         val dataflowManager = NDataflowManager.getInstance(config, indexPlan.getProject());
         val deprecatedLayoutIds = indexPlan.getIndexes().stream().filter(index -> !index.isTableIndex())
                 .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
@@ -780,7 +784,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end,
-                                  boolean saveOnly) {
+            boolean saveOnly) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         var df = dataflowManager.getDataflow(newModel.getUuid());
@@ -793,11 +797,13 @@ public class ModelSemanticHelper extends BasicService {
         String modelId = newModel.getUuid();
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
         if (newModel.isMultiPartitionModel() || oriModel.isMultiPartitionModel()) {
-            boolean isPartitionChange = !isMultiPartitionDescSame(oriModel.getMultiPartitionDesc(), newModel.getMultiPartitionDesc()) ||
-                    !Objects.equals(oriModel.getPartitionDesc(), newModel.getPartitionDesc());
+            boolean isPartitionChange = !isMultiPartitionDescSame(oriModel.getMultiPartitionDesc(),
+                    newModel.getMultiPartitionDesc())
+                    || !Objects.equals(oriModel.getPartitionDesc(), newModel.getPartitionDesc());
             if (isPartitionChange && newModel.isMultiPartitionModel()) {
                 modelManager.updateDataModel(modelId, copyForWrite -> {
-                    copyForWrite.setMultiPartitionDesc(new MultiPartitionDesc(newModel.getMultiPartitionDesc().getColumns()));
+                    copyForWrite.setMultiPartitionDesc(
+                            new MultiPartitionDesc(newModel.getMultiPartitionDesc().getColumns()));
                 });
             }
         } else {
@@ -826,7 +832,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, RuleBasedIndex oldRule,
-                                                        RuleBasedIndex newRule, boolean forceFireEvent) {
+            RuleBasedIndex newRule, boolean forceFireEvent) {
         log.debug("handle indexPlan udpate rule {} {}", project, model);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);

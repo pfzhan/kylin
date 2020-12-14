@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.util.List;
@@ -92,7 +92,7 @@ public class NIndexPlanController extends NBasicController {
 
     @GetMapping(value = "/rule")
     public EnvelopeResponse<RuleBasedIndex> getRule(@RequestParam("project") String project,
-                                                    @RequestParam("model") String modelId) {
+            @RequestParam("model") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val rule = indexPlanService.getRule(project, modelId);

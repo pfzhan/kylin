@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.tool.hadoop;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-
-import java.io.File;
-import java.io.IOException;
 
 public class CheckHadoopConfDir {
     public static final String CHECKENV_REPORT_PFX = ">   ";
@@ -46,12 +46,12 @@ public class CheckHadoopConfDir {
 
         System.out.println("Checking hadoop config dir " + hadoopConfDir);
 
-        if (hadoopConfDir.exists() == false) {
+        if (!hadoopConfDir.exists()) {
             System.err.println("ERROR: Hadoop config dir '" + hadoopConfDir + "' does not exist");
             System.exit(1);
         }
 
-        if (hadoopConfDir.isDirectory() == false) {
+        if (!hadoopConfDir.isDirectory()) {
             System.err.println("ERROR: Hadoop config dir '" + hadoopConfDir + "' is not a directory");
             System.exit(1);
         }
@@ -70,8 +70,10 @@ public class CheckHadoopConfDir {
         conf.reloadConfiguration();
 
         boolean shortcircuit = conf.getBoolean("dfs.client.read.shortcircuit", false);
-        if (shortcircuit == false) {
-            System.out.println(CHECKENV_REPORT_PFX + "WARN: 'dfs.client.read.shortcircuit' is not enabled which could impact query performance. Check " + hadoopConfDir + "/hdfs-site.xml");
+        if (!shortcircuit) {
+            System.out.println(CHECKENV_REPORT_PFX
+                    + "WARN: 'dfs.client.read.shortcircuit' is not enabled which could impact query performance. Check "
+                    + hadoopConfDir + "/hdfs-site.xml");
         }
 
         System.exit(0);
@@ -87,7 +89,8 @@ public class CheckHadoopConfDir {
             LocalFileSystem localfs = FileSystem.getLocal(new Configuration());
             return localfs;
         } catch (IOException e) {
-            System.err.println("ERROR: Hadoop security exception? Seems the classpath is not setup propertly regarding Hadoop security.");
+            System.err.println(
+                    "ERROR: Hadoop security exception? Seems the classpath is not setup propertly regarding Hadoop security.");
             System.err.println("Detailed error message: " + e.getMessage());
             System.exit(1);
             return null;

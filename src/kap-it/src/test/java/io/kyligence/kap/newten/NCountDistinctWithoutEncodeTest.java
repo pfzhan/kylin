@@ -46,7 +46,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/count_distinct_no_encode");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -59,7 +59,6 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -69,17 +68,15 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
 
     @Test
     public void testWithoutEncode() throws Exception {
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                getProject());
         indexPlanManager.updateIndexPlan("b06eee9f-3e6d-41de-ac96-89dbf170b99b",
                 copyForWrite -> copyForWrite.getOverrideProps().put("kylin.query.skip-encode-integer-enabled", "true"));
         fullBuildCube("b06eee9f-3e6d-41de-ac96-89dbf170b99b", getProject());
         List<String> results1 = NExecAndComp
                 .queryCube(getProject(),
-                        "select city, "
-                                + "count(distinct string_id), "
-                                + "count(distinct tinyint_id), "
-                                + "count(distinct smallint_id), "
-                                + "count(distinct int_id), "
+                        "select city, " + "count(distinct string_id), " + "count(distinct tinyint_id), "
+                                + "count(distinct smallint_id), " + "count(distinct int_id), "
                                 + "count(distinct bigint_id) from test_count_distinct group by city order by city")
                 .collectAsList().stream().map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals(3, results1.size());
@@ -89,16 +86,13 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
 
         List<String> results2 = NExecAndComp
                 .queryCube(getProject(),
-                        "select "
-                                + "count(distinct string_id), "
-                                + "count(distinct tinyint_id), "
-                                + "count(distinct smallint_id), "
-                                + "count(distinct int_id), "
+                        "select " + "count(distinct string_id), " + "count(distinct tinyint_id), "
+                                + "count(distinct smallint_id), " + "count(distinct int_id), "
                                 + "count(distinct bigint_id) from test_count_distinct")
                 .collectAsList().stream().map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals(1, results2.size());
         Assert.assertEquals("5,5,5,5,5", results2.get(0));
-        
+
         String dictPath = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/" + getProject()
                 + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT + "/DEFAULT.TEST_COUNT_DISTINCT";
         FileStatus[] fileStatuses = new Path(dictPath).getFileSystem(new Configuration())
@@ -116,9 +110,9 @@ public class NCountDistinctWithoutEncodeTest extends NLocalWithSparkSessionTest 
                 .listStatus(new Path(dictPath));
         Assert.assertEquals(5, fileStatuses.length);
 
-        String[] expected = {"BIGINT_ID", "INT_ID", "SMALLINT_ID", "STRING_ID", "TINYINT_ID"};
-        Assert.assertArrayEquals(expected
-                , Arrays.stream(fileStatuses).map(fileStatus -> fileStatus.getPath().getName()).sorted().toArray());
+        String[] expected = { "BIGINT_ID", "INT_ID", "SMALLINT_ID", "STRING_ID", "TINYINT_ID" };
+        Assert.assertArrayEquals(expected,
+                Arrays.stream(fileStatuses).map(fileStatus -> fileStatus.getPath().getName()).sorted().toArray());
     }
 
 }

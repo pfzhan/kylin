@@ -26,7 +26,6 @@ package io.kyligence.kap.common.metrics.service;
 import java.util.List;
 import java.util.Map;
 
-import lombok.val;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
@@ -38,6 +37,7 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

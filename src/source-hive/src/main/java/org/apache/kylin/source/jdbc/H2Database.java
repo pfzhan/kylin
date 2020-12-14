@@ -79,12 +79,7 @@ public class H2Database {
             "edw.test_seller_type_dim", //
             "edw.test_sites", //
             "default.test_account", //
-            "default.test_country",
-            "ssb.customer",
-            "ssb.dates",
-            "ssb.p_lineorder",
-            "ssb.lineorder",
-            "ssb.part",
+            "default.test_country", "ssb.customer", "ssb.dates", "ssb.p_lineorder", "ssb.lineorder", "ssb.part",
             "ssb.supplier" }; //
     private static final Map<String, String> javaToH2DataTypeMapping = new HashMap<String, String>();
 
@@ -130,17 +125,16 @@ public class H2Database {
         try {
             File tempFile = File.createTempFile("tmp_h2", ".csv");
             try (FileOutputStream tempFileStream = new FileOutputStream(tempFile)) {
-                try (InputStream is = new FileInputStream(Paths.get(config.getMetadataUrl().getIdentifier(), "..", path).toFile())) {
+                try (InputStream is = new FileInputStream(
+                        Paths.get(config.getMetadataUrl().getIdentifier(), "..", path).toFile())) {
                     IOUtils.copy(is, tempFileStream);
                 }
 
                 String cvsFilePath = tempFile.getPath();
                 try (Statement stmt = h2Connection.createStatement()) {
 
-                    String createDBSql = "CREATE SCHEMA IF NOT EXISTS DEFAULT;\n" +
-                            "CREATE SCHEMA IF NOT EXISTS EDW;\n" +
-                            "CREATE SCHEMA IF NOT EXISTS SSB;\n" +
-                            "SET SCHEMA DEFAULT;\n";
+                    String createDBSql = "CREATE SCHEMA IF NOT EXISTS DEFAULT;\n" + "CREATE SCHEMA IF NOT EXISTS EDW;\n"
+                            + "CREATE SCHEMA IF NOT EXISTS SSB;\n" + "SET SCHEMA DEFAULT;\n";
                     stmt.executeUpdate(createDBSql);
 
                     String sql = generateCreateH2TableSql(tableDesc, cvsFilePath);
@@ -198,8 +192,8 @@ public class H2Database {
         for (ColumnDesc col : tableDesc.getColumns()) {
             if ("T".equalsIgnoreCase(col.getIndex())) {
                 StringBuilder ddl = new StringBuilder();
-                ddl.append("CREATE INDEX IF NOT EXISTS IDX_" + tableDesc.getName() + "_" + x + " ON " + tableDesc.getIdentity() + "("
-                        + col.getName() + ")");
+                ddl.append("CREATE INDEX IF NOT EXISTS IDX_" + tableDesc.getName() + "_" + x + " ON "
+                        + tableDesc.getIdentity() + "(" + col.getName() + ")");
                 ddl.append("\n");
                 result.add(ddl.toString());
                 x++;

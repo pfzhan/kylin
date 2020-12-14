@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.tool.bisync.tableau.datasource.connection;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-
 import java.util.Objects;
+
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class Col {
 
@@ -64,11 +64,12 @@ public class Col {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Col)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Col))
+            return false;
         Col col = (Col) o;
-        return Objects.equals(getKey(), col.getKey()) &&
-                Objects.equals(getValue(), col.getValue());
+        return Objects.equals(getKey(), col.getKey()) && Objects.equals(getValue(), col.getValue());
     }
 
     @Override

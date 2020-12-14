@@ -24,8 +24,9 @@
 
 package io.kyligence.kap.newten;
 
-import com.sun.tools.javac.util.Assert;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import java.io.File;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -37,8 +38,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.List;
+import com.sun.tools.javac.util.Assert;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
 public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     private static final Logger logger = LoggerFactory.getLogger(NAggPushDownTest.class);
@@ -47,9 +49,9 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.query.match-partial-inner-join-model", "true");
-        System.setProperty("kylin.query.calcite.aggregate-pushdown-enabled", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
+        overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "true");
         this.createTestMetadata("src/test/resources/ut_meta/agg_push_down");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -62,9 +64,6 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.query.match-partial-inner-join-model");
-        System.clearProperty("kylin.query.calcite.aggregate-pushdown-enabled");
     }
 
     @Override
@@ -84,9 +83,9 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
                     .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
             NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
         } catch (Throwable th) {
-            logger.error("Query fail on:", identity);
+            logger.error("Query fail on: {}", identity);
             Assert.error();
         }
-        logger.info("Query succeed on:", identity);
+        logger.info("Query succeed on: {}", identity);
     }
 }

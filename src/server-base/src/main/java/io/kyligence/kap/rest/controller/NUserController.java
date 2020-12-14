@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_PASSWORD;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_USER;
@@ -306,7 +306,8 @@ public class NUserController extends NBasicController {
         for (ManagedUser u : subList) {
             userService.completeUserInfo(u);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, usersByFuzzyMatching, pageOffset, pageSize), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                DataResult.get(subList, usersByFuzzyMatching, pageOffset, pageSize), "");
     }
 
     @PutMapping(value = "/password")
@@ -366,7 +367,8 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @PostMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
         checkLicense();
@@ -389,7 +391,8 @@ public class NUserController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -526,7 +529,8 @@ public class NUserController extends NBasicController {
     }
 
     private void checkUserGroupNotDuplicated(List<SimpleGrantedAuthority> groups) {
-        List<String> authorities = groups.stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toList());
+        List<String> authorities = groups.stream().map(SimpleGrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
         if (authorities.size() != Sets.newHashSet(authorities).size()) {
             throw new KylinException(INVALID_PARAMETER, "Values in authorities can't be duplicated.");
         }

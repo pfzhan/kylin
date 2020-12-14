@@ -23,9 +23,8 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.controller.v2.NAccessControllerV2;
-import io.kyligence.kap.rest.service.AclTCRService;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
@@ -45,7 +44,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.controller.v2.NAccessControllerV2;
+import io.kyligence.kap.rest.service.AclTCRService;
 
 public class NAccessControllerV2Test {
 
@@ -68,7 +70,7 @@ public class NAccessControllerV2Test {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nAccessControllerV2)
+        mockMvc = MockMvcBuilders.standaloneSetup(nAccessControllerV2) //
                 .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -47,15 +47,15 @@ public class DefaultQueryRunnerTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test
     public void testExecute() throws Exception {
         String[] sqls = new String[] { "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
                 "SELECT PRICE, ITEM_COUNT, CAL_DT FROM TEST_KYLIN_FACT" };
-        AbstractQueryRunner queryRunner1 = NQueryRunnerFactory.createForModelSuggestion(getTestConfig(),
-                DEFAULT_PROJECT, sqls, 1);
+        AbstractQueryRunner queryRunner1 = QueryRunnerFactory.createForModelSuggestion(getTestConfig(), DEFAULT_PROJECT,
+                sqls, 1);
         queryRunner1.execute();
         ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
         Assert.assertEquals(2, olapContexts.size());
@@ -72,8 +72,8 @@ public class DefaultQueryRunnerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(olapContext2.getParentOfTopNode());
         Assert.assertEquals(0, olapContext2.allOlapJoins.size());
 
-        AbstractQueryRunner queryRunner2 = NQueryRunnerFactory.createForModelSuggestion(getTestConfig(),
-                DEFAULT_PROJECT, sqls, 1);
+        AbstractQueryRunner queryRunner2 = QueryRunnerFactory.createForModelSuggestion(getTestConfig(), DEFAULT_PROJECT,
+                sqls, 1);
         queryRunner2.execute(new MockupQueryExecutor());
         Assert.assertEquals(0, queryRunner2.getOlapContexts().size());
     }

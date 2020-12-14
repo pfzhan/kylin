@@ -74,8 +74,9 @@ public class ResourceGroupCheckerFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        if(!(request instanceof HttpServletRequest)){
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        if (!(request instanceof HttpServletRequest)) {
             return;
         }
 
@@ -87,7 +88,8 @@ public class ResourceGroupCheckerFilter implements Filter {
         // project is not bound to resource group
         if (!checkProjectBindToResourceGroup((HttpServletRequest) request)) {
             Message msg = MsgPicker.getMsg();
-            request.setAttribute(ERROR, new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP()));
+            request.setAttribute(ERROR,
+                    new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP()));
             request.getRequestDispatcher(API_ERROR).forward(request, response);
             return;
         }
@@ -115,7 +117,7 @@ public class ResourceGroupCheckerFilter implements Filter {
         final String uri = StringUtils.stripEnd(request.getRequestURI(), "/");
         final String method = request.getMethod();
 
-        boolean whitelistOfGetApi =  "GET".equals(method) && notCheckGetApiSet.contains(uri);
+        boolean whitelistOfGetApi = "GET".equals(method) && notCheckGetApiSet.contains(uri);
 
         return notCheckSpecialApiSet.contains(uri) || whitelistOfGetApi;
     }

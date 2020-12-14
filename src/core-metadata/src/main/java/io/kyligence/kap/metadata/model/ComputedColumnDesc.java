@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.model;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -55,8 +57,6 @@ import io.kyligence.kap.common.util.ModifyTableNameSqlVisitor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
-
 @Data
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -84,6 +84,7 @@ public class ComputedColumnDesc implements Serializable {
     @JsonProperty
     @EqualsAndHashCode.Exclude
     private String comment;
+    @JsonProperty("rec_uuid")
     @EqualsAndHashCode.Exclude
     private String uuid;
 

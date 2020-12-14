@@ -48,11 +48,8 @@ public class RepeatableRequestBodyFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" +
-                "{\n" +
-                "    \"project\": \"default\",\n" +
-                "    \"hello\": \"world\"\n" +
-                "}").getBytes());
+        request.setContent(
+                ("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}").getBytes());
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -72,11 +69,8 @@ public class RepeatableRequestBodyFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" +
-                "{\n" +
-                "    \"project\": \"default\",\n" +
-                "    \"hello\": \"world\"\n" +
-                "}").getBytes());
+        request.setContent(
+                ("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}").getBytes());
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {

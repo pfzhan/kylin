@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
@@ -213,8 +213,9 @@ public class NQueryController extends NBasicController {
         if (ext) {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getServers(), "");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getServers().stream()
-                    .map(ServerInfoResponse::getHost).collect(Collectors.toList()), "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                    clusterManager.getServers().stream().map(ServerInfoResponse::getHost).collect(Collectors.toList()),
+                    "");
         }
     }
 

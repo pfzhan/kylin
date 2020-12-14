@@ -46,7 +46,7 @@ import lombok.val;
 public class NMultipleColumnsInTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/multiple_columns_in");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -59,7 +59,6 @@ public class NMultipleColumnsInTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -76,15 +75,12 @@ public class NMultipleColumnsInTest extends NLocalWithSparkSessionTest {
         buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
 
-        System.setProperty("calcite.keep-in-clause", "true");
-        System.setProperty("calcite.convert-multiple-columns-in-to-or", "true");
+        overwriteSystemProp("calcite.keep-in-clause", "true");
+        overwriteSystemProp("calcite.convert-multiple-columns-in-to-or", "true");
         runCase();
 
-        System.setProperty("calcite.keep-in-clause", "false");
+        overwriteSystemProp("calcite.keep-in-clause", "false");
         runCase();
-
-        System.clearProperty("calcite.keep-in-clause");
-        System.clearProperty("calcite.convert-multiple-columns-in-to-or");
     }
 
     private void runCase() throws Exception {

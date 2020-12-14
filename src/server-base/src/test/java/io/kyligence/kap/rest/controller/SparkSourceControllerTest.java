@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -76,8 +76,7 @@ public class SparkSourceControllerTest {
         DDLRequest ddlRequest = new DDLRequest();
         ddlRequest.setSql("show databases");
         ddlRequest.setDatabase("default");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/spark_source/execute")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/spark_source/execute").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(ddlRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
@@ -99,9 +98,9 @@ public class SparkSourceControllerTest {
 
     @Test
     public void testDropTable() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/spark_source/{database}/tables/{table}", "default", "COUNTRY")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders
+                .delete("/api/spark_source/{database}/tables/{table}", "default", "COUNTRY")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).dropTable("default", "COUNTRY");
@@ -110,8 +109,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testListDatabase() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/databases")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).listDatabase();
@@ -120,8 +118,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testListTables() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/tables", "default")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "test")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "test")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
@@ -131,8 +128,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testListColumns() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/{table}/columns", "default", "COUNTRY")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).listColumns("default", "COUNTRY");
@@ -141,8 +137,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testGetTableDesc() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/{table}/desc", "default", "COUNTRY")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).getTableDesc("default", "COUNTRY");
@@ -150,10 +145,9 @@ public class SparkSourceControllerTest {
 
     @Test
     public void testHasPartition() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/{table}/has_partition",
-                "default", "COUNTRY")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/spark_source/{database}/{table}/has_partition", "default", "COUNTRY")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).hasPartition("default", "COUNTRY");
@@ -161,10 +155,8 @@ public class SparkSourceControllerTest {
 
     @Test
     public void testDatabaseExists() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/exists",
-                "default")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/exists", "default")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).databaseExists("default");
@@ -173,8 +165,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testTableExists() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/{table}/exists", "default", "COUNTRY")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).tableExists("default", "COUNTRY");
@@ -183,8 +174,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testLoadSamples() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/load_samples")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).loadSamples();
@@ -193,8 +183,7 @@ public class SparkSourceControllerTest {
     @Test
     public void testMsck() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/spark_source/{database}/{table}/msck", "default", "COUNTRY")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(sparkSourceController).msck("default", "COUNTRY");

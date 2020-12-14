@@ -23,20 +23,21 @@
  */
 package io.kyligence.kap.common.metric;
 
-import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
-import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
-import io.kyligence.kap.common.metrics.service.MonitorDao;
-import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
+import static org.mockito.ArgumentMatchers.eq;
+
+import java.util.List;
+
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.eq;
+import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
+import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
+import io.kyligence.kap.common.metrics.service.MonitorDao;
+import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 
 public class MonitorDaoTest {
 
@@ -45,16 +46,16 @@ public class MonitorDaoTest {
     @Before
     public void setUp() {
         Mockito.doReturn("KE_MONITOR").when(influxDBInstance).getDatabase();
-        Mockito.doReturn(true).when(influxDBInstance).write(eq("tb_query"), Mockito.anyMap(),
-                Mockito.anyMap(), Mockito.anyLong());
+        Mockito.doReturn(true).when(influxDBInstance).write(eq("tb_query"), Mockito.anyMap(), Mockito.anyMap(),
+                Mockito.anyLong());
 
-        Mockito.doReturn(false).when(influxDBInstance).write(eq("tb_job_status"), Mockito.anyMap(),
-                Mockito.anyMap(), Mockito.anyLong());
+        Mockito.doReturn(false).when(influxDBInstance).write(eq("tb_job_status"), Mockito.anyMap(), Mockito.anyMap(),
+                Mockito.anyLong());
 
-        Mockito.doReturn(mockQueryMonitorMetricQueryResult()).when(influxDBInstance).read(
-                String.format(MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_query", 0, Long.MAX_VALUE));
-        Mockito.doReturn(mockJobStatusMonitorMetricQueryResult()).when(influxDBInstance).read(
-                String.format(MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_job_status", 0, Long.MAX_VALUE));
+        Mockito.doReturn(mockQueryMonitorMetricQueryResult()).when(influxDBInstance)
+                .read(String.format(MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_query", 0, Long.MAX_VALUE));
+        Mockito.doReturn(mockJobStatusMonitorMetricQueryResult()).when(influxDBInstance)
+                .read(String.format(MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_job_status", 0, Long.MAX_VALUE));
     }
 
     public QueryMonitorMetric mockQueryMonitorMetric() {

@@ -215,7 +215,7 @@ public class KylinConfig extends KylinConfigBase {
         try {
             File file = new File(metaUri);
             if (file.exists() || metaUri.contains("/")) {
-                if (file.exists() == false) {
+                if (!file.exists()) {
                     file.mkdirs();
                 }
                 if (file.isDirectory()) {
@@ -451,7 +451,7 @@ public class KylinConfig extends KylinConfigBase {
             File propFile = getSitePropertiesFile();
             if (propFile == null || !propFile.exists()) {
                 logger.error("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
-                throw new RuntimeException("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
+                throw new KylinConfigCannotInitException("fail to locate " + KYLIN_CONF_PROPERTIES_FILE);
             }
             loadAndTrimProperties(new FileInputStream(propFile), orderedProperties);
 

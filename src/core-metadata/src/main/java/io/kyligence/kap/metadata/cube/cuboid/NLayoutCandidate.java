@@ -41,9 +41,8 @@ import com.google.common.collect.Maps;
 
 import lombok.Setter;
 
-public class NLayoutCandidate implements IRealizationCandidate  {
-    private @Nonnull
-    LayoutEntity cuboidLayout;
+public class NLayoutCandidate implements IRealizationCandidate {
+    private @Nonnull LayoutEntity cuboidLayout;
     @Setter
     private double cost;
 
@@ -129,10 +128,7 @@ public class NLayoutCandidate implements IRealizationCandidate  {
 
     @Override
     public String toString() {
-        return "NLayoutCandidate{" +
-                "cuboidLayout=" + cuboidLayout +
-                ", indexEntity=" + cuboidLayout.getIndex()  +
-                ", cost=" + cost +
-                '}';
+        return "NLayoutCandidate{" + "cuboidLayout=" + cuboidLayout + ", indexEntity=" + cuboidLayout.getIndex()
+                + ", cost=" + cost + '}';
     }
 }

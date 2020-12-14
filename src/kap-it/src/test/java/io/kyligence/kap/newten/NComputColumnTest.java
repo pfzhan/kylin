@@ -46,7 +46,7 @@ import lombok.val;
 public class NComputColumnTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/comput_column");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -59,7 +59,6 @@ public class NComputColumnTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override
@@ -75,11 +74,11 @@ public class NComputColumnTest extends NLocalWithSparkSessionTest {
         val layouts = df.getIndexPlan().getAllLayouts();
         buildCuboid(dfID, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
                 true);
-        String sqlHitCube = "select (1+2) as c1,(LINEORDER.LO_TAX +1) as c2,(CUSTOMER.C_NAME +'USA') as c3 " +
-                            "from SSB.P_LINEORDER as LINEORDER join SSB.CUSTOMER as CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY " +
-                            "group by (1+2),(LINEORDER.LO_TAX +1),(CUSTOMER.C_NAME +'USA') ";
-        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube)
-                .collectAsList().stream().map(Row::toString).collect(Collectors.toList());
+        String sqlHitCube = "select (1+2) as c1,(LINEORDER.LO_TAX +1) as c2,(CUSTOMER.C_NAME +'USA') as c3 "
+                + "from SSB.P_LINEORDER as LINEORDER join SSB.CUSTOMER as CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY "
+                + "group by (1+2),(LINEORDER.LO_TAX +1),(CUSTOMER.C_NAME +'USA') ";
+        List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream()
+                .map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(9, hitCubeResult.size());
     }
 }

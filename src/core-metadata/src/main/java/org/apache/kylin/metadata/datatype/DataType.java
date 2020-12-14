@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -131,11 +130,11 @@ public class DataType implements Serializable {
                 INT4, LONG8, // for test only
                 FLOAT, REAL, DOUBLE, DECIMAL, NUMERIC, //
                 DATE, TIME, DATETIME, TIMESTAMP, ARRAY, //
-                InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType(), InnerDataTypeEnum.AGGREGATION_TYPE.getDataType(), TblColRef.DYNAMIC_DATA_TYPE);
+                InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType(),
+                InnerDataTypeEnum.AGGREGATION_TYPE.getDataType(), TblColRef.DYNAMIC_DATA_TYPE);
 
         registerComplex("array\\<.*\\>");
     }
-
 
     public static final Set<String> INTEGER_FAMILY = new HashSet<String>();
     public static final Set<String> NUMBER_FAMILY = new HashSet<String>();
@@ -227,7 +226,7 @@ public class DataType implements Serializable {
         Pattern complexPattern = COMPLEX_TYPE_PATTERN;
         Matcher m = pattern.matcher(datatype);
         Matcher m2 = complexPattern.matcher(datatype);
-        if (m.matches() == false && m2.matches() == false)
+        if (!m.matches() && !m2.matches())
             throw newBadDataTypeError(datatype, "does not match " + pattern);
 
         if (m2.matches()) {
@@ -468,7 +467,6 @@ public class DataType implements Serializable {
     }
 
     private IllegalArgumentException newBadDataTypeError(String datatype, String reason) {
-        return new IllegalArgumentException(
-                "bad data type -- " + datatype + ", " + reason);
+        return new IllegalArgumentException("bad data type -- " + datatype + ", " + reason);
     }
 }

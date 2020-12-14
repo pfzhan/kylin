@@ -74,7 +74,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.tool.util.ZipFileUtil;
 import io.kyligence.kap.utils.AccelerationContextUtil;
@@ -376,7 +376,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         }
     }
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(NSmartMaster smartMaster) {
+    protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(SmartMaster smartMaster) {
         Map<String, RecAndQueryCompareUtil.CompareEntity> map = Maps.newHashMap();
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerateInfoMap.forEach((sql, accelerateInfo) -> {
@@ -481,7 +481,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         return fileContent;
     }
 
-    protected abstract NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios)
+    protected abstract SmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios)
             throws IOException;
 
     protected void buildAndCompare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,

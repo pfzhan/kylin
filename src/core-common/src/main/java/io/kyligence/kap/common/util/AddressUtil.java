@@ -39,7 +39,7 @@ public class AddressUtil implements IKeep {
     @Setter
     private static HostInfoFetcher hostInfoFetcher = new DefaultHostInfoFetcher();
 
-    public static String MAINTAIN_MODE_MOCK_PORT ="0000";
+    public static String MAINTAIN_MODE_MOCK_PORT = "0000";
 
     public static String getLocalInstance() {
         String serverIp = "127.0.0.1";

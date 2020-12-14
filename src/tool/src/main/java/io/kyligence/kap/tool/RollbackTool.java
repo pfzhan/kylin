@@ -64,6 +64,7 @@ import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.util.MetadataChecker;
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -88,8 +89,9 @@ public class RollbackTool extends ExecutableApplication {
     private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("PROJECT_NAME")
             .withDescription("Specify project level for time travel (optional)").isRequired(false).create("project");
 
-    private static final Option OPTION_SKIP_CHECK_DATA = OptionBuilder.getInstance().hasArg().withArgName("SKIP_CHECK_DATA")
-            .withDescription("Skip check storage data available (optional)").isRequired(false).create("skipCheckData");
+    private static final Option OPTION_SKIP_CHECK_DATA = OptionBuilder.getInstance().hasArg()
+            .withArgName("SKIP_CHECK_DATA").withDescription("Skip check storage data available (optional)")
+            .isRequired(false).create("skipCheckData");
 
     private static final Option OPTION_TIMESTAMP = OptionBuilder.getInstance().hasArg().withArgName("TIME")
             .withDescription("Specify the travel time(must required)").isRequired(true).create("time");
@@ -100,7 +102,7 @@ public class RollbackTool extends ExecutableApplication {
     private ResourceStore currentResourceStore;
 
     @VisibleForTesting
-    public  RollbackStatusEnum rollbackStatus;
+    public RollbackStatusEnum rollbackStatus;
 
     RollbackTool() {
         kylinConfig = KylinConfig.getInstanceFromEnv();

@@ -49,6 +49,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.spark_project.guava.collect.Sets;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -66,7 +67,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
     public static void initSpark() {
         if (Shell.MAC)
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
-        if(ss != null && !ss.sparkContext().isStopped()) {
+        if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
         }
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
@@ -81,17 +82,15 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         sparkConf.set("spark.sql.adaptive.enabled", "true");
         sparkConf.set("spark.sql.sources.bucketing.enabled", "false");
         sparkConf.set("spark.sql.adaptive.shuffle.maxTargetPostShuffleInputSize", "1");
+        sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
+                TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-
-        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
-                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
-
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
@@ -109,7 +108,6 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
@@ -179,8 +177,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
 
         String in_pruning0 = base
                 + "where TEST_TIME_ENC in ('2009-01-01 00:00:00', '2008-01-01 00:00:00', '2016-01-01 00:00:00')";
-        String in_pruning1 = base
-                + "where TEST_TIME_ENC in ('2008-01-01 00:00:00', '2016-01-01 00:00:00')";
+        String in_pruning1 = base + "where TEST_TIME_ENC in ('2008-01-01 00:00:00', '2016-01-01 00:00:00')";
 
         assertResultsAndScanFiles(base, 3);
 
@@ -211,7 +208,6 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("pruning2", pruning2));
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
     }
-
 
     @Ignore("Unsupport timestamp")
     public void testSegPruningWithTimeStamp() throws Exception {
@@ -275,44 +271,32 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
 
     @Test
     public void testShardPruning() throws Exception {
-        System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
-        System.setProperty("kylin.storage.columnar.bucket-num", "10");
-        try {
-            buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
+        overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "100");
+        overwriteSystemProp("kylin.storage.columnar.bucket-num", "10");
+        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
 
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-            basicPruningScenario();
-            pruningWithVariousTypesScenario();
-
-        } finally {
-            System.clearProperty("kylin.storage.columnar.shard-rowcount");
-            System.clearProperty("kylin.storage.columnar.bucket-num");
-
-        }
+        basicPruningScenario();
+        pruningWithVariousTypesScenario();
     }
 
     @Test
     public void testPruningWithChineseCharacter() throws Exception {
-        System.setProperty("kylin.storage.columnar.shard-rowcount", "1");
-        try {
-            fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "1");
+        fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-            val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
-            val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
+        val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
+        val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
 
-            assertResultsAndScanFiles(chinese0, 1);
-            assertResultsAndScanFiles(chinese1, 3);
+        assertResultsAndScanFiles(chinese0, 1);
+        assertResultsAndScanFiles(chinese1, 3);
 
-            List<Pair<String, String>> query = new ArrayList<>();
-            query.add(Pair.newPair("", chinese0));
-            query.add(Pair.newPair("", chinese1));
-            NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
-
-        } finally {
-            System.clearProperty("kylin.storage.columnar.shard-rowcount");
-        }
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("", chinese0));
+        query.add(Pair.newPair("", chinese1));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
     private void pruningWithVariousTypesScenario() throws Exception {

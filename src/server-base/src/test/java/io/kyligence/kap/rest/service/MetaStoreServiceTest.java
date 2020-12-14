@@ -42,7 +42,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.common.license.Constants.KE_VERSION;
+import static io.kyligence.kap.common.constant.Constants.KE_VERSION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -127,7 +127,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     @Before
     public void setup() {
         createTestMetadata("src/test/resources/ut_meta/metastore_model");
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
 
         try {
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -199,43 +199,33 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetCompressedModelMetadataWithVersionFile() throws Exception {
-        String keVersion = System.getProperty(KE_VERSION);
-        try {
-            System.clearProperty(KE_VERSION);
-            List<NDataflow> dataflowList = modelService.getDataflowManager(getProject()).listAllDataflows();
-            List<NDataModel> dataModelList = dataflowList.stream().filter(df -> !df.checkBrokenWithRelatedInfo())
-                    .map(NDataflow::getModel).collect(Collectors.toList());
-            List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
-            ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
-                    modelIdList, false, false);
-            Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
-            Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
-                    new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-            Assert.assertEquals(31, rawResourceMap.size());
+        List<NDataflow> dataflowList = modelService.getDataflowManager(getProject()).listAllDataflows();
+        List<NDataModel> dataModelList = dataflowList.stream().filter(df -> !df.checkBrokenWithRelatedInfo())
+                .map(NDataflow::getModel).collect(Collectors.toList());
+        List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
+        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
+                modelIdList, false, false);
+        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
+        Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
+                new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+        Assert.assertEquals(31, rawResourceMap.size());
 
-            RawResource rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
-            try (InputStream inputStream = rw.getByteSource().openStream()) {
-                Assert.assertEquals("unknown", IOUtils.toString(inputStream));
-            }
-
-            System.setProperty(KE_VERSION, "4.3.x");
-
-            byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false,
-                    false);
-            Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
-            rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-            Assert.assertEquals(31, rawResourceMap.size());
-
-            rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
-            try (InputStream inputStream = rw.getByteSource().openStream()) {
-                Assert.assertEquals("4.3.x", IOUtils.toString(inputStream));
-            }
-        } finally {
-            if (keVersion != null) {
-                System.setProperty(KE_VERSION, keVersion);
-            }
+        RawResource rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
+        try (InputStream inputStream = rw.getByteSource().openStream()) {
+            Assert.assertEquals("unknown", IOUtils.toString(inputStream));
         }
 
+        overwriteSystemProp(KE_VERSION, "4.3.x");
+
+        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, false);
+        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
+        rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+        Assert.assertEquals(31, rawResourceMap.size());
+
+        rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
+        try (InputStream inputStream = rw.getByteSource().openStream()) {
+            Assert.assertEquals("4.3.x", IOUtils.toString(inputStream));
+        }
     }
 
     @Test
@@ -538,9 +528,9 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                         && updatedItem.getFirstDetail().equals("P_LINEORDER.LO_CUSTKEY")
                         && updatedItem.getSecondDetail().equals("P_LINEORDER.LO_CUSTKEY")
                         && String.join(",", (List<String>) updatedItem.getFirstAttributes().get("columns"))
-                        .equals("P_LINEORDER.LO_CUSTKEY")
+                                .equals("P_LINEORDER.LO_CUSTKEY")
                         && String.join(",", (List<String>) updatedItem.getSecondAttributes().get("columns"))
-                        .equals("P_LINEORDER.LO_CUSTKEY")
+                                .equals("P_LINEORDER.LO_CUSTKEY")
                         && ((List<String>) updatedItem.getFirstAttributes().get("partitions")).size() == 3
                         && ((List<String>) updatedItem.getSecondAttributes().get("partitions")).size() == 2));
     }

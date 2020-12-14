@@ -42,11 +42,18 @@
 
 package org.apache.kylin.query.util;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.exception.NoAuthorizedColsError;
-import lombok.val;
+import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.ws.rs.BadRequestException;
+
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -72,16 +79,12 @@ import org.codehaus.commons.compiler.CompileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.BadRequestException;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
-import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.exception.NoAuthorizedColsError;
+import lombok.val;
 
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
@@ -126,8 +129,8 @@ public class PushDownUtil {
         // set pushdown engine in query context
         String pushdownEngine;
         // for file source
-        int sourceType = kylinConfig.getManager(NProjectManager.class)
-                .getProject(queryParams.getProject()).getSourceType();
+        int sourceType = kylinConfig.getManager(NProjectManager.class).getProject(queryParams.getProject())
+                .getSourceType();
         if (sourceType == ISourceAware.ID_SPARK && KapConfig.getInstanceFromEnv().isCloud()) {
             pushdownEngine = QueryContext.PUSHDOWN_OBJECT_STORAGE;
         } else {
@@ -195,10 +198,7 @@ public class PushDownUtil {
     }
 
     public static boolean needPushdown(String start, String end) {
-        if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end))
-            return true;
-        else
-            return false;
+        return StringUtils.isEmpty(start) && StringUtils.isEmpty(end);
     }
 
     /**

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,14 +47,15 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.util.ThrowableUtils;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.kylin.common.exceptions.DistributedLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.util.ThrowableUtils;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.recipes.locks.InterProcessMutex;
 
 public class CuratorDistributedLock {
     private static final Logger logger = LoggerFactory.getLogger(CuratorDistributedLock.class);
@@ -222,11 +222,12 @@ public class CuratorDistributedLock {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
             LockEntry lockEntry = (LockEntry) o;
-            return Objects.equals(thread, lockEntry.thread) &&
-                    Objects.equals(path, lockEntry.path);
+            return Objects.equals(thread, lockEntry.thread) && Objects.equals(path, lockEntry.path);
         }
 
         @Override

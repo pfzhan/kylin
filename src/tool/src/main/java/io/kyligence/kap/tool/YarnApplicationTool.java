@@ -42,6 +42,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.util.OptionBuilder;
 import lombok.val;
 
 public class YarnApplicationTool extends ExecutableApplication {

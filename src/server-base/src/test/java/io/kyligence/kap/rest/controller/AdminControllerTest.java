@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -62,7 +62,7 @@ public class AdminControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
 
@@ -73,8 +73,7 @@ public class AdminControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetPublicConfig() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/public_config")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/public_config").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(adminController).getPublicConfig();
@@ -82,8 +81,7 @@ public class AdminControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetInstanceConfig() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/instance_info")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/instance_info").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(adminController).getInstanceConfig();

@@ -24,11 +24,8 @@
 
 package io.kyligence.kap.tool.metadata;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.util.UUID;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -37,7 +34,11 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class CheckMetadataAccessCLI implements IKeep {
     protected static final Logger logger = LoggerFactory.getLogger(CheckMetadataAccessCLI.class);
@@ -62,7 +63,8 @@ public class CheckMetadataAccessCLI implements IKeep {
         //test create.
         try {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).createProject(projectName, "test", "This is a test project", null, MaintainModelType.AUTO_MAINTAIN);
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).createProject(projectName, "test",
+                        "This is a test project", null, MaintainModelType.AUTO_MAINTAIN);
                 return null;
             }, UnitOfWork.GLOBAL_UNIT);
         } catch (TransactionException e) {
@@ -79,9 +81,11 @@ public class CheckMetadataAccessCLI implements IKeep {
         //test update.
         try {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(projectName);
+                ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                        .getProject(projectName);
                 projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject(projectInstance, projectName, "Still a test project", null);
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject(projectInstance,
+                        projectName, "Still a test project", null);
                 return null;
             }, projectName);
         } catch (TransactionException e) {
@@ -140,7 +144,7 @@ public class CheckMetadataAccessCLI implements IKeep {
         long repetition = Long.parseLong(args[0]);
 
         while (repetition > 0) {
-            if (false == cli.testAccessMetadata()) {
+            if (!cli.testAccessMetadata()) {
                 logger.error("Test failed.");
                 System.exit(1);
             }

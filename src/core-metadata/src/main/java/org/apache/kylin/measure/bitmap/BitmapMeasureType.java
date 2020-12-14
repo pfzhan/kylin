@@ -66,7 +66,6 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 
 import com.google.common.collect.ImmutableMap;
 
-
 /**
  * Created by sunyerui on 15/12/10.
  */
@@ -194,9 +193,8 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
         return true;
     }
 
-    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(
-            FunctionDesc.FUNC_COUNT_DISTINCT, BitmapDistinctCountAggFunc.class,
-            FunctionDesc.FUNC_BITMAP_UUID, BitmapDistinctCountAggFunc.class);
+    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(FunctionDesc.FUNC_COUNT_DISTINCT,
+            BitmapDistinctCountAggFunc.class, FunctionDesc.FUNC_BITMAP_UUID, BitmapDistinctCountAggFunc.class);
 
     @Override
     public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {
@@ -217,7 +215,7 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
                 TblColRef countDistinctCol = functionDesc.getParameters().get(0).getColRef();
                 boolean equals = bitmap.getFunction().getParameters().get(0).getColRef().equals(countDistinctCol);
                 if (equals) {
-                    chosen =  true;
+                    chosen = true;
                     iterator.remove();
                 }
             }

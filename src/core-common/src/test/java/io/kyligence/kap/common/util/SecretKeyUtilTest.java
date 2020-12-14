@@ -23,6 +23,11 @@
  */
 package io.kyligence.kap.common.util;
 
+import java.io.File;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -30,11 +35,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
-
-public class SecretKeyUtilTest {
+public class SecretKeyUtilTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -80,7 +81,7 @@ public class SecretKeyUtilTest {
 
         String sourceValue = System.getenv("KYLIN_HOME");
 
-        System.setProperty("KYLIN_HOME", mainFolder);
+        overwriteSystemProp("KYLIN_HOME", mainFolder);
 
         SecretKeyUtil.initKGSecretKey();
 
@@ -90,10 +91,8 @@ public class SecretKeyUtilTest {
         SecretKey secretKey = SecretKeyUtil.readKGSecretKeyFromFile();
         Assert.assertEquals(16, secretKey.getEncoded().length);
 
-        if (null == sourceValue) {
-            System.clearProperty("KYLIN_HOME");
-        } else {
-            System.setProperty("KYLIN_HOME", sourceValue);
+        if (null != sourceValue) {
+            overwriteSystemProp("KYLIN_HOME", sourceValue);
         }
         Assert.assertEquals(sourceValue, System.getenv("KYLIN_HOME"));
     }

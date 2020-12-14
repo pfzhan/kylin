@@ -72,7 +72,7 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
     @Test
     public void testKeepGlobalEpoch() {
-        System.setProperty("kylin.server.leader-race.enabled", "false");
+        overwriteSystemProp("kylin.server.leader-race.enabled", "false");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
@@ -82,12 +82,11 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
         Assert.assertNotNull(globalEpoch);
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         Assert.assertEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
-        System.clearProperty("kylin.server.leader-race.enabled");
     }
 
     @Test
     public void testKeepProjectEpochWhenOwnerChanged() {
-        System.setProperty("kylin.server.leader-race.enabled", "false");
+        overwriteSystemProp("kylin.server.leader-race.enabled", "false");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
@@ -108,7 +107,6 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
             Assert.assertEquals(epochManager.getEpoch(prj.getName()).getLastEpochRenewTime(), Long.MAX_VALUE);
             Assert.assertEquals(epochManager.getEpoch(prj.getName()).getMvcc(), 2);
         }
-        System.clearProperty("kylin.server.leader-race.enabled");
     }
 
     @Test
@@ -127,7 +125,7 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
     @Test
     public void testEpochExpired() {
-        System.setProperty("kylin.server.leader-race.heart-beat-timeout", "-1");
+        overwriteSystemProp("kylin.server.leader-race.heart-beat-timeout", "-1");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
@@ -138,7 +136,6 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
             Assert.assertFalse(epochManager.checkEpochOwner(prj.getName()));
         }
-        System.clearProperty("kylin.server.leader-race.heart-beat-timeout");
     }
 
     @Test
@@ -291,12 +288,10 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
         EpochManager epochManager = EpochManager.getInstance(getTestConfig());
         List<String> projects = Lists.newArrayList("test1");
-        boolean result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false,
-                "test", false);
+        boolean result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false, "test", false);
         Assert.assertTrue(result);
 
-        result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(Lists.newArrayList(), false,
-                "test", false);
+        result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(Lists.newArrayList(), false, "test", false);
         Assert.assertFalse(result);
     }
 }

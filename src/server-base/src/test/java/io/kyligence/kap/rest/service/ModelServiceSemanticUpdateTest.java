@@ -32,7 +32,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -84,6 +83,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -122,8 +122,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Before
     public void setupResource() throws Exception {
-        System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
         modelService.setSemanticUpdater(semanticService);
         indexPlanService.setSemanticUpater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
@@ -757,7 +757,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         try {
             modelService.updateDataModelSemantic(getProject(), request);
         } catch (KylinException e) {
-            Assert.assertEquals("Cannot init measure NEST5_SUM: Invalid column type varchar(4096) for measure SUM", e.getMessage());
+            Assert.assertEquals("Cannot init measure NEST5_SUM: Invalid column type varchar(4096) for measure SUM",
+                    e.getMessage());
         }
     }
 
@@ -1271,15 +1272,16 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val req = newSemanticRequest(model.getId(), "scd2");
         val modelFromReq = modelService.convertToDataModel(req);
         Assert.assertEquals(2, modelFromReq.getJoinTables().size());
-        val join = modelFromReq.getJoinTables().get(1).getAlias().equalsIgnoreCase("TEST_SCD2_1") ?
-                modelFromReq.getJoinTables().get(1) : modelFromReq.getJoinTables().get(0);
+        val join = modelFromReq.getJoinTables().get(1).getAlias().equalsIgnoreCase("TEST_SCD2_1")
+                ? modelFromReq.getJoinTables().get(1)
+                : modelFromReq.getJoinTables().get(0);
         Assert.assertEquals("TEST_SCD2_1", join.getAlias());
-        Assert.assertEquals("\"TEST_KYLIN_FACT\".\"SELLER_ID\" = \"TEST_SCD2_1\".\"BUYER_ID\" " +
-                "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" >= \"TEST_SCD2_1\".\"START_DATE\" " +
-                "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" < \"TEST_SCD2_1\".\"END_DATE\"",
+        Assert.assertEquals(
+                "\"TEST_KYLIN_FACT\".\"SELLER_ID\" = \"TEST_SCD2_1\".\"BUYER_ID\" "
+                        + "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" >= \"TEST_SCD2_1\".\"START_DATE\" "
+                        + "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" < \"TEST_SCD2_1\".\"END_DATE\"",
                 join.getJoin().getNonEquiJoinCondition().getExpr());
     }
-
 
     private NDataModel getTestInnerModel() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());

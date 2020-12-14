@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,15 +41,16 @@
  */
 package org.apache.kylin.common.util;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
+import java.util.Arrays;
+import java.util.TimeZone;
+
 import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.Arrays;
-import java.util.TimeZone;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 
 @RunWith(TimeZoneTestRunner.class)
 public class TimeZoneUtilsTest extends HotLoadKylinPropertiesTestCase {

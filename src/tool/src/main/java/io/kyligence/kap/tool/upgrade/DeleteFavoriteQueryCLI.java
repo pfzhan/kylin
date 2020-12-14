@@ -41,11 +41,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
-import io.kyligence.kap.tool.OptionBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 /**

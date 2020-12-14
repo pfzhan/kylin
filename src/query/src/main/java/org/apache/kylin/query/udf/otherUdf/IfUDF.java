@@ -68,27 +68,26 @@ import com.google.common.collect.Lists;
 
 public class IfUDF implements UdfDef {
 
-    public static final SqlFunction OPERATOR = new SqlFunction(
-            new SqlIdentifier("IF", SqlParserPos.ZERO),
+    public static final SqlFunction OPERATOR = new SqlFunction(new SqlIdentifier("IF", SqlParserPos.ZERO),
             new SqlReturnTypeInference() {
                 public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
                     return opBinding.getTypeFactory().leastRestrictive(
                             Lists.newArrayList(opBinding.getOperandType(1), opBinding.getOperandType(2)));
                 }
-            },
-            new SqlOperandTypeInference() {
-                public void inferOperandTypes(
-                        SqlCallBinding callBinding,
-                        RelDataType returnType,
+            }, new SqlOperandTypeInference() {
+                public void inferOperandTypes(SqlCallBinding callBinding, RelDataType returnType,
                         RelDataType[] operandTypes) {
                     RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
                     operandTypes[0] = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-                    operandTypes[1] = callBinding.getValidator().deriveType(callBinding.getScope(), callBinding.operand(1));
-                    operandTypes[2] = callBinding.getValidator().deriveType(callBinding.getScope(), callBinding.operand(2));
+                    operandTypes[1] = callBinding.getValidator().deriveType(callBinding.getScope(),
+                            callBinding.operand(1));
+                    operandTypes[2] = callBinding.getValidator().deriveType(callBinding.getScope(),
+                            callBinding.operand(2));
                     if (operandTypes[1] instanceof BasicSqlType && operandTypes[2] instanceof BasicSqlType) {
                         BasicSqlType commonType = null;
-                        commonType = (BasicSqlType)(operandTypes[1].getSqlTypeName() == SqlTypeName.NULL ?
-                                operandTypes[2] : operandTypes[1]);
+                        commonType = (BasicSqlType) (operandTypes[1].getSqlTypeName() == SqlTypeName.NULL
+                                ? operandTypes[2]
+                                : operandTypes[1]);
                         if (commonType.getSqlTypeName() == SqlTypeName.NULL) { // make the type boolean if both exps are null
                             commonType = (BasicSqlType) typeFactory.createSqlType(SqlTypeName.BOOLEAN);
                         }
@@ -96,36 +95,38 @@ public class IfUDF implements UdfDef {
                         operandTypes[2] = callBinding.getTypeFactory().createTypeWithNullability(commonType, true);
                     }
                 }
-            },
-            OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
-            null,
+            }, OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY), null,
             SqlFunctionCategory.USER_DEFINED_FUNCTION);
 
-    public static final CallImplementor IMPLEMENTOR =
-            new UdfMethodNameImplementor("IF", IfUDF.class);
+    public static final CallImplementor IMPLEMENTOR = new UdfMethodNameImplementor("IF", IfUDF.class);
 
-
-    public String IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "str1") String expression1, @Parameter(name = "str2") String expression2) {
+    public String IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "str1") String expression1,
+            @Parameter(name = "str2") String expression2) {
         return b ? expression1 : expression2;
     }
 
-    public Integer IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "num1") Integer expression1, @Parameter(name = "num2") Integer expression2) {
+    public Integer IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "num1") Integer expression1,
+            @Parameter(name = "num2") Integer expression2) {
         return b ? expression1 : expression2;
     }
 
-    public Double IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "num1") Double expression1, @Parameter(name = "num2") Double expression2) {
+    public Double IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "num1") Double expression1,
+            @Parameter(name = "num2") Double expression2) {
         return b ? expression1 : expression2;
     }
 
-    public Date IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "date1") Date expression1, @Parameter(name = "date2") Date expression2) {
+    public Date IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "date1") Date expression1,
+            @Parameter(name = "date2") Date expression2) {
         return b ? expression1 : expression2;
     }
 
-    public Timestamp IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "date1") Timestamp expression1, @Parameter(name = "date2") Timestamp expression2) {
+    public Timestamp IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "date1") Timestamp expression1,
+            @Parameter(name = "date2") Timestamp expression2) {
         return b ? expression1 : expression2;
     }
 
-    public Boolean IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "num1") Boolean expression1, @Parameter(name = "num2") Boolean expression2) {
+    public Boolean IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "num1") Boolean expression1,
+            @Parameter(name = "num2") Boolean expression2) {
         return b ? expression1 : expression2;
     }
 }

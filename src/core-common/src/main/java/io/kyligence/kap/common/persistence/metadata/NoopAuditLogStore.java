@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.persistence.AuditLog;
-import io.kyligence.kap.common.persistence.UnitMessages;
-
 import java.io.IOException;
 import java.util.List;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.persistence.AuditLog;
+import io.kyligence.kap.common.persistence.UnitMessages;
 
 public class NoopAuditLogStore implements AuditLogStore {
     @Override
@@ -85,6 +86,5 @@ public class NoopAuditLogStore implements AuditLogStore {
     public void close() throws IOException {
         // just implement it
     }
-
 
 }

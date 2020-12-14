@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -82,7 +82,7 @@ public class NMetaStoreControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
 

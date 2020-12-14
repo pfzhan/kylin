@@ -42,8 +42,6 @@
 
 package org.apache.kylin.common.util;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -54,6 +52,8 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  */

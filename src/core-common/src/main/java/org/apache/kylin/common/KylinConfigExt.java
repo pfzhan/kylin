@@ -42,11 +42,12 @@
 
 package org.apache.kylin.common;
 
-import com.google.common.collect.Maps;
-import org.apache.commons.lang3.text.StrSubstitutor;
-
 import java.util.Map;
 import java.util.Properties;
+
+import org.apache.commons.lang3.text.StrSubstitutor;
+
+import com.google.common.collect.Maps;
 
 /**
  * Extends a KylinConfig with additional overrides.

@@ -24,14 +24,10 @@
 
 package io.kyligence.kap.query.engine.mask;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.acl.SensitiveDataMask;
-import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.relnode.KapTableScan;
-import io.kyligence.kap.query.relnode.KapWindowRel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -56,9 +52,15 @@ import org.apache.spark.sql.catalyst.expressions.Literal;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.unsafe.types.UTF8String;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.acl.SensitiveDataMask;
+import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.relnode.KapTableScan;
+import io.kyligence.kap.query.relnode.KapWindowRel;
 
 public class QuerySensitiveDataMask implements QueryResultMask {
 
@@ -74,7 +76,8 @@ public class QuerySensitiveDataMask implements QueryResultMask {
         defaultDatabase = NProjectManager.getInstance(kylinConfig).getProject(project).getDefaultDatabase();
         QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
         if (aclInfo != null) {
-            maskInfo = AclTCRManager.getInstance(kylinConfig, project).getSensitiveDataMaskInfo(aclInfo.getUsername(), aclInfo.getGroups());
+            maskInfo = AclTCRManager.getInstance(kylinConfig, project).getSensitiveDataMaskInfo(aclInfo.getUsername(),
+                    aclInfo.getGroups());
         }
     }
 
@@ -105,25 +108,27 @@ public class QuerySensitiveDataMask implements QueryResultMask {
         boolean masked = false;
         Dataset<Row> dfWithIndexedCol = MaskUtil.dFToDFWithIndexedColumns(df);
         for (int i = 0; i < dfWithIndexedCol.columns().length; i++) {
-            if (resultMasks.get(i) == null || !SensitiveDataMask.isValidDataType(getResultColumnDataType(i).getSqlTypeName().getName())) {
+            if (resultMasks.get(i) == null
+                    || !SensitiveDataMask.isValidDataType(getResultColumnDataType(i).getSqlTypeName().getName())) {
                 columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
                 continue;
             }
 
             switch (resultMasks.get(i)) {
-                case DEFAULT:
-                    columns[i] = new Column(new Cast(
-                            new Literal(UTF8String.fromString(defaultMaskResultToString(i)), DataTypes.StringType),
-                            dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
-                    masked = true;
-                    break;
-                case AS_NULL:
-                    columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
-                    masked = true;
-                    break;
-                default:
-                    columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
-                    break;
+            case DEFAULT:
+                columns[i] = new Column(
+                        new Cast(new Literal(UTF8String.fromString(defaultMaskResultToString(i)), DataTypes.StringType),
+                                dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
+                masked = true;
+                break;
+            case AS_NULL:
+                columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType()))
+                        .as(dfWithIndexedCol.columns()[i]);
+                masked = true;
+                break;
+            default:
+                columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
+                break;
             }
         }
         return masked ? dfWithIndexedCol.select(columns).toDF(df.columns()) : df;
@@ -136,26 +141,27 @@ public class QuerySensitiveDataMask implements QueryResultMask {
     private String defaultMaskResultToString(int columnIdx) {
         RelDataType type = getResultColumnDataType(columnIdx);
         switch (type.getSqlTypeName()) {
-            case CHAR:
-                return "****";
-            case VARCHAR:
-                return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision()) : "****";
-            case INTEGER:
-            case BIGINT:
-            case TINYINT:
-            case SMALLINT:
-                return "0";
-            case DOUBLE:
-            case FLOAT:
-            case DECIMAL:
-            case REAL:
-                return "0.0";
-            case DATE:
-                return "1970-01-01";
-            case TIMESTAMP:
-                return "1970-01-01 00:00:00";
-            default:
-                return null;
+        case CHAR:
+            return "****";
+        case VARCHAR:
+            return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision())
+                    : "****";
+        case INTEGER:
+        case BIGINT:
+        case TINYINT:
+        case SMALLINT:
+            return "0";
+        case DOUBLE:
+        case FLOAT:
+        case DECIMAL:
+        case REAL:
+            return "0.0";
+        case DATE:
+            return "1970-01-01";
+        case TIMESTAMP:
+            return "1970-01-01 00:00:00";
+        default:
+            return null;
         }
     }
 
@@ -195,7 +201,8 @@ public class QuerySensitiveDataMask implements QueryResultMask {
         for (; i < inputMasks.size(); i++) {
             masks[i] = inputMasks.get(i);
         }
-        List<RexNode> aggCalls = window.groups.stream().flatMap(group -> group.aggCalls.stream()).collect(Collectors.toList());
+        List<RexNode> aggCalls = window.groups.stream().flatMap(group -> group.aggCalls.stream())
+                .collect(Collectors.toList());
         for (RexNode aggCall : aggCalls) {
             SensitiveDataMask.MaskType mask = null;
             for (Integer bit : RelOptUtil.InputFinder.bits(aggCall)) {
@@ -237,7 +244,8 @@ public class QuerySensitiveDataMask implements QueryResultMask {
 
     private List<SensitiveDataMask.MaskType> getAggregateSensitiveCols(Aggregate aggregate) {
         List<SensitiveDataMask.MaskType> inputMasks = getSensitiveCols(aggregate.getInput(0));
-        SensitiveDataMask.MaskType[] masks = new SensitiveDataMask.MaskType[aggregate.getRowType().getFieldList().size()];
+        SensitiveDataMask.MaskType[] masks = new SensitiveDataMask.MaskType[aggregate.getRowType().getFieldList()
+                .size()];
         int idx = 0;
         for (Integer groupInputIdx : aggregate.getGroupSet()) {
             masks[idx++] = inputMasks.get(groupInputIdx);

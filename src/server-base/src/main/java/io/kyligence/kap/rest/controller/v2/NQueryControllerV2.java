@@ -23,13 +23,16 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.service.KapQueryService;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.util.Map;
+
+import javax.validation.Valid;
+
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,10 +42,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.Valid;
-import java.util.Map;
+import com.google.common.collect.Maps;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.service.KapQueryService;
 
 @RestController
 @RequestMapping(value = "/api/query")

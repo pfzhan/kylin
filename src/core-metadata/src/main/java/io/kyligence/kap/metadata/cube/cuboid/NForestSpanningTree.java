@@ -144,11 +144,11 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             logger.info("Adjust spanning tree." + //
             " Current index plan: {}." + //
             " Current index entity: {}." + //
-            " Its children: {}\n" //
-            , index.getIndexPlan().getUuid() //
-            , index.getId() //
-            , Arrays.toString(getChildrenByIndexPlan(index).stream() //
-                    .map(IndexEntity::getId).toArray())//
+            " Its children: {}\n", // 
+                    index.getIndexPlan().getUuid(), //
+                    index.getId(), //
+                    Arrays.toString(getChildrenByIndexPlan(index).stream() //
+                            .map(IndexEntity::getId).toArray())//
             );
         });
 

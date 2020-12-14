@@ -59,7 +59,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     @Before
     public void setup() {
         super.setup();
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(maintenanceModeService, "aclEvaluate", aclEvaluate);
         KylinConfig config = KylinConfig.getInstanceFromEnv();

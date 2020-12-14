@@ -63,12 +63,12 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void init() {
-        staticCreateTestMetadata();
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test
@@ -138,9 +138,9 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
     public void testAuditLogRotateWhenBackup() throws Exception {
         val junitFolder = temporaryFolder.getRoot();
         val kylinConfig = getTestConfig();
-        System.setProperty("kylin.metadata.audit-log.max-size", "20");
-        kylinConfig.setMetadataUrl(
-                "test" + System.currentTimeMillis() + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        overwriteSystemProp("kylin.metadata.audit-log.max-size", "20");
+        kylinConfig.setMetadataUrl("test" + System.currentTimeMillis()
+                + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
 
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
@@ -176,8 +176,6 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
             long newCount = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);
             return newCount == 20;
         });
-        System.clearProperty("kylin.metadata.audit-log.max-size");
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
     }
-
 }

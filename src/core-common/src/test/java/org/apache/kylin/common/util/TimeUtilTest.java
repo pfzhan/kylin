@@ -42,17 +42,18 @@
 
 package org.apache.kylin.common.util;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-import lombok.val;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import lombok.val;
 
 /**
  */
@@ -100,9 +101,6 @@ public class TimeUtilTest {
 
         long t4 = dateFormat.parse("2012/12/32 00:00:00").getTime();
         Assert.assertEquals(dateFormat.parse("2012/12/32 00:00:00").getTime(), TimeUtil.getDayStart(t4));
-
-
-
 
         long t5 = dateFormat.parse("2015/01/01 10:01:30").getTime();
         Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getMonthStart(t5));

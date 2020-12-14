@@ -42,7 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,8 +150,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), Lists.newArrayList());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default")
                 .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
-                .param("project_all_jobs", "false")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .param("project_all_jobs", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).dropJob("default", Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
                 Lists.newArrayList());
@@ -161,12 +160,9 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
     public void testDropGlobalJob() throws Exception {
         Mockito.doNothing().when(jobService)
                 .batchDropGlobalJob(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), Lists.newArrayList());
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/jobs")
-                        .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de")
-                        .param("statuses", "")
-                        .param("project_all_jobs", "false")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs")
+                .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
+                .param("project_all_jobs", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).dropJob(null, Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
                 Lists.newArrayList());
@@ -175,10 +171,8 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDropJob_selectNoneJob_exception() throws Exception {
         Mockito.doNothing().when(jobService).batchDropJob("default", Lists.newArrayList(), Lists.newArrayList());
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default")
-                .param("job_ids", "")
-                .param("statuses", "")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default").param("job_ids", "")
+                .param("statuses", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).dropJob("default", Lists.newArrayList(), Lists.newArrayList());
     }

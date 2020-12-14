@@ -60,7 +60,7 @@ import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -109,7 +109,7 @@ public class RawRecService {
             queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
 
-        AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
+        AbstractSemiContextV2 semiContextV2 = SmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
                 project, sqlList.toArray(new String[0]), null);
 
         Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
@@ -219,7 +219,7 @@ public class RawRecService {
         RawRecManager recManager = RawRecManager.getInstance(semiContextV2.getProject());
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         String recSource = layoutToQHMap.isEmpty() ? RawRecItem.IMPORTED : RawRecItem.QUERY_HISTORY;
-        for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
+        for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
             if (targetModel == null) {
                 continue;
@@ -317,7 +317,7 @@ public class RawRecService {
     private List<RawRecItem> transferToMeasureRecItems(AbstractSemiContextV2 semiContextV2,
             Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
-        for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
+        for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
             modelContext.getMeasureRecItemMap().forEach((uniqueFlag, measureItem) -> {
                 RawRecItem item;
                 if (uniqueRecItemMap.containsKey(uniqueFlag)) {
@@ -345,7 +345,7 @@ public class RawRecService {
     private List<RawRecItem> transferToDimensionRecItems(AbstractSemiContextV2 semiContextV2,
             Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
-        for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
+        for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
             modelContext.getDimensionRecItemMap().forEach((uniqueFlag, dimItem) -> {
                 RawRecItem item;
                 if (uniqueRecItemMap.containsKey(uniqueFlag)) {
@@ -372,7 +372,7 @@ public class RawRecService {
     private List<RawRecItem> transferToCCRawRecItem(AbstractSemiContextV2 semiContextV2,
             Map<String, RawRecItem> uniqueRecItemMap) {
         List<RawRecItem> rawRecItems = Lists.newArrayList();
-        for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
+        for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
             modelContext.getCcRecItemMap().forEach((uniqueFlag, ccItem) -> {
                 RawRecItem item;
                 if (uniqueRecItemMap.containsKey(uniqueFlag)) {

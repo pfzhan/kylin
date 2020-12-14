@@ -112,8 +112,8 @@ public abstract class AbstractJobHandler {
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
         List<AbstractExecutable> executables;
         if (jobParam.isMultiPartitionJob()) {
-            executables = execManager.listMultiPartitionModelExec(model, ExecutableState::isRunning, jobParam.getJobTypeEnum(),
-                    jobParam.getTargetPartitions(), null);
+            executables = execManager.listMultiPartitionModelExec(model, ExecutableState::isRunning,
+                    jobParam.getJobTypeEnum(), jobParam.getTargetPartitions(), null);
         } else {
             executables = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning, null);
         }
@@ -135,14 +135,17 @@ public abstract class AbstractJobHandler {
             return;
         }
 
-        JobSubmissionException jobSubmissionException = new JobSubmissionException(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        JobSubmissionException jobSubmissionException = new JobSubmissionException(
+                MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         for (String failedSeg : failedSegs) {
-            jobSubmissionException.addJobFailInfo(failedSeg, new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
+            jobSubmissionException.addJobFailInfo(failedSeg,
+                    new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
         }
         throw jobSubmissionException;
     }
 
-    public boolean isOverlapWithJob(List<AbstractExecutable> executables, String segmentId, JobParam jobParam, NDataflow dataflow) {
+    public boolean isOverlapWithJob(List<AbstractExecutable> executables, String segmentId, JobParam jobParam,
+            NDataflow dataflow) {
         val dealSegment = dataflow.getSegment(segmentId);
         HashMap<String, NDataSegment> relatedSegment = new HashMap<>();
         dataflow.getSegments().forEach(segment -> relatedSegment.put(segment.getId(), segment));
@@ -150,8 +153,8 @@ public abstract class AbstractJobHandler {
         for (AbstractExecutable job : executables) {
             val targetSegments = job.getTargetSegments();
             for (String segId : targetSegments) {
-                if (relatedSegment.get(segId) != null &&
-                        dealSegment.getSegRange().overlaps(relatedSegment.get(segId).getSegRange())) {
+                if (relatedSegment.get(segId) != null
+                        && dealSegment.getSegRange().overlaps(relatedSegment.get(segId).getSegRange())) {
                     log.debug("JobParam {} segment range  conflicts with running job {}", jobParam, job);
                     return true;
                 }

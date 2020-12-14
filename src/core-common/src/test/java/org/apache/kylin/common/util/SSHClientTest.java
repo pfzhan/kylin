@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -95,7 +94,7 @@ public class SSHClientTest {
 
     @Test
     public void testCmd() throws Exception {
-        if (isRemote == false)
+        if (!isRemote)
             return;
 
         SSHClient ssh = new SSHClient(this.hostname, this.port, this.username, this.password);
@@ -106,7 +105,7 @@ public class SSHClientTest {
 
     @Test
     public void testScp() throws Exception {
-        if (isRemote == false)
+        if (!isRemote)
             return;
 
         SSHClient ssh = new SSHClient(this.hostname, this.port, this.username, this.password);

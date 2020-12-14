@@ -60,6 +60,7 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
@@ -115,9 +116,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() {
         ss.sparkContext().setLogLevel("ERROR");
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.engine.persist-flattable-threshold", "0");
-        System.setProperty("kylin.engine.persist-flatview", "true");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");
+        overwriteSystemProp("kylin.engine.persist-flatview", "true");
 
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -133,10 +134,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.engine.persist-flattable-threshold");
-        System.clearProperty("kylin.engine.persist-flatview");
-        System.clearProperty("kylin.engine.persist-flattable-enabled");
     }
 
     @Test
@@ -159,8 +156,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Dataset<Row> dataset3 = dataset2.union(dataset1);
         Assert.assertEquals(3, dataset3.count());
         dataset3.show();
-        dataFile1.delete();
-        dataFile2.delete();
+        FileUtils.deleteQuietly(dataFile1);
+        FileUtils.deleteQuietly(dataFile2);
     }
 
     @Test
@@ -170,12 +167,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         new SnapshotBuilder().buildSnapshot(ss, getLookTables(df));
-        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+        getLookTables(df).forEach(table -> Assert.assertNotNull(table.getLastSnapshotPath()));
     }
 
     private Set<TableDesc> getLookTables(NDataflow df) {
-        return df.getModel().getLookupTables().stream().map(tableRef -> tableRef.getTableDesc())
-                .collect(Collectors.toSet());
+        return df.getModel().getLookupTables().stream().map(TableRef::getTableDesc).collect(Collectors.toSet());
     }
 
     @Test
@@ -189,7 +185,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         //snapshot building cannot be skip when it is null
 
         new SnapshotBuilder().buildSnapshot(df.getModel(), ss, ignoredSnapshotTableSet);
-        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+        getLookTables(df).forEach(table -> Assert.assertNotNull(table.getLastSnapshotPath()));
     }
 
     @Test
@@ -201,8 +197,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NDataSegment seg = df.copy().getLastSegment();
-        final Set<TableDesc> lookupTables = df.getModel().getLookupTables().stream()
-                .map(tableRef -> tableRef.getTableDesc()).collect(Collectors.toSet());
+        Set<TableDesc> lookupTables = df.getModel().getLookupTables().stream().map(TableRef::getTableDesc)
+                .collect(Collectors.toSet());
         //assert snapshot already exists
         String mockPath = "default/table_snapshot/mock";
         NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
@@ -214,7 +210,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         new SnapshotBuilder().buildSnapshot(df.getModel(), ss, ignoredSnapshotTableSet);
         Assert.assertTrue(ignoredSnapshotTableSet.stream().allMatch(
                 tableName -> nTableMetadataManager.getTableDesc(tableName).getLastSnapshotPath().equals(mockPath)));
-        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+        getLookTables(df).forEach(table -> Assert.assertNotNull(table.getLastSnapshotPath()));
 
     }
 
@@ -243,7 +239,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         }
 
         // Round1. Build new segment
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN", null);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
+                null);
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
@@ -278,7 +275,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(startOfDay, jobStatistics2.getDate());
         Assert.assertEquals(1, jobStatistics2.getCount());
 
-        /**
+        /*
          * Round2. Build new layouts, should reuse the data from already existing cuboid.
          * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
          */
@@ -331,7 +328,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testMockedDFBuildJob() throws Exception {
-        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        overwriteSystemProp("kylin.engine.spark.build-class-name",
+                "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
@@ -345,7 +343,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round1.add(df.getIndexPlan().getCuboidLayout(30001L));
         round1.add(df.getIndexPlan().getCuboidLayout(10002L));
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN", null);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
+                null);
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         execMgr.addJob(job);
         ExecutableState status = wait(job);
@@ -366,8 +365,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testMockedDFBuildMutipleJob() throws Exception {
-        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
-        System.setProperty("kylin.engine.persist-flattable-enabled", "true");
+        overwriteSystemProp("kylin.engine.spark.build-class-name",
+                "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
         String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
@@ -417,7 +417,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round1.add(layouts.get(3));
         round1.add(layouts.get(7));
         // Round1. Build new segment
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN", null);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
+                null);
         execMgr.addJob(job);
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, df.getSegments().size());
@@ -478,7 +479,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
 
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN", null);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN",
+                null);
 
         // launch the job
         execMgr.addJob(job);
@@ -536,7 +538,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN", null);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN",
+                null);
 
         String targetSubject = job.getTargetSubject();
         Assert.assertEquals(dataModel.getUuid(), targetSubject);
@@ -572,7 +575,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testLayoutIdMoreThan10000() throws ExecuteException, IOException {
+    public void testLayoutIdMoreThan10000() throws ExecuteException {
         String path = null;
         try {
             NSparkExecutable executable = Mockito.spy(NSparkExecutable.class);
@@ -590,7 +593,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             if (path != null) {
                 File file = new File(path);
                 if (file.exists()) {
-                    file.delete();
+                    FileUtils.deleteQuietly(file);
                 }
             }
         }
@@ -615,28 +618,24 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBuildFromFlatTable() throws Exception {
-        System.setProperty("kylin.storage.provider.20", MockupStorageEngine.class.getName());
+        overwriteSystemProp("kylin.storage.provider.20", MockupStorageEngine.class.getName());
 
-        try {
-            NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-            String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-            cleanupSegments(dsMgr, dfName);
-            NDataflow df = dsMgr.getDataflow(dfName);
-            IndexPlan indexPlan = df.getIndexPlan();
-            IndexEntity ie = indexPlan.getIndexEntity(10000);
-            IndexEntity ie2 = indexPlan.getIndexEntity(30000);
-            List<LayoutEntity> layouts = new ArrayList<>();
-            layouts.addAll(ie.getLayouts());
-            layouts.addAll(ie2.getLayouts());
-            buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                    Sets.newLinkedHashSet(layouts), true);
-        } finally {
-            System.clearProperty("kylin.storage.provider.20");
-        }
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        cleanupSegments(dsMgr, dfName);
+        NDataflow df = dsMgr.getDataflow(dfName);
+        IndexPlan indexPlan = df.getIndexPlan();
+        IndexEntity ie = indexPlan.getIndexEntity(10000);
+        IndexEntity ie2 = indexPlan.getIndexEntity(30000);
+        List<LayoutEntity> layouts = new ArrayList<>();
+        layouts.addAll(ie.getLayouts());
+        layouts.addAll(ie2.getLayouts());
+        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(layouts),
+                true);
     }
 
     @Test
-    public void testSafetyIfDiscard() throws Exception {
+    public void testSafetyIfDiscard() {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -706,7 +705,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         final String project = getProject();
         final KylinConfig config = getTestConfig();
         final String dfId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        System.setProperty("kylin.engine.spark.build-class-name",
+        overwriteSystemProp("kylin.engine.spark.build-class-name",
                 "io.kyligence.kap.engine.spark.job.MockResumeBuildJob");
         // prepare segment
         final NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);

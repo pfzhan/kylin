@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import lombok.val;

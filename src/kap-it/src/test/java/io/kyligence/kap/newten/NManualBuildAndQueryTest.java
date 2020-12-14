@@ -95,8 +95,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @Ignore("for developing")
     public void testTmp() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        System.setProperty("noBuild", "true");
-        System.setProperty("isDeveloperMode", "true");
+        overwriteSystemProp("noBuild", "true");
+        overwriteSystemProp("isDeveloperMode", "true");
         buildCubes();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
         List<Pair<String, Throwable>> results = execAndGetResults(
@@ -121,11 +121,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private List<Pair<String, Throwable>> execAndGetResults(List<QueryCallable> tasks)
             throws InterruptedException, java.util.concurrent.ExecutionException {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(9//
-                , 9 //
-                , 1 //
-                , TimeUnit.DAYS //
-                , new LinkedBlockingQueue<Runnable>(100));
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(9, //
+                9, //
+                1, //
+                TimeUnit.DAYS, //
+                new LinkedBlockingQueue<>(100));
         CompletionService<Pair<String, Throwable>> service = new ExecutorCompletionService<>(executor);
         for (QueryCallable task : tasks) {
             service.submit(task);
@@ -348,10 +348,12 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
         //Assert.assertEquals(27, firstSegment.getDictionaries().size());
 
-        getLookTables(df).stream().forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
+        getLookTables(df).forEach(table -> Assert.assertTrue(table.getLastSnapshotPath() != null));
     }
+
     private Set<TableDesc> getLookTables(NDataflow df) {
-        return df.getModel().getLookupTables().stream().map(tableRef -> tableRef.getTableDesc()).collect(Collectors.toSet());
+        return df.getModel().getLookupTables().stream().map(tableRef -> tableRef.getTableDesc())
+                .collect(Collectors.toSet());
     }
 
     private void buildFourSegementAndMerge(String dfName) throws Exception {

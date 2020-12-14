@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
@@ -138,15 +138,15 @@ public class NSnapshotController extends NBasicController {
         } catch (NoSuchFieldException e) {
             throw new KylinException(INVALID_PARAMETER, String.format("No field called '%s'.", sortBy));
         }
-        List<SnapshotResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter, sortBy, isReversed);
+        List<SnapshotResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter, sortBy,
+                isReversed);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
     @ApiOperation(value = "getTables", notes = "get all tables with or without snapshot")
     @GetMapping(value = "/tables")
     @ResponseBody
-    public EnvelopeResponse<NInitTablesResponse> getTables(
-            @RequestParam(value = "project") String project,
+    public EnvelopeResponse<NInitTablesResponse> getTables(@RequestParam(value = "project") String project,
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {

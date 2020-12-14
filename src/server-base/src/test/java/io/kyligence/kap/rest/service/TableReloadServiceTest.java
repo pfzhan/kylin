@@ -355,7 +355,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     @Test
     public void testReload_BrokenModelInAutoProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
-        System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
+        overwriteSystemProp("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
         await().atMost(10000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -367,7 +367,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
             Assert.assertEquals(3, dfManager.listAllDataflows().size());
         });
-        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
     }
 
     @Test
@@ -773,7 +772,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     private void testReload_AggShardByColumns(RuleBasedIndex ruleBasedIndex, List<Integer> beforeAggShardBy,
-                                              List<Integer> endAggShardBy) throws Exception {
+            List<Integer> endAggShardBy) throws Exception {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val updatedIndexPlan = indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {

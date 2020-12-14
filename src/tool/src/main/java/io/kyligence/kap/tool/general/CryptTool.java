@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.tool.general;
 
-import io.kyligence.kap.tool.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.ExecutableApplication;
@@ -32,6 +31,7 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.OptionBuilder;
 import lombok.val;
 
 public class CryptTool extends ExecutableApplication {

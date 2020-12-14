@@ -52,7 +52,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
-        staticCreateTestMetadata();
+        createTestMetadata();
         KylinBuildEnv.getOrCreate(KylinConfig.getInstanceFromEnv());
         Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(100, 100), new ResourceInfo(60480, 100)));
@@ -178,7 +178,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         YarnClusterManager clusterManager = mock(YarnClusterManager.class);
         Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(10240, 100), new ResourceInfo(60480, 100)));
-        System.setProperty("kylin.engine.base-executor-instance", "1");
+        overwriteSystemProp("kylin.engine.base-executor-instance", "1");
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
@@ -199,7 +199,6 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("2", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("10", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
-        System.clearProperty("kylin.engine.base-executor-instance");
     }
 
     private void compareConf(List<CompareTuple> tuples, SparkConf conf) {
@@ -272,7 +271,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
 
         // case: v2 < v4 < v3 < v1, spark.executor.instances = v1
         resetSparkConfHelper(helper);
-        System.setProperty("kylin.engine.base-executor-instance", "30");
+        overwriteSystemProp("kylin.engine.base-executor-instance", "30");
         instancesRule.apply(helper);
         Assert.assertEquals("30", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
@@ -309,7 +308,6 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
         helper.setOption(SparkConfHelper.REQUIRED_CORES, "14");
         helper.setOption(SparkConfHelper.EXECUTOR_INSTANCES, null);
-        System.clearProperty("kylin.engine.base-executor-instance");
     }
 
     private void cleanSparkConfHelper(SparkConfHelper helper) {

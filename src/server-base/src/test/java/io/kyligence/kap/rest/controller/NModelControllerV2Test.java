@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,11 +74,7 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
-
-    @Before
-    public void setupResource() throws Exception {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
 

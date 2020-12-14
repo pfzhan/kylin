@@ -86,7 +86,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.common.util.DestroyProcessUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
@@ -338,7 +337,7 @@ public class NExecutableManager {
     }
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                             JobTypeEnum jobType) {
+            JobTypeEnum jobType) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
@@ -354,7 +353,7 @@ public class NExecutableManager {
     }
 
     public List<AbstractExecutable> listMultiPartitionModelExec(String model, Predicate<ExecutableState> predicate,
-                                                             JobTypeEnum jobType, Set<Long> targetPartitions, Set<String> segmentIds) {
+            JobTypeEnum jobType, Set<Long> targetPartitions, Set<String> segmentIds) {
         return getAllExecutables().stream().filter(e -> e.getTargetSubject() != null)
                 .filter(e -> e.getTargetSubject().equals(model)).filter(e -> predicate.test(e.getStatus()))
                 .filter(e -> {
@@ -362,8 +361,11 @@ public class NExecutableManager {
                      *  Select jobs which partition is overlap.
                      *  Attention: Refresh/Index build job will include all partitions.
                      */
-                    boolean checkAllPartition = CollectionUtils.isEmpty(targetPartitions) || JobTypeEnum.INDEX_REFRESH.equals(e.getJobType()) ||
-                            JobTypeEnum.INDEX_REFRESH.equals(jobType) || JobTypeEnum.INDEX_BUILD.equals(e.getJobType()) || JobTypeEnum.INDEX_BUILD.equals(jobType);
+                    boolean checkAllPartition = CollectionUtils.isEmpty(targetPartitions)
+                            || JobTypeEnum.INDEX_REFRESH.equals(e.getJobType())
+                            || JobTypeEnum.INDEX_REFRESH.equals(jobType)
+                            || JobTypeEnum.INDEX_BUILD.equals(e.getJobType())
+                            || JobTypeEnum.INDEX_BUILD.equals(jobType);
                     if (checkAllPartition) {
                         return true;
                     }
@@ -434,7 +436,7 @@ public class NExecutableManager {
     }
 
     public List<ExecutablePO> getRunningJobs(int priority) {
-       return executableDao.getJobs().stream().filter(po -> {
+        return executableDao.getJobs().stream().filter(po -> {
             Output output = getOutput(po.getId());
             return ExecutablePO.isHigherPriority(po.getPriority(), priority) && output.getState().isProgressing();
         }).collect(Collectors.toList());
@@ -758,7 +760,7 @@ public class NExecutableManager {
     }
 
     public void destroyProcess(String jobId) {
-        DestroyProcessUtils.destroyProcessByJobId(jobId);
+        EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(jobId));
     }
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {

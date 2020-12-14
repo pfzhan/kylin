@@ -38,22 +38,21 @@ import java.util.Set;
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class SensitiveDataMask implements IKeep {
 
-    private static final Set<String> VALID_DATA_TYPES = Sets.newHashSet(
-        DataType.STRING, DataType.VARCHAR, DataType.CHAR,
-        DataType.INT, DataType.INTEGER, DataType.BIGINT, DataType.SMALL_INT, DataType.TINY_INT,
-        DataType.DOUBLE, DataType.FLOAT, DataType.REAL, DataType.DECIMAL,
-        DataType.DATE, DataType.TIMESTAMP, DataType.DATETIME
-    );
+    private static final Set<String> VALID_DATA_TYPES = Sets.newHashSet(DataType.STRING, DataType.VARCHAR,
+            DataType.CHAR, DataType.INT, DataType.INTEGER, DataType.BIGINT, DataType.SMALL_INT, DataType.TINY_INT,
+            DataType.DOUBLE, DataType.FLOAT, DataType.REAL, DataType.DECIMAL, DataType.DATE, DataType.TIMESTAMP,
+            DataType.DATETIME);
 
     public static boolean isValidDataType(String dataType) {
         int parenthesesIdx = dataType.indexOf('(');
-        return VALID_DATA_TYPES.contains(parenthesesIdx > -1 ?
-                dataType.substring(0, parenthesesIdx).trim().toLowerCase() : dataType.trim().toLowerCase());
+        return VALID_DATA_TYPES
+                .contains(parenthesesIdx > -1 ? dataType.substring(0, parenthesesIdx).trim().toLowerCase()
+                        : dataType.trim().toLowerCase());
     }
 
     public enum MaskType implements IKeep {
-        DEFAULT(0),  // mask sensitive data by type with default values
-        AS_NULL(1);  // mask all sensitive data as NULL
+        DEFAULT(0), // mask sensitive data by type with default values
+        AS_NULL(1); // mask all sensitive data as NULL
 
         int priority = 0; // smaller number stands for higher priority
 

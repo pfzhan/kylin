@@ -54,10 +54,9 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -76,23 +75,18 @@ import io.kyligence.kap.rest.response.LoadTableResponse;
 public class TableExtServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
-    private TableService tableService = Mockito.spy(TableService.class);
+    private final TableService tableService = Mockito.spy(TableService.class);
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @InjectMocks
-    private TableExtService tableExtService = Mockito.spy(new TableExtService());
-
-    @BeforeClass
-    public static void setupResource() throws Exception {
-        System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
-
-    }
+    private final TableExtService tableExtService = Mockito.spy(new TableExtService());
 
     @Before
     public void setup() throws IOException {
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
@@ -101,9 +95,9 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
     }
 
-    @AfterClass
-    public static void tearDown() {
-        staticCleanupTestMetadata();
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
@@ -147,7 +141,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         tableMetadataManager.saveSourceTable(tableDesc);
         tableExtService.removeJobIdFromTableExt("test", "default");
         TableExtDesc tableExtDesc1 = tableMetadataManager.getOrCreateTableExt("DEFAULT.TEST_REMOVE");
-        Assert.assertTrue(tableExtDesc1.getJodID() == null);
+        Assert.assertNull(tableExtDesc1.getJodID());
     }
 
     private List<Pair<TableDesc, TableExtDesc>> mockTablePair() {

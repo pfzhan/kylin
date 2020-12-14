@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
@@ -484,11 +484,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String segmentId = "73570f31-05a5-448f-973c-44209830dd01";
         mockGetModelName(modelName, project, modelId);
         DataResult<List<SegmentPartitionResponse>> result;
-        Mockito.when(nModelController.getMultiPartition(modelId, project, segmentId, Lists.newArrayList(), 0, 10, "last_modify_time", true))
-                .thenReturn(null);
+        Mockito.when(nModelController.getMultiPartition(modelId, project, segmentId, Lists.newArrayList(), 0, 10,
+                "last_modify_time", true)).thenReturn(null);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments/multi_partition", modelName)
-                .param("project", project)
-                .param("segment_id", segmentId)
+                .param("project", project).param("segment_id", segmentId)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -501,11 +500,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         MultiPartitionMappingRequest request = new MultiPartitionMappingRequest();
         request.setProject("default");
-        Mockito.doNothing().when(modelService)
-                .updateMultiPartitionMapping(request.getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
+        Mockito.doNothing().when(modelService).updateMultiPartitionMapping(request.getProject(),
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/multi_partition/mapping", modelName)
-                .param("project", project)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .param("project", project).contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -518,8 +517,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         PartitionsBuildRequest request = new PartitionsBuildRequest();
         request.setProject("default");
-        Mockito.doReturn(null).when(nModelController)
-                .buildMultiPartition(modelId, request);
+        Mockito.doReturn(null).when(nModelController).buildMultiPartition(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -534,8 +532,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         PartitionsRefreshRequest request = new PartitionsRefreshRequest();
         request.setProject("default");
-        Mockito.doReturn(null).when(nModelController)
-                .refreshMultiPartition(modelId, request);
+        Mockito.doReturn(null).when(nModelController).refreshMultiPartition(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments/multi_partition", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -551,14 +548,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         PartitionsRefreshRequest request = new PartitionsRefreshRequest();
         request.setProject("default");
-        Mockito.doReturn(null).when(nModelController)
-                .deleteMultiPartition(modelId, project, segmentId, new String[]{"1"});
+        Mockito.doReturn(null).when(nModelController).deleteMultiPartition(modelId, project, segmentId,
+                new String[] { "1" });
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/multi_partition")
-                .param("model", modelName)
-                .param("project", project)
-                .param("segment", segmentId)
-                .param("ids", new String[]{"1"})
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/multi_partition").param("model", modelName)
+                .param("project", project).param("segment", segmentId).param("ids", new String[] { "1" })
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -571,8 +565,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         PartitionColumnRequest request = new PartitionColumnRequest();
         request.setProject("default");
-        Mockito.doReturn(null).when(nModelController)
-                .updatePartitionSemantic(modelId, request);
+        Mockito.doReturn(null).when(nModelController).updatePartitionSemantic(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/partition", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))

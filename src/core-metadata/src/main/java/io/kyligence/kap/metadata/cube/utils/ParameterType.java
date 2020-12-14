@@ -26,7 +26,7 @@ package io.kyligence.kap.metadata.cube.utils;
 
 import java.util.List;
 
-public enum  ParameterType {
+public enum ParameterType {
     RESOURCE_PATHS("resourcePaths", List.class);
 
     private String key;
@@ -45,4 +45,3 @@ public enum  ParameterType {
         return clz;
     }
 }
-

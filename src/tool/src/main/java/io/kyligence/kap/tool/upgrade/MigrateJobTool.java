@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.tool.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -55,14 +53,16 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MigrateJobTool extends ExecutableApplication implements IKeep {
-    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false).withDescription("print help message.")
-            .isRequired(false).withLongOpt("help").create("h");
+    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false)
+            .withDescription("print help message.").isRequired(false).withLongOpt("help").create("h");
 
     private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("dir")
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");

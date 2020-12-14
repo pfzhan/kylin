@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.util.ProcessUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -61,6 +60,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.ProcessUtils;
 
 public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
@@ -114,8 +114,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMetadataAuditLogMaxSize",
                 new PropertiesEntity("kylin.metadata.audit-log.max-size", "3000000", 3000000L));
-
-        map.put("isMetadataWaitSyncEnabled", new PropertiesEntity("kylin.metadata.wait-sync-enabled", "true", true));
 
         map.put("getHdfsMetaStoreFileSystemSchemas",
                 new PropertiesEntity("kylin.metadata.hdfs-compatible-schemas",
@@ -230,7 +228,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 
-        map.put("isCtlJobPriorCrossProj", new PropertiesEntity("kylin.job.control-job-priority-cross-project", "true", true));
+        map.put("isCtlJobPriorCrossProj",
+                new PropertiesEntity("kylin.job.control-job-priority-cross-project", "true", true));
 
         map.put("getMaxLocalConsumptionRatio",
                 new PropertiesEntity("kylin.job.max-local-consumption-ratio", "0.5", 0.5));
@@ -315,16 +314,20 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getKylinJobJarPath", new PropertiesEntity("kylin.engine.spark.job-jar", "/usr/lib/", "/usr/lib/"));
 
-        map.put("getSparkBuildClassName", new PropertiesEntity("kylin.engine.spark.build-class-name",
-                "io.kyligence.kap.engine.spark.job.SegmentBuildJob", "io.kyligence.kap.engine.spark.job.SegmentBuildJob"));
+        map.put("getSparkBuildClassName",
+                new PropertiesEntity("kylin.engine.spark.build-class-name",
+                        "io.kyligence.kap.engine.spark.job.SegmentBuildJob",
+                        "io.kyligence.kap.engine.spark.job.SegmentBuildJob"));
 
         map.put("getSparkTableSamplingClassName",
                 new PropertiesEntity("kylin.engine.spark.sampling-class-name",
                         "io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob",
                         "io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob"));
 
-        map.put("getSparkMergeClassName", new PropertiesEntity("kylin.engine.spark.merge-class-name",
-                "io.kyligence.kap.engine.spark.job.SegmentMergeJob", "io.kyligence.kap.engine.spark.job.SegmentMergeJob"));
+        map.put("getSparkMergeClassName",
+                new PropertiesEntity("kylin.engine.spark.merge-class-name",
+                        "io.kyligence.kap.engine.spark.job.SegmentMergeJob",
+                        "io.kyligence.kap.engine.spark.job.SegmentMergeJob"));
 
         map.put("getClusterManagerClassName", new PropertiesEntity("kylin.engine.spark.cluster-manager-class-name",
                 "io.kyligence.kap.cluster.YarnClusterManager", "io.kyligence.kap.cluster.YarnClusterManager"));
@@ -784,11 +787,16 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.tool.license-extractor",
                         "org.apache.kylin.rest.service.DefaultLicenseExtractor",
                         "org.apache.kylin.rest.service.DefaultLicenseExtractor"));
-        map.put("getAsyncQueryResultRetainDays", new PropertiesEntity("kylin.query.async.result-retain-days", "7d", 7L));
+        map.put("getAsyncQueryResultRetainDays",
+                new PropertiesEntity("kylin.query.async.result-retain-days", "7d", 7L));
         map.put("getAuditLogBatchTimeout", new PropertiesEntity("kylin.metadata.audit-log.batch-timeout", "30s", 30));
-        map.put("isSnapshotManualManagementEnabled", new PropertiesEntity("kylin.snapshot.manual-management-enabled", "false", false));
+        map.put("isSnapshotManualManagementEnabled",
+                new PropertiesEntity("kylin.snapshot.manual-management-enabled", "false", false));
 
-        map.put("getMultiPartitionKeyMappingProvider", new PropertiesEntity("kylin.model.multi-partition-key-mapping-provider-class", "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider", "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider"));
+        map.put("getMultiPartitionKeyMappingProvider",
+                new PropertiesEntity("kylin.model.multi-partition-key-mapping-provider-class",
+                        "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider",
+                        "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider"));
     }
 
     @Before
@@ -817,7 +825,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("test");
         String dir = config.getHdfsWorkingDirectory();
-        Assert.assertTrue(dir.endsWith("examples/test_data/" + ProcessUtil.getProcessId("0") + "/working-dir/test/"));
+        Assert.assertTrue(dir.endsWith("examples/test_data/" + ProcessUtils.getCurrentId("0") + "/working-dir/test/"));
     }
 
     @Test

@@ -551,8 +551,8 @@ public class NDataModel extends RootPersistentEntity {
         TableRef tableRef = findTable(table);
         TblColRef result = tableRef.getColumn(column.toUpperCase());
         if (result == null)
-            throw new KylinException(COLUMN_NOT_EXIST, String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
-                    String.format("%s.%s", table, column)));
+            throw new KylinException(COLUMN_NOT_EXIST, String.format(
+                    MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), String.format("%s.%s", table, column)));
         return result;
     }
 
@@ -675,7 +675,7 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         rootFactTableName = rootFactTableName.toUpperCase();
-        if (tables.containsKey(rootFactTableName) == false)
+        if (!tables.containsKey(rootFactTableName))
             throw new IllegalStateException("Root fact table does not exist:" + rootFactTableName);
 
         TableDesc rootDesc = tables.get(rootFactTableName);
@@ -687,7 +687,7 @@ public class NDataModel extends RootPersistentEntity {
         for (JoinTableDesc join : joinTables) {
             join.setTable(join.getTable().toUpperCase());
 
-            if (tables.containsKey(join.getTable()) == false)
+            if (!tables.containsKey(join.getTable()))
                 throw new IllegalStateException("Join table does not exist:" + join.getTable());
 
             TableDesc tableDesc = tables.get(join.getTable());
@@ -810,7 +810,7 @@ public class NDataModel extends RootPersistentEntity {
                 if (col == null) {
                     col = findColumn(pks[i]);
                 }
-                if (col == null || col.getTableRef().equals(dimTable) == false) {
+                if (col == null || !col.getTableRef().equals(dimTable)) {
                     throw new IllegalStateException("Can't find PK column " + pks[i] + " in table " + dimTable);
                 }
                 pks[i] = col.getIdentity();
@@ -968,7 +968,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-                     String project, boolean rename) {
+            String project, boolean rename) {
         init(config, originalTables, otherModels, project, rename, false);
     }
 
@@ -1122,7 +1122,7 @@ public class NDataModel extends RootPersistentEntity {
         // check all measure columns are effective
         for (MeasureDesc m : effectiveMeasures.values()) {
             List<TblColRef> mCols = m.getFunction().getColRefs();
-            if (effectiveCols.values().containsAll(mCols) == false) {
+            if (!effectiveCols.values().containsAll(mCols)) {
                 List<TblColRef> notEffective = new ArrayList<>(mCols);
                 notEffective.removeAll(effectiveCols.values());
                 throw new IllegalStateException(
@@ -1264,7 +1264,6 @@ public class NDataModel extends RootPersistentEntity {
         this.allMeasures = allMeasures;
     }
 
-
     public ImmutableMultimap<TblColRef, TblColRef> getFk2Pk() {
         return fk2Pk;
     }
@@ -1323,9 +1322,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public static String concatResourcePath(String name, String project) {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
-                .append("/").append(name).append(MetadataConstants.FILE_SURFIX).toString();
-
+        return "/" + project + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
     }
 
     public Collection<NamedColumn> getAllSelectedColumns() {

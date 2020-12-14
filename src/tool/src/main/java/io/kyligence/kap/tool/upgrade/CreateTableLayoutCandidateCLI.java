@@ -23,14 +23,12 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
-import io.kyligence.kap.tool.OptionBuilder;
-import io.kyligence.kap.tool.util.MetadataUtil;
-import lombok.extern.slf4j.Slf4j;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnRed;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+
+import javax.sql.DataSource;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -39,11 +37,15 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 
-import javax.sql.DataSource;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnRed;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
+import io.kyligence.kap.tool.util.MetadataUtil;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 4.1 -> 4.2

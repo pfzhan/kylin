@@ -35,10 +35,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.query.engine.data.QueryResult;
-import lombok.val;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,8 +55,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
+import lombok.val;
 
 public class NExecAndComp {
     private static final Logger logger = LoggerFactory.getLogger(NExecAndComp.class);
@@ -70,8 +70,7 @@ public class NExecAndComp {
         SAME, // exec and compare
         SAME_ORDER, // exec and compare order
         SAME_ROWCOUNT, SUBSET, NONE, // batch execute
-        SAME_SQL_COMPARE,
-        SAME_WITH_DEVIATION_ALLOWED
+        SAME_SQL_COMPARE, SAME_WITH_DEVIATION_ALLOWED
     }
 
     static void execLimitAndValidate(List<Pair<String, String>> queries, String prj, String joinType) {
@@ -175,8 +174,7 @@ public class NExecAndComp {
                 // TODO divde: spark -> 3/2 = 1.5    calcite -> 3/2 = 1
                 "query/sql_timestamp/query27.sql",
                 // TODO percentile_approx()
-                "semi_auto/measures/query00.sql"
-        };
+                "semi_auto/measures/query00.sql" };
         String[] pathArray = fullPath.split("src/kap-it/src/test/resources/");
         if (pathArray.length < 2)
             return false;
@@ -197,7 +195,8 @@ public class NExecAndComp {
 
             // Query from Cube
             long startTime = System.currentTimeMillis();
-            QueryResult cubeQueryResult = queryWithKapWithMeta(prj, joinType, Pair.newPair(sql, sql), recAndQueryResult);
+            QueryResult cubeQueryResult = queryWithKapWithMeta(prj, joinType, Pair.newPair(sql, sql),
+                    recAndQueryResult);
             List<StructField> cubeColumns = cubeQueryResult.getColumns();
             Dataset<Row> cubeResult = SparderEnv.getDF();
             addQueryPath(recAndQueryResult, query, sql);
@@ -220,9 +219,8 @@ public class NExecAndComp {
                 }
             } else {
                 cubeResult.persist();
-                logger.debug(
-                        "result comparision is not available, part of the cube results: " + cubeResult.count());
-                cubeResult.show();
+                logger.debug("result comparision is not available, part of the cube results: " + cubeResult.count());
+                logger.debug(cubeResult.showString(10, 20, false));
                 cubeResult.unpersist();
             }
             logger.info("The query ({}) : {} cost {} (ms)", joinType, query, System.currentTimeMillis() - startTime);
@@ -277,7 +275,7 @@ public class NExecAndComp {
     }
 
     public static void addQueryPath(Map<String, CompareEntity> recAndQueryResult, Pair<String, String> query,
-                                    String modifiedSql) {
+            String modifiedSql) {
         if (recAndQueryResult == null) {
             return;
         }
@@ -413,25 +411,25 @@ public class NExecAndComp {
         boolean good = true;
 
         switch (compareLevel) {
-            case SAME_ORDER:
-                good = expectedResult.equals(actualResult);
-                break;
-            case SAME:
-                good = compareResultInLevelSame(expectedResult, actualResult);
-                break;
-            case SAME_ROWCOUNT:
-                good = expectedResult.size() == actualResult.size();
-                break;
-            case SUBSET: {
-                good = compareResultInLevelSubset(expectedResult, actualResult);
-                break;
-            }
-            case SAME_WITH_DEVIATION_ALLOWED:
-                good = compareResultInLevelSame(expectedResult, actualResult)
-                        || compareTwoRowsWithDeviationAllowed(expectedResult, actualResult);
-                break;
-            default:
-                break;
+        case SAME_ORDER:
+            good = expectedResult.equals(actualResult);
+            break;
+        case SAME:
+            good = compareResultInLevelSame(expectedResult, actualResult);
+            break;
+        case SAME_ROWCOUNT:
+            good = expectedResult.size() == actualResult.size();
+            break;
+        case SUBSET: {
+            good = compareResultInLevelSubset(expectedResult, actualResult);
+            break;
+        }
+        case SAME_WITH_DEVIATION_ALLOWED:
+            good = compareResultInLevelSame(expectedResult, actualResult)
+                    || compareTwoRowsWithDeviationAllowed(expectedResult, actualResult);
+            break;
+        default:
+            break;
 
         }
 
@@ -497,7 +495,7 @@ public class NExecAndComp {
 
     private static void printRows(String source, List<Row> rows) {
         logger.debug("***********" + source + " start**********");
-        rows.forEach(row -> System.out.println(row.mkString(" | ")));
+        rows.forEach(row -> logger.info(row.mkString(" | ")));
         logger.debug("***********" + source + " end**********");
     }
 
@@ -533,8 +531,8 @@ public class NExecAndComp {
 
             if (!good) {
                 logger.error("Result not match");
-                expectedResult.show(10000);
-                actualResult.show(10000);
+                logger.info(expectedResult.showString(10000, 20, false));
+                logger.info(actualResult.showString(10000, 20, false));
                 throw new IllegalStateException();
             }
         } finally {
@@ -618,7 +616,7 @@ public class NExecAndComp {
     static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql, List<String> parameters) throws Exception {
         try {
             SparderEnv.skipCompute();
-            List<Object> parametersNotNull = parameters==null ? new ArrayList<>():new ArrayList<>(parameters);
+            List<Object> parametersNotNull = parameters == null ? new ArrayList<>() : new ArrayList<>(parameters);
             Dataset<Row> df = queryCube(prj, sql, parametersNotNull);
             return df;
         } finally {
@@ -646,7 +644,8 @@ public class NExecAndComp {
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
         String prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
-            QueryExec queryExec = new QueryExec(prj, NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
+            QueryExec queryExec = new QueryExec(prj,
+                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
             if (parameters != null) {
                 for (int i = 0; i < parameters.size(); i++) {
                     queryExec.setPrepareParam(i, parameters.get(i));
@@ -669,7 +668,8 @@ public class NExecAndComp {
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
         String prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
-            QueryExec queryExec = new QueryExec(prj, NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
+            QueryExec queryExec = new QueryExec(prj,
+                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
             return queryExec.executeQuery(sql);
         } finally {
             if (prevRunLocalConf != null) {

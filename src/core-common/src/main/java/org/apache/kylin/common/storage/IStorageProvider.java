@@ -23,12 +23,13 @@
  */
 package org.apache.kylin.common.storage;
 
-import io.kyligence.kap.common.obf.IKeep;
+import java.io.IOException;
+
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import java.io.IOException;
+import io.kyligence.kap.common.obf.IKeep;
 
 public interface IStorageProvider extends IKeep {
     ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException;

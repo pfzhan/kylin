@@ -405,11 +405,7 @@ public class RestClient {
             put.setEntity(new StringEntity(new ObjectMapper().writeValueAsString(paraMap), "UTF-8"));
             response = client.execute(put);
             EntityUtils.consume(response.getEntity());
-            if (response.getStatusLine().getStatusCode() != 200) {
-                return false;
-            } else {
-                return true;
-            }
+            return response.getStatusLine().getStatusCode() == 200;
         } finally {
             cleanup(put, response);
         }

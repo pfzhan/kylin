@@ -47,7 +47,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
@@ -60,7 +60,6 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
@@ -194,9 +193,8 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
     }
 
     private void testWithLimit() throws SQLException {
-        String query = "select intersect_count(TEST_COUNT_DISTINCT_BITMAP, CAL_DT, array[date'2012-01-01']) as first_day " +
-                "from test_kylin_fact " +
-                "limit 1";
+        String query = "select intersect_count(TEST_COUNT_DISTINCT_BITMAP, CAL_DT, array[date'2012-01-01']) as first_day "
+                + "from test_kylin_fact " + "limit 1";
         List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("14", result.get(0));
@@ -218,28 +216,17 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
 
     private void testIntersectCountByCol() throws Exception {
         String query1 = "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
-                + "    (select bitmap_uuid(SELLER_ID) as a1 "
-                + "        from TEST_KYLIN_FACT) t1, "
-                + "    (select intersect_bitmap_uuid( "
-                + "        SELLER_ID, LSTG_FORMAT_NAME, "
-                + "        array['FP-GTC|FP-non GTC', 'Others']) as a2 "
-                + "from TEST_KYLIN_FACT) t2 "
-                + "union all "
+                + "    (select bitmap_uuid(SELLER_ID) as a1 " + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid( " + "        SELLER_ID, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others']) as a2 " + "from TEST_KYLIN_FACT) t2 " + "union all "
                 + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
-                + "    (select bitmap_uuid(SELLER_ID) as a1 "
-                + "        from TEST_KYLIN_FACT) t1, "
-                + "    (select intersect_bitmap_uuid_v2( "
-                + "        SELLER_ID, LSTG_FORMAT_NAME, "
-                + "        array['FP-.*GTC', 'Others'], 'REGEXP') as a2 "
-                + "from TEST_KYLIN_FACT) t2 "
-                + "union all "
+                + "    (select bitmap_uuid(SELLER_ID) as a1 " + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( " + "        SELLER_ID, LSTG_FORMAT_NAME, "
+                + "        array['FP-.*GTC', 'Others'], 'REGEXP') as a2 " + "from TEST_KYLIN_FACT) t2 " + "union all "
                 + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
-                + "    (select bitmap_uuid(SELLER_ID) as a1 "
-                + "        from TEST_KYLIN_FACT) t1, "
-                + "    (select intersect_bitmap_uuid_v2( "
-                + "        SELLER_ID, LSTG_FORMAT_NAME, "
-                + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 "
-                + "from TEST_KYLIN_FACT) t2";
+                + "    (select bitmap_uuid(SELLER_ID) as a1 " + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( " + "        SELLER_ID, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 " + "from TEST_KYLIN_FACT) t2";
 
         List<String> result1 = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
@@ -248,28 +235,17 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("841", result1.get(2));
 
         String query2 = "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
-                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 "
-                + "        from TEST_KYLIN_FACT) t1, "
-                + "    (select intersect_bitmap_uuid( "
-                + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
-                + "        array['FP-GTC|FP-non GTC', 'Others']) as a2 "
-                + "from TEST_KYLIN_FACT) t2 "
-                + "union all "
+                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 " + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid( " + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others']) as a2 " + "from TEST_KYLIN_FACT) t2 " + "union all "
                 + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
-                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 "
-                + "        from TEST_KYLIN_FACT) t1, "
-                + "    (select intersect_bitmap_uuid_v2( "
-                + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
-                + "        array['FP-.*GTC', 'Others'], 'REGEXP') as a2 "
-                + "from TEST_KYLIN_FACT) t2 "
-                + "union all "
+                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 " + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( " + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
+                + "        array['FP-.*GTC', 'Others'], 'REGEXP') as a2 " + "from TEST_KYLIN_FACT) t2 " + "union all "
                 + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
-                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 "
-                + "        from TEST_KYLIN_FACT) t1, "
-                + "    (select intersect_bitmap_uuid_v2( "
-                + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
-                + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 "
-                + "from TEST_KYLIN_FACT) t2";
+                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 " + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( " + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 " + "from TEST_KYLIN_FACT) t2";
         List<String> result2 = NExecAndComp.queryCube(getProject(), query2).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("862", result2.get(0));
@@ -296,10 +272,9 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "from test_kylin_fact ";
         List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
-        Assert.assertEquals(
-                "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)," +
-                "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)," +
-                "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)", result.get(0));
+        Assert.assertEquals("WrappedArray(0, 2, 3, 15, 23, 100, 101, 211),"
+                + "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)," + "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)",
+                result.get(0));
     }
 
     private void testExplodeIntersectValue() throws SQLException {
@@ -319,9 +294,9 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
     }
 
     private void testHllcCanNotAnswerBitmapUUID() throws SQLException {
-        String query = "select intersect_count_by_col(Array[t1.a1]), LSTG_FORMAT_NAME from" +
-                " (select bitmap_uuid(SELLER_ID) as a1, LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME) t1" +
-                " order by LSTG_FORMAT_NAME";
+        String query = "select intersect_count_by_col(Array[t1.a1]), LSTG_FORMAT_NAME from"
+                + " (select bitmap_uuid(SELLER_ID) as a1, LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME) t1"
+                + " order by LSTG_FORMAT_NAME";
         List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("855,ABIN", result.get(0));

@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -77,9 +77,11 @@ public class OpenUserController extends NBasicController {
         for (ManagedUser u : usersByFuzzyMatching) {
             userService.completeUserInfo(u);
         }
-        List<UserInfoResponse> userInfoResponses = usersByFuzzyMatching.stream().map(UserInfoResponse::new).collect(Collectors.toList());
+        List<UserInfoResponse> userInfoResponses = usersByFuzzyMatching.stream().map(UserInfoResponse::new)
+                .collect(Collectors.toList());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(userInfoResponses, pageOffset, pageSize), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }
 
     @PostMapping(value = "")

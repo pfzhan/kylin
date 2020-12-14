@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.query.engine;
 
-import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCleanupTestMetadata;
-import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCreateTestMetadata;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -39,61 +36,60 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.query.rules.CalciteRuleTestBase;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SumExprPlannerTest extends CalciteRuleTestBase {
 
     static final String defaultProject = "default";
-    static final  DiffRepository diff = DiffRepository.lookup(SumExprPlannerTest.class);
+    static final DiffRepository diff = DiffRepository.lookup(SumExprPlannerTest.class);
 
     private void openSumCaseWhen() {
         // we must make sure kap.query.enable-convert-sum-expression is TRUE to
         // avoid adding SumConstantConvertRule in PlannerFactory
-        System.setProperty("kylin.query.convert-sum-expression-enabled", "true");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
     }
 
     private void closeSumCaseWhen() {
         // some sql failed in new SumConstantConvertRule
-        System.setProperty("kylin.query.convert-sum-expression-enabled", "false");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "false");
     }
 
     @Before
     public void setup() {
-        staticCreateTestMetadata();
+        createTestMetadata();
     }
 
     @After
     public void teardown() {
         closeSumCaseWhen();
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     @Test
     @Ignore("For development")
     public void dumpPlans() throws IOException {
-        List<Pair<String, String>> queries = readALLSQLs(KylinConfig.getInstanceFromEnv(), defaultProject, "query/sql_sum_expr");
+        List<Pair<String, String>> queries = readALLSQLs(KylinConfig.getInstanceFromEnv(), defaultProject,
+                "query/sql_sum_expr");
         CalciteRuleTestBase.StringOutput output = new CalciteRuleTestBase.StringOutput(false);
-        queries.forEach(e ->checkSQL(defaultProject, e.getSecond(), e.getFirst(), output, diff));
+        queries.forEach(e -> checkSQL(defaultProject, e.getSecond(), e.getFirst(), output, diff));
         output.dump(log);
     }
 
     @Test
     public void testAllCases() throws IOException {
         openSumCaseWhen();
-        List<Pair<String, String>> queries = readALLSQLs(KylinConfig.getInstanceFromEnv(), defaultProject, "query/sql_sum_expr");
+        List<Pair<String, String>> queries = readALLSQLs(KylinConfig.getInstanceFromEnv(), defaultProject,
+                "query/sql_sum_expr");
         Assert.assertEquals("Please adjust expected value, if SQLs are added or removed ", 31, queries.size());
-        queries.forEach(e ->checkSQL(defaultProject, e.getSecond(), e.getFirst(), null, diff));
+        queries.forEach(e -> checkSQL(defaultProject, e.getSecond(), e.getFirst(), null, diff));
     }
 
     @Test
     public void testSimpleSQL() {
         openSumCaseWhen();
-        String SQL =
-                "SELECT " +
-                        "SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 2 END) " +
-                        "FROM TEST_KYLIN_FACT";
+        String SQL = "SELECT " + "SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 2 END) "
+                + "FROM TEST_KYLIN_FACT";
         checkSQL(defaultProject, SQL, null, null, diff);
     }
 
@@ -103,11 +99,9 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
     @Test
     public void testWithAVG() {
         openSumCaseWhen();
-        String SQL =
-                "SELECT " +
-                        "AVG(PRICE) as price1 " +
-                        ",SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 0 END) as total_price " +
-                        "from TEST_KYLIN_FACT";
+        String SQL = "SELECT " + "AVG(PRICE) as price1 "
+                + ",SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 0 END) as total_price "
+                + "from TEST_KYLIN_FACT";
         checkSQL(defaultProject, SQL, null, null, diff);
     }
 
@@ -116,7 +110,8 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
         // see https://olapio.atlassian.net/browse/KE-13524 for details
         closeSumCaseWhen();
         String project = "newten";
-        Pair<String, String> query = readOneSQL(KylinConfig.getInstanceFromEnv(), project, "sql_sinai_poc", "query15.sql");
+        Pair<String, String> query = readOneSQL(KylinConfig.getInstanceFromEnv(), project, "sql_sinai_poc",
+                "query15.sql");
         Assert.assertNotNull(query.getSecond());
         Assert.assertNotNull(toCalcitePlan(project, query.getSecond(), KylinConfig.getInstanceFromEnv()));
 
@@ -149,16 +144,16 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
     @Test
     public void testSumCastTransposeRule4() {
         openSumCaseWhen();
-        String SQL = "select sum(cast(price as bigint)) from TEST_KYLIN_FACT" +
-                " INNER JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
+        String SQL = "select sum(cast(price as bigint)) from TEST_KYLIN_FACT"
+                + " INNER JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
         checkSQL(defaultProject, SQL, null, null, diff);
     }
 
     @Test
     public void testSumCastTransposeRuleWithGroupby() {
         openSumCaseWhen();
-        String SQL = "SELECT SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE LEAF_CATEG_ID END), " +
-                "LSTG_FORMAT_NAME FROM TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
+        String SQL = "SELECT SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE LEAF_CATEG_ID END), "
+                + "LSTG_FORMAT_NAME FROM TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
         checkSQL(defaultProject, SQL, null, null, diff);
     }
 }

@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.tool.bisync.tableau.datasource.column;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-
 import java.util.Objects;
+
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class Column {
 
@@ -128,22 +128,22 @@ public class Column {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Column)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Column))
+            return false;
         Column column = (Column) o;
-        return Objects.equals(getCaption(), column.getCaption()) &&
-                Objects.equals(getDatatype(), column.getDatatype()) &&
-                Objects.equals(getName(), column.getName()) &&
-                Objects.equals(getRole(), column.getRole()) &&
-                Objects.equals(getType(), column.getType()) &&
-                Objects.equals(getHidden(), column.getHidden()) &&
-                Objects.equals(getKeCubeUsed(), column.getKeCubeUsed()) &&
-                Objects.equals(getCalculation(), column.getCalculation());
+        return Objects.equals(getCaption(), column.getCaption()) && Objects.equals(getDatatype(), column.getDatatype())
+                && Objects.equals(getName(), column.getName()) && Objects.equals(getRole(), column.getRole())
+                && Objects.equals(getType(), column.getType()) && Objects.equals(getHidden(), column.getHidden())
+                && Objects.equals(getKeCubeUsed(), column.getKeCubeUsed())
+                && Objects.equals(getCalculation(), column.getCalculation());
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(getCaption(), getDatatype(), getName(), getRole(), getType(), getHidden(), getCalculation());
+        return Objects.hash(getCaption(), getDatatype(), getName(), getRole(), getType(), getHidden(),
+                getCalculation());
     }
 }

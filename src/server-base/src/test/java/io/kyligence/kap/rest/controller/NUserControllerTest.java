@@ -42,7 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultCommitFile;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultLicenseFile;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultVersionFile;
@@ -93,7 +93,7 @@ import org.springframework.web.accept.ContentNegotiationManager;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -137,7 +137,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setupResource() {
-        createTestMetadata();
+        super.createTestMetadata();
         getTestConfig().setProperty("kylin.env", "UT");
         nUserController = Mockito.spy(new NUserController());
     }
@@ -176,7 +176,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.env", "PROD");
         licenseInfoService.gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(),
                 null);
-        System.setProperty(Constants.KE_DATES, "2018-12-17,2019-01-17");
+        overwriteSystemProp(Constants.KE_DATES, "2018-12-17,2019-01-17");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 String.format(Message.getInstance().getLICENSE_OVERDUE_TRIAL(), "2018-12-17", "2019-01-17"));
@@ -482,12 +482,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testListAll() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .param("name", "KYLIN")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .param("name", "KYLIN").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nUserController).listAllUsers(Mockito.anyString(), Mockito.anyBoolean(),
-                Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verify(nUserController).listAllUsers(Mockito.anyString(), Mockito.anyBoolean(), Mockito.anyInt(),
+                Mockito.anyInt());
     }
 
     @Test

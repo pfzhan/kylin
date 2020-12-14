@@ -98,21 +98,17 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testEpochExpired() throws Exception {
-        System.setProperty("kylin.server.leader-race.heart-beat-timeout", "1");
+        overwriteSystemProp("kylin.server.leader-race.heart-beat-timeout", "1");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
 
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         TimeUnit.SECONDS.sleep(2);
-        try {
-            thrown.expect(TransactionException.class);
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                System.out.println("just for test");
-                return null;
-            }, UnitOfWork.GLOBAL_UNIT, 1);
-        } finally {
-            System.clearProperty("kylin.server.leader-race.heart-beat-timeout");
-        }
+        thrown.expect(TransactionException.class);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            System.out.println("just for test");
+            return null;
+        }, UnitOfWork.GLOBAL_UNIT, 1);
     }
 
     @Test

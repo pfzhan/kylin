@@ -49,33 +49,16 @@ public class QueryExecColumnMetaTest extends NLocalFileMetadataTestCase {
         this.cleanupTestMetadata();
     }
 
-    public static String[] sqls = {
-        "SELECT \"pRICE\",\n" +
-                "\"PRice\"\n" +
-                "FROM \"TEST_KYLIN_FACT\"\n",
-        "SELECT* FROM (\n" +
-                "SELECT \"pRICE\",\n" +
-                "        \"PRice\"\n" +
-                "    FROM \"TEST_KYLIN_FACT\"\n" +
-                ")\n",
-        "SELECT* FROM (\n" +
-                "SELECT \"PRICE\" AS \"pRICE\",\n" +
-                "        \"PRICE\" AS \"PRice\"\n" +
-                "    FROM \"TEST_KYLIN_FACT\"\n" +
-                ")\n",
-        "SELECT * FROM (SELECT* FROM (\n" +
-                "SELECT \"PRICE\" AS \"pRICE\",\n" +
-                "        \"PRICE\" AS \"PRice\"\n" +
-                "    FROM \"TEST_KYLIN_FACT\"\n" +
-                ") ORDER BY 2,1)\n"
-    };
+    public static String[] sqls = { "SELECT \"pRICE\",\n" + "\"PRice\"\n" + "FROM \"TEST_KYLIN_FACT\"\n",
+            "SELECT* FROM (\n" + "SELECT \"pRICE\",\n" + "        \"PRice\"\n" + "    FROM \"TEST_KYLIN_FACT\"\n"
+                    + ")\n",
+            "SELECT* FROM (\n" + "SELECT \"PRICE\" AS \"pRICE\",\n" + "        \"PRICE\" AS \"PRice\"\n"
+                    + "    FROM \"TEST_KYLIN_FACT\"\n" + ")\n",
+            "SELECT * FROM (SELECT* FROM (\n" + "SELECT \"PRICE\" AS \"pRICE\",\n" + "        \"PRICE\" AS \"PRice\"\n"
+                    + "    FROM \"TEST_KYLIN_FACT\"\n" + ") ORDER BY 2,1)\n" };
 
-    public static String[][] expectedColumnNamesList = {
-            {"pRICE", "PRice"},
-            {"pRICE", "PRice"},
-            {"pRICE", "PRice"},
-            {"pRICE", "PRice"}
-    };
+    public static String[][] expectedColumnNamesList = { { "pRICE", "PRice" }, { "pRICE", "PRice" },
+            { "pRICE", "PRice" }, { "pRICE", "PRice" } };
 
     @Test
     public void testColumnNames() throws SQLException {
@@ -85,12 +68,11 @@ public class QueryExecColumnMetaTest extends NLocalFileMetadataTestCase {
             String sql = sqls[i];
             String expectedColumnNames = String.join(", ", expectedColumnNamesList[i]);
 
-            List<StructField> columns = new QueryExec("newten", KylinConfig.getInstanceFromEnv()).getColumnMetaData(sql);
+            List<StructField> columns = new QueryExec("newten", KylinConfig.getInstanceFromEnv())
+                    .getColumnMetaData(sql);
             String actualColNames = columns.stream().map(StructField::getName).collect(Collectors.joining(", "));
 
-            Assert.assertEquals(
-                    String.format("ColumnName test failed: sql-%d [%s]", i, sql),
-                    expectedColumnNames,
+            Assert.assertEquals(String.format("ColumnName test failed: sql-%d [%s]", i, sql), expectedColumnNames,
                     actualColNames);
         }
     }

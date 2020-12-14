@@ -64,17 +64,19 @@ public class ReadFsSwitchTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test() throws InterruptedException {
-        try (SetAndUnsetSystemProp r = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system-backup-reset-sec", "1");
-             SetAndUnsetSystemProp a = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system", "a://");
-             SetAndUnsetSystemProp b = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system-backup", "b://");) {
+        try (SetAndUnsetSystemProp r = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system-backup-reset-sec",
+                "1");
+                SetAndUnsetSystemProp a = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system", "a://");
+                SetAndUnsetSystemProp b = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system-backup",
+                        "b://");) {
 
             for (int i = 0; i < 15; i++) {
                 if (i == 2)
-                    Assert.assertEquals(true, ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(), KapConfig.getInstanceFromEnv().
-                            getSwitchBackupFsExceptionAllowString()));
+                    Assert.assertEquals(true, ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),
+                            KapConfig.getInstanceFromEnv().getSwitchBackupFsExceptionAllowString()));
                 if (i == 3)
-                    Assert.assertEquals(false, ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(), KapConfig.getInstanceFromEnv().
-                            getSwitchBackupFsExceptionAllowString()));
+                    Assert.assertEquals(false, ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),
+                            KapConfig.getInstanceFromEnv().getSwitchBackupFsExceptionAllowString()));
 
                 String fs = KapConfig.getInstanceFromEnv().getParquetReadFileSystem();
                 if (i == 1)
@@ -90,7 +92,8 @@ public class ReadFsSwitchTest extends NLocalFileMetadataTestCase {
     }
 
     private RuntimeException ex() {
-        return new RuntimeException("java.lang.RuntimeException: java.io.IOException: alluxio.exception.AlluxioException: Expected to lock inode amzU8cb_kylin_newten_instance but locked inode");
+        return new RuntimeException(
+                "java.lang.RuntimeException: java.io.IOException: alluxio.exception.AlluxioException: Expected to lock inode amzU8cb_kylin_newten_instance but locked inode");
     }
 
 }

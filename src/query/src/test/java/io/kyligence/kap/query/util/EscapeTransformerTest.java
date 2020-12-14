@@ -306,8 +306,8 @@ public class EscapeTransformerTest {
 
     @Test
     public void testReserveHintQuery() throws Exception {
-        String originalSQL = "select /**/ /*+*//*+ some hint */ --test comment will remove\n" +
-                " \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
+        String originalSQL = "select /**/ /*+*//*+ some hint */ --test comment will remove\n"
+                + " \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
         String transformedSQL = new CommentParser(originalSQL).Input();
 
         String expectedSQL = "select  /*+*//*+ some hint */ \n \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl";

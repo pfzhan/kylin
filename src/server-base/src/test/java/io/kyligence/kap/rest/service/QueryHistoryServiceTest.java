@@ -42,7 +42,6 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -54,7 +53,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.ProcessUtil;
+import io.kyligence.kap.common.util.ProcessUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -64,7 +63,6 @@ import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
-
 import lombok.val;
 import lombok.var;
 
@@ -72,27 +70,22 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
 
     @InjectMocks
-    private QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
+    private final QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
 
     @Mock
-    private ModelService modelService = Mockito.spy(new ModelService());
+    private final ModelService modelService = Mockito.spy(new ModelService());
 
     @InjectMocks
-    private TableService tableService = Mockito.spy(new TableService());
+    private final TableService tableService = Mockito.spy(new TableService());
 
     @Mock
-    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+    private final AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
-
-    @BeforeClass
-    public static void setUpBeforeClass() {
-        staticCreateTestMetadata();
-    }
 
     @Before
     public void setUp() {
@@ -204,7 +197,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         queryStatistics.setMeanDuration(500);
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        Mockito.doReturn(queryStatistics).when(queryHistoryDAO).getQueryCountAndAvgDuration(0, Long.MAX_VALUE, "default");
+        Mockito.doReturn(queryStatistics).when(queryHistoryDAO).getQueryCountAndAvgDuration(0, Long.MAX_VALUE,
+                "default");
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
 
         QueryStatisticsResponse result = queryHistoryService.getQueryStatistics(PROJECT, 0, Long.MAX_VALUE);
@@ -258,7 +252,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         long endTime = format.parse("2018-01-03").getTime();
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByModel(startTime, endTime, "default");
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByModel(startTime, endTime,
+                "default");
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByTime(Mockito.anyLong(),
                 Mockito.anyLong(), Mockito.anyString(), Mockito.anyString());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
@@ -340,8 +335,10 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         List<String> projects = Lists.newArrayList(PROJECT, "newten");
         Map<String, String> tableMap = queryHistoryService.getQueryHistoryTableMap(projects);
         Assert.assertEquals(2, tableMap.size());
-        Assert.assertEquals("_examples_test_data_" + ProcessUtil.getProcessId("0") + "_metadata_query_history", tableMap.get("newten"));
-        Assert.assertEquals("_examples_test_data_" + ProcessUtil.getProcessId("0") + "_metadata_query_history", tableMap.get(PROJECT));
+        Assert.assertEquals("_examples_test_data_" + ProcessUtils.getCurrentId("0") + "_metadata_query_history",
+                tableMap.get("newten"));
+        Assert.assertEquals("_examples_test_data_" + ProcessUtils.getCurrentId("0") + "_metadata_query_history",
+                tableMap.get(PROJECT));
 
         // get all tables
         tableMap = queryHistoryService.getQueryHistoryTableMap(null);

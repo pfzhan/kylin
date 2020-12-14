@@ -60,16 +60,16 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
 
     @Override
     public NDataLayout[] merge(String dataflowId, Set<String> segmentId, Set<Long> layoutIds,
-                               ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         switch (jobType) {
-            case INDEX_BUILD:
-            case SUB_PARTITION_BUILD:
-                return mergeAfterCatchup(dataflowId, segmentId, layoutIds, remoteResourceStore, partitions);
-            case INC_BUILD:
-                Preconditions.checkArgument(segmentId.size() == 1);
-                return mergeAfterIncrement(dataflowId, segmentId.iterator().next(), layoutIds, remoteResourceStore);
-            default:
-                throw new UnsupportedOperationException("Error job type: " + jobType);
+        case INDEX_BUILD:
+        case SUB_PARTITION_BUILD:
+            return mergeAfterCatchup(dataflowId, segmentId, layoutIds, remoteResourceStore, partitions);
+        case INC_BUILD:
+            Preconditions.checkArgument(segmentId.size() == 1);
+            return mergeAfterIncrement(dataflowId, segmentId.iterator().next(), layoutIds, remoteResourceStore);
+        default:
+            throw new UnsupportedOperationException("Error job type: " + jobType);
         }
     }
 
@@ -99,7 +99,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
     }
 
     public NDataLayout[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds,
-                                             ResourceStore remoteStore) {
+            ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
@@ -128,7 +128,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
     }
 
     public NDataLayout[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-                                           ResourceStore remoteStore, Set<Long> partitionIds) {
+            ResourceStore remoteStore, Set<Long> partitionIds) {
         if (CollectionUtils.isNotEmpty(partitionIds)) {
             return mergeMultiPartitionModelAfterCatchUp(flowName, segmentIds, layoutIds, remoteStore, partitionIds);
         } else {
@@ -137,7 +137,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
     }
 
     public NDataLayout[] mergeNormalModelAfterCatchUp(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-                                                      ResourceStore remoteStore) {
+            ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
@@ -145,7 +145,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
 
         val dataflow = localDataflowManager.getDataflow(flowName);
         val dfUpdate = new NDataflowUpdate(flowName);
-        val addCuboids = Lists.<NDataLayout>newArrayList();
+        val addCuboids = Lists.<NDataLayout> newArrayList();
         val availableLayoutIds = getAvailableLayoutIds(dataflow, layoutIds);
 
         List<NDataSegment> segsToUpdate = Lists.newArrayList();
@@ -181,8 +181,8 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
      * New layoutIds mean index build job which should add new layouts.
      * Old layoutIds mean partition build job which should update partitions in layouts.
      */
-    public NDataLayout[] mergeMultiPartitionModelAfterCatchUp(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-                                                              ResourceStore remoteStore, Set<Long> partitionIds) {
+    public NDataLayout[] mergeMultiPartitionModelAfterCatchUp(String flowName, Set<String> segmentIds,
+            Set<Long> layoutIds, ResourceStore remoteStore, Set<Long> partitionIds) {
 
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         val localDataflow = localDataflowManager.getDataflow(flowName).copy();
@@ -190,7 +190,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
         val dataflow = localDataflowManager.getDataflow(flowName);
         val dfUpdate = new NDataflowUpdate(flowName);
-        val upsertCuboids = Lists.<NDataLayout>newArrayList();
+        val upsertCuboids = Lists.<NDataLayout> newArrayList();
         val availableLayoutIds = getAvailableLayoutIds(dataflow, layoutIds);
         List<NDataSegment> segsToUpdate = Lists.newArrayList();
 
@@ -198,8 +198,8 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             val localSeg = localDataflow.getSegment(segId);
             val remoteSeg = remoteDataflow.getSegment(segId);
             // ignore if local segment is not ready
-            if (localSeg == null || (localSeg.getStatus() != SegmentStatusEnum.READY &&
-                    localSeg.getStatus() != SegmentStatusEnum.WARNING)) {
+            if (localSeg == null || (localSeg.getStatus() != SegmentStatusEnum.READY
+                    && localSeg.getStatus() != SegmentStatusEnum.WARNING)) {
                 continue;
             }
             NDataSegment updateSegment = upsertSegmentPartition(localSeg, remoteSeg, partitionIds);
@@ -209,7 +209,8 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 NDataLayout localLayout = localSeg.getLayout(layoutId);
                 NDataLayout upsertLayout = upsertLayoutPartition(localLayout, remoteLayout, partitionIds);
                 if (upsertLayout == null) {
-                    log.warn("Layout {} is null in segment {}. Segment have layouts {} ", layoutId, segId, remoteSeg.getLayoutIds());
+                    log.warn("Layout {} is null in segment {}. Segment have layouts {} ", layoutId, segId,
+                            remoteSeg.getLayoutIds());
                 }
                 upsertCuboids.add(upsertLayout);
             }
@@ -227,7 +228,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
         // Reset breakpoints.
         dataSegment.setFactViewReady(false);
         dataSegment.setDictReady(false);
-        if(!getConfig().isPersistFlatTableEnabled()) {
+        if (!getConfig().isPersistFlatTableEnabled()) {
             dataSegment.setFlatTableReady(false);
         }
 

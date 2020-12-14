@@ -34,14 +34,14 @@ import org.apache.kylin.sdk.datasource.framework.utils.Constants;
 
 public class ConvRownumSqlWriter extends ConvSqlWriter {
 
-
     ConvRownumSqlWriter(SqlConverter.IConfigurer configurer) throws SQLException {
         super(configurer);
     }
 
     private boolean printSelectForRownumInWithCLause = false;
     private static final String ALIAS_ROWNUM = Constants.ALIAS_ROWNUM_ORCALE;
-    private static final String SQL_ROWSTART = "SELECT * \nFROM(\n\tSELECT T.*, ROWNUM "+ ALIAS_ROWNUM + "\n\tFROM ( \n\t";
+    private static final String SQL_ROWSTART = "SELECT * \nFROM(\n\tSELECT T.*, ROWNUM " + ALIAS_ROWNUM
+            + "\n\tFROM ( \n\t";
     private static final String SQL_ROWEND_NOLIMIT = "\n\t) T\n) ";
     private static final String SQL_ROWEND_LIMIT_INNER = "\n\t) T WHERE ROWNUM <= ";
     private static final String SQL_ROWEND_LIMIT_OUTER = " \n) \nWHERE 1 = 1 AND ";
@@ -61,9 +61,9 @@ public class ConvRownumSqlWriter extends ConvSqlWriter {
             ) T WHERE ROWNUM <= LIMIT + OFFSET
         )
         WHERE 1 = 1 AND ROWNUM__ BETWEEN OFFSET + 1 AND LIMIT + OFFSET
-
+        
         or
-
+        
         SELECT * FROM
         (
             SELECT T.*, ROWNUM ROWNUM__
@@ -72,9 +72,11 @@ public class ConvRownumSqlWriter extends ConvSqlWriter {
             ) T WHERE ROWNUM <= LIMIT
         )
         WHERE 1 = 1 AND ROWNUM__ <= LIMIT
-
+        
         */
-        if (this.frame != null && this.frame.getFrameType() == SqlWriter.FrameTypeEnum.ORDER_BY && (frameType == SqlWriter.FrameTypeEnum.SELECT || frameType == SqlWriter.FrameTypeEnum.SETOP || frameType == SqlWriter.FrameTypeEnum.SIMPLE)) {
+        if (this.frame != null && this.frame.getFrameType() == SqlWriter.FrameTypeEnum.ORDER_BY
+                && (frameType == SqlWriter.FrameTypeEnum.SELECT || frameType == SqlWriter.FrameTypeEnum.SETOP
+                        || frameType == SqlWriter.FrameTypeEnum.SIMPLE)) {
             this.keyword(masageSqlRowStart());
         }
         return super.startList(frameType, keyword, open, close);
@@ -98,7 +100,8 @@ public class ConvRownumSqlWriter extends ConvSqlWriter {
                     offset.unparse(this, -1, -1);
                 }
                 this.keyword(SQL_ROWEND_LIMIT_OUTER);
-                String lastAliasRownumName = lastAliasRownumNameStack.isEmpty()? "ROWNUM" :lastAliasRownumNameStack.pop();
+                String lastAliasRownumName = lastAliasRownumNameStack.isEmpty() ? "ROWNUM"
+                        : lastAliasRownumNameStack.pop();
                 this.keyword(lastAliasRownumName);
                 if (offset != null) {
                     this.keyword(" BETWEEN ");
@@ -123,11 +126,12 @@ public class ConvRownumSqlWriter extends ConvSqlWriter {
 
     @Override
     public void writeWith(SqlCall call, int leftPrec, int rightPrec) {
-         /*
+        /*
         For Oracle <= 11g, to add fetch rows should be:  origin sql => SELECT * FROM  ([origin sql]) WHERE ROWNUM <= [FETCH_SIZE]
         Here we should print "SELECT * FROM (" before print origin sql
         */
-        printSelectForRownumInWithCLause = (this.frame != null && this.frame.getFrameType() == SqlWriter.FrameTypeEnum.ORDER_BY);
+        printSelectForRownumInWithCLause = (this.frame != null
+                && this.frame.getFrameType() == SqlWriter.FrameTypeEnum.ORDER_BY);
         super.writeWith(call, leftPrec, rightPrec);
     }
 
@@ -140,7 +144,7 @@ public class ConvRownumSqlWriter extends ConvSqlWriter {
 
     private String masageSqlRowStart() {
         String lastAliasRownumName = ALIAS_ROWNUM + rownumCounter;
-        rownumCounter ++;
+        rownumCounter++;
         lastAliasRownumNameStack.push(lastAliasRownumName);
         return SQL_ROWSTART.replace(ALIAS_ROWNUM, lastAliasRownumName);
     }

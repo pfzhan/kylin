@@ -27,13 +27,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ApplicationContextEvent;
 
 public class SparderStartEvent {
-    public static class AsyncEvent  extends ApplicationContextEvent {
+    public static class AsyncEvent extends ApplicationContextEvent {
         public AsyncEvent(ApplicationContext source) {
             super(source);
         }
     }
 
-    public static class SyncEvent  extends ApplicationContextEvent {
+    public static class SyncEvent extends ApplicationContextEvent {
         public SyncEvent(ApplicationContext source) {
             super(source);
         }

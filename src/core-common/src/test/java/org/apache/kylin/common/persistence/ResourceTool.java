@@ -50,12 +50,13 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
 public class ResourceTool {
 

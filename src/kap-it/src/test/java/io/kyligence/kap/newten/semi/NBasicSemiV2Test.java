@@ -58,7 +58,7 @@ import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -103,7 +103,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare initial model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
@@ -112,9 +112,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         String[] sqls = { "select sum(item_count*price), sum(price), lstg_format_name, price * 5 "
                 + "from test_kylin_fact group by lstg_format_name, price *  5" };
 
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
-        List<AbstractContext.NModelContext> modelContexts = context.getModelContexts();
-        AbstractContext.NModelContext modelContext = modelContexts.get(0);
+        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
+        AbstractContext.ModelContext modelContext = modelContexts.get(0);
         val ccRecItemMap = modelContext.getCcRecItemMap();
         val dimensionRecItemMap = modelContext.getDimensionRecItemMap();
         val measureRecItemMap = modelContext.getMeasureRecItemMap();
@@ -148,7 +148,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "from test_kylin_fact left join test_order on test_kylin_fact.order_id = test_order.order_id "
                 + "group by lstg_format_name, price *  5";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
@@ -156,8 +156,8 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         String[] sqls1 = { "select sum(item_count*price), sum(price), lstg_format_name, price * 5 "
                 + "from test_kylin_fact left join test_order on test_kylin_fact.order_id = test_order.order_id "
                 + "group by lstg_format_name, price *  5" };
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls1, null);
-        AbstractContext.NModelContext modelContext = context.getModelContexts().get(0);
+        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls1, null);
+        AbstractContext.ModelContext modelContext = context.getModelContexts().get(0);
         Assert.assertEquals(0, modelContext.getCcRecItemMap().size());
         Assert.assertEquals(0, modelContext.getDimensionRecItemMap().size());
         Assert.assertEquals(0, modelContext.getMeasureRecItemMap().size());
@@ -184,7 +184,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "inner join test_country on test_account.account_country = test_country.country";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1, query2, query3 });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
@@ -198,8 +198,8 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 "select max(item_count*price),min(price * 5) from test_kylin_fact inner join test_account "
                         + "on test_kylin_fact.seller_id = test_account.account_id "
                         + "left join test_country on test_account.account_country = test_country.country" };
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
-        List<AbstractContext.NModelContext> modelContexts = context.getModelContexts();
+        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
 
         // validate
         collectCCRecItemWithMultipleModels(modelContexts);
@@ -208,7 +208,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         collectIndexRecItemWithMultipleModels(modelContexts);
     }
 
-    private void collectCCRecItemWithMultipleModels(List<AbstractContext.NModelContext> modelContexts) {
+    private void collectCCRecItemWithMultipleModels(List<AbstractContext.ModelContext> modelContexts) {
         Map<String, CCRecItemV2> ccRecItemMap1 = modelContexts.get(0).getCcRecItemMap();
         Assert.assertEquals(2, ccRecItemMap1.size());
         ArrayList<CCRecItemV2> ccRecItemList1 = new ArrayList<>(ccRecItemMap1.values());
@@ -238,7 +238,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals("DECIMAL(30,4)", ccRecItemList2.get(0).getCc().getDatatype());
     }
 
-    private void collectDimentionRecItemWithMultipleModels(List<AbstractContext.NModelContext> modelContexts) {
+    private void collectDimentionRecItemWithMultipleModels(List<AbstractContext.ModelContext> modelContexts) {
         Map<String, DimensionRecItemV2> dimensionRecItemMap1 = modelContexts.get(0).getDimensionRecItemMap();
         Assert.assertEquals(2, dimensionRecItemMap1.size());
         ArrayList<DimensionRecItemV2> dimensionRecItemList1 = new ArrayList<>(dimensionRecItemMap1.values());
@@ -254,7 +254,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(0, dimensionRecItemMap2.size());
     }
 
-    private void collectMeasureRecItemWithMultipleModels(List<AbstractContext.NModelContext> modelContexts) {
+    private void collectMeasureRecItemWithMultipleModels(List<AbstractContext.ModelContext> modelContexts) {
         Map<String, MeasureRecItemV2> measureRecItemMap1 = modelContexts.get(0).getMeasureRecItemMap();
         Assert.assertEquals(4, measureRecItemMap1.size());
         ArrayList<MeasureRecItemV2> measureRecItemList = new ArrayList<>(measureRecItemMap1.values());
@@ -300,7 +300,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 .getParameters().get(0).getColRef().getColumnDesc().getComputedColumnExpr());
     }
 
-    private void collectIndexRecItemWithMultipleModels(List<AbstractContext.NModelContext> modelContexts) {
+    private void collectIndexRecItemWithMultipleModels(List<AbstractContext.ModelContext> modelContexts) {
         Map<String, LayoutRecItemV2> indexRexItemMap1 = modelContexts.get(0).getIndexRexItemMap();
         Assert.assertEquals(2, indexRexItemMap1.size());
         ArrayList<LayoutRecItemV2> layoutRecItemList1 = new ArrayList<>(indexRexItemMap1.values());
@@ -323,14 +323,14 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         String query1 = "select cal_dt from test_kylin_fact left join test_order "
                 + "on test_kylin_fact.order_id = test_order.order_id";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         String[] sqls = { "select count(test_order.BUYER_ID + 1) from test_kylin_fact left join test_order "
                 + "on test_kylin_fact.order_id = test_order.order_id" };
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
-        List<AbstractContext.NModelContext> modelContexts = context.getModelContexts();
+        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
         Map<String, CCRecItemV2> ccRecItemMap = modelContexts.get(0).getCcRecItemMap();
         Assert.assertEquals(1, ccRecItemMap.size());
         Assert.assertEquals("\"TEST_ORDER\".\"BUYER_ID\" + 1",
@@ -345,13 +345,13 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         String query1 = "select cal_dt from test_kylin_fact";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // generate raw recommendations
         String[] sqls = { "select count(TRANS_ID + ORDER_ID),avg(ORDER_ID) from test_kylin_fact" };
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
         Map<String, MeasureRecItemV2> measureRecItemMap = context.getModelContexts().get(0).getMeasureRecItemMap();
         Assert.assertEquals(3, measureRecItemMap.size());
         ArrayList<MeasureRecItemV2> measureRecItemList = Lists.newArrayList(measureRecItemMap.values());
@@ -385,7 +385,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "on test_kylin_fact.order_id = test_order.order_id ";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1, query2 });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
@@ -395,7 +395,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                         + "left join test_kylin_fact on test_kylin_fact.seller_id = test_account.account_id "
                         + "group by account_id",
                 "select sum(price*item_count) from test_order left join test_kylin_fact on test_kylin_fact.order_id = test_order.order_id " };
-        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
         Assert.assertEquals(2, context.getModelContexts().size());
         Assert.assertEquals(1, context.getModelContexts().get(0).getCcRecItemMap().size());
         Assert.assertEquals(1, context.getModelContexts().get(1).getCcRecItemMap().size());
@@ -418,7 +418,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // prepare [a,b,m1,m2,count(*)]  [a,b,m1,count(*)]
@@ -466,7 +466,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare two origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact", "select name from test_country" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
         List<NDataModel> originModels = smartContext.getOriginModels();
 
@@ -502,15 +502,15 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sql1);
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // model(A inner join B) will reuse model(A inner join B inner join C)
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
         String[] sql2 = new String[] { "select CAL_DT,sum(price) from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID group by CAL_DT" };
-        val context1 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sql2, null);
-        AbstractContext.NModelContext modelContext1 = context1.getModelContexts().get(0);
+        val context1 = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sql2, null);
+        AbstractContext.ModelContext modelContext1 = context1.getModelContexts().get(0);
 
         // validate
         Map<String, DimensionRecItemV2> dimensionRecItemMap = modelContext1.getDimensionRecItemMap();
@@ -540,7 +540,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // generate raw recommendations for origin model
@@ -587,7 +587,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // will not recommend existing dimensions
@@ -620,7 +620,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // generate raw recommendations for origin model
@@ -676,7 +676,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select count(*) from test_kylin_fact " });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // generate raw recommendations for origin model
@@ -716,7 +716,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         // recommend
@@ -749,7 +749,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // create a fail accelerate and succeed accelerate, then mark to query history
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select ACCOUNT_SELLER_LEVEL from TEST_ACCOUNT" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         QueryHistory queryHistory1 = new QueryHistory();
@@ -782,14 +782,14 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // create origin model
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
                 new String[] { "SELECT LO_CUSTKEY FROM SSB.LINEORDER limit 10" });
-        val originSmartMaster = new NSmartMaster(context1);
+        val originSmartMaster = new SmartMaster(context1);
         originSmartMaster.runUtWithContext(smartUtHook);
 
         // suggest model
         String[] sqls = new String[] { "SELECT min(LO_CUSTKEY) FROM LINEORDER limit 10",
                 "SELECT max(LO_CUSTKEY) FROM SSB.LINEORDER limit 10" };
         AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
-        val smartMaster = new NSmartMaster(proposeContext);
+        val smartMaster = new SmartMaster(proposeContext);
         smartMaster.runSuggestModel();
 
         // two layout will merge to one layout rec
@@ -806,7 +806,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare raw recommendation
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
-        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
 
         QueryHistory queryHistory1 = new QueryHistory();
@@ -863,7 +863,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(8).getState());
 
         // change to old version RawRecItem with recSource is null then updateCost and validate
-        List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         String modelId = modelContexts.get(0).getTargetModel().getUuid();
         List<RawRecItem> layoutRecItems = jdbcRawRecStore.queryAll();

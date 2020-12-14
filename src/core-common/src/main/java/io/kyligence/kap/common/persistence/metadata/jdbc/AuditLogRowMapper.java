@@ -23,13 +23,15 @@
  */
 package io.kyligence.kap.common.persistence.metadata.jdbc;
 
-import com.google.common.io.ByteStreams;
-import io.kyligence.kap.common.persistence.AuditLog;
-import lombok.val;
-import org.springframework.jdbc.core.RowMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import com.google.common.io.ByteStreams;
+
+import io.kyligence.kap.common.persistence.AuditLog;
+import lombok.val;
 
 public class AuditLogRowMapper implements RowMapper<AuditLog> {
     @Override
@@ -42,7 +44,7 @@ public class AuditLogRowMapper implements RowMapper<AuditLog> {
             ts = null;
         }
         Long mvcc = rs.getLong(5);
-        if (rs.wasNull()){
+        if (rs.wasNull()) {
             mvcc = null;
         }
         val unitId = rs.getString(6);

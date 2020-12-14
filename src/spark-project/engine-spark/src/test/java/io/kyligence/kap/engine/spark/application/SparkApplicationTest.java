@@ -99,7 +99,7 @@ public class SparkApplicationTest extends NSparkBasicTest {
 
     @Test
     public void testUpdateSparkJobExtraInfo() throws Exception {
-        System.setProperty("spark.driver.param.taskId", "cb91189b-2b12-4527-aa35-0130e7d54ec0_01");
+        overwriteSystemProp("spark.driver.param.taskId", "cb91189b-2b12-4527-aa35-0130e7d54ec0_01");
         SparkApplication application = Mockito.spy(new SparkApplication() {
             @Override
             protected void doExecute() throws Exception {

@@ -62,9 +62,10 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.date.Constant;
+import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
+import io.kyligence.kap.common.util.OptionBuilder;
 import lombok.val;
 
 public class AuditLogTool extends ExecutableApplication {

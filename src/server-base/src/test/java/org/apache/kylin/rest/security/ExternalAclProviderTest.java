@@ -89,8 +89,8 @@ public class ExternalAclProviderTest {
     @Test
     public void testCheckExternalPermissionWithInvalidPermission() {
         ExternalAclProvider.checkExternalPermission("ADMIN");
-        thrown.expectMessage("Invalid values in parameter \"permission\". " +
-                "The value should either be \"ADMIN\", \"MANAGEMENT\", \"OPERATION\" or \"QUERY\".");
+        thrown.expectMessage("Invalid values in parameter \"permission\". "
+                + "The value should either be \"ADMIN\", \"MANAGEMENT\", \"OPERATION\" or \"QUERY\".");
         ExternalAclProvider.checkExternalPermission("TEST");
     }
 }

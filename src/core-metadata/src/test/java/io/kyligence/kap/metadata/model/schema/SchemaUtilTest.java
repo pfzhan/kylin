@@ -72,7 +72,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
     @After
     public void teardown() {
-        staticCleanupTestMetadata();
+        cleanupTestMetadata();
     }
 
     public String getTargetProject() {

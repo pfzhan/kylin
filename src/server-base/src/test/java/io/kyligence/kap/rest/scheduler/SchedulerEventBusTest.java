@@ -92,7 +92,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
         // init DefaultScheduler
-        System.setProperty("kylin.job.max-local-consumption-ratio", "10");
+        overwriteSystemProp("kylin.job.max-local-consumption-ratio", "10");
         NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()));
         NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()));
 
@@ -118,7 +118,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     public void testJobSchedulerListener() throws InterruptedException {
         logger.info("SchedulerEventBusTest testJobSchedulerListener");
 
-        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
+        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
         Assert.assertFalse(jobSchedulerListener.isJobReadyNotified());
         Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
 
@@ -149,14 +149,13 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
             Assert.assertTrue(jobSchedulerListener.isJobFinishedNotified());
         });
-        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 
     @Test
     public void testResumeJob() {
         logger.info("SchedulerEventBusTest testResumeJob");
 
-        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
+        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
@@ -181,14 +180,13 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         }, PROJECT);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).until(jobSchedulerListener::isJobReadyNotified);
-        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 
     @Test
     public void testRestartJob() {
         logger.info("SchedulerEventBusTest testRestartJob");
 
-        System.setProperty("kylin.scheduler.schedule-limit-per-minute", "6000");
+        overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
@@ -214,7 +212,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
         await().atMost(120000, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> Assert.assertTrue(jobSchedulerListener.isJobReadyNotified()));
-        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
 
     @Test

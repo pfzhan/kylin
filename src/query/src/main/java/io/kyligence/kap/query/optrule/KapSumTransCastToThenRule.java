@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.query.optrule;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.query.util.SumExpressionUtil;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -53,8 +53,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.SumExpressionUtil;
 
 public class KapSumTransCastToThenRule extends RelOptRule {
 
@@ -62,7 +64,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
 
     public static final KapSumTransCastToThenRule INSTANCE = new KapSumTransCastToThenRule(
             operand(LogicalAggregate.class,
-                    operand(LogicalProject.class, null, KapSumTransCastToThenRule::existCastCase, any())), RelFactories.LOGICAL_BUILDER, "KapSumTransCastToThenRule");
+                    operand(LogicalProject.class, null, KapSumTransCastToThenRule::existCastCase, any())),
+            RelFactories.LOGICAL_BUILDER, "KapSumTransCastToThenRule");
 
     public static boolean existCastCase(Project logicalProject) {
         List<RexNode> childExps = logicalProject.getChildExps();
@@ -84,7 +87,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
         return SqlKind.CASE == ((RexCall) rexNode).operands.get(0).getKind();
     }
 
-    public KapSumTransCastToThenRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
+    public KapSumTransCastToThenRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory,
+            String description) {
         super(operand, relBuilderFactory, description);
     }
 
@@ -124,16 +128,16 @@ public class KapSumTransCastToThenRule extends RelOptRule {
             Project logicalProject = call.rel(1);
 
             switch (getCastType(logicalProject)) {
-                case HAS_COLUMN_NOT_NUMBER:
-                    return;
-                case HAS_COLUMN_NUMBER:
-                case OTHER:
-                    if (canCaseType(logicalProject)) {
-                        innerMatchNumericColumn(call, relBuilder, logicalAggregate, logicalProject);
-                    }
-                    break;
-                default:
-                    return;
+            case HAS_COLUMN_NOT_NUMBER:
+                return;
+            case HAS_COLUMN_NUMBER:
+            case OTHER:
+                if (canCaseType(logicalProject)) {
+                    innerMatchNumericColumn(call, relBuilder, logicalAggregate, logicalProject);
+                }
+                break;
+            default:
+                return;
             }
         } catch (Exception e) {
             logger.error("KapSumTransCastToThenRule apply failed", e);
@@ -145,7 +149,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
         return ((RexCall) caseWhenRexNode).getOperands();
     }
 
-    private void innerMatchNumericColumn(RelOptRuleCall call, RelBuilder relBuilder, Aggregate logicalAggregate, Project logicalProject) {
+    private void innerMatchNumericColumn(RelOptRuleCall call, RelBuilder relBuilder, Aggregate logicalAggregate,
+            Project logicalProject) {
         RexBuilder rexBuilder = relBuilder.getRexBuilder();
         relBuilder.push(logicalProject.getInput());
 
@@ -162,8 +167,10 @@ public class KapSumTransCastToThenRule extends RelOptRule {
                 Set<RelDataType> allColumnType = getAllColumnType(operands);
                 RelDataType columnType = allColumnType.size() == 1 ? allColumnType.iterator().next() : null;
                 castInfos.add(new CastInfo(i, columnType, curProExp.getType(), columnType == null));
-                List<RexNode> castedOperands = getCastedOperands(operands, getCurCastType(operands), curProExp.getType(), rexBuilder);
-                newRexNode = rexBuilder.makeCall(columnType == null ? curProExp.getType() : columnType, SqlCaseOperator.INSTANCE, castedOperands);
+                List<RexNode> castedOperands = getCastedOperands(operands, getCurCastType(operands),
+                        curProExp.getType(), rexBuilder);
+                newRexNode = rexBuilder.makeCall(columnType == null ? curProExp.getType() : columnType,
+                        SqlCaseOperator.INSTANCE, castedOperands);
             }
             projectRexNodes.add(newRexNode);
         }
@@ -183,8 +190,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
                 newAggs.add(curAgg);
             }
         }
-        RelBuilder.GroupKey groupKey =
-                relBuilder.groupKey(logicalAggregate.getGroupSet(), logicalAggregate.getGroupSets());
+        RelBuilder.GroupKey groupKey = relBuilder.groupKey(logicalAggregate.getGroupSet(),
+                logicalAggregate.getGroupSets());
         relBuilder.aggregate(groupKey, newAggs);
 
         // step 3. if needed, build top project
@@ -204,7 +211,7 @@ public class KapSumTransCastToThenRule extends RelOptRule {
             return null;
         }
         int input = call.getArgList().get(0);
-        for (CastInfo castInfo: castInfos) {
+        for (CastInfo castInfo : castInfos) {
             if (castInfo.getIndex() == input) {
                 return castInfo;
             }
@@ -213,11 +220,12 @@ public class KapSumTransCastToThenRule extends RelOptRule {
     }
 
     private boolean checkAggNeedToRewrite(AggregateCall call, List<Integer> castIndexs) {
-        return  SumExpressionUtil.isSum(call.getAggregation().getKind())
+        return SumExpressionUtil.isSum(call.getAggregation().getKind())
                 && castIndexs.contains(call.getArgList().get(0));
     }
 
-    private List<RexNode> newProjectRexNodes(Aggregate logicalAggregate, RelBuilder relBuilder, List<CastInfo> castInfos) {
+    private List<RexNode> newProjectRexNodes(Aggregate logicalAggregate, RelBuilder relBuilder,
+            List<CastInfo> castInfos) {
         RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
         List<RexNode> projectRexNodes = Lists.newArrayList();
@@ -253,7 +261,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
         return null;
     }
 
-    private List<RexNode> getCastedOperands(List<RexNode> operands, InnerCastType curCastType, RelDataType castType, RexBuilder rexBuilder) {
+    private List<RexNode> getCastedOperands(List<RexNode> operands, InnerCastType curCastType, RelDataType castType,
+            RexBuilder rexBuilder) {
         List<RexNode> castedOperands = Lists.newArrayList();
         for (int i = 0; i < operands.size() - 1; i += 2) {
             castedOperands.add(operands.get(i));
@@ -265,7 +274,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
         return castedOperands;
     }
 
-    private RexNode transRexNode(RexNode valueRexNode, InnerCastType curCastType, RelDataType castType, RexBuilder rexBuilder) {
+    private RexNode transRexNode(RexNode valueRexNode, InnerCastType curCastType, RelDataType castType,
+            RexBuilder rexBuilder) {
         if (valueRexNode instanceof RexLiteral && curCastType == InnerCastType.OTHER) {
             return rexBuilder.makeCall(castType, new SqlCastFunction(), Lists.newArrayList(valueRexNode));
         }
@@ -352,7 +362,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
     private InnerCastType getValueRexNodeType(RexNode valueRexNode) {
         InnerCastType cur;
         if (valueRexNode instanceof RexInputRef) {
-            cur = SqlTypeUtil.isNumeric(valueRexNode.getType()) ? InnerCastType.HAS_COLUMN_NUMBER : InnerCastType.HAS_COLUMN_NOT_NUMBER;
+            cur = SqlTypeUtil.isNumeric(valueRexNode.getType()) ? InnerCastType.HAS_COLUMN_NUMBER
+                    : InnerCastType.HAS_COLUMN_NOT_NUMBER;
         } else {
             cur = InnerCastType.OTHER;
         }
@@ -360,9 +371,7 @@ public class KapSumTransCastToThenRule extends RelOptRule {
     }
 
     public enum InnerCastType {
-        HAS_COLUMN_NOT_NUMBER(3),
-        HAS_COLUMN_NUMBER(2),
-        OTHER(1);
+        HAS_COLUMN_NOT_NUMBER(3), HAS_COLUMN_NUMBER(2), OTHER(1);
 
         private int weight;
 

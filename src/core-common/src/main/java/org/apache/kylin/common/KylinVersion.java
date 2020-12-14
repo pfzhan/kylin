@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,7 +47,6 @@ import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -111,7 +109,7 @@ public class KylinVersion implements Comparable {
         comp = this.internal - v.internal;
         if (comp != 0)
             return comp;
-        
+
         return (this.isSnapshot ? 0 : 1) - (v.isSnapshot ? 0 : 1);
     }
 
@@ -154,7 +152,7 @@ public class KylinVersion implements Comparable {
     public static boolean isBefore200(String ver) {
         return new KylinVersion(ver).compareTo(VERSION_200) < 0;
     }
-    
+
     public static int compare(String v1, String v2) {
         return new KylinVersion(v1).compareTo(new KylinVersion(v2));
     }
@@ -165,11 +163,7 @@ public class KylinVersion implements Comparable {
 
     public boolean isCompatibleWith(KylinVersion v) {
         KylinVersion current = CURRENT_KYLIN_VERSION;
-        if (current.major != v.major || current.minor != v.minor) {
-            return false;
-        } else {
-            return true;
-        }
+        return current.major == v.major && current.minor == v.minor;
     }
 
     public boolean isSignatureCompatibleWith(final KylinVersion v) {
@@ -181,12 +175,11 @@ public class KylinVersion implements Comparable {
             return false;//for snapshot versions things are undetermined
         }
 
-        boolean signatureIncompatible = Iterables.any(
-                Iterables.filter(
+        boolean signatureIncompatible = Iterables.any(Iterables.filter(
 
-                    SIGNATURE_INCOMPATIBLE_REVISIONS,
-                    input -> input != null && v.major == input.major && v.minor == input.minor
-                ), input -> input != null && input.revision > v.revision);
+                SIGNATURE_INCOMPATIBLE_REVISIONS,
+                input -> input != null && v.major == input.major && v.minor == input.minor),
+                input -> input != null && input.revision > v.revision);
 
         return !signatureIncompatible;
     }

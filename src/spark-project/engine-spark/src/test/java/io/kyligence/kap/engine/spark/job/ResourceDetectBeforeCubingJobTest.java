@@ -28,8 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -50,6 +48,8 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.val;
 
 public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
@@ -62,7 +62,7 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
 
         Logger.getRootLogger().addAppender(testAppender);
         ss.sparkContext().setLogLevel("ERROR");
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
 
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -79,7 +79,6 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         Logger.getRootLogger().removeAppender(testAppender);
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
@@ -92,16 +91,17 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         dfUpdate.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(dfUpdate);
 
-        NDataSegment oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("2012-02-01")));
-        NDataSegment twoSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("2012-03-01")));
+        NDataSegment oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("2012-02-01")));
+        NDataSegment twoSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("2012-03-01")));
         Set<NDataSegment> segments = Sets.newHashSet(oneSeg, twoSeg);
         Set<LayoutEntity> layouts = Sets.newHashSet(df.getIndexPlan().getAllLayouts());
         NSparkCubingJob job = NSparkCubingJob.create(segments, layouts, "ADMIN", null);
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
-        Assert.assertEquals(RDSegmentBuildJob.class.getName(),
-                resourceDetectStep.getSparkSubmitClassName());
+        Assert.assertEquals(RDSegmentBuildJob.class.getName(), resourceDetectStep.getSparkSubmitClassName());
 
         // launch the job
         execMgr.addJob(job);
@@ -111,8 +111,7 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
         long count = testAppender.events.stream()
-                .filter(loggingEvent -> loggingEvent.getMessage().toString().contains("leaf nodes is:"))
-                .count();
+                .filter(loggingEvent -> loggingEvent.getMessage().toString().contains("leaf nodes is:")).count();
         Assert.assertEquals(count, segments.size());
 
     }

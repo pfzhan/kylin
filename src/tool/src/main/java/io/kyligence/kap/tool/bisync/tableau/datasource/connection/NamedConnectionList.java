@@ -23,11 +23,11 @@
  */
 package io.kyligence.kap.tool.bisync.tableau.datasource.connection;
 
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-
 import java.util.List;
 import java.util.Objects;
+
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class NamedConnectionList {
 
@@ -48,16 +48,9 @@ public class NamedConnectionList {
             return false;
         }
         NamedConnectionList that = (NamedConnectionList) o;
-        if (getNamedConnections() == null && that.getNamedConnections() == null) {
-            return true;
-        } else {
-            // tableau can support multiple connections, but the export tds connection size must be 1
-            if (getNamedConnections().size() == 1 && that.getNamedConnections().size() == 1) {
-                return true;
-            } else {
-                return false;
-            }
-        }
+        // tableau can support multiple connections, but the export tds connection size must be 1
+        return getNamedConnections() == null && that.getNamedConnections() == null
+                || getNamedConnections().size() == 1 && that.getNamedConnections().size() == 1;
     }
 
     @Override

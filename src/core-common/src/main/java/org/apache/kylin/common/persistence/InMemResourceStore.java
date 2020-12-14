@@ -38,8 +38,8 @@ import com.google.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Getter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class InMemResourceStore extends ResourceStore {
@@ -175,7 +175,8 @@ public class InMemResourceStore extends ResourceStore {
 
     private void checkEnv() {
         // UT env or replay thread can ignore transactional lock
-        if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying() || kylinConfig.getStreamingChangeMeta()) {
+        if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying()
+                || kylinConfig.getStreamingChangeMeta()) {
             return;
         }
         Preconditions.checkState(!UnitOfWork.isReadonly(),

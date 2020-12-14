@@ -182,11 +182,11 @@ public class StringUtil {
         if (src == null) {
             throw new IllegalArgumentException();
         }
-        if (src.length() > 0 && src.toString().endsWith(",") == false) {
+        if (src.length() > 0 && !src.toString().endsWith(",")) {
             src.append(",");
         }
 
-        if (StringUtils.isBlank(append) == false) {
+        if (!StringUtils.isBlank(append)) {
             src.append(append);
         }
     }

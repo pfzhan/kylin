@@ -23,11 +23,12 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
+import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.println;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.tool.OptionBuilder;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -38,13 +39,12 @@ import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
-import static io.kyligence.kap.tool.util.ScreenPrintUtil.println;
 
 @Slf4j
 public class UpdateProjectCLI extends ExecutableApplication implements IKeep {

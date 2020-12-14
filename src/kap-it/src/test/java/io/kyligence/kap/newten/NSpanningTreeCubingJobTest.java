@@ -53,8 +53,8 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
     public void setup() {
         this.createTestMetadata("src/test/resources/ut_meta/spanning_tree_build");
         ss.sparkContext().setLogLevel("ERROR");
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.engine.spark.cache-threshold", "2");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.engine.spark.cache-threshold", "2");
 
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -68,8 +68,6 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.engine.spark.cache-threshold");
     }
 
     /** 说明

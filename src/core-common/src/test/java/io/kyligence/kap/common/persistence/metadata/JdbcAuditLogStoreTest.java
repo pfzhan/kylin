@@ -93,7 +93,8 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
             return 0;
         }, "p1");
 
-        val allStep2 = jdbcTemplate.query("select * from " + url.getIdentifier() + "_audit_log", new AuditLogRowMapper());
+        val allStep2 = jdbcTemplate.query("select * from " + url.getIdentifier() + "_audit_log",
+                new AuditLogRowMapper());
 
         Assert.assertEquals(7, allStep2.size());
         Assert.assertNull(allStep2.get(5).getMvcc());
@@ -112,33 +113,41 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();
         String unitId = UUID.randomUUID().toString();
-        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                new Object[]{"/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc", null, null, null, unitId, null, LOCAL_INSTANCE}
-        ));
+        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                Arrays.asList(
+                        new Object[] { "/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc", null, null, null, unitId, null, LOCAL_INSTANCE }));
         workerStore.catchup();
         Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
 
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
-            jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                    new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc", null, null, null, unitId, null}
-            ));
+            jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                    Arrays.asList(
+                            new Object[] { "/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0,
+                                    unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0,
+                                    unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0,
+                                    unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1,
+                                    unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc", null, null, null, unitId, null }));
         }
 
-        Awaitility.await().atMost(6, TimeUnit.SECONDS).until(() -> 2003 == workerStore.listResourcesRecursively("/").size());
+        Awaitility.await().atMost(6, TimeUnit.SECONDS)
+                .until(() -> 2003 == workerStore.listResourcesRecursively("/").size());
         Assert.assertEquals(2003, workerStore.listResourcesRecursively("/").size());
 
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
-
 
     @Test
     public void testRestoreWithoutOrder() throws Exception {
@@ -150,18 +159,21 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         String unitId1 = UUID.randomUUID().toString();
         String unitId2 = UUID.randomUUID().toString();
-        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                new Object[]{"/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId2, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId2, null, LOCAL_INSTANCE},
-                new Object[]{"/p1/abc", null, null, null, unitId1, null, LOCAL_INSTANCE}
-        ));
+        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                Arrays.asList(
+                        new Object[] { "/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId2, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId2, null,
+                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc", null, null, null, unitId1, null, LOCAL_INSTANCE }));
         workerStore.catchup();
         Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
-
 
     @Test
     public void testRestore_WhenOtherAppend() throws Exception {
@@ -178,18 +190,24 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
             while (!stopped.get()) {
                 val projectName = "p0";
                 val unitId = UUID.randomUUID().toString();
-                jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                        new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE},
-                        new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE},
-                        new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE}
-                ));
+                jdbcTemplate.batchUpdate(
+                        String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                        Arrays.asList(
+                                new Object[] { "/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(),
+                                        i, unitId, null, LOCAL_INSTANCE },
+                                new Object[] { "/" + projectName + "/abc2", "abc".getBytes(),
+                                        System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE },
+                                new Object[] { "/" + projectName + "/abc3", "abc".getBytes(),
+                                        System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE }));
                 i++;
             }
         }).start();
-        Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> jdbcTemplate.queryForObject("select count(1) from test_audit_log", Long.class) > 1000);
+        Awaitility.await().atMost(10, TimeUnit.SECONDS)
+                .until(() -> jdbcTemplate.queryForObject("select count(1) from test_audit_log", Long.class) > 1000);
         workerStore.catchup();
 
-        Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> jdbcTemplate.queryForObject("select count(1) from test_audit_log", Long.class) > 2000);
+        Awaitility.await().atMost(10, TimeUnit.SECONDS)
+                .until(() -> jdbcTemplate.queryForObject("select count(1) from test_audit_log", Long.class) > 2000);
 
         Assert.assertEquals(4, workerStore.listResourcesRecursively("/").size());
         stopped.compareAndSet(false, true);
@@ -199,7 +217,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
     @Test
     public void testRotate() throws Exception {
         val config = getTestConfig();
-        System.setProperty("kylin.metadata.audit-log.max-size", "1000");
+        overwriteSystemProp("kylin.metadata.audit-log.max-size", "1000");
         val jdbcTemplate = getJdbcTemplate();
         val url = config.getMetadataUrl();
         val props = datasourceParameters(url);
@@ -211,23 +229,24 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
             val projectName = "p" + (i + 1000);
             String unitId = UUID.randomUUID().toString();
             jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, "test_audit_log"), Arrays.asList(
-                    new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE},
-                    new Object[]{"/" + projectName + "/abc", null, null, null, unitId, null, LOCAL_INSTANCE}
-            ));
+                    new Object[] { "/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId,
+                            null, LOCAL_INSTANCE },
+                    new Object[] { "/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId,
+                            null, LOCAL_INSTANCE },
+                    new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId,
+                            null, LOCAL_INSTANCE },
+                    new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId,
+                            null, LOCAL_INSTANCE },
+                    new Object[] { "/" + projectName + "/abc", null, null, null, unitId, null, LOCAL_INSTANCE }));
         }
         auditLogStore.rotate();
         long count = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);
         Assert.assertEquals(1000, count);
 
-        System.setProperty("kylin.metadata.audit-log.max-size", "1500");
+        overwriteSystemProp("kylin.metadata.audit-log.max-size", "1500");
         auditLogStore.rotate();
         count = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);
         Assert.assertEquals(1000, count);
-
-        System.clearProperty("kylin.metadata.audit-log.max-size");
 
         auditLogStore.close();
     }
