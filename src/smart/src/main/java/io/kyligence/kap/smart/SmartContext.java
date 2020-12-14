@@ -27,7 +27,6 @@ package io.kyligence.kap.smart;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -47,6 +46,7 @@ public class SmartContext extends AbstractContext {
         super(kylinConfig, project, sqls);
     }
 
+    @Override
     public ModelContext createModelContext(ModelTree modelTree) {
         return new ModelContext(this, modelTree);
     }
@@ -58,8 +58,7 @@ public class SmartContext extends AbstractContext {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
-                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels();
 
     }
 

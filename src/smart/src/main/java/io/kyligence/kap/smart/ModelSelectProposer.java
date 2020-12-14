@@ -45,7 +45,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -109,7 +108,7 @@ public class ModelSelectProposer extends AbstractProposer {
                 continue;
             }
 
-            if (selectedModel.keySet().contains(model.getUuid()) && !modelContext.isSnapshotSelected()) {
+            if (selectedModel.containsKey(model.getUuid()) && !modelContext.isSnapshotSelected()) {
                 if (KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
                     AbstractContext.ModelContext anotherModelContext = selectedModel.get(model.getUuid());
                     AbstractContext.ModelContext newModelContext = new GreedyModelTreesBuilder.TreeBuilder(
@@ -237,7 +236,9 @@ public class ModelSelectProposer extends AbstractProposer {
                 return model;
             }
 
-            if (!(proposeContext instanceof SmartContext) && matchSnapshot(model, modelTree)) {
+            val project = modelContext.getProposeContext().getProject();
+            val config = modelContext.getProposeContext().getSmartConfig().getKylinConfig();
+            if (!(proposeContext instanceof SmartContext) && matchSnapshot(config, project, modelTree)) {
                 modelContext.setSnapshotSelected(true);
                 return model;
             }
@@ -267,20 +268,14 @@ public class ModelSelectProposer extends AbstractProposer {
                 .map(TblColRef::getColumnDesc).collect(Collectors.toSet());
     }
 
-    public static boolean matchSnapshot(NDataModel model, ModelTree modelTree) {
+    public static boolean matchSnapshot(KylinConfig config, String project, ModelTree modelTree) {
         if (!modelTree.getJoins().isEmpty() || modelTree.getRootFactTable().isIncrementLoading())
             return false;
 
         val modelTreeRootTable = modelTree.getRootFactTable().getIdentity();
-        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
-                .getDataflow(model.getUuid());
 
-        if (dataflow == null || !dataflow.isReady() || dataflow.getLatestReadySegment() == null)
-            return false;
-
-        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
-                dataflow.getProject());
-        return StringUtils.isNotEmpty(nTableMetadataManager.getTableDesc(modelTreeRootTable).getLastSnapshotPath());
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
+        return StringUtils.isNotEmpty(tableManager.getTableDesc(modelTreeRootTable).getLastSnapshotPath());
     }
 
     @Override

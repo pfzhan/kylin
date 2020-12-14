@@ -21,27 +21,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.job;
 
-package io.kyligence.kap.smart;
+import java.util.List;
+import java.util.Map;
 
-import lombok.Getter;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.BufferedLogger;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.ExecutableApplication;
 
-public abstract class AbstractProposer {
+import lombok.extern.slf4j.Slf4j;
 
-    @Getter
-    final AbstractContext proposeContext;
-    final String project;
+@Slf4j
+public class ForkBasedJobRunner extends JobRunnerFactory.AbstractJobRunner {
 
-    protected AbstractProposer(AbstractContext proposeContext) {
-        this.proposeContext = proposeContext;
-        this.project = proposeContext.getProject();
+    private final CliCommandExecutor cliExecutor = new CliCommandExecutor();
+
+    public ForkBasedJobRunner(KylinConfig kylinConfig, String project, List<String> originResources) {
+        super(kylinConfig, project, originResources);
     }
 
-    public abstract void execute();
+    @Override
+    protected void doExecute(ExecutableApplication app, Map<String, String> args) throws Exception {
+        String finalCommand = String.format("bash -x %s/sbin/bootstrap.sh %s %s 2>>%s", KylinConfig.getKylinHome(),
+                app.getClass().getName(), formatArgs(args), getJobTmpDir() + "/job.log");
+        log.info("Try to execute {}", finalCommand);
+        cliExecutor.execute(finalCommand, new BufferedLogger(log), jobId);
+    }
 
-    /**
-    * package.sh cannot get ClassName, so preserve a method to record the name of step.
-    * @return The name of proposer step
-    */
-    public abstract String getIdentifierName();
 }

@@ -24,24 +24,19 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.calcite.sql.parser.impl.ParseException;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
@@ -51,36 +46,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SmartMaster {
 
-    public static AbstractContext proposeForAutoMode(KylinConfig config, String project, String[] sqls,
-            Consumer<AbstractContext> hook) {
-        AbstractContext context = new SmartContext(config, project, sqls);
-        new SmartMaster(context).runWithContext(hook);
-        return context;
-    }
-
-    public static AbstractSemiContextV2 proposeNewModelForSemiMode(KylinConfig config, String project, String[] sqls,
-            Consumer<AbstractContext> hook) {
-        AbstractSemiContextV2 context = new ModelCreateContextOfSemiV2(config, project, sqls);
-        new SmartMaster(context).runWithContext(hook);
-        return context;
-    }
-
-    public static AbstractSemiContextV2 genOptRecommendationSemiV2(KylinConfig config, String project, String[] sqls,
-            Consumer<AbstractContext> hook) {
-        AbstractSemiContextV2 contextV2 = new ModelReuseContextOfSemiV2(config, project, sqls);
-        new SmartMaster(contextV2).runWithContext(hook);
-        return contextV2;
-    }
-
-    public static AbstractContext selectExistedModel(KylinConfig config, String project, String[] sqls,
-            Consumer<AbstractContext> hook) {
-        AbstractContext context = new ModelSelectContextOfSemiV2(config, project, sqls);
-        new SmartMaster(context).runWithContext(hook);
-        return context;
-    }
-
     @Getter
-    private final AbstractContext context;
+    public final AbstractContext context;
     private final ProposerProvider proposerProvider;
     private final String project;
 
@@ -145,14 +112,6 @@ public class SmartMaster {
                 nums.get(AccStatusType.FAILED));
     }
 
-    public void shrinkIndexPlan() {
-        proposerProvider.getIndexPlanShrinkProposer().execute();
-    }
-
-    public void shrinkModel() {
-        proposerProvider.getModelShrinkProposer().execute();
-    }
-
     /**
      * This method will invoke when there is no need transaction.
      */
@@ -169,27 +128,6 @@ public class SmartMaster {
         getContext().getProcessProposers().execute();
     }
 
-    public void runSuggestModel() {
-        executePropose();
-    }
-
-    public List<NDataModel> getRecommendedModels() {
-        if (CollectionUtils.isEmpty(getContext().getModelContexts())) {
-            return Lists.newArrayList();
-        }
-
-        List<NDataModel> models = Lists.newArrayList();
-        for (AbstractContext.ModelContext modelContext : getContext().getModelContexts()) {
-            NDataModel model = modelContext.getTargetModel();
-            if (model == null)
-                continue;
-
-            models.add(modelContext.getTargetModel());
-        }
-
-        return models;
-    }
-
     /**
      * This method now only used for testing.
      */
@@ -198,7 +136,7 @@ public class SmartMaster {
         runWithContext(hook);
     }
 
-    private void runWithContext(Consumer<AbstractContext> hook) {
+    void runWithContext(Consumer<AbstractContext> hook) {
         long start = System.currentTimeMillis();
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {

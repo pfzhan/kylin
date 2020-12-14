@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.event;
 
-import static io.kyligence.kap.newten.NSuggestTestBase.smartUtHook;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.OFFLINE;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
@@ -268,7 +267,9 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 + "group by TEST_ORDER.ORDER_ID,BUYER_ID" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sql1);
         val smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
 

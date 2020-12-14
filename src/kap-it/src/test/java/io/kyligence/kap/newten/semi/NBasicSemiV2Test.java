@@ -58,6 +58,7 @@ import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
@@ -104,7 +105,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
@@ -112,7 +115,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         String[] sqls = { "select sum(item_count*price), sum(price), lstg_format_name, price * 5 "
                 + "from test_kylin_fact group by lstg_format_name, price *  5" };
 
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
         List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
         AbstractContext.ModelContext modelContext = modelContexts.get(0);
         val ccRecItemMap = modelContext.getCcRecItemMap();
@@ -149,14 +152,16 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "group by lstg_format_name, price *  5";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // collect recommendation
         String[] sqls1 = { "select sum(item_count*price), sum(price), lstg_format_name, price * 5 "
                 + "from test_kylin_fact left join test_order on test_kylin_fact.order_id = test_order.order_id "
                 + "group by lstg_format_name, price *  5" };
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls1, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls1);
         AbstractContext.ModelContext modelContext = context.getModelContexts().get(0);
         Assert.assertEquals(0, modelContext.getCcRecItemMap().size());
         Assert.assertEquals(0, modelContext.getDimensionRecItemMap().size());
@@ -185,7 +190,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1, query2, query3 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // collect recommendation
@@ -198,7 +205,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 "select max(item_count*price),min(price * 5) from test_kylin_fact inner join test_account "
                         + "on test_kylin_fact.seller_id = test_account.account_id "
                         + "left join test_country on test_account.account_country = test_country.country" };
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
         List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
 
         // validate
@@ -324,12 +331,14 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "on test_kylin_fact.order_id = test_order.order_id";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         String[] sqls = { "select count(test_order.BUYER_ID + 1) from test_kylin_fact left join test_order "
                 + "on test_kylin_fact.order_id = test_order.order_id" };
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
         List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
         Map<String, CCRecItemV2> ccRecItemMap = modelContexts.get(0).getCcRecItemMap();
         Assert.assertEquals(1, ccRecItemMap.size());
@@ -346,12 +355,14 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         String query1 = "select cal_dt from test_kylin_fact";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // generate raw recommendations
         String[] sqls = { "select count(TRANS_ID + ORDER_ID),avg(ORDER_ID) from test_kylin_fact" };
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
         Map<String, MeasureRecItemV2> measureRecItemMap = context.getModelContexts().get(0).getMeasureRecItemMap();
         Assert.assertEquals(3, measureRecItemMap.size());
         ArrayList<MeasureRecItemV2> measureRecItemList = Lists.newArrayList(measureRecItemMap.values());
@@ -386,7 +397,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1, query2 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // generate raw recommendations
@@ -395,7 +408,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                         + "left join test_kylin_fact on test_kylin_fact.seller_id = test_account.account_id "
                         + "group by account_id",
                 "select sum(price*item_count) from test_order left join test_kylin_fact on test_kylin_fact.order_id = test_order.order_id " };
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sqls, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
         Assert.assertEquals(2, context.getModelContexts().size());
         Assert.assertEquals(1, context.getModelContexts().get(0).getCcRecItemMap().size());
         Assert.assertEquals(1, context.getModelContexts().get(1).getCcRecItemMap().size());
@@ -419,7 +432,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // prepare [a,b,m1,m2,count(*)]  [a,b,m1,count(*)]
         QueryHistory queryHistory1 = new QueryHistory();
@@ -467,7 +482,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact", "select name from test_country" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
         List<NDataModel> originModels = smartContext.getOriginModels();
 
         // generate raw recommendations for origin model
@@ -503,13 +520,15 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sql1);
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // model(A inner join B) will reuse model(A inner join B inner join C)
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
         String[] sql2 = new String[] { "select CAL_DT,sum(price) from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID group by CAL_DT" };
-        val context1 = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sql2, null);
+        val context1 = ProposerJob.genOptRec(getTestConfig(), getProject(), sql2);
         AbstractContext.ModelContext modelContext1 = context1.getModelContexts().get(0);
 
         // validate
@@ -541,7 +560,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // generate raw recommendations for origin model
         QueryHistory queryHistory1 = new QueryHistory();
@@ -588,7 +609,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        ProposerJob.propose(smartContext);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // will not recommend existing dimensions
         QueryHistory queryHistory1 = new QueryHistory();
@@ -621,7 +644,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // generate raw recommendations for origin model
         QueryHistory queryHistory1 = new QueryHistory();
@@ -677,7 +702,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select count(*) from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // generate raw recommendations for origin model
         QueryHistory queryHistory1 = new QueryHistory();
@@ -717,7 +744,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // recommend
         QueryHistory queryHistory1 = new QueryHistory();
@@ -750,7 +779,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select ACCOUNT_SELLER_LEVEL from TEST_ACCOUNT" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSql("select ACCOUNT_BUYER_LEVEL from TEST_ACCOUNT");
@@ -783,14 +814,16 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
                 new String[] { "SELECT LO_CUSTKEY FROM SSB.LINEORDER limit 10" });
         val originSmartMaster = new SmartMaster(context1);
-        originSmartMaster.runUtWithContext(smartUtHook);
+        originSmartMaster.runUtWithContext(null);
+        context1.saveMetadata();
+        AccelerationContextUtil.onlineModel(context1);
 
         // suggest model
         String[] sqls = new String[] { "SELECT min(LO_CUSTKEY) FROM LINEORDER limit 10",
                 "SELECT max(LO_CUSTKEY) FROM SSB.LINEORDER limit 10" };
         AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
         val smartMaster = new SmartMaster(proposeContext);
-        smartMaster.runSuggestModel();
+        smartMaster.executePropose();
 
         // two layout will merge to one layout rec
         Assert.assertEquals(1, proposeContext.getModelContexts().get(0).getIndexRexItemMap().size());
@@ -807,7 +840,9 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSql("select count(price) from test_kylin_fact group by cal_dt");

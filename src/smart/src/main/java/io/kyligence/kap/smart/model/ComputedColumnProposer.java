@@ -44,9 +44,9 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
@@ -294,8 +294,8 @@ public class ComputedColumnProposer extends AbstractModelProposer {
     }
 
     private List<NDataModel> getOtherModels(NDataModel dataModel) {
-        List<NDataModel> otherModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project) //
-                .listUnderliningDataModels().stream() //
+        List<NDataModel> otherModels = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project) //
+                .listAllModels().stream() //
                 .filter(m -> !m.getUuid().equals(dataModel.getUuid())) //
                 .collect(Collectors.toList());
         otherModels.addAll(//

@@ -149,16 +149,17 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
     public void testLoadingModelCannotOffline() {
         String[] sqls = { "select item_count, sum(price) from kylin_sales group by item_count" };
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
-        SmartMaster smartMaster = new SmartMaster(context1);
-        smartMaster.runUtWithContext(smartUtHook);
+        ProposerJob.propose(context1);
+        context1.saveMetadata();
+        AccelerationContextUtil.onlineModel(context1);
 
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+        Assert.assertFalse(context1.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
 
         // set model maintain type to semi-auto
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), proj);
 
         // update existing model to offline
-        NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        NDataModel targetModel = context1.getModelContexts().get(0).getTargetModel();
         NDataflowManager dataflowMgr = NDataflowManager.getInstance(getTestConfig(), proj);
         NDataflow dataflow = dataflowMgr.getDataflow(targetModel.getUuid());
         NDataflowUpdate copiedDataFlow = new NDataflowUpdate(dataflow.getUuid());
@@ -167,11 +168,11 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
 
         // propose in semi-auto-mode
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), proj, sqls);
-        smartMaster = new SmartMaster(context2);
-        smartMaster.executePropose();
+        ProposerJob.propose(context2);
+        context2.saveMetadata();
 
         String expectedPendingMsg = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
-        AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
+        AccelerateInfo accelerateInfo = context2.getAccelerateInfoMap().get(sqls[0]);
         Assert.assertTrue(accelerateInfo.isPending());
         Assert.assertEquals(expectedPendingMsg, accelerateInfo.getPendingMsg());
     }
@@ -544,7 +545,7 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
                         + "group by test_account.account_id, test_account1.account_id" };
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", sqls);
         SmartMaster smartMaster1 = new SmartMaster(context1);
-        smartMaster1.runSuggestModel();
+        smartMaster1.executePropose();
         context1.saveMetadata();
         AccelerationContextUtil.onlineModel(context1);
         Assert.assertFalse(smartMaster1.getContext().getModelContexts().get(0).isTargetModelMissing());
@@ -563,7 +564,7 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
         // case 2. repropose new model and won't reuse the origin model, check the models' info is equaled with origin model
         val context2 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", sqls);
         SmartMaster smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
         val reproposalModel = smartMaster2.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertNotEquals(reproposalModel.getId(), newModel.getId());
         Assert.assertTrue(reproposalModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap(), false));
@@ -588,7 +589,7 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
                 + "on test_account.account_id = test_account1.account_id" };
         val context4 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", secondSqls);
         SmartMaster smartMaster4 = new SmartMaster(context4);
-        smartMaster4.runSuggestModel();
+        smartMaster4.executePropose();
         List<AbstractContext.ModelContext> modelContexts = context4.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         AbstractContext.ModelContext modelContext = modelContexts.get(0);
@@ -606,7 +607,7 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
                 + "group by test_kylin_fact.cal_dt, test_cal_dt.cal_dt" };
         val context5 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", thirdSqls);
         SmartMaster smartMaster5 = new SmartMaster(context5);
-        smartMaster5.runSuggestModel();
+        smartMaster5.executePropose();
         List<AbstractContext.ModelContext> modelContexts5 = context5.getModelContexts();
         Assert.assertEquals(1, modelContexts5.size());
         AbstractContext.ModelContext modelContext5 = modelContexts5.get(0);

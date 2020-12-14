@@ -247,7 +247,7 @@ public class ModelSemanticHelper extends BasicService {
         AbstractContext context = new ModelCreateContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 new String[] { nonEquiSql });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runSuggestModel();
+        smartMaster.executePropose();
 
         List<AbstractContext.ModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
         if (CollectionUtils.isEmpty(suggModelContexts) || Objects.isNull(suggModelContexts.get(0).getTargetModel())) {

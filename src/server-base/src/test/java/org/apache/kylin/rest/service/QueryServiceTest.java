@@ -326,7 +326,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
 
         Assert.assertTrue(response.isQueryPushDown());
-
     }
 
     @Test

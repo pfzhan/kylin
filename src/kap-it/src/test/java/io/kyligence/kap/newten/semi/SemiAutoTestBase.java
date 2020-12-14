@@ -121,7 +121,9 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         String[] sqls = sqlList.toArray(new String[0]);
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         return smartMaster;
     }
 
@@ -256,7 +258,9 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         AbstractContext context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), project,
                 sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         return smartMaster;
     }
 

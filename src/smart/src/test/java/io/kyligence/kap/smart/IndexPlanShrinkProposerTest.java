@@ -55,8 +55,7 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
                 + "GROUP BY SELLER_ACCOUNT.ACCOUNT_COUNTRY, CAL_DT";
 
-        val context = SmartMaster.proposeForAutoMode(getTestConfig(), getProject(), new String[] { sumSql, maxSql },
-                null);
+        val context = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(), new String[] { sumSql, maxSql });
 
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());
@@ -90,8 +89,8 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
 
-        val context = SmartMaster.proposeForAutoMode(getTestConfig(), getProject(),
-                new String[] { sumSql, maxSql, rawQuery }, null);
+        val context = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(),
+                new String[] { sumSql, maxSql, rawQuery });
 
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());
@@ -111,18 +110,18 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
                 + "GROUP BY SELLER_ACCOUNT.ACCOUNT_COUNTRY, CAL_DT";
-        val initalContext = SmartMaster.proposeForAutoMode(getTestConfig(), getProject(), new String[] { prepareSql },
-                null);
-        AccelerationContextUtil.onlineModel(initalContext);
+        val initialContext = ProposerJob.proposeForAutoMode(getTestConfig(), getProject(), new String[] { prepareSql });
+        initialContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(initialContext);
 
-        Assert.assertFalse(initalContext.getAccelerateInfoMap().get(prepareSql).isNotSucceed());
+        Assert.assertFalse(initialContext.getAccelerateInfoMap().get(prepareSql).isNotSucceed());
 
         val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(getProject());
         prjInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
-        Assert.assertEquals(1, initalContext.getModelContexts().size());
-        val firstModel = initalContext.getModelContexts().get(0).getTargetModel();
-        val indexPlan = initalContext.getModelContexts().get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, initialContext.getModelContexts().size());
+        val firstModel = initialContext.getModelContexts().get(0).getTargetModel();
+        val indexPlan = initialContext.getModelContexts().get(0).getTargetIndexPlan();
         indexPlan.getAllLayouts().forEach(layoutEntity -> {
             layoutEntity.setManual(true);
             layoutEntity.setAuto(false);
@@ -146,8 +145,7 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
 
-        val context = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
-                new String[] { sumSql, maxSql, rawQuery }, null);
+        val context = ProposerJob.genOptRec(getTestConfig(), getProject(), new String[] { sumSql, maxSql, rawQuery });
         AccelerationContextUtil.onlineModel(context);
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());
@@ -160,5 +158,4 @@ public class IndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(3, indexplan.getIndexes().size());
         Assert.assertEquals(3, indexplan.getAllLayouts().size());
     }
-
 }

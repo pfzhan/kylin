@@ -123,7 +123,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
 
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
         List<AbstractContext.ModelContext> modelContexts = context2.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         AbstractContext.ModelContext modelContext = modelContexts.get(0);
@@ -171,7 +171,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
 
         // validation results
         Assert.assertEquals(2, smartMaster2.getContext().getModelContexts().size());
@@ -207,7 +207,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
 
         // validation results, all accelerate succeed.
         Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
@@ -244,7 +244,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
 
         // validation results, all accelerate succeed.
         Assert.assertEquals(2, smartMaster2.getContext().getModelContexts().size());
@@ -280,7 +280,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
 
         // validation results, all accelerate succeed.
         Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
@@ -314,7 +314,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
 
         // validation results, all accelerate succeed.
         Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
@@ -343,7 +343,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new SmartMaster(context2);
-        smartMaster2.runSuggestModel();
+        smartMaster2.executePropose();
 
         // validation results
         Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
@@ -421,7 +421,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sql });
         val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
-        return smartMaster.getRecommendedModels();
+        return smartMaster.context.getProposedModels();
     }
 
     public static Consumer<AbstractContext> smartUtHook = AccelerationContextUtil::onlineModel;

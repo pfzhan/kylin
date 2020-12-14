@@ -85,8 +85,8 @@ import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.ModelSelectProposer;
+import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
@@ -154,7 +154,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -196,7 +198,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -237,8 +241,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact " });
-        SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        ProposerJob.propose(smartContext);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -307,7 +312,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1 });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assertion of the model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -320,8 +327,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // mock propose with suggest model with saving recommendation to raw-rec-table
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
         String query2 = "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name";
-        AbstractSemiContextV2 semiContextV2 = SmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
-                new String[] { query2 }, null);
+        AbstractContext semiContextV2 = ProposerJob.genOptRec(getTestConfig(), getProject(), new String[] { query2 });
         rawRecService.transferAndSaveRecommendations(semiContextV2);
 
         // assert result
@@ -345,7 +351,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -394,8 +402,10 @@ public class SemiV2CITest extends SemiAutoTestBase {
                 + "group by test_order.order_id,buyer_id";
         // prepare an origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sql });
-        SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        val smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -439,7 +449,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price, sum(price+1) from test_kylin_fact group by price" });
         SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
 
         // assert origin model
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();

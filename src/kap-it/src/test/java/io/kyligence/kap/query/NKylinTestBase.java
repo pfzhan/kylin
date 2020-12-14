@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.query;
 
+import java.util.UUID;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.KylinTestBase;
@@ -35,8 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-
-import java.util.UUID;
 
 /**
  */
@@ -62,9 +62,8 @@ public class NKylinTestBase extends KylinTestBase {
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
-//        cubeConnection = QueryConnection.getConnection(project);
     }
-    
+
     @Override
     protected String getProject() {
         return ProjectInstance.DEFAULT_PROJECT_NAME;

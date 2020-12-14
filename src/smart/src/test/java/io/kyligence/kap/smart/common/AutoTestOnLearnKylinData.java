@@ -56,11 +56,14 @@ public abstract class AutoTestOnLearnKylinData {
     public void setUp() throws Exception {
         System.setProperty("spark.local", "true");
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
-        tmpMeta = Files.createTempDir();
+        File tmpHome = Files.createTempDir();
+        tmpMeta = new File(tmpHome, "meta");
+        System.setProperty("KYLIN_HOME", tmpHome.getAbsolutePath());
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
         Properties props = new Properties();
         props.setProperty("kylin.metadata.url", tmpMeta.getCanonicalPath());
+        props.setProperty("kylin.smart.conf.propose-runner-type", "in-memory");
 
         KylinConfig kylinConfig = KylinConfig.createKylinConfig(props);
         kylinConfig.setProperty("kylin.env", "UT");
@@ -79,6 +82,7 @@ public abstract class AutoTestOnLearnKylinData {
         ResourceStore.clearCache(localConfig.get());
         localConfig.close();
         System.clearProperty("spark.local");
+        System.clearProperty("KYLIN_HOME");
     }
 
     protected List<LayoutEntity> collectAllLayouts(List<IndexEntity> indexEntities) {

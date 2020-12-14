@@ -229,6 +229,7 @@ import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import lombok.val;
 import lombok.var;
@@ -1389,8 +1390,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // prepare initial model
         String sql = "select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
                 + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt";
-        AbstractContext smartContext = SmartMaster.proposeForAutoMode(getTestConfig(), project, new String[] { sql },
-                null);
+        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(null);
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -1480,10 +1480,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testSuggestOrOptimizeModels() throws Exception {
         String project = "newten";
         // prepare initial model
-        AbstractContext smartContext = SmartMaster.proposeForAutoMode(getTestConfig(), project,
-                new String[] { "select price from test_kylin_fact" }, null);
-        SmartMaster smartMaster = new SmartMaster(smartContext);
-        smartMaster.runUtWithContext(null);
+        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project,
+                new String[] { "select price from test_kylin_fact" });
+        smartContext.saveMetadata();
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         NDataModel targetModel = modelContexts.get(0).getTargetModel();

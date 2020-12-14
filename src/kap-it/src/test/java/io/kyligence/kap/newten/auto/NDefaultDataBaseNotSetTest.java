@@ -76,7 +76,9 @@ public class NDefaultDataBaseNotSetTest extends NAutoTestBase {
                         + "ifnull(LO_LINENUMBER,0),rlike(LO_ORDERPRIOTITY,'*') from SSB.P_LINEORDER" };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, "ssb", sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
 
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
         Assert.assertEquals("COUNT",

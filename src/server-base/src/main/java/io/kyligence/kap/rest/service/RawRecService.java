@@ -37,10 +37,10 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
+import io.kyligence.kap.guava20.shaded.common.collect.ArrayListMultimap;
+import io.kyligence.kap.guava20.shaded.common.collect.ListMultimap;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -58,9 +58,8 @@ import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -103,14 +102,14 @@ public class RawRecService {
         long startTime = System.currentTimeMillis();
         log.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, queryHistories.size());
         List<String> sqlList = Lists.newArrayList();
-        ArrayListMultimap<String, QueryHistory> queryHistoryMap = ArrayListMultimap.create();
+        ListMultimap<String, QueryHistory> queryHistoryMap = ArrayListMultimap.create();
         queryHistories.forEach(queryHistory -> {
             sqlList.add(queryHistory.getSql());
             queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
 
-        AbstractSemiContextV2 semiContextV2 = SmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
-                project, sqlList.toArray(new String[0]), null);
+        AbstractContext semiContextV2 = ProposerJob.genOptRec(KylinConfig.getInstanceFromEnv(), project,
+                sqlList.toArray(new String[0]));
 
         Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
@@ -136,7 +135,7 @@ public class RawRecService {
                 System.currentTimeMillis() - startTime);
     }
 
-    private void transferAndSaveModelRelatedRecItems(AbstractSemiContextV2 semiContext,
+    private void transferAndSaveModelRelatedRecItems(AbstractContext semiContext,
             Map<String, RawRecItem> nonLayoutRecItemMap) {
         List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContext, nonLayoutRecItemMap);
         saveCCRawRecItems(ccRawRecItems, semiContext.getProject());
@@ -149,8 +148,8 @@ public class RawRecService {
         measureRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
     }
 
-    public void markFailAccelerateMessageToQueryHistory(ArrayListMultimap<String, QueryHistory> queryHistoryMap,
-            AbstractSemiContextV2 semiContextV2) {
+    public void markFailAccelerateMessageToQueryHistory(ListMultimap<String, QueryHistory> queryHistoryMap,
+            AbstractContext semiContextV2) {
         List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
         semiContextV2.getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
             if (!accelerateInfo.isNotSucceed()) {
@@ -214,8 +213,8 @@ public class RawRecService {
         return Integer.parseInt(condition.getRightThreshold());
     }
 
-    List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
-            ArrayListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> recItemMap) {
+    List<RawRecItem> transferToLayoutRecItems(AbstractContext semiContextV2,
+            ListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> recItemMap) {
         RawRecManager recManager = RawRecManager.getInstance(semiContextV2.getProject());
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         String recSource = layoutToQHMap.isEmpty() ? RawRecItem.IMPORTED : RawRecItem.QUERY_HISTORY;
@@ -263,7 +262,7 @@ public class RawRecService {
                     recItem.cleanLayoutStatistics();
                     recItem.setState(RawRecItem.RawRecState.RECOMMENDED);
                 }
-                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout());
+                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout(), targetModel);
                 if (recItem.isAdditionalRecItemSavable()) {
                     rawRecItems.add(recItem);
                 }
@@ -272,12 +271,12 @@ public class RawRecService {
         return rawRecItems;
     }
 
-    private void updateLayoutStatistic(RawRecItem recItem, ArrayListMultimap<String, QueryHistory> layoutToQHMap,
-            LayoutEntity layout) {
+    private void updateLayoutStatistic(RawRecItem recItem, ListMultimap<String, QueryHistory> layoutToQHMap,
+            LayoutEntity layout, NDataModel targetModel) {
         if (layoutToQHMap.isEmpty()) {
             return;
         }
-        List<QueryHistory> queryHistories = layoutToQHMap.get(layout.getModel().getId() + "_" + layout.getId());
+        List<QueryHistory> queryHistories = layoutToQHMap.get(targetModel.getId() + "_" + layout.getId());
         if (CollectionUtils.isEmpty(queryHistories)) {
             return;
         }
@@ -314,7 +313,7 @@ public class RawRecService {
         recItem.setHitCount(hitCount);
     }
 
-    private List<RawRecItem> transferToMeasureRecItems(AbstractSemiContextV2 semiContextV2,
+    private List<RawRecItem> transferToMeasureRecItems(AbstractContext semiContextV2,
             Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -342,7 +341,7 @@ public class RawRecService {
         return rawRecItems;
     }
 
-    private List<RawRecItem> transferToDimensionRecItems(AbstractSemiContextV2 semiContextV2,
+    private List<RawRecItem> transferToDimensionRecItems(AbstractContext semiContextV2,
             Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -369,7 +368,7 @@ public class RawRecService {
         return rawRecItems;
     }
 
-    private List<RawRecItem> transferToCCRawRecItem(AbstractSemiContextV2 semiContextV2,
+    private List<RawRecItem> transferToCCRawRecItem(AbstractContext semiContextV2,
             Map<String, RawRecItem> uniqueRecItemMap) {
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {

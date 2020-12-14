@@ -32,6 +32,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -58,10 +59,13 @@ public abstract class AbstractContext {
     private final String[] sqlArray;
     private final ChainedProposer preProcessProposers;
     private final ChainedProposer processProposers;
+    @Setter
+    protected boolean canCreateNewModel;
 
     @Setter
-    private List<ModelContext> modelContexts;
-    private final Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
+    private List<ModelContext> modelContexts = Lists.newArrayList();
+    @Setter
+    private Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
     @Getter(lazy = true)
     private final Map<String, RawRecItem> recItemMap = Maps.newHashMap();
 
@@ -113,6 +117,23 @@ public abstract class AbstractContext {
         // default do nothing 
     }
 
+    public List<NDataModel> getProposedModels() {
+        if (CollectionUtils.isEmpty(modelContexts)) {
+            return Lists.newArrayList();
+        }
+
+        List<NDataModel> models = Lists.newArrayList();
+        for (ModelContext modelContext : modelContexts) {
+            NDataModel model = modelContext.getTargetModel();
+            if (model == null)
+                continue;
+
+            models.add(modelContext.getTargetModel());
+        }
+
+        return models;
+    }
+
     @Getter
     public static class ModelContext {
         @Setter
@@ -141,7 +162,7 @@ public abstract class AbstractContext {
         private boolean snapshotSelected;
 
         private final AbstractContext proposeContext;
-        private final Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
+        private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
         @Setter
         private boolean needUpdateCC = false;
         @Getter(lazy = true)

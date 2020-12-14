@@ -77,7 +77,9 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                 new String[] { query1, query2 });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         buildAllCubes(kylinConfig, getProject());
 
         // query
@@ -94,7 +96,9 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         String[] sqls = queries.stream().map(Pair::getSecond).toArray(String[]::new);
         AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
         SmartMaster master = new SmartMaster(context);
-        master.runUtWithContext(smartUtHook);
+        master.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         return master;
     }
 }

@@ -120,7 +120,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         SparkSession ss = SparderEnv.getSparkSession();
         populateSSWithCSVData(config, getProject(), ss);
 
-        System.setProperty("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
+        overwriteSystemProp("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
         slowQueryDetector.queryStart("");
         try {
             SparderEnv.cleanCompute();

@@ -89,7 +89,7 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         SmartMaster smartMaster2 = new SmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
-        List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
+        List<NDataModel> recommendedModels = smartMaster2.context.getProposedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(1, recommendedModels.get(0).getJoinTables().size());
         Assert.assertEquals("TEST_KYLIN_FACT", recommendedModels.get(0).getRootFactTable().getAlias());
@@ -115,7 +115,7 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         SmartMaster smartMaster2 = new SmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
-        List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
+        List<NDataModel> recommendedModels = smartMaster2.context.getProposedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(2, recommendedModels.get(0).getJoinTables().size());
         Assert.assertEquals("TEST_KYLIN_FACT", recommendedModels.get(0).getRootFactTable().getAlias());
@@ -142,7 +142,7 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         SmartMaster smartMaster2 = new SmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sql2));
         smartMaster2.runUtWithContext(smartUtHook);
-        List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
+        List<NDataModel> recommendedModels = smartMaster2.context.getProposedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(2, recommendedModels.get(0).getJoinTables().size());
         Assert.assertEquals("TEST_KYLIN_FACT", recommendedModels.get(0).getRootFactTable().getAlias());
@@ -431,7 +431,7 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
     private void runSuggestModelAndSave(AbstractContext smartContext) {
         val smartMaster = new SmartMaster(smartContext);
-        smartMaster.runSuggestModel();
+        smartMaster.executePropose();
         smartContext.saveMetadata();
         AccelerationContextUtil.onlineModel(smartContext);
     }

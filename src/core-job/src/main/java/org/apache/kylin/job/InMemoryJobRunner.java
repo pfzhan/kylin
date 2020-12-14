@@ -21,27 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.job;
 
-package io.kyligence.kap.smart;
+import java.util.List;
+import java.util.Map;
 
-import lombok.Getter;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutableApplication;
 
-public abstract class AbstractProposer {
+public class InMemoryJobRunner extends JobRunnerFactory.AbstractJobRunner {
 
-    @Getter
-    final AbstractContext proposeContext;
-    final String project;
-
-    protected AbstractProposer(AbstractContext proposeContext) {
-        this.proposeContext = proposeContext;
-        this.project = proposeContext.getProject();
+    public InMemoryJobRunner(KylinConfig config, String project, List<String> resources) {
+        super(config, project, resources);
     }
 
-    public abstract void execute();
-
-    /**
-    * package.sh cannot get ClassName, so preserve a method to record the name of step.
-    * @return The name of proposer step
-    */
-    public abstract String getIdentifierName();
+    @Override
+    public void doExecute(ExecutableApplication app, Map<String, String> args) throws Exception {
+        app.execute(formatArgs(args).split(" "));
+    }
 }

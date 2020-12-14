@@ -28,13 +28,12 @@ import java.util.List;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
@@ -58,7 +57,7 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public void saveMetadata() {
-        throw new NotImplementedException("Save metadata is forbidden in ModelSelectAIAugmentedContext");
+        // Just implement it
     }
 
     @Override
@@ -68,8 +67,7 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
-                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels();
 
     }
 

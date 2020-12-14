@@ -49,9 +49,8 @@ public class QueryScopeProposerTest extends NLocalWithSparkSessionTest {
         SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         AbstractContext.ModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        QueryScopeProposer nQueryScopeProposer = new QueryScopeProposer(modelContext);
         QueryScopeProposer.ScopeBuilder scopeBuilder = new QueryScopeProposer.ScopeBuilder(
-                smartMaster.getRecommendedModels().get(0), modelContext);
+                smartMaster.context.getProposedModels().get(0), modelContext);
 
         TblColRef col1 = TblColRef.mockup(TableDesc.mockup("DEFAULT.A_B"), 1, "C", "double");
         Field f1 = col1.getClass().getDeclaredField("identity");

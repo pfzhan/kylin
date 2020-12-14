@@ -29,11 +29,8 @@ import org.apache.kylin.common.KylinConfig;
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import lombok.Getter;
 
 public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
-    @Getter
-    private boolean canCreateNewModel;
 
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);

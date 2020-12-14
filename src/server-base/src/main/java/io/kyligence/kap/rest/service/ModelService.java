@@ -244,7 +244,7 @@ import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
-import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.tool.bisync.BISyncModel;
@@ -1647,9 +1647,8 @@ public class ModelService extends BasicService {
 
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
-        SmartMaster smartMaster = new SmartMaster(proposeContext);
-        smartMaster.executePropose();
-        return smartMaster.getRecommendedModels();
+        ProposerJob.propose(proposeContext);
+        return proposeContext.getProposedModels();
     }
 
     public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
@@ -1681,9 +1680,7 @@ public class ModelService extends BasicService {
         AbstractContext proposeContext = reuseExistedModel
                 ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), createNewModel)
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
-        SmartMaster smartMaster = new SmartMaster(proposeContext);
-        smartMaster.runSuggestModel();
-        return smartMaster.getContext();
+        return ProposerJob.propose(proposeContext);
     }
 
     public ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
@@ -1698,7 +1695,7 @@ public class ModelService extends BasicService {
             if (modelContext.getOriginModel() != null) {
                 collectResponseOfReusedModels(modelContext, responseOfReusedModels);
             } else {
-                collectResponseOfNewModels(modelContext, responseOfNewModels);
+                collectResponseOfNewModels(context, modelContext, responseOfNewModels);
             }
         }
         return new ModelSuggestionResponse(responseOfReusedModels, responseOfNewModels);
@@ -1787,10 +1784,12 @@ public class ModelService extends BasicService {
         return layoutToSqlSet;
     }
 
-    private void collectResponseOfNewModels(ModelContext modelContext,
+    private void collectResponseOfNewModels(AbstractContext context, ModelContext modelContext,
             List<NRecommendedModelResponse> responseOfNewModels) {
-        Set<String> sqlSet = Sets.newHashSet();
-        modelContext.getModelTree().getOlapContexts().forEach(ctx -> sqlSet.add(ctx.sql));
+        val sqlList = context.getAccelerateInfoMap().entrySet().stream()//
+                .filter(entry -> entry.getValue().getRelatedLayouts().stream()//
+                        .anyMatch(relation -> relation.getModelId().equals(modelContext.getTargetModel().getId())))
+                .map(Map.Entry::getKey).collect(Collectors.toList());
         NDataModel model = modelContext.getTargetModel();
         IndexPlan indexPlan = modelContext.getTargetIndexPlan();
         ImmutableBiMap<Integer, TblColRef> effectiveDimensions = model.getEffectiveDimensions();
@@ -1812,7 +1811,7 @@ public class ModelService extends BasicService {
         virtualResponse.setDimensions(recDims);
         virtualResponse.setMeasures(recMeasures);
         virtualResponse.setComputedColumns(recCCList);
-        virtualResponse.setSqlList(Lists.newArrayList(sqlSet));
+        virtualResponse.setSqlList(sqlList);
 
         NRecommendedModelResponse response = new NRecommendedModelResponse(model);
         response.setIndexPlan(indexPlan);

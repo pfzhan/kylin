@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.query;
 
-import static io.kyligence.kap.newten.NSuggestTestBase.smartUtHook;
-
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +54,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
@@ -70,12 +69,14 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 + " where CAL_DT='2012-01-10' group by CAL_DT ";
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(proposeContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
         OLAPContext context = Lists
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
-        Assert.assertFalse(smartMaster.getRecommendedModels().isEmpty());
-        String dataflow = smartMaster.getRecommendedModels().get(0).getId();
+        Assert.assertFalse(smartMaster.context.getProposedModels().isEmpty());
+        String dataflow = smartMaster.context.getProposedModels().get(0).getId();
         val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(dataflow);
         addLayout(df, 1000L);
 
@@ -85,9 +86,11 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 + "where CAL_DT='2012-01-10' group by CAL_DT ";
         val proposeContext2 = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql1 });
         SmartMaster smartMaster1 = new SmartMaster(proposeContext2);
-        smartMaster1.runUtWithContext(smartUtHook);
-        Assert.assertFalse(smartMaster1.getRecommendedModels().isEmpty());
-        NDataModel dataModel1 = smartMaster1.getRecommendedModels().get(0);
+        smartMaster1.runUtWithContext(null);
+        proposeContext2.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext2);
+        Assert.assertFalse(smartMaster1.context.getProposedModels().isEmpty());
+        NDataModel dataModel1 = smartMaster1.context.getProposedModels().get(0);
         String dataflow1 = dataModel1.getId();
         val df1 = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(dataflow1);
         addLayout(df1, 980L);
@@ -114,7 +117,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         String sql = "select count(*) from TEST_ACCOUNT group by ACCOUNT_ID";
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), "default", new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(proposeContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
         OLAPContext context = Lists
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
@@ -466,7 +471,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             Map<String, List<Long>> expectedPartitions) throws SQLException {
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(proposeContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
         OLAPContext context = Lists
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
@@ -520,7 +527,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 + "AND SELLER_ACCOUNT.ACCOUNT_COUNTRY<TEST_ORDER.TEST_TIME_ENC";
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(proposeContext);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
 
         Assert.assertEquals(smartMaster.getContext().getModelContexts().size(), 1);
         OLAPContext context = Lists

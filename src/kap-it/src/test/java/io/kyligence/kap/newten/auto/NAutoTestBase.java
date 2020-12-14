@@ -70,7 +70,9 @@ public class NAutoTestBase extends NSuggestTestBase {
         String[] sqls = sqlList.toArray(new String[0]);
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.runUtWithContext(smartUtHook);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         return smartMaster;
     }
 
@@ -83,7 +85,7 @@ public class NAutoTestBase extends NSuggestTestBase {
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
         log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
         if (expectModelNum != null) {
-            Assert.assertEquals(expectModelNum.intValue(), smartMaster.getRecommendedModels().size());
+            Assert.assertEquals(expectModelNum.intValue(), smartMaster.context.getProposedModels().size());
         }
 
         buildAndCompare(compareMap, testScenarios);
