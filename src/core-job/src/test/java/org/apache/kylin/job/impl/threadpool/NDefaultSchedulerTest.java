@@ -643,45 +643,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSuicide_RemoveSegmentAfterRunning() {
-        changeSchedulerInterval();
-        val currMem = NDefaultScheduler.currentAvailableMem();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
-        NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
-        job.setProject("default");
-        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
-        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetSubject());
-        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        val task = new FiveSecondSucceedTestExecutable();
-        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task);
-        val task2 = new SucceedTestExecutable();
-        task2.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task2);
-        executableManager.addJob(job);
-        long createTime = executableManager.getJob(job.getId()).getCreateTime();
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
-                        .getStatus() == ExecutableState.RUNNING);
-        val update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update);
-
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            val task1 = ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0);
-            Assert.assertEquals(ExecutableState.SUICIDAL, job.getStatus());
-            Assert.assertEquals(ExecutableState.SUICIDAL, task1.getStatus());
-        });
-        //in case hdfs write is not finished yet
-        assertTimeSuicide(createTime, job.getId());
-        testJobStopped(job.getId());
-        assertMemoryRestore(currMem);
-    }
-
-    @Test
     public void testSuicide_RemoveLayout() {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -730,34 +691,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
         executableManager.addJob(job);
         return job;
-    }
-
-    @Test
-    public void testSuicide_AfterSuccess() {
-        changeSchedulerInterval();
-        val currMem = NDefaultScheduler.currentAvailableMem();
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
-        NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
-        job.setProject("default");
-        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
-        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetSubject());
-        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        val task = new SucceedTestExecutable();
-        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task);
-        executableManager.addJob(job);
-
-        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
-        val update = new NDataflowUpdate(df.getUuid());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update);
-
-        waitForJobFinish(job.getId());
-        assertMemoryRestore(currMem);
-        val output = executableManager.getOutput(job.getId());
-        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
     }
 
     @Test

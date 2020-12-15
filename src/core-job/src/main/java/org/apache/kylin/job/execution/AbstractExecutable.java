@@ -68,7 +68,6 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
-import org.apache.kylin.job.exception.JobStoppedVoluntarilyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -346,28 +345,8 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     protected void checkNeedQuit(boolean applyChange) throws JobStoppedException {
-        // voluntarily
-        suicideIfNecessary(applyChange);
         // non voluntarily
         abortIfJobStopped(applyChange);
-    }
-
-    private void suicideIfNecessary(boolean applyChange) throws JobStoppedException {
-        if (!needCheckState()) {
-            return;
-        }
-
-        if (checkSuicide()) {
-            if (applyChange) {
-                AbstractExecutable job = getManager().getJob(getId());
-                if (job != null) {
-                    job.cancelJob();
-                }
-                updateJobOutput(project, getId(), ExecutableState.SUICIDAL, null,
-                        "suicide as its subject(model, segment or table) no longer exists", null);
-            }
-            throw new JobStoppedVoluntarilyException();
-        }
     }
 
     /**
