@@ -150,10 +150,6 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
         final LoggingEvent firstLogEntry = log.get(0);
         Assert.assertEquals(Level.INFO, firstLogEntry.getLevel());
         Assert.assertEquals("Broadcast to notify.", firstLogEntry.getMessage());
-
-        final LoggingEvent secondLogEntry = log.get(1);
-        Assert.assertEquals(Level.WARN, secondLogEntry.getLevel());
-        Assert.assertEquals("Failed to notify.", secondLogEntry.getMessage());
     }
 
     static class LogAppender extends AppenderSkeleton {
