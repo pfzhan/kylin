@@ -38,29 +38,42 @@ import org.apache.kylin.query.util.{QueryParams, QueryUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
+import org.apache.spark.sql.hive.HiveSessionStateBuilder
 import org.apache.spark.sql.internal.{SessionState, SharedState}
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.KylinReflectUtils
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.HashMap
 import scala.util.{Failure, Success, Try}
 
 class KylinSession(
                     @transient val sc: SparkContext,
-                    @transient private val existingSharedState: Option[SharedState])
+                    @transient private val existingSharedState: Option[SharedState],
+                    @transient private val parentSessionState: Option[SessionState])
   extends SparkSession(sc) {
 
   def this(sc: SparkContext) {
-    this(sc, None)
+    this(sc, None, None)
   }
 
   @transient
-  override lazy val sessionState: SessionState =
-    KylinReflectUtils.getSessionState(sc, this).asInstanceOf[SessionState]
+  override lazy val sessionState: SessionState = {
+    if (parentSessionState ne None) {
+      new HiveSessionStateBuilder(this, parentSessionState).build()
+    } else {
+      KylinReflectUtils.getSessionState(sc, this).asInstanceOf[SessionState]
+    }
+  }
+
+  @transient
+  override lazy val sharedState: SharedState = {
+    existingSharedState.getOrElse(new SharedState(sc))
+  }
 
   override def newSession(): SparkSession = {
-    new KylinSession(sparkContext, Some(sharedState))
+    new KylinSession(sparkContext, Some(sharedState), Some(sessionState))
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
@@ -107,10 +120,8 @@ object KylinSession extends Logging {
     def getOrCreateKylinSession(): SparkSession = synchronized {
       val options =
         getValue("options", builder)
-          .asInstanceOf[scala.collection.mutable.HashMap[String, String]]
-      val userSuppliedContext: Option[SparkContext] =
-        getValue("userSuppliedContext", builder)
-          .asInstanceOf[Option[SparkContext]]
+          .asInstanceOf[HashMap[String, String]]
+
       var session: SparkSession = SparkSession.getActiveSession match {
         case Some(sparkSession: KylinSession) =>
           if ((sparkSession ne null) && !sparkSession.sparkContext.isStopped) {
@@ -118,6 +129,9 @@ object KylinSession extends Logging {
               case (k, v) => sparkSession.sessionState.conf.setConfString(k, v)
             }
             sparkSession
+          } else if ((sparkSession ne null) && sparkSession.sparkContext.isStopped) {
+            val sparkContext = getSparkContext(options)
+            new KylinSession(sparkContext, Some(sparkSession.sharedState), Some(sparkSession.sessionState))
           } else {
             null
           }
@@ -141,22 +155,7 @@ object KylinSession extends Logging {
         if (session ne null) {
           return session
         }
-        val sparkContext = userSuppliedContext.getOrElse {
-          // set app name if not given
-          val conf = new SparkConf()
-          options.foreach { case (k, v) => conf.set(k, v) }
-          val sparkConf = initSparkConf(conf)
-          val sc = SparkContext.getOrCreate(sparkConf)
-          // maybe this is an existing SparkContext, update its SparkConf which maybe used
-          // by SparkSession
-
-          // KE-12678
-          if(sc.master.startsWith("yarn")) {
-            System.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
-          }
-
-          sc
-        }
+        val sparkContext = getSparkContext(options)
         session = new KylinSession(sparkContext)
         SparkSession.setDefaultSession(session)
         sparkContext.addSparkListener(new SparkListener {
@@ -167,6 +166,27 @@ object KylinSession extends Logging {
         })
         UdfManager.create(session)
         session
+      }
+    }
+
+    def getSparkContext(options: HashMap[String, String]): SparkContext = {
+      val userSuppliedContext: Option[SparkContext] =
+        getValue("userSuppliedContext", builder)
+                .asInstanceOf[Option[SparkContext]]
+      userSuppliedContext.getOrElse {
+        // set app name if not given
+        val conf = new SparkConf()
+        options.foreach { case (k, v) => conf.set(k, v) }
+        val sparkConf = initSparkConf(conf)
+        val sc = SparkContext.getOrCreate(sparkConf)
+        // maybe this is an existing SparkContext, update its SparkConf which maybe used
+        // by SparkSession
+
+        // KE-12678
+        if(sc.master.startsWith("yarn")) {
+          System.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
+        }
+        sc
       }
     }
 
