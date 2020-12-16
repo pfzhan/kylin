@@ -35,6 +35,7 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ActiveProfiles;
@@ -72,6 +73,7 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
         broadcaster.close();
     }
 
+    @Ignore
     @Test
     public void testAnnounceWithEpochCheckBroadcastNotifier() {
         final LogAppender appender = new LogAppender();
@@ -130,6 +132,7 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, log.size());
     }
 
+    @Ignore
     @Test
     public void testAnnounceWithAuditLogBroadcastEventNotifier() {
         final LogAppender appender = new LogAppender();
