@@ -41,6 +41,7 @@ import org.junit.Test;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.ProcessUtils;
+import io.kyligence.kap.junit.rule.Repeat;
 import lombok.val;
 
 public class ProcessStatusListenerTest extends NLocalFileMetadataTestCase {
@@ -57,6 +58,7 @@ public class ProcessStatusListenerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Repeat(10)
     public void testKillProcess() {
         EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
         val executableManager = NExecutableManager.getInstance(getTestConfig(), "default");

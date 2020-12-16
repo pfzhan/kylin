@@ -276,6 +276,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("30", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
         // case: v1 <  v 4 < v2 < v3, spark.executor.instances = v2
+        restoreSystemProp("kylin.engine.base-executor-instance");
         resetSparkConfHelper(helper);
         Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(60480, 100), new ResourceInfo(60480, 100)));
