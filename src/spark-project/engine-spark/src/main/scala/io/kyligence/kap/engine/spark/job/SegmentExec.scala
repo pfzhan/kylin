@@ -26,12 +26,12 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util
 import java.util.Objects
-import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
+import java.util.concurrent._
 
 import com.google.common.collect.{Lists, Queues}
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.SegmentExec.{LayoutResult, ResultType, SourceStats}
+import io.kyligence.kap.engine.spark.utils.ThreadUtils
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.hadoop.fs.Path
@@ -58,15 +58,13 @@ trait SegmentExec extends Logging {
   protected val storageType: Int
 
   // Maybe we should parameterize nThreads.
-  private lazy val execPool = //
-    new ThreadPoolExecutor(8, 128, //
-      10, TimeUnit.SECONDS, Queues.newLinkedBlockingQueue[Runnable](), //
-      new ThreadFactoryBuilder().setDaemon(false).setNameFormat("execPool-thread-%d").build())
+  private lazy val threadPool = //
+    ThreadUtils.newDaemonScalableThreadPool("build-thread", //
+      8, 128, 10, TimeUnit.SECONDS)
 
   // Drain layout result using single thread.
   private lazy val scheduler = //
-    Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(false) //
-      .setNameFormat("drainResult-thread-%d").build())
+    ThreadUtils.newDaemonSingleThreadScheduledExecutor("drain-thread")
 
   // Layout result pipe.
   protected final lazy val pipe = Queues.newLinkedBlockingQueue[ResultType]()
@@ -90,7 +88,7 @@ trait SegmentExec extends Logging {
   }
 
   protected final def asyncExecute(f: => Unit): Unit = {
-    execPool.submit(new Runnable {
+    threadPool.submit(new Runnable {
       override def run(): Unit = try {
         setConfig4CurrentThread()
         f
@@ -105,7 +103,7 @@ trait SegmentExec extends Logging {
     // Drain results immediately.
     drain()
     scheduler.shutdownNow()
-    execPool.shutdownNow()
+    threadPool.shutdownNow()
   }
 
   protected final def setConfig4CurrentThread(): Unit = {
