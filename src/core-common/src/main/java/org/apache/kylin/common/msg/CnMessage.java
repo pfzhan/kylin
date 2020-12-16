@@ -1515,12 +1515,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getUNEXPECTED_TOKEN() {
-        return "语法错误：在 '%s' 列，'%s' 行出现无法辨识的 token：\" %s\"。";
+        return "语法错误：在 '%s' 列，'%s' 行出现无法辨识的 token：“%s”。";
     }
 
     @Override
     public String getBAD_SQL_REASON() {
-        return "语法错误：\"%s\"。";
+        return "语法错误：“%s”。";
     }
 
     @Override
@@ -1530,32 +1530,32 @@ public class CnMessage extends Message {
 
     @Override
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
-        return "没有找到表 '%s'。";
+        return "没有找到表 “%s”。";
     }
 
     @Override
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
-        return "请在数据源中导入表 '%s'。如果该表已经存在，请在查询中使用数据库名.表名的形式进行引用。";
+        return "请在数据源中导入表 “%s”。如果该表已经存在，请在查询中使用数据库名.表名的形式进行引用。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_REASON() {
-        return "列 '%s' 不存在。";
+        return "列 “%s” 不存在。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST() {
-        return "请在数据源中添加列 '%s'。";
+        return "请在数据源中添加列“%s”。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
-        return "在表 '%s' 中没有找到列 '%s'。";
+        return "在表 “%s” 中没有找到列 “%s”。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
-        return "请在数据源表 '%s' 中添加列 '%s'。";
+        return "请将列 “%s” 添加到数据源表 “%s”。";
     }
 
     @Override
@@ -1967,7 +1967,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getPARTITION_VALUE_NOT_SUPPORT(){
+    public String getPARTITION_VALUE_NOT_SUPPORT() {
         return "模型 '%s' 未设置子分区列，请先进行设置";
     }
 

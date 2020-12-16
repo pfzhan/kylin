@@ -1319,7 +1319,7 @@ public class Message {
     }
 
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
-        return "Column '%s' not found in table '%s'.";
+        return "The table\"%s\" doesn't include the column \"%s\".";
     }
 
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
