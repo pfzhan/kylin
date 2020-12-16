@@ -32,6 +32,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.apache.commons.lang.SerializationException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.kylin.common.util.JsonUtil;
@@ -214,7 +215,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
         }
 
         public LayoutMetric toLayoutMetric(String jsonString) {
-            if (jsonString == null) {
+            if (StringUtils.isEmpty(jsonString)) {
                 return null;
             }
             try {

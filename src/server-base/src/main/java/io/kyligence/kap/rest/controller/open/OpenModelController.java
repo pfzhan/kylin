@@ -86,6 +86,8 @@ import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.OpenOptRecLayoutsResponse;
+import io.kyligence.kap.rest.response.OpenRecApproveResponse;
+import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
@@ -345,27 +347,29 @@ public class OpenModelController extends NBasicController {
 
     @PutMapping(value = "/recommendations/batch")
     @ResponseBody
-    public EnvelopeResponse<String> batchApproveRecommendations(@RequestBody OpenBatchApproveRecItemsRequest request) {
+    public EnvelopeResponse<OpenRecApproveResponse> batchApproveRecommendations(
+            @RequestBody OpenBatchApproveRecItemsRequest request) {
         String projectName = checkProjectName(request.getProject());
-        request.setProject(projectName);
-        checkProjectNotSemiAuto(request.getProject());
+        checkProjectNotSemiAuto(projectName);
         boolean filterByModels = request.isFilterByModes();
         if (request.getRecActionType() == null || StringUtils.isEmpty(request.getRecActionType().trim())) {
             request.setRecActionType("all");
         }
+        List<RecToIndexResponse> approvedModelIndexes;
         if (filterByModels) {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
                 throw new KylinException(INVALID_MODEL_NAME, MsgPicker.getMsg().getEMPTY_MODEL_NAME());
             }
             List<String> modelIds = Lists.newArrayList();
             for (String modelName : request.getModelNames()) {
-                modelIds.add(getModel(modelName, request.getProject()).getUuid());
+                modelIds.add(getModel(modelName, projectName).getUuid());
             }
-            optRecService.batchApprove(request.getProject(), modelIds, request.getRecActionType());
+            approvedModelIndexes = optRecService.batchApprove(projectName, modelIds, request.getRecActionType());
         } else {
-            optRecService.batchApprove(request.getProject(), request.getRecActionType());
+            approvedModelIndexes = optRecService.batchApprove(projectName, request.getRecActionType());
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                new OpenRecApproveResponse(projectName, approvedModelIndexes), "");
     }
 
     @PostMapping(value = "/model_suggestion")
