@@ -94,7 +94,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
         try {
             return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                manager.updateJobOutput(jobId, ExecutableState.ERROR);
+                manager.errorJob(jobId);
                 return true;
             }, context.getEpochId(), project);
         } catch (Exception e) {

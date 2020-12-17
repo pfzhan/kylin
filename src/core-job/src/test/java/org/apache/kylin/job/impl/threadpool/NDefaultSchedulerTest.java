@@ -1847,10 +1847,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         executableManager.updateJobOutput(job.getId(), ExecutableState.RUNNING);
 
-        await().atMost(60, TimeUnit.SECONDS).until(() -> {
-            AbstractExecutable job2 = executableManager.getJob(job.getId());
+        await().atMost(60, TimeUnit.SECONDS).untilAsserted(() -> {
+            DefaultChainedExecutable job2 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
             ExecutableState status = job2.getStatus();
-            return status == ExecutableState.ERROR;
+            Assert.assertEquals(ExecutableState.ERROR, status);
+            Assert.assertEquals(ExecutableState.ERROR, job2.getTasks().get(0).getStatus());
         });
     }
 
