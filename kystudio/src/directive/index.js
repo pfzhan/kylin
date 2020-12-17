@@ -198,7 +198,7 @@ Vue.directive('event-stop', {
 })
 
 Vue.directive('search-highlight', function (el, binding) {
-  var searchKey = binding.value.hightlight
+  var searchKey = binding.value.hightlight.replace(/[?()]/g, (v) => `\\${v}`)
   var reg = new RegExp('(' + searchKey + ')', 'gi')
   var searchScope = binding.value.scope
   var direcDom = $(el)

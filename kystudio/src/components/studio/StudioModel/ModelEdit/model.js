@@ -778,7 +778,8 @@ class NModel {
     return this.mixResult(columnsResult, 'column', 'full_colname', keywords)
   }
   searchRule (content, keywords) {
-    var reg = new RegExp(keywords, 'i')
+    const key = keywords.replace(/[?()]/g, (v) => `\\${v}`)
+    var reg = new RegExp(key, 'i')
     return reg.test(content)
   }
   // 混合结果信息
