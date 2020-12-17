@@ -74,7 +74,7 @@
               v-model="partitionMeta.format"
               class="partition-column-format"
               popper-class="js_partition-column-format"
-              :placeholder="$t('pleaseInputColumn')">
+              :placeholder="$t('pleaseInputColumnFormat')">
               <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
