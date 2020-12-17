@@ -62,8 +62,11 @@ object CloudLogExtractor extends ILogExtractor {
     var valid = false
     try {
       val fileInfo = fileStatus.getPath.getName.split("#")
-      val maxModifyTime = fs.listStatus(new Path(fileStatus.getPath.toUri)).map(f => f.getModificationTime).max
-      valid = fileInfo.length == 2 && fileInfo(1).toLong <= endTime && maxModifyTime >= startTime
+      val fileStatuses: Array[FileStatus] = fs.listStatus(new Path(fileStatus.getPath.toUri))
+      if (!fileStatuses.isEmpty) {
+        val maxModifyTime = fileStatuses.map(f => f.getModificationTime).max
+        valid = fileInfo.length == 2 && fileInfo(1).toLong <= endTime && maxModifyTime >= startTime
+      }
     } catch {
       case e: Exception =>
         log.error("Check sparder appId time range failed.", e)
