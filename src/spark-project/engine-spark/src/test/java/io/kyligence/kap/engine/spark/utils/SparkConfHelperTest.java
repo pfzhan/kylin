@@ -75,7 +75,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
-                new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY),
                 new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
@@ -85,7 +85,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
-        compareTuples.set(0, new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY));
+        compareTuples.set(0, new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY));
         compareTuples.set(1, new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES));
         compareTuples.set(2, new CompareTuple("1GB", SparkConfHelper.EXECUTOR_OVERHEAD));
         compareConf(compareTuples, sparkConf);

@@ -57,7 +57,8 @@ class ExecutorMemoryRule extends SparkConfRule {
       logInfo(s"Source table size is Empty, skip ${getClass.getName}")
       return
     }
-    val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
+    val sourceMB = Utils.byteStringAsMb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
+    val sourceGB = sourceMB / 1000
     val hasCountDistinct = helper.hasCountDistinct
     val memory = sourceGB match {
       case _ if `sourceGB` >= 100 && `hasCountDistinct` =>
@@ -66,8 +67,10 @@ class ExecutorMemoryRule extends SparkConfRule {
         "16GB"
       case _ if `sourceGB` >= 10 || (`sourceGB` >= 1 && `hasCountDistinct`) =>
         "10GB"
-      case _ =>
+      case _ if `sourceMB` >= 10 =>
         "4GB"
+      case _ =>
+        "1GB"
     }
     helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, memory)
   }
