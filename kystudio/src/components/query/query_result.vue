@@ -58,45 +58,84 @@
         </p>
       </div>
     </div>
-    <div :class="[{'ksd-header': !showExportCondition}]" v-if="!isStop">
-      <div :class="['ksd-title-label-small', 'result-title', showExportCondition ? 'ksd-mt-20' : 'result-title-float', {'guide-queryResultBox': isWorkspace}]">{{$t('queryResults')}}</div>
-      <div :class="['clearfix', {'ksd-mt-15': showExportCondition}]">
-        <div class="ksd-fleft">
-          <el-button v-if="showExportCondition" :loading="hasClickExportBtn" type="primary" plain size="small" @click.native="exportData">
-            {{$t('exportCSV')}}
-          </el-button>
-        </div>
-        <div class="resultOperator ksd-fright">
-          <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
-          </el-input>
+    <el-button-group class="result-layout-btns ksd-mt-15">
+      <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
+    </el-button-group>
+    <template v-if="activeResultType === 'data'">
+      <div :class="[{'ksd-header': !showExportCondition}]" v-if="!isStop">
+        <div :class="['ksd-title-label-small', 'result-title', showExportCondition ? 'ksd-mt-20' : 'result-title-float', {'guide-queryResultBox': isWorkspace}]">{{$t('queryResults')}}</div>
+        <div :class="['clearfix', {'ksd-mt-15': showExportCondition}]">
+          <div class="ksd-fleft">
+            <el-button v-if="showExportCondition" :loading="hasClickExportBtn" type="primary" plain size="small" @click.native="exportData">
+              {{$t('exportCSV')}}
+            </el-button>
+          </div>
+          <div class="resultOperator ksd-fright">
+            <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
+            </el-input>
+          </div>
         </div>
       </div>
-    </div>
-  	<div class="ksd-mt-10 grid-box narrowTable" v-if="!isStop">
-  		<el-table
-		    :data="pagerTableData"
-        border
-        v-scroll-shadow
-        ref="tableLayout"
-		    style="width: 100%;">
-		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
-		      :prop="''+index"
-          :min-width="52+15*(value.label&&value.label.length || 0)"
-          show-overflow-tooltip
-		      :label="value.label">
-          <template slot-scope="props">
-            <span class="table-cell-text">{{props.row[index]}}</span>
-          </template>
-		    </el-table-column>
-		  </el-table>
+      <div class="ksd-mt-10 grid-box narrowTable" v-if="!isStop">
+        <el-table
+          :data="pagerTableData"
+          border
+          v-scroll-shadow
+          ref="tableLayout"
+          style="width: 100%;">
+          <el-table-column v-for="(value, index) in tableMeta" :key="index"
+            :prop="''+index"
+            :min-width="52+15*(value.label&&value.label.length || 0)"
+            show-overflow-tooltip
+            :label="value.label">
+            <template slot-scope="props">
+              <span class="table-cell-text">{{props.row[index]}}</span>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
-  	</div>
-    <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
-      <input type="hidden" name="sql" v-model="sql"/>
-      <input type="hidden" name="project" v-model="project"/>
-      <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
-    </form>
+        <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+      </div>
+      <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
+        <input type="hidden" name="sql" v-model="sql"/>
+        <input type="hidden" name="project" v-model="project"/>
+        <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
+      </form>
+    </template>
+    <!-- 可视化 tab -->
+    <template v-if="activeResultType === 'visualization'">
+      <div class="chart-headers">
+        <el-row class="ksd-mt-10" :gutter="5">
+          <el-col :span="4" class="title">{{$t('chartType')}}</el-col>
+          <el-col :span="10" class="title">{{$t('chartDimension')}}</el-col>
+          <el-col :span="10" class="title">{{$t('chartMeasure')}}</el-col>
+        </el-row>
+        <el-row :gutter="5">
+          <el-col :span="4" class="content">
+            <el-select v-model="charts.type" @change="changeChartType">
+              <el-option v-for="item in chartTypeOptions" :label="item.text" :key="item.value" :value="item.value"></el-option>
+            </el-select>
+          </el-col>
+          <el-col :span="10" class="content">
+            <el-select v-model="charts.dimension" @change="changeChartDimension">
+              <el-option v-for="item in chartDimensionList.map(it => ({text: it, value: it}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
+            </el-select>
+          </el-col>
+          <el-col :span="10" class="content">
+            <el-select v-model="charts.measure" @change="changeChartMeasure">
+              <el-option v-for="item in chartMeasureList.map(v => ({text: v, value: v}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
+            </el-select>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="chart-contains ksd-mt-10">
+        <el-tooltip :content="$t('overSizeTips')" effect="dark" placement="top" v-if="displayOverSize">
+          <i class="el-icon-ksd-info ksd-fs-15 tips"></i>
+        </el-tooltip>
+        <div id="charts" v-if="charts.dimension && charts.measure"></div>
+        <p class="no-fill-data" v-else>{{$t('noDimensionOrMeasureData')}}</p>
+      </div>
+    </template>
   </div>
 </template>
 <script>
@@ -106,7 +145,9 @@ import { mapActions, mapGetters } from 'vuex'
 import { scToFloat, showNull } from '../../util/index'
 import { hasRole, transToGmtTime } from '../../util/business'
 import { pageRefTags } from 'config'
+import { getOptions, compareDataSize } from './handler'
 import moment from 'moment'
+import echarts from 'echarts'
 @Component({
   props: ['extraoption', 'isWorkspace', 'queryExportData', 'isStop'],
   methods: {
@@ -139,7 +180,15 @@ import moment from 'moment'
       queryResults: 'Query Results',
       exportCSV: 'Export to CSV',
       linkToSpark: 'Jump to Spark Web UI',
-      noModelRangeTips: 'The query is out of the data range for serving queries. Please add segment accordingly.'
+      noModelRangeTips: 'The query is out of the data range for serving queries. Please add segment accordingly.',
+      dataBtn: 'Data',
+      visualizationBtn: 'Visualization',
+      chartType: 'Graph Type',
+      chartDimension: 'Dimensions',
+      chartMeasure: 'Metrics',
+      noDimensionOrMeasureData: 'Visualization unavailable for current dataset.',
+      overSizeTips: 'The dataset exceeds the maximum limit of the chart. A sampling of 1,000 rows is occurred.',
+      overTenYearTips: 'Your data is too large, data sampling with 36,500 rows has been occurred.'
     },
     'zh-cn': {
       username: '用户名',
@@ -157,7 +206,15 @@ import moment from 'moment'
       queryResults: '查询结果',
       exportCSV: '导出 CSV',
       linkToSpark: '跳转至 Spark 任务详情',
-      noModelRangeTips: '当前查询不在模型服务的数据范围内。请添加相应 Segment。'
+      noModelRangeTips: '当前查询不在模型服务的数据范围内。请添加相应 Segment。',
+      dataBtn: '数据',
+      visualizationBtn: '可视化',
+      chartType: '图表类型',
+      chartDimension: '维度',
+      chartMeasure: '度量',
+      noDimensionOrMeasureData: '当前数据不支持可视化。',
+      overSizeTips: '数据过大，已执行 1,000  条的数据抽样。',
+      overTenYearTips: '您的数据过大，我们已执行 36,500  条的数据抽样。'
     }
   },
   filters: {
@@ -185,6 +242,76 @@ export default class queryResult extends Vue {
   pageX = 0
   pageSizeX = 30
   hasClickExportBtn = false
+  activeResultType = 'data'
+  charts = {
+    type: 'lineChart',
+    dimension: '',
+    measure: ''
+  }
+  dateTypes = [91, 92, 93]
+  stringTypes = [-1, 1, 12]
+  numberTypes = [-7, -6, -5, 3, 4, 5, 6, 7, 8]
+  chartDimensionList = []
+  chartMeasureList = []
+  chartLayout = null
+  // 增加可视化按钮
+  get insightBtnGroups () {
+    return [
+      {text: this.$t('dataBtn'), value: 'data'},
+      {text: this.$t('visualizationBtn'), value: 'visualization'}
+    ]
+  }
+  get chartTypeOptions () {
+    return [
+      {text: this.$t('lineChart'), value: 'lineChart'},
+      {text: this.$t('barChart'), value: 'barChart'},
+      {text: this.$t('pieChart'), value: 'pieChart'}
+    ]
+  }
+  // 切换数据展示效果
+  changeDataType (item) {
+    if (item.value === this.activeResultType) return
+    this.activeResultType = item.value
+    if (item.value === 'visualization') {
+      this.$nextTick(() => {
+        this.initChartOptions()
+      })
+    }
+  }
+  // 初始化 echarts 配置
+  initChartOptions () {
+    this.chartLayout = echarts.init(document.getElementById('charts'))
+    this.chartLayout.setOption(getOptions(this))
+  }
+  changeChartType (v) {
+    this.charts.type = v
+    this.resetEcharts()
+  }
+  // 更改维度
+  changeChartDimension () {
+    this.resetEcharts()
+  }
+  // 更改度量
+  changeChartMeasure () {
+    this.resetEcharts()
+  }
+  resetEcharts () {
+    this.chartLayout && this.chartLayout.dispose()
+    this.$nextTick(() => {
+      this.initChartOptions()
+    })
+  }
+  // 更改 charts 大小
+  resetChartsPosition () {
+    this.chartLayout && this.chartLayout.resize()
+  }
+  // 是否显示数量过多 icon 提示
+  get displayOverSize () {
+    const result = compareDataSize(this)
+    if (this.charts.type === 'pieChart') {
+      return result.xData.length > 1000
+    }
+  }
   exportData () {
     // 区别于3x中，导出所需的参数，存在props 传进来的 queryExportData 这个对象中，不再一起放在 extraoption 中
     this.sql = this.queryExportData.sql
@@ -241,6 +368,15 @@ export default class queryResult extends Vue {
     }
     this.tableMetaBackup = this.tableMeta
     this.tableMeta = this.tableMetaBackup.slice(0, (this.pageX + 1) * this.pageSizeX)
+    this.tableMeta.forEach(item => {
+      if (this.dateTypes.includes(item.columnType) || this.stringTypes.includes(item.columnType)) {
+        this.chartDimensionList.push(item.label)
+      } else if (this.numberTypes.includes(item.columnType)) {
+        this.chartMeasureList.push(item.name)
+      }
+    })
+    this.charts.dimension = this.chartDimensionList[0] || ''
+    this.charts.measure = this.chartMeasureList[this.chartMeasureList.length - 1] || ''
     this.pageSizeChange(0)
   }
   toggleDetail () {
@@ -359,10 +495,12 @@ export default class queryResult extends Vue {
   mounted () {
     if (!this.$refs.tableLayout || !this.$refs.tableLayout.bodyWrapper) return
     this.$refs.tableLayout.bodyWrapper.addEventListener('scroll', this.getMoreData)
+    window.addEventListener('resize', this.resetChartsPosition)
   }
 
   beforeDestory () {
     this.$refs.tableLayout.bodyWrapper.removeEventListener('scroll', this.getMoreData)
+    window.removeEventListener('resize', this.resetChartsPosition)
   }
 }
 </script>
@@ -430,6 +568,46 @@ export default class queryResult extends Vue {
     .resultOperator {
       .el-input {
         width: auto;
+      }
+    }
+    .result-layout-btns {
+      .el-button.active {
+        color: #5c5c5c;
+        background: #f4f4f4;
+        border: 1px solid #cccccc;
+        box-shadow: inset 1px 1px 2px 0 #ddd;
+      }
+    }
+    .chart-headers {
+      .title {
+        font-weight: bold;
+      }
+      .content {
+        .el-select {
+          width: 100%;
+          margin-top: 5px;
+        }
+      }
+    }
+    .chart-contains {
+      width: 100%;
+      height: 400px;
+      position: relative;
+      #charts {
+        width: 100%;
+        height: 100%;
+      }
+      .no-fill-data {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .tips {
+        position: absolute;
+        right: 0;
+        z-index: 10;
+        color: @color-warning;
       }
     }
   }
