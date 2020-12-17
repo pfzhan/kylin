@@ -147,10 +147,10 @@
           show-icon>
         </el-alert>
         <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" width="99.6%" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
-        <div class="error-msg-box ksd-mt-10" v-if="filterErrorMsg">
-          <div class="error-tag">{{$t('errorMsg')}}</div>
-          <div v-html="filterErrorMsg"></div>
-        </div>
+      </div>
+      <div class="error-msg-box ksd-mt-10" v-if="filterErrorMsg">
+        <div class="error-tag">{{$t('errorMsg')}}</div>
+        <div v-html="filterErrorMsg"></div>
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
@@ -593,6 +593,9 @@ export default class ModelPartitionModal extends Vue {
       }, (errorRes) => {
         this.filterErrorMsg = errorRes.data.msg
         this.isLoadingSave = false
+        this.$nextTick(() => {
+          this.$el.querySelector('.error-msg-box') && this.$el.querySelector('.error-msg-box').scrollIntoView()
+        })
       })
     } else {
       this.handleClose(true, isOnlySave)
@@ -601,6 +604,7 @@ export default class ModelPartitionModal extends Vue {
   handleClose (isSubmit, isOnlySave) {
     this.isLoadingFormat = false
     this.modelDesc.save_only = isOnlySave
+    this.filterErrorMsg = ''
     // 不把这个信息记录下来的话，300 延迟后，modelDesc 就 undefined 了
     let temp = objectClone(this.modelDesc)
     setTimeout(() => {
