@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_INDEX;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_AGG_INDEX;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_TABLE_INDEX;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
@@ -222,14 +223,14 @@ public class IndexPlanService extends BasicService {
         return createTableIndex(project, request.getModelId(), newLayout, request.isLoadData());
     }
 
-    public BuildIndexResponse createTableIndex(String project, String modelId, LayoutEntity newLayout, boolean loadData) {
+    public BuildIndexResponse createTableIndex(String project, String modelId, LayoutEntity newLayout,
+            boolean loadData) {
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
         val jobManager = getJobManager(project);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
-                throw new IllegalStateException(MsgPicker.getMsg().getDUPLICATEP_LAYOUT());
-
+                throw new KylinException(DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
             }
         }
         int layoutIndex = indexPlan.getWhitelistLayouts().indexOf(newLayout);
@@ -843,14 +844,15 @@ public class IndexPlanService extends BasicService {
     }
 
     public void updateForMeasureChange(String project, String modelId, Set<Integer> invalidMeasures,
-                                       Map<Integer, Integer> replacedMeasure) {
+            Map<Integer, Integer> replacedMeasure) {
         if (getIndexPlanManager(project).getIndexPlan(modelId).getRuleBasedIndex() == null)
             return;
 
         getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
             val copyRuleBaseIndex = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), RuleBasedIndex.class);
 
-            for (ListIterator<Integer> measureItr = copyRuleBaseIndex.getMeasures().listIterator(); measureItr.hasNext();) {
+            for (ListIterator<Integer> measureItr = copyRuleBaseIndex.getMeasures().listIterator(); measureItr
+                    .hasNext();) {
                 Integer measureId = measureItr.next();
                 if (invalidMeasures.contains(measureId)) {
                     measureItr.remove();
@@ -859,7 +861,8 @@ public class IndexPlanService extends BasicService {
                 }
             }
 
-            for (ListIterator<NAggregationGroup> aggGroupItr = copyRuleBaseIndex.getAggregationGroups().listIterator(); aggGroupItr.hasNext();) {
+            for (ListIterator<NAggregationGroup> aggGroupItr = copyRuleBaseIndex.getAggregationGroups()
+                    .listIterator(); aggGroupItr.hasNext();) {
                 NAggregationGroup aggGroup = aggGroupItr.next();
                 Integer[] aggGroupMeasures = aggGroup.getMeasures();
                 for (int i = 0; i < aggGroupMeasures.length; i++) {

@@ -1499,7 +1499,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getDUPLICATEP_LAYOUT() {
+    public String getDUPLICATE_LAYOUT() {
         return "已存在相同的索引。";
     }
 

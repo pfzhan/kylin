@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -434,8 +435,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCreateDuplicateTableIndex() {
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("The same index already exists.");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getDUPLICATE_LAYOUT());
         indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",

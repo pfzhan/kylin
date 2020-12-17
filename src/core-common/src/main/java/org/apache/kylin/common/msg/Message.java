@@ -1278,7 +1278,7 @@ public class Message {
         return "The table cannot be loaded in the data source: {%s}. Please check the data source.";
     }
 
-    public String getDUPLICATEP_LAYOUT() {
+    public String getDUPLICATE_LAYOUT() {
         return "The same index already exists.";
     }
 
