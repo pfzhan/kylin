@@ -175,12 +175,14 @@ public class DFBuildJob extends SparkApplication {
 
     protected void buildSnapshot() throws IOException {
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
+        SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
         if (!config.isSnapshotManualManagementEnabled()) {
             //snapshot building
-            SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
             snapshotBuilder.buildSnapshot(dfMgr.getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
         } else {
-            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}", dataflowId);
+            //calculate total rows
+            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows", dataflowId);
+            snapshotBuilder.calculateTotalRows(dfMgr.getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
         }
     }
 

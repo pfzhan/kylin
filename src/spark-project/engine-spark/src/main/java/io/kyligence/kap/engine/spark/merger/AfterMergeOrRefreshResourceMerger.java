@@ -197,10 +197,11 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             val partitionIds = ExecutableUtils.getPartitionIds(abstractExecutable);
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
                     abstractExecutable.getJobType(), partitionIds);
+            NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dataFlowId);
             if (ExecutableUtils.needBuildSnapshots(abstractExecutable)) {
-                NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dataFlowId);
                 mergeSnapshotMeta(dataflow, buildResourceStore);
             }
+            mergeTableExtMeta(dataflow, buildResourceStore);
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
             KylinConfig config = KylinConfig.getInstanceFromEnv();

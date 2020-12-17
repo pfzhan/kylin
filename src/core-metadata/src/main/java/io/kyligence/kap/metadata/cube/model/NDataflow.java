@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -196,11 +197,16 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         // cubing plan
         r.add(getIndexPlan().getResourcePath());
 
-        // project & model & tables
+        // project & model & tables & tables exd
         r.add(getModel().getProjectInstance().getResourcePath());
         r.add(getModel().getResourcePath());
+        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (TableRef t : getModel().getAllTables()) {
             r.add(t.getTableDesc().getResourcePath());
+            val tableExtDesc = tableMetadataManager.getTableExtIfExists(t.getTableDesc());
+            if (tableExtDesc != null) {
+                r.add(tableExtDesc.getResourcePath());
+            }
         }
 
         return r;

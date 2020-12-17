@@ -102,7 +102,9 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
             val copy = localTblMgr.copyForWrite(localTbDesc);
             copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
             val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
-            copyExt.setOriginalSize(remoteTblMgr.getOrCreateTableExt(remoteTbDesc).getOriginalSize());
+            TableExtDesc remoteTblExtDesc = remoteTblMgr.getOrCreateTableExt(remoteTbDesc);
+            copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
+            copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());
             localTblMgr.saveTableExt(copyExt);
             localTblMgr.updateTableDesc(copy);
         }

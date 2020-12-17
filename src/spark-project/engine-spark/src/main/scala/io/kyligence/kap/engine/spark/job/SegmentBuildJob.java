@@ -112,17 +112,19 @@ public class SegmentBuildJob extends SegmentJob {
 
     // Copied from DFBuildJob
     protected void tryRefreshSnapshots() throws IOException {
+        SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
         if (config.isSnapshotManualManagementEnabled()) {
-            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}", dataflowId);
+            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows", dataflowId);
+            snapshotBuilder.calculateTotalRows(getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
             return;
         } else if (!needBuildSnapshots()) {
-            logger.info("Skip snapshot build, dataflow {}", dataflowId);
+            logger.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
+            snapshotBuilder.calculateTotalRows(getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
             return;
         }
         logger.info("Refresh SNAPSHOT.");
         //snapshot building
-        SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
-        snapshotBuilder.buildSnapshot(getDataflow(dataflowId).getModel(), // 
+        snapshotBuilder.buildSnapshot(getDataflow(dataflowId).getModel(), //
                 ss, //
                 getIgnoredSnapshotTables());
         logger.info("Finished SNAPSHOT.");

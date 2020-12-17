@@ -107,7 +107,6 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
 
     protected void mergeSnapshotMeta(NDataflow dataflow, ResourceStore remoteResourceStore) {
         if (!isSnapshotManualManagementEnabled(remoteResourceStore)) {
-
             val remoteTblMgr = NTableMetadataManager.getInstance(remoteResourceStore.getConfig(), getProject());
             val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
             dataflow.getModel().getLookupTables().stream().forEach(remoteTableRef -> {
@@ -117,12 +116,27 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
 
                 val copy = localTblMgr.copyForWrite(localTbDesc);
                 copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
-                val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
-                copyExt.setOriginalSize(remoteTblMgr.getOrCreateTableExt(remoteTbDesc).getOriginalSize());
-                localTblMgr.saveTableExt(copyExt);
                 localTblMgr.updateTableDesc(copy);
             });
         }
+    }
+
+    protected void mergeTableExtMeta(NDataflow dataflow, ResourceStore remoteResourceStore) {
+        val remoteTblMgr = NTableMetadataManager.getInstance(remoteResourceStore.getConfig(), getProject());
+        val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        dataflow.getModel().getLookupTables().forEach(remoteTableRef -> {
+            val tableName = remoteTableRef.getTableIdentity();
+            val localTbDesc = localTblMgr.getTableDesc(tableName);
+            val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
+
+            val remoteTblExtDesc = remoteTblMgr.getOrCreateTableExt(remoteTbDesc);
+            val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
+            if (remoteTblExtDesc.getOriginalSize() != -1) {
+                copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
+            }
+            copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());
+            localTblMgr.saveTableExt(copyExt);
+        });
     }
 
     protected boolean isSnapshotManualManagementEnabled(ResourceStore configStore) {

@@ -40,7 +40,7 @@ import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.metadata.model.TableDesc
+import org.apache.kylin.metadata.model.{TableDesc, TableExtDesc}
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
@@ -74,29 +74,17 @@ class SnapshotBuilder extends Logging with Serializable {
   }
 
   // scalastyle:off
-  def updateMeta(toBuildTableDesc: Set[TableDesc], newSnapMap: util.Map[String, String], snapSizeMap: ConcurrentHashMap[String, Long]): Unit = {
+  def updateMeta(toBuildTableDesc: Set[TableDesc], newSnapMap: util.Map[String, String], snapSizeMap: ConcurrentHashMap[String, (Long, Long)]): Unit = {
     val project = toBuildTableDesc.iterator.next.getProject
     val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
     toBuildTableDesc.foreach(table => {
       val copy = tableMetadataManager.copyForWrite(table);
       copy.setLastSnapshotPath(newSnapMap.get(copy.getIdentity))
 
-      var tableExt = tableMetadataManager.getOrCreateTableExt(table)
-      tableExt = tableMetadataManager.copyForWrite(tableExt)
-      tableExt.setOriginalSize(snapSizeMap.get(table.getIdentity))
-
-      // define the updating operations
-      class TableUpdateOps extends UnitOfWork.Callback[TableDesc] {
-        override def process(): TableDesc = {
-          tableMetadataManager.updateTableDesc(copy)
-          tableMetadataManager.saveTableExt(tableExt)
-          copy
-        }
-      }
-      UnitOfWork.doInTransactionWithRetry(new TableUpdateOps, project)
+      updateTableSnapshot(project, table, newSnapMap)
+      updateTableExt(project, table, snapSizeMap)
     }
     )
-
   }
 
   @throws[IOException]
@@ -125,10 +113,84 @@ class SnapshotBuilder extends Logging with Serializable {
     buildSnapshot(ss, toBuildTableDesc)
   }
 
+  def updateTableSnapshot(project: String, table: TableDesc, newSnapMap: util.Map[String, String]): Unit = {
+    val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
+    val copy = tableMetadataManager.copyForWrite(table);
+    copy.setLastSnapshotPath(newSnapMap.get(copy.getIdentity))
+
+    // define the updating operations
+    class TableUpdateOps extends UnitOfWork.Callback[TableDesc] {
+      override def process(): TableDesc = {
+        tableMetadataManager.updateTableDesc(copy)
+        copy
+      }
+    }
+    UnitOfWork.doInTransactionWithRetry(new TableUpdateOps, project)
+  }
+
+  def updateTableExt(project: String, table: TableDesc, map: ConcurrentHashMap[String, (Long, Long)]): Unit = {
+    val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
+    var tableExt = tableMetadataManager.getOrCreateTableExt(table)
+    tableExt = tableMetadataManager.copyForWrite(tableExt)
+
+    val tuple2 = map.get(table.getIdentity)
+    if (tuple2._2 != -1) {
+      tableExt.setOriginalSize(tuple2._1)
+    }
+    tableExt.setTotalRows(tuple2._2)
+
+    // define the updating operations
+    class TableUpdateOps extends UnitOfWork.Callback[TableExtDesc] {
+      override def process(): TableExtDesc = {
+        tableMetadataManager.saveTableExt(tableExt)
+        tableExt
+      }
+    }
+    UnitOfWork.doInTransactionWithRetry(new TableUpdateOps, project)
+  }
+
+  @throws[IOException]
+  def calculateTotalRows(model: NDataModel, ss: SparkSession, ignoredSnapshotTables: java.util.Set[String]): Unit = {
+    val toCalculateTableDesc = toBeCalculateTableDesc(model, ignoredSnapshotTables)
+    val map = new ConcurrentHashMap[String, (Long, Long)]
+
+    toCalculateTableDesc.foreach(tableDesc => {
+      val totalRows = calculateTableTotalRows(tableDesc.getLastSnapshotPath, tableDesc, ss)
+      map.put(tableDesc.getIdentity, Tuple2.apply(-1, totalRows))
+    })
+
+    toCalculateTableDesc.foreach(table => {
+      updateTableExt(model.getProject, table, map)
+    })
+  }
+
+  def calculateTableTotalRows(snapshotPath: String, tableDesc: TableDesc, ss: SparkSession): Long = {
+    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
+    val fs = HadoopUtil.getWorkingFileSystem
+    try {
+      if (snapshotPath != null) {
+        val path = new Path(baseDir, snapshotPath)
+        if (fs.exists(path)) {
+          logInfo(s"Calculate table ${tableDesc.getIdentity}'s total rows from snapshot ${path}")
+          val totalRows = ss.read.parquet(path.toString).count()
+          logInfo(s"Table ${tableDesc.getIdentity}'s total rows is ${totalRows}'")
+          return totalRows
+        }
+      }
+    } catch {
+      case e: Throwable => logWarning(s"Calculate table ${tableDesc.getIdentity}'s total rows exception", e)
+    }
+    logInfo(s"Calculate table ${tableDesc.getIdentity}'s total rows from source data")
+    val sourceData = getSourceData(ss, tableDesc)
+    val totalRows = sourceData.count()
+    logInfo(s"Table ${tableDesc.getIdentity}'s total rows is ${totalRows}'")
+    totalRows
+  }
+
   // scalastyle:off
-  def executeBuildSnapshot(ss: SparkSession, toBuildTableDesc: Set[TableDesc], baseDir: String, isParallelBuild: Boolean, snapshotParallelBuildTimeoutSeconds: Int): (java.util.Map[String, String], ConcurrentHashMap[String, Long]) = {
+  def executeBuildSnapshot(ss: SparkSession, toBuildTableDesc: Set[TableDesc], baseDir: String, isParallelBuild: Boolean, snapshotParallelBuildTimeoutSeconds: Int): (java.util.Map[String, String], ConcurrentHashMap[String, (Long, Long)]) = {
     val newSnapMap = Maps.newHashMap[String, String]
-    val snapSizeMap = new ConcurrentHashMap[String, Long]
+    val snapSizeMap = new ConcurrentHashMap[String, (Long, Long)]
     val fs = HadoopUtil.getWorkingFileSystem
     val kylinConf = KylinConfig.getInstanceFromEnv
 
@@ -186,6 +248,27 @@ class SnapshotBuilder extends Logging with Serializable {
 
   }
 
+  def toBeCalculateTableDesc(model: NDataModel, ignoredSnapshotTables: java.util.Set[String]): Set[TableDesc] = {
+    val project = model.getRootFactTable.getTableDesc.getProject
+    val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
+    val toBuildTableDesc = model.getJoinTables.asScala
+      .filter(lookupDesc => {
+        val tableDesc = lookupDesc.getTableRef.getTableDesc
+        val isLookupTable = model.isLookupTable(lookupDesc.getTableRef)
+        isLookupTable && !isIgnoredSnapshotTable(tableDesc, ignoredSnapshotTables)
+      })
+      .map(_.getTableRef.getTableDesc)
+      .filter(tableDesc => {
+        val tableExtDesc = tableManager.getTableExtIfExists(tableDesc)
+        tableExtDesc == null || tableExtDesc.getTotalRows == 0L
+      })
+      .toSet
+
+    val toBuildTableDescTableName = toBuildTableDesc.map(_.getIdentity)
+    logInfo(s"table to be calculate total rows: $toBuildTableDescTableName")
+    toBuildTableDesc
+  }
+
   def distinctTableDesc(model: NDataModel, ignoredSnapshotTables: java.util.Set[String]): Set[TableDesc] = {
     val toBuildTableDesc = model.getJoinTables.asScala
       .filter(lookupDesc => {
@@ -221,14 +304,14 @@ class SnapshotBuilder extends Logging with Serializable {
     }
   }
 
-  def buildSingleSnapshot(ss: SparkSession, tableDesc: TableDesc, baseDir: String, fs: FileSystem, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
+  def buildSingleSnapshot(ss: SparkSession, tableDesc: TableDesc, baseDir: String, fs: FileSystem, concurrentMap: ConcurrentMap[String, (Long, Long)]): (String, String) = {
     val sourceData = getSourceData(ss, tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
     sourceData.coalesce(1).write.parquet(resourcePath)
     val columnSize = sourceData.columns.length
-    computeSnapshotSize(sourceData, tableDesc, concurrentMap, columnSize)
+    computeSnapshotSize(sourceData, tableDesc, concurrentMap, columnSize, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
     val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
     val currSnapMd5 = getFileMd5(currSnapFile)
     val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
@@ -268,7 +351,7 @@ class SnapshotBuilder extends Logging with Serializable {
     (tableDesc.getIdentity, snapshotTablePath)
   }
 
-  def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc, concurrentMap: ConcurrentMap[String, Long], columnSize: Int): Unit = {
+  def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc, concurrentMap: ConcurrentMap[String, (Long, Long)], columnSize: Int, totalRows: Long): Unit = {
     val ds = sourceData.mapPartitions {
       iter =>
         var totalSize = 0l;
@@ -284,14 +367,14 @@ class SnapshotBuilder extends Logging with Serializable {
     }(Encoders.scalaLong)
 
     if (ds.isEmpty) {
-      concurrentMap.put(tableDesc.getIdentity, 0)
+      concurrentMap.put(tableDesc.getIdentity, (0, totalRows))
     } else {
       val size = ds.reduce(_ + _)
-      concurrentMap.put(tableDesc.getIdentity, size)
+      concurrentMap.put(tableDesc.getIdentity, (size, totalRows))
     }
   }
 
-  def buildSingleSnapshotWithoutMd5(ss: SparkSession, tableDesc: TableDesc, baseDir: String, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
+  def buildSingleSnapshotWithoutMd5(ss: SparkSession, tableDesc: TableDesc, baseDir: String, concurrentMap: ConcurrentMap[String, (Long, Long)]): (String, String) = {
     val sourceData = getSourceData(ss, tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
     val snapshotTablePath = tablePath + "/" + UUID.randomUUID
@@ -321,7 +404,7 @@ class SnapshotBuilder extends Logging with Serializable {
       sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
     val columnSize = sourceData.columns.length
-    computeSnapshotSize(sourceData, tableDesc, concurrentMap, columnSize)
+    computeSnapshotSize(sourceData, tableDesc, concurrentMap, columnSize, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
     (tableDesc.getIdentity, snapshotTablePath)
   }
 }

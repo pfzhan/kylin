@@ -92,4 +92,20 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(indexPlanConfig.base(), config.base());
         Assert.assertEquals(3, config.getExtendedOverrides().size());
     }
+
+    @Test
+    public void testCollectPrecalculationResource() {
+        val dsMgr = NDataflowManager.getInstance(getTestConfig(), "cc_test");
+        val df = dsMgr.getDataflowByModelAlias("test_model");
+        val strings = df.collectPrecalculationResource();
+        Assert.assertEquals(9, strings.size());
+
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.equals("/_global/project/cc_test.json")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/model_desc/")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/index_plan/")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/dataflow/")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/dataflow_details/")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/table/")));
+        Assert.assertTrue(strings.stream().anyMatch(path -> path.startsWith("/cc_test/table_exd/")));
+    }
 }
