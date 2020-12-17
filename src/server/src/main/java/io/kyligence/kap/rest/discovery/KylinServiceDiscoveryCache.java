@@ -22,16 +22,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest;
+package io.kyligence.kap.rest.discovery;
 
 import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.x.discovery.ServiceCache;
@@ -46,26 +51,23 @@ import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.val;
 
 @ConditionalOnZookeeperEnabled
 @Component
-public class KylinServiceWatcher {
-    private static final Logger logger = LoggerFactory.getLogger(KylinServiceWatcher.class);
+public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
+    private static final Logger logger = LoggerFactory.getLogger(KylinServiceDiscoveryCache.class);
 
     @Autowired
-    ServiceDiscovery<ZookeeperInstance> serviceDiscovery;
+    private KylinServiceDiscoveryClient kylinServiceDiscoveryClient;
 
-    @Autowired
-    ClusterManager clusterManager;
-
-    private ServiceCache<ZookeeperInstance> allServiceCache;
-    private ServiceCache<ZookeeperInstance> queryServiceCache;
-    private ServiceCache<ZookeeperInstance> jobServiceCache;
+    private final Map<ServerModeEnum, ServiceCache<ZookeeperInstance>> serverModeCacheMap;
 
     private static final Callback UPDATE_ALL_EPOCHS = () -> {
         try {
@@ -75,25 +77,28 @@ public class KylinServiceWatcher {
         }
     };
 
-    public KylinServiceWatcher(ServiceDiscovery<ZookeeperInstance> serviceDiscovery) throws Exception {
+    public KylinServiceDiscoveryCache(ServiceDiscovery<ZookeeperInstance> serviceDiscovery) throws Exception {
+        serverModeCacheMap = Maps.newHashMap();
         // all server cache
-        allServiceCache = createServiceCache(serviceDiscovery, ServerModeEnum.ALL, UPDATE_ALL_EPOCHS);
+        serverModeCacheMap.put(ServerModeEnum.ALL,
+                createServiceCache(serviceDiscovery, ServerModeEnum.ALL, UPDATE_ALL_EPOCHS));
 
         // query server cache
-        queryServiceCache = createServiceCache(serviceDiscovery, ServerModeEnum.QUERY, () -> {
+        serverModeCacheMap.put(ServerModeEnum.QUERY, createServiceCache(serviceDiscovery, ServerModeEnum.QUERY, () -> {
 
-        });
+        }));
 
         // job server cache
-        jobServiceCache = createServiceCache(serviceDiscovery, ServerModeEnum.JOB, UPDATE_ALL_EPOCHS);
+        serverModeCacheMap.put(ServerModeEnum.JOB,
+                createServiceCache(serviceDiscovery, ServerModeEnum.JOB, UPDATE_ALL_EPOCHS));
 
         start();
     }
 
     private void start() throws Exception {
-        allServiceCache.start();
-        queryServiceCache.start();
-        jobServiceCache.start();
+        for (ServiceCache<ZookeeperInstance> serviceCache : serverModeCacheMap.values()) {
+            serviceCache.start();
+        }
     }
 
     private ServiceCache<ZookeeperInstance> createServiceCache(ServiceDiscovery<ZookeeperInstance> serviceDiscovery,
@@ -104,14 +109,14 @@ public class KylinServiceWatcher {
         serviceCache.addListener(new ServiceCacheListener() {
             @Override
             public void cacheChanged() {
-                List<ServiceInstance<ZookeeperInstance>> instances = serviceCache.getInstances();
-                List<String> nodes = getServerNodes(instances);
-                System.setProperty("kylin.server.cluster-mode-" + serverMode.getName(), StringUtils.join(nodes, ","));
-                logger.info("kylin.server.cluster-mode-{} update to {}", serverMode.getName(), nodes);
+                List<String> serverNodes = getServerStrByServerMode(serverMode);
+                System.setProperty("kylin.server.cluster-mode-" + serverMode.getName(),
+                        StringUtils.join(serverNodes, ","));
+                logger.info("kylin.server.cluster-mode-{} update to {}", serverMode.getName(), serverNodes);
 
                 // current node is active all/job nodes, try to update all epochs
-                if (clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost)
-                        .anyMatch(server -> Objects.equals(server, clusterManager.getLocalServer()))) {
+                if (getServerInfoByServerMode(ServerModeEnum.JOB).stream().map(ServerInfoResponse::getHost).anyMatch(
+                        server -> Objects.equals(server, kylinServiceDiscoveryClient.getLocalServiceServer()))) {
                     logger.debug("Current node is active node, try to update all epochs");
                     action.action();
                 }
@@ -126,16 +131,42 @@ public class KylinServiceWatcher {
         return serviceCache;
     }
 
-    private List<String> getServerNodes(List<ServiceInstance<ZookeeperInstance>> instances) {
-        if (instances != null) {
-            return instances.stream().map(instance -> instance.getAddress() + ":" + instance.getPort())
-                    .collect(Collectors.toList());
-        } else {
-            return Lists.newArrayList();
-        }
+    private ServiceCache<ZookeeperInstance> getServiceCacheByMode(@Nonnull ServerModeEnum serverModeEnum) {
+        Preconditions.checkNotNull(serverModeEnum, "server mode is null");
+
+        val serviceCache = serverModeCacheMap.get(serverModeEnum);
+
+        Preconditions.checkNotNull(serviceCache, "cannot find the server cache :" + serverModeEnum.getName());
+
+        return serviceCache;
     }
 
-    interface Callback {
-        void action();
+    private List<String> getServerStrByServerMode(@Nonnull ServerModeEnum serverModeEnum) {
+        Preconditions.checkNotNull(serverModeEnum, "server mode is null!");
+
+        return getServiceCacheByMode(serverModeEnum).getInstances().stream()
+                .map(KylinServiceDiscoveryCache::instance2ServerStr).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ServerInfoResponse> getServerInfoByServerMode(@Nullable ServerModeEnum... serverModeEnums) {
+        List<ServerInfoResponse> serverInfoResponses = Lists.newArrayList();
+        if (ArrayUtils.isEmpty(serverModeEnums)) {
+            return serverInfoResponses;
+        }
+
+        for (ServerModeEnum serverModeEnum : serverModeEnums) {
+            serverInfoResponses.addAll(getServiceCacheByMode(serverModeEnum).getInstances().stream()
+                    .map(serviceIns -> new ServerInfoResponse(instance2ServerStr(serviceIns), serverModeEnum.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        return serverInfoResponses;
+    }
+
+    private static String instance2ServerStr(@Nonnull ServiceInstance<ZookeeperInstance> serviceInstance) {
+        Preconditions.checkNotNull(serviceInstance, "service instance is null");
+
+        return serviceInstance.getAddress() + ":" + serviceInstance.getPort();
     }
 }
