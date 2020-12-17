@@ -23,8 +23,12 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,10 +37,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
+import io.kyligence.kap.common.util.LogOutputTestCase;
+import io.kyligence.kap.tool.util.ToolUtilTest;
 
-public class InfluxDBToolTest extends NLocalFileMetadataTestCase {
+public class InfluxDBToolTest extends LogOutputTestCase {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -71,6 +75,23 @@ public class InfluxDBToolTest extends NLocalFileMetadataTestCase {
         InfluxDBTool.dumpInfluxDBMonitorMetrics(mainDir);
 
         Assert.assertTrue(new File(mainDir, "monitor_metrics").exists());
+    }
+
+    @Test
+    public void testDumpInfluxDBInPortUnavailable() throws Exception {
+        int port = ToolUtilTest.getFreePort();
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+        String originHost = kapConfig.getMetricsRpcServiceBindAddress();
+        kylinConfig.setProperty("kylin.metrics.influx-rpc-service-bind-address", "127.0.0.1:" + port);
+        InfluxDBTool.dumpInfluxDBMetrics(mainDir);
+        Assert.assertTrue(containsLog(String.format("Failed to Connect influxDB in 127.0.0.1:%s, skip dump.", port)));
+        clearLogs();
+        InfluxDBTool.dumpInfluxDBMonitorMetrics(mainDir);
+        Assert.assertTrue(containsLog(String.format("Failed to Connect influxDB in 127.0.0.1:%s, skip dump.", port)));
+        kylinConfig.setProperty("kylin.metrics.influx-rpc-service-bind-address", originHost);
     }
 
 }

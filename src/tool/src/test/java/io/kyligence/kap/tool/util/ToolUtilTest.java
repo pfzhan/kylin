@@ -23,7 +23,12 @@
  */
 package io.kyligence.kap.tool.util;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.net.ServerSocket;
+import java.net.Socket;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -32,9 +37,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ToolUtilTest extends NLocalFileMetadataTestCase {
 
@@ -68,4 +71,33 @@ public class ToolUtilTest extends NLocalFileMetadataTestCase {
         FileUtils.deleteQuietly(pidFie);
         Assert.assertTrue(jstackFile.exists());
     }
+
+    public static int getFreePort() throws Exception {
+        for (int port = 1025; port < 65000; ++port) {
+            if (!ToolUtil.isPortAvailable("127.0.0.1", port)) {
+                return port;
+            }
+        }
+        throw new RuntimeException("no available port");
+    }
+
+    @Test
+    public void testIsPortAvailable() throws Exception {
+        int port = getFreePort();
+        Assert.assertFalse(ToolUtil.isPortAvailable("127.0.0.1", port));
+        new Thread(() -> {
+            try {
+                ServerSocket serverSocket = new ServerSocket(port);
+                Socket socket = serverSocket.accept();
+                socket.close();
+                serverSocket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+        Thread.sleep(3000);
+        Assert.assertTrue(ToolUtil.isPortAvailable("127.0.0.1", port));
+
+    }
+
 }

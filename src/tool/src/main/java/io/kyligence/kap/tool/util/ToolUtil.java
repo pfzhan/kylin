@@ -26,6 +26,8 @@ package io.kyligence.kap.tool.util;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,8 +49,8 @@ import org.apache.spark.sql.SparderEnv;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.query.util.ExtractFactory;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ToolUtil {
@@ -193,5 +195,17 @@ public class ToolUtil {
             es.shutdown();
         }
         return isRollUp;
+    }
+
+    public static boolean isPortAvailable(String ip, int port) {
+        boolean isAvailable;
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(ip, port), 1000);
+            isAvailable = socket.isConnected();
+        } catch (Exception e) {
+            log.warn("Connect failed", e);
+            isAvailable = false;
+        }
+        return isAvailable;
     }
 }

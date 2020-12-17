@@ -23,9 +23,8 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.metrics.service.MonitorDao;
-import io.kyligence.kap.tool.util.ToolUtil;
-import lombok.val;
+import java.io.File;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -33,7 +32,9 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import io.kyligence.kap.common.metrics.service.MonitorDao;
+import io.kyligence.kap.tool.util.ToolUtil;
+import lombok.val;
 
 public class InfluxDBTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -60,6 +61,15 @@ public class InfluxDBTool {
         try {
             KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
             String host = kapConfig.getMetricsRpcServiceBindAddress();
+            FileUtils.forceMkdir(destDir);
+            logger.info("Try connect {}.", host);
+            String ip = host.split(":")[0];
+            int port = Integer.parseInt(host.split(":")[1]);
+            if (!ToolUtil.isPortAvailable(ip, port)) {
+                logger.info("Failed to Connect influxDB in {}, skip dump.", host);
+                return;
+            }
+            logger.info("Connect successful.");
 
             File influxd = new File(INFLUXD_PATH);
             if (!influxd.exists()) {
@@ -69,8 +79,8 @@ public class InfluxDBTool {
 
             String cmd = String.format("%s backup -portable -database %s -host %s %s", influxd.getAbsolutePath(),
                     database, host, destDir.getAbsolutePath());
+            logger.info("InfluxDB backup cmd is {}.", cmd);
 
-            FileUtils.forceMkdir(destDir);
 
             val result = new CliCommandExecutor().execute(cmd, null);
             if (null != result.getCmd()) {
