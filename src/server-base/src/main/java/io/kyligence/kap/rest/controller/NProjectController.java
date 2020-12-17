@@ -350,7 +350,6 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<Object> cleanAsyncAccelerateTag(@RequestParam("project") String project,
             @RequestParam("user") String user) {
         checkProjectName(project);
-        checkProjectNotSemiAuto(project);
         checkRequiredArg("user", user);
         AsyncTaskManager.cleanAccelerationTagByUser(project, user);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");

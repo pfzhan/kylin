@@ -31,6 +31,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -38,6 +39,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -106,6 +108,12 @@ public class AsyncTaskManager {
 
     public static void cleanAccelerationTagByUser(String project, String userName) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
+        if (!projectInstance.isSemiAutoMode()) {
+            log.debug("Recommendation is forbidden of project({}), there's no need to clean acceleration tag", project);
+            return;
+        }
+
         if (!EpochManager.getInstance(kylinConfig).checkEpochOwner(project) && !kylinConfig.isUTEnv()) {
             return;
         }
