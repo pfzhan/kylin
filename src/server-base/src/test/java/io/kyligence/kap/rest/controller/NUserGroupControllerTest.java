@@ -51,6 +51,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -65,6 +66,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -77,8 +79,10 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.request.UserGroupRequest;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
@@ -147,15 +151,15 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testGetUserWithGroup() throws Exception {
-        Mockito.doReturn(null).when(userGroupService).listAllAuthorities();
-        Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/users_with_group")
-                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0").param("page_size", "10")
+        Integer allDataSize = 20;
+        Integer pageSize = 10;
+        Mockito.doReturn(Lists.newArrayList(new UserGroup[allDataSize])).when(userGroupService).getUserGroupsFilterByGroupName(Mockito.anyString());
+        Mockito.doReturn(Lists.newArrayList(new UserGroupResponseKI[pageSize])).when(userGroupService).getUserGroupResponse(Mockito.any());
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/users_with_group")
+                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0").param("page_size", pageSize.toString())
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
-        Mockito.verify(nUserGroupController).getUsersWithGroup(0, 10, "");
+        Assert.assertTrue(mvcResult.getResponse().getContentAsString().contains(allDataSize.toString()));
     }
 
     @Test

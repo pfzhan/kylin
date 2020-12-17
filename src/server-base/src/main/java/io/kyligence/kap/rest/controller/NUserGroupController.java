@@ -133,7 +133,7 @@ public class NUserGroupController extends NBasicController {
         List<UserGroup> groups = userGroupService.getUserGroupsFilterByGroupName(userGroupName);
         List<UserGroup> subList = PagingUtil.cutPage(groups, pageOffset, pageSize);
         List<UserGroupResponseKI> result = userGroupService.getUserGroupResponse(subList);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, result.size()),
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, groups.size()),
                 "get users with group and id");
     }
 
