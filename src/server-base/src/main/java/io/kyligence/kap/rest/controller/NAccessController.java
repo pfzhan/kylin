@@ -33,6 +33,7 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -69,6 +70,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -198,6 +200,20 @@ public class NAccessController extends NBasicController {
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(sublist, resultsAfterFuzzyMatching),
                 "");
+    }
+
+
+    @ApiOperation(value = "get users and groups for project", notes = "")
+    @GetMapping(value = "/{uuid:.+}/all", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @ResponseBody
+    public EnvelopeResponse<Map<String, List<String>>> getProjectUsersAndGroups(@PathVariable("uuid") String uuid) {
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
+        Map<String, List<String>> result = Maps.newHashMap();
+        List<String> users = accessService.getAllAclSids(ae, MetadataConstants.TYPE_USER);
+        List<String> groups = accessService.getAllAclSids(ae, MetadataConstants.TYPE_GROUP);
+        result.put("user", users);
+        result.put("group", groups);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     /**

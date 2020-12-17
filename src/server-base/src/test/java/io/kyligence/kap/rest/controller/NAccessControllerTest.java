@@ -222,6 +222,17 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetProjectUsersAndGroups() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/access/{uuid:.+}/all", uuid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()
+                );
+        Mockito.verify(nAccessController).getProjectUsersAndGroups(uuid);
+    }
+
+    @Test
     public void testGetAvailableUsersForModel() throws Exception {
         String type = AclEntityType.N_DATA_MODEL;
 
