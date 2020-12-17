@@ -2049,6 +2049,10 @@ public abstract class KylinConfigBase implements Serializable {
                 TimeUnit.SECONDS);
     }
 
+    public int getRenewEpochWorkerPoolSize() {
+        return Integer.parseInt(getOptional("kylin.server.renew-epoch-pool-size", "3"));
+    }
+
     public boolean getJStackDumpTaskEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.task.jstack-dump-enabled", "true"));
     }

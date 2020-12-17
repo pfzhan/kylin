@@ -45,6 +45,7 @@ package io.kyligence.kap.metadata.epoch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -91,9 +92,11 @@ public class EpochOrchestrator implements IKeep {
 
         long pollSecond = kylinConfig.getEpochCheckerIntervalSecond();
         logger.info("Try to update epoch every {} seconds", pollSecond);
-        EpochChecker checker = new EpochChecker();
-        checkerPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("EpochChecker"));
-        checkerPool.scheduleWithFixedDelay(checker, 1, pollSecond, TimeUnit.SECONDS);
+        logger.info("renew executor work size is :{}", kylinConfig.getRenewEpochWorkerPoolSize());
+
+        checkerPool = Executors.newScheduledThreadPool(2, new NamedThreadFactory("EpochChecker"));
+        checkerPool.scheduleWithFixedDelay(new EpochChecker(), 1, pollSecond, TimeUnit.SECONDS);
+        checkerPool.scheduleAtFixedRate(new EpochRenewer(), pollSecond, pollSecond, TimeUnit.SECONDS);
 
         EventBusFactory.getInstance().register(new ReloadMetadataListener(), true);
     }
@@ -116,7 +119,7 @@ public class EpochOrchestrator implements IKeep {
         isCheckerRunning = isRunning;
     }
 
-    protected class EpochChecker implements Runnable {
+    class EpochChecker implements Runnable {
 
         @Override
         public synchronized void run() {
@@ -124,9 +127,28 @@ public class EpochOrchestrator implements IKeep {
                 if (!isCheckerRunning) {
                     return;
                 }
-                epochMgr.updateAllEpochs();
+                epochMgr.getEpochUpdateManager().tryUpdateAllEpochs(false);
             } catch (Exception e) {
                 logger.error("Failed to update epochs");
+            }
+        }
+    }
+
+    class EpochRenewer implements Runnable {
+
+        private final AtomicBoolean raceCheck = new AtomicBoolean(false);
+
+        @Override
+        public void run() {
+            try {
+                if (!isCheckerRunning || !raceCheck.compareAndSet(false, true)) {
+                    return;
+                }
+                epochMgr.getEpochUpdateManager().tryRenewOwnedEpochs();
+            } catch (Exception e) {
+                logger.error("Failed to renew epochs");
+            } finally {
+                raceCheck.compareAndSet(true, false);
             }
         }
     }

@@ -27,10 +27,14 @@ package io.kyligence.kap.metadata.epoch;
 import static io.kyligence.kap.common.util.AddressUtil.MAINTAIN_MODE_MOCK_PORT;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -38,15 +42,15 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
@@ -59,6 +63,8 @@ import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.val;
 
 public class EpochManager implements IKeep {
@@ -72,9 +78,11 @@ public class EpochManager implements IKeep {
 
     private static final String MAINTAIN_OWNER;
 
-    private Set<String> currentEpochs = Sets.newCopyOnWriteArraySet();
-
-    private boolean started = false;
+    /**
+     * store all project is owned by current node, 
+     * but not in maintenance mode
+     */
+    private final Set<String> currentEpochs;
 
     private EpochStore epochStore;
 
@@ -90,6 +98,9 @@ public class EpochManager implements IKeep {
     private String identity;
     private EventBusFactory eventBusFactory;
 
+    @Getter
+    private final EpochUpdateManager epochUpdateManager;
+
     static {
         MAINTAIN_OWNER = AddressUtil.getMockPortAddress() + "|" + Long.MAX_VALUE;
     }
@@ -99,6 +110,185 @@ public class EpochManager implements IKeep {
         this.identity = EpochOrchestrator.getOwnerIdentity();
         eventBusFactory = EventBusFactory.getInstance();
         epochStore = EpochStore.getEpochStore(config);
+        currentEpochs = Sets.newConcurrentHashSet();
+        epochUpdateManager = new EpochUpdateManager();
+
+    }
+
+    @NoArgsConstructor
+    public class EpochUpdateManager {
+        private AtomicBoolean updateStarted = new AtomicBoolean(false);
+
+        private Pair<HashSet<String>, List<String>> checkAndGetProjectEpoch() {
+            if (checkInMaintenanceMode()) {
+                return null;
+            }
+            val oriEpochs = Sets.newHashSet(currentEpochs);
+            val projects = listProjectWithPermission();
+
+            if (CollectionUtils.isEmpty(projects)) {
+                logger.warn("project list is empty...");
+                return null;
+            }
+            removeOutdatedCurrentEpoch(projects);
+
+            return new Pair<>(oriEpochs, projects);
+        }
+
+        private void removeOutdatedCurrentEpoch(final List<String> projects) {
+            if (CollectionUtils.isEmpty(currentEpochs)) {
+                return;
+            }
+
+            val projectSets = new HashSet<>(projects);
+            val outdatedProjects = new HashSet<>(Sets.difference(currentEpochs, projectSets));
+            currentEpochs.retainAll(projectSets);
+
+            if (CollectionUtils.isNotEmpty(outdatedProjects)) {
+                logger.warn("outdated project list :{}:", String.join(",", outdatedProjects));
+            }
+        }
+
+        synchronized void tryRenewOwnedEpochs() {
+            logger.debug("Start renew owned epoch.........");
+
+            //1.check and get project
+            val epochSetProjectList = checkAndGetProjectEpoch();
+            if (Objects.isNull(epochSetProjectList)) {
+                return;
+            }
+            val oriEpochs = epochSetProjectList.getFirst();
+            val projects = epochSetProjectList.getSecond();
+
+            //2.only retain the project that is legal
+            if (CollectionUtils.isNotEmpty(oriEpochs) && CollectionUtils.isNotEmpty(projects)) {
+                oriEpochs.retainAll(projects);
+            }
+
+            if (CollectionUtils.isEmpty(oriEpochs)) {
+                logger.info("current node own not project, end renew...");
+                return;
+            }
+
+            //3.concurrent to update
+            val renewExecutor = Executors.newFixedThreadPool(config.getRenewEpochWorkerPoolSize(),
+                    new NamedThreadFactory("renew-epoch"));
+
+            CountDownLatch latch = new CountDownLatch(oriEpochs.size());
+
+            oriEpochs.forEach(project -> {
+                renewExecutor.submit(() -> {
+                    try {
+                        if (!updateEpochByProject(project)) {
+                            currentEpochs.remove(project);
+                        }
+                    } catch (Exception e) {
+                        logger.error("update epoch project:{} error,", project, e);
+                    } finally {
+                        latch.countDown();
+                    }
+
+                });
+            });
+
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                logger.error("renew epoch is interrupted....", e);
+                return;
+            }
+
+            notifierAfterUpdatedEpoch("renew", oriEpochs, currentEpochs);
+            logger.debug("End renew owned epoch.........");
+        }
+
+        synchronized void tryUpdateAllEpochs(boolean updateOwnedEpoch) {
+            logger.debug("Start updateAllEpochs:{}.........", updateOwnedEpoch);
+
+            //1.check and get project
+            val epochSetProjectList = checkAndGetProjectEpoch();
+            if (Objects.isNull(epochSetProjectList)) {
+                return;
+            }
+            val oriEpochs = epochSetProjectList.getFirst();
+            val projects = epochSetProjectList.getSecond();
+
+            //2.if update owned epoch only, remove all already project
+            if (!updateOwnedEpoch && CollectionUtils.isNotEmpty(oriEpochs)) {
+                projects.removeAll(oriEpochs);
+            }
+
+            if (CollectionUtils.isEmpty(projects)) {
+                logger.debug("don't have more new project, end update...");
+                return;
+            }
+
+            //3.update one by one
+            Set<String> newEpochs = tryUpdateEpochByProjects(projects);
+
+            //after update, the new origin epoch is oriEpochs - currentEpochs
+            val newOriEpochs = new HashSet<>(Sets.difference(oriEpochs, currentEpochs));
+
+            notifierAfterUpdatedEpoch("update", newOriEpochs, newEpochs);
+
+            logger.debug("End updateAllEpochs:{}.........", updateOwnedEpoch);
+        }
+
+        private Set<String> tryUpdateEpochByProjects(final List<String> projects) {
+            Set<String> newEpochs = new HashSet<>();
+
+            if (CollectionUtils.isEmpty(projects)) {
+                return newEpochs;
+            }
+
+            //random order
+            Collections.shuffle(projects);
+
+            projects.forEach(project -> {
+                if (updateEpochByProject(project)) {
+                    newEpochs.add(project);
+                    currentEpochs.add(project);
+                } else {
+                    currentEpochs.remove(project);
+                }
+            });
+
+            return newEpochs;
+        }
+
+        private boolean updateEpochByProject(String project) {
+            boolean success = tryUpdateEpoch(project, false);
+            return success || checkEpochOwner(project);
+        }
+
+        private void notifierAfterUpdatedEpoch(String updateTypeName, Set<String> oriEpochs, Set<String> newEpochs) {
+            logger.debug("after {} new epoch size:{}, Project {} owned by {}", updateTypeName, newEpochs.size(),
+                    String.join(",", newEpochs), identity);
+            Collection<String> escapedProjects = new HashSet<>(Sets.difference(oriEpochs, newEpochs));
+            for (String project : newEpochs) {
+                eventBusFactory.postAsync(new ProjectControlledNotifier(project));
+            }
+
+            if (CollectionUtils.isNotEmpty(escapedProjects)) {
+                for (String project : escapedProjects) {
+                    eventBusFactory.postAsync(new ProjectEscapedNotifier(project));
+                }
+
+                logger.warn("{} escaped project:{}", updateTypeName, String.join(",", escapedProjects));
+            }
+
+            if (updateStarted.compareAndSet(false, true)) {
+                eventBusFactory.postAsync(new EpochStartedNotifier());
+            }
+        }
+    }
+
+    private List<String> listProjectWithPermission() {
+        List<String> projects = config.getEpochCheckerEnabled() ? getProjectsToMarkOwner()
+                : NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
+                        .collect(Collectors.toList());
+        projects.add(GLOBAL);
+        return projects;
     }
 
     //for test
@@ -157,23 +347,6 @@ public class EpochManager implements IKeep {
                 .filter(p -> currentInstanceHasPermissionToOwn(p.getName(), false))
                 .map(ProjectInstance::getName)
                 .collect(Collectors.toList());
-    }
-
-    private Set<String> tryUpdateAllEpoch() {
-        Set<String> newEpochs = new HashSet<>();
-        List<String> prjs = config.getEpochCheckerEnabled() ? getProjectsToMarkOwner()
-                : NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
-                        .collect(Collectors.toList());
-
-        prjs.add(GLOBAL);
-
-        for (String prj : prjs) {
-            boolean success = tryUpdateEpoch(prj, false);
-            if (success || checkEpochOwner(prj)) {
-                newEpochs.add(prj);
-            }
-        }
-        return newEpochs;
     }
 
     /**
@@ -334,29 +507,7 @@ public class EpochManager implements IKeep {
     }
 
     public synchronized void updateAllEpochs() {
-        logger.debug("Start updateAllEpochs.........");
-        if (checkInMaintenanceMode()) {
-            return;
-        }
-        val oriEpochs = Sets.newHashSet(currentEpochs);
-        Set<String> newEpochs = tryUpdateAllEpoch();
-        logger.debug("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
-        Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
-        Collection<String> escapedProjects = CollectionUtils.removeAll(oriEpochs, retainPrjs);
-        for (String prj : newEpochs) {
-            eventBusFactory.postAsync(new ProjectControlledNotifier(prj));
-        }
-
-        for (String prj : escapedProjects) {
-            eventBusFactory.postAsync(new ProjectEscapedNotifier(prj));
-        }
-
-        if (!started) {
-            started = true;
-            eventBusFactory.postAsync(new EpochStartedNotifier());
-        }
-        logger.debug("End updateAllEpochs.........");
-        currentEpochs = newEpochs;
+        epochUpdateManager.tryUpdateAllEpochs(true);
     }
 
     public boolean checkEpochOwner(String epochTarget) {
@@ -389,7 +540,7 @@ public class EpochManager implements IKeep {
             return false;
         } else if (System.currentTimeMillis() - epoch.getLastEpochRenewTime() > config.getEpochExpireTimeSecond()
                 * 1000) {
-            logger.debug("Epoch {}'s last renew time is expired. Current time is {}, expiredTime is {}", epoch,
+            logger.warn("Epoch {}'s last renew time is expired. Current time is {}, expiredTime is {}", epoch,
                     System.currentTimeMillis(), config.getEpochExpireTimeSecond());
             return false;
         }
@@ -474,7 +625,7 @@ public class EpochManager implements IKeep {
         return false;
     }
 
-    // when shutdown
+    // when shutdown or meta data is inconsistent
     public void releaseOwnedEpochs() {
         logger.info("Release owned epochs");
         epochStore.executeWithTransaction(() -> {
