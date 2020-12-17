@@ -23,15 +23,17 @@
  */
 package io.kyligence.kap.rest.health;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.IOException;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class FileSystemHealthIndicatorTest extends NLocalFileMetadataTestCase {
 
@@ -46,15 +48,28 @@ public class FileSystemHealthIndicatorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testHeath() throws IOException {
+    public void testHeath() {
         FileSystemHealthIndicator indicator = Mockito
                 .spy(new FileSystemHealthIndicator());
 
+        ReflectionTestUtils.setField(indicator, "isHealth", true);
         Assert.assertEquals(indicator.health().getStatus(), Health.up().build().getStatus());
 
-        Mockito.doThrow(new IOException()).when(indicator).checkFileSystem();
-
+        ReflectionTestUtils.setField(indicator, "isHealth", false);
         Assert.assertEquals(indicator.health().getStatus(), Health.down().build().getStatus());
+    }
+
+    @Test
+    public void testHealthCheck() throws IOException {
+        FileSystemHealthIndicator indicator = Mockito.spy(new FileSystemHealthIndicator());
+        Assert.assertFalse((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
+
+        indicator.healthCheck();
+        Assert.assertTrue((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
+
+        Mockito.doThrow(IOException.class).when(indicator).checkFileSystem();
+        indicator.healthCheck();
+        Assert.assertFalse((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
     }
 
 }

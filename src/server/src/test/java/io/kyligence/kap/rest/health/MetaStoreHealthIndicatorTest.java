@@ -23,14 +23,16 @@
  */
 package io.kyligence.kap.rest.health;
 
-import io.kyligence.kap.common.util.ClusterConstant;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
 
 public class MetaStoreHealthIndicatorTest extends NLocalFileMetadataTestCase {
 
@@ -47,14 +49,28 @@ public class MetaStoreHealthIndicatorTest extends NLocalFileMetadataTestCase {
     @Test
     public void testHealth() {
         MetaStoreHealthIndicator indicator = Mockito.spy(new MetaStoreHealthIndicator());
-        indicator.setServerMode(ClusterConstant.ALL);
+        ReflectionTestUtils.setField(indicator, "isHealth", true);
         Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
 
-        indicator.setServerMode(ClusterConstant.JOB);
-        Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
+        ReflectionTestUtils.setField(indicator, "isHealth", false);
+        Assert.assertEquals(Health.down().build().getStatus(), indicator.health().getStatus());
+    }
 
-        indicator.setServerMode(ClusterConstant.QUERY);
-        Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
+    @Test
+    public void testHealthCheck() {
+        MetaStoreHealthIndicator indicator = Mockito.spy(new MetaStoreHealthIndicator());
+        Assert.assertFalse((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
+
+        indicator.healthCheck();
+        Assert.assertTrue((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
+
+        Mockito.doThrow(Exception.class).when(indicator).allNodeCheck();
+        indicator.healthCheck();
+        Assert.assertFalse((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
+
+        Mockito.doReturn(null).when(indicator).allNodeCheck();
+        indicator.healthCheck();
+        Assert.assertFalse((boolean) ReflectionTestUtils.getField(indicator, "isHealth"));
     }
 
 }

@@ -24,20 +24,60 @@
 
 package io.kyligence.kap.rest.health;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import com.google.common.annotations.VisibleForTesting;
+
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 
 @Component
 public class FileSystemHealthIndicator extends AbstractKylinHealthIndicator {
     public static final Logger logger = LoggerFactory.getLogger(FileSystemHealthIndicator.class);
+
+    private volatile boolean isHealth = false;
+
+    private static final ScheduledExecutorService FILE_SYSTEM_HEALTH_EXECUTOR = Executors.newScheduledThreadPool(1,
+            new NamedThreadFactory("FileSystemHealthChecker"));
+
+    @EventListener(AfterMetadataReadyEvent.class)
+    public void init() {
+        FILE_SYSTEM_HEALTH_EXECUTOR.scheduleWithFixedDelay(this::healthCheck, 0, HEALTH_CHECK_INTERVAL_MILLISECONDS,
+                TimeUnit.MILLISECONDS);
+    }
+
+    public void healthCheck() {
+        try {
+            checkFileSystem();
+            isHealth = true;
+            return;
+        } catch (IOException e) {
+            logger.error("File System is closed, try to clean cache.", e);
+        }
+
+        // verify again
+        try {
+            FileSystem.closeAll();
+            checkFileSystem();
+            isHealth = true;
+            return;
+        } catch (IOException e) {
+            logger.error("File System is closed AND DID NOT RECOVER", e);
+        }
+        isHealth = false;
+    }
 
     @VisibleForTesting
     public void checkFileSystem() throws IOException {
@@ -47,22 +87,6 @@ public class FileSystemHealthIndicator extends AbstractKylinHealthIndicator {
 
     @Override
     public Health health() {
-        try {
-            checkFileSystem();
-            return Health.up().build();
-        } catch (IOException e) {
-            logger.error("File System is closed, try to clean cache.", e);
-        }
-
-        // verify again
-        try {
-            FileSystem.closeAll();
-            checkFileSystem();
-            return Health.up().build();
-        } catch (IOException e) {
-            logger.error("File System is closed AND DID NOT RECOVER", e);
-        }
-
-        return Health.down().build();
+        return isHealth ? Health.up().build() : Health.down().build();
     }
 }

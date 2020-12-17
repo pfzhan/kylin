@@ -23,21 +23,28 @@
  */
 package io.kyligence.kap.rest.health;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.Objects;
-import java.util.UUID;
+import com.google.common.annotations.VisibleForTesting;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 
 @Component
 public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
@@ -48,19 +55,48 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
     private static final String UUID_PATH = "/UUID";
     private static final int MAX_RETRY = 3;
 
-    @Getter
-    @Setter
-    private String serverMode;
+    private volatile boolean isHealth = false;
+
+    private static final ScheduledExecutorService META_STORE_HEALTH_EXECUTOR = Executors.newScheduledThreadPool(1,
+            new NamedThreadFactory("MetaStoreHealthChecker"));
+
+    @EventListener(AfterMetadataReadyEvent.class)
+    public void init() {
+        META_STORE_HEALTH_EXECUTOR.scheduleWithFixedDelay(this::healthCheck, 0, HEALTH_CHECK_INTERVAL_MILLISECONDS,
+                TimeUnit.MILLISECONDS);
+    }
+
+    public void healthCheck() {
+        Health ret;
+        try {
+            if (KylinConfig.getInstanceFromEnv().isJobNode()) {
+                ret = allNodeCheck();
+            } else {
+                ret = queryNodeCheck();
+            }
+        } catch (Exception e) {
+            logger.error("Failed to check the metastore health", e);
+            isHealth = false;
+            return;
+        }
+
+        if (Objects.isNull(ret)) {
+            isHealth = false;
+            return;
+        }
+
+        isHealth = true;
+    }
 
     public MetaStoreHealthIndicator() {
+        System.out.println("bean init");
         this.config = KylinConfig.getInstanceFromEnv();
-        this.serverMode = this.config.getServerMode();
-
         this.warningResponseMs = KapConfig.wrap(config).getMetaStoreHealthWarningResponseMs();
         this.errorResponseMs = KapConfig.wrap(config).getMetaStoreHealthErrorResponseMs();
     }
 
-    private Health allNodeCheck() {
+    @VisibleForTesting
+    public Health allNodeCheck() {
         return UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.<Health> builder().skipAuditLog(true)
                 .unitName(UNIT_NAME).maxRetry(MAX_RETRY).processor(() -> {
                     ResourceStore store;
@@ -149,22 +185,6 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
 
     @Override
     public Health health() {
-        Health ret;
-        try {
-            if (KylinConfig.getInstanceFromEnv().isJobNode()) {
-                ret = allNodeCheck();
-            } else {
-                ret = queryNodeCheck();
-            }
-        } catch (Exception e) {
-            logger.error("Failed to check the metastore health", e);
-            return Health.down().build();
-        }
-
-        if (Objects.isNull(ret)) {
-            return Health.down().build();
-        }
-
-        return ret;
+        return isHealth ? Health.up().build() : Health.down().build();
     }
 }

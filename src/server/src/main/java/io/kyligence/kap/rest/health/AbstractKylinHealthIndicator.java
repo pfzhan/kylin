@@ -30,6 +30,7 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 
 public abstract class AbstractKylinHealthIndicator implements HealthIndicator {
     public static final Logger logger = LoggerFactory.getLogger(AbstractKylinHealthIndicator.class);
+    protected static final long HEALTH_CHECK_INTERVAL_MILLISECONDS = 3 * 1000L;
 
     protected KylinConfig config;
 
