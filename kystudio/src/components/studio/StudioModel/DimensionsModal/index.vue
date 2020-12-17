@@ -134,6 +134,8 @@
                     width="110">
                   </el-table-column>
                   <el-table-column
+                    header-align="right"
+                    align="right"
                     show-overflow-tooltip
                     :render-header="renderCardinalityHeader"
                     width="100">
