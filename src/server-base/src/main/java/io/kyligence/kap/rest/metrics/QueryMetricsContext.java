@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.metrics;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -168,12 +169,12 @@ public class QueryMetricsContext extends QueryMetrics {
         this.projectName = request.getProject();
 
         collectErrorType(context);
-        collectRealizationMetrics(response);
+        List<RealizationMetrics> realizationMetricList = collectRealizationMetrics(response);
 
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().isExactlyMatch(),
                 context.getMetrics().getSegCount(),
                 Objects.nonNull(this.errorType) && !this.errorType.equals(QueryHistory.NO_REALIZATION_FOUND_ERROR));
-
+        queryHistoryInfo.setRealizationMetrics(realizationMetricList);
         if (response.getNativeRealizations() != null) {
             List<List<String>> querySnapshots = Lists.newArrayList();
             for (NativeQueryRealization realization : response.getNativeRealizations()) {
@@ -185,6 +186,8 @@ public class QueryMetricsContext extends QueryMetrics {
 
             queryHistoryInfo.setQuerySnapshots(querySnapshots);
             this.queryHistoryInfo = queryHistoryInfo;
+        } else {
+            this.queryHistoryInfo = new QueryHistoryInfo();
         }
     }
 
@@ -220,12 +223,11 @@ public class QueryMetricsContext extends QueryMetrics {
         }
     }
 
-    private void collectRealizationMetrics(final SQLResponse response) {
+    private List<RealizationMetrics> collectRealizationMetrics(final SQLResponse response) {
+        List<RealizationMetrics> realizationMetricList = new ArrayList<>();
         if (CollectionUtils.isEmpty(response.getNativeRealizations())) {
-            return;
+            return realizationMetricList;
         }
-
-        StringBuilder realizationSb = new StringBuilder();
 
         for (NativeQueryRealization realization : response.getNativeRealizations()) {
             RealizationMetrics realizationMetrics = new RealizationMetrics(String.valueOf(realization.getLayoutId()),
@@ -235,12 +237,8 @@ public class QueryMetricsContext extends QueryMetrics {
             realizationMetrics.setSuite(suite);
             realizationMetrics.setQueryTime(queryTime);
             realizationMetrics.setProjectName(projectName);
-            this.realizationMetrics.add(realizationMetrics);
-            // example: modelId#layoutid#indexType
-            List<String> snapshots = realizationMetrics.getSnapshots() == null ? Lists.newArrayList()
-                    : realizationMetrics.getSnapshots();
-            realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
-                    + realizationMetrics.getIndexType() + "#" + snapshots + ";");
+            realizationMetrics.setSnapshots(realization.getSnapshots());
+            realizationMetricList.add(realizationMetrics);
 
             if (realization.getIndexType() == null)
                 continue;
@@ -254,8 +252,7 @@ public class QueryMetricsContext extends QueryMetrics {
             if (realization.getIndexType().equals(QueryMetricsContext.TABLE_SNAPSHOT))
                 tableSnapshotUsed = true;
         }
-
-        this.realizations = realizationSb.substring(0, realizationSb.length() - 1);
+        return realizationMetricList;
     }
 
     public Map<String, String> getInfluxdbTags() {
@@ -295,13 +292,6 @@ public class QueryMetricsContext extends QueryMetrics {
                 .put(QueryHistory.TOTAL_SCAN_COUNT, totalScanCount).put(QueryHistory.RESULT_ROW_COUNT, resultRowCount)
                 .put(QueryHistory.IS_CACHE_HIT, isCacheHit).put(QueryHistory.QUERY_STATUS, queryStatus)
                 .put(QueryHistory.QUERY_TIME, queryTime).put(QueryHistory.SQL_PATTERN, sqlPattern);
-
-        if (StringUtils.isNotEmpty(this.realizations)) {
-            builder.put(QueryHistory.REALIZATIONS, this.realizations);
-        } else {
-            builder.put(QueryHistory.REALIZATIONS, "");
-        }
-
         return builder.build();
     }
 }

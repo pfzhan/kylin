@@ -49,6 +49,8 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import lombok.Setter;
 
@@ -79,7 +81,12 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
             queryHistory.setEngineType("HIVE");
-            queryHistory.setQueryRealizations("89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index,82fa7671-a935-45f5-8779-85703601f49a#1#Agg Index");
+            QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
+            queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
+                    new QueryMetrics.RealizationMetrics("1", "Agg Index", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList()),
+                    new QueryMetrics.RealizationMetrics("1", "Agg Index", "82fa7671-a935-45f5-8779-85703601f49a", Lists.newArrayList())
+            }));
+            queryHistory.setQueryHistoryInfo(queryHistoryInfo);
             if (i == 4)
                 queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
             if (i == 5)

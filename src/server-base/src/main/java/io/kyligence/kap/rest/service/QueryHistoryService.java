@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
@@ -126,7 +127,9 @@ public class QueryHistoryService extends BasicService {
         }
 
         queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).forEach(query -> {
-            if (StringUtils.isEmpty(query.getQueryRealizations())) {
+            QueryHistoryInfo queryHistoryInfo = query.getQueryHistoryInfo();
+            if ((queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
+                    || queryHistoryInfo.getRealizationMetrics().isEmpty()) && StringUtils.isEmpty(query.getQueryRealizations())) {
                 queryHistories.add(query);
                 return;
             }

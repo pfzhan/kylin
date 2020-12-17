@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
@@ -70,7 +71,6 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         queryMetrics.setTotalScanCount(4096L);
         queryMetrics.setResultRowCount(500L);
         queryMetrics.setSubmitter("ADMIN");
-        queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
         queryMetrics.setErrorType("");
         queryMetrics.setCacheHit(true);
         queryMetrics.setIndexHit(true);
@@ -87,7 +87,9 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
         realizationMetricsList.add(realizationMetrics);
         realizationMetricsList.add(realizationMetrics);
-        queryMetrics.setRealizationMetrics(realizationMetricsList);
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
+        queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
         NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
         queryHistoryScheduler.offerQueryHistoryQueue(queryMetrics);
@@ -111,7 +113,6 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         queryMetrics.setTotalScanCount(4096L);
         queryMetrics.setResultRowCount(500L);
         queryMetrics.setSubmitter("ADMIN");
-        queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
         queryMetrics.setErrorType("");
         queryMetrics.setCacheHit(true);
         queryMetrics.setIndexHit(true);
@@ -128,7 +129,9 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
         realizationMetricsList.add(realizationMetrics);
         realizationMetricsList.add(realizationMetrics);
-        queryMetrics.setRealizationMetrics(realizationMetricsList);
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
+        queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
         NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
         queryHistoryScheduler.offerQueryHistoryQueue(queryMetrics);

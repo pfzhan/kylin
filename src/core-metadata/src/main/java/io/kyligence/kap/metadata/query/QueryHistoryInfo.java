@@ -55,6 +55,8 @@ public class QueryHistoryInfo implements Serializable {
     private String errorMsg;
     @JsonProperty("query_snapshots")
     private List<List<String>> querySnapshots = new ArrayList<>();
+    @JsonProperty("realization_metrics")
+    protected List<QueryMetrics.RealizationMetrics> realizationMetrics = new ArrayList<>();
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;

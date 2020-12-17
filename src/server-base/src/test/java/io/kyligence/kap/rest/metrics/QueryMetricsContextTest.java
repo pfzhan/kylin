@@ -131,7 +131,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("Other error", influxdbTags.get("error_type"));
         Assert.assertEquals("localhost:7070", influxdbTags.get("server"));
         Assert.assertEquals("suite_1", influxdbTags.get("suite"));
-        Assert.assertNull(influxdbTags.get("realizations"));
     }
 
     @Test
@@ -160,7 +159,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
         Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, influxdbTags.get("error_type"));
-        Assert.assertNull(influxdbTags.get("realizations"));
     }
 
     @Test
@@ -225,7 +223,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("Unknown", influxdbTags.get("suite"));
         Assert.assertEquals("MOCKUP", influxdbTags.get("engine_type"));
         Assert.assertEquals("Syntax error", influxdbTags.get("error_type"));
-        Assert.assertNull(influxdbTags.get("realizations"));
         Assert.assertEquals("false", influxdbTags.get("index_hit"));
 
         // assert fields
@@ -267,7 +264,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("ADMIN", influxdbTags.get("submitter"));
         Assert.assertEquals("Unknown", influxdbTags.get("suite"));
         Assert.assertEquals("CONSTANTS", influxdbTags.get("engine_type"));
-        Assert.assertNull(influxdbTags.get("realizations"));
         Assert.assertEquals("false", influxdbTags.get("index_hit"));
 
         // assert fields
@@ -311,11 +307,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("NATIVE", influxdbTags.get("engine_type"));
         Assert.assertEquals(QueryHistory.OTHER_ERROR, influxdbTags.get("error_type"));
         Assert.assertEquals("true", influxdbTags.get("index_hit"));
-
-        // assert query metric fields
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
-        Assert.assertEquals("mocked_model_id#1#Agg Index#[];mocked_model_id#20000000002#Table Index#[]",
-                influxdbFields.get("realizations"));
 
         // assert realizations
         final List<QueryMetrics.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();

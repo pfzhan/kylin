@@ -56,18 +56,15 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setTotalScanCount(4096L);
             queryMetrics.setResultRowCount(500L);
             queryMetrics.setSubmitter("ADMIN");
-            queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
             queryMetrics.setErrorType("");
             queryMetrics.setCacheHit(true);
             queryMetrics.setIndexHit(true);
             queryMetrics.setQueryTime(1584888338274L);
             queryMetrics.setProjectName(PROJECT);
             QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
-            queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
             QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
-                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea",
-                    Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
+                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea", Lists.newArrayList());
             realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
             realizationMetrics.setDuration(4591L);
             realizationMetrics.setQueryTime(1586405449387L);
@@ -76,7 +73,8 @@ public class QueryHistoryAccessCLI {
             List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
             realizationMetricsList.add(realizationMetrics);
             realizationMetricsList.add(realizationMetrics);
-            queryMetrics.setRealizationMetrics(realizationMetricsList);
+            queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
+            queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
             queryHistoryDAO.insert(queryMetrics);
 
             // clean test data

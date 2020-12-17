@@ -627,7 +627,6 @@ public class SemiV2CITest extends SemiAutoTestBase {
         queryMetrics.setTotalScanCount(recItemNode.get("total_scan_count").asInt());
         queryMetrics.setResultRowCount(recItemNode.get("result_row_count").asInt());
         queryMetrics.setSubmitter(recItemNode.get("submitter").asText());
-        queryMetrics.setRealizations(null);
         queryMetrics.setServer(recItemNode.get("server").asText());
         queryMetrics.setErrorType(recItemNode.get("error_type").asText());
         queryMetrics.setEngineType(recItemNode.get("engine_type").asText());

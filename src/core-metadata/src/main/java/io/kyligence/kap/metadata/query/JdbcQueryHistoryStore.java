@@ -446,8 +446,6 @@ public class JdbcQueryHistoryStore {
                 .map(queryHistoryTable.resultRowCount)
                 .toPropertyWhenPresent("resultRowCount", queryMetrics::getResultRowCount) //
                 .map(queryHistoryTable.querySubmitter).toPropertyWhenPresent("submitter", queryMetrics::getSubmitter) //
-                .map(queryHistoryTable.queryRealizations)
-                .toPropertyWhenPresent("realizations", queryMetrics::getRealizations) //
                 .map(queryHistoryTable.hostName).toPropertyWhenPresent("server", queryMetrics::getServer) //
                 .map(queryHistoryTable.errorType).toPropertyWhenPresent("errorType", queryMetrics::getErrorType) //
                 .map(queryHistoryTable.engineType).toPropertyWhenPresent("engineType", queryMetrics::getEngineType) //

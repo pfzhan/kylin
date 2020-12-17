@@ -49,6 +49,8 @@ import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.RawRecService;
 
@@ -150,7 +152,52 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
     }
 
+    @Test
+    public void testUpdateMetadataWithStringRealization() {
+        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.anyString())).thenReturn(queryHistoriesWithStringRealization()).thenReturn(null);
 
+        // before update dataflow usage, layout usage and last query time
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(DATAFLOW);
+        Assert.assertEquals(3, dataflow.getQueryHitCount());
+        Assert.assertNull(dataflow.getLayoutHitCount().get(20000000001L));
+        Assert.assertNull(dataflow.getLayoutHitCount().get(1000001L));
+        Assert.assertEquals(0L, dataflow.getLastQueryTime());
+
+        // before update accelerate ratio
+        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
+        Assert.assertNull(accelerateRatioManager.get());
+
+        // before update id offset
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
+        Assert.assertEquals(0, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
+
+        // run update
+        QueryHistoryTaskScheduler.QueryHistoryMetaUpdateRunner queryHistoryAccelerateRunner = //
+                qhAccelerateScheduler.new QueryHistoryMetaUpdateRunner();
+        queryHistoryAccelerateRunner.run();
+
+        // after update dataflow usage, layout usage and last query time
+        dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).getDataflow(DATAFLOW);
+        Assert.assertEquals(6, dataflow.getQueryHitCount());
+        Assert.assertEquals(2, dataflow.getLayoutHitCount().get(20000000001L).getDateFrequency()
+                .get(TimeUtil.getDayStart(QUERY_TIME)).intValue());
+        Assert.assertEquals(1, dataflow.getLayoutHitCount().get(1000001L).getDateFrequency()
+                .get(TimeUtil.getDayStart(QUERY_TIME)).intValue());
+        Assert.assertEquals(1586760398338L, dataflow.getLastQueryTime());
+
+        // after update accelerate ratio
+        AccelerateRatio ratio = accelerateRatioManager.get();
+        Assert.assertEquals(5, ratio.getNumOfQueryHitIndex());
+        Assert.assertEquals(8, ratio.getOverallQueryNum());
+
+        // after update id offset
+        Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset());
+    }
 
     @Test
     public void testNotUpdateMetadataForUserTriggered() {
@@ -185,8 +232,6 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(0, idOffsetManager.get().getQueryHistoryIdOffset());
     }
-
-
 
     @Test
     public void testBatchUpdate() {
@@ -247,6 +292,98 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory5.setDuration(1000L);
         queryHistory5.setQueryTime(QUERY_TIME);
         queryHistory5.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo5 = new QueryHistoryInfo();
+        queryHistoryInfo5.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
+                new QueryMetrics.RealizationMetrics(LAYOUT1, "Table Index", DATAFLOW, Lists.newArrayList())}));
+        queryHistory5.setQueryHistoryInfo(queryHistoryInfo5);
+        queryHistory5.setId(5);
+
+        QueryHistory queryHistory6 = new QueryHistory();
+        queryHistory6.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\n" + "FROM \"KYLIN_SALES\"");
+        queryHistory6.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory6.setDuration(1000L);
+        queryHistory6.setQueryTime(QUERY_TIME);
+        queryHistory6.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo6 = new QueryHistoryInfo();
+        queryHistoryInfo6.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
+                new QueryMetrics.RealizationMetrics(LAYOUT1, "Table Index", DATAFLOW, Lists.newArrayList())}));
+        queryHistory6.setQueryHistoryInfo(queryHistoryInfo6);
+        queryHistory6.setId(6);
+
+        QueryHistory queryHistory7 = new QueryHistory();
+        queryHistory7.setSqlPattern("SELECT count(*) FROM \"KYLIN_SALES\" group by LSTG_FORMAT_NAME");
+        queryHistory7.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory7.setDuration(1000L);
+        queryHistory7.setQueryTime(QUERY_TIME);
+        queryHistory7.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo7 = new QueryHistoryInfo();
+        queryHistoryInfo7.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
+                new QueryMetrics.RealizationMetrics(LAYOUT2, "Table Index", DATAFLOW, Lists.newArrayList())}));
+        queryHistory7.setQueryHistoryInfo(queryHistoryInfo7);
+        queryHistory7.setId(7);
+
+        QueryHistory queryHistory8 = new QueryHistory();
+        queryHistory8.setSqlPattern("SELECT count(*) FROM \"KYLIN_SALES\" group by LSTG_FORMAT_NAME");
+        queryHistory8.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory8.setDuration(1000L);
+        queryHistory8.setQueryTime(QUERY_TIME);
+        queryHistory8.setEngineType("NATIVE");
+        QueryHistoryInfo queryHistoryInfo8 = new QueryHistoryInfo();
+        queryHistoryInfo8.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
+                new QueryMetrics.RealizationMetrics(null, null, DATAFLOW, Lists.newArrayList())}));
+        queryHistory8.setQueryHistoryInfo(queryHistoryInfo8);
+        queryHistory8.setId(8);
+
+        List<QueryHistory> histories = Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4,
+                queryHistory5, queryHistory6, queryHistory7, queryHistory8);
+
+        for (QueryHistory history : histories) {
+            history.setId(startOffset + history.getId());
+        }
+        startOffset += histories.size();
+
+        return histories;
+    }
+
+    private List<QueryHistory> queryHistoriesWithStringRealization() {
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSqlPattern("select * from sql1");
+        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory1.setDuration(1000L);
+        queryHistory1.setQueryTime(1001);
+        queryHistory1.setEngineType("CONSTANTS");
+        queryHistory1.setId(1);
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSqlPattern("select * from sql2");
+        queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory2.setDuration(1000L);
+        queryHistory2.setQueryTime(1002);
+        queryHistory2.setEngineType("HIVE");
+        queryHistory2.setId(2);
+
+        QueryHistory queryHistory3 = new QueryHistory();
+        queryHistory3.setSqlPattern("select * from sql3");
+        queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory3.setDuration(1000L);
+        queryHistory3.setQueryTime(1003);
+        queryHistory3.setEngineType("NATIVE");
+        queryHistory3.setId(3);
+
+        QueryHistory queryHistory4 = new QueryHistory();
+        queryHistory4.setSqlPattern("select * from sql3");
+        queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
+        queryHistory4.setDuration(1000L);
+        queryHistory4.setQueryTime(1004);
+        queryHistory4.setEngineType("HIVE");
+        queryHistory4.setId(4);
+
+        QueryHistory queryHistory5 = new QueryHistory();
+        queryHistory5.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\n" + "FROM \"KYLIN_SALES\"");
+        queryHistory5.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory5.setDuration(1000L);
+        queryHistory5.setQueryTime(QUERY_TIME);
+        queryHistory5.setEngineType("NATIVE");
         queryHistory5.setQueryRealizations(DATAFLOW + "#" + LAYOUT1 + "#Table Index#[]");
         queryHistory5.setId(5);
 
@@ -265,7 +402,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory7.setDuration(1000L);
         queryHistory7.setQueryTime(QUERY_TIME);
         queryHistory7.setEngineType("NATIVE");
-        queryHistory7.setQueryRealizations(DATAFLOW + "#" + LAYOUT2 + "#Agg Index#[]");
+        queryHistory7.setQueryRealizations(DATAFLOW + "#" + LAYOUT2 + "#Agg Index");
         queryHistory7.setId(7);
 
         QueryHistory queryHistory8 = new QueryHistory();
@@ -274,7 +411,7 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory8.setDuration(1000L);
         queryHistory8.setQueryTime(QUERY_TIME);
         queryHistory8.setEngineType("NATIVE");
-        queryHistory8.setQueryRealizations(DATAFLOW + "#null" + "#null#[]");
+        queryHistory8.setQueryRealizations(DATAFLOW + "#null" + "#null");
         queryHistory8.setId(8);
 
         List<QueryHistory> histories = Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4,

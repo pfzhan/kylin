@@ -618,7 +618,6 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryMetrics.setTotalScanCount(4096L);
         queryMetrics.setResultRowCount(500L);
         queryMetrics.setSubmitter("ADMIN");
-        queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
         queryMetrics.setErrorType("");
         queryMetrics.setCacheHit(true);
         queryMetrics.setIndexHit(indexHit);
@@ -629,7 +628,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryMetrics.setProjectName(project);
         queryMetrics.setQueryStatus("SUCCEEDED");
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
-        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
+
 
         QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                 "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea", Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
@@ -638,10 +637,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         realizationMetrics.setQueryTime(1586405449387L);
         realizationMetrics.setProjectName(project);
 
+        realizationMetrics.setSnapshots(Lists.newArrayList(new String[]{"DEFAULT.TEST_KYLIN_ACCOUNT", "DEFAULT.TEST_COUNTRY"}));
+
         List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
         realizationMetricsList.add(realizationMetrics);
         realizationMetricsList.add(realizationMetrics);
-        queryMetrics.setRealizationMetrics(realizationMetricsList);
+        queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
         return queryMetrics;
     }
 }

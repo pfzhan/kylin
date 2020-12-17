@@ -55,6 +55,7 @@ public class QueryHistory implements IKeep {
 
     public static final String QUERY_HISTORY_ID = "id";
     public static final String QUERY_HISTORY_INFO = "query_history_info";
+    public static final String QUERY_REALIZATIONS_METRICS = "realization_metrics";
     public static final String PROJECT_NAME = "project_name";
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";
@@ -106,6 +107,7 @@ public class QueryHistory implements IKeep {
 
     // this field is composed of modelId, layout id and index type
     // it's written as modelId#layoutId#indexType
+    // This way to serialized query realizations had been deprecated. See KE-20697
     private String queryRealizations;
 
     @JsonProperty(QUERY_SERVER)
@@ -179,6 +181,27 @@ public class QueryHistory implements IKeep {
 
     public List<NativeQueryRealization> transformRealizations() {
         List<NativeQueryRealization> realizations = Lists.newArrayList();
+        if (queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
+                || queryHistoryInfo.getRealizationMetrics().isEmpty()) {
+            return transformStringRealizations();
+        }
+
+        List<QueryMetrics.RealizationMetrics> realizationMetrics = queryHistoryInfo.realizationMetrics;
+
+        for (QueryMetrics.RealizationMetrics metrics : realizationMetrics) {
+            realizations.add(new NativeQueryRealization(metrics.modelId,
+                    metrics.layoutId == null ? null : Long.valueOf(metrics.layoutId),
+                    metrics.indexType == null ? null : metrics.indexType,
+                    metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots));
+
+        }
+        return realizations;
+    }
+
+    // This way to serialized query realizations had been deprecated. See KE-20697
+    // Just for compatibility with previous versions
+    public List<NativeQueryRealization> transformStringRealizations() {
+        List<NativeQueryRealization> realizations = Lists.newArrayList();
 
         if (StringUtils.isEmpty(this.queryRealizations))
             return realizations;
@@ -192,23 +215,17 @@ public class QueryHistory implements IKeep {
         }
         for (String realization : queryRealizations) {
             String[] info = realization.split("#");
-            transformRealizations(info, realizations);
+            transformStringRealizations(info, realizations);
         }
 
         return realizations;
     }
 
-    public enum EngineType {
-        NATIVE, CONSTANTS
-    }
-
-    private void transformRealizations(String[] info, List<NativeQueryRealization> realizations) {
+    private void transformStringRealizations(String[] info, List<NativeQueryRealization> realizations) {
+        List<String> snapshots = Lists.newArrayList();
         if (info.length > 3) {
-            List<String> snapshots;
-            if (info[3].equals("[]")) {
-                snapshots = Lists.newArrayList();
-            } else {
-                snapshots = Lists.newArrayList(info[3].substring(1, info[3].length() - 1).split(",\\s*"));
+            if (!info[3].equals("[]")) {
+                snapshots.addAll(Lists.newArrayList(info[3].substring(1, info[3].length() - 1).split(",\\s*")));
             }
             realizations.add(new NativeQueryRealization(info[0],
                     info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
@@ -217,8 +234,11 @@ public class QueryHistory implements IKeep {
         } else {
             realizations.add(new NativeQueryRealization(info[0],
                     info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
-                    info[2].equalsIgnoreCase("null") ? null : info[2]));
+                    info[2].equalsIgnoreCase("null") ? null : info[2], snapshots));
         }
     }
 
+    public enum EngineType {
+        NATIVE, CONSTANTS
+    }
 }

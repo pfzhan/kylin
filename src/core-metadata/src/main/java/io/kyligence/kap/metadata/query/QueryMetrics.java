@@ -24,7 +24,6 @@
 package io.kyligence.kap.metadata.query;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
@@ -83,8 +82,6 @@ public class QueryMetrics implements IKeep {
     protected long queryFirstDayOfWeek;
     protected long queryDay;
 
-    protected String realizations;
-
     protected boolean tableIndexUsed;
     protected boolean aggIndexUsed;
     protected boolean tableSnapshotUsed;
@@ -93,16 +90,13 @@ public class QueryMetrics implements IKeep {
 
     protected QueryHistoryInfo queryHistoryInfo;
 
-    // not a column in query history table,
-    protected List<RealizationMetrics> realizationMetrics = new ArrayList<>();
-
     public QueryMetrics(String queryId, String defaultServer) {
         this.queryId = queryId;
         this.defaultServer = defaultServer;
     }
 
     public List<RealizationMetrics> getRealizationMetrics() {
-        return ImmutableList.copyOf(realizationMetrics);
+        return ImmutableList.copyOf(queryHistoryInfo.realizationMetrics);
     }
 
     @Getter
@@ -127,6 +121,9 @@ public class QueryMetrics implements IKeep {
         protected String projectName;
 
         protected List<String> snapshots;
+
+        // For serialize
+        public RealizationMetrics() {}
 
         public RealizationMetrics(String layoutId, String indexType, String modelId, List<String> snapshots) {
             this.layoutId = layoutId;
