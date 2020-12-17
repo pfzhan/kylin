@@ -1322,7 +1322,7 @@ public class Message {
         return "The table\"%s\" doesn't include the column \"%s\".";
     }
 
-    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION() {
         return "Please add column %s to table %s in data source.";
     }
 
@@ -1730,7 +1730,7 @@ public class Message {
         return "Model '%s' does not have sub partition.";
     }
 
-    public String getPARTITION_VALUE_NOT_SUPPORT(){
+    public String getPARTITION_VALUE_NOT_SUPPORT() {
         return "The subpartition column of model '%s' has not been set yet. Please set it first.";
     }
 

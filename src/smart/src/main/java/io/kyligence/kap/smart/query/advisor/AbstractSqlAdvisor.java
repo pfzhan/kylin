@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.smart.query.advisor;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-
 
 import io.kyligence.kap.smart.query.SQLResult;
 
@@ -104,10 +104,10 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
                         String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(), colName));
             } else {
                 return SQLAdvice.build(
-                        String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(), colName,
-                                tblName),
-                        String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST(), colName,
-                                tblName));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(),
+                                tblName, colName),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION(),
+                                colName, tblName));
             }
         }
 

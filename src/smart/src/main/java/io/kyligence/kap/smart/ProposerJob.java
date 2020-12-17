@@ -24,6 +24,7 @@
 package io.kyligence.kap.smart;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -45,6 +46,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -56,7 +58,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProposerJob extends ExecutableApplication {
+public class ProposerJob extends ExecutableApplication implements IKeep {
 
     public static AbstractContext proposeForAutoMode(KylinConfig config, String project, String[] sqls) {
         AbstractContext context = new SmartContext(config, project, sqls);
@@ -186,7 +188,7 @@ public class ProposerJob extends ExecutableApplication {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    static class ContextParams {
+    static class ContextParams implements Serializable, IKeep {
 
         private String project;
 

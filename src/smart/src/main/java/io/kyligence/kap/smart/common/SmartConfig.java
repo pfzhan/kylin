@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.smart.common;
 
+import java.io.Serializable;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 
-public class SmartConfig {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class SmartConfig implements Serializable, IKeep {
     private final KapConfig kapConfig;
 
     private SmartConfig(KapConfig kapConfig) {

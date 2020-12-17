@@ -35,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -52,7 +53,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-public abstract class AbstractContext {
+public abstract class AbstractContext implements IKeep {
 
     private final SmartConfig smartConfig;
     private final String project;
@@ -135,7 +136,7 @@ public abstract class AbstractContext {
     }
 
     @Getter
-    public static class ModelContext {
+    public static class ModelContext implements IKeep {
         @Setter
         private ModelTree modelTree; // query
 

@@ -1554,7 +1554,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION() {
         return "请将列 “%s” 添加到数据源表 “%s”。";
     }
 
