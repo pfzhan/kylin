@@ -82,6 +82,9 @@ public class QueryHistoryTaskScheduler {
     private final String project;
     private long epochId;
 
+    private QueryHistoryAccelerateRunner queryHistoryAccelerateRunner;
+    private QueryHistoryMetaUpdateRunner queryHistoryMetaUpdateRunner;
+
     private static final Map<String, QueryHistoryTaskScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
     public QueryHistoryTaskScheduler(String project) {
@@ -89,6 +92,10 @@ public class QueryHistoryTaskScheduler {
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
         rawRecService = new RawRecService();
+
+        queryHistoryAccelerateRunner = new QueryHistoryAccelerateRunner(false);
+        queryHistoryMetaUpdateRunner = new QueryHistoryMetaUpdateRunner();
+
         log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
@@ -107,9 +114,9 @@ public class QueryHistoryTaskScheduler {
 
         taskScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("QueryHistoryWorker(project:" + project + ")"));
-        taskScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(false), 0,
+        taskScheduler.scheduleWithFixedDelay(queryHistoryAccelerateRunner, 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
-        taskScheduler.scheduleWithFixedDelay(new QueryHistoryMetaUpdateRunner(), 0,
+        taskScheduler.scheduleWithFixedDelay(queryHistoryMetaUpdateRunner, 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryStatMetaUpdateInterval(), TimeUnit.MINUTES);
 
         hasStarted = true;
