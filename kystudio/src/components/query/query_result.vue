@@ -251,8 +251,6 @@ export default class queryResult extends Vue {
   dateTypes = [91, 92, 93]
   stringTypes = [-1, 1, 12]
   numberTypes = [-7, -6, -5, 3, 4, 5, 6, 7, 8]
-  chartDimensionList = []
-  chartMeasureList = []
   chartLayout = null
   // 增加可视化按钮
   get insightBtnGroups () {
@@ -268,6 +266,37 @@ export default class queryResult extends Vue {
       {text: this.$t('pieChart'), value: 'pieChart'}
     ]
   }
+  // 动态获取维度
+  get chartDimensionList () {
+    const dimensionList = []
+    if (this.charts.type === 'lineChart') {
+      this.tableMetaBackup.forEach(item => {
+        if (this.dateTypes.includes(item.columnType)) {
+          dimensionList.push(item.label)
+        }
+      })
+    } else {
+      this.tableMetaBackup.forEach(item => {
+        if (this.dateTypes.includes(item.columnType) || this.stringTypes.includes(item.columnType)) {
+          dimensionList.push(item.label)
+        }
+      })
+    }
+    this.charts.dimension = dimensionList[0] || ''
+    return dimensionList
+  }
+  // 动态获取度量
+  get chartMeasureList () {
+    const measureList = []
+    this.tableMetaBackup.forEach(item => {
+      if (this.numberTypes.includes(item.columnType)) {
+        measureList.push(item.label)
+      }
+    })
+    this.charts.measure = measureList[measureList.length - 1] || ''
+    return measureList
+  }
+
   // 切换数据展示效果
   changeDataType (item) {
     if (item.value === this.activeResultType) return
@@ -368,15 +397,6 @@ export default class queryResult extends Vue {
     }
     this.tableMetaBackup = this.tableMeta
     this.tableMeta = this.tableMetaBackup.slice(0, (this.pageX + 1) * this.pageSizeX)
-    this.tableMeta.forEach(item => {
-      if (this.dateTypes.includes(item.columnType) || this.stringTypes.includes(item.columnType)) {
-        this.chartDimensionList.push(item.label)
-      } else if (this.numberTypes.includes(item.columnType)) {
-        this.chartMeasureList.push(item.name)
-      }
-    })
-    this.charts.dimension = this.chartDimensionList[0] || ''
-    this.charts.measure = this.chartMeasureList[this.chartMeasureList.length - 1] || ''
     this.pageSizeChange(0)
   }
   toggleDetail () {
