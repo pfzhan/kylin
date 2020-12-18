@@ -459,7 +459,9 @@ export default class SettingBasic extends Vue {
   }
   async mounted () {
     this.initForm()
-    this.getAccelerationRules()
+    if (this.$store.state.project.isSemiAutomatic) {
+      this.getAccelerationRules()
+    }
     if ('moveTo' in this.$route.query && this.$route.query.moveTo === 'index-suggest-setting') {
       this.$refs.acclerationRuleSettings && this.$refs.acclerationRuleSettings.$el.scrollIntoView && this.$refs.acclerationRuleSettings.$el.scrollIntoView()
     }

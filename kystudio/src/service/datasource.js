@@ -103,6 +103,9 @@ export default {
   getUserAndGroups: (para) => {
     return Vue.resource(apiUrl + 'user_group/users_and_groups').get(para)
   },
+  getUserAndGroupsByProjectAdmin: (para, projectId) => {
+    return Vue.resource(`${apiUrl}access/${projectId}/all`).get(para)
+  },
   getRulesImpact: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/accelerate_ratio').get(para)
   },
