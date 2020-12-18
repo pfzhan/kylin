@@ -53,6 +53,7 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import lombok.Getter;
 
+@Ignore("unstable case")
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = { SpringContext.class })
 @ActiveProfiles("testing")
@@ -73,7 +74,6 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
         broadcaster.close();
     }
 
-    @Ignore
     @Test
     public void testAnnounceWithEpochCheckBroadcastNotifier() {
         final LogAppender appender = new LogAppender();
@@ -132,7 +132,6 @@ public class BroadcasterTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, log.size());
     }
 
-    @Ignore
     @Test
     public void testAnnounceWithAuditLogBroadcastEventNotifier() {
         final LogAppender appender = new LogAppender();
