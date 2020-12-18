@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -47,7 +46,6 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
@@ -411,20 +409,4 @@ public class RawRecService {
         RawRecManager.getInstance(project).saveOrUpdate(layoutRecItems);
     }
 
-    public void deleteRawRecItems() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        List<ProjectInstance> projectInstances = NProjectManager.getInstance(config).listAllProjects().stream()
-                .filter(projectInstance -> !projectInstance.isExpertMode()).collect(Collectors.toList());
-        Thread.currentThread().setName("DeleteRawRecItemsInDB");
-        for (ProjectInstance instance : projectInstances) {
-            try {
-                RawRecManager rawRecManager = RawRecManager.getInstance(instance.getName());
-                rawRecManager.deleteAllOutDated(instance.getName());
-                Set<String> modelIds = NDataModelManager.getInstance(config, instance.getName()).listAllModelIds();
-                rawRecManager.deleteRecItemsOfNonExistModels(instance.getName(), modelIds);
-            } catch (Exception e) {
-                log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
-            }
-        }
-    }
 }

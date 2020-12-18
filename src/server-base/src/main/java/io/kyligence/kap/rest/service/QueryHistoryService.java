@@ -75,7 +75,6 @@ import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
-import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
@@ -311,7 +310,4 @@ public class QueryHistoryService extends BasicService {
         return result;
     }
 
-    public void cleanQueryHistories() {
-        QueryHisStoreUtil.cleanQueryHistory();
-    }
 }

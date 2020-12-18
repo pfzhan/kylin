@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.tool.routine.RoutineTool;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -49,12 +50,6 @@ public class ScheduleService {
     @Autowired
     ProjectService projectService;
 
-    @Autowired
-    QueryHistoryService queryHistoryService;
-
-    @Autowired
-    RawRecService rawRecService;
-
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
 
@@ -69,8 +64,8 @@ public class ScheduleService {
             log.info("Start to work");
             if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                 backupService.backupAll();
-                queryHistoryService.cleanQueryHistories();
-                rawRecService.deleteRawRecItems();
+                RoutineTool.cleanQueryHistories();
+                RoutineTool.deleteRawRecItems();
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     new SourceUsageCleaner().cleanup();
                     return null;

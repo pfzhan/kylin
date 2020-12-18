@@ -26,8 +26,11 @@ package io.kyligence.kap.tool.routine;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -111,7 +114,8 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
             for (String projName : projectsToCleanup) {
                 cleanMetaByProject(projName);
             }
-            QueryHisStoreUtil.cleanQueryHistory();
+            cleanQueryHistories();
+            deleteRawRecItems();
             System.out.println("Metadata cleanup finished");
         } catch (Exception e) {
             log.error("Metadata cleanup failed", e);
@@ -194,5 +198,26 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
 
     public void setStorageCleanup(boolean storageCleanup) {
         this.storageCleanup = storageCleanup;
+    }
+
+    public static void deleteRawRecItems() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        List<ProjectInstance> projectInstances = NProjectManager.getInstance(config).listAllProjects().stream()
+                .filter(projectInstance -> !projectInstance.isExpertMode()).collect(Collectors.toList());
+        Thread.currentThread().setName("DeleteRawRecItemsInDB");
+        for (ProjectInstance instance : projectInstances) {
+            try {
+                RawRecManager rawRecManager = RawRecManager.getInstance(instance.getName());
+                rawRecManager.deleteAllOutDated(instance.getName());
+                Set<String> modelIds = NDataModelManager.getInstance(config, instance.getName()).listAllModelIds();
+                rawRecManager.deleteRecItemsOfNonExistModels(instance.getName(), modelIds);
+            } catch (Exception e) {
+                log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
+            }
+        }
+    }
+
+    public static void cleanQueryHistories() {
+        QueryHisStoreUtil.cleanQueryHistory();
     }
 }
