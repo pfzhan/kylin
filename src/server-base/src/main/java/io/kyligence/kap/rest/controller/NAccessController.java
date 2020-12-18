@@ -345,7 +345,7 @@ public class NAccessController extends NBasicController {
                     return r;
                 }).collect(Collectors.toList())).flatMap(List::stream).collect(Collectors.toList());
         Set<String> sids = Sets.newHashSet();
-        result.stream().filter(r -> !sids.add(r.getSid())).findAny().ifPresent(r -> {
+        result.stream().filter(r -> !sids.add(r.getSid() + r.isPrincipal())).findAny().ifPresent(r -> {
             throw new KylinException(DUPLICATE_USER_NAME, "Operation failed, duplicated sid: " + r.getSid());
         });
         return result;

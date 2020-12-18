@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.rest.request.BatchAccessRequest;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -269,5 +270,31 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString(expectedMsg)));
         Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
+    }
+
+    @Test
+    public void testBatchGrant() throws Exception {
+        BatchAccessRequest accessRequest = new BatchAccessRequest();
+        List<String> sids = Lists.newArrayList(sid);
+        accessRequest.setSids(sids);
+        accessRequest.setPrincipal(true);
+        List<BatchAccessRequest> requests = Lists.newArrayList(accessRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/batch/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(requests)).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nAccessController).batchGrant(type, uuid, true, requests);
+    }
+
+    @Test
+    public void testBatchGrantDuplicateName() throws Exception {
+        BatchAccessRequest accessRequest = new BatchAccessRequest();
+        List<String> sids = Lists.newArrayList(sid, sid);
+        accessRequest.setSids(sids);
+        accessRequest.setPrincipal(true);
+        List<BatchAccessRequest> requests = Lists.newArrayList(accessRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/batch/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(requests)).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nAccessController).batchGrant(type, uuid, true, requests);
     }
 }
