@@ -158,7 +158,7 @@ public class AppConfig extends WebMvcConfigurerAdapter {
             return;
         }
         registry.addResourceHandler("/index.html").addResourceLocations(resourceProperties.getStaticLocations())
-                .setCacheControl(CacheControl.noCache());
+                .setCacheControl(CacheControl.noStore());
     }
 
     @Bean
