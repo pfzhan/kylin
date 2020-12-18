@@ -189,6 +189,10 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowId());
+        if(dataflow == null){
+            logger.debug("Dataflow is null, maybe model is deleted?");
+            return;
+        }
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkCubingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
