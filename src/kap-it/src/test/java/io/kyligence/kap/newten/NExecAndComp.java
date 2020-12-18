@@ -95,8 +95,8 @@ public class NExecAndComp {
                     : queryWithKap(prj, joinType, sqlAndAddedLimitSql, recAndQueryResult);
             addQueryPath(recAndQueryResult, query, sql);
             Dataset<Row> sparkResult = queryWithSpark(prj, sql, query.getFirst());
-            List<Row> kapRows = SparderQueryTest.castDataType(kapResult, sparkResult).toJavaRDD().collect();
-            List<Row> sparkRows = sparkResult.toJavaRDD().collect();
+            List<Row> kapRows = SparderQueryTest.castDataType(kapResult, sparkResult).collectAsList();
+            List<Row> sparkRows = sparkResult.collectAsList();
             if (!compareResults(normRows(sparkRows), normRows(kapRows), CompareLevel.SUBSET)) {
                 throw new IllegalArgumentException("Result not match");
             }
@@ -125,8 +125,8 @@ public class NExecAndComp {
                 Dataset<Row> cubeResult = queryFromCube(prj, sql, params);
 
                 Dataset<Row> sparkResult = queryWithSpark(prj, path2Sql.getSecond(), path2Sql.getFirst());
-                List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+                List<Row> sparkRows = sparkResult.collectAsList();
+                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).collectAsList();
                 if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {
                     logger.error("Failed on compare query ({}) :{}", joinType, sql);
                     throw new IllegalArgumentException("query (" + joinType + ") :" + sql + " result not match");
@@ -211,8 +211,8 @@ public class NExecAndComp {
                 if (!inToDoList(query.getFirst()) && compareLevel == CompareLevel.SAME) {
                     SparderQueryTest.compareColumnTypeWithCalcite(cubeColumns, sparkResult.schema());
                 }
-                List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+                List<Row> sparkRows = sparkResult.collectAsList();
+                List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).collectAsList();
                 if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {
                     logger.error("Failed on compare query ({}) :{}", joinType, query);
                     throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
@@ -257,11 +257,11 @@ public class NExecAndComp {
         String sqlForSpark = KylinTestBase.changeJoinType(queryForSpark.getSecond(), joinType);
         addQueryPath(recAndQueryResult, queryForSpark, sqlForSpark);
         Dataset<Row> sparkResult = queryWithSpark(prj, queryForSpark.getSecond(), queryForSpark.getFirst());
-        List<Row> sparkRows = sparkResult.toJavaRDD().collect();
+        List<Row> sparkRows = sparkResult.collectAsList();
 
         String sqlForKap = KylinTestBase.changeJoinType(queryForKap.getSecond(), joinType);
         Dataset<Row> cubeResult = queryWithKap(prj, joinType, Pair.newPair(sqlForKap, sqlForKap));
-        List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+        List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).collectAsList();
 
         return sparkRows.equals(kapRows);
     }

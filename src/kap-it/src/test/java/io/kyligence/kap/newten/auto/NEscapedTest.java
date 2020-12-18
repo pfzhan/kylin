@@ -110,11 +110,11 @@ public class NEscapedTest extends NAutoTestBase {
                 throw new IllegalStateException("query (" + joinType + ") :" + query + " schema not match");
             }
 
-            List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-            List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
+            List<Row> sparkRows = sparkResult.collectAsList();
+            List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).collectAsList();
 
-            List<Row> sparkRows2 = sparkResult2.toJavaRDD().collect();
-            List<Row> kapRows2 = SparderQueryTest.castDataType(cubeResult2, sparkResult).toJavaRDD().collect();
+            List<Row> sparkRows2 = sparkResult2.collectAsList();
+            List<Row> kapRows2 = SparderQueryTest.castDataType(cubeResult2, sparkResult).collectAsList();
 
             // compare all result set
             if (!NExecAndComp.compareResults(NExecAndComp.normRows(sparkRows), NExecAndComp.normRows(kapRows),
