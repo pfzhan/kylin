@@ -282,6 +282,10 @@ object KylinSession extends Logging {
           s"$yarnAMJavaOptions $amKerberosConf")
       }
 
+      if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect > 0L) {
+        sparkConf.set("spark.sql.driver.maxMemoryUsageDuringCollect", KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect + "m")
+      }
+
       val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", false)
       var logDir = sparkConf.get("spark.eventLog.dir", "")
       if (eventLogEnabled && !logDir.isEmpty) {

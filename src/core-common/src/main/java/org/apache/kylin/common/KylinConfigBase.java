@@ -1241,6 +1241,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.convert-sum-expression-enabled", FALSE));
     }
 
+    public long getQueryMemoryLimitDuringCollect() {
+        return Long.parseLong(getOptional("kylin.query.memory-limit-during-collect-mb", "-1"));
+    }
+
     /**
      * Rule is usually singleton as static field, the configuration of this property is like:
      * RuleClassName1#FieldName1,RuleClassName2#FieldName2,...

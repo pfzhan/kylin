@@ -26,19 +26,21 @@ import java.util.UUID
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
-import io.kyligence.kap.query.engine.mask.QuerySensitiveDataMask
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
+import org.apache.spark.SparkException
 import org.apache.spark.sql.execution.QueryExecution
 import org.apache.spark.sql.hive.QueryMetricUtils
-import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{DataFrame, SparderEnv}
+import org.apache.spark.sql.util.{CollectExecutionMemoryUsage, SparderTypeUtil}
+import org.apache.spark.sql.{DataFrame, Row, SparderEnv}
+import org.apache.spark.util.SizeEstimator
 
 import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 
 // scalastyle:off
 object ResultType extends Enumeration {
@@ -97,7 +99,7 @@ object ResultPlan extends LogEx {
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
       QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
-      val dt = rows.map { row =>
+      val dt = convertResultWithMemLimit(rows) { row =>
         if (Thread.interrupted()) {
           throw new InterruptedException
         }
@@ -120,6 +122,30 @@ object ResultPlan extends LogEx {
           s"Query timeout after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s");
     } finally {
       QueryContext.current().setExecutionID(QueryToExecutionIDCache.getQueryExecutionID(queryId))
+    }
+  }
+
+  def convertResultWithMemLimit[C: ClassTag](rows: Array[Row])(convertRow: Row => C): Array[C] = {
+    if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect < 0)  {
+      rows.map(convertRow)
+    } else {
+      var checkedFirst = false
+      var memoryUsed = CollectExecutionMemoryUsage.current.estimatedMemoryUsage()
+      val allowMemUsage =
+        KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect * 1024 * 1024
+
+      rows.map(row => {
+        val converted = convertRow(row)
+        if (!checkedFirst) {
+          memoryUsed += SizeEstimator.estimate(converted.asInstanceOf[AnyRef]) * rows.length
+          if (memoryUsed > allowMemUsage) {
+            throw new SparkException(s"estimate memory usage ${memoryUsed} " +
+              s"> allowd maximum memory usage ${allowMemUsage}")
+          }
+          checkedFirst = true
+        }
+        converted
+      })
     }
   }
 

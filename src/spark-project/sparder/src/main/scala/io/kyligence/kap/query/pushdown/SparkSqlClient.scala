@@ -32,7 +32,7 @@ import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.engine.mask.QueryResultMasks
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
-import io.kyligence.kap.query.runtime.plan.ResultPlan.saveAsyncQueryResult
+import io.kyligence.kap.query.runtime.plan.ResultPlan.{convertResultWithMemLimit, saveAsyncQueryResult}
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
@@ -113,7 +113,7 @@ object SparkSqlClient {
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
         return Pair.newPair(Lists.newArrayList(), fieldList)
       }
-      val rowList = df.collect().map(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
+      val rowList = convertResultWithMemLimit(df.collect())(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
