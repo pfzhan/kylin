@@ -32,6 +32,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
@@ -59,6 +60,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+        QueryContext.currentTrace().startSpan(QueryTrace.MODEL_MATCHING);
         // select realizations
         selectRealization(rel);
 

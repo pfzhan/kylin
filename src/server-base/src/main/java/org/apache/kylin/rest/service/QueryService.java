@@ -84,6 +84,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -121,6 +122,7 @@ import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.response.SQLResponseTrace;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PrepareSQLUtils;
@@ -390,7 +392,11 @@ public class QueryService extends BasicService {
             else
                 sqlRequest.setUsername(getUsername());
             QueryLimiter.tryAcquire();
-            return queryWithCache(sqlRequest, isQueryInspect);
+            SQLResponse response = queryWithCache(sqlRequest, isQueryInspect);
+            response.setTraces(
+                    QueryContext.currentTrace().spans()
+                            .stream().map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration())).collect(Collectors.toList()));
+            return response;
         } finally {
             QueryLimiter.release();
             QueryContext.current().close();
@@ -511,6 +517,8 @@ public class QueryService extends BasicService {
                     sqlResponse = queryAndUpdateCache(sqlRequest, startTime, isQueryCacheEnabled);
                 }
             } else {
+                QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
+                QueryContext.currentTrace().endLastSpan();
                 Trace.addTimelineAnnotation("response without real execution");
             }
             sqlResponse.setServer(clusterManager.getLocalServer());
@@ -667,6 +675,7 @@ public class QueryService extends BasicService {
                         sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                         queryExec.getSchema(), true);
                 queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
+                QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
                 String correctedSql = QueryUtil.massageSql(queryParams);
 
                 //CAUTION: should not change sqlRequest content!
@@ -790,8 +799,10 @@ public class QueryService extends BasicService {
             sqlString = QueryUtil.addLimit(sqlString);
         }
 
+        QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
                 sqlRequest.getLimit(), sqlRequest.getOffset());
+        QueryContext.currentTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
         QueryParams queryParams = new QueryParams(sqlRequest.getProject(), massagedSql, defaultSchema, isPrepare,
                 sqlException, sqlRequest.isForcedToPushDown(), true, sqlRequest.getLimit(), sqlRequest.getOffset());
         queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));

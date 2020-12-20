@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -189,6 +190,10 @@ public class QueryMetricsContext extends QueryMetrics {
         } else {
             this.queryHistoryInfo = new QueryHistoryInfo();
         }
+
+        this.queryHistoryInfo.setTraces(
+                context.getQueryTrace().spans().stream().map(
+                        span -> new QueryHistoryInfo.QueryTraceSpan(span.getName(), span.getGroup(), span.getDuration())).collect(Collectors.toList()));
     }
 
     private void collectErrorType(final QueryContext context) {

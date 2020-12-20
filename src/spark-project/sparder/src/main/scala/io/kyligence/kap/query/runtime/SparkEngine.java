@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);
 
     private Dataset<Row> toSparkPlan(DataContext dataContext, RelNode relNode) {
+        QueryContext.currentTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
         log.info("Begin planning spark plan.");
         long start = System.currentTimeMillis();
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);

@@ -147,6 +147,8 @@ public class SQLResponse implements Serializable {
 
     private String engineType;
 
+    private List<SQLResponseTrace> traces;
+
     public SQLResponse() {
     }
 

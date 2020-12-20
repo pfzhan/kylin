@@ -51,6 +51,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.ReadFsSwitch;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 import org.slf4j.Logger;
@@ -113,6 +114,7 @@ public class QueryExec {
         magicDirts(sql);
         try {
             beforeQuery();
+            QueryContext.currentTrace().startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
             RelNode node = queryOptimizer.optimize(relRoot).rel;
 

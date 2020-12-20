@@ -57,6 +57,8 @@ public class QueryHistoryInfo implements Serializable {
     private List<List<String>> querySnapshots = new ArrayList<>();
     @JsonProperty("realization_metrics")
     protected List<QueryMetrics.RealizationMetrics> realizationMetrics = new ArrayList<>();
+    @JsonProperty("traces")
+    private List<QueryTraceSpan> traces = new ArrayList<>();
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;
@@ -74,6 +76,31 @@ public class QueryHistoryInfo implements Serializable {
         HistoryState(int stateCode, String name) {
             this.stateCode = stateCode;
             this.name = name;
+        }
+    }
+
+    @Data
+    @Setter
+    @Getter
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+    public static class QueryTraceSpan {
+
+        @JsonProperty("name")
+        String name;
+
+        @JsonProperty("group")
+        String group;
+
+        @JsonProperty("duration")
+        long duration;
+
+        public QueryTraceSpan(String name, String group, long duration) {
+            this.name = name;
+            this.duration = duration;
+            this.group = group;
+        }
+
+        public QueryTraceSpan() {
         }
     }
 }

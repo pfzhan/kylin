@@ -104,6 +104,9 @@ public class QueryContext implements Closeable {
     @Setter
     private String[] modelPriorities = new String[0];
 
+    @Getter
+    private QueryTrace queryTrace = new QueryTrace();
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryId = UUID.randomUUID().toString();
@@ -112,6 +115,10 @@ public class QueryContext implements Closeable {
 
     public static QueryContext current() {
         return contexts.get();
+    }
+
+    public static QueryTrace currentTrace() {
+        return contexts.get().getQueryTrace();
     }
 
     public static void reset() {

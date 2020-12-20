@@ -33,6 +33,7 @@ import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.engine.mask.QueryResultMasks
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import io.kyligence.kap.query.runtime.plan.ResultPlan.{convertResultWithMemLimit, saveAsyncQueryResult}
+import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
@@ -44,7 +45,7 @@ import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparderEnv, SparkSession}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -113,7 +114,12 @@ object SparkSqlClient {
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
         return Pair.newPair(Lists.newArrayList(), fieldList)
       }
-      val rowList = convertResultWithMemLimit(df.collect())(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
+      QueryContext.currentTrace().endLastSpan()
+      val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), SparderEnv.getSparkSession.sparkContext)
+      val rawList = df.collect()
+      jobTrace.jobFinished()
+      val rowList = convertResultWithMemLimit(rawList)(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
+      jobTrace.resultConverted()
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)

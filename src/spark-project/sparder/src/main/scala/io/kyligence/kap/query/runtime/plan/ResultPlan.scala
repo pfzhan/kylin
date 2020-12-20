@@ -26,6 +26,7 @@ import java.util.UUID
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
+import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
@@ -93,7 +94,10 @@ object ResultPlan extends LogEx {
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
       logInfo(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
+      QueryContext.currentTrace().endLastSpan()
+      val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
       val rows = df.collect()
+      jobTrace.jobFinished()
       QueryContext.current.record("collect_result")
 
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
@@ -107,6 +111,7 @@ object ResultPlan extends LogEx {
           case(value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
         }.asJava
       }.toSeq.asJava
+      jobTrace.resultConverted()
       QueryContext.current.record("transform_result")
       dt
     } catch {
@@ -191,11 +196,20 @@ object ResultPlan extends LogEx {
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
     val queryExecutionId = UUID.randomUUID.toString
+    val jobGroup = Thread.currentThread().getName
+    val sparkContext = SparderEnv.getSparkSession.sparkContext
+    sparkContext.setJobGroup(jobGroup,
+      QueryContext.current().getMetrics.getCorrectedSql,
+      interruptOnCancel = true)
     df.sparkSession.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_EXECUTION_ID, queryExecutionId)
+
+    QueryContext.currentTrace().endLastSpan()
+    val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
     format match {
       case "json" => df.write.option("encoding", encode).json(path)
       case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).csv(path)
     }
+    jobTrace.jobFinished()
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
     val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
     QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)

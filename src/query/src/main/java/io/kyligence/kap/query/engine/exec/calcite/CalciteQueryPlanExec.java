@@ -42,6 +42,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.util.DateFormat;
 
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
@@ -57,6 +58,7 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+        QueryContext.currentTrace().startSpan(QueryTrace.EXECUTION);
         initContextVars(dataContext);
         // allocate the olapContext anyway since it's being checked by some unit tests
         new KapRel.OLAPContextImplementor().allocateContext((KapRel) rel.getInput(0), rel);
@@ -65,7 +67,7 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
 
         //constant query should fill empty list for scan data
         QueryContext.fillEmptyResultSetMetrics();
-
+        QueryContext.currentTrace().endLastSpan();
         return result;
     }
 
