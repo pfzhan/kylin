@@ -652,7 +652,19 @@ export default class IndexList extends Vue {
         this.validateData = {
           recs_to_add_layout,
           recs_to_remove_layout,
-          list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => ({...it, type: 'measure'}))]
+          list: [
+            ...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})),
+            ...dimension_items.map(it => {
+              const {all_named_columns} = this.modelDesc
+              const name = it.name.split('.').splice(-1).join('')
+              if ([...all_named_columns.map(it => it.name)].filter(v => v === name || v.split('_').slice(0, v.split('_').length - 1).join('_') === name).length > 0) {
+                return {...it, name: it.name.split('.').reverse().join('_'), type: 'dimension'}
+              } else {
+                return {...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'}
+              }
+            }),
+            ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => ({...it, type: 'measure'}))
+          ]
         }
       } else {
         this.validateData = {recs_to_add_layout, recs_to_remove_layout, list: []}

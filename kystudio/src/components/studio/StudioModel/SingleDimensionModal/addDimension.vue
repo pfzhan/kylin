@@ -176,6 +176,15 @@ export default class SingleDimensionModal extends Vue {
         this.ccDesc = null
       }
       Object.assign(this.dimensionInfo, this.dimension)
+      const columnsList = []
+      Object.values(this.modelInstance.tables).forEach(item => {
+        item.columns && item.columns.forEach(it => {
+          columnsList.push(it.name)
+        })
+      })
+      if (columnsList.indexOf(this.dimensionInfo.name) !== columnsList.lastIndexOf(this.dimensionInfo.name)) {
+        this.dimensionInfo.name = this.dimension.column.split('.').reverse().join('_')
+      }
       this.allBaseColumns = this.modelInstance.getTableColumns()
       this.isFormShow = true
     } else {
