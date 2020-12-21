@@ -232,7 +232,7 @@ import echarts from 'echarts'
       restore: '还原',
       lineChart: '折线图',
       barChart: '柱状图',
-      pieChart: '饼状图',
+      pieChart: '饼图',
       traceUrl: '追踪链接：',
       extraoptionrmation: '查询信息',
       queryResults: '查询结果',
@@ -322,9 +322,10 @@ export default class queryResult extends Vue {
       })
     } else {
       this.tableMetaBackup.forEach(item => {
-        if (this.dateTypes.includes(item.columnType) || this.stringTypes.includes(item.columnType)) {
-          dimensionList.push(item.label)
-        }
+        // if (this.dateTypes.includes(item.columnType) || this.stringTypes.includes(item.columnType)) {
+        //   dimensionList.push(item.label)
+        // }
+        dimensionList.push(item.label)
       })
     }
     this.charts.dimension = dimensionList[0] || ''
