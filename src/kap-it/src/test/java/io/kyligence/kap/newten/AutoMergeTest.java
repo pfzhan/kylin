@@ -29,8 +29,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
@@ -49,6 +50,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -62,6 +64,7 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 @RunWith(TimeZoneTestRunner.class)
@@ -207,11 +210,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 val segId = executable.getTargetSegments().get(0);
                 //merge 2010/01/01 00:00 - 2010/01/04 00:00
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"),
-                        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getStart());
-                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
-                        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getEnd());
+                        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegment(segId)
+                                .getSegRange().getStart());
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), dataflowManager
+                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegment(segId).getSegRange().getEnd());
             }
         }
     }
@@ -260,11 +262,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             if (executable instanceof NSparkMergingJob) {
                 val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"),
-                        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getStart());
-                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
-                        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getEnd());
+                        dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegment(segId)
+                                .getSegRange().getStart());
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), dataflowManager
+                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegment(segId).getSegRange().getEnd());
             }
         }
     }
@@ -313,12 +314,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         for (val executable : executables) {
             if (executable instanceof NSparkMergingJob) {
                 val segId = executable.getTargetSegments().get(0);
-                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
-                        dataflowManager.getDataflowByModelAlias("nmodel_basic")
-                                .getSegment(segId).getSegRange().getStart());
-                Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"),
-                        dataflowManager.getDataflowByModelAlias("nmodel_basic")
-                                .getSegment(segId).getSegRange().getEnd());
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), dataflowManager
+                        .getDataflowByModelAlias("nmodel_basic").getSegment(segId).getSegRange().getStart());
+                Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), dataflowManager
+                        .getDataflowByModelAlias("nmodel_basic").getSegment(segId).getSegRange().getEnd());
             }
         }
     }
@@ -353,7 +352,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         update = new NDataflowUpdate(df.getUuid());
         //remove 2010-01-02
-        update.setToRemoveSegs(new NDataSegment[]{df.getSegments().get(1)});
+        update.setToRemoveSegs(new NDataSegment[] { df.getSegments().get(1) });
         dataflowManager.updateDataflow(update);
 
         deleteAllJobs(DEFAULT_PROJECT);
@@ -555,12 +554,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getStart()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getStart().toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:52:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getEnd()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getEnd().toString()));
             }
         }
     }
@@ -619,12 +616,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-12-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getStart()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getStart().toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2011-01-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getEnd()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getEnd().toString()));
             }
         }
     }
@@ -671,12 +666,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getStart()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getStart().toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2010-12-30 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getEnd()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getEnd().toString()));
             }
         }
     }
@@ -723,12 +716,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 08:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getStart()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getStart().toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 23:45:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(segId).getSegRange().getEnd()
-                                .toString()));
+                                .getSegment(segId).getSegRange().getEnd().toString()));
             }
         }
     }
@@ -833,7 +824,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Class<RootPersistentEntity> clazz = RootPersistentEntity.class;
         Field field = clazz.getDeclaredField("isCachedAndShared");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         field.set(df, false);
         NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
@@ -850,7 +841,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         int eventsMergeWeek = 0;
         int eventsMergeDay = 0;
         int allEvent = 0;
-        Segments segments = df.getSegments();
+        Segments<NDataSegment> segments = df.getSegments();
         //2010/01/10 00:00:00 -2012-02-10 01:00:00 one hour per segment
         long start = 1263081600000L;
         long end = 1263081600000L + 3600000L;
@@ -874,10 +865,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 for (val executable : executables) {
                     if (executable instanceof NSparkMergingJob) {
                         val segId = executable.getTargetSegments().get(0);
-                        mergeStart = Long.parseLong(df.getSegment(segId)
-                                .getSegRange().getStart().toString());
-                        mergeEnd = Long.parseLong(df.getSegment(segId)
-                                .getSegRange().getEnd().toString());
+                        mergeStart = Long.parseLong(df.getSegment(segId).getSegRange().getStart().toString());
+                        mergeEnd = Long.parseLong(df.getSegment(segId).getSegRange().getEnd().toString());
 
                         if (mergeEnd - mergeStart > 2678400000L) {
                             eventsMergeYear++;
@@ -890,10 +879,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                             eventsMergeDay++;
                         }
 
-                        mockMergeSegments(i,
-                                dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                        .getSegment((executables.get(0)).getTargetSegments().get(0))
-                                        .getSegRange());
+                        mockMergeSegments(i, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                                .getSegment((executables.get(0)).getTargetSegments().get(0)).getSegRange());
                     }
                 }
                 i += 2;
@@ -960,15 +947,14 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
     }
 
     public long addDay(String base, int inc) {
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         calendar.setTimeInMillis(SegmentRange.dateToLong(base));
         calendar.add(Calendar.DAY_OF_MONTH, inc);
         return calendar.getTimeInMillis();
     }
 
     private List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(getTestConfig(), project)
-                .getRunningExecutables(project, model);
+        return NExecutableManager.getInstance(getTestConfig(), project).getRunningExecutables(project, model);
     }
 
     private void deleteAllJobs(String project) {

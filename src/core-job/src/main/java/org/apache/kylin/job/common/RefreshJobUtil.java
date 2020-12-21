@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -81,7 +80,8 @@ public class RefreshJobUtil extends ExecutableUtil {
         List<NDataSegment> segments = df.getSegments().stream()
                 .filter(segment -> segment.getSegRange().startStartMatch(newSeg.getSegRange()))
                 .filter(segment -> segment.getSegRange().endEndMatch(newSeg.getSegRange()))
-                .filter(segment -> segment.getStatus().equals(SegmentStatusEnum.READY) || segment.getStatus().equals(SegmentStatusEnum.WARNING))
+                .filter(segment -> SegmentStatusEnum.READY == segment.getStatus()
+                        || SegmentStatusEnum.WARNING == segment.getStatus())
                 .collect(Collectors.toList());
         if (segments.size() != 1) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
@@ -109,8 +109,9 @@ public class RefreshJobUtil extends ExecutableUtil {
         NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject());
         val df = dfm.getDataflow(jobParam.getModel()).copy();
         val segment = df.getSegment(jobParam.getSegment());
-        if (jobParam.getJobTypeEnum().equals(JobTypeEnum.INDEX_REFRESH)) {
-            jobParam.setTargetPartitions(segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId).collect(Collectors.toSet()));
+        if (JobTypeEnum.INDEX_REFRESH == jobParam.getJobTypeEnum()) {
+            jobParam.setTargetPartitions(segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
+                    .collect(Collectors.toSet()));
         }
     }
 }

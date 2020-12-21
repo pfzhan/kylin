@@ -26,10 +26,13 @@ package io.kyligence.kap.tool.util;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -50,16 +53,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MetadataUtil {
 
+    private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
+
     private MetadataUtil() {
     }
 
     public static String getMetadataUrl(String rootPath) {
         if (rootPath.startsWith("file://")) {
             rootPath = rootPath.replace("file://", "");
-            return org.apache.commons.lang3.StringUtils.appendIfMissing(rootPath, "/");
-        } else {
-            return org.apache.commons.lang3.StringUtils.appendIfMissing(rootPath, "/");
         }
+        return org.apache.commons.lang3.StringUtils.appendIfMissing(rootPath, "/");
     }
 
     public static DataSource getDataSource(KylinConfig kylinConfig) throws Exception {
@@ -80,17 +83,18 @@ public class MetadataUtil {
         }
 
         Properties properties = JdbcUtil.getProperties(dataSource);
-        String createTableStmt = String.format(properties.getProperty(tableSql), tableName);
+        String createTableStmt = String.format(Locale.ROOT, properties.getProperty(tableSql), tableName);
         List<String> crateIndexStmtList = indexSqlList.stream()
-                .map(indexSql -> String.format(properties.getProperty(indexSql), tableName, tableName))
+                .map(indexSql -> String.format(Locale.ROOT, properties.getProperty(indexSql), tableName, tableName))
                 .collect(Collectors.toList());
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
-            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
+            sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
             sr.setStopOnError(true);
-            sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
-            crateIndexStmtList.forEach(crateIndexStmt -> sr
-                    .runScript(new InputStreamReader(new ByteArrayInputStream(crateIndexStmt.getBytes()))));
+            sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes(DEFAULT_CHARSET)),
+                    DEFAULT_CHARSET));
+            crateIndexStmtList.forEach(crateIndexStmt -> sr.runScript(new InputStreamReader(
+                    new ByteArrayInputStream(crateIndexStmt.getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET)));
 
         }
     }
@@ -103,10 +107,10 @@ public class MetadataUtil {
 
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
-            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
+            sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
             sr.setStopOnError(true);
-            sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
-
+            sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes(DEFAULT_CHARSET)),
+                    DEFAULT_CHARSET));
         }
     }
 }

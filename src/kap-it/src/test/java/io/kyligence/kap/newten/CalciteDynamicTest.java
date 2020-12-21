@@ -40,16 +40,11 @@ import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import scala.collection.JavaConversions;
 
 public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
-    private static final Logger logger = LoggerFactory.getLogger(CalciteDynamicTest.class);
-
-    private boolean succeed = true;
 
     @Before
     public void setup() throws Exception {
@@ -59,10 +54,6 @@ public class CalciteDynamicTest extends NLocalWithSparkSessionTest {
     @After
     public void after() {
         NDefaultScheduler.destroyInstance();
-        //super.cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("noBuild");
-        System.clearProperty("isDeveloperMode");
     }
 
     @Test

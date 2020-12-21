@@ -32,6 +32,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import io.kyligence.kap.common.util.Unsafe;
 import scala.Tuple2;
 
 public class KapSparkTaskTestCLI {
@@ -42,7 +43,7 @@ public class KapSparkTaskTestCLI {
 
         if (args.length < 1) {
             System.err.println("Usage: KapSparkTaskTestCLI <file>");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         SparkConf sparkConf = new SparkConf().setAppName("KAP Test Submit Spark Task");

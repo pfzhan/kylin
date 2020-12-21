@@ -24,17 +24,20 @@
 
 package org.apache.kylin.rest.security;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;
@@ -57,8 +60,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import lombok.val;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 /**
  */
@@ -155,8 +156,8 @@ public class AclManager {
         for (ObjectIdentity oid : oids) {
             AclRecord record = getAclRecordByCache(AclPermissionUtil.objID(oid));
             if (record == null) {
-                Message msg = MsgPicker.getMsg();
-                throw new NotFoundException(String.format(msg.getACL_INFO_NOT_FOUND(), oid));
+                throw new NotFoundException(
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getACL_INFO_NOT_FOUND(), oid));
             }
 
             Acl parentAcl = null;
@@ -173,7 +174,7 @@ public class AclManager {
     public MutableAcl createAcl(ObjectIdentity objectIdentity) {
         AclRecord aclRecord = getAclRecordByCache(AclPermissionUtil.objID(objectIdentity));
         if (aclRecord != null) {
-            throw new AlreadyExistsException(String.format("ACL of %s exists!", objectIdentity));
+            throw new AlreadyExistsException(String.format(Locale.ROOT, "ACL of %s exists!", objectIdentity));
         }
         AclRecord record = newAclRecord(objectIdentity);
         crud.save(record);
@@ -186,7 +187,8 @@ public class AclManager {
         List<ObjectIdentity> children = findChildren(objectIdentity);
         if (!deleteChildren && !children.isEmpty()) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException(PERMISSION_DENIED, String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
+            throw new KylinException(PERMISSION_DENIED,
+                    String.format(Locale.ROOT, msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
         }
         for (ObjectIdentity oid : children) {
             deleteAcl(oid, deleteChildren);

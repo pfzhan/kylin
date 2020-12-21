@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.IllegalFormatException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -387,20 +388,20 @@ public abstract class AbstractExecutable implements Executable {
 
         val parent = this.getParent();
 
-        if (ExecutableState.READY.equals(parent.getStatus())) {
+        if (ExecutableState.READY == parent.getStatus()) {
             //if a job is restarted(all steps' status changed to READY), the old thread may still be alive and attempt to update job output
             //in this case the old thread should fail itself by calling this
             if (applyChange) {
                 updateJobOutput(project, getId(), ExecutableState.READY, null, null, null);
             }
             throw new JobStoppedNonVoluntarilyException();
-        } else if (ExecutableState.PAUSED.equals(parent.getStatus())) {
+        } else if (ExecutableState.PAUSED == parent.getStatus()) {
             //if a job is paused
             if (applyChange) {
                 updateJobOutput(project, getId(), ExecutableState.PAUSED, null, null, null);
             }
             throw new JobStoppedNonVoluntarilyException();
-        } else if (ExecutableState.DISCARDED.equals(parent.getStatus())) {
+        } else if (ExecutableState.DISCARDED == parent.getStatus()) {
             //if a job is discarded
             if (applyChange) {
                 updateJobOutput(project, getId(), ExecutableState.DISCARDED, null, null, null);
@@ -504,7 +505,7 @@ public abstract class AbstractExecutable implements Executable {
             needNotification = projectConfig.getJobSourceRecordsChangeNotificationEnabled();
             break;
         default:
-            throw new IllegalArgumentException(String.format("no process for jobIssue: %s.", jobIssue));
+            throw new IllegalArgumentException(String.format(Locale.ROOT, "no process for jobIssue: %s.", jobIssue));
         }
         if (!needNotification) {
             return;
@@ -557,7 +558,7 @@ public abstract class AbstractExecutable implements Executable {
                 && !org.apache.commons.lang3.StringUtils.isEmpty(getConfig().getJobTrackingURLPattern())) {
             String pattern = getConfig().getJobTrackingURLPattern();
             try {
-                String newTrackingURL = String.format(pattern, info.get(YARN_APP_ID));
+                String newTrackingURL = String.format(Locale.ROOT, pattern, info.get(YARN_APP_ID));
                 info.put(YARN_APP_URL, newTrackingURL);
             } catch (IllegalFormatException ife) {
                 logger.error("Illegal tracking url pattern: {}", getConfig().getJobTrackingURLPattern());

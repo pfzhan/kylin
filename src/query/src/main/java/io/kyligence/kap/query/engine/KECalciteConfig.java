@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.engine;
 
+import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -70,7 +71,7 @@ public class KECalciteConfig extends CalciteConnectionConfigImpl {
     }
 
     public String[] operatorTables() {
-        return CalciteConnectionProperty.FUN.wrap(properties).getString("standard").toLowerCase().split(",");
+        return CalciteConnectionProperty.FUN.wrap(properties).getString("standard").toLowerCase(Locale.ROOT).split(",");
     }
 
     public static KECalciteConfig current() {

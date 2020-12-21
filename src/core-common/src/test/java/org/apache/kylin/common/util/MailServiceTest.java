@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -54,7 +53,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 @Ignore("convenient trial tool for dev")
-public class MailServiceTest {
+public class MailServiceTest extends AbstractTestCase {
 
     private CleanMetadataHelper cleanMetadataHelper = null;
 
@@ -78,18 +77,17 @@ public class MailServiceTest {
         boolean sent = sendTestEmail(mailservice);
         assert sent;
 
-        System.setProperty("kylin.job.notification-enabled", "false");
+        overwriteSystemProp("kylin.job.notification-enabled", "false");
         // set kylin.job.notification-enabled=false, and run again, this time should be no mail delivered
         mailservice = new MailService(config);
         sent = sendTestEmail(mailservice);
         assert !sent;
-
     }
 
     @Test
     public void testMailHelper() {
-        System.setProperty("kylin.capacity.notification-enabled", "true");
-        System.setProperty("kylin.capacity.notification-emails", "foobar@foobar.com");
+        overwriteSystemProp("kylin.capacity.notification-enabled", "true");
+        overwriteSystemProp("kylin.capacity.notification-emails", "foobar@foobar.com");
         boolean sent = MailHelper.notifyUserForOverCapacity(100L, 81L);
         assert sent;
     }

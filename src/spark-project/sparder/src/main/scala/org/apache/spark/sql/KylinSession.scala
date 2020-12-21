@@ -22,11 +22,12 @@
 
 package org.apache.spark.sql
 
+import io.kyligence.kap.common.util.Unsafe
+
 import java.io.File
 import java.net.URI
 import java.nio.file.Paths
 import java.sql.SQLException
-
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
 import io.kyligence.kap.query.util.ExtractFactory
@@ -77,7 +78,7 @@ class KylinSession(
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
-    val prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
+    val prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
     try {
       val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig;
       val queryExec = new QueryExec(project, projectKylinConfig)
@@ -87,9 +88,9 @@ class KylinSession(
       queryExec.executeQuery(convertedSql)
     } finally {
       if (prevRunLocalConf == null) {
-        System.clearProperty("kylin.query.engine.run-constant-query-locally")
+        Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally")
       } else {
-        System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
+        Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
       }
     }
     SparderEnv.getDF
@@ -184,7 +185,7 @@ object KylinSession extends Logging {
 
         // KE-12678
         if(sc.master.startsWith("yarn")) {
-          System.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
+          Unsafe.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
         }
         sc
       }

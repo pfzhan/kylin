@@ -28,6 +28,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Locale;
 
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.Quoting;
@@ -52,7 +53,8 @@ public class PrepareSQLUtils {
         placeHolderIdx = findNextPlaceHolder(prepareSQL, startOffset);
         while (placeHolderIdx != -1 && paramIdx < params.length) {
             String paramLiteral = convertToLiteralString(params[paramIdx]);
-            prepareSQL = prepareSQL.substring(0, placeHolderIdx) + paramLiteral + prepareSQL.substring(placeHolderIdx + 1);
+            prepareSQL = prepareSQL.substring(0, placeHolderIdx) + paramLiteral
+                    + prepareSQL.substring(placeHolderIdx + 1);
 
             paramIdx += 1;
             startOffset = placeHolderIdx + paramLiteral.length();
@@ -60,7 +62,7 @@ public class PrepareSQLUtils {
         }
 
         if (paramIdx != params.length) {
-            throw new IllegalStateException(String.format(
+            throw new IllegalStateException(String.format(Locale.ROOT,
                     "Invalid PrepareStatement, failed to match params with place holders, sql: %s, params: %s",
                     prepareSQL, Arrays.stream(params).map(PrepareSqlRequest.StateParam::getValue)));
         }
@@ -76,9 +78,10 @@ public class PrepareSQLUtils {
         if (value instanceof String) {
             return LITERAL_QUOTE + (String) value + LITERAL_QUOTE;
         } else if (value instanceof java.sql.Date) {
-            return String.format("date'%s'", DateFormat.formatToDateStr(((Date) value).getTime()));
+            return String.format(Locale.ROOT, "date'%s'", DateFormat.formatToDateStr(((Date) value).getTime()));
         } else if (value instanceof Timestamp) {
-            return String.format("timestamp'%s'", DateFormat.formatToTimeStr(((Timestamp) value).getTime()));
+            return String.format(Locale.ROOT, "timestamp'%s'",
+                    DateFormat.formatToTimeStr(((Timestamp) value).getTime()));
         } else {
             return String.valueOf(value); // numbers
         }
@@ -97,40 +100,40 @@ public class PrepareSQLUtils {
         ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
 
         switch (rep) {
-            case PRIMITIVE_CHAR:
-            case CHARACTER:
-            case STRING:
-                return isNull ? null : param.getValue();
-            case PRIMITIVE_INT:
-            case INTEGER:
-                return isNull ? 0 : Integer.parseInt(param.getValue());
-            case PRIMITIVE_SHORT:
-            case SHORT:
-                return isNull ? 0: Short.valueOf(param.getValue());
-            case PRIMITIVE_LONG:
-            case LONG:
-                return isNull ? 0: Long.parseLong(param.getValue());
-            case PRIMITIVE_FLOAT:
-            case FLOAT:
-                return isNull ? 0: Float.parseFloat(param.getValue());
-            case PRIMITIVE_DOUBLE:
-            case DOUBLE:
-                return isNull ? 0 : Double.parseDouble(param.getValue());
-            case PRIMITIVE_BOOLEAN:
-            case BOOLEAN:
-                return !isNull && Boolean.parseBoolean(param.getValue());
-            case PRIMITIVE_BYTE:
-            case BYTE:
-                return isNull ? 0 : Byte.valueOf(param.getValue());
-            case JAVA_UTIL_DATE:
-            case JAVA_SQL_DATE:
-                return isNull ? null : java.sql.Date.valueOf(param.getValue());
-            case JAVA_SQL_TIME:
-                return isNull ? null : Time.valueOf(param.getValue());
-            case JAVA_SQL_TIMESTAMP:
-                return isNull ? null : Timestamp.valueOf(param.getValue());
-            default:
-                return isNull ? null : param.getValue();
+        case PRIMITIVE_CHAR:
+        case CHARACTER:
+        case STRING:
+            return isNull ? null : param.getValue();
+        case PRIMITIVE_INT:
+        case INTEGER:
+            return isNull ? 0 : Integer.parseInt(param.getValue());
+        case PRIMITIVE_SHORT:
+        case SHORT:
+            return isNull ? 0 : Short.parseShort(param.getValue());
+        case PRIMITIVE_LONG:
+        case LONG:
+            return isNull ? 0 : Long.parseLong(param.getValue());
+        case PRIMITIVE_FLOAT:
+        case FLOAT:
+            return isNull ? 0 : Float.parseFloat(param.getValue());
+        case PRIMITIVE_DOUBLE:
+        case DOUBLE:
+            return isNull ? 0 : Double.parseDouble(param.getValue());
+        case PRIMITIVE_BOOLEAN:
+        case BOOLEAN:
+            return !isNull && Boolean.parseBoolean(param.getValue());
+        case PRIMITIVE_BYTE:
+        case BYTE:
+            return isNull ? 0 : Byte.parseByte(param.getValue());
+        case JAVA_UTIL_DATE:
+        case JAVA_SQL_DATE:
+            return isNull ? null : java.sql.Date.valueOf(param.getValue());
+        case JAVA_SQL_TIME:
+            return isNull ? null : Time.valueOf(param.getValue());
+        case JAVA_SQL_TIMESTAMP:
+            return isNull ? null : Timestamp.valueOf(param.getValue());
+        default:
+            return isNull ? null : param.getValue();
         }
     }
 

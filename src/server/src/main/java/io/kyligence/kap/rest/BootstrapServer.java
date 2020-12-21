@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.apache.curator.x.discovery.ServiceInstance;
@@ -53,6 +52,8 @@ import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
@@ -68,7 +69,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
 
     public static void main(String[] args) {
         // set log4j logging system
-        System.setProperty("org.springframework.boot.logging.LoggingSystem",
+        Unsafe.setProperty("org.springframework.boot.logging.LoggingSystem",
                 "io.kyligence.kap.rest.logging.Log4JLoggingSystem");
         SpringApplication.run(BootstrapServer.class, args);
     }

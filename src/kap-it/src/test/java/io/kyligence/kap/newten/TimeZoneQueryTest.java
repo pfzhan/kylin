@@ -73,7 +73,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
     @BeforeClass
     public static void initSpark() {
         if (Shell.MAC) {
-            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+            overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
         }
         if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
@@ -109,7 +109,6 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Override

@@ -27,6 +27,7 @@ package io.kyligence.kap.utils;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -94,8 +95,9 @@ public class RecAndQueryCompareUtil {
         List<String> list = Lists.newArrayList();
         orderedLayouts.forEach(queryLayoutRelation -> {
             List<String> colOrderNames = findColOrderNames(kylinConfig, project, queryLayoutRelation);
-            String tmp = String.format("{model=%s,layout=%s,colOrderName=[%s]}", queryLayoutRelation.getModelId(),
-                    queryLayoutRelation.getLayoutId(), String.join(",", colOrderNames));
+            String tmp = String.format(Locale.ROOT, "{model=%s,layout=%s,colOrderName=[%s]}",
+                    queryLayoutRelation.getModelId(), queryLayoutRelation.getLayoutId(),
+                    String.join(",", colOrderNames));
             list.add(tmp);
         });
 

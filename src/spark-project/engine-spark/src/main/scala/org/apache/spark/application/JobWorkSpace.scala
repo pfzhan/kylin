@@ -22,9 +22,10 @@
 
 package org.apache.spark.application
 
+import io.kyligence.kap.common.util.Unsafe
+
 import java.util
 import java.util.concurrent.CountDownLatch
-
 import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
@@ -39,11 +40,11 @@ object JobWorkSpace extends Logging {
       val worker = new JobWorker(application, appArgs, eventLoop)
       val monitor = new JobMonitor(eventLoop)
       val workspace = new JobWorkSpace(eventLoop, monitor, worker)
-      System.exit(workspace.run())
+      Unsafe.systemExit(workspace.run())
     } catch {
       case throwable: Throwable =>
         logError("Error occurred when init job workspace.", throwable)
-        System.exit(1)
+        Unsafe.systemExit(1)
     }
   }
 

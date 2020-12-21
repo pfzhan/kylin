@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -279,7 +280,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource(modifyPath);
         destResourceStore.putResourceWithoutCheck(modifyPath,
                 ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
-        destResourceStore.putResourceWithoutCheck(addPath, ByteStreams.asByteSource(("test1").getBytes()), 0, 0);
+        destResourceStore.putResourceWithoutCheck(addPath,
+                ByteStreams.asByteSource(("test1").getBytes(Charset.defaultCharset())), 0, 0);
 
         Assert.assertNull(destResourceStore.getResource(deletePath));
         Assert.assertNotEquals(originDescription,
@@ -318,7 +320,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource(modifyPath);
         destResourceStore.putResourceWithoutCheck(modifyPath,
                 ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
-        destResourceStore.putResourceWithoutCheck(addPath, ByteStreams.asByteSource(("test2").getBytes()), 0, 0);
+        destResourceStore.putResourceWithoutCheck(addPath,
+                ByteStreams.asByteSource(("test2").getBytes(Charset.defaultCharset())), 0, 0);
 
         Assert.assertNull(destResourceStore.getResource(deletePath));
         Assert.assertNotEquals(originDescription,
@@ -531,8 +534,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 
-        tool.execute(new String[] { "-restore", "-project", "ssb", "-dir",
-                junitFolder.getAbsolutePath(), "--after-truncate" });
+        tool.execute(new String[] { "-restore", "-project", "ssb", "-dir", junitFolder.getAbsolutePath(),
+                "--after-truncate" });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 
@@ -585,7 +588,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 
-        tool.execute(new String[] { "-restore", "-project", "ssb", "-compress", "-dir", "ignored", "--after-truncate"});
+        tool.execute(
+                new String[] { "-restore", "-project", "ssb", "-compress", "-dir", "ignored", "--after-truncate" });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
     }
 

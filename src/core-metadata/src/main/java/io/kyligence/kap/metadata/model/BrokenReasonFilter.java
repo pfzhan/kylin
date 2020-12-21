@@ -55,7 +55,7 @@ public final class BrokenReasonFilter {
         if (Objects.isNull(obj) || !(obj instanceof NDataModel.BrokenReason)) {
             return true;
         }
-        return NDataModel.BrokenReason.NULL.equals(obj);
+        return NDataModel.BrokenReason.NULL == obj;
     }
 
     @Override

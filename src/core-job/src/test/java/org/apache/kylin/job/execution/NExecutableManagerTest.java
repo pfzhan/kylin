@@ -447,7 +447,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         manager.restartJob(job.getId());
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
-        Assert.assertTrue(job1.getStatus().equals(ExecutableState.READY));
+        Assert.assertEquals(ExecutableState.READY, job1.getStatus());
 
         job1.getTasks().forEach(task -> {
             Assert.assertEquals(ExecutableState.READY, task.getStatus());
@@ -467,7 +467,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.pauseJob(job.getId());
 
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
-        Assert.assertTrue(job1.getStatus().equals(ExecutableState.PAUSED));
+        Assert.assertEquals(ExecutableState.PAUSED, job1.getStatus());
 
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflowByModelAlias("nmodel_basic");
@@ -487,7 +487,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.pauseJob(job.getId());
 
         DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
-        Assert.assertTrue(job1.getStatus().equals(ExecutableState.PAUSED));
+        Assert.assertEquals(ExecutableState.PAUSED, job1.getStatus());
 
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataflowByModelAlias("nmodel_basic");

@@ -42,18 +42,13 @@
 
 package org.apache.kylin.query.routing;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MultiPartitionDesc;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import lombok.var;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -73,11 +68,19 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RealizationPruner {
@@ -196,13 +199,13 @@ public class RealizationPruner {
             return rexBuilder.makeLiteral(value);
         case INTEGER:
             relDataType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-            return rexBuilder.makeLiteral(Integer.valueOf(value), relDataType, false);
+            return rexBuilder.makeLiteral(Integer.parseInt(value), relDataType, false);
         case BIGINT:
             relDataType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-            return rexBuilder.makeLiteral(Long.valueOf(value), relDataType, false);
+            return rexBuilder.makeLiteral(Long.parseLong(value), relDataType, false);
         default:
             throw new IllegalArgumentException(
-                    String.format("%s data type is not supported for partition column", colType));
+                    String.format(Locale.ROOT, "%s data type is not supported for partition column", colType));
         }
     }
 
@@ -214,13 +217,13 @@ public class RealizationPruner {
                 if (index >= 0) {
                     return RexInputRef.of(tableIdentity + "." + partitionCol.getName(), index, tableScan.getRowType());
                 }
-                throw new IllegalStateException(
-                        String.format("Cannot find column %s in all tableScans", partitionCol.getIdentity()));
+                throw new IllegalStateException(String.format(Locale.ROOT, "Cannot find column %s in all tableScans",
+                        partitionCol.getIdentity()));
             }
         }
 
         throw new IllegalStateException(
-                String.format("Cannot find column %s in all tableScans", partitionCol.getIdentity()));
+                String.format(Locale.ROOT, "Cannot find column %s in all tableScans", partitionCol.getIdentity()));
     }
 
     public static Map<String, List<Long>> matchPartitions(List<NDataSegment> dataSegments, NDataModel model,
@@ -259,7 +262,8 @@ public class RealizationPruner {
                         olapContext.allTableScans);
                 RexNode mappingColumnRexCall = rexBuilder.makeLiteral(true);
                 if (mapping != null && CollectionUtils.isNotEmpty(mapping.getMultiPartitionCols())) {
-                    mappingColumnRexCall = transformPartitionMapping2RexCall(partition.getValues(), mapping, rexBuilder, olapContext.allTableScans);
+                    mappingColumnRexCall = transformPartitionMapping2RexCall(partition.getValues(), mapping, rexBuilder,
+                            olapContext.allTableScans);
                 }
 
                 if (isAlwaysFalse(simplifiedSqlFilter, partitionCall, mappingColumnRexCall, rexSimplify, rexBuilder)) {
@@ -289,10 +293,11 @@ public class RealizationPruner {
         return segPartitionMap;
     }
 
-    private static boolean isAlwaysFalse(RexNode simplifiedSqlFilter, RexNode partitionNode, RexNode mappingNode, RexSimplify rexSimplify,
-                                         RexBuilder rexBuilder) {
+    private static boolean isAlwaysFalse(RexNode simplifiedSqlFilter, RexNode partitionNode, RexNode mappingNode,
+            RexSimplify rexSimplify, RexBuilder rexBuilder) {
         // simplifyAnds method can handle NOT_EQUAL operation
-        val simplifyAnds = rexSimplify.simplifyAnds(Lists.newArrayList(simplifiedSqlFilter, partitionNode, mappingNode));
+        val simplifyAnds = rexSimplify
+                .simplifyAnds(Lists.newArrayList(simplifiedSqlFilter, partitionNode, mappingNode));
         val predicate = RelOptPredicateList.of(rexBuilder, Lists.newArrayList(partitionNode, mappingNode));
         // simplifyWithPredicates can handle OR operation
         var simplifiedWithPredicate = rexSimplify.withPredicates(predicate).simplify(simplifiedSqlFilter);
@@ -304,8 +309,10 @@ public class RealizationPruner {
         if (mapping == null || CollectionUtils.isEmpty(mapping.getMultiPartitionCols())) {
             return false;
         }
-        val filterColumnIdentities = filterColumnRefs.stream().map(TblColRef::getCanonicalName).collect(Collectors.toSet());
-        val aliasColumnIdentities = mapping.getAliasColumns().stream().map(TblColRef::getCanonicalName).collect(Collectors.toSet());
+        val filterColumnIdentities = filterColumnRefs.stream().map(TblColRef::getCanonicalName)
+                .collect(Collectors.toSet());
+        val aliasColumnIdentities = mapping.getAliasColumns().stream().map(TblColRef::getCanonicalName)
+                .collect(Collectors.toSet());
         return filterColumnIdentities.containsAll(aliasColumnIdentities);
     }
 
@@ -328,8 +335,8 @@ public class RealizationPruner {
                 Lists.<List<String>> newArrayList(Lists.newArrayList(partitionValues)), rexBuilder, tableScans);
     }
 
-    private static RexNode transformPartitionMapping2RexCall(String[] partitionValues,
-            MultiPartitionKeyMapping mapping, RexBuilder rexBuilder, Set<OLAPTableScan> tableScans) {
+    private static RexNode transformPartitionMapping2RexCall(String[] partitionValues, MultiPartitionKeyMapping mapping,
+            RexBuilder rexBuilder, Set<OLAPTableScan> tableScans) {
         val mappedColumns = mapping.getAliasColumns();
         val mappedValues = mapping.getAliasValue(Lists.newArrayList(partitionValues));
         if (CollectionUtils.isEmpty(mappedColumns) || CollectionUtils.isEmpty(mappedValues)) {

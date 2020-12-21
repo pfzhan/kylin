@@ -21,7 +21,7 @@
  */
 package io.kyligence.kap.engine.spark.source
 
-import io.kyligence.kap.common.util.TempMetadataBuilder
+import io.kyligence.kap.common.util.{TempMetadataBuilder, Unsafe}
 import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable, CatalogTableType}
@@ -32,7 +32,7 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   conf.set("spark.sql.catalogImplementation", "hive")
   test("Test load error view") {
-    System.setProperty("KYLIN_CONF", TempMetadataBuilder.SPARK_PROJECT_KAP_META_TEST_DATA)
+    Unsafe.setProperty("KYLIN_CONF", TempMetadataBuilder.SPARK_PROJECT_KAP_META_TEST_DATA)
     SparderEnv.setSparkSession(spark)
 
     spark.sql("CREATE TABLE hive_table (a int, b int)")
@@ -53,7 +53,7 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
         assert(message.contains("Error for parser view: "))
       }
     }
-    System.clearProperty("KYLIN_CONF")
+    Unsafe.clearProperty("KYLIN_CONF")
   }
 
   test("Test load hive type") {

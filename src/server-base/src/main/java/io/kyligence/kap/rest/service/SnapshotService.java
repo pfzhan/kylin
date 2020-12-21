@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -100,12 +101,12 @@ public class SnapshotService extends BasicService {
         }
 
         NTableMetadataManager tableManager = getTableManager(project);
-        val databases = buildDatabases.stream().map(String::toUpperCase).collect(Collectors.toSet());
+        val databases = buildDatabases.stream().map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
         val databasesNotExist = databases.stream().filter(database -> !tableManager.listDatabases().contains(database))
                 .collect(Collectors.toSet());
         if (!databasesNotExist.isEmpty()) {
-            throw new KylinException(DATABASE_NOT_EXIST, String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(),
-                    StringUtils.join(databasesNotExist, ", ")));
+            throw new KylinException(DATABASE_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getDATABASE_NOT_EXIST(), StringUtils.join(databasesNotExist, ", ")));
         }
         Set<String> tablesOfDatabases = tableManager.listAllTables().stream()
                 .filter(tableDesc -> databases.contains(tableDesc.getDatabase())).map(TableDesc::getIdentity)
@@ -115,7 +116,8 @@ public class SnapshotService extends BasicService {
         return buildSnapshots(project, needBuildSnapshotTables, isRefresh, priority);
     }
 
-    public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables, boolean isRefresh, int priority) {
+    public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables, boolean isRefresh,
+            int priority) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectOperationPermission(project);
         Set<TableDesc> tables = getTableDescs(project, needBuildSnapshotTables);
@@ -154,7 +156,7 @@ public class SnapshotService extends BasicService {
             List<String> tableIdentities = nonPermittedTables.stream().map(TableDesc::getIdentity)
                     .collect(Collectors.toList());
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getSNAPSHOT_OPERATION_PERMISSION_DENIED(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSNAPSHOT_OPERATION_PERMISSION_DENIED(),
                             StringUtils.join(tableIdentities, "', '")));
         }
 
@@ -241,8 +243,8 @@ public class SnapshotService extends BasicService {
                 .filter(tableDesc -> !hasSnapshotOrRunningJob(tableDesc, executables)).map(TableDesc::getIdentity)
                 .collect(Collectors.toList());
         if (!tablesWithEmptySnapshot.isEmpty()) {
-            throw new KylinException(SNAPSHOT_NOT_EXIST, String.format(MsgPicker.getMsg().getSNAPSHOT_NOT_FOUND(),
-                    StringUtils.join(tablesWithEmptySnapshot, "', '")));
+            throw new KylinException(SNAPSHOT_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getSNAPSHOT_NOT_FOUND(), StringUtils.join(tablesWithEmptySnapshot, "', '")));
         }
     }
 
@@ -291,8 +293,8 @@ public class SnapshotService extends BasicService {
             }
         }
         if (!notFoundTables.isEmpty()) {
-            throw new KylinException(TABLE_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), StringUtils.join(notFoundTables, "', '")));
+            throw new KylinException(TABLE_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getTABLE_NOT_FOUND(), StringUtils.join(notFoundTables, "', '")));
         }
         return tables;
     }
@@ -325,16 +327,17 @@ public class SnapshotService extends BasicService {
             if (StringUtils.isEmpty(finalTable)) {
                 return true;
             }
-            if (finalDatabase == null && tableDesc.getDatabase().toLowerCase().contains(finalTable.toLowerCase())) {
+            if (finalDatabase == null
+                    && tableDesc.getDatabase().toLowerCase(Locale.ROOT).contains(finalTable.toLowerCase(Locale.ROOT))) {
                 return true;
             }
-            return tableDesc.getName().toLowerCase().contains(finalTable.toLowerCase());
+            return tableDesc.getName().toLowerCase(Locale.ROOT).contains(finalTable.toLowerCase(Locale.ROOT));
         }).filter(this::isAuthorizedTable).filter(tableDesc -> hasSnapshotOrRunningJob(tableDesc, executables))
                 .collect(Collectors.toList());
 
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         List<SnapshotResponse> response = new ArrayList<>();
-        tables.stream().forEach(tableDesc -> {
+        tables.forEach(tableDesc -> {
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
             response.add(new SnapshotResponse(tableDesc,
                     tableService.getSnapshotSize(project, tableDesc.getIdentity(), fs), countPair.getFirst(),
@@ -343,7 +346,8 @@ public class SnapshotService extends BasicService {
         });
 
         if (!statusFilter.isEmpty()) {
-            val upperCaseFilter = statusFilter.stream().map(String::toUpperCase).collect(Collectors.toSet());
+            val upperCaseFilter = statusFilter.stream().map(str -> str.toUpperCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
             response.removeIf(res -> !upperCaseFilter.contains(res.getStatus()));
         }
 
@@ -479,11 +483,12 @@ public class SnapshotService extends BasicService {
             return true;
         }
 
-        if (StringUtils.isEmpty(databasePattern) && databaseTarget.toLowerCase().contains(tablePattern.toLowerCase())) {
+        if (StringUtils.isEmpty(databasePattern)
+                && databaseTarget.toLowerCase(Locale.ROOT).contains(tablePattern.toLowerCase(Locale.ROOT))) {
             return true;
         }
 
-        return tableDesc.getName().toLowerCase().contains(tablePattern.toLowerCase());
+        return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tablePattern.toLowerCase(Locale.ROOT));
     }
 
     public NInitTablesResponse getTables(String project, String tablePattern, int offset, int limit) {
@@ -562,7 +567,7 @@ public class SnapshotService extends BasicService {
                     if (StringUtils.isEmpty(finalTable)) {
                         return true;
                     }
-                    return tableDesc.getName().toLowerCase().contains(finalTable.toLowerCase());
+                    return tableDesc.getName().toLowerCase(Locale.ROOT).contains(finalTable.toLowerCase(Locale.ROOT));
                 }).filter(this::isAuthorizedTableAndColumn).sorted(tableService::compareTableDesc)
                 .collect(Collectors.toList());
         for (TableDesc tableDesc : tables) {

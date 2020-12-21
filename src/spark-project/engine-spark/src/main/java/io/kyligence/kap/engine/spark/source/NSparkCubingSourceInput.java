@@ -40,6 +40,7 @@ import org.apache.spark.sql.util.SparderTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
 import java.util.Map;
 
 public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingSource {
@@ -52,13 +53,14 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         StructType kylinSchema = new StructType();
         for (ColumnDesc columnDesc : columnDescs) {
             if (!columnDesc.isComputedColumn()) {
-                kylinSchema = kylinSchema.add(columnDesc.getName(), SparderTypeUtil.toSparkType(columnDesc.getType(), false), true);
-                tblColNames.add("`"+columnDesc.getName()+"`");
+                kylinSchema = kylinSchema.add(columnDesc.getName(),
+                        SparderTypeUtil.toSparkType(columnDesc.getType(), false), true);
+                tblColNames.add("`" + columnDesc.getName() + "`");
             }
         }
         String[] colNames = tblColNames.toArray(new String[0]);
         String colString = Joiner.on(",").join(colNames);
-        String sql = String.format("select %s from %s", colString, table.getIdentity());
+        String sql = String.format(Locale.ROOT, "select %s from %s", colString, table.getIdentity());
         Dataset<Row> df = ss.sql(sql);
         StructType sparkSchema = df.schema();
         logger.debug("Source data sql is: {}", sql);

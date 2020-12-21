@@ -32,6 +32,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENT
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -247,7 +248,8 @@ public class OpenAccessController extends NBasicController {
 
         accessRequest.setPrincipal(MetadataConstants.TYPE_USER.equalsIgnoreCase(permissionRequest.getType()));
         accessRequest.setSid(permissionRequest.getName());
-        String permission = AclPermissionEnum.convertToAclPermission(permissionRequest.getPermission().toUpperCase());
+        String permission = AclPermissionEnum
+                .convertToAclPermission(permissionRequest.getPermission().toUpperCase(Locale.ROOT));
         accessRequest.setPermission(permission);
 
         return accessRequest;
@@ -257,7 +259,7 @@ public class OpenAccessController extends NBasicController {
             BatchProjectPermissionRequest permissionRequest) {
         List<AccessRequest> accessRequests = new ArrayList<>();
         String type = permissionRequest.getType();
-        String externalPermission = permissionRequest.getPermission().toUpperCase();
+        String externalPermission = permissionRequest.getPermission().toUpperCase(Locale.ROOT);
         String aclPermission = AclPermissionEnum.convertToAclPermission(externalPermission);
 
         List<String> names = permissionRequest.getNames();

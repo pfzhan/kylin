@@ -23,6 +23,7 @@
 package org.apache.spark.common
 
 import io.kyligence.kap.benchmark.BenchmarkHelper
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{JobSupport, LocalToYarnSupport, QuerySupport}
 import io.kyligence.kap.query.runtime.CalciteToSparkPlaner
 import io.kyligence.kap.query.runtime.plan.ResultPlan
@@ -43,11 +44,11 @@ class TestSSBQuery
   override val master = "yarn"
   override val schedulerInterval = "30"
   override val DEFAULT_PROJECT = "ssb_loadtest"
-//  System.setProperty("kylin.env.hdfs-working-dir", "hdfs://slave1.kcluster/tmp/ssb_loadtest")
-//  System.setProperty("kylin.engine.spark.job-jar", "../../assembly/target/kap-assembly-4.0.0-SNAPSHOT-job.jar")
-//  System.setProperty("kylin.hadoop.conf.dir", System.getenv("HADOOP_CONF_DIR"))
-//  ClassUtil.addClasspath(System.getenv("HADOOP_CONF_DIR"))
-                                    
+  //  System.setProperty("kylin.env.hdfs-working-dir", "hdfs://slave1.kcluster/tmp/ssb_loadtest")
+  //  System.setProperty("kylin.engine.spark.job-jar", "../../assembly/target/kap-assembly-4.0.0-SNAPSHOT-job.jar")
+  //  System.setProperty("kylin.hadoop.conf.dir", System.getenv("HADOOP_CONF_DIR"))
+  //  ClassUtil.addClasspath(System.getenv("HADOOP_CONF_DIR"))
+
 
   init
 
@@ -64,12 +65,12 @@ class TestSSBQuery
   }
 
   val querys: Array[String] = QueryFetcher
-//    .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "temp")
+    //    .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "temp")
     .fetchQueries(QueryConstants.KAP_RESOURCE_BASE_DIR + "sql_ssb_loadtest")
     .map(tp => tp._2)
 
   ignore("ssb - load test with helper") {
-    System.setProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.MockEngine")
+    Unsafe.setProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.MockEngine")
     val helper = new BenchmarkHelper(8, 10 * 60 * 1000)
     helper.setTasks(querys.map { query =>
       () => singleQuery(query, DEFAULT_PROJECT)
@@ -78,7 +79,7 @@ class TestSSBQuery
   }
 
   ignore("ssb - calcite to spark") {
-    System.setProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.MockEngine");
+    Unsafe.setProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.MockEngine");
     val helper = new BenchmarkHelper(8, 10 * 60 * 1000)
     helper.setTasks(querys.map { query =>
       singleQuery(query, DEFAULT_PROJECT)
@@ -93,7 +94,7 @@ class TestSSBQuery
   }
 
   ignore("ssb - calculate spark") {
-    System.setProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.MockEngine");
+    Unsafe.setProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.MockEngine");
     val helper = new BenchmarkHelper(8, 10 * 60 * 1000)
 
     helper.setTasks(querys.map { query =>
@@ -113,7 +114,7 @@ class TestSSBQuery
 
   ignore("ssb - all") {
     querys.map { query =>
-       singleQuery(query, DEFAULT_PROJECT)
+      singleQuery(query, DEFAULT_PROJECT)
     }
     Thread.sleep(1000000L)
   }

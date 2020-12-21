@@ -23,9 +23,13 @@
  */
 package io.kyligence.kap.tool.kerberos;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +41,7 @@ import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.apache.log4j.Logger;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.Unsafe;
 import sun.security.krb5.internal.ktab.KeyTab;
 
 public class KerberosLoginUtil implements IKeep {
@@ -182,7 +187,7 @@ public class KerberosLoginUtil implements IKeep {
     }
 
     public static void setKrb5Config(String krb5ConfFile) throws IOException {
-        System.setProperty(JAVA_SECURITY_KRB5_CONF_KEY, krb5ConfFile);
+        Unsafe.setProperty(JAVA_SECURITY_KRB5_CONF_KEY, krb5ConfFile);
         String ret = System.getProperty(JAVA_SECURITY_KRB5_CONF_KEY);
         if (ret == null) {
             LOG.error(JAVA_SECURITY_KRB5_CONF_KEY + " is null.");
@@ -204,18 +209,17 @@ public class KerberosLoginUtil implements IKeep {
         // 删除jaas文件
         deleteJaasFile(jaasPath);
         writeJaasFile(jaasPath, principal, keytabPath);
-        System.setProperty(JAVA_SECURITY_LOGIN_CONF_KEY, jaasPath);
+        Unsafe.setProperty(JAVA_SECURITY_LOGIN_CONF_KEY, jaasPath);
     }
 
     private static void writeJaasFile(String jaasPath, String principal, String keytabPath) throws IOException {
-        FileWriter writer = new FileWriter(new File(jaasPath));
-        try {
+        try (OutputStream os = new FileOutputStream(jaasPath);
+                BufferedWriter writer = new BufferedWriter(
+                        new OutputStreamWriter(os, Charset.defaultCharset().name()))) {
             writer.write(getJaasConfContext(principal, keytabPath));
             writer.flush();
         } catch (IOException e) {
             throw new IOException("Failed to create jaas.conf File");
-        } finally {
-            writer.close();
         }
     }
 
@@ -337,7 +341,7 @@ public class KerberosLoginUtil implements IKeep {
     }
 
     public static void setZookeeperServerPrincipal(String zkServerPrincipal) throws IOException {
-        System.setProperty(ZOOKEEPER_SERVER_PRINCIPAL_KEY, zkServerPrincipal);
+        Unsafe.setProperty(ZOOKEEPER_SERVER_PRINCIPAL_KEY, zkServerPrincipal);
         String ret = System.getProperty(ZOOKEEPER_SERVER_PRINCIPAL_KEY);
         if (ret == null) {
             LOG.error(ZOOKEEPER_SERVER_PRINCIPAL_KEY + " is null.");
@@ -352,7 +356,7 @@ public class KerberosLoginUtil implements IKeep {
     @Deprecated
     public static void setZookeeperServerPrincipal(String zkServerPrincipalKey, String zkServerPrincipal)
             throws IOException {
-        System.setProperty(zkServerPrincipalKey, zkServerPrincipal);
+        Unsafe.setProperty(zkServerPrincipalKey, zkServerPrincipal);
         String ret = System.getProperty(zkServerPrincipalKey);
         if (ret == null) {
             LOG.error(zkServerPrincipalKey + " is null.");

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -108,7 +109,7 @@ public class CsvSource implements ISource {
             String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
             TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
             for (ColumnDesc column : tableDesc.getColumns()) {
-                column.setName(column.getName().toUpperCase());
+                column.setName(column.getName().toUpperCase(Locale.ROOT));
             }
             tableDesc.setTableType("defaultTable");
             tableDesc.init(prj);

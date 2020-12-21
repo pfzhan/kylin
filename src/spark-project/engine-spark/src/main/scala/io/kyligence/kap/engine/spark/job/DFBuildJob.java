@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -181,8 +182,10 @@ public class DFBuildJob extends SparkApplication {
             snapshotBuilder.buildSnapshot(dfMgr.getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
         } else {
             //calculate total rows
-            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows", dataflowId);
-            snapshotBuilder.calculateTotalRows(dfMgr.getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
+            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
+                    dataflowId);
+            snapshotBuilder.calculateTotalRows(dfMgr.getDataflow(dataflowId).getModel(), ss,
+                    getIgnoredSnapshotTables());
         }
     }
 
@@ -282,7 +285,7 @@ public class DFBuildJob extends SparkApplication {
             String maxLeafTasksNums = maxLeafTasksNums(shareDir);
             val config = KylinConfig.getInstanceFromEnv();
             val factor = config.getSparkEngineTaskCoreFactor();
-            int requiredCore = Double.valueOf(maxLeafTasksNums).intValue() / factor;
+            int requiredCore = (int) Double.parseDouble(maxLeafTasksNums) / factor;
             logger.info("The maximum number of tasks required to run the job is {}, require cores: {}",
                     maxLeafTasksNums, requiredCore);
             return String.valueOf(requiredCore);
@@ -493,7 +496,8 @@ public class DFBuildJob extends SparkApplication {
         try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance().overrideSparkSession(ss)) {
             String dateString = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn,
                     project);
-            val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat());
+            val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat(),
+                    Locale.getDefault(Locale.Category.FORMAT));
             val date = sdf.parse(dateString);
             if (date == null || !dateString.equals(sdf.format(date))) {
                 throw new NoRetryException("date format not match");

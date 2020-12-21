@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -74,7 +75,7 @@ public class NIndexPlanManagerTest {
         Class<? extends NIndexPlanManager> managerClass = manager.getClass();
         Constructor<? extends NIndexPlanManager> constructor = managerClass.getDeclaredConstructor(KylinConfig.class,
                 String.class);
-        constructor.setAccessible(true);
+        Unsafe.changeAccessibleObject(constructor, true);
         final NIndexPlanManager refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
         Assert.assertNotNull(refectionManage);
         Assert.assertEquals(refectionManage.listAllIndexPlans().size(), manager.listAllIndexPlans().size());
@@ -246,7 +247,8 @@ public class NIndexPlanManagerTest {
         });
 
         val plan = manager.getIndexPlan(modelId);
-        Assert.assertEquals("[1, 1030002, 1140001, 1010001, 1080002, 1070002, 1090001, 1100001, 1020001, 1040001, 1150001, 1130001]",
+        Assert.assertEquals(
+                "[1, 1030002, 1140001, 1010001, 1080002, 1070002, 1090001, 1100001, 1020001, 1040001, 1150001, 1130001]",
                 plan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList()).toString());
     }
 

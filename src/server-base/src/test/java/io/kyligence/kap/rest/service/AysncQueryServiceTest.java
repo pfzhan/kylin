@@ -38,6 +38,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Exchanger;
@@ -150,7 +151,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault);
 
-        assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
+        assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -166,18 +167,15 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(servletOutputStream);
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Object[] arguments = invocationOnMock.getArguments();
-                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
-                return null;
-            }
+        doAnswer(invocationOnMock -> {
+            Object[] arguments = invocationOnMock.getArguments();
+            baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+            return null;
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault);
 
-        assertEquals("name,age,city\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
+        assertEquals("name,age,city\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -203,7 +201,8 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "json", encodeDefault);
 
-        assertEquals("[\"{'column1':'a1', 'column2':'b1'}\",\"{'column1':'a2', 'column2':'b2'}\"]", baos.toString());
+        assertEquals("[\"{'column1':'a1', 'column2':'b1'}\",\"{'column1':'a2', 'column2':'b2'}\"]",
+                baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     @Test
@@ -493,7 +492,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             Thread.sleep(5000);
         }
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, "m00")); //
-                OutputStreamWriter osw = new OutputStreamWriter(os); //
+                OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8); //
                 ICsvListWriter csvWriter = new CsvListWriter(osw, CsvPreference.STANDARD_PREFERENCE)) {
             csvWriter.write(row1);
             csvWriter.write(row2);
@@ -513,7 +512,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, "m00")); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+                OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) {
             osw.write(StringEscapeUtils.unescapeJson(row1));
             osw.write(StringEscapeUtils.unescapeJson(row2));
             fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
@@ -530,7 +529,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }
         try (FSDataOutputStream os = fileSystem
                 .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+                OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
             osw.write(metaString);
 
@@ -548,7 +547,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }
         try (FSDataOutputStream os = fileSystem
                 .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+                OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             osw.write(formatDefault);
 
         } catch (IOException e) {
@@ -564,7 +563,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         }
         try (FSDataOutputStream os = fileSystem
                 .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+                OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             osw.write(encodeDefault);
 
         } catch (IOException e) {

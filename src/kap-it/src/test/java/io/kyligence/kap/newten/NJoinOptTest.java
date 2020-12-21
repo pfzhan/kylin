@@ -60,7 +60,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
     @BeforeClass
     public static void initSpark() {
         if (Shell.MAC)
-            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+            overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
         if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
         }

@@ -33,8 +33,8 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -90,12 +90,7 @@ public class NUserGroupService implements IUserGroupService {
     @Override
     public List<ManagedUser> getGroupMembersByName(String name) throws IOException {
         List<ManagedUser> users = userService.listUsers();
-        for (Iterator<ManagedUser> it = users.iterator(); it.hasNext();) {
-            ManagedUser user = it.next();
-            if (!user.getAuthorities().contains(new SimpleGrantedAuthority(name))) {
-                it.remove();
-            }
-        }
+        users.removeIf(user -> !user.getAuthorities().contains(new SimpleGrantedAuthority(name)));
         return users;
     }
 
@@ -164,9 +159,8 @@ public class NUserGroupService implements IUserGroupService {
     public List<String> getAuthoritiesFilterByGroupName(String userGroupName) {
         aclEvaluate.checkIsGlobalAdmin();
         return StringUtils.isEmpty(userGroupName) ? getAllUserGroups()
-                : getAllUserGroups().stream()
-                        .filter(userGroup -> userGroup.toUpperCase().contains(userGroupName.toUpperCase()))
-                        .collect(Collectors.toList());
+                : getAllUserGroups().stream().filter(userGroup -> userGroup.toUpperCase(Locale.ROOT)
+                        .contains(userGroupName.toUpperCase(Locale.ROOT))).collect(Collectors.toList());
     }
 
     @Override
@@ -178,8 +172,8 @@ public class NUserGroupService implements IUserGroupService {
     public List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) {
         aclEvaluate.checkIsGlobalAdmin();
         return StringUtils.isEmpty(userGroupName) ? listUserGroups()
-                : getUserGroupManager().getAllGroups().stream().filter(
-                        userGroup -> userGroup.getGroupName().toUpperCase().contains(userGroupName.toUpperCase()))
+                : getUserGroupManager().getAllGroups().stream().filter(userGroup -> userGroup.getGroupName()
+                        .toUpperCase(Locale.ROOT).contains(userGroupName.toUpperCase(Locale.ROOT)))
                         .collect(Collectors.toList());
     }
 
@@ -192,7 +186,7 @@ public class NUserGroupService implements IUserGroupService {
             }
         }
         throw new KylinException(USERGROUP_NOT_EXIST,
-                String.format(MsgPicker.getMsg().getGROUP_UUID_NOT_EXIST(), uuid));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGROUP_UUID_NOT_EXIST(), uuid));
     }
 
     @Override
@@ -204,7 +198,7 @@ public class NUserGroupService implements IUserGroupService {
             }
         }
         throw new KylinException(USERGROUP_NOT_EXIST,
-                String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
     }
 
     public boolean exists(String name) {
@@ -219,12 +213,12 @@ public class NUserGroupService implements IUserGroupService {
         val groups = getAllUserGroups();
         if (!groups.contains(groupName)) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
         }
     }
 
     public Map<String, List<String>> getUserAndUserGroup() throws IOException {
-        Map result = Maps.newHashMap();
+        Map<String, List<String>> result = Maps.newHashMap();
 
         List<String> userNames = userService.getManagedUsersByFuzzMatching(null, false).stream()
                 .map(ManagedUser::getUsername).collect(Collectors.toList());

@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -69,8 +70,8 @@ public class KECuboidSchedulerV2 extends CuboidScheduler {
         for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
             allColOrders.addAll(calculateCuboidsForAggGroup(agg));
             if (allColOrders.size() > maxCombination) {
-                throw new OutOfMaxCombinationException(
-                        String.format(OUT_OF_MAX_COMBINATION_MSG_FORMAT, allColOrders.size(), maxCombination));
+                throw new OutOfMaxCombinationException(String.format(Locale.ROOT, OUT_OF_MAX_COMBINATION_MSG_FORMAT,
+                        allColOrders.size(), maxCombination));
             }
         }
     }

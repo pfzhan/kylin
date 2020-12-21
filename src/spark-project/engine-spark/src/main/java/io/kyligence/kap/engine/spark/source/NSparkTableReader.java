@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.source;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.kylin.source.IReadableTable.TableReader;
 import org.apache.spark.sql.Row;
@@ -52,8 +53,8 @@ public class NSparkTableReader implements TableReader {
         String master = ss.sparkContext().master();
         String tableIdentity = tableName;
         // spark sql can not add the database prefix when create tempView from csv, but when working with hive, it need the database prefix
-        if (!master.toLowerCase().contains("local")) {
-            tableIdentity = String.format("%s.%s", dbName, tableName);
+        if (!master.toLowerCase(Locale.ROOT).contains("local")) {
+            tableIdentity = String.format(Locale.ROOT, "%s.%s", dbName, tableName);
         }
         records = SparkSqlUtil.queryAll(ss, tableIdentity);
         iterator = records.iterator();

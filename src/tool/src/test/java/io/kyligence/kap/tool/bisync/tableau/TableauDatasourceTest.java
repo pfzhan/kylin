@@ -39,6 +39,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 
 public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
 
@@ -62,7 +63,8 @@ public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
         TableauDatasourceModel datasource = new TableauDataSourceConverter().convert(syncModel, syncContext);
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         datasource.dump(outStream);
-        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.tds"), outStream.toString());
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.tds"),
+                outStream.toString(Charset.defaultCharset().name()));
     }
 
     @Test
@@ -75,7 +77,8 @@ public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
         TableauDatasourceModel datasource = new TableauDataSourceConverter().convert(syncModel, syncContext);
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         datasource.dump(outStream);
-        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"), outStream.toString());
+        Assert.assertEquals(getExpectedTds("/bisync_tableau/nmodel_full_measure_test.connector.tds"),
+                outStream.toString(Charset.defaultCharset().name()));
     }
 
     @Test
@@ -99,7 +102,6 @@ public class TableauDatasourceTest extends NLocalFileMetadataTestCase {
     }
 
     private String getExpectedTds(String path) throws IOException {
-        return CharStreams.toString(new InputStreamReader(
-                getClass().getResourceAsStream(path), Charsets.UTF_8));
+        return CharStreams.toString(new InputStreamReader(getClass().getResourceAsStream(path), Charsets.UTF_8));
     }
 }

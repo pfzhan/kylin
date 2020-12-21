@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,6 +47,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.Locale;
 
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
@@ -125,7 +125,8 @@ public class DictionaryDimEnc extends DimensionEncoding implements Serializable 
             for (int i = outputOffset; i < outputOffset + fixedLen; i++) {
                 output[i] = defaultByte;
             }
-            logger.error("Can't translate value " + valueStr + " to dictionary ID, roundingFlag " + roundingFlag + ". Using default value " + String.format("\\x%02X", defaultByte));
+            logger.error("Can't translate value {} to dictionary ID, roundingFlag {}. Using default value {}", valueStr,
+                    roundingFlag, String.format(Locale.ROOT, "\\x%02X", defaultByte));
         }
     }
 

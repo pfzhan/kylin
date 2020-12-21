@@ -67,10 +67,9 @@ public class LoadCounter {
         try {
             val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
             val pendingTaskCount = JavaConversions.seqAsJavaList(activeStage).stream()
-                    .filter(stage -> stage.status().equals(StageStatus.ACTIVE))
+                    .filter(stage -> StageStatus.ACTIVE == stage.status())
                     .map(stageData -> stageData.numTasks() - stageData.numActiveTasks() - stageData.numCompleteTasks())
-                    .mapToInt(i -> i)
-                    .sum();
+                    .mapToInt(i -> i).sum();
             logger.debug("Current pending task is {}", pendingTaskCount);
             queue.add(pendingTaskCount);
         } catch (Exception ex) {
@@ -84,10 +83,8 @@ public class LoadCounter {
         val mean = median(points);
         logger.debug("Mean value is {}", mean);
         val executorSummary = SparderEnv.getSparkSession().sparkContext().statusStore().executorList(true);
-        val coreNum = JavaConversions.seqAsJavaList(executorSummary).stream()
-                .map(ExecutorSummary::totalCores)
-                .mapToInt(i -> i)
-                .sum();
+        val coreNum = JavaConversions.seqAsJavaList(executorSummary).stream().map(ExecutorSummary::totalCores)
+                .mapToInt(i -> i).sum();
         logger.debug("Current core num is {}", coreNum);
         val loadDesc = new LoadDesc(mean / coreNum, coreNum, new ArrayList<>(queue));
         logger.debug("LoadDesc is {}", loadDesc);

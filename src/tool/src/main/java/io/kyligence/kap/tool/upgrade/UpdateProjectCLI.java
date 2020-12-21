@@ -27,6 +27,7 @@ import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.println;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.cli.Option;
@@ -40,6 +41,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -68,7 +70,7 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
         val tool = new UpdateProjectCLI();
         tool.execute(args);
         println("Update project finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     void updateAllProjects(KylinConfig kylinConfig) {
@@ -91,7 +93,7 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
                 val schemaMap = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName())
                         .listTablesGroupBySchema();
                 String defaultDatabase = DatabaseDesc.getDefaultDatabaseByMaxTables(schemaMap);
-                project.setDefaultDatabase(defaultDatabase.toUpperCase());
+                project.setDefaultDatabase(defaultDatabase.toUpperCase(Locale.ROOT));
             }
             npr.updateProject(project);
             return 0;

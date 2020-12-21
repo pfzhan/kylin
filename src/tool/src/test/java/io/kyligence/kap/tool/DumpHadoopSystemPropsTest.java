@@ -26,28 +26,36 @@ package io.kyligence.kap.tool;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.TreeMap;
 
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class DumpHadoopSystemPropsTest {
+import io.kyligence.kap.common.util.Unsafe;
+
+public class DumpHadoopSystemPropsTest extends AbstractTestCase {
 
     @Test
     public void testDumpProps() throws Exception {
         // test diffSystemProps
         Method diffSystemProps = DumpHadoopSystemProps.class.getDeclaredMethod("diffSystemProps", String.class);
-        diffSystemProps.setAccessible(true);
+        Unsafe.changeAccessibleObject(diffSystemProps, true);
         // for case same key and value exists in system props and the props file
-        System.setProperty("mapreduce.combine.class", "myclass");
+        overwriteSystemProp("mapreduce.combine.class", "myclass");
         // for case same key but different value
-        System.setProperty("mapred.same.key", "value1");
+        overwriteSystemProp("mapred.same.key", "value1");
         // for case property only exists in system props
-        System.setProperty("mapreduce.system.unique", "test");
+        overwriteSystemProp("mapreduce.system.unique", "test");
 
         String propsURL = mockTempPropsFile().getAbsolutePath();
         TreeMap<String, String> propsMap = (TreeMap<String, String>) diffSystemProps.invoke(new DumpHadoopSystemProps(),
@@ -59,7 +67,7 @@ public class DumpHadoopSystemPropsTest {
 
         // test diffSystemEnvs
         Method diffSystemEnvs = DumpHadoopSystemProps.class.getDeclaredMethod("diffSystemEnvs", String.class);
-        diffSystemEnvs.setAccessible(true);
+        Unsafe.changeAccessibleObject(diffSystemEnvs, true);
         String envsURL = mockTempEnvFile().getAbsolutePath();
         TreeMap<String, String> envsMap = (TreeMap<String, String>) diffSystemEnvs.invoke(new DumpHadoopSystemProps(),
                 envsURL);
@@ -70,24 +78,22 @@ public class DumpHadoopSystemPropsTest {
         // test output() function
         Method output = DumpHadoopSystemProps.class.getDeclaredMethod("output", TreeMap.class, TreeMap.class,
                 File.class);
-        output.setAccessible(true);
+        Unsafe.changeAccessibleObject(output, true);
         File tempFile = File.createTempFile("systemProps", ".tmp");
-        output.invoke(new DumpHadoopSystemProps(), propsMap, envsMap, tempFile);
-        BufferedReader in = new BufferedReader(new FileReader(tempFile));
-        Assert.assertEquals("export mapred.map.child.env=myenv", in.readLine());
-        Assert.assertEquals("export kylin_hadoop_opts=\" -Dmapred.same.key=value2  -Dmapred.tip.id=10 \"",
-                in.readLine());
-        Assert.assertEquals("rm -f " + tempFile.getAbsolutePath(), in.readLine());
-
-        in.close();
-        System.clearProperty("mapreduce.combine.class");
-        System.clearProperty("mapred.same.key");
-        System.clearProperty("mapreduce.system.unique");
+        try (InputStream in = new FileInputStream(tempFile);
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, Charset.defaultCharset()))) {
+            output.invoke(new DumpHadoopSystemProps(), propsMap, envsMap, tempFile);
+            Assert.assertEquals("export mapred.map.child.env=myenv", br.readLine());
+            Assert.assertEquals("export kylin_hadoop_opts=\" -Dmapred.same.key=value2  -Dmapred.tip.id=10 \"",
+                    br.readLine());
+            Assert.assertEquals("rm -f " + tempFile.getAbsolutePath(), br.readLine());
+        }
     }
 
     private File mockTempPropsFile() throws IOException {
         File propsFile = File.createTempFile("test", ".props");
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(propsFile))) {
+        try (OutputStream os = new FileOutputStream(propsFile);
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, Charset.defaultCharset()))) {
             writer.write("mapreduce.combine.class=myclass");
             writer.newLine();
             writer.write("mapred.same.key=value2");
@@ -100,7 +106,8 @@ public class DumpHadoopSystemPropsTest {
 
     private File mockTempEnvFile() throws IOException {
         File envFile = File.createTempFile("test", ".envs");
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(envFile))) {
+        try (OutputStream os = new FileOutputStream(envFile);
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, Charset.defaultCharset()))) {
             writer.write("mapred.map.child.env=myenv");
         }
         return envFile;

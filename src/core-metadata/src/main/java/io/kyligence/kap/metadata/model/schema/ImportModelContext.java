@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -338,7 +339,7 @@ public class ImportModelContext implements IKeep {
                     .map(entry -> handleException(entry.getKey(), entry.getValue())).collect(Collectors.joining("\n"));
 
             throw new KylinException(MODEL_METADATA_FILE_ERROR,
-                    String.format("%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    String.format(Locale.ROOT, "%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
                     exceptionMap.values());
         }
     }
@@ -429,13 +430,15 @@ public class ImportModelContext implements IKeep {
 
     private void reorderRecommendations(String modelId, String targetModelId, Map<Integer, Integer> idChangedMap)
             throws IOException {
-        RawResource resource = importResourceStore.getResource(String.format(MODEL_REC_PATH, targetProject, modelId));
+        RawResource resource = importResourceStore
+                .getResource(String.format(Locale.ROOT, MODEL_REC_PATH, targetProject, modelId));
         if (resource != null) {
             List<RawRecItem> rawRecItems = parseRawRecItems(importResourceStore, targetProject, modelId);
 
             reorderRecommendations(rawRecItems, idChangedMap);
 
-            targetResourceStore.checkAndPutResource(String.format(MODEL_REC_PATH, targetProject, targetModelId),
+            targetResourceStore.checkAndPutResource(
+                    String.format(Locale.ROOT, MODEL_REC_PATH, targetProject, targetModelId),
                     ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)), -1);
         }
     }
@@ -471,7 +474,7 @@ public class ImportModelContext implements IKeep {
 
     private String handleException(String modelAlias, Exception exception) {
         if (exception instanceof RuntimeException && exception.getMessage().contains("call on Broken Entity")) {
-            return String.format(MsgPicker.getMsg().getIMPORT_BROKEN_MODEL(), modelAlias);
+            return String.format(Locale.ROOT, MsgPicker.getMsg().getIMPORT_BROKEN_MODEL(), modelAlias);
         }
         return exception.getMessage();
     }

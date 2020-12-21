@@ -30,6 +30,7 @@ import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThrea
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -97,7 +98,7 @@ public class CheckProjectModeCLI extends ExecutableApplication implements IKeep 
                 .collect(Collectors.toList());
 
         if (CollectionUtils.isNotEmpty(projectInstanceList)) {
-            printlnRed(String.format("found %d projects %s need to be changed to AI augmented mode.",
+            printlnRed(String.format(Locale.ROOT, "found %d projects %s need to be changed to AI augmented mode.",
                     projectInstanceList.size(),
                     Arrays.toString(projectInstanceList.stream().map(ProjectInstance::getName).toArray())));
 

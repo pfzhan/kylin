@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -76,7 +77,7 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
 
     public static class Mockup {
         public static void main(String[] args) {
-            String msg = String.format("%s.main() invoked, args: %s", Mockup.class, Arrays.toString(args));
+            String msg = String.format(Locale.ROOT, "%s.main() invoked, args: %s", Mockup.class, Arrays.toString(args));
             logger.info(msg);
         }
     }
@@ -87,7 +88,7 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
         if (!result.succeed()) {
             return result;
         }
-        wrapWithCheckQuit(() -> mergeRemoteMetaAfterBuilding());
+        wrapWithCheckQuit(this::mergeRemoteMetaAfterBuilding);
         return result;
     }
 

@@ -22,14 +22,15 @@
 
 package io.kyligence.kap.it
 
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{JobSupport, LocalToYarnSupport, QuerySupport}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite, SparderQueryTest}
+import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.FileSourceScanExec
 
 class TestTPCHQueryOnYarn
-    extends SparderBaseFunSuite
+  extends SparderBaseFunSuite
     with LocalMetadata
     with JobSupport
     with QuerySupport
@@ -56,7 +57,7 @@ class TestTPCHQueryOnYarn
 
   ignore("tpch query") {
     //    System.setProperty("spark.local", "true")
-    System.setProperty("kylin.query.engine.sparder-enabled", "true")
+    Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     // 22
     try {
       buildAll()

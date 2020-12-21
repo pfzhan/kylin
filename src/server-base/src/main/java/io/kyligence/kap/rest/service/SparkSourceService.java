@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -112,9 +113,9 @@ public class SparkSourceService extends BasicService {
         if (ss.catalog().tableExists(database, table)) {
             val t = ss.catalog().getTable(database, table);
             if ("view".equalsIgnoreCase(t.tableType())) {
-                ss.sql(String.format("drop view %s.%s", database, table));
+                ss.sql(String.format(Locale.ROOT, "drop view %s.%s", database, table));
             } else {
-                ss.sql(String.format("drop table %s.%s", database, table));
+                ss.sql(String.format(Locale.ROOT, "drop table %s.%s", database, table));
             }
         }
     }
@@ -123,7 +124,8 @@ public class SparkSourceService extends BasicService {
         SparkSession sparkSession = SparderEnv.getSparkSession();
         Dataset<Database> databaseSet = sparkSession.catalog().listDatabases();
         List<Database> databases = databaseSet.collectAsList();
-        return databases.stream().map(database -> database.name().toUpperCase()).collect(Collectors.toList());
+        return databases.stream().map(database -> database.name().toUpperCase(Locale.ROOT))
+                .collect(Collectors.toList());
     }
 
     public List<TableNameResponse> listTables(String db, String project) throws Exception {
@@ -131,12 +133,14 @@ public class SparkSourceService extends BasicService {
             SparkSession sparkSession = SparderEnv.getSparkSession();
             Dataset<Table> tableDataset = sparkSession.catalog().listTables(db);
             List<Table> sparkTables = tableDataset.collectAsList();
-            return sparkTables.stream().map(table -> new TableNameResponse(table.name().toUpperCase(), false))
+            return sparkTables.stream()
+                    .map(table -> new TableNameResponse(table.name().toUpperCase(Locale.ROOT), false))
                     .collect(Collectors.toList());
         }
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        List<String> tables = explr.listTables(db).stream().map(String::toUpperCase).collect(Collectors.toList());
+        List<String> tables = explr.listTables(db).stream().map(str -> str.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toList());
         List<TableNameResponse> tableNameResponses = Lists.newArrayList();
         tables.forEach(table -> {
             TableNameResponse response = new TableNameResponse();
@@ -190,17 +194,17 @@ public class SparkSourceService extends BasicService {
         }
         if (!databaseExists(database)) {
             throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(), database));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getDATABASE_NOT_EXIST(), database));
         }
         val tableResponse = new ExportTablesResponse();
         Map<String, String> tableDesc = Maps.newHashMap();
         for (String table : tables) {
-            if (table.equals("")){
+            if (table.equals("")) {
                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_TABLE_LIST());
             }
             if (!tableExists(database, table)) {
                 throw new KylinException(ServerErrorCode.INVALID_PARAMETER,
-                        String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
             }
             tableDesc.put(table, DdlOperation.getTableDesc(database, table).replaceAll("\t|\r|\n", " "));
         }
@@ -239,7 +243,7 @@ public class SparkSourceService extends BasicService {
             String fileName = file.getName();
             String filePath = file.getAbsolutePath();
             FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
-            String hdfsPath = String.format("/tmp/%s", fileName);
+            String hdfsPath = String.format(Locale.ROOT, "/tmp/%s", fileName);
             try {
                 log.debug("Copy from {} to {}", filePath, hdfsPath);
                 File[] parquetFiles = file.listFiles();
@@ -251,11 +255,11 @@ public class SparkSourceService extends BasicService {
                 ss.read().parquet(hdfsPath).write().mode(mode).saveAsTable(fileName);
             } catch (Exception e) {
                 log.error("Load sample {} failed.", fileName, e);
-                throw new IllegalStateException(String.format("Load sample %s failed", fileName), e);
+                throw new IllegalStateException(String.format(Locale.ROOT, "Load sample %s failed", fileName), e);
             } finally {
                 fileSystem.delete(new Path(hdfsPath), false);
             }
-            String tableName = String.format("DEFAULT.%s", fileName.toUpperCase());
+            String tableName = String.format(Locale.ROOT, "DEFAULT.%s", fileName.toUpperCase(Locale.ROOT));
             createdTables.add(tableName);
         }
         log.info("Load samples {} successfully", StringUtil.join(createdTables, ","));

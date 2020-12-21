@@ -46,8 +46,10 @@ import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.KylinConfig;
@@ -85,7 +87,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
             userGroupManager.add(ROLE_ADMIN);
             request = new ManagedUser();
             request.setUsername(username);
-            request.setPassword(Base64.encodeBase64String(password.getBytes("utf-8")));
+            request.setPassword(Base64.encodeBase64String(password.getBytes(StandardCharsets.UTF_8)));
             request.setDisabled(false);
             request.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(GROUP_ALL_USERS)));
             mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
@@ -99,7 +101,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testSaveUser() throws Exception {
-        request.setUsername(username.toUpperCase());
+        request.setUsername(username.toUpperCase(Locale.ROOT));
         MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))

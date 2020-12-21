@@ -457,8 +457,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(2, response.getJobNotificationEmails().size());
-        Assert.assertEquals(false, response.isJobErrorNotificationEnabled());
-        Assert.assertEquals(false, response.isDataLoadEmptyNotificationEnabled());
+        Assert.assertFalse(response.isJobErrorNotificationEnabled());
+        Assert.assertFalse(response.isDataLoadEmptyNotificationEnabled());
 
         jobNotificationConfigRequest
                 .setJobNotificationEmails(Lists.newArrayList("@kyligence.io", "user2@.io", "user2@kyligence.io"));

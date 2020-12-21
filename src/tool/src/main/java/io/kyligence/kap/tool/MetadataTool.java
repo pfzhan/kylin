@@ -31,9 +31,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
@@ -69,6 +71,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.tool.util.ScreenPrintUtil;
 import lombok.Getter;
@@ -78,7 +81,8 @@ import lombok.var;
 public class MetadataTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss",
+            Locale.getDefault(Locale.Category.FORMAT));
 
     private static final String HDFS_METADATA_URL_FORMATTER = "kylin_metadata@hdfs,path=%s";
 
@@ -179,9 +183,9 @@ public class MetadataTool extends ExecutableApplication {
         resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
         tool.execute(args);
         if (isBackup && StringUtils.isNotEmpty(tool.getBackupPath())) {
-            System.out.println(String.format("The metadata backup path is %s.", tool.getBackupPath()));
+            System.out.printf(Locale.ROOT, "The metadata backup path is %s.%n", tool.getBackupPath());
         }
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override
@@ -255,7 +259,7 @@ public class MetadataTool extends ExecutableApplication {
             path = KylinConfigBase.getKylinHome() + File.separator + "meta_backups";
         }
         if (StringUtils.isEmpty(folder)) {
-            folder = LocalDateTime.now().format(DATE_TIME_FORMATTER) + "_backup";
+            folder = LocalDateTime.now(Clock.systemDefaultZone()).format(DATE_TIME_FORMATTER) + "_backup";
         }
         backupPath = StringUtils.appendIfMissing(path, "/") + folder;
         val backupMetadataUrl = getMetadataUrl(backupPath, compress);
@@ -406,13 +410,13 @@ public class MetadataTool extends ExecutableApplication {
 
             Set<String> globalDestResources = null;
             if (Objects.nonNull(destGlobalProjectResources)) {
-                globalDestResources = destGlobalProjectResources.stream()
-                        .filter(x -> Paths.get(x).getFileName().toString().equals(String.format("%s.json", project)))
-                        .collect(Collectors.toSet());
+                globalDestResources = destGlobalProjectResources.stream().filter(x -> Paths.get(x).getFileName()
+                        .toString().equals(String.format(Locale.ROOT, "%s.json", project))).collect(Collectors.toSet());
             }
 
-            val globalSrcResources = restoreResourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT).stream()
-                    .filter(x -> Paths.get(x).getFileName().toString().equals(String.format("%s.json", project)))
+            val globalSrcResources = restoreResourceStore
+                    .listResourcesRecursively(ResourceStore.PROJECT_ROOT).stream().filter(x -> Paths.get(x)
+                            .getFileName().toString().equals(String.format(Locale.ROOT, "%s.json", project)))
                     .collect(Collectors.toSet());
 
             Set<String> finalGlobalDestResources = globalDestResources;
@@ -467,7 +471,7 @@ public class MetadataTool extends ExecutableApplication {
 
     String getMetadataUrl(String rootPath, boolean compressed) {
         if (HadoopUtil.isHdfsCompatibleSchema(rootPath, kylinConfig)) {
-            val url = String.format(HDFS_METADATA_URL_FORMATTER,
+            val url = String.format(Locale.ROOT, HDFS_METADATA_URL_FORMATTER,
                     Path.getPathWithoutSchemeAndAuthority(new Path(rootPath)).toString() + "/");
             return compressed ? url + ",zip=1" : url;
 

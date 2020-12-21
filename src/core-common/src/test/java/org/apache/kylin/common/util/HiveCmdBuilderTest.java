@@ -51,30 +51,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 
-public class HiveCmdBuilderTest {
+public class HiveCmdBuilderTest extends AbstractTestCase {
 
     @Before
     public void setup() {
-        System.setProperty("KYLIN_CONF", TempMetadataBuilder.KAP_META_TEST_DATA);
-    }
-
-    @After
-    public void after() throws Exception {
-        System.clearProperty("kylin.source.hive.client");
-        System.clearProperty("kylin.source.hive.beeline-params");
-        System.clearProperty("KYLIN_CONF");
+        overwriteSystemProp("KYLIN_CONF", TempMetadataBuilder.KAP_META_TEST_DATA);
     }
 
     @Test
     public void testHiveCLI() {
-        System.setProperty("kylin.source.hive.client", "cli");
+        overwriteSystemProp("kylin.source.hive.client", "cli");
 
         Map<String, String> hiveProps = new HashMap<>();
         hiveProps.put("hive.execution.engine", "mr");
@@ -93,10 +85,9 @@ public class HiveCmdBuilderTest {
 
     @Test
     public void testBeeline() throws IOException {
-        String lineSeparator = java.security.AccessController
-                .doPrivileged(new sun.security.action.GetPropertyAction("line.separator"));
-        System.setProperty("kylin.source.hive.client", "beeline");
-        System.setProperty("kylin.source.hive.beeline-params", "-u jdbc_url");
+        String lineSeparator = System.lineSeparator();
+        overwriteSystemProp("kylin.source.hive.client", "beeline");
+        overwriteSystemProp("kylin.source.hive.beeline-params", "-u jdbc_url");
 
         HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
         hiveCmdBuilder.addStatement("USE default;");

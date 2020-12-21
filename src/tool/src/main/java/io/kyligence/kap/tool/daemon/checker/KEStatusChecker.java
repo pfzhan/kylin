@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Locale;
 
 public class KEStatusChecker extends AbstractHealthChecker {
     private static final Logger logger = LoggerFactory.getLogger(AbstractHealthChecker.class);
@@ -103,7 +104,8 @@ public class KEStatusChecker extends AbstractHealthChecker {
             if (getKylinConfig().isSparkFailRestartKeEnabled()
                     && sparkStatus.getFailureTimes() >= getKylinConfig().getGuardianSparkFailThreshold()) {
                 sparkRestart = true;
-                sb.append(String.format("Spark restart failure reach %s times, last restart failure time %s. ",
+                sb.append(String.format(Locale.ROOT,
+                        "Spark restart failure reach %s times, last restart failure time %s. ",
                         getKylinConfig().getGuardianSparkFailThreshold(), sparkStatus.getLastFailureTime()));
             }
 
@@ -114,7 +116,7 @@ public class KEStatusChecker extends AbstractHealthChecker {
 
                 if (getKylinConfig().isSlowQueryKillFailedRestartKeEnabled() && failedKillQueries > 0) {
                     slowQueryRestart = true;
-                    sb.append(String.format("Have slowQuery be canceled reach %s times. ",
+                    sb.append(String.format(Locale.ROOT, "Have slowQuery be canceled reach %s times. ",
                             getKylinConfig().getGuardianSparkFailThreshold()));
                 }
             }
@@ -129,8 +131,8 @@ public class KEStatusChecker extends AbstractHealthChecker {
             logger.info("Check KE status failed! ", e);
 
             if (++failCount >= getKylinConfig().getGuardianApiFailThreshold()) {
-                return new CheckResult(CheckStateEnum.RESTART,
-                        String.format("Instance is in inaccessible status, API failed count reach %d", failCount));
+                return new CheckResult(CheckStateEnum.RESTART, String.format(Locale.ROOT,
+                        "Instance is in inaccessible status, API failed count reach %d", failCount));
             } else {
                 return new CheckResult(CheckStateEnum.WARN, e.getMessage());
             }

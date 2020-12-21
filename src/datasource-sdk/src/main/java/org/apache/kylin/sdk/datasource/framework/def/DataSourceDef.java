@@ -26,6 +26,7 @@ package org.apache.kylin.sdk.datasource.framework.def;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.calcite.sql.SqlCall;
@@ -157,7 +158,7 @@ public class DataSourceDef {
 
         if (properties != null) {
             for (PropertyDef prop : properties) {
-                propertyDefMap.put(prop.getName().toLowerCase(), prop);
+                propertyDefMap.put(prop.getName().toLowerCase(Locale.ROOT), prop);
             }
         }
 
@@ -165,12 +166,12 @@ public class DataSourceDef {
             for (TypeMapping typeMapping : typeMappings) {
                 String sourceType = typeMapping.getSourceType();
                 String targetType = typeMapping.getTargetType();
-                Integer typeValue = TYPE_VALUES_MAP.get(targetType.toUpperCase());
+                Integer typeValue = TYPE_VALUES_MAP.get(targetType.toUpperCase(Locale.ROOT));
                 if (typeValue == null) {
                     logger.error("target dataType can not be found in java.sql.Types, SOURCE_TYPE={}, TARGET_TYPE={}",
                             sourceType, targetType);
                 } else {
-                    dataTypeMap.put(sourceType.toUpperCase(), typeValue);
+                    dataTypeMap.put(sourceType.toUpperCase(Locale.ROOT), typeValue);
                 }
             }
         }
@@ -179,19 +180,19 @@ public class DataSourceDef {
     // ===================================================================
 
     public SqlNode getFuncDefSqlNode(String id) {
-        return functionDefSqlNodeMap.get(id.toUpperCase());
+        return functionDefSqlNodeMap.get(id.toUpperCase(Locale.ROOT));
     }
 
     public List<String> getFuncDefsByName(String name) {
-        return functionNameDefMap.get(name.toUpperCase());
+        return functionNameDefMap.get(name.toUpperCase(Locale.ROOT));
     }
 
     public TypeDef getTypeDef(String id) {
-        return typeDefMap.get(id.toUpperCase());
+        return typeDefMap.get(id.toUpperCase(Locale.ROOT));
     }
 
     public List<TypeDef> getTypeDefsByName(String typeName) {
-        return typeNameDefMap.get(typeName.toUpperCase());
+        return typeNameDefMap.get(typeName.toUpperCase(Locale.ROOT));
     }
 
     public String getPropertyValue(String name) {
@@ -202,7 +203,7 @@ public class DataSourceDef {
         if (name == null)
             return defaultValue;
 
-        PropertyDef prop = propertyDefMap.get(name.toLowerCase());
+        PropertyDef prop = propertyDefMap.get(name.toLowerCase(Locale.ROOT));
         return prop == null ? defaultValue : prop.getValue();
     }
 
@@ -211,7 +212,7 @@ public class DataSourceDef {
     }
 
     public Integer getDataTypeValue(String sourceType) {
-        return dataTypeMap.get(sourceType.toUpperCase());
+        return dataTypeMap.get(sourceType.toUpperCase(Locale.ROOT));
     }
 
     public Map<String, TypeDef> getTypeDefMap() {

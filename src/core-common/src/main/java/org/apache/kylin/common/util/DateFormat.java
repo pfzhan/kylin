@@ -35,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
@@ -244,7 +245,8 @@ public class DateFormat {
      * @return
      */
     public static String getFormattedDate(String date, String datePattern) {
-        DateTimeFormatter formatter = new DateTimeFormatterBuilder().append(DateTimeFormatter.ofPattern(datePattern))
+        DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+                .append(DateTimeFormatter.ofPattern(datePattern, Locale.getDefault(Locale.Category.FORMAT)))
                 .parseDefaulting(ChronoField.DAY_OF_MONTH, 1).parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
                 .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0).parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
                 .toFormatter();
@@ -261,7 +263,7 @@ public class DateFormat {
     public static Long getFormatTimeStamp(String time, String pattern) {
         try {
             if (StringUtils.isNotBlank(time) && StringUtils.isNotBlank(pattern)) {
-                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault(Locale.Category.FORMAT));
                 sdf.setTimeZone(TimeZone.getDefault());
                 String timeFormat = sdf.format(new Date(Long.parseLong(time)));
                 time = Long.toString(sdf.parse(timeFormat).getTime());

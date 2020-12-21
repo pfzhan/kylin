@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.kyligence.kap.cluster.SchedulerInfoCmdHelper;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.tool.util.HadoopConfExtractor;
 import lombok.val;
 
@@ -116,11 +117,11 @@ public class KapGetClusterInfo {
     public static void main(String[] args) throws IOException, ShellException {
         if (args.length != 1) {
             System.out.println("Usage: KapGetClusterInfo fileName");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
         KapGetClusterInfo kapSetupConcurrency = new KapGetClusterInfo(args[0]);
         kapSetupConcurrency.getYarnMetrics();
         kapSetupConcurrency.saveToFile();
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

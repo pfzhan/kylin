@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -224,8 +225,8 @@ public class StorageCleaner {
                 @Override
                 public void heartBeat() {
                     double percent = 100D * (successItems.size() + errorItems.size()) / allItems.size();
-                    String logInfo = String.format("Progress: %2.1f%%, %d resource, %d error", percent, allItems.size(),
-                            errorItems.size());
+                    String logInfo = String.format(Locale.ROOT, "Progress: %2.1f%%, %d resource, %d error", percent,
+                            allItems.size(), errorItems.size());
                     System.out.println(logInfo);
                 }
             };

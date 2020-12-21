@@ -45,6 +45,7 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -71,7 +72,7 @@ public interface ModelInsensitiveRequest extends InsensitiveRequest {
             if (field == null) {
                 return;
             }
-            field.setAccessible(true);
+            Unsafe.changeAccessibleObject(field, true);
             try {
                 String modelAlias = (String) field.get(this);
                 if (StringUtils.isEmpty(modelAlias)) {
@@ -83,7 +84,7 @@ public interface ModelInsensitiveRequest extends InsensitiveRequest {
                 if (projectField == null) {
                     continue;
                 }
-                projectField.setAccessible(true);
+                Unsafe.changeAccessibleObject(projectField, true);
                 String projectName = (String) projectField.get(this);
 
                 if (StringUtils.isEmpty(projectName)) {

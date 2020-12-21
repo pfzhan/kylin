@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,11 +44,14 @@ package org.apache.kylin.common.util;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -75,19 +77,19 @@ public class HiveCmdBuilder {
         CLI, BEELINE
     }
 
-    private HiveClientMode clientMode;
-    private KylinConfig kylinConfig;
+    private final HiveClientMode clientMode;
+    private final KylinConfig kylinConfig;
     final private Map<String, String> hiveConfProps = new HashMap<>();
     final private ArrayList<String> statements = Lists.newArrayList();
 
     public HiveCmdBuilder() {
         kylinConfig = KylinConfig.getInstanceFromEnv();
-        clientMode = HiveClientMode.valueOf(kylinConfig.getHiveClientMode().toUpperCase());
+        clientMode = HiveClientMode.valueOf(kylinConfig.getHiveClientMode().toUpperCase(Locale.ROOT));
         loadHiveConfiguration();
     }
 
     public String build() {
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
 
         switch (clientMode) {
         case CLI:
@@ -101,9 +103,11 @@ public class HiveCmdBuilder {
         case BEELINE:
             BufferedWriter bw = null;
             File tmpHql = null;
+            FileOutputStream out = null;
             try {
                 tmpHql = File.createTempFile("beeline_", ".hql");
-                bw = new BufferedWriter(new FileWriter(tmpHql));
+                out = new FileOutputStream(tmpHql);
+                bw = new BufferedWriter(new OutputStreamWriter(out, Charset.defaultCharset()));
                 for (String statement : statements) {
                     bw.write(statement);
                     bw.newLine();
@@ -121,6 +125,7 @@ public class HiveCmdBuilder {
                 throw new RuntimeException(e);
             } finally {
                 IOUtils.closeQuietly(bw);
+                IOUtils.closeQuietly(out);
 
                 if (tmpHql != null && logger.isDebugEnabled()) {
                     String hql = null;
@@ -176,7 +181,7 @@ public class HiveCmdBuilder {
     }
 
     public void addStatementWithRedistributeBy(StringBuilder statement) {
-        /**
+        /*
          * When hive.execution.engine is tez and table is a view of union-all struct, it generates
          * subdirectories in output, which causes file not found exception.
          * Use "DISTRIBUTE BY RAND()" to workaround this issue.
@@ -186,9 +191,7 @@ public class HiveCmdBuilder {
     }
 
     public void addStatements(String[] stats) {
-        for (String s : stats) {
-            statements.add(s);
-        }
+        Collections.addAll(statements, stats);
     }
 
     @Override
@@ -213,7 +216,7 @@ public class HiveCmdBuilder {
             hiveConfFile = new File(path + File.separator + "conf", hiveConfFileName);
         }
 
-        if (hiveConfFile == null || !hiveConfFile.exists()) {
+        if (!hiveConfFile.exists()) {
             throw new RuntimeException("Failed to read " + HIVE_CONF_FILENAME + ".xml");
         }
 

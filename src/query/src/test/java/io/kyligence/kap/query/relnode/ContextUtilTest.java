@@ -24,6 +24,10 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPLimitRel;
@@ -34,9 +38,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.Collections;
+import io.kyligence.kap.common.util.Unsafe;
 
 public class ContextUtilTest {
 
@@ -44,9 +46,9 @@ public class ContextUtilTest {
     //do not support agg pushdown if WindowRel, SortRel, LimitRel, ValueRel is met
     @Test
     public void testDerivedFromSameContextWhenMetWindowOrSort() throws Exception {
-        Method derivedMethod = ContextUtil.class.getDeclaredMethod("derivedFromSameContext", Collection.class, RelNode.class,
-                OLAPContext.class, boolean.class);
-        derivedMethod.setAccessible(true);
+        Method derivedMethod = ContextUtil.class.getDeclaredMethod("derivedFromSameContext", Collection.class,
+                RelNode.class, OLAPContext.class, boolean.class);
+        Unsafe.changeAccessibleObject(derivedMethod, true);
         {
             RelNode rel = Mockito.mock(OLAPWindowRel.class);
             Object result = derivedMethod.invoke(null, Collections.EMPTY_LIST, rel, null, false);

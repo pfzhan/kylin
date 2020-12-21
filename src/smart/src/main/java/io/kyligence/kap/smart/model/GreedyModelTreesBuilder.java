@@ -348,7 +348,7 @@ public class GreedyModelTreesBuilder {
                         isValidJoin = true;
                     } else if (JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
                             && JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
-                            && !oldJoinTable.getKind().equals(newJoinTable.getKind())) {
+                            && oldJoinTable.getKind() != newJoinTable.getKind()) {
                         // this case is deprecated, the join table is FACT by default
                         // same join info but table kind differ: LOOKUP vs FACT, use FACT
                         newJoinTable.setKind(NDataModel.TableKind.FACT);
@@ -414,7 +414,7 @@ public class GreedyModelTreesBuilder {
 
             String number = oldAlias.substring(orginalName.length() + 1);
             try {
-                Integer i = Integer.valueOf(number);
+                int i = Integer.parseInt(number);
                 return orginalName + "_" + (i + 1);
             } catch (Exception e) {
                 return orginalName + "_1";

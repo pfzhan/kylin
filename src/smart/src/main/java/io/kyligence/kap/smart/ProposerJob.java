@@ -25,10 +25,12 @@ package io.kyligence.kap.smart;
 
 import java.io.File;
 import java.io.Serializable;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 
 import org.apache.commons.cli.Option;
@@ -48,6 +50,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -99,7 +102,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         val params = Maps.<String, String> newHashMap();
         params.put("contextClass", context.getClass().getName());
 
-        val jobId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss-SSS"));
+        val jobId = LocalDateTime.now(Clock.systemDefaultZone()).format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault(Locale.Category.FORMAT)));
         try {
             val jobTmpDir = runner.prepareEnv(jobId);
 
@@ -203,9 +207,9 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             tool.execute(args);
         } catch (Exception e) {
             log.warn("Propose {} failed", args, e);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
         log.info("Propose finished");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.tool;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -41,6 +42,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
@@ -133,18 +135,18 @@ public class MaintainModeTool extends ExecutableApplication {
         } catch (Exception e) {
             log.error("Catchup audit log failed, try to release epochs", e);
             System.out.println("Catchup audit log failed, try to release epochs when init");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
     }
 
     public void markEpochs() {
         print("Start to mark epoch with reason: " + reason);
         if (epochManager.isMaintenanceMode()) {
-            System.out.println(String.format("The system is under maintenance mode. Please try again later."));
+            System.out.println("The system is under maintenance mode. Please try again later.");
             log.warn("The system is under maintenance mode. Please try again later.");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
-        System.setProperty(LEADER_RACE_KEY, "false");
+        Unsafe.setProperty(LEADER_RACE_KEY, "false");
         try {
 
             enterMaintenanceModeWithRetry(config.getTurnMaintainModeRetryTimes(), reason, projects);
@@ -153,9 +155,9 @@ public class MaintainModeTool extends ExecutableApplication {
             System.out.println(StorageCleaner.ANSI_RED
                     + "Turn on maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                     + StorageCleaner.ANSI_RESET);
-            System.exit(1);
+            Unsafe.systemExit(1);
         } finally {
-            System.clearProperty(LEADER_RACE_KEY);
+            Unsafe.clearProperty(LEADER_RACE_KEY);
         }
         print("Mark epoch success with reason: " + reason);
     }
@@ -201,7 +203,7 @@ public class MaintainModeTool extends ExecutableApplication {
         }
 
         try {
-            System.setProperty(LEADER_RACE_KEY, "true");
+            Unsafe.setProperty(LEADER_RACE_KEY, "true");
             epochManager.setIdentity("");
             exitMaintenanceModeWithRetry(config.getTurnMaintainModeRetryTimes(), null, projects, forceToTurnOff);
         } catch (Exception e) {
@@ -211,7 +213,7 @@ public class MaintainModeTool extends ExecutableApplication {
                     + StorageCleaner.ANSI_RESET);
             throw new IllegalStateException("Turn off maintain mode failed.");
         } finally {
-            System.clearProperty(LEADER_RACE_KEY);
+            Unsafe.clearProperty(LEADER_RACE_KEY);
         }
         print("Release epoch success");
     }
@@ -241,12 +243,12 @@ public class MaintainModeTool extends ExecutableApplication {
         if (maintainModeOn && StringUtils.isEmpty(reason)) {
             log.warn("You need to use the argument -reason to explain why you turn on maintenance mode");
             System.out.println("You need to use the argument -reason to explain why you turn on maintenance mode");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
         log.info("MaintainModeTool has option maintain mode on: {}{}{}", maintainModeOn,
                 (StringUtils.isEmpty(reason) ? "" : " reason: " + reason),
                 (projects.size() > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
-        print(String.format("MaintainModeTool has option maintain mode on: %s%s%s", maintainModeOn,
+        print(String.format(Locale.ROOT, "MaintainModeTool has option maintain mode on: %s%s%s", maintainModeOn,
                 (StringUtils.isEmpty(reason) ? "" : " reason: " + reason),
                 (projects.size() > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : "")));
     }
@@ -261,6 +263,6 @@ public class MaintainModeTool extends ExecutableApplication {
     public static void main(String[] args) {
         MaintainModeTool tool = new MaintainModeTool();
         tool.execute(args);
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

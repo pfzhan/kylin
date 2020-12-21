@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.rules;
 
 import org.junit.rules.ExternalResource;
 
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 public class ClearKEPropertiesRule extends ExternalResource {
@@ -35,7 +36,7 @@ public class ClearKEPropertiesRule extends ExternalResource {
         while (names.hasMoreElements()) {
             val name = names.nextElement().toString();
             if (name.startsWith("ke.")) {
-                System.clearProperty(name);
+                Unsafe.clearProperty(name);
             }
         }
     }

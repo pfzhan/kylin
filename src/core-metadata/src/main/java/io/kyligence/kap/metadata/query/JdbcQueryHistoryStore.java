@@ -36,10 +36,13 @@ import static org.mybatis.dynamic.sql.SqlBuilder.select;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -75,6 +78,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JdbcQueryHistoryStore {
 
+    private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
     public static final String MONTH = "month";
     public static final String WEEK = "week";
     public static final String DAY = "day";
@@ -105,9 +109,10 @@ public class JdbcQueryHistoryStore {
     public void dropQueryHistoryTable() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
-            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
-            sr.runScript(new InputStreamReader(
-                    new ByteArrayInputStream(String.format("drop table %s;", qhTableName).getBytes())));
+            sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
+            sr.runScript(new InputStreamReader(new ByteArrayInputStream(//
+                    String.format(Locale.ROOT, "drop table %s;", qhTableName).getBytes(DEFAULT_CHARSET)),
+                    DEFAULT_CHARSET));
         }
     }
 
@@ -504,8 +509,9 @@ public class JdbcQueryHistoryStore {
 
         if (StringUtils.isNotEmpty(request.getStartTimeFrom()) && StringUtils.isNotEmpty(request.getStartTimeTo())) {
             filterSql = filterSql
-                    .and(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(Long.valueOf(request.getStartTimeFrom())))
-                    .and(queryHistoryTable.queryTime, isLessThan(Long.valueOf(request.getStartTimeTo())));
+                    .and(queryHistoryTable.queryTime,
+                            isGreaterThanOrEqualTo(Long.parseLong(request.getStartTimeFrom())))
+                    .and(queryHistoryTable.queryTime, isLessThan(Long.parseLong(request.getStartTimeTo())));
         }
 
         if (StringUtils.isNotEmpty(request.getLatencyFrom()) && StringUtils.isNotEmpty(request.getLatencyTo())) {

@@ -24,6 +24,7 @@
 package io.kyligence.kap.engine.spark.source;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -43,8 +44,8 @@ public class SparkSqlUtil {
         return ss.sql(sql).collectAsList();
     }
 
-    public static List<Row> queryAll(SparkSession ss, String table){
-        String sql = String.format("select * from %s", table);
+    public static List<Row> queryAll(SparkSession ss, String table) {
+        String sql = String.format(Locale.ROOT, "select * from %s", table);
         return queryForList(ss, sql);
     }
 

@@ -94,7 +94,7 @@ public class SegmentHelper extends BasicService {
                 Segments<NDataSegment> segments = df.getSegmentsByRange(toBeRefreshSegmentRange);
                 List<SegmentRange> ranges = Lists.newArrayList();
 
-                if (!df.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
+                if (RealizationStatusEnum.LAG_BEHIND != df.getStatus()) {
                     if (CollectionUtils.isEmpty(segments) && loadingRange == null) {
                         logger.info("Refresh model {} without partition key, but it does not exist, build it.",
                                 modelId);

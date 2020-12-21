@@ -74,12 +74,13 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
                 return null;
             }
             return merge(jobBuildParams.getSegments().iterator().next(), jobBuildParams.getLayouts(),
-                    jobBuildParams.getSubmitter(), jobBuildParams.getJobId(), jobBuildParams.getPartitions(), jobBuildParams.getBuckets());
+                    jobBuildParams.getSubmitter(), jobBuildParams.getJobId(), jobBuildParams.getPartitions(),
+                    jobBuildParams.getBuckets());
         }
     }
 
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
-                                         String jobId){
+            String jobId) {
         return merge(mergedSegment, layouts, submitter, jobId, null, null);
     }
 
@@ -166,8 +167,8 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkMergingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
-            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)
-                    && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            if (segment != null && SegmentStatusEnum.READY != segment.getStatus()
+                    && SegmentStatusEnum.WARNING != segment.getStatus()) {
                 toRemovedSegments.add(segment);
             }
         }

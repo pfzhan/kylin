@@ -22,8 +22,6 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.util.Objects
-
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
@@ -40,6 +38,7 @@ import org.apache.kylin.metadata.model._
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
 
+import java.util.{Locale, Objects}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -459,7 +458,7 @@ object SegmentFlatTable extends LogEx {
     var afterJoin = rootFactDataset
     val join = lookupDesc.getJoin
     if (join != null && !StringUtils.isEmpty(join.getType)) {
-      val joinType = join.getType.toUpperCase
+      val joinType = join.getType.toUpperCase(Locale.ROOT)
       val pk = join.getPrimaryKeyColumns
       val fk = join.getForeignKeyColumns
       if (pk.length != fk.length) {
@@ -532,12 +531,12 @@ object SegmentFlatTable extends LogEx {
     val sb = new StringBuilder(original)
 
     for (namedColumn <- model.getAllNamedColumns.asScala) {
-      val colName = namedColumn.getAliasDotColumn.toLowerCase
+      val colName = namedColumn.getAliasDotColumn.toLowerCase(Locale.ROOT)
       doReplaceDot(sb, colName, namedColumn.getAliasDotColumn)
 
       // try replacing quoted identifiers if any
       val quotedColName = colName.split('.').mkString("`", "`.`", "`");
-      if (!quotedColName.isEmpty) {
+      if (quotedColName.nonEmpty) {
         doReplaceDot(sb, quotedColName, namedColumn.getAliasDotColumn)
       }
     }
@@ -545,12 +544,12 @@ object SegmentFlatTable extends LogEx {
   }
 
   private def doReplaceDot(sb: StringBuilder, namedCol: String, colAliasDotColumn: String): Unit = {
-    var start = sb.toString.toLowerCase.indexOf(namedCol)
+    var start = sb.toString.toLowerCase(Locale.ROOT).indexOf(namedCol)
     while (start != -1) {
       sb.replace(start,
         start + namedCol.length,
         convertFromDot(colAliasDotColumn))
-      start = sb.toString.toLowerCase
+      start = sb.toString.toLowerCase(Locale.ROOT)
         .indexOf(namedCol)
     }
   }

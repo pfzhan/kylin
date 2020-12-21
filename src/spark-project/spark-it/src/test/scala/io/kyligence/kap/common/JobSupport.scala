@@ -25,9 +25,9 @@ package io.kyligence.kap.common
 import java.io.File
 import java.util.stream.Collectors
 import java.util.{Objects, UUID}
-
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob, NSparkMergingStep}
 import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
@@ -67,8 +67,7 @@ trait JobSupport
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    System.setProperty("kylin.job.scheduler.poll-interval-second",
-      schedulerInterval)
+    Unsafe.setProperty("kylin.job.scheduler.poll-interval-second", schedulerInterval)
     scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
     scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
     if (!scheduler.hasStarted) {
@@ -86,9 +85,9 @@ trait JobSupport
   private def restoreIfNeed(prop: String): Unit = {
     val value = systemProp.get(prop)
     if (value == null) {
-      System.clearProperty(prop)
+      Unsafe.clearProperty(prop)
     } else {
-      System.setProperty(prop, value)
+      Unsafe.setProperty(prop, value)
     }
   }
 

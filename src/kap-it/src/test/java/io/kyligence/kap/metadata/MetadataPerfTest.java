@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Types;
@@ -36,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -70,6 +72,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -166,14 +169,14 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     public void loadIds() throws Exception {
         val jdbcTemplate = getJdbcTemplate();
         val table = getTestConfig().getMetadataUrl().getIdentifier();
-        long count = jdbcTemplate.queryForObject(String.format(COUNT_ALL_SQL, table), Long.class);
+        long count = jdbcTemplate.queryForObject(String.format(Locale.ROOT, COUNT_ALL_SQL, table), Long.class);
         long offset = 0;
         long pageSize = 1000;
         List<String> result = Lists.newArrayList();
         var prevKey = "/";
         while (offset < count) {
-            for (String resource : jdbcTemplate
-                    .queryForList(String.format(SELECT_ALL_KEY_SQL, table, prevKey, pageSize), String.class)) {
+            for (String resource : jdbcTemplate.queryForList(
+                    String.format(Locale.ROOT, SELECT_ALL_KEY_SQL, table, prevKey, pageSize), String.class)) {
                 //                result.add(resource);
                 log.debug("just print it {}", resource);
             }
@@ -195,7 +198,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         log.debug("create a new table");
         val method = metaStore.getClass().getDeclaredMethod("createIfNotExist");
-        method.setAccessible(true);
+        Unsafe.changeAccessibleObject(method, true);
         method.invoke(metaStore);
 
         val START_ID = 1000;
@@ -213,7 +216,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
                 return null;
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
-        jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), projectParams);
+        jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), projectParams);
         Runnable run = () -> IntStream.range(START_ID, projectSize + START_ID).forEach(i -> {
             try {
                 val dstFolder = new File(new File(TEMPLATE_FOLDER).getParentFile(), "tmp_" + i + "/project_" + i);
@@ -238,13 +241,13 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
                     }
                     if (index % 2000 == 0) {
                         log.debug("batch {} {}", index, params.size());
-                        jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), params, argTypes);
+                        jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), params, argTypes);
                         params = Lists.newArrayList();
                     }
                     index++;
                 }
                 if (params.size() > 0) {
-                    jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), params);
+                    jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), params);
                 }
                 allIds.remove(i);
                 FileUtils.deleteQuietly(dstFolder.getParentFile());
@@ -323,16 +326,16 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             FileUtils.copyDirectory(dstFolder, dstFolder2);
 
             File projectJson = new File(dstFolder2 + File.separator, "project.json");
-            var projectJsonContent = new String(Files.readAllBytes(projectJson.toPath()));
+            var projectJsonContent = new String(Files.readAllBytes(projectJson.toPath()), StandardCharsets.UTF_8);
             projectJsonContent = projectJsonContent.replaceAll("958983a5-fad8-4057-9d70-cd6e5a2374af",
                     UUID.randomUUID().toString());
-            Files.write(projectJson.toPath(), projectJsonContent.getBytes());
+            Files.write(projectJson.toPath(), projectJsonContent.getBytes(StandardCharsets.UTF_8));
 
             val sub = "execute";
             for (File file : FileUtils.listFiles(new File(dstFolder, sub), null, true)) {
-                var content = new String(Files.readAllBytes(file.toPath()));
+                var content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
                 content = content.replaceAll("project_0", projectName2);
-                Files.write(file.toPath(), content.getBytes());
+                Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
             }
         }
     }
@@ -348,14 +351,14 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
     private JdbcTemplate getJdbcTemplate() throws Exception {
         val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("jdbcTemplate");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         return (JdbcTemplate) field.get(metaStore);
     }
 
     private DataSourceTransactionManager getTransactionManager() throws Exception {
         val metaStore = MetadataStore.createMetadataStore(getTestConfig());
         val field = metaStore.getClass().getDeclaredField("transactionManager");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         return (DataSourceTransactionManager) field.get(metaStore);
     }
 

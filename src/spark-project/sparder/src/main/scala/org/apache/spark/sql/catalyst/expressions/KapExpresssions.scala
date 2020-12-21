@@ -32,6 +32,7 @@ import org.apache.spark.sql.catalyst.util.{DateTimeUtils, GenericArrayData, KapD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 
 // Returns the date that is num_months after start_date.
@@ -269,7 +270,7 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
 
   def canConvertTimestamp(): Boolean = {
     if (left.isInstanceOf[Literal] && left.asInstanceOf[Literal].value != null) {
-      val unit = left.asInstanceOf[Literal].value.toString.toUpperCase
+      val unit = left.asInstanceOf[Literal].value.toString.toUpperCase(Locale.ROOT)
       if (TimestampAddImpl.TIME_UNIT.contains(unit) && right.dataType.isInstanceOf[DateType]) {
         return true
       }

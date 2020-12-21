@@ -44,7 +44,7 @@ import lombok.val;
 import lombok.var;
 
 public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
-    private String projectDefault = "default";
+    private final String projectDefault = "default";
 
     @Before
     public void setup() throws Exception {

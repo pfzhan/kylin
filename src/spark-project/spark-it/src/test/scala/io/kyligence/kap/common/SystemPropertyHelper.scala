@@ -23,6 +23,7 @@
 package io.kyligence.kap.common
 
 import avro.shaded.com.google.common.collect.Maps
+import io.kyligence.kap.common.util.Unsafe
 
 import scala.collection.JavaConverters._
 
@@ -31,13 +32,13 @@ trait SystemPropertyHelper {
 
   def changeSystemProp(key: String, value: String): Unit = {
     propCache.put(key, System.getProperty(key))
-    System.setProperty(key, value)
+    Unsafe.setProperty(key, value)
   }
 
   def restoreSystemProperty(): Unit = {
     propCache.asScala.filter(_._2 != null).foreach {
       case (key, value) =>
-        System.setProperty(key, value)
+        Unsafe.setProperty(key, value)
     }
   }
 

@@ -55,12 +55,14 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 
 import org.apache.commons.logging.Log;
@@ -86,7 +88,7 @@ public class Bytes {
     /**
      * When we encode strings, we always specify UTF8 encoding
      */
-    private static final Charset UTF8_CHARSET = Charset.forName(UTF8_ENCODING);
+    private static final Charset UTF8_CHARSET = StandardCharsets.UTF_8;
 
     //HConstants.EMPTY_BYTE_ARRAY should be updated if this changed
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
@@ -313,7 +315,7 @@ public class Bytes {
                     || " `~!@#$%^&*()-_=+[]{}|;:'\",.<>/?".indexOf(ch) >= 0) {
                 result.append((char) ch);
             } else {
-                result.append(String.format("\\x%02X", ch));
+                result.append(String.format(Locale.ROOT, "\\x%02X", ch));
             }
         }
         return result.toString();
@@ -1081,20 +1083,15 @@ public class Bytes {
             static final int BYTE_ARRAY_BASE_OFFSET;
 
             static {
-                theUnsafe = (Unsafe) AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                    @Override
-                    public Object run() {
-                        try {
-                            Field f = Unsafe.class.getDeclaredField("theUnsafe");
-                            f.setAccessible(true);
-                            return f.get(null);
-                        } catch (NoSuchFieldException e) {
-                            // It doesn't matter what we throw;
-                            // it's swallowed in getBestComparer().
-                            throw new Error();
-                        } catch (IllegalAccessException e) {
-                            throw new Error();
-                        }
+                theUnsafe = (Unsafe) AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                    try {
+                        Field f = Unsafe.class.getDeclaredField("theUnsafe");
+                        f.setAccessible(true);
+                        return f.get(null);
+                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                        // It doesn't matter what we throw;
+                        // it's swallowed in getBestComparer().
+                        throw new Error();
                     }
                 });
 
@@ -1305,8 +1302,7 @@ public class Bytes {
     /**
      * @param b bytes to hash
      * @return Runs {@link org.apache.hadoop.io.WritableComparator#hashBytes(byte[], int)} on the
-     * passed in array.  This method is what {@link org.apache.hadoop.io.Text} and
-     * {@link org.apache.hadoop.hbase.io.ImmutableBytesWritable} use calculating hash code.
+     * passed in array.  This method is what {@link org.apache.hadoop.io.Text} use calculating hash code.
      */
     public static int hashCode(final byte[] b) {
         return hashCode(b, b.length);
@@ -1316,8 +1312,7 @@ public class Bytes {
      * @param b      value
      * @param length length of the value
      * @return Runs {@link org.apache.hadoop.io.WritableComparator#hashBytes(byte[], int)} on the
-     * passed in array.  This method is what {@link org.apache.hadoop.io.Text} and
-     * {@link org.apache.hadoop.hbase.io.ImmutableBytesWritable} use calculating hash code.
+     * passed in array.  This method is what {@link org.apache.hadoop.io.Text} use calculating hash code.
      */
     public static int hashCode(final byte[] b, final int length) {
         return hashBytes(b, 0, length);
@@ -1977,7 +1972,7 @@ public class Bytes {
      */
     public static String toHex(byte[] b) {
         checkArgument(b.length > 0, "length must be greater than 0");
-        return String.format("%x", new BigInteger(1, b));
+        return String.format(Locale.ROOT, "%x", new BigInteger(1, b));
     }
 
     /**
@@ -1990,7 +1985,7 @@ public class Bytes {
         checkArgument(hex.length() > 0, "length must be greater than 0");
         checkArgument(hex.length() % 2 == 0, "length must be a multiple of 2");
         // Make sure letters are upper case
-        hex = hex.toUpperCase();
+        hex = hex.toUpperCase(Locale.ROOT);
         byte[] b = new byte[hex.length() / 2];
         for (int i = 0; i < b.length; i++) {
             b[i] = (byte) ((toBinaryFromHex((byte) hex.charAt(2 * i)) << 4)

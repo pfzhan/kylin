@@ -119,7 +119,7 @@ public class KapConfig {
     public int getParquetReadFileSystemBackupResetSec() {
         return Integer.parseInt(config.getOptional("kylin.storage.columnar.file-system-backup-reset-sec", "1000"));
     }
-    
+
     public int getParquetSparkExecutorInstance() {
         return Integer.parseInt(
                 config.getOptional("kylin.storage.columnar.spark-conf.spark.executor.instances", String.valueOf(1)));
@@ -152,23 +152,23 @@ public class KapConfig {
      * parquet shard size, in MB
      */
     public int getMinBucketsNumber() {
-        return Integer.valueOf(config.getOptional("kylin.storage.columnar.bucket-num", "1"));
+        return Integer.parseInt(config.getOptional("kylin.storage.columnar.bucket-num", "1"));
     }
 
     public int getParquetStorageShardSizeMB() {
-        return Integer.valueOf(config.getOptional("kylin.storage.columnar.shard-size-mb", "128"));
+        return Integer.parseInt(config.getOptional("kylin.storage.columnar.shard-size-mb", "128"));
     }
 
     public long getParquetStorageShardSizeRowCount() {
-        return Long.valueOf(config.getOptional("kylin.storage.columnar.shard-rowcount", "2500000"));
+        return Long.parseLong(config.getOptional("kylin.storage.columnar.shard-rowcount", "2500000"));
     }
 
     public long getParquetStorageCountDistinctShardSizeRowCount() {
-        return Long.valueOf(config.getOptional("kylin.storage.columnar.shard-countdistinct-rowcount", "1000000"));
+        return Long.parseLong(config.getOptional("kylin.storage.columnar.shard-countdistinct-rowcount", "1000000"));
     }
 
     public int getParquetStorageRepartitionThresholdSize() {
-        return Integer.valueOf(config.getOptional("kylin.storage.columnar.repartition-threshold-size-mb", "128"));
+        return Integer.parseInt(config.getOptional("kylin.storage.columnar.repartition-threshold-size-mb", "128"));
     }
 
     public boolean isProjectInternalDefaultPermissionGranted() {
@@ -259,32 +259,32 @@ public class KapConfig {
      * Query
      */
     public boolean isImplicitComputedColumnConvertEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.query.implicit-computed-column-convert", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.implicit-computed-column-convert", "true"));
     }
 
     public boolean isAggComputedColumnRewriteEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.query.agg-computed-column-rewrite", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.agg-computed-column-rewrite", "true"));
     }
 
     public int getComputedColumnMaxRecursionTimes() {
-        return Integer.valueOf(config.getOptional("kylin.query.computed-column-max-recursion-times", "10"));
+        return Integer.parseInt(config.getOptional("kylin.query.computed-column-max-recursion-times", "10"));
     }
 
     public boolean isJdbcEscapeEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.query.jdbc-escape-enabled", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.jdbc-escape-enabled", "true"));
     }
 
     public int getListenerBusBusyThreshold() {
-        return Integer.valueOf(config.getOptional("kylin.query.engine.spark-listenerbus-busy-threshold", "5000"));
+        return Integer.parseInt(config.getOptional("kylin.query.engine.spark-listenerbus-busy-threshold", "5000"));
     }
 
     public int getBlockNumBusyThreshold() {
-        return Integer.valueOf(config.getOptional("kylin.query.engine.spark-blocknum-busy-threshold", "5000"));
+        return Integer.parseInt(config.getOptional("kylin.query.engine.spark-blocknum-busy-threshold", "5000"));
     }
 
     // in general, users should not set this, cuz we will auto calculate this num.
     public int getSparkSqlShufflePartitions() {
-        return Integer.valueOf(config.getOptional("kylin.query.engine.spark-sql-shuffle-partitions", "-1"));
+        return Integer.parseInt(config.getOptional("kylin.query.engine.spark-sql-shuffle-partitions", "-1"));
     }
 
     /**
@@ -320,7 +320,7 @@ public class KapConfig {
      * Metastore
      */
     public boolean needReplaceAggWhenExactlyMatched() {
-        return Boolean.valueOf(config.getOptional("kylin.query.engine.need-replace-agg", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.engine.need-replace-agg", "true"));
     }
 
     /**
@@ -356,15 +356,15 @@ public class KapConfig {
     }
 
     public boolean isInfluxdbHttpsEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.influxdb.https.enabled", FALSE));
+        return Boolean.parseBoolean(config.getOptional("kylin.influxdb.https.enabled", FALSE));
     }
 
     public boolean isInfluxdbUnsafeSslEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.influxdb.https.unsafe-ssl.enabled", TRUE));
+        return Boolean.parseBoolean(config.getOptional("kylin.influxdb.https.unsafe-ssl.enabled", TRUE));
     }
 
     public int getInfluxDBFlushDuration() {
-        return Integer.valueOf(config.getOptional("kylin.influxdb.flush-duration", "3000"));
+        return Integer.parseInt(config.getOptional("kylin.influxdb.flush-duration", "3000"));
     }
 
     public String sparderJars() {
@@ -418,7 +418,7 @@ public class KapConfig {
      * kap monitor
      */
     public Boolean isMonitorEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.monitor.enabled", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.monitor.enabled", "true"));
     }
 
     public String getMonitorDatabase() {
@@ -438,23 +438,23 @@ public class KapConfig {
     }
 
     public Integer getMonitorReplicationFactor() {
-        return Integer.valueOf(config.getOptional("kylin.monitor.replication-factor", "1"));
+        return Integer.parseInt(config.getOptional("kylin.monitor.replication-factor", "1"));
     }
 
     public Boolean isMonitorUserDefault() {
-        return Boolean.valueOf(config.getOptional("kylin.monitor.user-default", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.monitor.user-default", "true"));
     }
 
     public Long getMonitorInterval() {
-        return Long.valueOf(config.getOptional("kylin.monitor.interval", "60")) * 1000;
+        return Long.parseLong(config.getOptional("kylin.monitor.interval", "60")) * 1000;
     }
 
     public long getJobStatisticInterval() {
-        return Long.valueOf(config.getOptional("kylin.monitor.job-statistic-interval", "3600")) * 1000;
+        return Long.parseLong(config.getOptional("kylin.monitor.job-statistic-interval", "3600")) * 1000;
     }
 
     public long getMaxPendingErrorJobs() {
-        return Long.valueOf(config.getOptional("kylin.monitor.job-pending-error-total", "20"));
+        return Long.parseLong(config.getOptional("kylin.monitor.job-pending-error-total", "20"));
     }
 
     public double getMaxPendingErrorJobsRation() {
@@ -473,7 +473,7 @@ public class KapConfig {
      * kap circuit-breaker
      */
     public Boolean isCircuitBreakerEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.circuit-breaker.enabled", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.circuit-breaker.enabled", "true"));
     }
 
     public int getCircuitBreakerThresholdOfProject() {
@@ -540,24 +540,24 @@ public class KapConfig {
     }
 
     public boolean enableQueryPattern() {
-        return Boolean.valueOf(config.getOptional("kylin.query.favorite.collect-as-pattern", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.favorite.collect-as-pattern", "true"));
     }
 
     public boolean splitGroupSetsIntoUnion() {
-        return Boolean.valueOf(config.getOptional("kylin.query.engine.split-group-sets-into-union", TRUE));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.engine.split-group-sets-into-union", TRUE));
     }
 
     public int defaultDecimalScale() {
-        return Integer.valueOf(config.getOptional("kylin.query.engine.default-decimal-scale", "0"));
+        return Integer.parseInt(config.getOptional("kylin.query.engine.default-decimal-scale", "0"));
     }
 
     public boolean enablePushdownPrepareStatementWithParams() {
-        return Boolean.valueOf(
+        return Boolean.parseBoolean(
                 config.getOptional("kylin.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
     }
 
     public boolean runConstantQueryLocally() {
-        return Boolean.valueOf(config.getOptional("kylin.query.engine.run-constant-query-locally", TRUE));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.engine.run-constant-query-locally", TRUE));
     }
 
     public boolean isRecordSourceUsage() {
@@ -569,7 +569,7 @@ public class KapConfig {
      */
 
     public Boolean isKerberosEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.kerberos.enabled", FALSE));
+        return Boolean.parseBoolean(config.getOptional("kylin.kerberos.enabled", FALSE));
     }
 
     public String getKerberosKeytab() {
@@ -585,11 +585,11 @@ public class KapConfig {
     }
 
     public Long getKerberosTicketRefreshInterval() {
-        return Long.valueOf(config.getOptional("kylin.kerberos.ticket-refresh-interval-minutes", "720"));
+        return Long.parseLong(config.getOptional("kylin.kerberos.ticket-refresh-interval-minutes", "720"));
     }
 
     public Long getKerberosMonitorInterval() {
-        return Long.valueOf(config.getOptional("kylin.kerberos.monitor-interval-minutes", "10"));
+        return Long.parseLong(config.getOptional("kylin.kerberos.monitor-interval-minutes", "10"));
     }
 
     public String getKerberosPlatform() {
@@ -597,7 +597,7 @@ public class KapConfig {
     }
 
     public Boolean getPlatformZKEnable() {
-        return Boolean.valueOf(config.getOptional("kylin.env.zk-kerberos-enabled", FALSE));
+        return Boolean.parseBoolean(config.getOptional("kylin.env.zk-kerberos-enabled", FALSE));
     }
 
     public String getKerberosKrb5Conf() {

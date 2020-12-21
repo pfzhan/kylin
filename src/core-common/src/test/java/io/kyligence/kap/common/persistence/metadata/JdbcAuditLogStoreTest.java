@@ -25,7 +25,9 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,15 +56,16 @@ import lombok.extern.slf4j.Slf4j;
 public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
 
     private static final String LOCAL_INSTANCE = "127.0.0.1";
+    private final Charset charset = Charset.defaultCharset();
 
     @Test
     public void testUpdateResourceWithLog() throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes()), 0);
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes(charset)), 0);
             store.deleteResource("/p1/abc");
             return 0;
         }, "p1");
@@ -113,15 +116,16 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();
         String unitId = UUID.randomUUID().toString();
-        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+        jdbcTemplate.batchUpdate(
+                String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                 Arrays.asList(
-                        new Object[] { "/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                        new Object[] { "/p1/abc", "abc".getBytes(charset), System.currentTimeMillis(), 0, unitId, null,
                                 LOCAL_INSTANCE },
-                        new Object[] { "/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                        new Object[] { "/p1/abc2", "abc".getBytes(charset), System.currentTimeMillis(), 0, unitId, null,
                                 LOCAL_INSTANCE },
-                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null,
+                        new Object[] { "/p1/abc3", "abc".getBytes(charset), System.currentTimeMillis(), 0, unitId, null,
                                 LOCAL_INSTANCE },
-                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null,
+                        new Object[] { "/p1/abc3", "abc".getBytes(charset), System.currentTimeMillis(), 1, unitId, null,
                                 LOCAL_INSTANCE },
                         new Object[] { "/p1/abc", null, null, null, unitId, null, LOCAL_INSTANCE }));
         workerStore.catchup();
@@ -129,16 +133,17 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
 
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
-            jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+            jdbcTemplate.batchUpdate(
+                    String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                     Arrays.asList(
-                            new Object[] { "/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0,
-                                    unitId, null, LOCAL_INSTANCE },
-                            new Object[] { "/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0,
-                                    unitId, null, LOCAL_INSTANCE },
-                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0,
-                                    unitId, null, LOCAL_INSTANCE },
-                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1,
-                                    unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc2", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE },
                             new Object[] { "/" + projectName + "/abc", null, null, null, unitId, null }));
         }
 
@@ -159,16 +164,17 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         String unitId1 = UUID.randomUUID().toString();
         String unitId2 = UUID.randomUUID().toString();
-        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+        jdbcTemplate.batchUpdate(
+                String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                 Arrays.asList(
-                        new Object[] { "/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null,
+                        new Object[] { "/p1/abc", "abc".getBytes(charset), System.currentTimeMillis(), 0, unitId1, null,
                                 LOCAL_INSTANCE },
-                        new Object[] { "/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId2, null,
-                                LOCAL_INSTANCE },
-                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null,
-                                LOCAL_INSTANCE },
-                        new Object[] { "/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId2, null,
-                                LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc2", "abc".getBytes(charset), System.currentTimeMillis(), 0, unitId2,
+                                null, LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc3", "abc".getBytes(charset), System.currentTimeMillis(), 0, unitId1,
+                                null, LOCAL_INSTANCE },
+                        new Object[] { "/p1/abc3", "abc".getBytes(charset), System.currentTimeMillis(), 1, unitId2,
+                                null, LOCAL_INSTANCE },
                         new Object[] { "/p1/abc", null, null, null, unitId1, null, LOCAL_INSTANCE }));
         workerStore.catchup();
         Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
@@ -191,13 +197,13 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
                 val projectName = "p0";
                 val unitId = UUID.randomUUID().toString();
                 jdbcTemplate.batchUpdate(
-                        String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
+                        String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                         Arrays.asList(
-                                new Object[] { "/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(),
-                                        i, unitId, null, LOCAL_INSTANCE },
-                                new Object[] { "/" + projectName + "/abc2", "abc".getBytes(),
+                                new Object[] { "/" + projectName + "/abc", "abc".getBytes(charset),
                                         System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE },
-                                new Object[] { "/" + projectName + "/abc3", "abc".getBytes(),
+                                new Object[] { "/" + projectName + "/abc2", "abc".getBytes(charset),
+                                        System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE },
+                                new Object[] { "/" + projectName + "/abc3", "abc".getBytes(charset),
                                         System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE }));
                 i++;
             }
@@ -228,16 +234,18 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
             String unitId = UUID.randomUUID().toString();
-            jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, "test_audit_log"), Arrays.asList(
-                    new Object[] { "/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId,
-                            null, LOCAL_INSTANCE },
-                    new Object[] { "/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId,
-                            null, LOCAL_INSTANCE },
-                    new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId,
-                            null, LOCAL_INSTANCE },
-                    new Object[] { "/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId,
-                            null, LOCAL_INSTANCE },
-                    new Object[] { "/" + projectName + "/abc", null, null, null, unitId, null, LOCAL_INSTANCE }));
+            jdbcTemplate.batchUpdate(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
+                    Arrays.asList(
+                            new Object[] { "/" + projectName + "/abc", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc2", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc3", "abc".getBytes(charset),
+                                    System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE },
+                            new Object[] { "/" + projectName + "/abc", null, null, null, unitId, null,
+                                    LOCAL_INSTANCE }));
         }
         auditLogStore.rotate();
         long count = jdbcTemplate.queryForObject("select count(1) from test_audit_Log", Long.class);

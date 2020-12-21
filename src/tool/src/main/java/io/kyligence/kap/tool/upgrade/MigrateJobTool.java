@@ -55,6 +55,7 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -92,7 +93,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
         val tool = new MigrateJobTool();
         tool.execute(args);
         System.out.println("Migrate job finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override

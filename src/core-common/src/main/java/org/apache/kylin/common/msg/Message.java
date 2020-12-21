@@ -44,6 +44,8 @@ package org.apache.kylin.common.msg;
 
 import org.apache.kylin.common.Singletons;
 
+import java.util.Locale;
+
 public class Message {
 
     protected Message() {
@@ -1363,20 +1365,21 @@ public class Message {
     }
 
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
-        return String.format("The expression %s of the computed column %s is the same as the computed column %s.",
-                newCCExpression, newCCName, existedCCName);
+        return String.format(Locale.ROOT,
+                "The expression %s of the computed column %s is the same as the computed column %s.", newCCExpression,
+                newCCName, existedCCName);
     }
 
     public String getCC_NAME_CONFLICT(String ccName) {
-        return String.format("Computed column %s already exists.", ccName);
+        return String.format(Locale.ROOT, "Computed column %s already exists.", ccName);
     }
 
     public String getDIMENSION_CONFLICT(String dimensionName) {
-        return String.format("Dimension %s already exists.", dimensionName);
+        return String.format(Locale.ROOT, "Dimension %s already exists.", dimensionName);
     }
 
     public String getMEASURE_CONFLICT(String measureName) {
-        return String.format("Measure %s already exists.", measureName);
+        return String.format(Locale.ROOT, "Measure %s already exists.", measureName);
     }
 
     public String getJOB_NODE_INVALID(String url) {
@@ -1511,7 +1514,8 @@ public class Message {
     }
 
     public String getCOLUMN_PARAMETER_INVALID(String column) {
-        return String.format("Column [%s] assignment is failed.Please check the column date type.", column);
+        return String.format(Locale.ROOT, "Column [%s] assignment is failed.Please check the column date type.",
+                column);
     }
 
     public String getDATABASE_PARAMETER_DUPLICATE() {
@@ -1579,12 +1583,12 @@ public class Message {
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
-        return String.format("Add Job failed due to partition [%s] is duplicated.", dupPartitions);
+        return String.format(Locale.ROOT, "Add Job failed due to partition [%s] is duplicated.", dupPartitions);
     }
 
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
-        return String.format("The table metadata can’t be reloaded now. Column %s already exists in table %s.", column,
-                table);
+        return String.format(Locale.ROOT,
+                "The table metadata can’t be reloaded now. Column %s already exists in table %s.", column, table);
     }
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {

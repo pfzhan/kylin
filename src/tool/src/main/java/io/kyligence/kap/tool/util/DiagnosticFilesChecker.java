@@ -25,8 +25,12 @@ package io.kyligence.kap.tool.util;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +43,12 @@ public class DiagnosticFilesChecker {
 
     public static synchronized void writeMsgToFile(String msg, Long time, File file) {
         String interruptString = Thread.currentThread().isInterrupted() ? "(INTERRUPT)" : "";
-        String content = String.format("TIME OF EXTRACT %s %s: %dms", msg, interruptString, time);
+        String content = String.format(Locale.ROOT, "TIME OF EXTRACT %s %s: %dms", msg, interruptString, time);
         logger.info(content);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+
+        String charsetName = Charset.defaultCharset().name();
+        try (OutputStream fos = new FileOutputStream(file, true);
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos, charsetName))) {
             writer.write(content);
             writer.newLine();
         } catch (IOException e) {

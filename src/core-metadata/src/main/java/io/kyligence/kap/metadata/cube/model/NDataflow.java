@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -71,6 +70,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -347,7 +347,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
             return getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         } else {
             val querableRange = loadingRangeManager.getQuerableSegmentRange(loadingRange);
-            return segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).getSegmentsByRange(querableRange);
+            return segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)
+                    .getSegmentsByRange(querableRange);
         }
     }
 
@@ -405,11 +406,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public String getSegmentHdfsPath(String segmentId) {
         String hdfsWorkingDir = KapConfig.wrap(config).getMetadataWorkingDirectory();
-        String path = hdfsWorkingDir + getProject() + "/parquet/" + getUuid() + "/" + segmentId;
-        return path;
+        return hdfsWorkingDir + getProject() + "/parquet/" + getUuid() + "/" + segmentId;
     }
 
-    public Segments getSegmentsByRange(SegmentRange range) {
+    public Segments<NDataSegment> getSegmentsByRange(SegmentRange range) {
         return segments.getSegmentsByRange(range);
     }
 
@@ -480,7 +480,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
         this.segments = segments;
         // need to offline model to avoid answering query
-        if (segments.isEmpty() && RealizationStatusEnum.ONLINE.equals(this.getStatus())) {
+        if (segments.isEmpty() && RealizationStatusEnum.ONLINE == this.getStatus()) {
             this.setStatus(RealizationStatusEnum.OFFLINE);
         }
     }

@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -107,7 +108,7 @@ public class ZipFileUtil {
     }
 
     public static boolean validateZipFilename(String filename) {
-        return StringUtils.isNotBlank(filename) && filename.trim().toLowerCase().endsWith(".zip");
+        return StringUtils.isNotBlank(filename) && filename.trim().toLowerCase(Locale.ROOT).endsWith(".zip");
     }
 
     private static String normDir(String dirName) {

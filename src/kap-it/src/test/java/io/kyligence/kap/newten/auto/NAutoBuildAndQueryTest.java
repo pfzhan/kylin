@@ -44,15 +44,14 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@SuppressWarnings("serial")
-/***
+/**
  *
  * used for test scenarios that mainly caused by all kinds of sql,
  * So it ensures that these sqls can be auto-propose correctly and
  * get right result from the pre-calculate layout.
  *
  */
+@Slf4j
 public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test

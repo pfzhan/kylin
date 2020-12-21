@@ -22,6 +22,7 @@
 
 package io.kyligence.kap.common
 
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.query.engine.QueryExec
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
@@ -32,8 +33,10 @@ import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
+import java.util.Locale
+
 trait QuerySupport
-    extends BeforeAndAfterAll
+  extends BeforeAndAfterAll
     with BeforeAndAfterEach
     with Logging
     with SharedSparkSession {
@@ -43,7 +46,7 @@ trait QuerySupport
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    System.setProperty("kylin.query.engine.sparder-enabled", "true")
+    Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     UdfManager.create(spark)
 
   }
@@ -51,14 +54,14 @@ trait QuerySupport
   override def afterAll(): Unit = {
     super.afterAll()
     if (sparder != null) {
-      System.setProperty("kylin.query.engine.sparder-enabled", sparder)
+      Unsafe.setProperty("kylin.query.engine.sparder-enabled", sparder)
     } else {
-      System.clearProperty("kylin.query.engine.sparder-enabled")
+      Unsafe.clearProperty("kylin.query.engine.sparder-enabled")
     }
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
-    val prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
+    val prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
     try {
       val queryExec = new QueryExec(project, KylinConfig.getInstanceFromEnv)
       val queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project,
@@ -67,9 +70,9 @@ trait QuerySupport
       queryExec.executeQuery(convertedSql)
     } finally {
       if (prevRunLocalConf == null) {
-        System.clearProperty("kylin.query.engine.run-constant-query-locally")
+        Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally")
       } else {
-        System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
+        Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
       }
     }
     SparderEnv.getDF
@@ -79,15 +82,15 @@ trait QuerySupport
     if (targetType.equalsIgnoreCase("default")) return sql
     val specialStr = "changeJoinType_DELIMITERS"
     val replaceSql = sql.replaceAll(System.getProperty("line.separator"),
-                                    " " + specialStr + " ")
+      " " + specialStr + " ")
     val tokens = StringUtils.split(replaceSql, null)
     // split white spaces
     var i = 0
     while (i < tokens.length - 1) {
       if ((tokens(i).equalsIgnoreCase("inner") || tokens(i).equalsIgnoreCase(
-            "left")) &&
-          tokens(i + 1).equalsIgnoreCase("join")) {
-        tokens(i) = targetType.toLowerCase
+        "left")) &&
+        tokens(i + 1).equalsIgnoreCase("join")) {
+        tokens(i) = targetType.toLowerCase(Locale.ROOT)
       }
       i += 1
     }

@@ -49,6 +49,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -230,7 +231,7 @@ public class TableService extends BasicService {
                 if (StringUtils.isEmpty(tableName)) {
                     return true;
                 }
-                return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
+                return tableDesc.getName().toLowerCase(Locale.ROOT).contains(tableName.toLowerCase(Locale.ROOT));
             }).sorted(this::compareTableDesc).collect(Collectors.toList()));
         }
         return getTablesResponse(tables, project, withExt);
@@ -307,11 +308,11 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project) throws Exception {
+    public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project) {
         // de-dup
         SetMultimap<String, String> databaseTables = LinkedHashMultimap.create();
         for (String fullTableName : tables) {
-            String[] parts = HadoopUtil.parseHiveTableName(fullTableName.toUpperCase());
+            String[] parts = HadoopUtil.parseHiveTableName(fullTableName.toUpperCase(Locale.ROOT));
             databaseTables.put(parts[0], parts[1]);
         }
         // load all tables first  Pair<TableDesc, TableExtDesc>
@@ -323,8 +324,8 @@ public class TableService extends BasicService {
                 TableDesc tableDesc = pair.getFirst();
                 Preconditions.checkState(tableDesc.getDatabase().equalsIgnoreCase(entry.getKey()));
                 Preconditions.checkState(tableDesc.getName().equalsIgnoreCase(entry.getValue()));
-                Preconditions.checkState(tableDesc.getIdentity()
-                        .equals(entry.getKey().toUpperCase() + "." + entry.getValue().toUpperCase()));
+                Preconditions.checkState(tableDesc.getIdentity().equals(
+                        entry.getKey().toUpperCase(Locale.ROOT) + "." + entry.getValue().toUpperCase(Locale.ROOT)));
                 TableExtDesc extDesc = pair.getSecond();
                 Preconditions.checkState(tableDesc.getIdentity().equals(extDesc.getIdentity()));
                 return new Pair<Map.Entry<String, String>, Object>(entry, pair);
@@ -340,7 +341,7 @@ public class TableService extends BasicService {
             String errorTables = StringUtils
                     .join(errorList.stream().map(error -> error.getFirst().getKey() + "." + error.getFirst().getValue())
                             .collect(Collectors.toList()), ",");
-            String errorMessage = String.format(MsgPicker.getMsg().getHIVETABLE_NOT_FOUND(), errorTables);
+            String errorMessage = String.format(Locale.ROOT, MsgPicker.getMsg().getHIVETABLE_NOT_FOUND(), errorTables);
             throw new RuntimeException(errorMessage);
         }
         return results.stream().map(pair -> (Pair<TableDesc, TableExtDesc>) pair.getSecond())
@@ -351,20 +352,20 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        return explr.listDatabases().stream().map(String::toUpperCase).collect(Collectors.toList());
+        return explr.listDatabases().stream().map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
     }
 
     public List<String> getSourceTableNames(String project, String database, final String table) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        List<String> result = explr.listTables(database).stream().filter(s -> {
+        return explr.listTables(database).stream().filter(s -> {
             if (StringUtils.isEmpty(table)) {
                 return true;
             } else {
-                return s.toLowerCase().contains(table.toLowerCase());
+                return s.toLowerCase(Locale.ROOT).contains(table.toLowerCase(Locale.ROOT));
             }
-        }).map(String::toUpperCase).collect(Collectors.toList());
-        return result;
+        }).map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
+
     }
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, final String table)
@@ -582,7 +583,7 @@ public class TableService extends BasicService {
 
     public String normalizeHiveTableName(String tableName) {
         String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
-        return (dbTableName[0] + "." + dbTableName[1]).toUpperCase();
+        return (dbTableName[0] + "." + dbTableName[1]).toUpperCase(Locale.ROOT);
     }
 
     @Transaction(project = 1)
@@ -612,7 +613,7 @@ public class TableService extends BasicService {
         //follow semanticVersion,#8196
         modelService.purgeModel(modelId, project);
         val dataflow = dfManager.getDataflow(modelId);
-        if (dataflow.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
+        if (RealizationStatusEnum.LAG_BEHIND == dataflow.getStatus()) {
             dfManager.updateDataflow(dataflow.getId(), copyForWrite -> {
                 copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
             });
@@ -722,12 +723,13 @@ public class TableService extends BasicService {
 
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
-        Preconditions.checkNotNull(tableDesc, String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
-        Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName).map(String::toUpperCase)
-                .collect(Collectors.toSet());
-        if (!columnSet.contains(partitionColumn.toUpperCase())) {
-            throw new KylinException(COLUMN_NOT_EXIST, String
-                    .format("Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
+        Preconditions.checkNotNull(tableDesc,
+                String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+        Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName)
+                .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
+        if (!columnSet.contains(partitionColumn.toUpperCase(Locale.ROOT))) {
+            throw new KylinException(COLUMN_NOT_EXIST, String.format(Locale.ROOT,
+                    "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
         try {
             String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
@@ -888,7 +890,7 @@ public class TableService extends BasicService {
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
             val msg = MsgPicker.getMsg();
-            throw new KylinException(INVALID_TABLE_NAME, String.format(msg.getTABLE_NOT_FOUND(), table));
+            throw new KylinException(INVALID_TABLE_NAME, String.format(Locale.ROOT, msg.getTABLE_NOT_FOUND(), table));
         }
 
         stopSnapshotJobs(project, table);
@@ -913,7 +915,7 @@ public class TableService extends BasicService {
 
         NProjectManager npr = getProjectManager();
         final ProjectInstance projectInstance = npr.getProject(project);
-        Set<String> databases = getLoadedDatabases(project).stream().map(String::toUpperCase)
+        Set<String> databases = getLoadedDatabases(project).stream().map(str -> str.toUpperCase(Locale.ROOT))
                 .collect(Collectors.toSet());
         if (tableDesc.getDatabase().equals(projectInstance.getDefaultDatabase())
                 && !databases.contains(projectInstance.getDefaultDatabase())) {
@@ -1025,7 +1027,8 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
@@ -1062,9 +1065,10 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
-        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
+        if (ManagementType.MODEL_BASED == model.getManagementType()) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
             var segmentConfig = modelUpdate.getSegmentConfig();
             segmentConfig.setVolatileRange(volatileRange);
@@ -1201,7 +1205,8 @@ public class TableService extends BasicService {
     List<String> innerReloadTable(String projectName, String tableIdentity, boolean needBuild) throws Exception {
         val tableManager = getTableManager(projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
-        Preconditions.checkNotNull(originTable, String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity));
+        Preconditions.checkNotNull(originTable,
+                String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableIdentity));
 
         val project = getProjectManager().getProject(projectName);
         val context = calcReloadContext(projectName, tableIdentity, true);
@@ -1295,11 +1300,11 @@ public class TableService extends BasicService {
             String tableName = context.getTableDesc().getName();
             String columnNames = String.join(MsgPicker.getMsg().getCOMMA(), context.getChangeTypeColumns());
             if (root instanceof IllegalCCExpressionException) {
-                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String.format(
+                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getRELOAD_TABLE_CC_RETRY(), root.getMessage(), tableName, columnNames));
             } else if (root instanceof KylinException
                     && ((KylinException) root).getErrorCode() == QueryErrorCode.SCD2_COMMON_ERROR.toErrorCode()) {
-                throw new KylinException(RELOAD_TABLE_FAILED, String.format(
+                throw new KylinException(RELOAD_TABLE_FAILED, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getRELOAD_TABLE_MODEL_RETRY(), tableName, columnNames, model.getAlias()));
             }
             throw e;
@@ -1471,7 +1476,7 @@ public class TableService extends BasicService {
         Multimap<String, String> duplicatedColumns = HashMultimap.create();
         List<SchemaNode> schemaNodes = graph.nodes().stream()
                 .filter(schemaNode -> SchemaNodeType.MODEL_CC == schemaNode.getType())
-                .filter(schemaNode -> addColumns.contains(schemaNode.getDetail().toUpperCase()))
+                .filter(schemaNode -> addColumns.contains(schemaNode.getDetail().toUpperCase(Locale.ROOT)))
                 .collect(Collectors.toList());
         for (SchemaNode schemaNode : schemaNodes) {
             NDataModel model = modelService.getModelByAlias(schemaNode.getSubject(), newTableDesc.getProject());
@@ -1486,7 +1491,7 @@ public class TableService extends BasicService {
         List<String> targetSubjectList = getEffectedJobs(newTableDesc, JobInfoEnum.JOB_TARGET_SUBJECT);
         if (CollectionUtils.isNotEmpty(targetSubjectList)) {
             throw new KylinException(ON_GOING_JOB_EXIST,
-                    String.format(MsgPicker.getMsg().getTABLE_RELOAD_HAVING_NOT_FINAL_JOB(),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_RELOAD_HAVING_NOT_FINAL_JOB(),
                             StringUtils.join(targetSubjectList.iterator(), ",")));
         }
     }
@@ -1658,12 +1663,12 @@ public class TableService extends BasicService {
         if (sql == null) {
             sql = "";
         }
-        sql = sql.toUpperCase();
+        sql = sql.toUpperCase(Locale.ROOT);
         if (reloadTable.contains(".")) {
             reloadTable = reloadTable.split("\\.")[1];
         }
         for (String col : cols) {
-            col = col.toUpperCase();
+            col = col.toUpperCase(Locale.ROOT);
             String colWithTableName = reloadTable + "." + col;
             if (sql.contains(colWithTableName) || !sql.contains("." + col) && sql.contains(col)) {
                 return true;
@@ -1704,7 +1709,7 @@ public class TableService extends BasicService {
                 continue;
             }
             List<?> tables;
-            if (exceptDatabase == null && database.toLowerCase().contains(table.toLowerCase())) {
+            if (exceptDatabase == null && database.toLowerCase(Locale.ROOT).contains(table.toLowerCase(Locale.ROOT))) {
                 tables = projectTablesFilter.process(database, "");
             } else {
                 tables = projectTablesFilter.process(database, table);
@@ -1726,10 +1731,10 @@ public class TableService extends BasicService {
             String db = null;
             String table = null;
             if (str.contains(".")) {
-                db = str.split("\\.", 2)[0].trim().toUpperCase();
-                table = str.split("\\.", 2)[1].trim().toUpperCase();
+                db = str.split("\\.", 2)[0].trim().toUpperCase(Locale.ROOT);
+                table = str.split("\\.", 2)[1].trim().toUpperCase(Locale.ROOT);
             } else {
-                db = str.toUpperCase();
+                db = str.toUpperCase(Locale.ROOT);
             }
             if (!dbs.contains(db)) {
                 failed.add(str);
@@ -1768,7 +1773,8 @@ public class TableService extends BasicService {
         UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
         List<String> tables = NHiveTableName.getInstance().getTables(ugi, project, database);
         for (String tableName : tables) {
-            if (StringUtils.isEmpty(table) || tableName.toUpperCase().contains(table.toUpperCase())) {
+            if (StringUtils.isEmpty(table)
+                    || tableName.toUpperCase(Locale.ROOT).contains(table.toUpperCase(Locale.ROOT))) {
                 TableNameResponse response = new TableNameResponse();
                 response.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
                 response.setTableName(tableName);
@@ -1820,19 +1826,19 @@ public class TableService extends BasicService {
         if (!StringUtils.isEmpty(home) && !home.endsWith("/")) {
             home = home + "/";
         }
-        val sampleSh = String.format("%sbin/sample.sh", home);
+        val sampleSh = String.format(Locale.ROOT, "%sbin/sample.sh", home);
         checkFile(sampleSh);
-        val ssbSh = String.format("%stool/ssb/create_sample_ssb_tables.sql", home);
+        val ssbSh = String.format(Locale.ROOT, "%stool/ssb/create_sample_ssb_tables.sql", home);
         checkFile(ssbSh);
-        val customer = String.format("%stool/ssb/data/SSB.CUSTOMER.csv", home);
+        val customer = String.format(Locale.ROOT, "%stool/ssb/data/SSB.CUSTOMER.csv", home);
         checkFile(customer);
-        val dates = String.format("%stool/ssb/data/SSB.DATES.csv", home);
+        val dates = String.format(Locale.ROOT, "%stool/ssb/data/SSB.DATES.csv", home);
         checkFile(dates);
-        val lineorder = String.format("%stool/ssb/data/SSB.LINEORDER.csv", home);
+        val lineorder = String.format(Locale.ROOT, "%stool/ssb/data/SSB.LINEORDER.csv", home);
         checkFile(lineorder);
-        val part = String.format("%stool/ssb/data/SSB.PART.csv", home);
+        val part = String.format(Locale.ROOT, "%stool/ssb/data/SSB.PART.csv", home);
         checkFile(part);
-        val supplier = String.format("%stool/ssb/data/SSB.SUPPLIER.csv", home);
+        val supplier = String.format(Locale.ROOT, "%stool/ssb/data/SSB.SUPPLIER.csv", home);
         checkFile(supplier);
         return sampleSh;
     }
@@ -1840,7 +1846,8 @@ public class TableService extends BasicService {
     private void checkFile(String fileName) {
         File file = new File(fileName);
         if (!file.exists() || !file.isFile()) {
-            throw new KylinException(FILE_NOT_EXIST, String.format(MsgPicker.getMsg().getFILE_NOT_EXIST(), fileName));
+            throw new KylinException(FILE_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getFILE_NOT_EXIST(), fileName));
         }
     }
 
@@ -1851,7 +1858,8 @@ public class TableService extends BasicService {
         }
         ISourceMetadataExplorer explr = SourceFactory.getSparkSource().getSourceMetadataExplorer();
         try {
-            val result = explr.listTables("SSB").stream().map(String::toUpperCase).collect(Collectors.toSet());
+            val result = explr.listTables("SSB").stream().map(str -> str.toUpperCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
             return result
                     .containsAll(Sets.newHashSet("CUSTOMER", "DATES", "LINEORDER", "P_LINEORDER", "PART", "SUPPLIER"));
         } catch (Exception e) {
@@ -1872,7 +1880,7 @@ public class TableService extends BasicService {
             result.setCode(ResponseCode.CODE_SUCCESS);
         } else {
             result.setCode(ResponseCode.CODE_UNDEFINED);
-            result.setMsg(String.format(message.getTABLE_REFRESH_NOTFOUND(), failed));
+            result.setMsg(String.format(Locale.ROOT, message.getTABLE_REFRESH_NOTFOUND(), failed));
         }
         result.setRefreshed(refreshed);
         result.setFailed(failed);
@@ -1930,7 +1938,7 @@ public class TableService extends BasicService {
         NDataModel model = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (Objects.isNull(model)) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         List<String> usedTableNames = Lists.newArrayList();
         usedTableNames.add(model.getRootFactTableName());

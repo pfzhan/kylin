@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -62,6 +63,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.LogManager;
@@ -197,8 +200,8 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
     protected static List<File> getFilesFromFolder(final File folder, final String fileType) {
         System.out.println(folder.getAbsolutePath());
         Set<File> set = new TreeSet<>(new FileByNameComparator());
-        for (final File fileEntry : folder.listFiles()) {
-            if (fileEntry.getName().toLowerCase().endsWith(fileType.toLowerCase())) {
+        for (final File fileEntry : Objects.requireNonNull(folder.listFiles())) {
+            if (fileEntry.getName().toLowerCase(Locale.ROOT).endsWith(fileType.toLowerCase(Locale.ROOT))) {
                 set.add(fileEntry);
             }
         }
@@ -206,7 +209,8 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
     }
 
     public static String getTextFromFile(File file) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
         String line = null;
         StringBuilder stringBuilder = new StringBuilder();
         String ls = System.getProperty("line.separator");
@@ -384,7 +388,7 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
         for (int i = 0; i < tokens.length - 1; ++i) {
             if ((tokens[i].equalsIgnoreCase("inner") || tokens[i].equalsIgnoreCase("left"))
                     && tokens[i + 1].equalsIgnoreCase("join")) {
-                tokens[i] = targetType.toLowerCase();
+                tokens[i] = targetType.toLowerCase(Locale.ROOT);
             }
         }
 
@@ -543,7 +547,7 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
             String sql = getTextFromFile(sqlFile);
 
             String sqlWithLimit;
-            if (sql.toLowerCase().contains("limit ")) {
+            if (sql.toLowerCase(Locale.ROOT).contains("limit ")) {
                 sqlWithLimit = sql;
             } else {
                 sqlWithLimit = sql + " limit 5";
@@ -743,7 +747,7 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
 
     protected int runSQL(File sqlFile, boolean debug, boolean explain) throws Exception {
         if (debug) {
-            System.setProperty("calcite.debug", "true");
+            overwriteSystemProp("calcite.debug", "true");
             InputStream inputStream = new FileInputStream("src/test/resources/logging.properties");
             LogManager.getLogManager().readConfiguration(inputStream);
         }
@@ -757,7 +761,7 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
         int count = executeQuery(sql, true);
 
         if (debug) {
-            System.clearProperty("calcite.debug");
+            restoreSystemProp("calcite.debug");
         }
         return count;
     }

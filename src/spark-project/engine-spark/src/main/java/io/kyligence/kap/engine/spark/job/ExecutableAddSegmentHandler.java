@@ -96,12 +96,11 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         super.markDFStatus();
         val df = dfManager.getDataflow(getModelId());
         RealizationStatusEnum status = df.getStatus();
-        if(LAG_BEHIND.equals(status)){
+        if (LAG_BEHIND == status) {
             val model = df.getModel();
-            Preconditions.checkState(ManagementType.TABLE_ORIENTED.equals(model.getManagementType()));
+            Preconditions.checkState(ManagementType.TABLE_ORIENTED == model.getManagementType());
             if (checkOnline(model) && !df.getIndexPlan().isOfflineManually()) {
-                dfManager.updateDataflow(df.getId(),
-                        copyForWrite -> copyForWrite.setStatus(ONLINE));
+                dfManager.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
             }
         }
     }
@@ -128,7 +127,7 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         val segments = df.getSegments().getSegmentsByRange(querableSegmentRange)
                 .getSegmentsExcludeRefreshingAndMerging();
         for (NDataSegment segment : segments) {
-            if (SegmentStatusEnum.NEW.equals(segment.getStatus())) {
+            if (SegmentStatusEnum.NEW == segment.getStatus()) {
                 return false;
             }
         }

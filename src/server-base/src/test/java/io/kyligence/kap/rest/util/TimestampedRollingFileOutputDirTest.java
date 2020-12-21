@@ -45,6 +45,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Date;
+import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -81,7 +82,7 @@ public class TimestampedRollingFileOutputDirTest {
         Assert.assertTrue(file.getPath().startsWith(outputDir.getPath()));
         Assert.assertTrue(file.getName().startsWith(FILE_NAME_PREFIX));
 
-        long fileTS = Long.valueOf(file.getName().substring(FILE_NAME_PREFIX.length()));
+        long fileTS = Long.parseLong(file.getName().substring(FILE_NAME_PREFIX.length()));
         Assert.assertTrue(fileTS > new Date(0).getTime());
         Assert.assertTrue(fileTS <= System.currentTimeMillis());
     }
@@ -96,12 +97,12 @@ public class TimestampedRollingFileOutputDirTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testInvalidCreationParamsEmptyName() throws IOException {
+    public void testInvalidCreationParamsEmptyName() {
         new TimestampedRollingFileOutputDir(outputDir, "", 1);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testInvalidCreationParamsInvalidMaxFileCnt() throws IOException {
+    public void testInvalidCreationParamsInvalidMaxFileCnt() {
         new TimestampedRollingFileOutputDir(outputDir, FILE_NAME_PREFIX, 0);
     }
 
@@ -110,7 +111,7 @@ public class TimestampedRollingFileOutputDirTest {
         TimestampedRollingFileOutputDir rollingFileOutputDir = newRollingOutputDir(1);
         File file = newFile(rollingFileOutputDir);
 
-        Assert.assertEquals(1, outputDir.listFiles().length);
+        Assert.assertEquals(1, Objects.requireNonNull(outputDir.listFiles()).length);
         validateCreatedFile(file);
     }
 
@@ -118,11 +119,11 @@ public class TimestampedRollingFileOutputDirTest {
     public void testFileRollingCount1() throws IOException {
         TimestampedRollingFileOutputDir rollingFileOutputDir = newRollingOutputDir(1);
         File file1 = newFile(rollingFileOutputDir);
-        Assert.assertEquals(1, outputDir.listFiles().length);
+        Assert.assertEquals(1, Objects.requireNonNull(outputDir.listFiles()).length);
         File file2 = newFile(rollingFileOutputDir);
-        Assert.assertEquals(1, outputDir.listFiles().length);
-        Assert.assertTrue(!file1.getPath().equals(file2.getPath()));
-        Assert.assertTrue(!file1.exists());
+        Assert.assertEquals(1, Objects.requireNonNull(outputDir.listFiles()).length);
+        Assert.assertNotEquals(file1.getPath(), file2.getPath());
+        Assert.assertFalse(file1.exists());
         Assert.assertTrue(file2.exists());
     }
 
@@ -131,10 +132,10 @@ public class TimestampedRollingFileOutputDirTest {
         TimestampedRollingFileOutputDir rollingFileOutputDir = newRollingOutputDir(2);
         File file1 = newFile(rollingFileOutputDir);
         File file2 = newFile(rollingFileOutputDir);
-        Assert.assertEquals(2, outputDir.listFiles().length);
+        Assert.assertEquals(2, Objects.requireNonNull(outputDir.listFiles()).length);
 
         File file3 = newFile(rollingFileOutputDir);
-        Assert.assertEquals(2, outputDir.listFiles().length);
+        Assert.assertEquals(2, Objects.requireNonNull(outputDir.listFiles()).length);
 
         Assert.assertFalse(file1.exists());
         Assert.assertTrue(file2.exists());

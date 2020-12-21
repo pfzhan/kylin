@@ -20,9 +20,10 @@
  *
  */
 package io.kyligence.kap.common
-import java.util.{Calendar, Date}
+
 import org.apache.spark.utils.KafkaTestUtils
 
+import java.util.{Calendar, Date, Locale, TimeZone}
 import scala.io.Source
 
 trait StreamingDataGenerate extends KafkaTestUtils {
@@ -41,11 +42,10 @@ trait StreamingDataGenerate extends KafkaTestUtils {
   }
 
 
-
   def sendOneRound(path: String, topic: String, qps: Int): Unit = {
     val content = Source.fromFile(path).getLines().foreach { line =>
       val currentTimeStamp = System.currentTimeMillis()
-      val cal = Calendar.getInstance()
+      val cal = Calendar.getInstance(TimeZone.getDefault, Locale.getDefault(Locale.Category.FORMAT))
       cal.setTime(new Date(currentTimeStamp))
       cal.set(Calendar.SECOND, 0)
       cal.set(Calendar.MILLISECOND, 0)

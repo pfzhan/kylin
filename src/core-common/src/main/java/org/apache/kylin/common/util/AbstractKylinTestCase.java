@@ -42,47 +42,18 @@
 
 package org.apache.kylin.common.util;
 
-import java.util.Map;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-
-import com.google.common.collect.Maps;
+import org.junit.Before;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author ysong1
- *
- */
 @Slf4j
-public abstract class AbstractKylinTestCase {
+public abstract class AbstractKylinTestCase extends AbstractTestCase {
 
-    static {
-        System.setProperty("needCheckCC", "true");
-    }
-
-    private Map<String, String> systemProp = Maps.newHashMap();
-
-    protected void overwriteSystemProp(String key, String value) {
-        systemProp.put(key, System.getProperty(key));
-        System.setProperty(key, value);
-    }
-
-    protected void restoreAllSystemProp() {
-        systemProp.forEach((prop, value) -> System.clearProperty(prop));
-        systemProp.clear();
-    }
-
-    protected void restoreSystemProp(String prop) {
-        if (!systemProp.containsKey(prop) || systemProp.get(prop) == null) {
-            log.info("Clear {}", prop);
-            System.clearProperty(prop);
-        } else {
-            log.info("restore {}", prop);
-            System.setProperty(prop, systemProp.get(prop));
-        }
-        systemProp.remove(prop);
+    @Before
+    public void setNeedCheckCC() {
+        overwriteSystemProp("needCheckCC", "true");
     }
 
     public abstract void createTestMetadata(String... overlayMetadataDirs) throws Exception;
@@ -98,7 +69,6 @@ public abstract class AbstractKylinTestCase {
             ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).close();
         } catch (Exception ignore) {
         }
-        System.clearProperty(KylinConfig.KYLIN_CONF);
         KylinConfig.destroyInstance();
     }
 

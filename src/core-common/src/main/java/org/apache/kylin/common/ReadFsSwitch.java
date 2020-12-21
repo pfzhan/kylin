@@ -45,6 +45,8 @@ package org.apache.kylin.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
+
 public class ReadFsSwitch {
     private static final Logger logger = LoggerFactory.getLogger(ReadFsSwitch.class);
 
@@ -83,8 +85,8 @@ public class ReadFsSwitch {
         // prevents repeated entrance, this method MUST NOT return true for the same query more than once
         if (!fsOrFsBackup && resetMillis == 0) {
             while (ex != null) {
-                String exceptionClassName = ex.getClass().getName().toLowerCase();
-                String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+                String exceptionClassName = ex.getClass().getName().toLowerCase(Locale.ROOT);
+                String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase(Locale.ROOT) : "";
                 for (String backupFsAllowedString : backupFsAllowedStrings.split(",")) {
                     if (exceptionClassName.contains(backupFsAllowedString) || msg.contains(backupFsAllowedString)) {
                         turnOnBackupFsWhile();

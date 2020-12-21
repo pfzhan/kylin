@@ -167,7 +167,7 @@ public class MassinFilterManager {
                         encoding.encode(line, byteArray.array(), 0);
                         ret.add(byteArray);
                     } else {
-                        ret.add(new ByteArray(line.getBytes()));
+                        ret.add(new ByteArray(line.getBytes(Charset.defaultCharset())));
                     }
                 } catch (Exception e) {
                     throw e;

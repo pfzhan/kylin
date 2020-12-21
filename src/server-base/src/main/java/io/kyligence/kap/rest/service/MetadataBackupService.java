@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -71,7 +72,7 @@ public class MetadataBackupService {
     }
 
     public String backupProject(String project) throws Exception {
-        val folder = LocalDateTime.now().format(MetadataTool.DATE_TIME_FORMATTER) + "_backup";
+        val folder = LocalDateTime.now(Clock.systemDefaultZone()).format(MetadataTool.DATE_TIME_FORMATTER) + "_backup";
         String[] args = new String[] { "-backup", "-compress", "-project", project, "-folder", folder, "-dir",
                 getBackupDir() };
         backup(args);

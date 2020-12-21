@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.nio.charset.Charset;
 import java.sql.CallableStatement;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
@@ -83,7 +84,7 @@ public class QueryHistoryTable extends SqlTable implements IKeep {
         @Override
         public void setParameter(PreparedStatement ps, int i, QueryHistoryInfo parameter, JdbcType jdbcType)
                 throws SQLException {
-            byte[] bytes = "".getBytes();
+            byte[] bytes = "".getBytes(Charset.defaultCharset());
             try {
                 bytes = JsonUtil.writeValueAsBytes(parameter);
             } catch (JsonProcessingException e) {

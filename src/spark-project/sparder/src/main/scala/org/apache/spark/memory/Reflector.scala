@@ -24,6 +24,8 @@
 
 package org.apache.spark.memory
 
+import io.kyligence.kap.common.util.Unsafe
+
 import java.lang.reflect.{Field, Method}
 
 /* For example, I want to do this:
@@ -58,7 +60,7 @@ object Reflector {
 
   def findMethod(obj: Any, name: String): Method = {
     val method = _methods(obj.getClass).find(_.getName == name).get
-    method.setAccessible(true)
+    Unsafe.changeAccessibleObject(method, true)
     method
   }
 
@@ -70,7 +72,7 @@ object Reflector {
       fields.find(_.getName.endsWith("$$" + name))
     } match {
       case Some(f) =>
-        f.setAccessible(true)
+        Unsafe.changeAccessibleObject(f, true)
         f.get(obj)
       case None =>
         // not a field, maybe its actually a method in byte code

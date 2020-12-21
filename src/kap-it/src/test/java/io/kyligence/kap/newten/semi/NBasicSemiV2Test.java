@@ -574,8 +574,8 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.sort((o1, o2) -> {
-            if (o1.getType().equals(RawRecItem.RawRecType.COMPUTED_COLUMN)
-                    && o2.getType().equals(RawRecItem.RawRecType.COMPUTED_COLUMN)) {
+            if (o1.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN
+                    && o2.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
                 return ((CCRecItemV2) o1.getRecEntity()).getCc().getExpression()
                         .compareTo(((CCRecItemV2) o2.getRecEntity()).getCc().getExpression());
             }
@@ -659,8 +659,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.sort((o1, o2) -> {
-            if (o1.getType().equals(RawRecItem.RawRecType.MEASURE)
-                    && o2.getType().equals(RawRecItem.RawRecType.MEASURE)) {
+            if (o1.getType() == RawRecItem.RawRecType.MEASURE && o2.getType() == RawRecItem.RawRecType.MEASURE) {
                 return o1.getRecEntity().getUniqueContent().compareTo(o2.getRecEntity().getUniqueContent());
             }
             return o1.getType().id() - o2.getType().id();
@@ -716,8 +715,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // count(*) answer avg only work on query
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.sort((o1, o2) -> {
-            if (o1.getType().equals(RawRecItem.RawRecType.MEASURE)
-                    && o2.getType().equals(RawRecItem.RawRecType.MEASURE)) {
+            if (RawRecItem.RawRecType.MEASURE == o1.getType() && RawRecItem.RawRecType.MEASURE == o2.getType()) {
                 return o1.getRecEntity().getUniqueContent().compareTo(o2.getRecEntity().getUniqueContent());
             }
             return o1.getType().id() - o2.getType().id();
@@ -881,8 +879,8 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.sort((o1, o2) -> {
-            if (o1.getType().equals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)
-                    && o2.getType().equals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) {
+            if (RawRecItem.RawRecType.ADDITIONAL_LAYOUT == o1.getType()
+                    && RawRecItem.RawRecType.ADDITIONAL_LAYOUT == o2.getType()) {
                 return (int) (o1.getCost() - o2.getCost());
             }
             return o1.getType().id() - o2.getType().id();

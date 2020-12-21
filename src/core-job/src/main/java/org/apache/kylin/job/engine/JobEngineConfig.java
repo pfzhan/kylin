@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,6 +44,7 @@ package org.apache.kylin.job.engine;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -74,17 +74,17 @@ public class JobEngineConfig {
         return null;
     }
 
-    private String getHadoopJobConfFilePath(String suffix, boolean appendSuffix) throws IOException {
+    private String getHadoopJobConfFilePath(String suffix, boolean appendSuffix) {
         String hadoopJobConfFile;
         if (suffix != null && appendSuffix) {
-            hadoopJobConfFile = (HADOOP_JOB_CONF_FILENAME + "_" + suffix.toLowerCase() + ".xml");
+            hadoopJobConfFile = (HADOOP_JOB_CONF_FILENAME + "_" + suffix.toLowerCase(Locale.ROOT) + ".xml");
         } else {
             hadoopJobConfFile = (HADOOP_JOB_CONF_FILENAME + ".xml");
         }
 
         File jobConfig = getJobConfig(hadoopJobConfFile);
         if (jobConfig == null || !jobConfig.exists()) {
-            logger.warn("fail to locate " + hadoopJobConfFile + ", trying to locate " + HADOOP_JOB_CONF_FILENAME + ".xml");
+            logger.warn("fail to locate {}, trying to locate {}.xml", hadoopJobConfFile, HADOOP_JOB_CONF_FILENAME);
             jobConfig = getJobConfig(HADOOP_JOB_CONF_FILENAME + ".xml");
             if (jobConfig == null || !jobConfig.exists()) {
                 logger.error("fail to locate " + HADOOP_JOB_CONF_FILENAME + ".xml");
@@ -154,7 +154,6 @@ public class JobEngineConfig {
     public String[] getAdminDls() {
         return config.getAdminDls();
     }
-
 
     public int getPollIntervalSecond() {
         return config.getSchedulerPollIntervalSecond();

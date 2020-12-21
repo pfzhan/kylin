@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
@@ -42,23 +43,26 @@ public abstract class OpenUserService implements UserService {
 
     @Override
     public void createUser(UserDetails userDetails) {
-        throw new UnsupportedOperationException(String.format(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "createUser"));
+        throw new UnsupportedOperationException(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "createUser"));
     }
 
     @Override
     public void updateUser(UserDetails userDetails) {
-        throw new UnsupportedOperationException(String.format(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "updateUser"));
+        throw new UnsupportedOperationException(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "updateUser"));
     }
 
     @Override
     public void deleteUser(String s) {
-        throw new UnsupportedOperationException(String.format(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteUser"));
+        throw new UnsupportedOperationException(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteUser"));
     }
 
     @Override
     public void changePassword(String s, String s1) {
         throw new UnsupportedOperationException(
-                String.format(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "changePassword"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "changePassword"));
     }
 
     @Override

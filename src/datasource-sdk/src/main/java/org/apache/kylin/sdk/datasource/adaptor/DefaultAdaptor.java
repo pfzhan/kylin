@@ -23,10 +23,6 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
-import com.google.common.base.Joiner;
-import org.apache.commons.lang.StringUtils;
-
-import javax.sql.rowset.CachedRowSet;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,7 +31,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+
+import javax.sql.rowset.CachedRowSet;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.base.Joiner;
 
 /**
  * A default implementation for <C>AbstractJdbcAdaptor</C>. By default, this adaptor supposed to support most cases.
@@ -78,56 +81,56 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
         String result = "any";
 
         switch (sourceTypeId) {
-            case Types.CHAR:
-                result = "char";
-                break;
-            case Types.VARCHAR:
-            case Types.NVARCHAR:
-            case Types.LONGVARCHAR:
-                result = "varchar";
-                break;
-            case Types.NUMERIC:
-            case Types.DECIMAL:
-                result = "decimal";
-                break;
-            case Types.BIT:
-            case Types.BOOLEAN:
-                result = "boolean";
-                break;
-            case Types.TINYINT:
-                result = "tinyint";
-                break;
-            case Types.SMALLINT:
-                result = "smallint";
-                break;
-            case Types.INTEGER:
-                result = "integer";
-                break;
-            case Types.BIGINT:
-                result = "bigint";
-                break;
-            case Types.REAL:
-            case Types.FLOAT:
-            case Types.DOUBLE:
-                result = "double";
-                break;
-            case Types.BINARY:
-            case Types.VARBINARY:
-            case Types.LONGVARBINARY:
-                result = "byte";
-                break;
-            case Types.DATE:
-                result = "date";
-                break;
-            case Types.TIME:
-                result = "time";
-                break;
-            case Types.TIMESTAMP:
-                result = "timestamp";
-                break;
-            default:
-                //do nothing
-                break;
+        case Types.CHAR:
+            result = "char";
+            break;
+        case Types.VARCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGVARCHAR:
+            result = "varchar";
+            break;
+        case Types.NUMERIC:
+        case Types.DECIMAL:
+            result = "decimal";
+            break;
+        case Types.BIT:
+        case Types.BOOLEAN:
+            result = "boolean";
+            break;
+        case Types.TINYINT:
+            result = "tinyint";
+            break;
+        case Types.SMALLINT:
+            result = "smallint";
+            break;
+        case Types.INTEGER:
+            result = "integer";
+            break;
+        case Types.BIGINT:
+            result = "bigint";
+            break;
+        case Types.REAL:
+        case Types.FLOAT:
+        case Types.DOUBLE:
+            result = "double";
+            break;
+        case Types.BINARY:
+        case Types.VARBINARY:
+        case Types.LONGVARBINARY:
+            result = "byte";
+            break;
+        case Types.DATE:
+            result = "date";
+            break;
+        case Types.TIME:
+            result = "time";
+            break;
+        case Types.TIMESTAMP:
+            result = "timestamp";
+            break;
+        default:
+            //do nothing
+            break;
         }
 
         return result;
@@ -241,7 +244,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
         if (TABLES_CACHE != null) {
             if (TABLES_CACHE.size() == 0) {
                 try (Connection conn = getConnection();
-                     ResultSet rs = conn.getMetaData().getTables(null, null, null, null)) {
+                        ResultSet rs = conn.getMetaData().getTables(null, null, null, null)) {
                     while (rs.next()) {
                         String name = rs.getString(TABLE_NAME);
                         String database = rs.getString(TABLE_SCHEM) != null ? rs.getString(TABLE_SCHEM)
@@ -286,7 +289,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
     @Override
     public CachedRowSet getTable(String schema, String table) throws SQLException {
         try (Connection conn = getConnection();
-             ResultSet rs = conn.getMetaData().getTables(null, schema, table, null)) {
+                ResultSet rs = conn.getMetaData().getTables(null, schema, table, null)) {
             return cacheResultSet(rs);
         }
     }
@@ -294,7 +297,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
     @Override
     public CachedRowSet getTableColumns(String schema, String table) throws SQLException {
         try (Connection conn = getConnection();
-             ResultSet rs = conn.getMetaData().getColumns(null, schema, table, null)) {
+                ResultSet rs = conn.getMetaData().getColumns(null, schema, table, null)) {
             return cacheResultSet(rs);
         }
     }
@@ -311,7 +314,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
             if (COLUMNS_CACHE.size() == 0) {
                 CachedRowSet columnsRs = null;
                 try (Connection conn = getConnection();
-                     ResultSet rs = conn.getMetaData().getColumns(null, null, null, null)) {
+                        ResultSet rs = conn.getMetaData().getColumns(null, null, null, null)) {
                     columnsRs = cacheResultSet(rs);
                 }
                 while (columnsRs.next()) {
@@ -342,13 +345,13 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
 
     @Override
     public String[] buildSqlToCreateSchema(String schemaName) {
-        return new String[]{String.format("CREATE schema IF NOT EXISTS %s", schemaName)};
+        return new String[] { String.format(Locale.ROOT, "CREATE schema IF NOT EXISTS %s", schemaName) };
     }
 
     @Override
     public String[] buildSqlToLoadDataFromLocal(String tableName, String tableFileDir) {
-        return new String[]{String.format("LOAD DATA INFILE '%s/%s.csv' INTO %s FIELDS TERMINATED BY ',';",
-                tableFileDir, tableName, tableName)};
+        return new String[] { String.format(Locale.ROOT,
+                "LOAD DATA INFILE '%s/%s.csv' INTO %s FIELDS TERMINATED BY ',';", tableFileDir, tableName, tableName) };
     }
 
     @Override
@@ -367,7 +370,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
         ddl.deleteCharAt(ddl.length() - 2);
         ddl.append(")");
 
-        return new String[]{dropsql, dropsql2, ddl.toString()};
+        return new String[] { dropsql, dropsql2, ddl.toString() };
     }
 
     @Override
@@ -376,8 +379,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
         String dropTable = DROP_TABLE_SQL + viewName;
         String createSql = ("CREATE VIEW " + viewName + " AS " + sql);
 
-        return new String[]{dropView, dropTable, createSql};
+        return new String[] { dropView, dropTable, createSql };
     }
-
 
 }

@@ -26,7 +26,9 @@ package io.kyligence.kap.spark.common.logging;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +47,7 @@ import org.apache.log4j.spi.LoggingEvent;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -114,7 +117,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      */
     @Override
     public void activateOptions() {
-        LogLog.warn(String.format("%s starting ...", getAppenderName()));
+        LogLog.warn(String.format(Locale.ROOT, "%s starting ...", getAppenderName()));
         LogLog.warn("hdfsWorkingDir -> " + getHdfsWorkingDir());
 
         init();
@@ -124,7 +127,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
         appendHdfsService.execute(this::checkAndFlushLog);
         Runtime.getRuntime().addShutdownHook(new Thread(this::close));
 
-        LogLog.warn(String.format("%s started ...", getAppenderName()));
+        LogLog.warn(String.format(Locale.ROOT, "%s started ...", getAppenderName()));
     }
 
     @Override
@@ -165,9 +168,9 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                     } catch (Exception ie) {
                         LogLog.error("clear the logging buffer queue failed!", ie);
                     }
-                    LogLog.error(String.format("close %s failed!", getAppenderName()), e);
+                    LogLog.error(String.format(Locale.ROOT, "close %s failed!", getAppenderName()), e);
                 }
-                LogLog.warn(String.format("%s closed ...", getAppenderName()));
+                LogLog.warn(String.format(Locale.ROOT, "%s closed ...", getAppenderName()));
             }
         }
     }
@@ -277,7 +280,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                 }
 
                 try {
-                    initWriterLock.wait(1000);//waiting for acl to turn to current user
+                    Unsafe.wait(initWriterLock, 1000); //waiting for acl to turn to current user
                 } catch (InterruptedException e) {
                     LogLog.warn("Init writer interrupted!", e);
                     // Restore interrupted state...
@@ -285,7 +288,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                 }
             }
             if (null != outStream) {
-                bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream));
+                bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream, Charset.defaultCharset()));
                 return true;
             }
         }

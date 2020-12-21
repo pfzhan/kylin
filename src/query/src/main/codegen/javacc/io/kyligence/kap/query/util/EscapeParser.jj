@@ -8,11 +8,14 @@ PARSER_BEGIN(EscapeParser)
 package io.kyligence.kap.query.util;
 
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Locale;
 import java.util.Scanner;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,7 +30,7 @@ public class EscapeParser implements IKeep {
 
     public static void main(String[] args) throws ParseException {
         System.out.println("Input SQL:");
-        Scanner reader = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in, Charset.defaultCharset().name());
         String sql = reader.nextLine();
         reader.close();
         EscapeParser parser = new EscapeParser(new StringReader(sql));
@@ -347,7 +350,7 @@ String CastExpression() :
     }
     (< SPACE >)* <RPAREN>
     {
-        return String.format("%s(%s)", function, String.join(" ", parameters));
+        return String.format(Locale.ROOT, "%s(%s)", function, String.join(" ", parameters));
     }
 }
 
@@ -361,19 +364,19 @@ String ExtractExpression() :
 {
     <EXTRACT> (<SPACE> )* <LPAREN> (<SPACE> )*
     {
-        functionName = ParameterExpression().trim();
-        if (!timeunitSet.contains(functionName.toUpperCase())) {
-            throw new IllegalArgumentException(String.format(EXTRACT_FROM_EXCEPTION_MSG,
-                functionName, String.join(", ", timeunitSet)));
-        }
-        if (functionName.equalsIgnoreCase("DAY")) {
-            functionName = "DAYOFMONTH";
-        } else if (functionName.equalsIgnoreCase("DOW")) {
-            functionName = "DAYOFWEEK";
-        } else if (functionName.equalsIgnoreCase("DOY")) {
-            functionName = "DAYOFYEAR";
-        }
+    functionName = ParameterExpression().trim();
+    if (!timeunitSet.contains(functionName.toUpperCase(Locale.ROOT))) {
+        throw new IllegalArgumentException(String.format(Locale.ROOT, EXTRACT_FROM_EXCEPTION_MSG,
+            functionName, String.join(", ", timeunitSet)));
     }
+    if (functionName.equalsIgnoreCase("DAY")) {
+        functionName = "DAYOFMONTH";
+    } else if (functionName.equalsIgnoreCase("DOW")) {
+        functionName = "DAYOFWEEK";
+    } else if (functionName.equalsIgnoreCase("DOY")) {
+        functionName = "DAYOFYEAR";
+    }
+}
     (<SPACE>)* <FROM> (<SPACE>)*
     {
         parameter = ParameterExpression().trim();
@@ -400,12 +403,12 @@ String TsDiffOrAddExpression() :
     (< SPACE >)* <LPAREN> (< SPACE >)*
     {
         String timeunit = ParameterExpression().trim();
-        if (!timeunitSet.contains(timeunit.toUpperCase())) {
-            throw new IllegalStateException(String.format(TIMESTAMP_DIFF_ADD_EXCEPTION_MSG,
+        if (!timeunitSet.contains(timeunit.toUpperCase(Locale.ROOT))) {
+            throw new IllegalStateException(String.format(Locale.ROOT, TIMESTAMP_DIFF_ADD_EXCEPTION_MSG,
                 functionName, timeunit, String.join(", ", timeunitSet)));
         }
-        if (timeunit.toUpperCase().startsWith("SQL_TSI_")) {
-            timeunit = timeunit.toUpperCase().replace("SQL_TSI_", "");
+        if (timeunit.toUpperCase(Locale.ROOT).startsWith("SQL_TSI_")) {
+            timeunit = timeunit.toUpperCase(Locale.ROOT).replace("SQL_TSI_", "");
         }
         parameters.add(dialect.transformTimeunitOfTimestampDiffOrAdd(timeunit));
     }
@@ -547,8 +550,8 @@ String CeilFloorExpress() :
         <TO> (<SPACE>)*
         {
             String timeUnit = ParameterExpression().trim();
-            if (!timeunitSet.contains(timeUnit.toUpperCase())) {
-                throw new IllegalStateException(String.format(CEIL_FLOOR_EXCEPTION_MSG,
+            if (!timeunitSet.contains(timeUnit.toUpperCase(Locale.ROOT))) {
+                throw new IllegalStateException(String.format(Locale.ROOT, CEIL_FLOOR_EXCEPTION_MSG,
                     functionName, timeUnit, String.join(", ", timeunitSet)));
             }
             parameters.add(timeUnit);
@@ -572,7 +575,7 @@ String PiFunction() :
     }
     (<SPACE> )* <LPAREN> (<SPACE>)* <RPAREN>
     {
-        return String.format("%s()", function);
+        return String.format(Locale.ROOT, "%s()", function);
     }
 }
 
@@ -592,9 +595,9 @@ String EscapeFunction() :
     (
         param = ParameterExpression()
         {
-            if (tsFunctions.contains(functionName.trim().toUpperCase())) {
-                if (param.toUpperCase().startsWith("SQL_TSI_")) {
-                    param = param.toUpperCase().replace("SQL_TSI_", "");
+            if (tsFunctions.contains(functionName.trim().toUpperCase(Locale.ROOT))) {
+                if (param.toUpperCase(Locale.ROOT).startsWith("SQL_TSI_")) {
+                    param = param.toUpperCase(Locale.ROOT).replace("SQL_TSI_", "");
                 }
                 parameters.add(dialect.transformTimeunitOfTimestampDiffOrAdd(param));
             } else {

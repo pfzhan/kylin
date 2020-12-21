@@ -84,13 +84,8 @@ public class ProcessStatusListenerTest extends NLocalFileMetadataTestCase {
             Assert.assertTrue(ProcessUtils.isAlive(pid.get()));
         });
 
-        try {
-            overwriteSystemProp("KYLIN_HOME",
-                    Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
-            executableManager.destroyProcess(jobId);
-        } finally {
-            System.clearProperty("KYLIN_HOME");
-        }
+        overwriteSystemProp("KYLIN_HOME", Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
+        executableManager.destroyProcess(jobId);
 
         await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
             val jobMap = ProcessStatusListener.parseProcessFile();

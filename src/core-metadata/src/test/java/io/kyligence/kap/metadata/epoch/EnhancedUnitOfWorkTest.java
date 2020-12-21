@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.epoch;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
+import java.nio.charset.Charset;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -73,7 +74,6 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
                     StringEntity.serializer);
             return null;
         }, "");
-
     }
 
     @After
@@ -81,7 +81,6 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
-        this.cleanupTestMetadata();
     }
 
     @Test
@@ -122,7 +121,8 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         thrown.expect(TransactionException.class);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
+            store.checkAndPutResource("/_global/p1/abc",
+                    ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())), -1);
             return 0;
         }, 0, UnitOfWork.GLOBAL_UNIT);
 
@@ -138,7 +138,8 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         transactionThrown.expectMessageInTransaction("System is trying to recover, please try again later");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
+            store.checkAndPutResource("/_global/p1/abc",
+                    ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())), -1);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT, 1);
     }
@@ -151,7 +152,8 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         epochManager.unsetMaintenanceMode("MODE1");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
+            store.checkAndPutResource("/_global/p1/abc",
+                    ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())), -1);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT, 1);
         Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())

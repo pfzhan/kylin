@@ -27,9 +27,9 @@ package io.kyligence.kap.smart.query;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
 
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
@@ -90,17 +90,16 @@ public class QueryStats implements Serializable {
 
         r.addFilter(Collections2.transform(ctx.filterColumns, TblColRef::getIdentity));
 
-        Collection<String> allCols = Collections2
-                .transform(Collections2.filter(ctx.allColumns, input -> {
-                    if (input != null && (!model.getAliasMap().containsKey(input.getTableAlias())))
-                        return false;
+        Collection<String> allCols = Collections2.transform(Collections2.filter(ctx.allColumns, input -> {
+            if (input != null && (!model.getAliasMap().containsKey(input.getTableAlias())))
+                return false;
 
-                    if (ctx.metricsColumns.contains(input) && !ctx.getGroupByColumns().contains(input)
-                            && !ctx.filterColumns.contains(input))
-                        return false;
+            if (ctx.metricsColumns.contains(input) && !ctx.getGroupByColumns().contains(input)
+                    && !ctx.filterColumns.contains(input))
+                return false;
 
-                    return true;
-                }), TblColRef::getIdentity);
+            return true;
+        }), TblColRef::getIdentity);
 
         Collection<FunctionDesc> measures = Lists.newArrayList();
         for (FunctionDesc aggFunc : ctx.aggregations) {
@@ -255,9 +254,9 @@ public class QueryStats implements Serializable {
     private String createCoocurrenceKey(String col1, String col2) {
         int compare = col1.compareTo(col2);
         if (compare > 0) {
-            return String.format("%s,%s", col1, col2);
+            return String.format(Locale.ROOT, "%s,%s", col1, col2);
         } else {
-            return String.format("%s,%s", col2, col1);
+            return String.format(Locale.ROOT, "%s,%s", col2, col1);
         }
     }
 }

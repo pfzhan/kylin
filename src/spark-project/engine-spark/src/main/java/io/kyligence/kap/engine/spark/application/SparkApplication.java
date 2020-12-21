@@ -37,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,6 +81,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
@@ -107,7 +109,7 @@ public abstract class SparkApplication implements Application, IKeep {
         try {
             String argsLine = Files.readAllLines(Paths.get(args[0])).get(0);
             if (argsLine.isEmpty()) {
-                throw new RuntimeException(String.format("Args file %s is empty", args[0]));
+                throw new RuntimeException(String.format(Locale.ROOT, "Args file %s is empty", args[0]));
             }
             params = JsonUtil.readValueAsMap(argsLine);
             checkArgs();
@@ -144,9 +146,9 @@ public abstract class SparkApplication implements Application, IKeep {
      * @param json
      */
     public Boolean updateSparkJobInfo(String url, String json) {
-        String serverIp = System.getProperty("spark.driver.rest.server.ip", "127.0.0.1");
-        String port = System.getProperty("spark.driver.rest.server.port", "7070");
-        String requestApi = String.format("http://%s:%s" + url, serverIp, port);
+        String serverIp = Unsafe.setProperty("spark.driver.rest.server.ip", "127.0.0.1");
+        String port = Unsafe.setProperty("spark.driver.rest.server.port", "7070");
+        String requestApi = String.format(Locale.ROOT, "http://%s:%s" + url, serverIp, port);
 
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPut httpPut = new HttpPut(requestApi);
@@ -314,7 +316,7 @@ public abstract class SparkApplication implements Application, IKeep {
             UdfManager.create(ss);
 
             if (!config.isUTEnv()) {
-                System.setProperty("kylin.env", config.getDeployEnv());
+                Unsafe.setProperty("kylin.env", config.getDeployEnv());
             }
             logger.info("Start job");
             infos.startJob();
@@ -451,8 +453,8 @@ public abstract class SparkApplication implements Application, IKeep {
         if (sparkConfigOverride.containsKey(sparkExecutorExtraJavaOptionsKey)) {
             sb.append(sparkConfigOverride.get(sparkExecutorExtraJavaOptionsKey));
         }
-        sb.append(
-                String.format(" -Dkylin.dictionary.globalV2-store-class-name=%s ", config.getGlobalDictV2StoreImpl()));
+        sb.append(String.format(Locale.ROOT, " -Dkylin.dictionary.globalV2-store-class-name=%s ",
+                config.getGlobalDictV2StoreImpl()));
         sparkConfigOverride.put(sparkExecutorExtraJavaOptionsKey, sb.toString());
         return sparkConfigOverride;
     }

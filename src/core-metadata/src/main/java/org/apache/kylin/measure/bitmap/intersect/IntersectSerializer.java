@@ -43,6 +43,7 @@
 package org.apache.kylin.measure.bitmap.intersect;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.kylin.common.util.Bytes;
@@ -100,7 +101,7 @@ public class IntersectSerializer extends DataTypeSerializer<IntersectBitmapCount
             int keyLength = in.getInt();
             byte[] bytes = new byte[keyLength];
             in.get(bytes, 0, keyLength);
-            String s = new String(bytes);
+            String s = new String(bytes, Charset.defaultCharset());
             BitmapCounter deserialize = defaultSerializer.deserialize(in);
             map.put(s, deserialize);
         }

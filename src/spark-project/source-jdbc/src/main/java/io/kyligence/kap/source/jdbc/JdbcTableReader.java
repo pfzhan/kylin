@@ -29,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.DBUtils;
@@ -71,7 +72,7 @@ public class JdbcTableReader implements IReadableTable.TableReader {
             colCount = rs.getMetaData().getColumnCount();
         } catch (SQLException e) {
             log.error("error when get jdbc tableReader.", e);
-            throw new IOException(String.format("error while exec %s", sql));
+            throw new IOException(String.format(Locale.ROOT, "error while exec %s", sql));
         }
     }
 
@@ -120,12 +121,12 @@ public class JdbcTableReader implements IReadableTable.TableReader {
         List<String> columns = Lists.newArrayList();
         for (int i = 0; i < tableDesc.getColumns().length; i++) {
             columnDesc = tableDesc.getColumns()[i];
-            columns.add(String.format(DATABASE_AND_TABLE, tableDesc.getName(), columnDesc.getName()));
+            columns.add(String.format(Locale.ROOT, DATABASE_AND_TABLE, tableDesc.getName(), columnDesc.getName()));
         }
         final String sep = " ";
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT").append(sep).append(StringUtils.join(columns, ",")).append(sep).append("FROM").append(sep)
-                .append(String.format(DATABASE_AND_TABLE, tableDesc.getDatabase(), tableDesc.getName()));
+                .append(String.format(Locale.ROOT, DATABASE_AND_TABLE, tableDesc.getDatabase(), tableDesc.getName()));
         return sql.toString();
     }
 }

@@ -42,7 +42,11 @@
 
 package org.apache.kylin.rest.util;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+
+import java.util.Locale;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -53,8 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @Component("aclEvaluate")
 public class AclEvaluate {
@@ -71,7 +74,7 @@ public class AclEvaluate {
         ProjectInstance prjInstance = projectManager.getProject(projectName);
         if (prjInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), projectName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), projectName));
         }
         return prjInstance;
     }

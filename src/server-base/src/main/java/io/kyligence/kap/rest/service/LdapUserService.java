@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -115,7 +116,8 @@ public class LdapUserService implements UserService {
                 return user;
             }
         }
-        throw new UsernameNotFoundException(String.format(MsgPicker.getMsg().getUSER_NOT_FOUND(), username));
+        throw new UsernameNotFoundException(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_NOT_FOUND(), username));
     }
 
     @Override

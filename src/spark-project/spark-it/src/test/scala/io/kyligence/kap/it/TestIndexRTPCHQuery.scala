@@ -22,15 +22,11 @@
 
 package io.kyligence.kap.it
 
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{JobSupport, QuerySupport}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.common.{
-  IndexRTPCHSource,
-  SharedSparkSession,
-  SparderBaseFunSuite,
-  SparderQueryTest
-}
+import org.apache.spark.sql.common.{IndexRTPCHSource, SharedSparkSession, SparderBaseFunSuite, SparderQueryTest}
 
 class TestIndexRTPCHQuery
     extends SparderBaseFunSuite
@@ -43,8 +39,8 @@ class TestIndexRTPCHQuery
   override val DEFAULT_PROJECT = "tpch"
 
   ignore("tpch query") {
-    System.setProperty("spark.local", "true")
-    System.setProperty("kylin.query.engine.sparder-enabled", "true")
+    Unsafe.setProperty("spark.local", "true")
+    Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     // 22
     val sqlTime = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_tpch")
@@ -73,8 +69,8 @@ class TestIndexRTPCHQuery
   }
 
   ignore("tpch build and query") {
-    System.setProperty("spark.local", "true")
-    System.setProperty("kylin.query.engine.sparder-enabled", "true")
+    Unsafe.setProperty("spark.local", "true")
+    Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     buildCubes(
       List(
         "2d7c111d-9a8f-4941-89ba-6aee3081f288",

@@ -30,6 +30,7 @@ import java.text.NumberFormat;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -534,7 +535,7 @@ public class MetricsGroup {
                     : String.valueOf(series.getValues().get(0).get(0));
 
             logger.trace("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
-            return NumberFormat.getInstance().parse(valStr).longValue();
+            return NumberFormat.getInstance(Locale.getDefault(Locale.Category.FORMAT)).parse(valStr).longValue();
         } catch (Exception e) {
             logger.warn("ke.metrics tryRestoreCounter error {}", e.getMessage());
         }

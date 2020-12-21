@@ -480,8 +480,8 @@ public class QueryPatternUtil {
                 return;
             }
 
-            isOpGt = operatorKind.equals(SqlKind.GREATER_THAN) || operatorKind.equals(SqlKind.GREATER_THAN_OR_EQUAL);
-            isOpLt = operatorKind.equals(SqlKind.LESS_THAN) || operatorKind.equals(SqlKind.LESS_THAN_OR_EQUAL);
+            isOpGt = SqlKind.GREATER_THAN == operatorKind || SqlKind.GREATER_THAN_OR_EQUAL == operatorKind;
+            isOpLt = SqlKind.LESS_THAN == operatorKind || SqlKind.LESS_THAN_OR_EQUAL == operatorKind;
 
             if (operand1 instanceof SqlLiteral) {
                 SqlLiteral mockLiteral = mockLiteral((SqlLiteral) operand1, isOpGt);

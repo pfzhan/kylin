@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
@@ -47,9 +48,10 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
-public class ThreadViewResourceStoreTest {
+public class ThreadViewResourceStoreTest extends AbstractTestCase {
 
     private CleanMetadataHelper cleanMetadataHelper = null;
 
@@ -58,7 +60,7 @@ public class ThreadViewResourceStoreTest {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("kylin.env", "UT");
+        overwriteSystemProp("kylin.env", "UT");
         cleanMetadataHelper = new CleanMetadataHelper();
         cleanMetadataHelper.setUp();
     }
@@ -66,7 +68,6 @@ public class ThreadViewResourceStoreTest {
     @After
     public void after() throws Exception {
         cleanMetadataHelper.tearDown();
-        System.clearProperty("kylin.env");
     }
 
     private ResourceStore getStore() {
@@ -84,7 +85,7 @@ public class ThreadViewResourceStoreTest {
         thrown.expectCause(IsInstanceOf.instanceOf(IllegalStateException.class));
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            System.setProperty("kylin.env", "DEV");
+            overwriteSystemProp("kylin.env", "DEV");
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
 
@@ -326,7 +327,7 @@ public class ThreadViewResourceStoreTest {
 
         try {
             Field overlay1 = ThreadViewResourceStore.class.getDeclaredField("overlay");
-            overlay1.setAccessible(true);
+            Unsafe.changeAccessibleObject(overlay1, true);
             InMemResourceStore overlay = (InMemResourceStore) overlay1.get(rs);
             assertEquals(1, overlay.getResource(pathCubeX, StringEntity.serializer).getMvcc());
             assertEquals(0, overlay.getResource("/a/b", StringEntity.serializer).getMvcc());
@@ -334,11 +335,10 @@ public class ThreadViewResourceStoreTest {
             assertFalse(overlay.exists("/UUID"));
 
             Field data1 = InMemResourceStore.class.getDeclaredField("data");
-            data1.setAccessible(true);
+            Unsafe.changeAccessibleObject(data1, true);
             ConcurrentSkipListMap<String, VersionedRawResource> data = (ConcurrentSkipListMap<String, VersionedRawResource>) data1
                     .get(overlay);
-            long count = data.entrySet().stream().map(x -> x.getValue())
-                    .filter(x -> x == TombVersionedRawResource.getINSTANCE()).count();
+            long count = data.values().stream().filter(x -> x == TombVersionedRawResource.getINSTANCE()).count();
             assertEquals(4, count);
 
         } catch (Exception e) {

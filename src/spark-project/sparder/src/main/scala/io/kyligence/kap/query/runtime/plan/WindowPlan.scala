@@ -24,8 +24,7 @@
 package io.kyligence.kap.query.runtime.plan
 
 import java.sql.Date
-import java.util.Calendar
-
+import java.util.{Calendar, Locale}
 import io.kyligence.kap.query.relnode.{KapProjectRel, KapWindowRel}
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
@@ -124,7 +123,7 @@ object WindowPlan extends Logging {
           .toSeq
         group.aggCalls.asScala.map { agg =>
           var windowDesc: WindowSpec = null
-          val opName = agg.op.getName.toUpperCase
+          val opName = agg.op.getName.toUpperCase(Locale.ROOT)
           val numberConstants = constantMap
             .filter(_._2.isInstanceOf[Number])
             .map { entry =>

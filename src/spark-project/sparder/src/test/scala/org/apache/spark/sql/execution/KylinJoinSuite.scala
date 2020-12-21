@@ -34,7 +34,7 @@
 
 package org.apache.spark.sql.execution
 
-import io.kyligence.kap.common.util.TempMetadataBuilder
+import io.kyligence.kap.common.util.{TempMetadataBuilder, Unsafe}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.TestUtils.{assertNotSpilled, assertSpilled}
 import org.apache.spark.sql.catalyst.TableIdentifier
@@ -64,9 +64,9 @@ class KylinJoinSuite extends QueryTest with SharedSQLContext {
     sql("CACHE TABLE testData2")
 
     assertJoin(("SELECT * FROM testData LEFT JOIN testData2 ON key = a", classOf[BroadcastHashJoinExec]))
-    System.setProperty("kylin.query.join-memory-fraction", "0")
+    Unsafe.setProperty("kylin.query.join-memory-fraction", "0")
     assertJoin(("SELECT * FROM testData LEFT JOIN testData2 ON key = a", classOf[SortMergeJoinExec]))
-    System.clearProperty("kylin.query.join-memory-fraction")
+    Unsafe.clearProperty("kylin.query.join-memory-fraction")
   }
 
 

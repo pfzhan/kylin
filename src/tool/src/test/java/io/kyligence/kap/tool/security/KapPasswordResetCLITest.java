@@ -28,6 +28,7 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
@@ -86,7 +87,7 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(pwdEncoder.matches("KYLIN2", manger.get(user.getUsername()).getPassword()));
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
+        System.setOut(new PrintStream(output, false, Charset.defaultCharset().name()));
 
         KapPasswordResetCLI.reset();
 
@@ -94,11 +95,12 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
         config.clearManagers();
         val afterManager = NKylinUserManager.getInstance(config);
 
-        Assert.assertTrue(!pwdEncoder.matches("KYLIN", afterManager.get(user.getUsername()).getPassword()));
-        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "Reset password of ["
-                + StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "] succeed. The password is "));
-        Assert.assertTrue(
-                output.toString().endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
+        Assert.assertFalse(pwdEncoder.matches("KYLIN", afterManager.get(user.getUsername()).getPassword()));
+        Assert.assertTrue(output.toString(Charset.defaultCharset().name())
+                .startsWith(StorageCleaner.ANSI_RED + "Reset password of [" + StorageCleaner.ANSI_RESET + "ADMIN"
+                        + StorageCleaner.ANSI_RED + "] succeed. The password is "));
+        Assert.assertTrue(output.toString(Charset.defaultCharset().name())
+                .endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
 
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();

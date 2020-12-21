@@ -45,9 +45,14 @@ package org.apache.kylin.common.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.Unsafe;
 
 /**
  */
@@ -56,7 +61,7 @@ public class StringUtil {
     public static String[] EMPTY_ARRAY = new String[0];
 
     public static String[] filterSystemArgs(String[] args) {
-        ArrayList<String> whatsLeft = new ArrayList<String>();
+        List<String> whatsLeft = Lists.newArrayList();
         for (String a : args) {
             if (a.startsWith("-D")) {
                 String key;
@@ -69,12 +74,12 @@ public class StringUtil {
                     key = a.substring(2, cut);
                     value = a.substring(cut + 1);
                 }
-                System.setProperty(key, value);
+                Unsafe.setProperty(key, value);
             } else {
                 whatsLeft.add(a);
             }
         }
-        return (String[]) whatsLeft.toArray(new String[whatsLeft.size()]);
+        return whatsLeft.toArray(new String[0]);
     }
 
     /**
@@ -107,7 +112,7 @@ public class StringUtil {
         if (source != null) {
             for (int i = 0; i < source.length; i++) {
                 if (source[i] != null) {
-                    target[i] = source[i].toUpperCase();
+                    target[i] = source[i].toUpperCase(Locale.ROOT);
                 }
             }
         }
@@ -117,7 +122,7 @@ public class StringUtil {
         if (source != null) {
             for (int i = 0; i < source.size(); i++) {
                 if (source.get(i) != null) {
-                    target.set(i, source.get(i).toUpperCase());
+                    target.set(i, source.get(i).toUpperCase(Locale.ROOT));
                 }
             }
         }

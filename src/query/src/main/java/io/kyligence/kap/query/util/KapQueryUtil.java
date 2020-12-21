@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -67,7 +68,8 @@ public class KapQueryUtil {
     private KapQueryUtil() {
     }
 
-    public static String massageExpression(NDataModel model, String project, String expression, QueryContext.AclInfo aclInfo, boolean massageToPushdown) {
+    public static String massageExpression(NDataModel model, String project, String expression,
+            QueryContext.AclInfo aclInfo, boolean massageToPushdown) {
         String tempConst = "'" + UUID.randomUUID().toString() + "'";
         StringBuilder forCC = new StringBuilder();
         forCC.append("select ");
@@ -96,11 +98,13 @@ public class KapQueryUtil {
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
     }
 
-    public static String massageExpression(NDataModel model, String project, String expression, QueryContext.AclInfo aclInfo) {
+    public static String massageExpression(NDataModel model, String project, String expression,
+            QueryContext.AclInfo aclInfo) {
         return massageExpression(model, project, expression, aclInfo, true);
     }
 
-    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc, QueryContext.AclInfo aclInfo) {
+    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc,
+            QueryContext.AclInfo aclInfo) {
         return massageExpression(model, project, cc.getExpression(), aclInfo);
     }
 
@@ -109,7 +113,7 @@ public class KapQueryUtil {
         Set<TableRef> dimTableCache = Sets.newHashSet();
 
         TableRef rootTable = model.getRootFactTable();
-        sql.append(String.format("FROM \"%s\".\"%s\" as \"%s\"", rootTable.getTableDesc().getDatabase(),
+        sql.append(String.format(Locale.ROOT, "FROM \"%s\".\"%s\" as \"%s\"", rootTable.getTableDesc().getDatabase(),
                 rootTable.getTableDesc().getName(), rootTable.getAlias()));
         sql.append(sep);
 
@@ -125,9 +129,9 @@ public class KapQueryUtil {
             if (pk.length != fk.length) {
                 throw new IllegalArgumentException("Invalid join condition of lookup table:" + lookupDesc);
             }
-            String joinType = join.getType().toUpperCase();
+            String joinType = join.getType().toUpperCase(Locale.ROOT);
 
-            sql.append(String.format("%s JOIN \"%s\".\"%s\" as \"%s\"", //
+            sql.append(String.format(Locale.ROOT, "%s JOIN \"%s\".\"%s\" as \"%s\"", //
                     joinType, dimTable.getTableDesc().getDatabase(), dimTable.getTableDesc().getName(),
                     dimTable.getAlias()));
             sql.append(sep);
@@ -143,7 +147,8 @@ public class KapQueryUtil {
                 if (i > 0) {
                     sql.append(" AND ");
                 }
-                sql.append(String.format("%s = %s", fk[i].getExpressionInSourceDBWithDoubleQuote(), pk[i].getExpressionInSourceDBWithDoubleQuote()));
+                sql.append(String.format(Locale.ROOT, "%s = %s", fk[i].getExpressionInSourceDBWithDoubleQuote(),
+                        pk[i].getExpressionInSourceDBWithDoubleQuote()));
             }
             sql.append(sep);
 
@@ -172,12 +177,12 @@ public class KapQueryUtil {
         final RelNode joinLeft = joinRel.getLeft();
         final RelNode joinRight = joinRel.getRight();
         if (joinLeft instanceof RelSubset && joinRight instanceof RelSubset) {
-            final RelSubset joinLeftChildSub =(RelSubset) joinLeft;
-            final RelSubset joinRightChildSub =(RelSubset) joinRight;
+            final RelSubset joinLeftChildSub = (RelSubset) joinLeft;
+            final RelSubset joinRightChildSub = (RelSubset) joinRight;
             joinLeftChild = Util.first(joinLeftChildSub.getBest(), joinLeftChildSub.getOriginal());
             joinRightChild = Util.first(joinRightChildSub.getBest(), joinRightChildSub.getOriginal());
 
-        } else if (joinLeft instanceof HepRelVertex && joinRight instanceof HepRelVertex){
+        } else if (joinLeft instanceof HepRelVertex && joinRight instanceof HepRelVertex) {
             joinLeftChild = ((HepRelVertex) joinLeft).getCurrentRel();
             joinRightChild = ((HepRelVertex) joinRight).getCurrentRel();
         } else {

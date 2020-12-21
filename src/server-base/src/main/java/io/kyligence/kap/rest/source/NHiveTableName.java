@@ -32,6 +32,7 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -193,7 +194,8 @@ public class NHiveTableName implements Runnable {
     public NHiveSourceInfo fetchTables() {
         NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
         try {
-            List<String> dbs = explr.listDatabases().stream().map(String::toUpperCase).collect(Collectors.toList());
+            List<String> dbs = explr.listDatabases().stream().map(str -> str.toUpperCase(Locale.ROOT))
+                    .collect(Collectors.toList());
             Map<String, List<String>> newTables = listTables(dbs);
             sourceInfo.setTables(newTables);
         } catch (Exception e) {
@@ -207,7 +209,8 @@ public class NHiveTableName implements Runnable {
         Map<String, List<String>> newTables = new HashMap<>();
         for (String db : dbs) {
             if (explr.checkDatabaseAccess(db)) {
-                List<String> tbs = explr.listTables(db).stream().map(String::toUpperCase).collect(Collectors.toList());
+                List<String> tbs = explr.listTables(db).stream().map(str -> str.toUpperCase(Locale.ROOT))
+                        .collect(Collectors.toList());
                 if (!tbs.isEmpty()) {
                     newTables.put(db, tbs);
                 }

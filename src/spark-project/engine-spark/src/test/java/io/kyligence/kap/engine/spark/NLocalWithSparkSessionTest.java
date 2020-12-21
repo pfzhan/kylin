@@ -27,7 +27,9 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -88,7 +90,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-@SuppressWarnings("serial")
 @Slf4j
 public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
 
@@ -104,7 +105,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     public static void beforeClass() {
 
         if (Shell.MAC)
-            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+            overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
@@ -125,9 +126,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     @AfterClass
     public static void afterClass() {
-        if (Shell.MAC)
-            System.clearProperty("org.xerial.snappy.lib.name");//reset
-
         ss.close();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
@@ -137,7 +135,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
         ExecutableUtils.initJobFactory();
-        zkTestServer = new TestingServer(true);
+        Random r = new Random(10000);
+        zkTestServer = new TestingServer(r.nextInt(), true);
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
@@ -180,7 +179,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             for (ColumnDesc column : columns) {
                 schema = schema.add(column.getName(), convertType(column.getType()), false);
             }
-            Dataset<Row> ret = sparkSession.read().schema(schema).csv(String.format(CSV_TABLE_DIR, table));
+            Dataset<Row> ret = sparkSession.read().schema(schema).csv(String.format(Locale.ROOT, CSV_TABLE_DIR, table));
             ret.createOrReplaceTempView(tableDesc.getName());
         }
 

@@ -32,6 +32,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 public class CryptTool extends ExecutableApplication {
@@ -66,7 +67,7 @@ public class CryptTool extends ExecutableApplication {
     public static void main(String[] args) {
         val tool = new CryptTool();
         tool.execute(args);
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override
@@ -88,7 +89,7 @@ public class CryptTool extends ExecutableApplication {
             System.out.println(bCryptPasswordEncoder.encode(passwordTxt));
         } else {
             System.out.println("Unsupported encrypt method: " + encryptMethod);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
     }
 }

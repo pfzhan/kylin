@@ -29,6 +29,7 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -85,7 +86,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     // for test use only
-    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter, Set<JobBucket> buckets) {
+    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
+            Set<JobBucket> buckets) {
         return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString(), null, null,
                 buckets);
     }
@@ -157,15 +159,15 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     public static void checkIfNeedBuildSnapshots(NSparkCubingJob job) {
-        switch (job.getJobType()){
-            case INC_BUILD:
-            case INDEX_REFRESH:
-            case INDEX_BUILD:
-                job.setParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS, "true");
-                break;
-            default:
-                job.setParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS, "false");
-                break;
+        switch (job.getJobType()) {
+        case INC_BUILD:
+        case INDEX_REFRESH:
+        case INDEX_BUILD:
+            job.setParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS, "true");
+            break;
+        default:
+            job.setParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS, "false");
+            break;
         }
     }
 
@@ -189,15 +191,15 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowId());
-        if(dataflow == null){
+        if (dataflow == null) {
             logger.debug("Dataflow is null, maybe model is deleted?");
             return;
         }
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkCubingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
-            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)
-                    && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            if (segment != null && SegmentStatusEnum.READY != segment.getStatus()
+                    && SegmentStatusEnum.WARNING != segment.getStatus()) {
                 toRemovedSegments.add(segment);
             }
         }
@@ -217,38 +219,41 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         Set<String> segmentIds = getSparkCubingStep().getSegmentIds();
         Set<Long> partitions = getSparkCubingStep().getTargetPartitions();
         switch (getJobType()) {
-            case SUB_PARTITION_BUILD:
-                for (String id : segmentIds) {
-                    NDataSegment segment = df.getSegment(id);
-                    if (segment == null) {
-                        continue;
-                    }
-                    // remove partition in layouts
-                    dfManager.removeLayoutPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
-                    // remove partition in segments
-                    dfManager.removeSegmentPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
-                    logger.info(String.format("Remove partitions [%s] in segment [%s] cause to cancel job.", partitions, id));
+        case SUB_PARTITION_BUILD:
+            for (String id : segmentIds) {
+                NDataSegment segment = df.getSegment(id);
+                if (segment == null) {
+                    continue;
                 }
-                break;
-            case SUB_PARTITION_REFRESH:
-                for (String id : segmentIds) {
-                    NDataSegment segment = df.getSegment(id);
-                    if (segment == null) {
-                        continue;
-                    }
-                    segment.getMultiPartitions().forEach(partition -> {
-                        if (partitions.contains(partition.getPartitionId()) && PartitionStatusEnum.REFRESH.equals(partition.getStatus())) {
-                            partition.setStatus(PartitionStatusEnum.READY);
-                        }
-                    });
-                    val dfUpdate = new NDataflowUpdate(df.getId());
-                    dfUpdate.setToUpdateSegs(segment);
-                    dfManager.updateDataflow(dfUpdate);
-                    logger.info(String.format("Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions, id));
+                // remove partition in layouts
+                dfManager.removeLayoutPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
+                // remove partition in segments
+                dfManager.removeSegmentPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
+                logger.info(String.format(Locale.ROOT, "Remove partitions [%s] in segment [%s] cause to cancel job.",
+                        partitions, id));
+            }
+            break;
+        case SUB_PARTITION_REFRESH:
+            for (String id : segmentIds) {
+                NDataSegment segment = df.getSegment(id);
+                if (segment == null) {
+                    continue;
                 }
-                break;
-            default:
-                break;
+                segment.getMultiPartitions().forEach(partition -> {
+                    if (partitions.contains(partition.getPartitionId())
+                            && PartitionStatusEnum.REFRESH == partition.getStatus()) {
+                        partition.setStatus(PartitionStatusEnum.READY);
+                    }
+                });
+                val dfUpdate = new NDataflowUpdate(df.getId());
+                dfUpdate.setToUpdateSegs(segment);
+                dfManager.updateDataflow(dfUpdate);
+                logger.info(String.format(Locale.ROOT,
+                        "Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions, id));
+            }
+            break;
+        default:
+            break;
         }
     }
 

@@ -55,7 +55,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.test.TestingServer;
-import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -91,16 +90,14 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
     public void testBasic() throws Exception {
         String path = "/test/distributed_lock_factory_test/test_basic/" + UUID.randomUUID().toString();
 
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
-                zkTestServer.getConnectString());) {
-            CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
 
-            Assert.assertFalse(lock.isAcquiredInThisThread());
-            lock.lock();
-            Assert.assertTrue(lock.isAcquiredInThisThread());
-            lock.unlock();
-            Assert.assertFalse(lock.isAcquiredInThisThread());
-        }
+        Assert.assertFalse(lock.isAcquiredInThisThread());
+        lock.lock();
+        Assert.assertTrue(lock.isAcquiredInThisThread());
+        lock.unlock();
+        Assert.assertFalse(lock.isAcquiredInThisThread());
     }
 
     @Test
@@ -110,27 +107,25 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
         ExecutorService executorService = Executors.newFixedThreadPool(1);
 
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
-                zkTestServer.getConnectString());
-                SetAndUnsetSystemProp retry = new SetAndUnsetSystemProp("kap.env.zookeeper-max-retries", "1");
-                SetAndUnsetSystemProp time = new SetAndUnsetSystemProp("kap.env.zookeeper-base-sleep-time", "1000");) {
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kap.env.zookeeper-max-retries", "1");
+        overwriteSystemProp("kap.env.zookeeper-base-sleep-time", "1000");
 
-            executorService.submit(() -> {
-                CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+        executorService.submit(() -> {
+            CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
 
-                lock.lock();
-                locked = true;
+            lock.lock();
+            locked = true;
 
-                try {
-                    Thread.sleep(20000);
-                } catch (InterruptedException e) {
-                    isInterrupted = true;
-                }
-            });
+            try {
+                Thread.sleep(20000);
+            } catch (InterruptedException e) {
+                isInterrupted = true;
+            }
+        });
 
-            await().atMost(5, TimeUnit.SECONDS).until(() -> locked);
-            Assert.assertFalse(isInterrupted);
-        }
+        await().atMost(5, TimeUnit.SECONDS).until(() -> locked);
+        Assert.assertFalse(isInterrupted);
 
         locked = false;
         zkTestServer.stop();
@@ -141,22 +136,17 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
         Assert.assertFalse(locked);
 
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
-                zkTestServer2.getConnectString());) {
-            executorService.submit(() -> {
-                CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer2.getConnectString());
+        executorService.submit(() -> {
+            CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
+            lock.lock();
+            locked = true;
+            lock.unlock();
+        });
 
-                lock.lock();
-
-                locked = true;
-
-                lock.unlock();
-            });
-
-            // thread1 released the lock
-            // thread2 will get the lock
-            await().atMost(5, TimeUnit.SECONDS).until(() -> locked);
-        }
+        // thread1 released the lock
+        // thread2 will get the lock
+        await().atMost(5, TimeUnit.SECONDS).until(() -> locked);
     }
 
     @Test
@@ -167,28 +157,26 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         CuratorDistributedLockFactory lockFactory;
         CuratorDistributedLock lock1;
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
-                zkTestServer.getConnectString());
-                SetAndUnsetSystemProp retry = new SetAndUnsetSystemProp("kap.env.zookeeper-max-retries", "1");
-                SetAndUnsetSystemProp time = new SetAndUnsetSystemProp("kap.env.zookeeper-base-sleep-time", "1000");) {
-            lockFactory = getTestConfig().getDistributedLockFactory();
-            lock1 = lockFactory.lockForCurrentThread(path);
-            executorService.submit(() -> {
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kap.env.zookeeper-max-retries", "1");
+        overwriteSystemProp("kap.env.zookeeper-base-sleep-time", "1000");
+        lockFactory = getTestConfig().getDistributedLockFactory();
+        lock1 = lockFactory.lockForCurrentThread(path);
+        executorService.submit(() -> {
 
-                lock1.lock();
-                locked = true;
+            lock1.lock();
+            locked = true;
 
-                try {
-                    Thread.sleep(20000);
-                } catch (InterruptedException e) {
-                    isInterrupted = true;
-                }
-            });
+            try {
+                Thread.sleep(20000);
+            } catch (InterruptedException e) {
+                isInterrupted = true;
+            }
+        });
 
-            await().atMost(5, TimeUnit.SECONDS).until(() -> locked);
+        await().atMost(5, TimeUnit.SECONDS).until(() -> locked);
 
-            Assert.assertFalse(isInterrupted);
-        }
+        Assert.assertFalse(isInterrupted);
 
         ConnectionStateListener listener = (ConnectionStateListener) ReflectionTestUtils.getField(lockFactory,
                 "listener");
@@ -201,32 +189,30 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
     }
 
     @Test
-    public void testConcurrence() throws InterruptedException, ExecutionException {
-        try (SetAndUnsetSystemProp connectString = new SetAndUnsetSystemProp("kylin.env.zookeeper-connect-string",
-                zkTestServer.getConnectString());) {
-            String path = "/test/distributed_lock_factory_test/test_concurrence/" + UUID.randomUUID().toString();
-            int threadNum = 10;
-            int times = 10;
+    public void testConcurrence() throws ExecutionException, InterruptedException {
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        String path = "/test/distributed_lock_factory_test/test_concurrence/" + UUID.randomUUID().toString();
+        int threadNum = 10;
+        int times = 10;
 
-            ExecutorService executorService = Executors.newFixedThreadPool(10);
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-            final CountDownLatch tasks = new CountDownLatch(threadNum);
-            List<Future<Integer>> futures = Lists.newArrayListWithCapacity(threadNum);
+        final CountDownLatch tasks = new CountDownLatch(threadNum);
+        List<Future<Integer>> futures = Lists.newArrayListWithCapacity(threadNum);
 
-            for (int i = 0; i < threadNum; i++) {
-                futures.add(executorService.submit(new LockCallable(path, 10, tasks)));
-            }
+        for (int i = 0; i < threadNum; i++) {
+            futures.add(executorService.submit(new LockCallable(path, 10, tasks)));
+        }
 
-            await().atMost(20, TimeUnit.SECONDS).until(() -> tasks.getCount() == 0);
+        await().atMost(20, TimeUnit.SECONDS).until(() -> tasks.getCount() == 0);
 
-            for (Future<Integer> future : futures) {
-                Assert.assertTrue(future.isDone());
-                Assert.assertEquals(times, (int) future.get());
-            }
+        for (Future<Integer> future : futures) {
+            Assert.assertTrue(future.isDone());
+            Assert.assertEquals(times, (int) future.get());
         }
     }
 
-    class LockCallable implements Callable<Integer> {
+    static class LockCallable implements Callable<Integer> {
         private final int times;
         private int acquiredCount;
         private final CountDownLatch countDownLatch;

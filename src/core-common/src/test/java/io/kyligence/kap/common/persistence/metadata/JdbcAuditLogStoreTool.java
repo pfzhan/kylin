@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
@@ -41,9 +43,9 @@ public class JdbcAuditLogStoreTool {
         for (int i = 0; i < 100; i++) {
             val projectName = "p" + i;
             String unitId = UUID.randomUUID().toString();
-            jdbcTemplate.update(String.format(JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
-                    "/" + projectName + "/aa", "aa".getBytes(), System.currentTimeMillis(), 0, unitId, null,
-                    AddressUtil.getLocalInstance());
+            jdbcTemplate.update(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
+                    "/" + projectName + "/aa", "aa".getBytes(StandardCharsets.UTF_8), System.currentTimeMillis(), 0,
+                    unitId, null, AddressUtil.getLocalInstance());
         }
 
         return auditLogStore;

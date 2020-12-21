@@ -65,7 +65,7 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
         routineTool.execute(new String[] {});
 
         Assert.assertFalse(routineTool.isStorageCleanup());
-        Assert.assertArrayEquals(new String[]{}, routineTool.getProjects());
+        Assert.assertArrayEquals(new String[] {}, routineTool.getProjects());
 
     }
 
@@ -73,23 +73,21 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
     public void testExecuteRoutineWithOptionProjects2() {
         RoutineTool routineTool = new RoutineTool();
 
-        routineTool.execute(new String[] {"--projects=ssb"});
+        routineTool.execute(new String[] { "--projects=ssb" });
 
         Assert.assertFalse(routineTool.isStorageCleanup());
-        Assert.assertArrayEquals(new String[]{"ssb"}, routineTool.getProjects());
+        Assert.assertArrayEquals(new String[] { "ssb" }, routineTool.getProjects());
     }
 
     @Test
     public void testExecuteRoutineWithOptionProjects3() {
         RoutineTool routineTool = new RoutineTool();
 
-        routineTool.execute(new String[] {"--projects=ssb,default"});
+        routineTool.execute(new String[] { "--projects=ssb,default" });
 
         Assert.assertFalse(routineTool.isStorageCleanup());
-        Assert.assertArrayEquals(new String[]{"ssb", "default"}, routineTool.getProjects());
+        Assert.assertArrayEquals(new String[] { "ssb", "default" }, routineTool.getProjects());
     }
-
-
 
     @Test
     public void testExecuteRoutineReleaseEpochs1() {

@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_REC_
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -377,7 +378,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 } else if (recommendation.getColumnRefs().containsKey(virtualId)) {
                     realId = recommendation.getColumnRefs().get(virtualId).getId();
                 } else {
-                    String translateErrorMsg = String.format(
+                    String translateErrorMsg = String.format(Locale.ROOT,
                             "virtual id(%s) in %s(%s) cannot map to real id in model(%s/%s)", //
                             virtualId, layoutPropType, virtualIds.toString(), recommendation.getProject(),
                             recommendation.getUuid());

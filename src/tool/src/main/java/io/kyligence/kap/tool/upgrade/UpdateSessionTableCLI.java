@@ -29,6 +29,7 @@ import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThrea
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 
 import javax.sql.DataSource;
 
@@ -64,15 +65,15 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
 
     private static final int SESSION_ID_LENGTH = 180;
 
-    private static final String UPDATE_MYSQL_SESSION_TABLE_SQL = String
-            .format("ALTER TABLE SPRING_SESSION MODIFY COLUMN SESSION_ID VARCHAR(%d) NOT NULL;", SESSION_ID_LENGTH);
-    private static final String UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL = String.format(
+    private static final String UPDATE_MYSQL_SESSION_TABLE_SQL = String.format(Locale.ROOT,
+            "ALTER TABLE SPRING_SESSION MODIFY COLUMN SESSION_ID VARCHAR(%d) NOT NULL;", SESSION_ID_LENGTH);
+    private static final String UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL = String.format(Locale.ROOT,
             "ALTER TABLE SPRING_SESSION_ATTRIBUTES MODIFY COLUMN SESSION_ID VARCHAR(%d) NOT NULL;", SESSION_ID_LENGTH);
 
-    private static final String UPDATE_PG_SESSION_TABLE_SQL = String.format(
+    private static final String UPDATE_PG_SESSION_TABLE_SQL = String.format(Locale.ROOT,
             "ALTER TABLE SPRING_SESSION ALTER COLUMN SESSION_ID TYPE VARCHAR(%d) , ALTER COLUMN SESSION_ID SET NOT NULL;",
             SESSION_ID_LENGTH);
-    private static final String UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL = String.format(
+    private static final String UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL = String.format(Locale.ROOT,
             "ALTER TABLE SPRING_SESSION_ATTRIBUTES ALTER COLUMN SESSION_ID TYPE VARCHAR(%d) , ALTER COLUMN SESSION_ID SET NOT NULL;",
             SESSION_ID_LENGTH);
 
@@ -190,7 +191,7 @@ public class UpdateSessionTableCLI extends ExecutableApplication implements IKee
 
         dataSource = MetadataUtil.getDataSource(systemKylinConfig);
 
-        printlnGreen(String.format("found %d rows need to be modified.",
+        printlnGreen(String.format(Locale.ROOT, "found %d rows need to be modified.",
                 affectedRowsWhenTruncate(tableAttributesName) + affectedRowsWhenTruncate(tableName)));
 
         if (optionsHelper.hasOption(OPTION_EXEC)) {

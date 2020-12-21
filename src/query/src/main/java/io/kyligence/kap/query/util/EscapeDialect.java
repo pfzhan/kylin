@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.calcite.avatica.util.Quoting;
@@ -252,7 +253,7 @@ public abstract class EscapeDialect {
     }
 
     public String transformFN(String functionName, String[] args) {
-        FnConversion fnType = registeredFunction.get(functionName.toUpperCase());
+        FnConversion fnType = registeredFunction.get(functionName.toUpperCase(Locale.ROOT));
         if (fnType != null) {
             return fnType.convert(args);
         } else {

@@ -48,7 +48,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 
 public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
-    private YarnClusterManager clusterManager = mock(YarnClusterManager.class);
+
+    private final YarnClusterManager clusterManager = mock(YarnClusterManager.class);
 
     @Before
     public void setup() throws Exception {
@@ -207,7 +208,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    private class CompareTuple {
+    private static class CompareTuple {
         String expect_Value;
         String key;
 

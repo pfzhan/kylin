@@ -27,6 +27,7 @@ package io.kyligence.kap.tool.upgrade;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -77,7 +78,7 @@ public class RenameProjectResourceToolTest extends NLocalFileMetadataTestCase {
             ProjectInstance projectInstance = projectManager.getProject("default");
             Assert.assertNotNull(projectInstance);
 
-            System.setIn(new ByteArrayInputStream(data.getBytes()));
+            System.setIn(new ByteArrayInputStream(data.getBytes(Charset.defaultCharset())));
             val tool = new RenameProjectResourceTool();
             tool.execute(
                     new String[] { "-dir", config.getMetadataUrl().toString(), "-p", "default", "-collect", "false" });

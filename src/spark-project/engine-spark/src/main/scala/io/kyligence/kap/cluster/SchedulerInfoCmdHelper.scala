@@ -22,13 +22,14 @@
 
 package io.kyligence.kap.cluster
 
-import java.io.{BufferedReader, InputStreamReader}
-
 import io.kyligence.kap.engine.spark.utils.StorageUtils
 import io.netty.util.internal.ThrowableUtil
 import org.apache.hadoop.yarn.conf.{HAUtil, YarnConfiguration}
 import org.apache.kylin.common.util.{JsonUtil, ShellException}
 import org.apache.spark.internal.Logging
+
+import java.io.{BufferedReader, InputStreamReader}
+import java.nio.charset.StandardCharsets
 
 object SchedulerInfoCmdHelper extends Logging {
   private val useHttps: Boolean = YarnConfiguration.useHttps(StorageUtils.getCurrentYarnConfiguration)
@@ -105,11 +106,11 @@ object SchedulerInfoCmdHelper extends Logging {
   }
 
   /**
-    * only return std out after execute command
-    *
-    * @param command
-    * @return
-    */
+   * only return std out after execute command
+   *
+   * @param command
+   * @return
+   */
   private[cluster] def execute(command: String): (Int, String) = {
     try {
       val cmd = new Array[String](3)
@@ -127,7 +128,7 @@ object SchedulerInfoCmdHelper extends Logging {
       builder.environment().putAll(System.getenv())
       val proc = builder.start
       val resultStdout = new StringBuilder
-      val inReader = new BufferedReader(new InputStreamReader(proc.getInputStream))
+      val inReader = new BufferedReader(new InputStreamReader(proc.getInputStream, StandardCharsets.UTF_8.name()))
       val newLine = System.getProperty("line.separator")
       var line: String = inReader.readLine()
       while (line != null) {
@@ -136,7 +137,7 @@ object SchedulerInfoCmdHelper extends Logging {
       }
 
       val stderr = new StringBuilder
-      val errorReader = new BufferedReader(new InputStreamReader(proc.getErrorStream))
+      val errorReader = new BufferedReader(new InputStreamReader(proc.getErrorStream, StandardCharsets.UTF_8.name()))
       line = errorReader.readLine()
       while (line != null) {
         stderr.append(line).append(newLine)
@@ -145,7 +146,7 @@ object SchedulerInfoCmdHelper extends Logging {
 
       try {
         val exitCode = proc.waitFor
-        if (exitCode != 0 ) {
+        if (exitCode != 0) {
           logError(s"executing command $command; exit code: $exitCode")
           logError(s"==========================[stderr]===============================")
           logError(stderr.toString)

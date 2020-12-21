@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,8 +50,11 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.Unsafe;
 
 public class ClasspathScanner {
 
@@ -63,11 +65,11 @@ public class ClasspathScanner {
             for (File f : scanner.rootResources) {
                 System.out.println(f.getAbsolutePath());
             }
-            System.exit(0);
+            Unsafe.systemExit(0);
         }
-        
+
         final int[] hitCount = new int[1];
-        
+
         scanner.scan("", new ResourceVisitor() {
             public void accept(File dir, String relativeFileName) {
                 check(dir.getAbsolutePath(), relativeFileName.replace('\\', '/'));
@@ -89,9 +91,9 @@ public class ClasspathScanner {
                 }
             }
         });
-        
+
         int exitCode = hitCount[0] > 0 ? 0 : 1;
-        System.exit(exitCode);
+        Unsafe.systemExit(exitCode);
     }
 
     /**
@@ -108,7 +110,7 @@ public class ClasspathScanner {
     public static String[] findResources(final String suffix) {
         ClasspathScanner scanner = new ClasspathScanner();
 
-        final ArrayList result = new ArrayList();
+        List<String> result = Lists.newArrayList();
 
         scanner.scan(suffix, new ResourceVisitor() {
             public void accept(File dir, String relativeFileName) {
@@ -120,12 +122,12 @@ public class ClasspathScanner {
             }
         });
 
-        return (String[]) result.toArray(new String[result.size()]);
+        return result.toArray(new String[0]);
     }
 
     // ============================================================================
 
-    private File[] rootResources;
+    private final File[] rootResources;
 
     public ClasspathScanner() {
         this(Thread.currentThread().getContextClassLoader(), true);
@@ -143,9 +145,9 @@ public class ClasspathScanner {
                 break;
             loader = loader.getParent();
         }
-        
-        List<File> roots = new ArrayList();
-        
+
+        List<File> roots = Lists.newArrayList();
+
         // parent first
         for (int i = loaders.size() - 1; i >= 0; i--) {
             ClassLoader l = loaders.get(i);
@@ -158,7 +160,7 @@ public class ClasspathScanner {
             }
         }
 
-        return (File[]) roots.toArray(new File[roots.size()]);
+        return roots.toArray(new File[0]);
     }
 
     /**
@@ -170,7 +172,7 @@ public class ClasspathScanner {
         this.rootResources = rootResources;
     }
 
-    public static interface ResourceVisitor {
+    public interface ResourceVisitor {
 
         void accept(File dir, String relativeFileName);
 
@@ -178,48 +180,36 @@ public class ClasspathScanner {
     }
 
     public void scan(String suffix, ResourceVisitor visitor) {
-        for (int i = 0; i < rootResources.length; i++) {
-            if (rootResources[i].exists()) {
-                if (rootResources[i].isDirectory()) {
-                    scanDirectory(rootResources[i], suffix, visitor);
-                } else if (rootResources[i].getName().contains(".zip") || rootResources[i].getName().contains(".jar")) {
-                    scanArchive(rootResources[i], suffix, visitor);
+        for (File rootResource : rootResources) {
+            if (rootResource.exists()) {
+                if (rootResource.isDirectory()) {
+                    scanDirectory(rootResource, suffix, visitor);
+                } else if (rootResource.getName().contains(".zip") || rootResource.getName().contains(".jar")) {
+                    scanArchive(rootResource, suffix, visitor);
                 }
             }
         }
     }
 
     private void scanArchive(File archive, String suffix, ResourceVisitor visitor) {
-        ZipFile zip = null;
-        try {
-            zip = new ZipFile(archive, ZipFile.OPEN_READ);
-            Enumeration enu = zip.entries();
+        try (ZipFile zip = new ZipFile(archive, ZipFile.OPEN_READ)) {
+            Enumeration<? extends ZipEntry> enu = zip.entries();
             while (enu.hasMoreElements()) {
-                ZipEntry entry = (ZipEntry) enu.nextElement();
+                ZipEntry entry = enu.nextElement();
                 if (entry.getName().endsWith(suffix)) {
                     visitor.accept(zip, entry);
                 }
             }
-        } catch (ZipException e) {
-            // e.printStackTrace();
         } catch (IOException e) {
             // e.printStackTrace();
-        } finally {
-            if (zip != null) {
-                try {
-                    zip.close();
-                } catch (IOException e) {
-                    // e.printStackTrace();
-                }
-            }
         }
     }
 
     private void scanDirectory(File dir, String suffix, ResourceVisitor visitor) {
-        String[] files = scanFiles(dir, new String[] { "*" + suffix });
-        for (int i = 0; i < files.length; i++) {
-            if (files[i].endsWith(suffix)) {
-                visitor.accept(dir, files[i]);
+        String[] files = scanFiles(dir, "*" + suffix);
+        for (String file : files) {
+            if (file.endsWith(suffix)) {
+                visitor.accept(dir, file);
             }
         }
     }
@@ -255,15 +245,15 @@ public class ClasspathScanner {
                 excludes[i] = StringUtil.trimSuffix(excludes[i], "/");
         }
 
-        ArrayList result = new ArrayList();
-        ArrayList queue = new ArrayList();
+        List<String> result = Lists.newArrayList();
+        List<String> queue = Lists.newArrayList();
         queue.add("");
 
         String dirPath, path;
         File dirFile, f;
         File[] files;
         while (!queue.isEmpty()) {
-            dirPath = (String) queue.remove(queue.size() - 1);
+            dirPath = queue.remove(queue.size() - 1);
             dirFile = dirPath.length() == 0 ? dir : new File(dir, dirPath);
             files = dirFile.listFiles();
             for (int i = 0; files != null && i < files.length; i++) {
@@ -279,7 +269,7 @@ public class ClasspathScanner {
                 }
             }
         }
-        return (String[]) result.toArray(new String[result.size()]);
+        return result.toArray(new String[0]);
     }
 
     private static boolean scanFiles_isIncluded(String path, String[] includes, String[] excludes) {
@@ -295,8 +285,8 @@ public class ClasspathScanner {
         }
         // if null, means exclude nothing
         if (excludes != null && excludes.length != 0) {
-            for (int i = 0; i < excludes.length; i++) {
-                if (match(excludes[i], path))
+            for (String exclude : excludes) {
+                if (match(exclude, path))
                     return false;
             }
         }

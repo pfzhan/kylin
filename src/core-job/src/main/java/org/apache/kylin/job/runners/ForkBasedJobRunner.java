@@ -24,6 +24,7 @@
 package org.apache.kylin.job.runners;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
@@ -44,8 +45,8 @@ public class ForkBasedJobRunner extends JobRunnerFactory.AbstractJobRunner {
 
     @Override
     protected void doExecute(ExecutableApplication app, Map<String, String> args) throws Exception {
-        String finalCommand = String.format("bash -x %s/sbin/bootstrap.sh %s %s 2>>%s", KylinConfig.getKylinHome(),
-                app.getClass().getName(), formatArgs(args), getJobTmpDir() + "/job.log");
+        String finalCommand = String.format(Locale.ROOT, "bash -x %s/sbin/bootstrap.sh %s %s 2>>%s",
+                KylinConfig.getKylinHome(), app.getClass().getName(), formatArgs(args), getJobTmpDir() + "/job.log");
         log.info("Try to execute {}", finalCommand);
         cliExecutor.execute(finalCommand, new BufferedLogger(log), jobId);
     }

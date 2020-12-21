@@ -57,7 +57,6 @@ import java.net.URL;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -71,7 +70,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.restclient.RestClient;
-import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OrderedProperties;
 import org.slf4j.Logger;
@@ -79,6 +77,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.util.Unsafe;
 
 /**
  */
@@ -115,9 +115,9 @@ public class KylinConfig extends KylinConfigBase {
          */
         // copied from org.apache.calcite.util.ConversionUtil.NATIVE_UTF16_CHARSET_NAME
         String NATIVE_UTF16_CHARSET_NAME = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN) ? "UTF-16BE" : "UTF-16LE";
-        System.setProperty("saffron.default.charset", NATIVE_UTF16_CHARSET_NAME);
-        System.setProperty("saffron.default.nationalcharset", NATIVE_UTF16_CHARSET_NAME);
-        System.setProperty("saffron.default.collation.name", NATIVE_UTF16_CHARSET_NAME + "$en_US");
+        Unsafe.setProperty("saffron.default.charset", NATIVE_UTF16_CHARSET_NAME);
+        Unsafe.setProperty("saffron.default.nationalcharset", NATIVE_UTF16_CHARSET_NAME);
+        Unsafe.setProperty("saffron.default.collation.name", NATIVE_UTF16_CHARSET_NAME + "$en_US");
     }
 
     public static KylinConfig getInstanceFromEnv() {
@@ -157,8 +157,7 @@ public class KylinConfig extends KylinConfigBase {
 
             destroyInstance();
             logger.info("Setting KylinConfig to " + localMetaDir);
-
-            System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
+            Unsafe.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             config.setMetadataUrl(localMetaDir + "/metadata");
@@ -467,22 +466,6 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-    public static KylinConfig loadKylinPropsAndMetadata() throws IOException {
-        File metaDir = new File("meta");
-        if (!metaDir.getAbsolutePath().equals(System.getProperty(KylinConfig.KYLIN_CONF))) {
-            System.setProperty(KylinConfig.KYLIN_CONF, metaDir.getAbsolutePath());
-            logger.info("The absolute path for meta dir is " + metaDir.getAbsolutePath());
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            Map<String, String> paramsMap = new HashMap<>();
-            paramsMap.put("path", metaDir.getAbsolutePath());
-            StorageURL storageURL = new StorageURL(kylinConfig.getMetadataUrl().getIdentifier(), "ifile", paramsMap);
-            kylinConfig.setMetadataUrl(storageURL.toString());
-            return kylinConfig;
-        } else {
-            return KylinConfig.getInstanceFromEnv();
-        }
-    }
-
     public static KylinConfig loadKylinConfigFromHdfs(String uri) {
         if (uri == null)
             throw new IllegalArgumentException("StorageUrl should not be null");
@@ -534,21 +517,6 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-    public static void setSandboxEnvIfPossible() {
-        File dir1 = new File("../examples/test_case_data/sandbox");
-        File dir2 = new File("../../kylin/examples/test_case_data/sandbox");
-
-        if (dir1.exists()) {
-            logger.info("Setting sandbox env, KYLIN_CONF=" + dir1.getAbsolutePath());
-            ClassUtil.addClasspath(dir1.getAbsolutePath());
-            System.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
-        } else if (dir2.exists()) {
-            logger.info("Setting sandbox env, KYLIN_CONF=" + dir2.getAbsolutePath());
-            ClassUtil.addClasspath(dir2.getAbsolutePath());
-            System.setProperty(KylinConfig.KYLIN_CONF, dir2.getAbsolutePath());
-        }
-    }
-
     // ============================================================================
 
     private final Singletons singletons;
@@ -572,7 +540,7 @@ public class KylinConfig extends KylinConfigBase {
 
         return singletons.getInstance0(clz, clazz -> {
             Method method = clazz.getDeclaredMethod("newInstance", KylinConfig.class);
-            method.setAccessible(true); // override accessibility
+            Unsafe.changeAccessibleObject(method, true);// override accessibility
             return (T) method.invoke(null, KylinConfig.this);
         });
     }
@@ -583,7 +551,7 @@ public class KylinConfig extends KylinConfigBase {
             return base.getManager(project, clz);
         return singletons.getInstance0(project, clz, clazz -> {
             Method method = clazz.getDeclaredMethod("newInstance", KylinConfig.class, String.class);
-            method.setAccessible(true); // override accessibility
+            Unsafe.changeAccessibleObject(method, true);// override accessibility
             return (T) method.invoke(null, this, project);
         });
     }

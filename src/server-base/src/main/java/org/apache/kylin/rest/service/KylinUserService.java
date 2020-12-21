@@ -48,6 +48,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -87,7 +88,7 @@ public class KylinUserService implements UserService {
     public void createUser(UserDetails user) {
         if (getKylinUserManager().exists(user.getUsername())) {
             throw new KylinException(DUPLICATE_USER_NAME,
-                    String.format(MsgPicker.getMsg().getUSER_EXISTS(), user.getUsername()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_EXISTS(), user.getUsername()));
         }
         updateUser(user);
     }
@@ -146,10 +147,10 @@ public class KylinUserService implements UserService {
             managedUser = getKylinUserManager().get(userName);
         } catch (IllegalArgumentException e) {
             logger.error("exception: ", e);
-            throw new UsernameNotFoundException(String.format(msg.getUSER_AUTH_FAILED()));
+            throw new UsernameNotFoundException(msg.getUSER_AUTH_FAILED());
         }
         if (managedUser == null) {
-            throw new UsernameNotFoundException(String.format(msg.getUSER_NOT_FOUND(), userName));
+            throw new UsernameNotFoundException(String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), userName));
         }
         logger.trace("load user : {}", userName);
         return managedUser;

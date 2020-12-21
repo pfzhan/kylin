@@ -31,6 +31,7 @@ import io.kyligence.kap.tool.daemon.handler.RestartStateHandler;
 import io.kyligence.kap.tool.daemon.handler.SuicideStateHandler;
 import io.kyligence.kap.tool.daemon.handler.UpGradeStateHandler;
 import io.kyligence.kap.tool.daemon.handler.WarnStateHandler;
+import org.apache.calcite.avatica.util.Unsafe;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -65,8 +66,7 @@ public class KapGuardian {
     public KapGuardian() {
         if (!config.isGuardianEnabled()) {
             logger.warn("Do not enable to start Guardian Process, exit 0!");
-
-            System.exit(0);
+            Unsafe.systemExit(0);
         }
 
         executor = Executors.newSingleThreadScheduledExecutor(
@@ -163,7 +163,7 @@ public class KapGuardian {
             }));
         } catch (Exception e) {
             logger.info("Guardian Process start failed", e);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         logger.info("Guardian Process started...");

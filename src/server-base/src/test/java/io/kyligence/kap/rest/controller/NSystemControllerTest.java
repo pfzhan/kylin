@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
@@ -122,9 +123,9 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         //for /license/file
         String string = "kkkkkk";
         String string2 = "\"kkkkkk\"";
-        Mockito.doNothing().when(licenseInfoService).updateLicense(string.getBytes());
+        Mockito.doNothing().when(licenseInfoService).updateLicense(string.getBytes(StandardCharsets.UTF_8));
         Mockito.when(licenseInfoService.extractLicenseInfo()).thenReturn(null);
-        MockMultipartFile mockMultipartFile = new MockMultipartFile("file", string.getBytes("UTF-8"));
+        MockMultipartFile mockMultipartFile = new MockMultipartFile("file", string.getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/system/license/file").file(mockMultipartFile)
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());

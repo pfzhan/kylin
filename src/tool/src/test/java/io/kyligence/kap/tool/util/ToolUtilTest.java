@@ -28,6 +28,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Locale;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -65,7 +66,7 @@ public class ToolUtilTest extends NLocalFileMetadataTestCase {
         FileUtils.writeStringToFile(pidFie, pid);
         Assert.assertEquals(pid, ToolUtil.getKylinPid());
 
-        File jstackFile = new File(mainDir, String.format("jstack.%s", pid));
+        File jstackFile = new File(mainDir, String.format(Locale.ROOT, "jstack.%s", pid));
         ToolUtil.dumpKylinJStack(jstackFile);
 
         FileUtils.deleteQuietly(pidFie);

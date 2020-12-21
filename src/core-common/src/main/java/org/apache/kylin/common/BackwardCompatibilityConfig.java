@@ -46,9 +46,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Stack;
 
@@ -74,11 +76,6 @@ public class BackwardCompatibilityConfig {
         for (int i = 0; i < 10; i++) {
             init(loader.getResourceAsStream(KYLIN_BACKWARD_COMPATIBILITY + (i) + ".properties"));
         }
-    }
-
-    // for test
-    BackwardCompatibilityConfig(InputStream is) {
-        init(is);
     }
 
     private void init(InputStream is) {
@@ -172,7 +169,7 @@ public class BackwardCompatibilityConfig {
         // generate sed file
         File sedFile = new File(outputDir, "upgrade-old-config.sed");
         try {
-            out = new PrintWriter(sedFile);
+            out = new PrintWriter(sedFile, Charset.defaultCharset().name());
             for (Entry<String, String> e : bcc.old2new.entrySet()) {
                 out.println("s/" + quote(e.getKey()) + "/" + e.getValue() + "/g");
             }
@@ -186,13 +183,13 @@ public class BackwardCompatibilityConfig {
         // generate sh file
         File shFile = new File(outputDir, "upgrade-old-config.sh");
         try {
-            out = new PrintWriter(shFile);
+            out = new PrintWriter(shFile, Charset.defaultCharset().name());
             out.println("#!/bin/bash");
             Stack<File> stack = new Stack<>();
             stack.push(repoDir);
             while (!stack.isEmpty()) {
                 File dir = stack.pop();
-                for (File f : dir.listFiles()) {
+                for (File f : Objects.requireNonNull(dir.listFiles())) {
                     if (f.getName().startsWith("."))
                         continue;
                     if (f.isDirectory()) {

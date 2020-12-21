@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -206,7 +207,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
         models.add(new ModelImportRequest.ModelImport("ssb_model", null, ModelImportRequest.ImportType.OVERWRITE));
 
         MockMultipartFile requestFile = new MockMultipartFile("request", "request", "application/json",
-                JsonUtil.writeValueAsString(request).getBytes());
+                JsonUtil.writeValueAsString(request).getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/import/models").file(multipartFile)
                 .file(requestFile).contentType(MediaType.MULTIPART_FORM_DATA_VALUE).param("project", "default")

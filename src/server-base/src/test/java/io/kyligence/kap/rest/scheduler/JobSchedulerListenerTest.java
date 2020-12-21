@@ -64,7 +64,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
     public void tearDown() {
         this.cleanupTestMetadata();
     }
-    
+
     static CountDownLatch latch;
 
     static JobSchedulerListener.JobInfo modelInfo = new JobSchedulerListener.JobInfo(
@@ -163,7 +163,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
     static class TimeoutHandler implements HttpHandler {
 
         @Override
-        public void handle(HttpExchange httpExchange) throws IOException {
+        public void handle(HttpExchange httpExchange) {
             latch.countDown();
         }
     }

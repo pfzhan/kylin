@@ -26,6 +26,7 @@ package org.apache.kylin.sdk.datasource.adaptor;
 import com.google.common.base.Joiner;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import java.util.Locale;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.kylin.sdk.datasource.framework.FixedCachedRowSetImpl;
 import org.apache.kylin.sdk.datasource.framework.conv.DefaultConfigurer;
@@ -110,19 +111,19 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
 
         // some default implementation
         switch (config.driver) {
-            case "org.hsqldb.jdbcDriver":
-                return "select 1 from INFORMATION_SCHEMA.SYSTEM_USERS";
-            case "oracle.jdbc.driver.OracleDriver":
-            case "oracle.jdbc.OracleDriver":
-                return "select 1 from dual";
-            case "com.ibm.db2.jcc.DB2Driver":
-                return "select 1 from sysibm.sysdummy1";
-            case "org.postgresql.Driver":
-                return "select version();";
-            case "org.apache.derby.jdbc.ClientDriver":
-                return "values 1";
-            default:
-                return "select 1";
+        case "org.hsqldb.jdbcDriver":
+            return "select 1 from INFORMATION_SCHEMA.SYSTEM_USERS";
+        case "oracle.jdbc.driver.OracleDriver":
+        case "oracle.jdbc.OracleDriver":
+            return "select 1 from dual";
+        case "com.ibm.db2.jcc.DB2Driver":
+            return "select 1 from sysibm.sysdummy1";
+        case "org.postgresql.Driver":
+            return "select version();";
+        case "org.apache.derby.jdbc.ClientDriver":
+            return "values 1";
+        default:
+            return "select 1";
         }
     }
 
@@ -153,8 +154,8 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
                     retry++;
                     return dataSource.getConnection();
                 } catch (SQLException ex) {
-                    logger.warn("Try connect to {} {} time(s) with error {}.",
-                            config.url, retry, ex.getLocalizedMessage());
+                    logger.warn("Try connect to {} {} time(s) with error {}.", config.url, retry,
+                            ex.getLocalizedMessage());
                     if (retry >= config.getConnectRetryTimes()) {
                         break;
                     }
@@ -166,8 +167,8 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
                     }
                 }
             }
-            throw new SQLException(String.format("Can not connect to %s after retry %d time(s)", config.url,
-                    config.getConnectRetryTimes()));
+            throw new SQLException(String.format(Locale.ROOT, "Can not connect to %s after retry %d time(s)",
+                    config.url, config.getConnectRetryTimes()));
         } else {
             return dataSource.getConnection();
         }

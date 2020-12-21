@@ -28,6 +28,7 @@ import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHo
 
 import java.lang.reflect.Field;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Assert;
@@ -54,11 +55,11 @@ public class QueryScopeProposerTest extends NLocalWithSparkSessionTest {
 
         TblColRef col1 = TblColRef.mockup(TableDesc.mockup("DEFAULT.A_B"), 1, "C", "double");
         Field f1 = col1.getClass().getDeclaredField("identity");
-        f1.setAccessible(true);
+        Unsafe.changeAccessibleObject(f1, true);
         f1.set(col1, "A_B.C");
         TblColRef col2 = TblColRef.mockup(TableDesc.mockup("DEFAULT.A"), 2, "B_C", "double");
         Field f2 = col2.getClass().getDeclaredField("identity");
-        f2.setAccessible(true);
+        Unsafe.changeAccessibleObject(f2, true);
         f2.set(col2, "A.B_C");
 
         NDataModel.NamedColumn namedColumn1 = scopeBuilder.transferToNamedColumn(col1, null);

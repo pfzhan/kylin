@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.util;
 
 import java.util.List;
+import java.util.Locale;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -90,7 +91,7 @@ public class EscapeFunction {
         CONVERT(args -> {
             checkArgs(args, 2);
             String value = args[0];
-            String sqlType = args[1].toUpperCase();
+            String sqlType = args[1].toUpperCase(Locale.ROOT);
             String sqlPrefix = "SQL_";
             if (sqlType.startsWith(sqlPrefix)) {
                 sqlType = sqlType.substring(sqlPrefix.length());
@@ -236,12 +237,13 @@ public class EscapeFunction {
         OVERLAY_SPARK(args -> {
             Preconditions.checkArgument(args.length == 3 || args.length == 4, EscapeFunction.OVERLAY_EXCEPTION_MSG);
             List<String> newArgs = Lists.newArrayList();
-            newArgs.add(String.format("SUBSTRING(%s, %s, %s - 1)", args[0], 0, args[2]));
+            newArgs.add(String.format(Locale.ROOT, "SUBSTRING(%s, %s, %s - 1)", args[0], 0, args[2]));
             newArgs.add(args[1]);
             if (args.length == 3) {
-                newArgs.add(String.format("SUBSTRING(%s, %s + CHAR_LENGTH(%s))", args[0], args[2], args[1]));
+                newArgs.add(
+                        String.format(Locale.ROOT, "SUBSTRING(%s, %s + CHAR_LENGTH(%s))", args[0], args[2], args[1]));
             } else {
-                newArgs.add(String.format("SUBSTRING(%s, %s + %s)", args[0], args[2], args[3]));
+                newArgs.add(String.format(Locale.ROOT, "SUBSTRING(%s, %s + %s)", args[0], args[2], args[3]));
             }
             return normalFN("CONCAT", newArgs.toArray(new String[0]));
         }),
@@ -250,9 +252,9 @@ public class EscapeFunction {
             Preconditions.checkArgument(args.length == 3 || args.length == 4, EscapeFunction.OVERLAY_EXCEPTION_MSG);
             String newArg;
             if (args.length == 3) {
-                newArg = String.format("%s PLACING %s FROM %s", args[0], args[1], args[2]);
+                newArg = String.format(Locale.ROOT, "%s PLACING %s FROM %s", args[0], args[1], args[2]);
             } else {
-                newArg = String.format("%s PLACING %s FROM %s for %s", args[0], args[1], args[2], args[3]);
+                newArg = String.format(Locale.ROOT, "%s PLACING %s FROM %s for %s", args[0], args[1], args[2], args[3]);
             }
             return normalFN("OVERLAY", new String[] { newArg });
         }),
@@ -269,13 +271,13 @@ public class EscapeFunction {
             if (groupByColumns.startsWith("(") && groupByColumns.endsWith(")")) {
                 groupByColumns = groupByColumns.substring(1, groupByColumns.length() - 1);
             }
-            return String.format("%s grouping sets(%s)", groupByColumns, String.join(",", args));
+            return String.format(Locale.ROOT, "%s grouping sets(%s)", groupByColumns, String.join(",", args));
         }),
 
         SETS(args -> {
             // group by grouping sets(...)
             Preconditions.checkArgument(args.length > 0);
-            return String.format("grouping sets(%s)", String.join(",", args));
+            return String.format(Locale.ROOT, "grouping sets(%s)", String.join(",", args));
         }),
 
         CEIL2(args -> {
@@ -283,7 +285,7 @@ public class EscapeFunction {
             if (args.length == 1) {
                 return normalFN("CEIL", args);
             } else {
-                String[] newArgs = new String[] { args[0], "'" + args[1].toUpperCase() + "'" };
+                String[] newArgs = new String[] { args[0], "'" + args[1].toUpperCase(Locale.ROOT) + "'" };
                 return normalFN("CEIL_DATETIME", newArgs);
             }
         }),
@@ -299,7 +301,7 @@ public class EscapeFunction {
             if (args.length == 1) {
                 return normalFN("FLOOR", args);
             } else {
-                String[] newArgs = new String[] { args[0].trim(), "'" + args[1].toUpperCase() + "'" };
+                String[] newArgs = new String[] { args[0].trim(), "'" + args[1].toUpperCase(Locale.ROOT) + "'" };
                 return normalFN("FLOOR_DATETIME", newArgs);
             }
         }),
@@ -343,12 +345,12 @@ public class EscapeFunction {
 
     // Present as normal function: "func(arg1, arg2, ...)"
     public static String normalFN(String functionName, String[] args) {
-        return String.format("%s(%s)", functionName, String.join(", ", args));
+        return String.format(Locale.ROOT, "%s(%s)", functionName, String.join(", ", args));
     }
 
     // Present as JDBC/ODBC scalar function: "{ fn func(arg1, arg2, ...) }"
     public static String scalarFN(String functionName, String[] args) {
-        return String.format("{fn %s(%s)}", functionName, String.join(", ", args));
+        return String.format(Locale.ROOT, "{fn %s(%s)}", functionName, String.join(", ", args));
     }
 
     private static void checkArgs(String[] args, int expectedCount) {

@@ -35,6 +35,7 @@ import java.io.StringReader;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -43,6 +44,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -55,6 +57,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -230,8 +233,8 @@ public class LicenseInfoService extends BasicService {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("MD5");
-            byte[] signature = md.digest(input.getBytes());
-            return new String(Base64.encodeBase64(signature));
+            byte[] signature = md.digest(input.getBytes(Charset.defaultCharset()));
+            return new String(Base64.encodeBase64(signature), Charset.defaultCharset());
         } catch (NoSuchAlgorithmException e) {
             return null;
         }
@@ -250,13 +253,13 @@ public class LicenseInfoService extends BasicService {
                     continue;
                 }
                 for (int i = 0; i < mac.length; i++) {
-                    sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+                    sb.append(String.format(Locale.ROOT, "%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
                 }
                 List<String> inetAddrList = Lists.newArrayList();
                 for (InterfaceAddress interAddr : network.getInterfaceAddresses()) {
                     inetAddrList.add(interAddr.getAddress().getHostAddress());
                 }
-                sb.append("(" + org.apache.commons.lang.StringUtils.join(inetAddrList, ",") + ")");
+                sb.append("(").append(org.apache.commons.lang.StringUtils.join(inetAddrList, ",")).append(")");
                 if (sb.length() > 0) {
                     result.add(sb.toString());
                 }
@@ -373,13 +376,13 @@ public class LicenseInfoService extends BasicService {
             int lineNum = 0;
 
             while ((line = reader.readLine()) != null) {
-                if (lineNum == 0 && line.toLowerCase().contains("license")) {
+                if (lineNum == 0 && line.toLowerCase(Locale.ROOT).contains("license")) {
                     setProperty(Constants.KE_LICENSE_INFO, prefix, line);
                 }
-                if (line.toLowerCase().contains("evaluation")) {
+                if (line.toLowerCase(Locale.ROOT).contains("evaluation")) {
                     setProperty(Constants.KE_LICENSE_ISEVALUATION, prefix, "true");
                 }
-                if (line.toLowerCase().contains("for cloud")) {
+                if (line.toLowerCase(Locale.ROOT).contains("for cloud")) {
                     setProperty(Constants.KE_LICENSE_ISCLOUD, prefix, "true");
                 }
                 extractValue.apply(line, "Service End:")
@@ -444,10 +447,10 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void setProperty(String key, UUID keyPrefix, String value) {
-        System.setProperty((keyPrefix == null ? "" : keyPrefix) + key, value);
+        Unsafe.setProperty((keyPrefix == null ? "" : keyPrefix) + key, value);
     }
 
-    public RemoteLicenseResponse getTrialLicense(LicenseRequest licenseRequest) throws Exception {
+    public RemoteLicenseResponse getTrialLicense(LicenseRequest licenseRequest) {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
         String url = kapConfig.getKyAccountSiteUrl() + "/thirdParty/license";
 
@@ -492,17 +495,17 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void clearSystemLicense() {
-        System.setProperty(Constants.KE_DATES, "");
-        System.setProperty(Constants.KE_LICENSE_LEVEL, "");
-        System.setProperty(Constants.KE_LICENSE_CATEGORY, "");
-        System.setProperty(Constants.KE_LICENSE_STATEMENT, "");
-        System.setProperty(Constants.KE_LICENSE_ISEVALUATION, "");
-        System.setProperty(Constants.KE_LICENSE_SERVICEEND, "");
-        System.setProperty(Constants.KE_LICENSE_NODES, "");
-        System.setProperty(Constants.KE_LICENSE_ISCLOUD, "");
-        System.setProperty(Constants.KE_LICENSE_INFO, "");
-        System.setProperty(Constants.KE_LICENSE_VERSION, "");
-        System.setProperty(Constants.KE_LICENSE_VOLUME, "");
+        Unsafe.setProperty(Constants.KE_DATES, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_LEVEL, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_CATEGORY, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_STATEMENT, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_ISEVALUATION, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_SERVICEEND, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_NODES, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_ISCLOUD, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_INFO, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_VERSION, "");
+        Unsafe.setProperty(Constants.KE_LICENSE_VOLUME, "");
     }
 
     public boolean filterEmail(String email) {
@@ -605,8 +608,7 @@ public class LicenseInfoService extends BasicService {
     }
 
     private boolean isNotOk(SourceUsageRecord.CapacityStatus status) {
-        return SourceUsageRecord.CapacityStatus.TENTATIVE.equals(status)
-                || SourceUsageRecord.CapacityStatus.ERROR.equals(status);
+        return SourceUsageRecord.CapacityStatus.TENTATIVE == status || SourceUsageRecord.CapacityStatus.ERROR == status;
     }
 
     private int getCurrentNodesNums() {
@@ -690,7 +692,7 @@ public class LicenseInfoService extends BasicService {
         for (TableDesc tableDesc : tableDescList) {
             TableExtDesc tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
             TableExtDesc.RowCountStatus rowCountStatus = tableExt.getRowCountStatus();
-            if (rowCountStatus == null || TableExtDesc.RowCountStatus.TENTATIVE.equals(rowCountStatus)) {
+            if (rowCountStatus == null || TableExtDesc.RowCountStatus.TENTATIVE == rowCountStatus) {
                 sourceUsageManager.refreshLookupTableRowCount(tableDesc, project);
                 sourceUsageManager.updateSourceUsage();
             }

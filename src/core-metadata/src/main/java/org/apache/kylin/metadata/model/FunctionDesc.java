@@ -46,6 +46,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -90,7 +91,7 @@ public class FunctionDesc implements Serializable {
 
     public static FunctionDesc newInstance(String expression, List<ParameterDesc> parameters, String returnType) {
         FunctionDesc r = new FunctionDesc();
-        r.expression = (expression == null) ? null : expression.toUpperCase();
+        r.expression = (expression == null) ? null : expression.toUpperCase(Locale.ROOT);
         r.parameters = parameters;
         r.returnType = returnType;
         r.returnDataType = DataType.getType(returnType);
@@ -118,7 +119,7 @@ public class FunctionDesc implements Serializable {
             case FunctionDesc.FUNC_SUM:
             case FunctionDesc.FUNC_PERCENTILE:
                 throw new KylinException(INVALID_MEASURE_DATA_TYPE,
-                        String.format("Invalid column type %s for measure %s", colDataType, expression));
+                        String.format(Locale.ROOT, "Invalid column type %s for measure %s", colDataType, expression));
             default:
                 break;
             }
@@ -132,7 +133,7 @@ public class FunctionDesc implements Serializable {
                     returnType = BIGINT;
                 } else if (type.isDecimal()) {
                     //same with org.apache.spark.sql.catalyst.expressions.aggregate.Sum
-                    returnType = String.format("decimal(%d,%d)",
+                    returnType = String.format(Locale.ROOT, "decimal(%d,%d)",
                             DataType.decimalBoundedPrecision(type.getPrecision() + 10),
                             DataType.decimalBoundedScale(type.getScale()));
                 }
@@ -205,7 +206,7 @@ public class FunctionDesc implements Serializable {
     private boolean isDimensionAsMetric = false;
 
     public void init(NDataModel model) {
-        expression = expression.toUpperCase();
+        expression = expression.toUpperCase(Locale.ROOT);
         if (expression.equals(PercentileMeasureType.FUNC_PERCENTILE)) {
             expression = PercentileMeasureType.FUNC_PERCENTILE_APPROX; // for backward compatibility
         }

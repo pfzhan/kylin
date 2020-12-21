@@ -23,11 +23,12 @@
  */
 package io.kyligence.kap.newten.auto;
 
+import java.util.Map;
+
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.newten.auto.NAutoPerformanceTestBase.ProposeStats;
-
-import java.util.Map;
 
 public class NAutoSoakTestForJenkins {
 
@@ -40,8 +41,8 @@ public class NAutoSoakTestForJenkins {
      */
     public static void main(String[] args) throws Exception {
 
-        int round = Integer.valueOf(args[0]);
-        int factor = Integer.valueOf(args[1]);
+        int round = Integer.parseInt(args[0]);
+        int factor = Integer.parseInt(args[1]);
 
         NAutoPerformanceTestBase performanceTestBase = new NAutoPerformanceTestBase();
         // Prepare spark for CC

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
 
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -74,7 +75,7 @@ public class JdbcUtil implements IKeep {
     }
 
     public static boolean isTableExists(Connection conn, String table) throws SQLException {
-        return isAnyTableExists(conn, table, table.toUpperCase());
+        return isAnyTableExists(conn, table, table.toUpperCase(Locale.ROOT));
     }
 
     private static boolean isAnyTableExists(Connection conn, String... tables) throws SQLException {

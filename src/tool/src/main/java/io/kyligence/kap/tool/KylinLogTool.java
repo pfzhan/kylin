@@ -26,14 +26,20 @@ package io.kyligence.kap.tool;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -65,6 +71,8 @@ import scala.collection.JavaConversions;
 public class KylinLogTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
+    private static final String CHARSET_NAME = Charset.defaultCharset().name();
+
     public static final long DAY = 24 * 3600 * 1000L;
 
     public static final String SECOND_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -82,7 +90,7 @@ public class KylinLogTool {
     @VisibleForTesting
     public static String getJobLogPattern(String jobId) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(jobId));
-        return String.format("%s(.*JobWorker.*jobid:%s.*)|%s.*%s", LOG_TIME_PATTERN, jobId.substring(0, 8),
+        return String.format(Locale.ROOT, "%s(.*JobWorker.*jobid:%s.*)|%s.*%s", LOG_TIME_PATTERN, jobId.substring(0, 8),
                 LOG_TIME_PATTERN, jobId);
     }
 
@@ -101,7 +109,7 @@ public class KylinLogTool {
     // 2019-11-11 09:30:04,004 INFO  [Query 4e3350d5-1cd9-450f-ac7e-5859939bedf1-125] service.QueryService : The original query: select * from ssb.SUPPLIER
     private static String getQueryLogPattern(String queryId) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(queryId));
-        return String.format("%s(.*Query %s.*)", LOG_TIME_PATTERN, queryId);
+        return String.format(Locale.ROOT, "%s(.*Query %s.*)", LOG_TIME_PATTERN, queryId);
     }
 
     private KylinLogTool() {
@@ -173,7 +181,7 @@ public class KylinLogTool {
 
     public static void extractOtherLogs(File exportDir, long start, long end) {
         File destDir = new File(exportDir, "logs");
-        SimpleDateFormat logFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat logFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         String startDate = logFormat.format(new Date(start));
         String endDate = logFormat.format(new Date(end));
         logger.debug("logs startDate : {}, endDate : {}", startDate, endDate);
@@ -231,7 +239,8 @@ public class KylinLogTool {
 
         String dateStart = null;
         String dateEnd = null;
-        try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
+        try (InputStream in = new FileInputStream(logFile);
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, CHARSET_NAME))) {
             Pattern pattern = Pattern.compile(getJobLogPattern(jobId));
 
             String log;
@@ -290,7 +299,8 @@ public class KylinLogTool {
     }
 
     public static String getFirstTimeByLogFile(File logFile) {
-        try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
+        try (InputStream in = new FileInputStream(logFile);
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, CHARSET_NAME))) {
             Pattern pattern = Pattern.compile(LOG_TIME_PATTERN);
             String log;
             while ((log = br.readLine()) != null) {
@@ -311,8 +321,11 @@ public class KylinLogTool {
         Preconditions.checkNotNull(distFile);
         Preconditions.checkArgument(timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0);
 
-        try (BufferedReader br = new BufferedReader(new FileReader(logFile));
-                BufferedWriter bw = new BufferedWriter(new FileWriter(distFile))) {
+        final String charsetName = Charset.defaultCharset().name();
+        try (InputStream in = new FileInputStream(logFile);
+                OutputStream out = new FileOutputStream(distFile);
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, charsetName));
+                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charsetName))) {
 
             int extraLines = EXTRA_LINES;
             boolean extract = false;

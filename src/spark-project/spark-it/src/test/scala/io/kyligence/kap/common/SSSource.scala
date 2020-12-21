@@ -31,6 +31,8 @@ import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.scalatest.Suite
 
+import java.util.Locale
+
 trait SSSource extends SharedSparkSession with LocalMetadata {
   self: Suite =>
 
@@ -61,7 +63,7 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
           tableName = tableN,
           source = "csv",
           schema = schema,
-          options = Map("path" -> String.format(CSV_TABLE_DIR, table)))
+          options = Map("path" -> String.format(Locale.ROOT, CSV_TABLE_DIR, table)))
         if (table.equals("DEFAULT.TEST_KYLIN_FACT")) {
           spark.sql("create view " + tableDesc.getName + " as select * from " + tableN)
         }

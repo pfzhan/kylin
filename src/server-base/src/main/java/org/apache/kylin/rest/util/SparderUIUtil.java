@@ -42,6 +42,18 @@
 
 package org.apache.kylin.rest.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.util.Locale;
+import java.util.Objects;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.kylin.common.KylinConfig;
@@ -58,14 +70,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.URI;
-import java.util.Objects;
+import io.kyligence.kap.common.util.Unsafe;
 
 @Component("sparderUIUtil")
 public class SparderUIUtil {
@@ -107,7 +112,8 @@ public class SparderUIUtil {
         final HttpMethod method = HttpMethod.resolve(servletRequest.getMethod());
 
         try (ClientHttpResponse response = execute(target, method)) {
-            rewrite(response, servletResponse, method, servletRequest.getRequestURL(), REDIRECT_THRESHOLD);
+            rewrite(response, servletResponse, method, Unsafe.getUrlFromHttpServletRequest(servletRequest),
+                    REDIRECT_THRESHOLD);
         }
     }
 
@@ -124,7 +130,6 @@ public class SparderUIUtil {
         checkVersion();
         return webUrl;
     }
-
 
     private void checkVersion() throws IOException {
 
@@ -161,10 +166,10 @@ public class SparderUIUtil {
     }
 
     private void rewrite(final ClientHttpResponse response, final HttpServletResponse servletResponse,
-                         final HttpMethod originMethod, final StringBuffer originUrl, final int depth) throws IOException {
+            final HttpMethod originMethod, final String originUrlStr, final int depth) throws IOException {
         if (depth <= 0) {
-            final String msg = String.format("redirect exceed threshold: %d, origin request: [%s %s]",
-                    REDIRECT_THRESHOLD, originMethod, originUrl);
+            final String msg = String.format(Locale.ROOT, "redirect exceed threshold: %d, origin request: [%s %s]",
+                    REDIRECT_THRESHOLD, originMethod, originUrlStr);
             logger.warn("UNEXPECTED_THINGS_HAPPENED {}", msg);
             servletResponse.getWriter().write(msg);
             return;
@@ -172,7 +177,7 @@ public class SparderUIUtil {
 
         if (response.getStatusCode().is3xxRedirection()) {
             try (ClientHttpResponse r = execute(response.getHeaders().getLocation(), originMethod)) {
-                rewrite(r, servletResponse, originMethod, originUrl, depth - 1);
+                rewrite(r, servletResponse, originMethod, originUrlStr, depth - 1);
             }
             return;
         }
@@ -189,7 +194,8 @@ public class SparderUIUtil {
 
         final String fWebUrl = webUrl;
         final PrintWriter writer = servletResponse.getWriter();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody()))) {
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(response.getBody(), Charset.defaultCharset()))) {
             String line;
             while (Objects.nonNull(line = br.readLine())) {
                 line = line.replace("href=\"/", "href=\"" + proxyLocationBase + "/");

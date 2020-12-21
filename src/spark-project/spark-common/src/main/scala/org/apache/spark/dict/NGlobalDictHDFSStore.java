@@ -43,6 +43,7 @@
 package org.apache.spark.dict;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
@@ -179,7 +180,7 @@ public class NGlobalDictHDFSStore implements NGlobalDictStore {
                 int bytesLength = is.readInt();
                 byte[] bytes = new byte[bytesLength];
                 IOUtils.readFully(is, bytes, 0, bytes.length);
-                object2IntMap.put(new String(bytes), value + offset);
+                object2IntMap.put(new String(bytes, Charset.defaultCharset()), value + offset);
             }
         }
 
@@ -209,7 +210,7 @@ public class NGlobalDictHDFSStore implements NGlobalDictStore {
             dos.writeInt(openHashMap.size());
             for (Object2LongMap.Entry<String> entry : openHashMap.object2LongEntrySet()) {
                 dos.writeLong(entry.getLongValue());
-                byte[] bytes = entry.getKey().getBytes();
+                byte[] bytes = entry.getKey().getBytes(Charset.defaultCharset());
                 dos.writeInt(bytes.length);
                 dos.write(bytes);
             }

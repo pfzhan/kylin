@@ -53,6 +53,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
@@ -232,7 +233,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testExportNotExistsModel() throws Exception {
         String notExistsUuid = UUID.randomUUID().toString();
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format("Data Model with name '%s' not found.", notExistsUuid));
+        thrown.expectMessage(String.format(Locale.ROOT, "Data Model with name '%s' not found.", notExistsUuid));
         metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(notExistsUuid), false, false);
     }
 
@@ -241,7 +242,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         // broken model id
         String brokenModelId = "8b5a2d39-304f-4a20-a9da-942f461534d8";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format("Model [%s] is broken, can not export.", brokenModelId));
+        thrown.expectMessage(String.format(Locale.ROOT, "Model [%s] is broken, can not export.", brokenModelId));
         metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(brokenModelId), false, false);
 
     }

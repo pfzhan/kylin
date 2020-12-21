@@ -42,40 +42,41 @@
 
 package org.apache.kylin.query.udf.dateUdf;
 
-import org.apache.calcite.linq4j.function.Parameter;
-
-import java.sql.Timestamp;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.Locale;
+
+import org.apache.calcite.linq4j.function.Parameter;
 
 public class DatePartUDF {
 
     public int DATE_PART(@Parameter(name = "part") String part, @Parameter(name = "date") Timestamp date) {
         String partOfDate = null;
-        switch (part.toUpperCase()){
-            case "YEAR" :
-                partOfDate = date.toString().substring(0, 4);
-                break;
-            case "MONTH" :
-                partOfDate = date.toString().substring(5, 7);
-                break;
-            case "DAY" :
-                partOfDate = date.toString().substring(8, 10);
-                break;
-            case "HOUR" :
-                partOfDate = date.toString().substring(11, 13);
-                break;
-            case "MINUTE" :
-            case "MINUTES":
-                partOfDate = date.toString().substring(14, 16);
-                break;
-            case "SECOND" :
-            case "SECONDS" :
-                partOfDate = date.toString().substring(17, 19);
-                break;
-            default:
-                //throws
+        switch (part.toUpperCase(Locale.ROOT)) {
+        case "YEAR":
+            partOfDate = date.toString().substring(0, 4);
+            break;
+        case "MONTH":
+            partOfDate = date.toString().substring(5, 7);
+            break;
+        case "DAY":
+            partOfDate = date.toString().substring(8, 10);
+            break;
+        case "HOUR":
+            partOfDate = date.toString().substring(11, 13);
+            break;
+        case "MINUTE":
+        case "MINUTES":
+            partOfDate = date.toString().substring(14, 16);
+            break;
+        case "SECOND":
+        case "SECONDS":
+            partOfDate = date.toString().substring(17, 19);
+            break;
+        default:
+            //throws
         }
-        return Integer.valueOf(partOfDate);
+        return Integer.parseInt(partOfDate);
     }
 
     public int DATE_PART(@Parameter(name = "part") String part, @Parameter(name = "date") Date date) {

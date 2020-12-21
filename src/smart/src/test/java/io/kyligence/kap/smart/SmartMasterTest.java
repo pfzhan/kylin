@@ -27,6 +27,7 @@ package io.kyligence.kap.smart;
 import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -119,7 +120,7 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
         // mock user change name alias to lower case
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
         modelManager.updateDataModel(model2.getUuid(), copyForWrite -> {
-            String newAlias = copyForWrite.getAlias().toLowerCase();
+            String newAlias = copyForWrite.getAlias().toLowerCase(Locale.ROOT);
             copyForWrite.setAlias(newAlias);
         });
         NDataModel model = modelManager.getDataModelDesc(model2.getUuid());

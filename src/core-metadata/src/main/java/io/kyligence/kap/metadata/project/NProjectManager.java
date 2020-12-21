@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.project;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -201,7 +202,7 @@ public class NProjectManager implements IKeepNames {
     }
 
     public Set<IRealization> getRealizationsByTable(String project, String tableName) {
-        return projectLoader.getRealizationsByTable(project, tableName.toUpperCase());
+        return projectLoader.getRealizationsByTable(project, tableName.toUpperCase(Locale.ROOT));
     }
 
     public List<NDataModel> listHealthyModels(String project) {
@@ -209,7 +210,7 @@ public class NProjectManager implements IKeepNames {
     }
 
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String factTable) {
-        return projectLoader.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), true);
+        return projectLoader.listEffectiveRewriteMeasures(project, factTable.toUpperCase(Locale.ROOT), true);
     }
 
     KylinConfig getConfig() {

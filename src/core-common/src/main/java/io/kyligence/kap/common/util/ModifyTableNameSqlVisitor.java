@@ -41,14 +41,16 @@
  */
 package io.kyligence.kap.common.util;
 
+import java.util.Locale;
+
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.collect.ImmutableList;
 
 public class ModifyTableNameSqlVisitor extends SqlBasicVisitor<Object> {
-    private String oldAliasName;
-    private String newAliasName;
+    private final String oldAliasName;
+    private final String newAliasName;
 
     public ModifyTableNameSqlVisitor(String oldAliasName, String newAliasName) {
         this.oldAliasName = oldAliasName;
@@ -58,8 +60,8 @@ public class ModifyTableNameSqlVisitor extends SqlBasicVisitor<Object> {
     @Override
     public Object visit(SqlIdentifier id) {
         if (id.names.size() == 2) {
-            String table = id.names.get(0).toUpperCase().trim();
-            String column = id.names.get(1).toUpperCase().trim();
+            String table = id.names.get(0).toUpperCase(Locale.ROOT).trim();
+            String column = id.names.get(1).toUpperCase(Locale.ROOT).trim();
             if (table.equalsIgnoreCase(oldAliasName)) {
                 id.names = ImmutableList.of(newAliasName, column);
             }

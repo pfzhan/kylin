@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,7 +35,11 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
 import org.apache.commons.lang.StringUtils;
+
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.Unsafe;
 
 public class DumpHadoopSystemProps implements IKeep {
     private static final String NO_PARAMETER = UUID.randomUUID().toString();
@@ -55,7 +57,7 @@ public class DumpHadoopSystemProps implements IKeep {
             break;
         default:
             System.out.println("Usages: DumpHadoopSystemProps 'filter1 filter2 filter3'");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         String[] cmd = new String[] { "hadoop", Inner.class.getName(), tmp.getAbsolutePath(), filters };
@@ -69,7 +71,7 @@ public class DumpHadoopSystemProps implements IKeep {
         output(propsDiff, envsDiff, tmp);
 
         System.out.println(tmp.getAbsolutePath());
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     private static void output(TreeMap<String, String> propsDiff, TreeMap<String, String> envsDiff, File tmp)

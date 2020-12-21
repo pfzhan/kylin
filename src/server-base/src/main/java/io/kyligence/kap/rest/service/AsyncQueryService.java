@@ -26,8 +26,6 @@ package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.rest.util.AclPermissionUtil.isAdmin;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -39,8 +37,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -75,7 +77,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -98,7 +99,7 @@ public class AsyncQueryService extends BasicService {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getUserFileName()));
-                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             osw.write(getUsername());
         }
     }
@@ -114,7 +115,7 @@ public class AsyncQueryService extends BasicService {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getMetaDataFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
             osw.write(metaString);
 
@@ -127,18 +128,20 @@ public class AsyncQueryService extends BasicService {
         List<List<String>> result = Lists.newArrayList();
         FileSystem fileSystem = getFileSystem();
         try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getMetaDataFileName()));
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+                BufferedReader bufferedReader = new BufferedReader(
+                        new InputStreamReader(is, Charset.defaultCharset()))) {
             result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
             result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
         }
         return result;
     }
 
-    public void saveFileInfo(String project, String format, String encode, String fileName, String queryId) throws IOException {
+    public void saveFileInfo(String project, String format, String encode, String fileName, String queryId)
+            throws IOException {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFileInfo())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             osw.write(format + "\n");
             osw.write(encode + "\n");
             osw.write(fileName);
@@ -150,7 +153,8 @@ public class AsyncQueryService extends BasicService {
         FileSystem fileSystem = getFileSystem();
         FileInfo fileInfo = new FileInfo();
         try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getFileInfo()));
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+                BufferedReader bufferedReader = new BufferedReader(
+                        new InputStreamReader(is, Charset.defaultCharset()))) {
             fileInfo.setFormat(bufferedReader.readLine());
             fileInfo.setEncode(bufferedReader.readLine());
             fileInfo.setFileName(bufferedReader.readLine());
@@ -165,7 +169,7 @@ public class AsyncQueryService extends BasicService {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFailureFlagFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             if (errorMessage != null) {
                 osw.write(errorMessage);
                 os.hflush();
@@ -174,7 +178,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
-                                         HttpServletResponse response, String fileFormat, String encode) throws IOException {
+            HttpServletResponse response, String fileFormat, String encode) throws IOException {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
@@ -184,9 +188,8 @@ public class AsyncQueryService extends BasicService {
             throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_FILE_NOT_FOUND());
         }
 
-        ServletOutputStream outputStream = response.getOutputStream();
-        String columnNames = null;
-        try {
+        try (ServletOutputStream outputStream = response.getOutputStream()) {
+            String columnNames = null;
             if (includeHeader) {
                 columnNames = processHeader(fileSystem, dataPath);
                 if (columnNames != null) {
@@ -199,20 +202,18 @@ public class AsyncQueryService extends BasicService {
                 }
             }
             switch (fileFormat) {
-                case "csv":
-                    processCSV(outputStream, dataPath, includeHeader, columnNames);
-                    break;
-                case "json":
-                    processJSON(outputStream, dataPath, encode);
-                    break;
-                case "xlsx":
-                    processXLSX(outputStream, dataPath, encode, includeHeader, columnNames);
-                    break;
-                default:
-                    logger.info("Query:{}, processed", queryId);
+            case "csv":
+                processCSV(outputStream, dataPath, includeHeader, columnNames);
+                break;
+            case "json":
+                processJSON(outputStream, dataPath, encode);
+                break;
+            case "xlsx":
+                processXLSX(outputStream, dataPath, encode, includeHeader, columnNames);
+                break;
+            default:
+                logger.info("Query:{}, processed", queryId);
             }
-        } finally {
-            outputStream.close();
         }
     }
 
@@ -226,7 +227,7 @@ public class AsyncQueryService extends BasicService {
             throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
         }
         try (FSDataInputStream inputStream = fileSystem.open(dataPath);
-             InputStreamReader reader = new InputStreamReader(inputStream)) {
+                InputStreamReader reader = new InputStreamReader(inputStream, Charset.defaultCharset())) {
             List<String> strings = IOUtils.readLines(reader);
 
             return StringUtils.join(strings, "");
@@ -252,7 +253,8 @@ public class AsyncQueryService extends BasicService {
         FileSystem fileSystem = getFileSystem();
         if (fileSystem.exists(asyncQueryResultDir)) {
             try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getUserFileName()));
-                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+                    BufferedReader bufferedReader = new BufferedReader(
+                            new InputStreamReader(is, Charset.defaultCharset()))) {
                 return bufferedReader.readLine();
             }
         }
@@ -348,7 +350,9 @@ public class AsyncQueryService extends BasicService {
         if (project == null || timeString == null) {
             return false;
         }
-        long time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(timeString).getTime();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                Locale.getDefault(Locale.Category.FORMAT));
+        long time = format.parse(timeString).getTime();
         return deleteOldQueryResult(project, time);
     }
 
@@ -404,8 +408,8 @@ public class AsyncQueryService extends BasicService {
         for (FileStatus header : fileStatuses) {
             if (header.getPath().getName().equals(getMetaDataFileName())) {
                 try (FSDataInputStream inputStream = fileSystem.open(header.getPath());
-                     BufferedReader bufferedReader = new BufferedReader(
-                             new InputStreamReader(inputStream))) {
+                        BufferedReader bufferedReader = new BufferedReader(
+                                new InputStreamReader(inputStream, Charset.defaultCharset()))) {
                     return bufferedReader.readLine();
                 }
             }
@@ -413,8 +417,8 @@ public class AsyncQueryService extends BasicService {
         return null;
     }
 
-    private void processCSV(OutputStream outputStream, Path dataPath,
-                            boolean includeHeader, String columnNames) throws IOException {
+    private void processCSV(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames)
+            throws IOException {
         FileSystem fileSystem = getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         if (includeHeader) {
@@ -437,7 +441,8 @@ public class AsyncQueryService extends BasicService {
         for (FileStatus f : fileStatuses) {
             if (!f.getPath().getName().startsWith("_")) {
                 try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(encode)));
+                    BufferedReader bufferedReader = new BufferedReader(
+                            new InputStreamReader(inputStream, Charset.forName(encode)));
                     rowResults.addAll(Lists.newArrayList(bufferedReader.lines().collect(Collectors.toList())));
                 }
             }
@@ -446,8 +451,8 @@ public class AsyncQueryService extends BasicService {
         IOUtils.copy(IOUtils.toInputStream(json), outputStream);
     }
 
-    private void processXLSX(OutputStream outputStream, Path dataPath, String encode,
-                             boolean includeHeader, String columnNames) throws IOException {
+    private void processXLSX(OutputStream outputStream, Path dataPath, String encode, boolean includeHeader,
+            String columnNames) throws IOException {
         List<String[]> results = Lists.newArrayList();
         List<String> rowResults = Lists.newArrayList();
         FileSystem fileSystem = getFileSystem();
@@ -455,7 +460,8 @@ public class AsyncQueryService extends BasicService {
         for (FileStatus f : fileStatuses) {
             if (!f.getPath().getName().startsWith("_")) {
                 try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(encode)));
+                    BufferedReader bufferedReader = new BufferedReader(
+                            new InputStreamReader(inputStream, Charset.forName(encode)));
                     rowResults.addAll(Lists.newArrayList(bufferedReader.lines().collect(Collectors.toList())));
                 }
             }
@@ -482,7 +488,6 @@ public class AsyncQueryService extends BasicService {
             wb.write(outputStream);
         }
     }
-
 
     @Getter
     @Setter

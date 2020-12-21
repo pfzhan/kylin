@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.calcite.adapter.enumerable.CallImplementor;
@@ -85,11 +86,13 @@ public class UDFRegistry {
 
         //udf
         for (Map.Entry<String, String> entry : KylinConfig.getInstanceFromEnv().getUDFs().entrySet()) {
-            udfDefinitions.put(entry.getKey(), new UDFDefinition(entry.getKey().trim().toUpperCase(), entry.getValue().trim()));
+            udfDefinitions.put(entry.getKey(),
+                    new UDFDefinition(entry.getKey().trim().toUpperCase(Locale.ROOT), entry.getValue().trim()));
         }
         //udaf
         for (Map.Entry<String, Class<?>> entry : MeasureTypeFactory.getUDAFs().entrySet()) {
-            udfDefinitions.put(entry.getKey(), new UDFDefinition(entry.getKey().trim().toUpperCase(), entry.getValue().getName().trim(), null));
+            udfDefinitions.put(entry.getKey(), new UDFDefinition(entry.getKey().trim().toUpperCase(Locale.ROOT),
+                    entry.getValue().getName().trim(), null));
         }
     }
 
@@ -137,7 +140,7 @@ public class UDFRegistry {
         Map<String, UDFDefinition> udfDefinitions = new HashMap<>();
         for (Map.Entry<String, String> entry : KylinConfig.getInstanceFromEnv().getUDFs().entrySet()) {
             udfDefinitions.put(entry.getKey(),
-                    new UDFDefinition(entry.getKey().trim().toUpperCase(), entry.getValue().trim()));
+                    new UDFDefinition(entry.getKey().trim().toUpperCase(Locale.ROOT), entry.getValue().trim()));
         }
         for (UDFRegistry.UDFDefinition udfDef : Collections.unmodifiableCollection(udfDefinitions.values())) {
             try {
@@ -168,8 +171,8 @@ public class UDFRegistry {
         //udaf
         Map<String, UDFDefinition> udafDefinitions = new HashMap<>();
         for (Map.Entry<String, Class<?>> entry : MeasureTypeFactory.getUDAFs().entrySet()) {
-            udafDefinitions.put(entry.getKey(),
-                    new UDFDefinition(entry.getKey().trim().toUpperCase(), entry.getValue().getName().trim(), null));
+            udafDefinitions.put(entry.getKey(), new UDFDefinition(entry.getKey().trim().toUpperCase(Locale.ROOT),
+                    entry.getValue().getName().trim(), null));
         }
         for (UDFRegistry.UDFDefinition udfDef : Collections.unmodifiableCollection(udafDefinitions.values())) {
             try {
@@ -184,4 +187,3 @@ public class UDFRegistry {
         return allUdfMap;
     }
 }
-

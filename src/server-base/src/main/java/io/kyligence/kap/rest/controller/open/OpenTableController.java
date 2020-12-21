@@ -32,6 +32,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -95,7 +96,7 @@ public class OpenTableController extends NBasicController {
         TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
         if (null == table) {
             throw new KylinException(INVALID_TABLE_NAME,
-                    String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
         }
         return table;
     }
@@ -212,7 +213,7 @@ public class OpenTableController extends NBasicController {
             }
 
             Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),
-                    request.getTable().toUpperCase(), request.getNeedSampling(), request.getSamplingRows(),
+                    request.getTable().toUpperCase(Locale.ROOT), request.getNeedSampling(), request.getSamplingRows(),
                     request.getNeedBuilding(), request.getPriority());
 
             OpenReloadTableResponse response = new OpenReloadTableResponse();
@@ -235,7 +236,8 @@ public class OpenTableController extends NBasicController {
         checkRequiredArg(TABLE, table);
         checkRequiredArg("column_name", columnName);
 
-        String columnFormat = tableService.getPartitionColumnFormat(projectName, table.toUpperCase(), columnName);
+        String columnFormat = tableService.getPartitionColumnFormat(projectName, table.toUpperCase(Locale.ROOT),
+                columnName);
         OpenPartitionColumnFormatResponse columnFormatResponse = new OpenPartitionColumnFormatResponse();
         columnFormatResponse.setColumnName(columnName);
         columnFormatResponse.setColumnFormat(columnFormat);

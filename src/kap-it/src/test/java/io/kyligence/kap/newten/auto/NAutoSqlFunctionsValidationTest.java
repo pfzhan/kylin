@@ -25,6 +25,7 @@
 package io.kyligence.kap.newten.auto;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
@@ -213,7 +214,7 @@ public class NAutoSqlFunctionsValidationTest extends NAutoTestBase {
             break;
         case FRACTION:
             String intVar = createSingleParam(intTypeCols, false);
-            exp = String.format("ABS(%s) / (ABS(%s) + %d + 1)", intVar, intVar, random.nextInt(MAX_BOUND));
+            exp = String.format(Locale.ROOT, "ABS(%s) / (ABS(%s) + %d + 1)", intVar, intVar, random.nextInt(MAX_BOUND));
             break;
         case INT:
             exp = createExpressionParam(intTypeCols, false);

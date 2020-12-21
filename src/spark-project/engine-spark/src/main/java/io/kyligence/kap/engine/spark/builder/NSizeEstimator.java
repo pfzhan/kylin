@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.builder;
 import static org.apache.spark.sql.functions.callUDF;
 import static org.apache.spark.sql.functions.sum;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,11 +62,12 @@ public class NSizeEstimator {
             private transient long count = 0;
 
             @Override
-            public Row call(Row value) throws Exception {
+            public Row call(Row value) {
                 long size = 0;
                 if (count % frequency == 0) {
                     for (int i = 0; i < value.size(); i++) {
-                        size += value.get(i) == null ? 0 : value.get(i).toString().getBytes().length;
+                        size += value.get(i) == null ? 0
+                                : value.get(i).toString().getBytes(Charset.defaultCharset()).length;
                     }
                 }
                 count++;
@@ -168,7 +170,7 @@ public class NSizeEstimator {
                 for (int i = 0; i < row.size(); i++) {
                     if (row.get(i) == null)
                         continue;
-                    size += row.getString(i).getBytes().length;
+                    size += row.getString(i).getBytes(Charset.defaultCharset()).length;
                 }
             }
             count++;

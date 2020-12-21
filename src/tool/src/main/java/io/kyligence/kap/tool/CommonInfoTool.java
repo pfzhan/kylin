@@ -23,11 +23,13 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.tool.util.ToolUtil;
+import java.io.File;
+import java.util.Locale;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import io.kyligence.kap.tool.util.ToolUtil;
 
 public class CommonInfoTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -60,7 +62,7 @@ public class CommonInfoTool {
     public static void exportKylinHomeDir(File exportDir) {
         try {
             File file = new File(exportDir, "catalog_info");
-            String cmd = String.format("ls -lR %s>%s", ToolUtil.getKylinHome(), file.getAbsolutePath());
+            String cmd = String.format(Locale.ROOT, "ls -lR %s>%s", ToolUtil.getKylinHome(), file.getAbsolutePath());
             clientEnvTool.extractInfoByCmd(cmd, file);
         } catch (Exception e) {
             logger.error("Error in export KYLIN_HOME dir, ", e);

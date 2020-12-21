@@ -27,6 +27,7 @@ package io.kyligence.kap.rest;
 import java.io.IOException;
 
 import org.apache.curator.test.TestingServer;
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,7 +45,7 @@ import io.kyligence.kap.common.util.HostInfoFetcher;
 @SpringBootTest(classes = { HostInfoFetcher.class, ZookeeperHostInfoFetcher.class })
 @TestPropertySource(properties = "spring.cloud.zookeeper.enabled=true")
 @EnableAutoConfiguration
-public class ZookeeperHostInfoFetcherTest {
+public class ZookeeperHostInfoFetcherTest extends AbstractTestCase {
 
     @Autowired
     HostInfoFetcher hostInfoFetcher;
@@ -54,7 +55,7 @@ public class ZookeeperHostInfoFetcherTest {
     @Before
     public void setup() throws Exception {
         zkTestServer = new TestingServer(true);
-        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
@@ -62,7 +63,6 @@ public class ZookeeperHostInfoFetcherTest {
         if (zkTestServer != null) {
             zkTestServer.close();
         }
-        System.clearProperty("kylin.env.zookeeper-connect-string");
     }
 
     @Test

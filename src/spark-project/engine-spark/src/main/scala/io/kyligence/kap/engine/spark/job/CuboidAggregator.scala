@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.job
 
 import java.util
-
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
@@ -41,6 +40,7 @@ import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SparkSession}
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -128,7 +128,7 @@ object CuboidAggregator {
         }
       }
 
-      function.getExpression.toUpperCase match {
+      function.getExpression.toUpperCase(Locale.ROOT) match {
         case "MAX" =>
           max(columns.head).as(measureEntry._1.toString)
         case "MIN" =>
@@ -270,7 +270,7 @@ object CuboidAggregator {
   private def measureColumns(schema: StructType, measures: util.Map[Integer, Measure]): mutable.Iterable[Column] = {
     measures.asScala.map { mea =>
       val measureId = mea._1.toString
-      mea._2.getFunction.getExpression.toUpperCase match {
+      mea._2.getFunction.getExpression.toUpperCase(Locale.ROOT) match {
         case "SUM" =>
           val dataType = schema.find(_.name.equals(measureId)).get.dataType
           col(measureId).cast(dataType).as(measureId)

@@ -56,6 +56,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -555,10 +556,11 @@ public class NDataModel extends RootPersistentEntity {
 
     public TblColRef findColumn(String table, String column) throws IllegalArgumentException {
         TableRef tableRef = findTable(table);
-        TblColRef result = tableRef.getColumn(column.toUpperCase());
+        TblColRef result = tableRef.getColumn(column.toUpperCase(Locale.ROOT));
         if (result == null)
-            throw new KylinException(COLUMN_NOT_EXIST, String.format(
-                    MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), String.format("%s.%s", table, column)));
+            throw new KylinException(COLUMN_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
+                            String.format(Locale.ROOT, "%s.%s", table, column)));
         return result;
     }
 
@@ -566,7 +568,7 @@ public class NDataModel extends RootPersistentEntity {
         TblColRef result = null;
         String input = column;
 
-        column = column.toUpperCase();
+        column = column.toUpperCase(Locale.ROOT);
         int cut = column.lastIndexOf('.');
         if (cut > 0) {
             // table specified
@@ -581,14 +583,15 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         if (result == null)
-            throw new RuntimeException(String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), input));
+            throw new RuntimeException(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), input));
         return result;
     }
 
     public TblColRef findColumnByAlias(String column) {
         TblColRef result = null;
 
-        column = column.toUpperCase();
+        column = column.toUpperCase(Locale.ROOT);
         int cut = column.lastIndexOf('.');
         String table = column.substring(0, cut);
         String col = column.substring(cut + 1);
@@ -606,7 +609,7 @@ public class NDataModel extends RootPersistentEntity {
 
     // find by unique name, that must uniquely identifies a table in the model
     public TableRef findTable(String table) throws IllegalArgumentException {
-        TableRef result = tableNameMap.get(table.toUpperCase());
+        TableRef result = tableNameMap.get(table.toUpperCase(Locale.ROOT));
         if (result == null) {
             int endOfDatabaseName = table.indexOf(".");
             if (endOfDatabaseName > -1) {
@@ -614,7 +617,7 @@ public class NDataModel extends RootPersistentEntity {
             }
             if (result == null) {
                 throw new KylinException(TABLE_NOT_EXIST,
-                        String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getTABLE_NOT_FOUND(), table));
             }
         }
         return result;
@@ -680,7 +683,7 @@ public class NDataModel extends RootPersistentEntity {
             throw new IllegalStateException("root fact table should not be empty");
         }
 
-        rootFactTableName = rootFactTableName.toUpperCase();
+        rootFactTableName = rootFactTableName.toUpperCase(Locale.ROOT);
         if (!tables.containsKey(rootFactTableName))
             throw new IllegalStateException("Root fact table does not exist:" + rootFactTableName);
 
@@ -691,7 +694,7 @@ public class NDataModel extends RootPersistentEntity {
         factTableRefs.add(rootFactTableRef);
 
         for (JoinTableDesc join : joinTables) {
-            join.setTable(join.getTable().toUpperCase());
+            join.setTable(join.getTable().toUpperCase(Locale.ROOT));
 
             if (!tables.containsKey(join.getTable()))
                 throw new IllegalStateException("Join table does not exist:" + join.getTable());
@@ -701,7 +704,7 @@ public class NDataModel extends RootPersistentEntity {
             if (alias == null) {
                 alias = tableDesc.getName();
             }
-            alias = alias.toUpperCase();
+            alias = alias.toUpperCase(Locale.ROOT);
             join.setAlias(alias);
 
             boolean isLookup = join.getKind() == TableKind.LOOKUP;
@@ -1069,8 +1072,8 @@ public class NDataModel extends RootPersistentEntity {
             int id = e.getKey();
             T value = e.getValue();
             if (reverseMap.containsKey(value)) {
-                throw new IllegalStateException(String.format("Illegal model '%d', %s has duplicated ID: %s and %d", id,
-                        value, reverseMap.get(value), id));
+                throw new IllegalStateException(String.format(Locale.ROOT,
+                        "Illegal model '%d', %s has duplicated ID: %s and %d", id, value, reverseMap.get(value), id));
             }
             reverseMap.put(value, id);
         }
@@ -1088,8 +1091,8 @@ public class NDataModel extends RootPersistentEntity {
                     func.init(this);
                 }
             } catch (Exception e) {
-                throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getINIT_MEASURE_FAILED(), m.getName(), e.getMessage()));
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getINIT_MEASURE_FAILED(), m.getName(), e.getMessage()));
             }
         }
 
@@ -1121,9 +1124,9 @@ public class NDataModel extends RootPersistentEntity {
                 countNum++;
         }
         if (countNum != 1)
-            throw new IllegalStateException(
-                    String.format("Illegal model '%s', should have one and only one COUNT() measure but there are %d",
-                            uuid, countNum));
+            throw new IllegalStateException(String.format(Locale.ROOT,
+                    "Illegal model '%s', should have one and only one COUNT() measure but there are %d", uuid,
+                    countNum));
 
         // check all measure columns are effective
         for (MeasureDesc m : effectiveMeasures.values()) {
@@ -1131,9 +1134,9 @@ public class NDataModel extends RootPersistentEntity {
             if (!effectiveCols.values().containsAll(mCols)) {
                 List<TblColRef> notEffective = new ArrayList<>(mCols);
                 notEffective.removeAll(effectiveCols.values());
-                throw new IllegalStateException(
-                        String.format("Illegal model '%s', some columns referenced in %s is not on model: %s", uuid, m,
-                                notEffective));
+                throw new IllegalStateException(String.format(Locale.ROOT,
+                        "Illegal model '%s', some columns referenced in %s is not on model: %s", uuid, m,
+                        notEffective));
             }
         }
     }

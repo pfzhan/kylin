@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Locale;
 
 public class JStackTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -41,7 +42,8 @@ public class JStackTool {
 
         try {
             FileUtils.forceMkdir(logDir);
-            File jstackDumpFile = new File(logDir, String.format("jstack.diag.log.%s", System.currentTimeMillis()));
+            File jstackDumpFile = new File(logDir,
+                    String.format(Locale.ROOT, "jstack.diag.log.%s", System.currentTimeMillis()));
             ToolUtil.dumpKylinJStack(jstackDumpFile);
         } catch (Exception e) {
             logger.error("Failed to dump jstack, ", e);

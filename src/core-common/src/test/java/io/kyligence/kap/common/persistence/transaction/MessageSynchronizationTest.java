@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +45,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
 public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
+
+    private final Charset charset = Charset.defaultCharset();
 
     @Before
     public void setup() {
@@ -69,13 +72,13 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
 
     private List<Event> createEvents() {
         val event1 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc.json", ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
+                new RawResource("/default/abc.json", ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
         val event2 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc2.json", ByteStreams.asByteSource("abc2".getBytes()), 0L, 0));
+                new RawResource("/default/abc2.json", ByteStreams.asByteSource("abc2".getBytes(charset)), 0L, 0));
         val event3 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc.json", ByteStreams.asByteSource("version2".getBytes()), 0L, 1));
+                new RawResource("/default/abc.json", ByteStreams.asByteSource("version2".getBytes(charset)), 0L, 1));
         val event4 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc3.json", ByteStreams.asByteSource("42".getBytes()), 0L, 0));
+                new RawResource("/default/abc3.json", ByteStreams.asByteSource("42".getBytes(charset)), 0L, 0));
         val event5 = new ResourceDeleteEvent("/default/abc3.json");
         return Lists.newArrayList(event1, event2, event3, event4, event5).stream().peek(e -> e.setKey("default"))
                 .collect(Collectors.toList());

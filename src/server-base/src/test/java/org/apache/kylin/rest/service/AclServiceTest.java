@@ -80,7 +80,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({SpringContext.class, UserGroupInformation.class})
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class AclServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
@@ -98,8 +98,10 @@ public class AclServiceTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
         PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
-        PowerMockito.when(SpringContext.getBean(PermissionFactory.class)).thenReturn(PowerMockito.mock(PermissionFactory.class));
-        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class)).thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class))
+                .thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class))
+                .thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
     }
 
     @After

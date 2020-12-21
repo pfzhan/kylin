@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -85,7 +86,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         try {
             String sql = "show tables";
             if (StringUtils.isNotBlank(database)) {
-                sql = String.format(sql + " in %s", database);
+                sql = String.format(Locale.ROOT, sql + " in %s", database);
             }
             Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
             tables = dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
@@ -148,8 +149,8 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         // make a new TableDesc instance, don't modify the one in use
         if (tableDesc == null) {
             tableDesc = new TableDesc();
-            tableDesc.setDatabase(database.toUpperCase());
-            tableDesc.setName(tableName.toUpperCase());
+            tableDesc.setDatabase(database.toUpperCase(Locale.ROOT));
+            tableDesc.setName(tableName.toUpperCase(Locale.ROOT));
             tableDesc.setUuid(UUID.randomUUID().toString());
             tableDesc.setLastModified(0);
         } else {
@@ -166,7 +167,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         for (int i = 0; i < columnNumber; i++) {
             NSparkTableMeta.SparkTableColumnMeta field = tableMeta.allColumns.get(i);
             ColumnDesc cdesc = new ColumnDesc();
-            cdesc.setName(field.name.toUpperCase());
+            cdesc.setName(field.name.toUpperCase(Locale.ROOT));
             // use "double" in kylin for "float"
             if ("float".equalsIgnoreCase(field.dataType)) {
                 cdesc.setDatatype("double");
@@ -179,11 +180,11 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         }
         tableDesc.setColumns(columns.toArray(new ColumnDesc[columnNumber]));
 
-        StringBuffer partitionColumnString = new StringBuffer();
+        StringBuilder partitionColumnString = new StringBuilder();
         for (int i = 0, n = tableMeta.partitionColumns.size(); i < n; i++) {
             if (i > 0)
                 partitionColumnString.append(", ");
-            partitionColumnString.append(tableMeta.partitionColumns.get(i).name.toUpperCase());
+            partitionColumnString.append(tableMeta.partitionColumns.get(i).name.toUpperCase(Locale.ROOT));
         }
 
         TableExtDesc tableExtDesc = new TableExtDesc();
@@ -238,7 +239,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     }
 
     private String generateCreateSchemaSql(String schemaName) {
-        return String.format("CREATE DATABASE IF NOT EXISTS %s", schemaName);
+        return String.format(Locale.ROOT, "CREATE DATABASE IF NOT EXISTS %s", schemaName);
     }
 
     @Override

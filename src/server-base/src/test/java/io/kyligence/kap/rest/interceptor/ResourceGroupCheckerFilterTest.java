@@ -24,8 +24,13 @@
 
 package io.kyligence.kap.rest.interceptor;
 
-import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
-import lombok.val;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.Assert;
 import org.junit.Test;
@@ -34,10 +39,8 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import java.io.IOException;
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
+import lombok.val;
 
 public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
     @Test
@@ -46,7 +49,7 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes(StandardCharsets.UTF_8));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -69,7 +72,7 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes(StandardCharsets.UTF_8));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -93,7 +96,7 @@ public class ResourceGroupCheckerFilterTest extends ServiceTestBase {
         request.setMethod("GET");
         request.setRequestURI("/kylin/api/projects");
         request.setContentType("application/json");
-        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"a\"" + "}").getBytes(StandardCharsets.UTF_8));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {

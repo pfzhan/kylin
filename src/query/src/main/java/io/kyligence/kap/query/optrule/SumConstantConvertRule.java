@@ -253,7 +253,7 @@ public class SumConstantConvertRule extends RelOptRule {
             AggExpression aggExpression = aggExpressions.get(aggIndex);
             AggregateCall aggCall = aggExpression.getAggCall();
             String aggName = "TOP_AGG$" + aggIndex;
-            SqlAggFunction aggFunction = SqlKind.COUNT.equals(aggCall.getAggregation().getKind())
+            SqlAggFunction aggFunction = SqlKind.COUNT == aggCall.getAggregation().getKind()
                     ? SqlStdOperatorTable.SUM0
                     : aggCall.getAggregation();
             topAggregates.add(AggregateCall.create(aggFunction, false, false,

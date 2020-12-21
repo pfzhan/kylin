@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,6 +46,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -79,7 +79,8 @@ public class ZipFileUtils {
             zipInputStream = new ZipInputStream(new FileInputStream(zipFileName));
             ZipEntry zipEntry = null;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                logger.info("decompressing " + zipEntry.getName() + " is directory:" + zipEntry.isDirectory() + " available: " + zipInputStream.available());
+                logger.info("decompressing " + zipEntry.getName() + " is directory:" + zipEntry.isDirectory()
+                        + " available: " + zipInputStream.available());
 
                 File temp = new File(outputFolder, zipEntry.getName());
                 if (zipEntry.isDirectory()) {
@@ -101,7 +102,8 @@ public class ZipFileUtils {
         }
     }
 
-    private static void compressDirectoryToZipfile(String rootDir, String sourceDir, ZipOutputStream out) throws IOException {
+    private static void compressDirectoryToZipfile(String rootDir, String sourceDir, ZipOutputStream out)
+            throws IOException {
         File[] files = new File(sourceDir).listFiles();
         if (files == null)
             return;
@@ -109,7 +111,9 @@ public class ZipFileUtils {
             if (sourceFile.isDirectory()) {
                 compressDirectoryToZipfile(rootDir, sourceDir + normDir(sourceFile.getName()), out);
             } else {
-                ZipEntry entry = new ZipEntry(normDir(StringUtils.isEmpty(rootDir) ? sourceDir : sourceDir.replace(rootDir, "")) + sourceFile.getName());
+                ZipEntry entry = new ZipEntry(
+                        normDir(StringUtils.isEmpty(rootDir) ? sourceDir : sourceDir.replace(rootDir, ""))
+                                + sourceFile.getName());
                 entry.setTime(sourceFile.lastModified());
                 out.putNextEntry(entry);
                 FileInputStream in = new FileInputStream(sourceDir + sourceFile.getName());
@@ -123,11 +127,7 @@ public class ZipFileUtils {
     }
 
     private static boolean validateZipFilename(String filename) {
-        if (!StringUtils.isEmpty(filename) && filename.trim().toLowerCase().endsWith(".zip")) {
-            return true;
-        }
-
-        return false;
+        return !StringUtils.isEmpty(filename) && filename.trim().toLowerCase(Locale.ROOT).endsWith(".zip");
     }
 
     private static String normDir(String dirName) {

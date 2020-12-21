@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.util;
 
+import java.util.Locale;
+
 import org.apache.kylin.common.util.DateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,19 +43,21 @@ public class SecurityLoggerUtils {
     private static final String LOGOUT = "[Operation: log out] user:%s, logout time:%s, ip and port:%s";
 
     public static void recordLoginSuccess(String username) {
-        String loginSuccessMsg = String.format(SecurityLoggerUtils.LOGIN, username,
-                DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), Boolean.TRUE, AddressUtil.getLocalInstance());
+        String loginSuccessMsg = String.format(Locale.ROOT, SecurityLoggerUtils.LOGIN, username,
+                DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), Boolean.TRUE,
+                AddressUtil.getLocalInstance());
         securityLogger.info(loginSuccessMsg);
     }
 
     public static void recordLoginFailed(String username, Exception e) {
-        String loginErrorMsg = String.format(SecurityLoggerUtils.LOGIN, username,
-                DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), Boolean.FALSE, AddressUtil.getLocalInstance());
+        String loginErrorMsg = String.format(Locale.ROOT, SecurityLoggerUtils.LOGIN, username,
+                DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), Boolean.FALSE,
+                AddressUtil.getLocalInstance());
         securityLogger.error(loginErrorMsg, e);
     }
 
     public static void recordLogout(String username) {
-        String logoutMessage = String.format(SecurityLoggerUtils.LOGOUT, username,
+        String logoutMessage = String.format(Locale.ROOT, SecurityLoggerUtils.LOGOUT, username,
                 DateFormat.formatToTimeWithoutMilliStr(System.currentTimeMillis()), AddressUtil.getLocalInstance());
         securityLogger.info(logoutMessage);
     }

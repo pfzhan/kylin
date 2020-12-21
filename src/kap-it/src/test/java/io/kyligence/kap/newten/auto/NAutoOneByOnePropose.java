@@ -42,7 +42,7 @@ public class NAutoOneByOnePropose {
         NLocalWithSparkSessionTest.beforeClass();
         performanceTestBase.setup();
 
-        performanceTestBase.testWithBadQueriesOneByOne(Integer.valueOf(args[0]));
+        performanceTestBase.testWithBadQueriesOneByOne(Integer.parseInt(args[0]));
 
         NLocalWithSparkSessionTest.afterClass();
         performanceTestBase.tearDown();

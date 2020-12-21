@@ -23,11 +23,12 @@
  */
 package io.kyligence.kap.source.jdbc;
 
+import java.io.IOException;
+import java.util.Locale;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.sdk.datasource.framework.JdbcConnector;
 import org.apache.kylin.source.IReadableTable;
-
-import java.io.IOException;
 
 public class JdbcTable implements IReadableTable {
     private final JdbcConnector dataSource;
@@ -49,7 +50,7 @@ public class JdbcTable implements IReadableTable {
 
     @Override
     public TableSignature getSignature() {
-        String path = String.format("%s.%s", database, tableName);
+        String path = String.format(Locale.ROOT, "%s.%s", database, tableName);
         return new TableSignature(path, 0, System.currentTimeMillis());
     }
 

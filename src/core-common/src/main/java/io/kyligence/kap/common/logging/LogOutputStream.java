@@ -33,11 +33,11 @@ public class LogOutputStream extends OutputStream {
     /**
      * The internal memory for the written bytes.
      */
-    private StringBuffer mem;
+    private StringBuilder mem;
 
     public LogOutputStream(final Logger logger) {
         this.logger = logger;
-        mem = new StringBuffer();
+        mem = new StringBuilder();
     }
 
     @Override
@@ -46,13 +46,13 @@ public class LogOutputStream extends OutputStream {
             flush();
             return;
         }
-        mem = mem.append((char) b);
+        mem.append((char) b);
     }
 
     @Override
     public void flush() {
         logger.info(mem.toString());
-        mem = new StringBuffer();
+        mem = new StringBuilder();
     }
 
 }

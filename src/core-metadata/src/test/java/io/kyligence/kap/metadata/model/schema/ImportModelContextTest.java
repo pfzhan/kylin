@@ -43,6 +43,7 @@ import org.junit.Test;
 import org.springframework.util.ReflectionUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -77,7 +78,7 @@ public class ImportModelContextTest extends NLocalFileMetadataTestCase {
         Method prepareIdChangedMapMethod = ImportModelContext.class.getDeclaredMethod("prepareIdChangedMap",
                 NDataModel.class, NDataModel.class);
 
-        prepareIdChangedMapMethod.setAccessible(true);
+        Unsafe.changeAccessibleObject(prepareIdChangedMapMethod, true);
         Map<Integer, Integer> idChangedMap = (Map<Integer, Integer>) ReflectionUtils
                 .invokeMethod(prepareIdChangedMapMethod, ImportModelContext.class, originalModel, targetDataModel);
 
@@ -103,7 +104,7 @@ public class ImportModelContextTest extends NLocalFileMetadataTestCase {
         Method prepareIdChangedMapMethod = ImportModelContext.class.getDeclaredMethod("prepareIdChangedMap",
                 NDataModel.class, NDataModel.class);
 
-        prepareIdChangedMapMethod.setAccessible(true);
+        Unsafe.changeAccessibleObject(prepareIdChangedMapMethod, true);
         Map<Integer, Integer> idChangedMap = (Map<Integer, Integer>) ReflectionUtils
                 .invokeMethod(prepareIdChangedMapMethod, ImportModelContext.class, originalModel, targetDataModel);
 

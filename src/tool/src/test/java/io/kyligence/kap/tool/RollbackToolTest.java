@@ -28,9 +28,11 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
@@ -71,7 +73,8 @@ import lombok.var;
 
 public class RollbackToolTest extends NLocalFileMetadataTestCase {
 
-    DateTimeFormatter DATE_TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    DateTimeFormatter DATE_TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss",
+            Locale.getDefault(Locale.Category.FORMAT));
 
     @Before
     public void setup() throws Exception {
@@ -98,7 +101,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         MetadataTool.backup(kylinConfig);
 
         Thread.sleep(1000);
-        val t1 = LocalDateTime.now();
+        val t1 = LocalDateTime.now(Clock.systemDefaultZone());
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -123,10 +126,10 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         val currentResourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         val projectItems = currentResourceStore.listResources("/_global/project");
         //Time travel successfully, does not include project12
-        Assert.assertTrue(!projectItems.contains("/_global/project/project12.json"));
+        Assert.assertFalse(projectItems.contains("/_global/project/project12.json"));
 
         Thread.sleep(1000);
-        val t2 = LocalDateTime.now();
+        val t2 = LocalDateTime.now(Clock.systemDefaultZone());
         Thread.sleep(1000);
         UnitOfWork.doInTransactionWithRetry(() -> {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -145,7 +148,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         }, "project13", 1);
 
         Thread.sleep(1000);
-        val t3 = LocalDateTime.now();
+        val t3 = LocalDateTime.now(Clock.systemDefaultZone());
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -168,18 +171,18 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
 
         // Time travel successfully, does not include project13  does not include project14
         val projectItems1 = currentResourceStore.listResources("/_global/project");
-        Assert.assertTrue(!projectItems1.contains("/_global/project/project13.json"));
-        Assert.assertTrue(!projectItems1.contains("/_global/project/project14.json"));
+        Assert.assertFalse(projectItems1.contains("/_global/project/project13.json"));
+        Assert.assertFalse(projectItems1.contains("/_global/project/project14.json"));
 
         tool.execute(new String[] { "-skipCheckData", "true", "-time", t3.format(DATE_TIME_FORMATTER) });
 
         // Time travel successfully, include project13  does not include project14
         val projectItems2 = currentResourceStore.listResources("/_global/project");
         Assert.assertTrue(projectItems2.contains("/_global/project/project13.json"));
-        Assert.assertTrue(!projectItems2.contains("/_global/project/project14.json"));
+        Assert.assertFalse(projectItems2.contains("/_global/project/project14.json"));
 
         Thread.sleep(1000);
-        val t4 = LocalDateTime.now();
+        val t4 = LocalDateTime.now(Clock.systemDefaultZone());
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -216,7 +219,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         MetadataTool.backup(kylinConfig);
 
         Thread.sleep(1000);
-        val t1 = LocalDateTime.now();
+        val t1 = LocalDateTime.now(Clock.systemDefaultZone());
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -245,7 +248,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         }, "default", 1);
 
         Thread.sleep(1000);
-        val t1 = LocalDateTime.now();
+        val t1 = LocalDateTime.now(Clock.systemDefaultZone());
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -261,8 +264,8 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         }, "default", 1);
         tool.execute(new String[] { "-skipCheckData", "true", "-time", t1.format(DATE_TIME_FORMATTER), "-project",
                 "default" });
-        Assert.assertTrue(NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
-                .getAllExecutables().get(0).getStatus().equals(ExecutableState.READY));
+        Assert.assertSame(ExecutableState.READY, NExecutableManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), "default").getAllExecutables().get(0).getStatus());
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {

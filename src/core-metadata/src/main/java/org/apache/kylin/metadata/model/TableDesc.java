@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang3.StringUtils;
@@ -70,6 +71,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.val;
+
 /**
  * Table Metadata from Source. All name should be uppercase.
  */
@@ -189,7 +191,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
                 if (existingColumns[i].getName().equalsIgnoreCase(computedColumns[j].getName())) {
                     // if we're adding a computed column twice, it should be allowed without producing duplicates
                     if (!existingColumns[i].isComputedColumn()) {
-                        throw new IllegalArgumentException(String.format(
+                        throw new IllegalArgumentException(String.format(Locale.ROOT,
                                 "There is already a column named %s on table %s, please change your computed column name",
                                 computedColumns[j].getName(), this.getIdentity()));
                     } else {
@@ -241,15 +243,16 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getIdentity() {
         String originIdentity = getCaseSensitiveIdentity();
-        return originIdentity.toUpperCase();
+        return originIdentity.toUpperCase(Locale.ROOT);
     }
 
     public String getCaseSensitiveIdentity() {
         if (identity == null) {
             if (this.getCaseSensitiveDatabase().equals("null")) {
-                identity = String.format("%s", this.getCaseSensitiveName());
+                identity = String.format(Locale.ROOT, "%s", this.getCaseSensitiveName());
             } else {
-                identity = String.format("%s.%s", this.getCaseSensitiveDatabase(), this.getCaseSensitiveName());
+                identity = String.format(Locale.ROOT, "%s.%s", this.getCaseSensitiveDatabase(),
+                        this.getCaseSensitiveName());
             }
         }
         return identity;
@@ -272,10 +275,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public String getName() {
-        if (this.name == null) {
-            return null;
-        }
-        return this.name.toUpperCase();
+        return name == null ? null : name.toUpperCase(Locale.ROOT);
     }
 
     @JsonGetter("name")
@@ -299,7 +299,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public String getDatabase() {
-        return database.getName().toUpperCase();
+        return database.getName().toUpperCase(Locale.ROOT);
     }
 
     @JsonGetter("database")
@@ -445,7 +445,8 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public HashMap<String, String> getKafkaParam() {
-        Preconditions.checkState(this.kafkaBootstrapServers != null && this.subscribe != null && this.startingOffsets != null,
+        Preconditions.checkState(
+                this.kafkaBootstrapServers != null && this.subscribe != null && this.startingOffsets != null,
                 "table are not streaming table");
         val kafkaParam = Maps.<String, String> newHashMap();
         kafkaParam.put("kafka.bootstrap.servers", this.kafkaBootstrapServers);

@@ -43,8 +43,8 @@ package io.kyligence.kap.query.util;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -72,6 +72,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+
 public class FilterPushDownUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(FilterPushDownUtil.class);
@@ -90,8 +92,7 @@ public class FilterPushDownUtil {
      * @return            string applied data loading range
      * @throws SqlParseException if there is a parse error
      */
-    static String applyDataLoadingRange(String sqlToUpdate, NDataLoadingRange range)
-            throws SqlParseException {
+    static String applyDataLoadingRange(String sqlToUpdate, NDataLoadingRange range) throws SqlParseException {
         Preconditions.checkNotNull(range);
         SegmentRange readySegmentRange = range.getCoveredRange();
         Preconditions.checkNotNull(readySegmentRange);
@@ -102,9 +103,12 @@ public class FilterPushDownUtil {
         Preconditions.checkState(schemaAndShortName.length == 2);
 
         // use start and waterMark
-        final String start = DateFormat.formatToDateStr((Long) readySegmentRange.getStart(), DateFormat.DEFAULT_DATE_PATTERN);
-        final String waterMark = DateFormat.formatToDateStr((Long) readySegmentRange.getEnd(), DateFormat.DEFAULT_DATE_PATTERN);
-        String extraCondition = String.format("%s >= '%s' and %s <= '%s'", columnName, start, columnName, waterMark);
+        final String start = DateFormat.formatToDateStr((Long) readySegmentRange.getStart(),
+                DateFormat.DEFAULT_DATE_PATTERN);
+        final String waterMark = DateFormat.formatToDateStr((Long) readySegmentRange.getEnd(),
+                DateFormat.DEFAULT_DATE_PATTERN);
+        String extraCondition = String.format(Locale.ROOT, "%s >= '%s' and %s <= '%s'", columnName, start, columnName,
+                waterMark);
 
         return applyFilterCondition(sqlToUpdate, extraCondition, tableName);
     }
@@ -145,7 +149,7 @@ public class FilterPushDownUtil {
         Preconditions.checkState(names.length == 2 && names[0].length() > 0 && names[1].length() > 0,
                 "Malformed target table '" + targetTable + "', missing schema or table name.");
 
-        if (names[0].trim().toUpperCase().equals(HIVE_DEFAULT_SCHEMA)) {
+        if (names[0].trim().equalsIgnoreCase(HIVE_DEFAULT_SCHEMA)) {
             targetTable = names[1];
         }
 
@@ -159,11 +163,11 @@ public class FilterPushDownUtil {
      * with given condition
      */
     private static class ConditionModifier extends SqlBasicVisitor {
-        private String targetTable;
-        private String filterCondition;
+        private final String targetTable;
+        private final String filterCondition;
 
         ConditionModifier(String targetTable, String filterCondition) {
-            this.targetTable = targetTable.toUpperCase();
+            this.targetTable = targetTable.toUpperCase(Locale.ROOT);
             this.filterCondition = filterCondition;
         }
 

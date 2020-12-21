@@ -24,18 +24,12 @@
 
 package io.kyligence.kap.smart.util;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.model.BadModelException;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -50,10 +44,19 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.metadata.model.BadModelException;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ComputedColumnEvalUtil {
@@ -99,20 +102,21 @@ public class ComputedColumnEvalUtil {
             int start, int end) {
         for (int i = start; i < end; i++) {
             try {
-                evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSession(), nDataModel, i, i+1);
+                evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSession(), nDataModel, i, i + 1);
             } catch (AnalysisException e) {
                 Matcher matcher = PATTERN_COLUMN.matcher(e.getMessage());
                 if (matcher.find()) {
                     String str = matcher.group(2).replace(NSparkCubingUtil.SEPARATOR, ".");
-                    throw new IllegalCCExpressionException(QueryErrorCode.CC_EXPRESSION_ILLEGAL, "Cannot find column "
-                            + str.substring(0, str.lastIndexOf('.')) + "." + matcher.group(1)
-                            + ", please check whether schema of related table has changed.");
+                    throw new IllegalCCExpressionException(QueryErrorCode.CC_EXPRESSION_ILLEGAL,
+                            "Cannot find column " + str.substring(0, str.lastIndexOf('.')) + "." + matcher.group(1)
+                                    + ", please check whether schema of related table has changed.");
                 }
 
                 Preconditions.checkNotNull(computedColumns.get(i));
-                throw new IllegalCCExpressionException(QueryErrorCode.CC_EXPRESSION_ILLEGAL, String.format(MsgPicker.getMsg().getCheckCCExpression(),
-                        computedColumns.get(i).getTableAlias() + "." + computedColumns.get(i).getColumnName(),
-                        computedColumns.get(i).getExpression()));
+                throw new IllegalCCExpressionException(QueryErrorCode.CC_EXPRESSION_ILLEGAL,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getCheckCCExpression(),
+                                computedColumns.get(i).getTableAlias() + "." + computedColumns.get(i).getColumnName(),
+                                computedColumns.get(i).getExpression()));
             }
         }
     }
@@ -135,7 +139,7 @@ public class ComputedColumnEvalUtil {
         val rootDF = generateDatasetOnTable(ss, model.getRootFactTable());
 
         // look up tables
-        val joinTableDFMap = Maps.<JoinTableDesc, Dataset<Row>>newLinkedHashMap();
+        val joinTableDFMap = Maps.<JoinTableDesc, Dataset<Row>> newLinkedHashMap();
         model.getJoinTables().forEach(
                 joinTable -> joinTableDFMap.put(joinTable, generateDatasetOnTable(ss, joinTable.getTableRef())));
 
@@ -192,7 +196,8 @@ public class ComputedColumnEvalUtil {
     }
 
     private static String incrementIndex(String oldAlias) {
-        if (oldAlias == null || !oldAlias.startsWith(ComputedColumnUtil.CC_NAME_PREFIX) || oldAlias.equals(ComputedColumnUtil.CC_NAME_PREFIX)) {
+        if (oldAlias == null || !oldAlias.startsWith(ComputedColumnUtil.CC_NAME_PREFIX)
+                || oldAlias.equals(ComputedColumnUtil.CC_NAME_PREFIX)) {
             return ComputedColumnUtil.DEFAULT_CC_NAME;
         }
 

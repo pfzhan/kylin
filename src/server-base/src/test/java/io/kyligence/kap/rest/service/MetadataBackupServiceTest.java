@@ -28,6 +28,7 @@ import static org.awaitility.Awaitility.await;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -166,7 +167,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         val path = rootMetadataFS.listStatus(rootMetadataPath)[0].getPath();
         Assert.assertEquals(2, rootMetadataFS.listStatus(path).length);
         FSDataInputStream fis = rootMetadataFS.open(new Path(path.toString() + File.separator + "_image"));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8));
         String image = reader.readLine();
         ImageDesc imageDesc = JsonUtil.readValue(image, ImageDesc.class);
         Assertions.assertThat(imageDesc.getOffset()).isEqualTo(count);

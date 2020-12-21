@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.source;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.IReadableTable;
@@ -51,7 +52,7 @@ public class NSparkTable implements IReadableTable {
     @Override
     public TableSignature getSignature() throws IOException {
         // TODO: 07/12/2017 get modify time
-        String path = String.format("%s.%s", database, tableName);
+        String path = String.format(Locale.ROOT, "%s.%s", database, tableName);
         long lastModified = System.currentTimeMillis(); // assume table is ever changing
         int size = 0;
         return new TableSignature(path, size, lastModified);

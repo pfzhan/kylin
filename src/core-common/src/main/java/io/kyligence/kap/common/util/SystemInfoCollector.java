@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.util;
 
+import java.util.Locale;
+
 import org.apache.kylin.common.KylinConfig;
 
 import lombok.val;
@@ -58,9 +60,8 @@ public final class SystemInfoCollector {
             return 6192;
         }
         val mem = hal.getMemory();
-        if (mem.getAvailable() % MEBI == 0) {
-            return Integer.parseInt(String.format("%d", mem.getAvailable() / MEBI));
-        }
-        return Integer.parseInt(String.format("%.0f", (double) mem.getAvailable() / MEBI));
+        return mem.getAvailable() % MEBI == 0
+                ? Integer.parseInt(String.format(Locale.ROOT, "%d", mem.getAvailable() / MEBI))
+                : Integer.parseInt(String.format(Locale.ROOT, "%.0f", (double) mem.getAvailable() / MEBI));
     }
 }

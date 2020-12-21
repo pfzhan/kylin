@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -54,7 +53,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +109,7 @@ public class SSHClient {
             channel.connect();
 
             if (checkAck(in) != 0) {
-                System.exit(0);
+                Unsafe.systemExit(0);
             }
 
             File _lfile = new File(localFile);
@@ -118,7 +119,7 @@ public class SSHClient {
                 // The access time should be sent here,
                 // but it is not accessible with JavaAPI ;-<
                 command += (" " + (_lfile.lastModified() / 1000) + " 0\n");
-                out.write(command.getBytes());
+                out.write(command.getBytes(Charset.defaultCharset()));
                 out.flush();
                 if (checkAck(in) != 0) {
                     throw new Exception("Error in checkAck()");
@@ -136,7 +137,7 @@ public class SSHClient {
                 command += localFile;
             }
             command += "\n";
-            out.write(command.getBytes());
+            out.write(command.getBytes(Charset.defaultCharset()));
             out.flush();
             if (checkAck(in) != 0) {
                 throw new Exception("Error in checkAck()");
@@ -225,7 +226,7 @@ public class SSHClient {
                 for (int i = 0;; i++) {
                     in.read(buf, i, 1);
                     if (buf[i] == (byte) 0x0a) {
-                        file = new String(buf, 0, i);
+                        file = new String(buf, 0, i, Charset.defaultCharset());
                         break;
                     }
                 }
@@ -257,7 +258,7 @@ public class SSHClient {
                 fos = null;
 
                 if (checkAck(in) != 0) {
-                    System.exit(0);
+                    Unsafe.systemExit(0);
                 }
 
                 // send '\0'
@@ -284,7 +285,7 @@ public class SSHClient {
         try {
             logger.info("[" + username + "@" + hostname + "] Execute command: " + command);
 
-            StringBuffer text = new StringBuffer();
+            StringBuilder text = new StringBuilder();
             int exitCode = -1;
 
             Session session = newJSchSession();
@@ -313,7 +314,7 @@ public class SSHClient {
                     if (i < 0)
                         break;
 
-                    String line = new String(tmp, 0, i);
+                    String line = new String(tmp, 0, i, Charset.defaultCharset());
                     text.append(line);
                     if (logAppender != null) {
                         logAppender.log(line);
@@ -324,7 +325,7 @@ public class SSHClient {
                     if (i < 0)
                         break;
 
-                    String line = new String(tmp, 0, i);
+                    String line = new String(tmp, 0, i, Charset.defaultCharset());
                     text.append(line);
                     if (logAppender != null) {
                         logAppender.log(line);
@@ -380,7 +381,7 @@ public class SSHClient {
             return b;
 
         if (b == 1 || b == 2) {
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
             int c;
             do {
                 c = in.read();

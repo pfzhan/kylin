@@ -23,12 +23,15 @@
  */
 package io.kyligence.kap.tool.daemon.checker;
 
+import java.util.Locale;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.kyligence.kap.tool.daemon.CheckResult;
 import io.kyligence.kap.tool.daemon.CheckStateEnum;
 import io.kyligence.kap.tool.daemon.HealthChecker;
 import io.kyligence.kap.tool.daemon.Worker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class AbstractHealthChecker extends Worker implements HealthChecker {
     private static final Logger logger = LoggerFactory.getLogger(AbstractHealthChecker.class);
@@ -71,14 +74,16 @@ public abstract class AbstractHealthChecker extends Worker implements HealthChec
         }
 
         if (null == result) {
-            String message = String.format("Checker: [%s] check result is null!", this.getClass().getName());
+            String message = String.format(Locale.ROOT, "Checker: [%s] check result is null!",
+                    this.getClass().getName());
             logger.warn(message);
 
             result = new CheckResult(CheckStateEnum.OTHER, message);
         }
 
         if (null == result.getCheckState()) {
-            String message = String.format("Checker: [%s] check result state is null!", this.getClass().getName());
+            String message = String.format(Locale.ROOT, "Checker: [%s] check result state is null!",
+                    this.getClass().getName());
             logger.warn(message);
 
             result.setCheckState(CheckStateEnum.OTHER);

@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -137,7 +138,7 @@ public class QueryMetricsContext extends QueryMetrics {
         // for query stats
         TimeZone timeZone = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone());
         LocalDate date = Instant.ofEpochMilli(this.queryTime).atZone(timeZone.toZoneId()).toLocalDate();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM", Locale.getDefault(Locale.Category.FORMAT));
         this.month = date.withDayOfMonth(1).format(formatter);
         this.queryFirstDayOfMonth = TimeUtil.getMonthStart(this.queryTime);
         this.queryDay = TimeUtil.getDayStart(this.queryTime);

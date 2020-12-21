@@ -64,15 +64,15 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
     }
 
     private void markDFLagBehindIfNecessary(String jobId) {
-        if (!JobTypeEnum.INC_BUILD.equals(this.getJobType())) {
+        if (JobTypeEnum.INC_BUILD != this.getJobType()) {
             return;
         }
         val dataflow = getDataflow(jobId);
-        if (dataflow == null || RealizationStatusEnum.LAG_BEHIND.equals(dataflow.getStatus())) {
+        if (dataflow == null || RealizationStatusEnum.LAG_BEHIND == dataflow.getStatus()) {
             return;
         }
         val model = dataflow.getModel();
-        if (ManagementType.MODEL_BASED.equals(model.getManagementType())) {
+        if (ManagementType.MODEL_BASED == model.getManagementType()) {
             return;
         }
 
@@ -120,7 +120,8 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
             return false;
         }
         if (dataflow.getModel().isMultiPartitionModel()) {
-            Set<Long> partitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId).collect(Collectors.toSet());
+            Set<Long> partitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
+                    .collect(Collectors.toSet());
             Set<Long> partitionInSegment = getPartitionsBySegment().get(segmentId);
             if (partitionInSegment == null) {
                 logger.warn("Segment {} doesn't contain any partition in this job", segmentId);

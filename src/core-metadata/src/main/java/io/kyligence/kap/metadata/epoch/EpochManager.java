@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -342,10 +343,8 @@ public class EpochManager implements IKeep {
     }
 
     private List<String> getProjectsToMarkOwner() {
-        return NProjectManager.getInstance(config).listAllProjects()
-                .stream()
-                .filter(p -> currentInstanceHasPermissionToOwn(p.getName(), false))
-                .map(ProjectInstance::getName)
+        return NProjectManager.getInstance(config).listAllProjects().stream()
+                .filter(p -> currentInstanceHasPermissionToOwn(p.getName(), false)).map(ProjectInstance::getName)
                 .collect(Collectors.toList());
     }
 
@@ -376,17 +375,14 @@ public class EpochManager implements IKeep {
             val needUpdateProjectSet = epochList.stream().map(Epoch::getEpochTarget).collect(Collectors.toSet());
             if (CollectionUtils.isNotEmpty(needUpdateProjectSet)) {
                 val needUpdateEpochList = epochList.stream()
-                        .filter(epoch -> needUpdateProjectSet.contains(epoch.getEpochTarget()))
-                        .map(epochTemp -> {
-                            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(epochTemp, epochTemp.getEpochTarget(),
-                                    true, maintenanceModeReason);
+                        .filter(epoch -> needUpdateProjectSet.contains(epoch.getEpochTarget())).map(epochTemp -> {
+                            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(epochTemp, epochTemp.getEpochTarget(), true,
+                                    maintenanceModeReason);
                             if (Objects.nonNull(pair)) {
                                 return pair.getSecond();
                             }
                             return null;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
+                        }).filter(Objects::nonNull).collect(Collectors.toList());
                 //batch update
                 epochStore.updateBatch(needUpdateEpochList);
             }
@@ -394,16 +390,13 @@ public class EpochManager implements IKeep {
             //epoch need to be inserted
             val needInsertProjectSet = Sets.difference(new HashSet<>(projects), needUpdateProjectSet);
             if (CollectionUtils.isNotEmpty(needInsertProjectSet)) {
-                val needInsertEpochList = needInsertProjectSet.stream()
-                        .map(project -> {
-                            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(null, project, true, maintenanceModeReason);
-                            if (Objects.nonNull(pair)) {
-                                return pair.getSecond();
-                            }
-                            return null;
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
+                val needInsertEpochList = needInsertProjectSet.stream().map(project -> {
+                    Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(null, project, true, maintenanceModeReason);
+                    if (Objects.nonNull(pair)) {
+                        return pair.getSecond();
+                    }
+                    return null;
+                }).filter(Objects::nonNull).collect(Collectors.toList());
                 epochStore.insertBatch(needInsertEpochList);
             }
 
@@ -415,7 +408,8 @@ public class EpochManager implements IKeep {
     }
 
     @Nullable
-    private Pair<Epoch, Epoch> oldEpoch2NewEpoch(@Nullable Epoch oldEpoch, @Nonnull String epochTarget, boolean force, String maintenanceModeReason) {
+    private Pair<Epoch, Epoch> oldEpoch2NewEpoch(@Nullable Epoch oldEpoch, @Nonnull String epochTarget, boolean force,
+            String maintenanceModeReason) {
         Epoch finalEpoch = getNewEpoch(oldEpoch, force, epochTarget);
         if (finalEpoch == null) {
             return null;
@@ -577,7 +571,8 @@ public class EpochManager implements IKeep {
         checkEpochTarget(epochTarget);
         Epoch epoch = epochStore.getEpoch(epochTarget);
         if (epoch == null) {
-            throw new IllegalStateException(String.format("Epoch of project %s does not exist", epochTarget));
+            throw new IllegalStateException(
+                    String.format(Locale.ROOT, "Epoch of project %s does not exist", epochTarget));
         }
         return epoch.getEpochId();
     }

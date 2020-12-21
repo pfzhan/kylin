@@ -30,6 +30,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 
 public class DebugSparkShell {
 
@@ -39,7 +40,7 @@ public class DebugSparkShell {
             FileUtils.forceDelete(new File("metastore_db"));
 
         // logger
-        System.setProperty("log4j.configuration",
+        Unsafe.setProperty("log4j.configuration",
                 "file:" + System.getProperty("user.dir") + "/build/conf/kylin-tools-log4j.properties");
 
         // prepare UT metadata
@@ -47,14 +48,14 @@ public class DebugSparkShell {
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
 
         // launch spark shell
-        System.setProperty("derby.system.home", "/tmp/derby");
-        System.setProperty("scala.usejavacp", "true");
-        System.setProperty("jline.terminal", "jline.UnsupportedTerminal");
-        org.apache.spark.deploy.SparkSubmit.main(new String[] { //
+        Unsafe.setProperty("derby.system.home", "/tmp/derby");
+        Unsafe.setProperty("scala.usejavacp", "true");
+        Unsafe.setProperty("jline.terminal", "jline.UnsupportedTerminal");
+        /*org.apache.spark.deploy.SparkSubmit.main(new String[] { //
                 "--master", "local[2]", //
                 "--class", "org.apache.spark.repl.Main", //
                 "--name", "Spark Shell", //
                 "spark-shell" //
-        });
+        });*/
     }
 }

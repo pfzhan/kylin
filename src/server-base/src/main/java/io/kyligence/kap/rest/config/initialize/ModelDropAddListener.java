@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.util.Map;
 
-import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import com.codahale.metrics.Gauge;
@@ -38,6 +37,7 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.util.ModelUtils;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -53,14 +53,13 @@ public class ModelDropAddListener {
         Map<String, String> tags = Maps.newHashMap();
         tags.put(MetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
 
-        MetricsGroup.newGauge(MetricsName.MODEL_SEGMENTS, MetricsCategory.PROJECT, project, tags,
-                new GaugeWrapper() {
-                    @Override
-                    public Long getResult() {
-                        NDataflow df = dfManager.getDataflow(modelId);
-                        return df == null ? 0L : df.getSegments().size();
-                    }
-                });
+        MetricsGroup.newGauge(MetricsName.MODEL_SEGMENTS, MetricsCategory.PROJECT, project, tags, new GaugeWrapper() {
+            @Override
+            public Long getResult() {
+                NDataflow df = dfManager.getDataflow(modelId);
+                return df == null ? 0L : df.getSegments().size();
+            }
+        });
         MetricsGroup.newGauge(MetricsName.MODEL_STORAGE, MetricsCategory.PROJECT, project, tags, new GaugeWrapper() {
             @Override
             public Long getResult() {
@@ -95,8 +94,8 @@ public class ModelDropAddListener {
 
         MetricsGroup.newGauge(MetricsName.MODEL_EXPANSION_RATE_GAUGE, MetricsCategory.PROJECT, project, tags, () -> {
             NDataflow df = dfManager.getDataflow(modelId);
-            return df == null ? Double.valueOf(0)
-                    : Double.valueOf(
+            return df == null ? (double) 0
+                    : Double.parseDouble(
                             ModelUtils.computeExpansionRate(df.getStorageBytesSize(), df.getSourceBytesSize()));
         });
 
@@ -119,6 +118,5 @@ public class ModelDropAddListener {
             return 0L;
         }
     }
-
 
 }

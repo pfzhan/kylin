@@ -61,12 +61,12 @@ import scala.runtime.AbstractFunction1;
 @RunWith(TimeZoneTestRunner.class)
 public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
 
-    private String base = "select count(*)  FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+    private final String base = "select count(*)  FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
 
     @BeforeClass
     public static void initSpark() {
         if (Shell.MAC)
-            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+            overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
         if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
         }

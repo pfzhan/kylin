@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -156,7 +157,7 @@ public class LdapUserGroupService extends NUserGroupService {
                             ldapUserService.completeUserInfoInternal(ldapUser);
                             members.add(ldapUser);
                         } catch (UsernameNotFoundException e) {//user maybe not exist because 'userService' is the cache
-                            logger.warn(String.format("User %s not found.", username), e);
+                            logger.warn(String.format(Locale.ROOT, "User %s not found.", username), e);
                         }
                     }
                 } catch (InvalidNameException ie) {

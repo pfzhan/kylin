@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -175,7 +176,7 @@ public class ProjectService extends BasicService {
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
             throw new KylinException(DUPLICATE_PROJECT_NAME,
-                    String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
+                    String.format(Locale.ROOT, msg.getPROJECT_ALREADY_EXIST(), projectName));
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
@@ -218,7 +219,8 @@ public class ProjectService extends BasicService {
         if (StringUtils.isNotBlank(projectName)) {
             Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch
                     && projectInstance.getName().equals(projectName))
-                    || (!exactMatch && projectInstance.getName().toUpperCase().contains(projectName.toUpperCase()));
+                    || (!exactMatch && projectInstance.getName().toUpperCase(Locale.ROOT)
+                            .contains(projectName.toUpperCase(Locale.ROOT)));
             filter = filter.and(exactMatchFilter);
         }
 
@@ -577,7 +579,7 @@ public class ProjectService extends BasicService {
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
@@ -709,8 +711,7 @@ public class ProjectService extends BasicService {
                 String runnerClassName = copyForWrite.getConfig().getPushDownRunnerClassName();
                 if (StringUtils.isEmpty(runnerClassName)) {
                     val defaultPushDownRunner = getConfig().getPushDownRunnerClassNameWithDefaultValue();
-                    copyForWrite.putOverrideKylinProps("kylin.query.pushdown.runner-class-name",
-                            defaultPushDownRunner);
+                    copyForWrite.putOverrideKylinProps("kylin.query.pushdown.runner-class-name", defaultPushDownRunner);
                 }
                 copyForWrite.putOverrideKylinProps("kylin.query.pushdown-enabled", KylinConfig.TRUE);
             } else {
@@ -853,7 +854,7 @@ public class ProjectService extends BasicService {
     public void updateDefaultDatabase(String project, String defaultDatabase) {
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(defaultDatabase);
-        String uppderDB = defaultDatabase.toUpperCase();
+        String uppderDB = defaultDatabase.toUpperCase(Locale.ROOT);
 
         val prjManager = getProjectManager();
         val tableManager = getTableManager(project);
@@ -866,7 +867,7 @@ public class ProjectService extends BasicService {
             prjManager.updateProject(projectInstance);
         } else {
             throw new KylinException(DATABASE_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(), defaultDatabase));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getDATABASE_NOT_EXIST(), defaultDatabase));
         }
     }
 
@@ -925,12 +926,12 @@ public class ProjectService extends BasicService {
         case FavoriteRule.FREQUENCY_RULE_NAME:
             result.put("freq_enable", rule.isEnabled());
             String frequency = CollectionUtils.isEmpty(conds) ? null : conds.get(0).getRightThreshold();
-            result.put("freq_value", StringUtils.isEmpty(frequency) ? null : Float.valueOf(frequency));
+            result.put("freq_value", StringUtils.isEmpty(frequency) ? null : Float.parseFloat(frequency));
             break;
         case FavoriteRule.COUNT_RULE_NAME:
             result.put("count_enable", rule.isEnabled());
             String count = conds.get(0).getRightThreshold();
-            result.put("count_value", StringUtils.isEmpty(count) ? null : Float.valueOf(count));
+            result.put("count_value", StringUtils.isEmpty(count) ? null : Float.parseFloat(count));
             break;
         case FavoriteRule.SUBMITTER_RULE_NAME:
             List<String> users = Lists.newArrayList();
@@ -947,13 +948,13 @@ public class ProjectService extends BasicService {
             result.put("duration_enable", rule.isEnabled());
             String minDuration = CollectionUtils.isEmpty(conds) ? null : conds.get(0).getLeftThreshold();
             String maxDuration = CollectionUtils.isEmpty(conds) ? null : conds.get(0).getRightThreshold();
-            result.put("min_duration", StringUtils.isEmpty(minDuration) ? null : Long.valueOf(minDuration));
-            result.put("max_duration", StringUtils.isEmpty(maxDuration) ? null : Long.valueOf(maxDuration));
+            result.put("min_duration", StringUtils.isEmpty(minDuration) ? null : Long.parseLong(minDuration));
+            result.put("max_duration", StringUtils.isEmpty(maxDuration) ? null : Long.parseLong(maxDuration));
             break;
         case FavoriteRule.REC_SELECT_RULE_NAME:
             result.put("recommendation_enable", rule.isEnabled());
             String upperBound = conds.get(0).getRightThreshold();
-            result.put("recommendations_value", StringUtils.isEmpty(upperBound) ? null : Long.valueOf(upperBound));
+            result.put("recommendations_value", StringUtils.isEmpty(upperBound) ? null : Long.parseLong(upperBound));
             break;
         default:
             break;
@@ -1127,7 +1128,7 @@ public class ProjectService extends BasicService {
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
@@ -1138,7 +1139,8 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException(PROJECT_NOT_EXIST, String.format("Project '%s' does not exist!", project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(Locale.ROOT, "Project '%s' does not exist!", project));
         }
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setKeytab(null);

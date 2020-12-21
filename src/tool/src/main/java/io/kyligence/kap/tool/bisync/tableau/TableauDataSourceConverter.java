@@ -59,6 +59,7 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -81,14 +82,14 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     private TableauDatasource getTdsTemplate(SyncContext.BI targetBI) {
         String templatePath;
         switch (targetBI) {
-            case TABLEAU_CONNECTOR_TDS:
-                templatePath = CONNECTOR_CONN_TDS_TEMPLATE_PATH;
-                break;
-            case TABLEAU_ODBC_TDS:
-                templatePath = ODBC_CONN_TDS_TEMPLATE_PATH;
-                break;
-            default:
-                throw new IllegalStateException();
+        case TABLEAU_CONNECTOR_TDS:
+            templatePath = CONNECTOR_CONN_TDS_TEMPLATE_PATH;
+            break;
+        case TABLEAU_ODBC_TDS:
+            templatePath = ODBC_CONN_TDS_TEMPLATE_PATH;
+            break;
+        default:
+            throw new IllegalStateException();
         }
         XmlMapper xmlMapper = new XmlMapper();
         try {
@@ -102,9 +103,9 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     }
 
     protected void fillTemplate(TableauDatasource tds, SyncModel syncModel, SyncContext syncContext) {
-        String dbName = syncContext.getTargetBI() == SyncContext.BI.TABLEAU_CONNECTOR_TDS ? syncModel.getProjectName() : "";
-        fillConnectionProperties(tds, syncModel.getHost(), syncModel.getPort(),
-                syncModel.getProjectName(), dbName);
+        String dbName = syncContext.getTargetBI() == SyncContext.BI.TABLEAU_CONNECTOR_TDS ? syncModel.getProjectName()
+                : "";
+        fillConnectionProperties(tds, syncModel.getHost(), syncModel.getPort(), syncModel.getProjectName(), dbName);
         Map<String, Pair<Col, ColumnDef>> colMap = fillCols(tds, syncModel.getColumnDefMap());
         fillColumns(tds, colMap);
         fillJoinTables(tds, syncModel.getJoinTree());
@@ -112,8 +113,8 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
         fillCalculations(tds, syncModel.getMetrics(), colMap);
     }
 
-    private void fillConnectionProperties(
-            TableauDatasource tds, String host, String port, String project, String dbName) {
+    private void fillConnectionProperties(TableauDatasource tds, String host, String port, String project,
+            String dbName) {
         NamedConnection namedConnection = tds.getTableauConnection().getNamedConnectionList().getNamedConnections()
                 .get(0);
         Connection connection = namedConnection.getConnection();
@@ -126,7 +127,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     }
 
     private void fillCalculations(TableauDatasource tds, List<MeasureDef> metrics,
-                                  Map<String, Pair<Col, ColumnDef>> colMap) {
+            Map<String, Pair<Col, ColumnDef>> colMap) {
         List<Column> columns = tds.getColumns();
         if (columns == null) {
             columns = new LinkedList<>();
@@ -165,7 +166,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     }
 
     private void fillHierarchies(TableauDatasource tds, Set<String[]> hierarchies,
-                                 Map<String, Pair<Col, ColumnDef>> colMap) {
+            Map<String, Pair<Col, ColumnDef>> colMap) {
         DrillPaths drillPaths = new DrillPaths();
         List<DrillPath> drillPathList = new LinkedList<>();
 
@@ -302,7 +303,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             Relation joinRelation = new Relation();
             List<Relation> relations = new LinkedList<>();
             JoinDesc joinDesc = rightJoin.getJoin();
-            String joinType = joinDesc.getType().toLowerCase();
+            String joinType = joinDesc.getType().toLowerCase(Locale.ROOT);
             joinRelation.setType(TdsConstant.JOIN_TYPE_JOIN);
             joinRelation.setJoin(joinType);
             relations.add(leftTable);
@@ -392,7 +393,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             try {
                 // load java.sql.types fields
                 for (Field field : fields) {
-                    TYPE_VALUES_MAP.put(field.getName().toUpperCase(), field.getInt(clazz));
+                    TYPE_VALUES_MAP.put(field.getName().toUpperCase(Locale.ROOT), field.getInt(clazz));
                 }
 
                 String filePath = "/bisync/tds/tableau.mappings.xml";
@@ -403,13 +404,15 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
 
                 // load dataType mappings
                 for (TypeMapping mapping : mappings.getTypeMappings()) {
-                    TYPE_NAME_MAP.put(mapping.getKylinType().toUpperCase(), mapping.getTargetType());
-                    TYPE_MAP.put(TYPE_VALUES_MAP.get(mapping.getKylinType().toUpperCase()), mapping.getTargetType());
+                    TYPE_NAME_MAP.put(mapping.getKylinType().toUpperCase(Locale.ROOT), mapping.getTargetType());
+                    TYPE_MAP.put(TYPE_VALUES_MAP.get(mapping.getKylinType().toUpperCase(Locale.ROOT)),
+                            mapping.getTargetType());
                 }
 
                 // load function mappings
                 for (FunctionMapping functionMapping : mappings.getFuncMappings()) {
-                    FUNC_MAP.put(functionMapping.getKylinFuncName().toUpperCase(), functionMapping.getTargetFunName());
+                    FUNC_MAP.put(functionMapping.getKylinFuncName().toUpperCase(Locale.ROOT),
+                            functionMapping.getTargetFunName());
                 }
             } catch (IllegalAccessException | IOException e) {
                 logger.error("can not init tableau mappings", e);
@@ -417,7 +420,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
         }
 
         public static String convertKylinType(String typeName) {
-            String trimmedTypeName = typeName.trim().toUpperCase();
+            String trimmedTypeName = typeName.trim().toUpperCase(Locale.ROOT);
             if (typeName.indexOf('(') > -1) {
                 trimmedTypeName = trimmedTypeName.substring(0, trimmedTypeName.indexOf('(')); // strip off brackets
             }
@@ -425,7 +428,7 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
         }
 
         public static String convertKylinFunction(String funcName) {
-            return FUNC_MAP.get(funcName.toUpperCase());
+            return FUNC_MAP.get(funcName.toUpperCase(Locale.ROOT));
         }
 
         public static String getOrderType(String role, String dataType) {

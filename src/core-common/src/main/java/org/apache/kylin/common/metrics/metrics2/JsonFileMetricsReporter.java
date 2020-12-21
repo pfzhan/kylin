@@ -46,6 +46,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -121,19 +122,14 @@ public class JsonFileMetricsReporter implements CodahaleReporter {
                         return;
                     }
 
-                    BufferedWriter bw = null;
-                    try {
-                        fs.delete(tmpPath, true);
-                        bw = new BufferedWriter(new OutputStreamWriter(fs.create(tmpPath, true)));
+                    try (BufferedWriter bw = new BufferedWriter(
+                            new OutputStreamWriter(fs.create(tmpPath, true), Charset.defaultCharset()))) {
                         bw.write(json);
+                        fs.delete(tmpPath, true);
                         fs.setPermission(tmpPath, FsPermission.createImmutable((short) 0644));
                     } catch (IOException e) {
                         LOGGER.error("Unable to write to temp file " + tmpPath, e);
                         return;
-                    } finally {
-                        if (bw != null) {
-                            bw.close();
-                        }
                     }
 
                     try {
@@ -141,7 +137,6 @@ public class JsonFileMetricsReporter implements CodahaleReporter {
                         fs.setPermission(path, FsPermission.createImmutable((short) 0644));
                     } catch (IOException e) {
                         LOGGER.error("Unable to rename temp file " + tmpPath + " to " + pathString, e);
-                        return;
                     }
                 } catch (Throwable t) {
                     // catch all errors (throwable and exceptions to prevent subsequent tasks from being suppressed)

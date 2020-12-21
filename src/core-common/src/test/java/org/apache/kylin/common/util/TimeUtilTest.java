@@ -45,6 +45,7 @@ package org.apache.kylin.common.util;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -54,9 +55,11 @@ import org.junit.runner.RunWith;
 
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  */
+@Slf4j
 @RunWith(TimeZoneTestRunner.class)
 public class TimeUtilTest {
 
@@ -65,8 +68,10 @@ public class TimeUtilTest {
     }
 
     public static long normalizeTime(long timeMillis, NormalizedTimeUnit unit) {
-        Calendar a = Calendar.getInstance();
-        Calendar b = Calendar.getInstance();
+        log.info(TimeZone.getDefault().toString());
+        log.info(Locale.getDefault(Locale.Category.FORMAT).toString());
+        Calendar a = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
+        Calendar b = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         b.clear();
 
         a.setTimeInMillis(timeMillis);
@@ -82,7 +87,8 @@ public class TimeUtilTest {
 
     @Test
     public void basicTest() throws ParseException {
-        java.text.DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        java.text.DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss",
+                Locale.getDefault(Locale.Category.FORMAT));
         dateFormat.setTimeZone(TimeZone.getDefault());
 
         long t1 = dateFormat.parse("2012/01/01 00:00:01").getTime();
@@ -113,7 +119,9 @@ public class TimeUtilTest {
 
     @Test
     public void summerTimeChangeTest() throws ParseException {
-        val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        log.info(Locale.getDefault(Locale.Category.FORMAT).toString());
+        log.info(TimeZone.getDefault().toString());
+        val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault(Locale.Category.FORMAT));
         dateFormat.setTimeZone(TimeZone.getDefault());
 
         // 2019/11/3 02:00:00 changed from summertime to winter time in pst timezone
@@ -124,7 +132,7 @@ public class TimeUtilTest {
 
     @Test
     public void minusDaysTest() throws ParseException {
-        val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault(Locale.Category.FORMAT));
         dateFormat.setTimeZone(TimeZone.getDefault());
 
         // 2019/11/3 02:00:00 changed from summertime to winter time in pst timezone

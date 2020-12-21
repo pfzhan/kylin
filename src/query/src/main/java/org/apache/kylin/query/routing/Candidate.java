@@ -56,6 +56,7 @@ import lombok.Setter;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class Candidate {
@@ -126,8 +127,10 @@ public class Candidate {
                     priorities.put(QueryContext.current().getModelPriorities()[i], i);
                 }
 
-                int comp = priorities.getOrDefault(real1.getModel().getAlias().toUpperCase(), Integer.MAX_VALUE)
-                        - priorities.getOrDefault(real2.getModel().getAlias().toUpperCase(), Integer.MAX_VALUE);
+                int comp = priorities.getOrDefault(real1.getModel().getAlias().toUpperCase(Locale.ROOT),
+                        Integer.MAX_VALUE)
+                        - priorities.getOrDefault(real2.getModel().getAlias().toUpperCase(Locale.ROOT),
+                                Integer.MAX_VALUE);
                 if (comp != 0) {
                     return comp;
                 }

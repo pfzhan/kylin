@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.interceptor;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -72,12 +73,13 @@ public class V2ApiFilter implements Filter {
                         HandlerExecutionChain handler = handlerMapping.getHandler((HttpServletRequest) request);
                         if (handler == null || handler.getHandler() == null) {
                             throw new NotFoundException(
-                                    String.format("%s API of version v2 is no longer supported", uri));
+                                    String.format(Locale.ROOT, "%s API of version v2 is no longer supported", uri));
                         }
                     }
                 } catch (Exception e) {
                     log.warn("get hander from request uri {} failed", uri, e);
-                    throw new NotFoundException(String.format("%s API of version v2 is no longer supported", uri));
+                    throw new NotFoundException(
+                            String.format(Locale.ROOT, "%s API of version v2 is no longer supported", uri));
                 }
             }
         }

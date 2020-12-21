@@ -45,6 +45,7 @@ package org.apache.kylin.query.util;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -126,7 +127,7 @@ public class QueryUtil {
             sql = sql.substring(0, sql.length() - 1);
 
         //Split keywords and variables from sql by punctuation and whitespace character
-        List<String> sqlElements = Lists.newArrayList(sql.toLowerCase().split("(?![\\._])\\p{P}|\\s+"));
+        List<String> sqlElements = Lists.newArrayList(sql.toLowerCase(Locale.ROOT).split("(?![\\._])\\p{P}|\\s+"));
         if (limit > 0 && !sqlElements.contains("limit")) {
             sql += ("\nLIMIT " + limit);
         }
@@ -136,8 +137,8 @@ public class QueryUtil {
         }
 
         // https://issues.apache.org/jira/browse/KYLIN-2649
-        if (kylinConfig.getForceLimit() > 0 && !sql.toLowerCase().contains("limit")
-                && sql.toLowerCase().matches("^select\\s+\\*\\p{all}*")) {
+        if (kylinConfig.getForceLimit() > 0 && !sql.toLowerCase(Locale.ROOT).contains("limit")
+                && sql.toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
             sql += ("\nLIMIT " + kylinConfig.getForceLimit());
         }
         return sql;
@@ -257,7 +258,7 @@ public class QueryUtil {
     }
 
     public static boolean isSelectStatement(String sql) {
-        String sql1 = sql.toLowerCase();
+        String sql1 = sql.toLowerCase(Locale.ROOT);
         sql1 = removeCommentInSql(sql1);
         sql1 = sql1.trim();
         while (sql1.startsWith("(")) {

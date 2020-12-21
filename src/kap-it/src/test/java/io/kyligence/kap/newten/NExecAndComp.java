@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -55,6 +56,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
@@ -86,7 +88,7 @@ public class NExecAndComp {
             String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
 
             Pair<String, String> sqlAndAddedLimitSql = Pair.newPair(sql, sql);
-            if (!sql.toLowerCase().contains("limit ")) {
+            if (!sql.toLowerCase(Locale.ROOT).contains("limit ")) {
                 sqlAndAddedLimitSql.setSecond(sql + " limit 5");
                 appendLimitQueries++;
             }
@@ -642,7 +644,7 @@ public class NExecAndComp {
         SparderEnv.setDF(null); // clear last df
         // if this config is on
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
-        String prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
+        String prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
             QueryExec queryExec = new QueryExec(prj,
                     NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
@@ -654,9 +656,9 @@ public class NExecAndComp {
             queryExec.executeQuery(sql);
         } finally {
             if (prevRunLocalConf != null) {
-                System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
+                Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
             } else {
-                System.clearProperty("kylin.query.engine.run-constant-query-locally");
+                Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally");
             }
         }
         return SparderEnv.getDF();
@@ -666,16 +668,16 @@ public class NExecAndComp {
         SparderEnv.setDF(null); // clear last df
         // if this config is on
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
-        String prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
+        String prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
             QueryExec queryExec = new QueryExec(prj,
                     NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
             return queryExec.executeQuery(sql);
         } finally {
             if (prevRunLocalConf != null) {
-                System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
+                Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
             } else {
-                System.clearProperty("kylin.query.engine.run-constant-query-locally");
+                Unsafe.clearProperty("kylin.query.engine.run-constant-query-locally");
             }
         }
     }

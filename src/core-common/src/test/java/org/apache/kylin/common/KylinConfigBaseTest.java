@@ -46,6 +46,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Stream;
@@ -848,8 +849,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(method);
             config.setProperty(propertiesEntity.getKey(), propertiesEntity.getValue());
             Object invoke = method.invoke(config);
-            System.out.println(String.format("assert func %s expect %s actual %s", func,
-                    propertiesEntity.getExpectValue(), invoke));
+            System.out.printf(Locale.ROOT, "assert func %s expect %s actual %s%n", func,
+                    propertiesEntity.getExpectValue(), invoke);
             if (invoke != null && invoke.getClass().isArray()) {
                 Class<?> componentType = invoke.getClass().getComponentType();
                 if (componentType.isPrimitive()) {

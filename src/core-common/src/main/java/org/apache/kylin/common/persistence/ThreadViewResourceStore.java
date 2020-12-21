@@ -25,6 +25,7 @@
 package org.apache.kylin.common.persistence;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
@@ -127,11 +128,14 @@ public class ThreadViewResourceStore extends ResourceStore {
         if (r == null) {
             //TODO: should check meta's write footprint
             long resourceMvcc = underlying.getResourceMvcc(resPath);
-            Preconditions.checkState(resourceMvcc == oldMvcc, "Resource mvcc not equals old mvcc", resourceMvcc, oldMvcc);
+            Preconditions.checkState(resourceMvcc == oldMvcc, "Resource mvcc not equals old mvcc", resourceMvcc,
+                    oldMvcc);
             overlay.putResourceWithoutCheck(resPath, byteSource, timeStamp, oldMvcc + 1);
         } else {
             if (!KylinConfig.getInstanceFromEnv().isUTEnv() && r instanceof TombRawResource) {
-                throw new IllegalStateException(String.format("It's not allowed to create the same metadata in path {%s} after deleting it in one transaction", resPath));
+                throw new IllegalStateException(String.format(Locale.ROOT,
+                        "It's not allowed to create the same metadata in path {%s} after deleting it in one transaction",
+                        resPath));
             }
             overlay.checkAndPutResource(resPath, byteSource, timeStamp, oldMvcc);
         }

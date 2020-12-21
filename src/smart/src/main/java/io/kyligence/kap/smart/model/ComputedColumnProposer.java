@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.model;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -132,7 +133,8 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
             } else {
-                String name = String.format("%s_%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, currentTs, index);
+                String name = String.format(Locale.ROOT, "%s_%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, currentTs,
+                        index);
                 ccDesc.setColumnName(name);
             }
 
@@ -141,7 +143,7 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             if (ccInnerExpToUniqueFlag.containsKey(innerExpression)) {
                 ccDesc.setUuid(ccInnerExpToUniqueFlag.get(innerExpression));
             } else {
-                ccDesc.setUuid(String.format("tmp_%s_%s", currentTs, index));
+                ccDesc.setUuid(String.format(Locale.ROOT, "tmp_%s_%s", currentTs, index));
             }
             dataModel.getComputedColumnDescs().add(ccDesc);
 

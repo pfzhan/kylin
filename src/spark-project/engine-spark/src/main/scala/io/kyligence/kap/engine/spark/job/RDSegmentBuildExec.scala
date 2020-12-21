@@ -77,7 +77,7 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
       (head.getParentId, execution)
     }).foreach { case (parentId, execution) =>
       val sourceName = String.valueOf(parentId)
-      val leaves = Integer.valueOf(ResourceDetectUtils.getPartitions(execution.executedPlan))
+      val leaves = Integer.parseInt(ResourceDetectUtils.getPartitions(execution.executedPlan))
       logInfo(s"leaf nodes is: $leaves")
       val paths = ResourceDetectUtils.getPaths(execution.sparkPlan).map(_.toString).asJava
       logInfo(s"Detected SOURCE $sourceName $leaves ${paths.asScala.mkString(",")}")

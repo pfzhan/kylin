@@ -28,12 +28,16 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -121,28 +125,28 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
             before += fileLines(f);
         }
         Assertions.assertThat(before).isGreaterThan(0);
-        long after = jdbcTemplate.queryForObject(String.format("select count(1) from %s", TEST_RESTORE_TABLE),
-                Long.class);
+        long after = jdbcTemplate
+                .queryForObject(String.format(Locale.ROOT, "select count(1) from %s", TEST_RESTORE_TABLE), Long.class);
         Assertions.assertThat(after).isEqualTo(before);
     }
 
     private void checkJsonl(long start, long end, File junitFolder) throws Exception {
-        val name = String.format("%d-%d%s", start, end, AUDIT_LOG_SUFFIX);
+        val name = String.format(Locale.ROOT, "%d-%d%s", start, end, AUDIT_LOG_SUFFIX);
         Assertions.assertThat(junitFolder.listFiles()).anyMatch(f -> f.getName().equals(name));
         val jsonl = Arrays.stream(junitFolder.listFiles()).filter(f -> f.getName().equals(name)).findFirst().get();
         Assertions.assertThat(jsonl.length()).isGreaterThan(0);
 
         val jdbcTemplate = getJdbcTemplate();
-        long before = jdbcTemplate.queryForObject(
-                String.format("select count(1) from test_audit_Log where meta_ts between %d and %d", start, end),
-                Long.class);
+        long before = jdbcTemplate.queryForObject(String.format(Locale.ROOT,
+                "select count(1) from test_audit_Log where meta_ts between %d and %d", start, end), Long.class);
         long after = fileLines(jsonl);
         Assertions.assertThat(after).isEqualTo(before);
     }
 
     private long fileLines(File f) throws IOException {
         long lines = 0L;
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+        try (InputStream in = new FileInputStream(f);
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, Charset.defaultCharset()))) {
             while (br.readLine() != null) {
                 lines++;
             }

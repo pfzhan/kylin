@@ -33,6 +33,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Before;
@@ -46,7 +47,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.smart.AbstractContext;
 
-public abstract class AutoTestOnLearnKylinData {
+public abstract class AutoTestOnLearnKylinData extends AbstractTestCase {
 
     protected String proj = "learn_kylin";
     private File tmpMeta;
@@ -54,11 +55,11 @@ public abstract class AutoTestOnLearnKylinData {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("spark.local", "true");
+        overwriteSystemProp("spark.local", "true");
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
         File tmpHome = Files.createTempDir();
         tmpMeta = new File(tmpHome, "meta");
-        System.setProperty("KYLIN_HOME", tmpHome.getAbsolutePath());
+        overwriteSystemProp("KYLIN_HOME", tmpHome.getAbsolutePath());
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
         Properties props = new Properties();
@@ -81,8 +82,6 @@ public abstract class AutoTestOnLearnKylinData {
             FileUtils.forceDelete(tmpMeta);
         ResourceStore.clearCache(localConfig.get());
         localConfig.close();
-        System.clearProperty("spark.local");
-        System.clearProperty("KYLIN_HOME");
     }
 
     protected List<LayoutEntity> collectAllLayouts(List<IndexEntity> indexEntities) {

@@ -24,6 +24,7 @@
 package org.apache.kylin.sdk.datasource.framework.conv;
 
 import java.sql.SQLException;
+import java.util.Locale;
 
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
@@ -116,7 +117,7 @@ public class SqlConverter {
         if (configurer.enableTransformDateToString() && colType != null && colType.isDateTimeFamily()) {
             String datePattern = StringUtils.isNotEmpty(format) ? format : configurer.getTransformDatePattern();
             String template = configurer.getTransformDateToStringExpression();
-            formated = String.format(template, column, datePattern);
+            formated = String.format(Locale.ROOT, template, column, datePattern);
         }
         return convertColumn(formated, "");
     }
@@ -157,7 +158,8 @@ public class SqlConverter {
                         if (StringUtils.isNotEmpty(template)) {
                             SqlNode sqlNodeTryToFind = SqlParser.create(partColumn).parseExpression();
                             SqlNode sqlNodeToReplace = SqlParser
-                                    .create(String.format(template, partColumn, datePattern)).parseExpression();
+                                    .create(String.format(Locale.ROOT, template, partColumn, datePattern))
+                                    .parseExpression();
                             singleSqlNodeReplacer.setSqlNodeTryToFind(sqlNodeTryToFind);
                             singleSqlNodeReplacer.setSqlNodeToReplace(sqlNodeToReplace);
                             sqlNodeWhere = sqlNodeWhere.accept(singleSqlNodeReplacer);
@@ -232,26 +234,26 @@ public class SqlConverter {
             return false;
         }
 
-        default String fixIdentifierCaseSensitive(String orig){
+        default String fixIdentifierCaseSensitive(String orig) {
             return orig;
         }
 
-        default boolean enableTransformDateToString(){
+        default boolean enableTransformDateToString() {
             return false;
         }
 
-        default String getTransformDateToStringExpression(){
+        default String getTransformDateToStringExpression() {
             return "";
         }
 
-        default String getTransformDatePattern(){
+        default String getTransformDatePattern() {
             return "";
         }
     }
 
     private ConvSqlWriter getConvSqlWriter() throws SQLException {
         ConvSqlWriter sqlWriter;
-        if ("ROWNUM".equals(configurer.getPagingType().toUpperCase())) {
+        if ("ROWNUM".equalsIgnoreCase(configurer.getPagingType())) {
             sqlWriter = new ConvRownumSqlWriter(configurer);
         } else {
             sqlWriter = new ConvSqlWriter(configurer);

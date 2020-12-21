@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -84,7 +85,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     private String formatSql(String sql) {
-        return sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ").toUpperCase();
+        return sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ").toUpperCase(Locale.ROOT);
     }
 
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {

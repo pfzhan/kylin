@@ -190,7 +190,7 @@ public class QueryHistory implements IKeep {
 
         for (QueryMetrics.RealizationMetrics metrics : realizationMetrics) {
             realizations.add(new NativeQueryRealization(metrics.modelId,
-                    metrics.layoutId == null ? null : Long.valueOf(metrics.layoutId),
+                    metrics.layoutId == null ? null : Long.parseLong(metrics.layoutId),
                     metrics.indexType == null ? null : metrics.indexType,
                     metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots));
 
@@ -228,12 +228,12 @@ public class QueryHistory implements IKeep {
                 snapshots.addAll(Lists.newArrayList(info[3].substring(1, info[3].length() - 1).split(",\\s*")));
             }
             realizations.add(new NativeQueryRealization(info[0],
-                    info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
+                    info[1].equalsIgnoreCase("null") ? null : Long.parseLong(info[1]),
                     info[2].equalsIgnoreCase("null") ? null : info[2],
                     info[3].equalsIgnoreCase("null") ? null : snapshots));
         } else {
             realizations.add(new NativeQueryRealization(info[0],
-                    info[1].equalsIgnoreCase("null") ? null : Long.valueOf(info[1]),
+                    info[1].equalsIgnoreCase("null") ? null : Long.parseLong(info[1]),
                     info[2].equalsIgnoreCase("null") ? null : info[2], snapshots));
         }
     }

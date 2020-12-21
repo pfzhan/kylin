@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.interceptor;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -54,10 +55,11 @@ public class RepeatableRequestBodyFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         try {
-            Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo((HttpServletRequest) request);
+            Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser
+                    .parseProjectInfo((HttpServletRequest) request);
             String project = projectInfo.getFirst();
             if (!Strings.isEmpty(project) && !project.equalsIgnoreCase("_global")) {
-                MDC.put("request.project", String.format("[%s] ", project));
+                MDC.put("request.project", String.format(Locale.ROOT, "[%s] ", project));
             }
             request = projectInfo.getSecond();
             NProjectLoader.updateCache(project);

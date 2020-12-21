@@ -25,6 +25,8 @@ package io.kyligence.kap.common.persistence;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
+import java.nio.charset.Charset;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -81,6 +83,7 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
             + Joiner.on(",").join(AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
             + ") values (?, ?, ?, ?, ?, ?, ?)";
+    private final Charset charset = Charset.defaultCharset();
 
     @Before
     public void setup() {
@@ -133,7 +136,7 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
                     val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                     val path = "/p1/abc-" + System.currentTimeMillis();
                     val originAbc = store.getResource(path);
-                    store.checkAndPutResource(path, ByteStreams.asByteSource("abc".getBytes()),
+                    store.checkAndPutResource(path, ByteStreams.asByteSource("abc".getBytes(charset)),
                             System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
                     return 0;
                 }, "p1");
@@ -154,23 +157,23 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
                 RawResource result = systemStore.getResource(path);
                 val newMvcc = result == null ? 0 : result.getMvcc() + 1;
                 if (newMvcc == 0) {
-                    jdbcTemplate.update(String.format(INSERT_SQL, table), ps -> {
+                    jdbcTemplate.update(String.format(Locale.ROOT, INSERT_SQL, table), ps -> {
                         ps.setString(1, path);
-                        ps.setBytes(2, path.getBytes());
+                        ps.setBytes(2, path.getBytes(charset));
                         ps.setLong(3, ts);
                         ps.setLong(4, newMvcc);
                     });
                 } else {
-                    jdbcTemplate.update(String.format(UPDATE_SQL, table), ps -> {
-                        ps.setBytes(1, path.getBytes());
+                    jdbcTemplate.update(String.format(Locale.ROOT, UPDATE_SQL, table), ps -> {
+                        ps.setBytes(1, path.getBytes(charset));
                         ps.setLong(2, newMvcc);
                         ps.setLong(3, ts);
                         ps.setString(4, path);
                     });
                 }
-                jdbcTemplate.update(String.format(INSERT_AUDIT_LOG_SQL, table + "_audit_log"), ps -> {
+                jdbcTemplate.update(String.format(Locale.ROOT, INSERT_AUDIT_LOG_SQL, table + "_audit_log"), ps -> {
                     ps.setString(1, path);
-                    ps.setBytes(2, path.getBytes());
+                    ps.setBytes(2, path.getBytes(charset));
                     ps.setLong(3, ts);
                     ps.setLong(4, newMvcc);
                     ps.setString(5, unitId);
@@ -199,7 +202,7 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
                 IntStream.range(1000, 1000 + size).forEach(id -> {
                     String path = "/p2/abc" + id;
                     val originAbc = store.getResource(path);
-                    store.checkAndPutResource(path, ByteStreams.asByteSource((path + "-version2").getBytes()),
+                    store.checkAndPutResource(path, ByteStreams.asByteSource((path + "-version2").getBytes(charset)),
                             System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
                 });
                 return 0;

@@ -49,6 +49,8 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 /**
  * some local tests only need :
  * 1. a clean kylin.properties
@@ -81,7 +83,7 @@ public class CleanMetadataHelper {
 
     public void tearDown() {
         jam.delete();
-        System.clearProperty(KylinConfig.KYLIN_CONF);
+        Unsafe.clearProperty(KylinConfig.KYLIN_CONF);
         KylinConfig.destroyInstance();
     }
 }

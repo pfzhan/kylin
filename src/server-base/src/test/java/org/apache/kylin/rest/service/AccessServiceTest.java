@@ -105,7 +105,7 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ProjectService;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({SpringContext.class, UserGroupInformation.class})
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class AccessServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
@@ -157,8 +157,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
                 new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
                 new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
         ManagedUser modelerUser = new ManagedUser("MODELER", "MODELER", false, Arrays.asList(//
-                new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
-                new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
+                new SimpleGrantedAuthority(Constant.ROLE_ANALYST), new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
         ManagedUser analystUser = new ManagedUser("ANALYST", "ANALYST", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.ROLE_ANALYST)));
 
@@ -177,8 +176,10 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
 
         ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
         PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
-        PowerMockito.when(SpringContext.getBean(PermissionFactory.class)).thenReturn(PowerMockito.mock(PermissionFactory.class));
-        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class)).thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class))
+                .thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class))
+                .thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
     }
 
     @After
@@ -282,7 +283,7 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
         }
         //test batch revoke
         List<AccessRequest> requests = Lists.newArrayList();
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             AccessRequest request = new AccessRequest();
             request.setSid("u" + i);
             request.setPrincipal(true);

@@ -37,7 +37,6 @@ import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractKylinTestCase;
-import org.junit.After;
 import org.junit.Assert;
 import org.mockito.Mockito;
 
@@ -53,9 +52,9 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProjectFromSingleton()
             throws Exception {
         Field instanceField = Singletons.class.getDeclaredField("instance");
-        instanceField.setAccessible(true);
+        Unsafe.changeAccessibleObject(instanceField, true);
         Field field = Singletons.class.getDeclaredField("instancesByPrj");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         val result = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field.get(instanceField.get(null));
         if (result == null) {
             field.set(instanceField.get(null), Maps.newConcurrentMap());
@@ -65,18 +64,18 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProject() throws Exception {
         Field singletonField = getTestConfig().getClass().getDeclaredField("singletons");
-        singletonField.setAccessible(true);
+        Unsafe.changeAccessibleObject(singletonField, true);
         Field field = Singletons.class.getDeclaredField("instancesByPrj");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         return (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field
                 .get(singletonField.get(getTestConfig()));
     }
 
     public static ConcurrentHashMap<Class, Object> getInstancesFromSingleton() throws Exception {
         Field instanceField = Singletons.class.getDeclaredField("instance");
-        instanceField.setAccessible(true);
+        Unsafe.changeAccessibleObject(instanceField, true);
         Field field = Singletons.class.getDeclaredField("instancesByPrj");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         val result = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field.get(instanceField.get(null));
         if (result == null) {
             field.set(instanceField.get(null), Maps.newConcurrentMap());
@@ -86,20 +85,20 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static ConcurrentHashMap<Class, Object> getInstances() throws Exception {
         Field singletonField = getTestConfig().getClass().getDeclaredField("singletons");
-        singletonField.setAccessible(true);
+        Unsafe.changeAccessibleObject(singletonField, true);
         Field filed = Singletons.class.getDeclaredField("instances");
-        filed.setAccessible(true);
+        Unsafe.changeAccessibleObject(filed, true);
         return (ConcurrentHashMap<Class, Object>) filed.get(singletonField.get(getTestConfig()));
     }
 
     public static ConcurrentHashMap<Class, Object> getGlobalInstances() throws Exception {
         Field instanceFiled = Singletons.class.getDeclaredField("instance");
-        instanceFiled.setAccessible(true);
+        Unsafe.changeAccessibleObject(instanceFiled, true);
 
         Singletons instanceSingle = (Singletons) instanceFiled.get(instanceFiled);
 
         Field instancesField = instanceSingle.getClass().getDeclaredField("instances");
-        instancesField.setAccessible(true);
+        Unsafe.changeAccessibleObject(instancesField, true);
 
         return (ConcurrentHashMap<Class, Object>) instancesField.get(instanceSingle);
     }
@@ -149,11 +148,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     @Override
     public void cleanupTestMetadata() {
         staticCleanupTestMetadata();
-    }
-
-    @After
-    public void restoreSystemProps() {
-        restoreAllSystemProp();
     }
 
     public static void staticCreateTestMetadata(String... overlay) {

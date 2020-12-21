@@ -27,6 +27,8 @@ package io.kyligence.kap.tool.upgrade;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -73,7 +75,7 @@ public class RenameUserResourceToolTest extends NLocalFileMetadataTestCase {
         String data = "y\r\n";
         InputStream stdin = System.in;
         try {
-            System.setIn(new ByteArrayInputStream(data.getBytes()));
+            System.setIn(new ByteArrayInputStream(data.getBytes(Charset.defaultCharset())));
             val renameResourceTool = new RenameUserResourceTool();
             renameResourceTool.execute(new String[] { "-dir", config.getMetadataUrl().toString(), "--user",
                     "rename_user_1", "--collect-only", "false" });
@@ -97,7 +99,7 @@ public class RenameUserResourceToolTest extends NLocalFileMetadataTestCase {
             ResourceStore resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
 
             // project acl
-            String projectAclPath = String.format("/_global/acl/%s", project2.getUuid());
+            String projectAclPath = String.format(Locale.ROOT, "/_global/acl/%s", project2.getUuid());
             RawResource rs = resourceStore.getResource(projectAclPath);
             boolean renamed = false;
             try (InputStream is = rs.getByteSource().openStream()) {
@@ -124,7 +126,7 @@ public class RenameUserResourceToolTest extends NLocalFileMetadataTestCase {
 
             renamed = false;
             val project1 = projectManager.getProject("rename_project_1");
-            projectAclPath = String.format("/_global/acl/%s", project1.getUuid());
+            projectAclPath = String.format(Locale.ROOT, "/_global/acl/%s", project1.getUuid());
             rs = resourceStore.getResource(projectAclPath);
             try (InputStream is = rs.getByteSource().openStream()) {
                 JsonNode aclJsonNode = JsonUtil.readValue(is, JsonNode.class);

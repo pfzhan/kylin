@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -165,8 +167,10 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
 
     protected void prepareModelAndIndex() throws IOException {
         for (String id : modelUUIDs) {
-            NDataModel dataModel = JsonUtil.readValue(new File(String.format(modelPathPattern, id)), NDataModel.class);
-            IndexPlan indexPlan = JsonUtil.readValue(new File(String.format(indexPathPattern, id)), IndexPlan.class);
+            NDataModel dataModel = JsonUtil.readValue(new File(String.format(Locale.ROOT, modelPathPattern, id)),
+                    NDataModel.class);
+            IndexPlan indexPlan = JsonUtil.readValue(new File(String.format(Locale.ROOT, indexPathPattern, id)),
+                    IndexPlan.class);
             modelManager.createDataModelDesc(dataModel, dataModel.getOwner());
             indexPlanManager.createIndexPlan(indexPlan);
             dataflowManager.createDataflow(indexPlan, dataModel.getOwner());
@@ -190,10 +194,10 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
     private List<RawRecItem> loadAllRecItems(String dirPath) throws IOException {
         List<RawRecItem> allRecItems = Lists.newArrayList();
         File directory = new File(dirPath);
-        File[] files = directory.listFiles();
-        for (File file : files) {
+        for (File file : Objects.requireNonNull(directory.listFiles())) {
             String uuid = file.getName().substring(0, file.getName().lastIndexOf('.'));
-            String recItemContent = FileUtils.readFileToString(new File(String.format(recPathPattern, uuid)));
+            String recItemContent = FileUtils
+                    .readFileToString(new File(String.format(Locale.ROOT, recPathPattern, uuid)));
             allRecItems.addAll(parseRecItems(recItemContent));
         }
         return allRecItems;

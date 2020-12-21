@@ -22,6 +22,7 @@
 
 package io.kyligence.kap.it
 
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{JobSupport, QuerySupport}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import org.apache.kylin.query.relnode.OLAPContext
@@ -52,7 +53,7 @@ class TestTPCHQuery
 
   ignore("tpch query") {
     //    System.setProperty("spark.local", "true")
-    System.setProperty("kylin.query.engine.sparder-enabled", "true")
+    Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     // 22
     val sqlTime = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_tpch")
@@ -84,8 +85,8 @@ class TestTPCHQuery
   }
 
   ignore("tpch build and query") {
-    System.setProperty("spark.local", "true")
-    System.setProperty("kylin.query.engine.sparder-enabled", "true")
+    Unsafe.setProperty("spark.local", "true")
+    Unsafe.setProperty("kylin.query.engine.sparder-enabled", "true")
     buildAll()
     QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_tpch")

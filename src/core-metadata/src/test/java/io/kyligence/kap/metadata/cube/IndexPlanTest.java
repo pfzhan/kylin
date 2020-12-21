@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -608,7 +609,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             "    ],\n" + //
             "    \"storage_type\": 20,\n" + //
             "    \"scheduler_version\": 2\n" + //
-            "  }").getBytes(), RuleBasedIndex.class));
+            "  }").getBytes(Charset.defaultCharset()), RuleBasedIndex.class));
         });
 
         val result = "30001   [2, 3, 5, 100000, 100001]\n" + //
@@ -678,7 +679,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             "    ],\n" + //
             "    \"storage_type\": 20,\n" + //
             "    \"scheduler_version\": 2\n" + //
-            "  }").getBytes(), RuleBasedIndex.class));
+            "  }").getBytes(Charset.defaultCharset()), RuleBasedIndex.class));
         });
         val result = "30001   [2, 3, 5, 100000, 100001]\n" + //
                 "30002   [5, 3, 2, 100000, 100001]\n" + //

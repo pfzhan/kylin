@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MO
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_PROJECT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_OBTAIN_QUERY_RESULT;
 
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KapConfig;
@@ -84,7 +85,7 @@ public class NCircuitBreaker {
         }
 
         throw new KylinException(FAILED_CREATE_PROJECT,
-                String.format(MsgPicker.getMsg().getPROJECT_NUM_OVER_THRESHOLD(), threshold));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NUM_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifyModelCreation(int current) {
@@ -98,7 +99,7 @@ public class NCircuitBreaker {
         }
 
         throw new KylinException(FAILED_CREATE_MODEL,
-                String.format(MsgPicker.getMsg().getMODEL_NUM_OVER_THRESHOLD(), threshold));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NUM_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifyQueryResultRowCount(long current) {
@@ -112,7 +113,7 @@ public class NCircuitBreaker {
         }
 
         throw new KylinException(FAILED_OBTAIN_QUERY_RESULT,
-                String.format(MsgPicker.getMsg().getQUERY_ROW_NUM_OVER_THRESHOLD(), threshold));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getQUERY_ROW_NUM_OVER_THRESHOLD(), threshold));
     }
 
     private static boolean isEnabled() {

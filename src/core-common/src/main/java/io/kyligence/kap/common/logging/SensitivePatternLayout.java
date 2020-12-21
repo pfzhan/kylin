@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.common.logging;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,8 +38,8 @@ public class SensitivePatternLayout extends PatternLayout implements IKeep {
     private static final String PREFIX_GROUP_NAME = "prefix";
     private static final String SENSITIVE_GROUP_NAME = "sensitive";
     private static final String MASK = "******";
-    private static final Pattern SENSITIVE_PATTERN = Pattern.compile(
-            String.format("(?<%s>password\\s*[:=])(?<%s>[^,.!]*)", PREFIX_GROUP_NAME, SENSITIVE_GROUP_NAME),
+    private static final Pattern SENSITIVE_PATTERN = Pattern.compile(String.format(Locale.ROOT,
+            "(?<%s>password\\s*[:=])(?<%s>[^,.!]*)", PREFIX_GROUP_NAME, SENSITIVE_GROUP_NAME),
             Pattern.CASE_INSENSITIVE);
 
     @Override
@@ -61,7 +62,7 @@ public class SensitivePatternLayout extends PatternLayout implements IKeep {
     private String mask(String message) {
         Matcher matcher = SENSITIVE_PATTERN.matcher(message);
         if (matcher.find()) {
-            return matcher.replaceAll(String.format("${%s}%s", PREFIX_GROUP_NAME, MASK));
+            return matcher.replaceAll(String.format(Locale.ROOT, "${%s}%s", PREFIX_GROUP_NAME, MASK));
         }
         return message;
     }

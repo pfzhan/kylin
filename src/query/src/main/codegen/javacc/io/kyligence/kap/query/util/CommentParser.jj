@@ -6,13 +6,17 @@ options {
 
 PARSER_BEGIN(CommentParser)
 package io.kyligence.kap.query.util;
+
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Scanner;
-import io.kyligence.kap.common.obf.IKeep;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.obf.IKeep;
 
 public class CommentParser implements IKeep {
 
@@ -21,7 +25,7 @@ public class CommentParser implements IKeep {
 
     public static void main(String args[]) throws ParseException {
         System.out.println("Input SQL:");
-        Scanner reader = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in, Charset.defaultCharset().name());
         String sql = reader.nextLine();
         reader.close();
         CommentParser parser = new CommentParser(new StringReader(sql));

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.interceptor;
 
+import java.nio.charset.StandardCharsets;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.kylin.common.util.Pair;
@@ -38,33 +40,19 @@ public class ProjectInfoParserTest {
     @Test
     public void testBasic() {
 
-
         String[] urls = new String[] {
                 // project api
-                urlPrefix,
-                urlPrefix + "/backup",
-                urlPrefix + "/default_database",
-                urlPrefix + "/query_accelerate_threshold",
-                urlPrefix + "/storage",
-                urlPrefix + "/storage_quota",
-                urlPrefix + "/shard_num_config",
-                urlPrefix + "/garbage_cleanup_config",
-                urlPrefix + "/job_notification_config",
-                urlPrefix + "/push_down_config",
-                urlPrefix + "/push_down_project_config",
-                urlPrefix + "/computed_column_config",
-                urlPrefix + "/segment_config",
-                urlPrefix + "/project_general_info",
-                urlPrefix + "/project_config",
-                urlPrefix + "/source_type",
-                urlPrefix + "/yarn_queue",
-                urlPrefix + "/computed_column_config",
-                urlPrefix + "/owner",
-                urlPrefix + "/config",
+                urlPrefix, urlPrefix + "/backup", urlPrefix + "/default_database",
+                urlPrefix + "/query_accelerate_threshold", urlPrefix + "/storage", urlPrefix + "/storage_quota",
+                urlPrefix + "/shard_num_config", urlPrefix + "/garbage_cleanup_config",
+                urlPrefix + "/job_notification_config", urlPrefix + "/push_down_config",
+                urlPrefix + "/push_down_project_config", urlPrefix + "/computed_column_config",
+                urlPrefix + "/segment_config", urlPrefix + "/project_general_info", urlPrefix + "/project_config",
+                urlPrefix + "/source_type", urlPrefix + "/yarn_queue", urlPrefix + "/computed_column_config",
+                urlPrefix + "/owner", urlPrefix + "/config",
 
                 // other api
-                "/kylin/api/models/" + project + "/model1/partition_desc"
-        };
+                "/kylin/api/models/" + project + "/model1/partition_desc" };
 
         for (String url : urls) {
             Assert.assertEquals(project, ProjectInfoParser.extractProject(url));
@@ -74,19 +62,14 @@ public class ProjectInfoParserTest {
     @Test
     public void testFailed() {
         String wrongUrl = "/wrong_url";
-        String[] urls = new String[] {
-                urlPrefix + wrongUrl,
-                urlPrefix + "/backup" + wrongUrl,
-                urlPrefix + "/push_down_project_config" + wrongUrl,
-                urlPrefix + "/config" + wrongUrl,
+        String[] urls = new String[] { urlPrefix + wrongUrl, urlPrefix + "/backup" + wrongUrl,
+                urlPrefix + "/push_down_project_config" + wrongUrl, urlPrefix + "/config" + wrongUrl,
                 //
-                urlPrefix + wrongUrl + "/backup",
-                urlPrefix + wrongUrl + "/push_down_project_config",
+                urlPrefix + wrongUrl + "/backup", urlPrefix + wrongUrl + "/push_down_project_config",
                 urlPrefix + wrongUrl + "/config",
                 //
                 "/kylin/api/models/" + project + "/model1/partition_desc" + wrongUrl,
-                "/kylin/api/models/" + project + wrongUrl + "/model1/partition_desc",
-        };
+                "/kylin/api/models/" + project + wrongUrl + "/model1/partition_desc", };
 
         for (String url : urls) {
             Assert.assertNotEquals(project, ProjectInfoParser.extractProject(url));
@@ -110,7 +93,7 @@ public class ProjectInfoParserTest {
         request.setRequestURI("/kylin/api/test");
         String body = "{\"project\": \"BBB\"}";
 
-        request.setContent(body.getBytes());
+        request.setContent(body.getBytes(StandardCharsets.UTF_8));
 
         request.setContentType("application/json");
         pair = ProjectInfoParser.parseProjectInfo(request);

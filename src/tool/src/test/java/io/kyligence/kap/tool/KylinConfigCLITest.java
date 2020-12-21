@@ -65,7 +65,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
     public void testGetProperty() throws IOException {
         PrintStream o = System.out;
         File f = File.createTempFile("cfg", ".tmp");
-        PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
+        PrintStream tmpOut = new PrintStream(new FileOutputStream(f), false, Charset.defaultCharset().name());
         System.setOut(tmpOut);
         KylinConfigCLI.execute(new String[] { "kylin.env" });
 
@@ -83,9 +83,9 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         config.setProperty(property, "ENC('YeqVr9MakSFbgxEec9sBwg==')");
         PrintStream o = System.out;
         File f = File.createTempFile("cfg", ".tmp");
-        PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
+        PrintStream tmpOut = new PrintStream(new FileOutputStream(f), false, Charset.defaultCharset().name());
         System.setOut(tmpOut);
-        KylinConfigCLI.execute(new String[] { property, EncryptUtil.DEC_FLAG});
+        KylinConfigCLI.execute(new String[] { property, EncryptUtil.DEC_FLAG });
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         assertEquals("kylin", val);
@@ -101,9 +101,9 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         config.setProperty(property, "kylin");
         PrintStream o = System.out;
         File f = File.createTempFile("cfg", ".tmp");
-        PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
+        PrintStream tmpOut = new PrintStream(new FileOutputStream(f), false, Charset.defaultCharset().name());
         System.setOut(tmpOut);
-        KylinConfigCLI.execute(new String[] { property, EncryptUtil.DEC_FLAG});
+        KylinConfigCLI.execute(new String[] { property, EncryptUtil.DEC_FLAG });
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         assertEquals("kylin", val);
@@ -116,7 +116,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
     public void testGetPrefix() throws IOException {
         PrintStream o = System.out;
         File f = File.createTempFile("cfg", ".tmp");
-        PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
+        PrintStream tmpOut = new PrintStream(new FileOutputStream(f), false, Charset.defaultCharset().name());
         System.setOut(tmpOut);
         KylinConfigCLI.execute(new String[] { "kylin.engine.mr.config-override." });
 

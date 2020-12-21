@@ -250,7 +250,7 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
 
             long storage = 0L;
             for (NDataSegment segment : segments) {
-                if (segment.getStatus().equals(SegmentStatusEnum.NEW)) {
+                if (segment.getStatus() == SegmentStatusEnum.NEW) {
                     continue;
                 }
                 for (LayoutEntity layout : cuboid.getLayouts()) {

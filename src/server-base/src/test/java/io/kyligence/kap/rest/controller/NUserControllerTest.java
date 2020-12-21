@@ -51,6 +51,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
@@ -167,7 +168,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testBasics() {
         EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserController.authenticatedUser();
         Assert.assertNotNull(userDetailsEnvelopeResponse);
-        Assert.assertTrue(userDetailsEnvelopeResponse.getCode().equals(ResponseCode.CODE_SUCCESS));
+        Assert.assertEquals(userDetailsEnvelopeResponse.getCode(), ResponseCode.CODE_SUCCESS);
     }
 
     @Test
@@ -178,8 +179,8 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 null);
         overwriteSystemProp(Constants.KE_DATES, "2018-12-17,2019-01-17");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                String.format(Message.getInstance().getLICENSE_OVERDUE_TRIAL(), "2018-12-17", "2019-01-17"));
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getLICENSE_OVERDUE_TRIAL(), "2018-12-17",
+                "2019-01-17"));
         nUserController.authenticate();
     }
 
@@ -350,7 +351,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format("User '%s' not found.", username));
+        thrown.expectMessage(String.format(Locale.ROOT, "User '%s' not found.", username));
         nUserController.delete(username);
     }
 

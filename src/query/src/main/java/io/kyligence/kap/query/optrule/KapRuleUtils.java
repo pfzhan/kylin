@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.query.optrule;
 
-
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
@@ -40,10 +39,10 @@ public class KapRuleUtils {
     }
 
     static boolean isDivide(RexNode expr) {
-        if (SqlKind.DIVIDE.equals(expr.getKind()))
+        if (SqlKind.DIVIDE == expr.getKind())
             return true;
-        if (expr instanceof RexCall){
-            SqlOperator op = ((RexCall)expr).op;
+        if (expr instanceof RexCall) {
+            SqlOperator op = ((RexCall) expr).op;
             return op instanceof SqlUserDefinedFunction && "DIVIDE".equals(op.getName());
         }
         return false;

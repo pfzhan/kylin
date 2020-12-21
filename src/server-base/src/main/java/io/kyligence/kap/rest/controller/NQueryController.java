@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -250,7 +251,7 @@ public class NQueryController extends NBasicController {
 
         SQLResponse result = queryService.doQueryWithCache(sqlRequest, false);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault(Locale.Category.FORMAT));
         String nowStr = sdf.format(new Date());
         response.setContentType("text/" + format + ";charset=utf-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"" + nowStr + ".result." + format + "\"");

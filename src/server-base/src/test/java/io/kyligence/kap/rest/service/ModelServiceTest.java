@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -91,7 +92,6 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -149,6 +149,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
 import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
 import io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler;
@@ -241,37 +242,37 @@ public class ModelServiceTest extends CSVSourceTestCase {
     private final String MODEL_UT_INNER_JOIN_ID = "82fa7671-a935-45f5-8779-85703601f49a";
 
     @InjectMocks
-    private ModelService modelService = Mockito.spy(new ModelService());
+    private final ModelService modelService = Mockito.spy(new ModelService());
 
     @InjectMocks
-    private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
+    private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
     @Autowired
-    private TableService tableService = Mockito.spy(new TableService());
+    private final TableService tableService = Mockito.spy(new TableService());
 
     @Autowired
-    private TableExtService tableExtService = Mockito.spy(new TableExtService());
+    private final TableExtService tableExtService = Mockito.spy(new TableExtService());
 
     @Autowired
-    private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
+    private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @Autowired
-    private ProjectService projectService = Mockito.spy(new ProjectService());
+    private final ProjectService projectService = Mockito.spy(new ProjectService());
 
     @InjectMocks
-    private SegmentHelper segmentHelper = new SegmentHelper();
+    private final SegmentHelper segmentHelper = new SegmentHelper();
 
     @Mock
-    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
-    private AccessService accessService = Mockito.spy(AccessService.class);
+    private final AccessService accessService = Mockito.spy(AccessService.class);
 
     @Mock
-    private OptRecService optRecService = Mockito.spy(OptRecService.class);
+    private final OptRecService optRecService = Mockito.spy(OptRecService.class);
 
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
@@ -281,7 +282,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
+    private final static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     @Before
     public void setup() {
@@ -831,8 +832,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         final String contentSegDimension = "ORDer";
         indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null,
                 contentSegDimension, false, 0, 10, null, true);
-        Assert.assertTrue(indices.getIndices().stream().allMatch(
-                index -> index.getDimensions().stream().anyMatch(d -> d.contains(contentSegDimension.toUpperCase()))));
+        Assert.assertTrue(indices.getIndices().stream().allMatch(index -> index.getDimensions().stream()
+                .anyMatch(d -> d.contains(contentSegDimension.toUpperCase(Locale.ROOT)))));
 
         final String contentSegMeasure = "GMV";
         indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, contentSegMeasure,
@@ -1174,7 +1175,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", true, "", null,
                 "last_modify", true);
         Assert.assertTrue(models.get(0).getUuid().equals("cb596712-3a09-46f8-aea1-988b43fe9b6c")
-                && models.get(0).getStatus().equals(ModelStatusToDisplayEnum.OFFLINE));
+                && models.get(0).getStatus() == ModelStatusToDisplayEnum.OFFLINE);
     }
 
     @Test
@@ -1598,14 +1599,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataSegment.setSegmentRange(segmentRange);
         segments.add(dataSegment);
         update = new NDataflowUpdate(df.getUuid());
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
 
         df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         dataflowManager.refreshSegment(df, segmentRange);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.displayIdName()));
+        thrown.expectMessage(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.displayIdName()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1814,13 +1816,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataSegment2.setSegmentRange(segmentRange);
         segments.add(dataSegment2);
 
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                String.format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
-                        dataSegment1.displayIdName()));
+        thrown.expectMessage(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
+                dataSegment1.displayIdName()));
         modelService.mergeSegmentsManually(
                 new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
@@ -1856,13 +1858,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataSegment2.setSegmentRange(segmentRange);
         segments.add(dataSegment2);
         update = new NDataflowUpdate(df.getUuid());
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         //refresh normally
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
+        thrown.expectMessage(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
         //refresh exception
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
@@ -2309,7 +2312,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise().equals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT")
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
@@ -2334,7 +2337,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
 
         Field field = ComputedColumnDesc.class.getDeclaredField("expression");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         field.set(deserialized.getComputedColumnDescs().get(0), "1+1");
         modelService.getDataModelManager("default").updateDataModelDesc(deserialized);
         // TODO should use modelService.updateModelAndDesc("default", deserialized);
@@ -2350,7 +2353,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
-        Assert.assertTrue(dataModelDescs.size() == 1);
+        Assert.assertEquals(1, dataModelDescs.size());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
@@ -2358,7 +2361,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
 
         Field field = ComputedColumnDesc.class.getDeclaredField("columnName");
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         field.set(deserialized.getComputedColumnDescs().get(0), "cal_dt");
         modelService.getDataModelManager("default").updateDataModelDesc(deserialized);
         // TODO should use modelService.updateModelAndDesc("default", deserialized);
@@ -2443,7 +2446,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
 
-                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR)
+                return BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR == ccException.getCauseType()
                         && ccException.getAdvise().equals("TEST_KYLIN_FACT")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
@@ -2492,7 +2495,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME)
+                return BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME == ccException.getCauseType()
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
@@ -2543,7 +2546,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
@@ -2639,7 +2642,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR)
+                return ccException.getCauseType() == BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR
                         && ccException.getAdvise().equals("TEST_KYLIN_FACT")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR_2")
@@ -2687,7 +2690,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
                         && ccException.getAdvise().equals("SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
@@ -2727,7 +2730,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
                         && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
@@ -2767,7 +2770,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_EXPR_DIFF_NAME)
+                return ccException.getCauseType() == BadModelException.CauseType.SAME_EXPR_DIFF_NAME
                         && ccException.getAdvise().equals("LEFTJOIN_BUYER_COUNTRY_ABBR")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
@@ -2838,7 +2841,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
@@ -2926,7 +2929,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
@@ -2969,7 +2972,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise().equals("CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
@@ -3019,7 +3022,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                return BadModelException.CauseType.SELF_CONFLICT == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT") && ccException.getMessage()
                                 .equals("This name has already been used by other computed columns in this model.");
@@ -3058,7 +3061,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                return BadModelException.CauseType.SELF_CONFLICT == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
@@ -3099,7 +3102,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                return BadModelException.CauseType.SELF_CONFLICT == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
@@ -3339,7 +3342,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
 
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
         sdf.setTimeZone(TimeZone.getDefault());
 
         long t1 = sdf.parse("2012/01/01").getTime();
@@ -3441,8 +3444,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, job.getPriority());
         Assert.assertTrue(((NSparkCubingJob) job).getHandler() instanceof ExecutableAddSegmentHandler);
         thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(String
-                .format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
+        thrown.expectMessageInTransaction(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
                         .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
@@ -4479,7 +4482,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ownerChangeRequest3.setOwner(owner);
 
         String modelId = UUID.randomUUID().toString();
-        thrown.expectMessage(String.format("Model %s does not exist or broken in project %s", modelId, project));
+        thrown.expectMessage(
+                String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", modelId, project));
         modelService.updateModelOwner(project, modelId, ownerChangeRequest3);
 
         // test broken model, throw exception
@@ -4490,7 +4494,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
         modelManager.updateDataBrokenModelDesc(brokenModel);
 
-        thrown.expectMessage(String.format("Model %s does not exist or broken in project %s", brokenModelId, project));
+        thrown.expectMessage(
+                String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", brokenModelId, project));
         modelService.updateModelOwner(project, brokenModelId, ownerChangeRequest3);
     }
 
@@ -4924,7 +4929,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
         val segmentId4 = "ff839b0b-2c23-4420-b332-0df70e36c343";
-        try (SetAndUnsetSystemProp prop = new SetAndUnsetSystemProp("kylin.job.max-concurrent-jobs", "1")) {
+        try {
+            overwriteSystemProp("kylin.job.max-concurrent-jobs", "1");
             val buildPartitions2 = Lists.<String[]> newArrayList();
             buildPartitions2.add(new String[] { "ASIA" });
             buildPartitions2.add(new String[] { "EUROPE" });
@@ -5147,8 +5153,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage()
-                    .contains(String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores")));
+            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.instances", "1.2");
@@ -5157,8 +5163,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances")));
+            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.sql.shuffle.partitions", "1.2");
@@ -5167,8 +5173,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions")));
+            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.memory", "3");
@@ -5177,8 +5183,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage()
-                    .contains(String.format(MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory")));
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory")));
         }
         prop.clear();
         prop.put("kylin.cube.aggrgroup.is-base-cuboid-always-valid", "ddd");
@@ -5187,8 +5193,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(
-                    String.format(MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid")));
+            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid")));
         }
         prop.clear();
         prop.put("kylin.engine.spark-conf.spark.executor.memory", null);
@@ -5197,8 +5203,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains(String.format(MsgPicker.getMsg().getINVALID_NULL_VALUE(),
-                    "kylin.engine.spark-conf.spark.executor.memory")));
+            Assert.assertTrue(e.getMessage().contains(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_NULL_VALUE(), "kylin.engine.spark-conf.spark.executor.memory")));
         }
     }
 

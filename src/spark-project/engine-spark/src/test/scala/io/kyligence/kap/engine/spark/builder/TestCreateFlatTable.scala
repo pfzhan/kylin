@@ -21,9 +21,6 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import java.text.SimpleDateFormat
-import java.util.{TimeZone, UUID}
-
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.engine.spark.job.DFChooser
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
@@ -36,6 +33,8 @@ import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBa
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
 
+import java.text.SimpleDateFormat
+import java.util.{Locale, TimeZone, UUID}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -46,7 +45,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
   private val MODEL_NAME2 = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94"
   private val MODEL_NAME3 = "741ca86a-1f13-46da-a59f-95fb68615e3a"
 
-  val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT))
   dateFormat.setTimeZone(TimeZone.getDefault)
 
   def getTestConfig: KylinConfig = {

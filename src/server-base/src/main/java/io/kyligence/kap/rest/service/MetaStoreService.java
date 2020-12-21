@@ -37,9 +37,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -207,11 +209,11 @@ public class MetaStoreService extends BasicService {
                 NDataModel dataModelDesc = modelManager.getDataModelDesc(modelId);
                 if (Objects.isNull(dataModelDesc)) {
                     throw new KylinException(MODEL_NOT_EXIST,
-                            String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
                 }
                 if (dataModelDesc.isBroken()) {
                     throw new KylinException(MODEL_EXPORT_ERROR,
-                            String.format(MsgPicker.getMsg().getEXPORT_BROKEN_MODEL(), modelId));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getEXPORT_BROKEN_MODEL(), modelId));
                 }
 
                 NDataModel modelDesc = modelManager.copyForWrite(dataModelDesc);
@@ -242,7 +244,8 @@ public class MetaStoreService extends BasicService {
                     List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll(modelDesc.getProject(), modelDesc.getUuid(),
                             modelDesc.getSemanticVersion(), Integer.MAX_VALUE);
 
-                    newResourceStore.putResourceWithoutCheck(String.format(MODEL_REC_PATH, project, modelId),
+                    newResourceStore.putResourceWithoutCheck(
+                            String.format(Locale.ROOT, MODEL_REC_PATH, project, modelId),
                             ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)),
                             System.currentTimeMillis(), -1);
                 }
@@ -253,8 +256,9 @@ public class MetaStoreService extends BasicService {
 
             // add version file
             String version = System.getProperty(KE_VERSION) == null ? "unknown" : System.getProperty(KE_VERSION);
-            newResourceStore.putResourceWithoutCheck(VERSION_FILE, ByteStreams.asByteSource(version.getBytes()),
-                    System.currentTimeMillis(), -1);
+            newResourceStore.putResourceWithoutCheck(VERSION_FILE,
+                    ByteStreams.asByteSource(version.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
+                    -1);
 
             oldResourceStore.copy(ResourceStore.METASTORE_UUID_TAG, newResourceStore);
             writeMetadataToZipOutputStream(zipOutputStream, newResourceStore);
@@ -561,7 +565,8 @@ public class MetaStoreService extends BasicService {
             String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
 
             throw new KylinException(MODEL_IMPORT_ERROR,
-                    String.format("%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details), exceptions);
+                    String.format(Locale.ROOT, "%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    exceptions);
         }
     }
 
@@ -575,22 +580,22 @@ public class MetaStoreService extends BasicService {
                     .getDataModelDescByAlias(modelImport.getOriginalName());
 
             if (dataModel == null) {
-                throw new KylinException(MODEL_IMPORT_ERROR, String.format(msg.getCAN_NOT_OVERWRITE_MODEL(),
-                        modelImport.getOriginalName(), modelImport.getImportType()));
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
+                        msg.getCAN_NOT_OVERWRITE_MODEL(), modelImport.getOriginalName(), modelImport.getImportType()));
             }
 
             val modelSchemaChange = checkResult.getModels().get(modelImport.getOriginalName());
 
             if (modelSchemaChange == null || !modelSchemaChange.overwritable()) {
-                throw new KylinException(MODEL_IMPORT_ERROR, String.format(msg.getUN_SUITABLE_IMPORT_TYPE(),
-                        modelImport.getOriginalName(), modelImport.getImportType()));
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
+                        msg.getUN_SUITABLE_IMPORT_TYPE(), modelImport.getOriginalName(), modelImport.getImportType()));
             }
         } else if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
 
             if (!org.apache.commons.lang.StringUtils.containsOnly(modelImport.getTargetName(),
                     ModelService.VALID_NAME_FOR_MODEL)) {
-                throw new KylinException(INVALID_MODEL_NAME,
-                        String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), modelImport.getTargetName()));
+                throw new KylinException(INVALID_MODEL_NAME, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getINVALID_MODEL_NAME(), modelImport.getTargetName()));
             }
 
             NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
@@ -598,14 +603,14 @@ public class MetaStoreService extends BasicService {
 
             if (dataModel != null) {
                 throw new KylinException(INVALID_MODEL_NAME,
-                        String.format(msg.getMODEL_ALIAS_DUPLICATED(), modelImport.getTargetName()));
+                        String.format(Locale.ROOT, msg.getMODEL_ALIAS_DUPLICATED(), modelImport.getTargetName()));
             }
 
             val modelSchemaChange = checkResult.getModels().get(modelImport.getTargetName());
 
             if (modelSchemaChange == null || !modelSchemaChange.creatable()) {
-                throw new KylinException(MODEL_IMPORT_ERROR, String.format(msg.getUN_SUITABLE_IMPORT_TYPE(),
-                        modelImport.getTargetName(), modelImport.getImportType()));
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
+                        msg.getUN_SUITABLE_IMPORT_TYPE(), modelImport.getTargetName(), modelImport.getImportType()));
             }
 
         }

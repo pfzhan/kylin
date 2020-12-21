@@ -85,10 +85,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @After
     public void after() {
         NDefaultScheduler.destroyInstance();
-        //super.cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("noBuild");
-        System.clearProperty("isDeveloperMode");
     }
 
     @Test
@@ -154,7 +150,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     private void failFastIfNeeded(Pair<String, Throwable> result) {
-        if (Boolean.valueOf(System.getProperty("failFast", "false")) && result.getSecond() != null) {
+        if (Boolean.parseBoolean(System.getProperty("failFast", "false")) && result.getSecond() != null) {
             logger.error("CI failed on:" + result.getFirst());
             Assert.fail();
         }
@@ -215,9 +211,9 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     public void buildCubes() throws Exception {
-        if (Boolean.valueOf(System.getProperty("noBuild", "false"))) {
+        if (Boolean.parseBoolean(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
-        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode", "false"))) {
+        } else if (Boolean.parseBoolean(System.getProperty("isDeveloperMode", "false"))) {
             fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa", getProject());
             fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3a", getProject());
         } else {
@@ -242,11 +238,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         public Pair<String, Throwable> call() {
             String identity = "sqlFolder:" + sqlFolder + ", joinType:" + joinType + ", compareLevel:" + compareLevel;
             try {
-                if (NExecAndComp.CompareLevel.SUBSET.equals(compareLevel)) {
+                if (NExecAndComp.CompareLevel.SUBSET == compareLevel) {
                     List<Pair<String, String>> queries = NExecAndComp
                             .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
                     NExecAndComp.execLimitAndValidate(queries, getProject(), joinType);
-                } else if (NExecAndComp.CompareLevel.SAME_SQL_COMPARE.equals(compareLevel)) {
+                } else if (NExecAndComp.CompareLevel.SAME_SQL_COMPARE == compareLevel) {
                     List<Pair<String, String>> queries = NExecAndComp
                             .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
                     NExecAndComp.execCompareQueryAndCompare(queries, getProject(), joinType);

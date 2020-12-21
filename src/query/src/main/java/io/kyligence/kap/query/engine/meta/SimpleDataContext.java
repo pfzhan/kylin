@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.engine.meta;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -85,7 +86,7 @@ public class SimpleDataContext implements MutableDataContext {
     }
 
     private String prepareParamName(int idx) {
-        return String.format("?%d", idx);
+        return String.format(Locale.ROOT, "?%d", idx);
     }
 
     public KylinConfig getKylinConfig() {

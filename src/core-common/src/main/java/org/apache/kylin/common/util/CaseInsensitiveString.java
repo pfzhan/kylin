@@ -42,6 +42,8 @@
  */
 package org.apache.kylin.common.util;
 
+import java.util.Locale;
+
 /**
  * A string wrapper that makes .equals a caseInsensitive match
  * <p>
@@ -78,7 +80,7 @@ public class CaseInsensitiveString {
 
     @Override
     public int hashCode() {
-        return (str != null) ? str.toUpperCase().hashCode() : 0;
+        return (str != null) ? str.toUpperCase(Locale.ROOT).hashCode() : 0;
     }
 
     @Override

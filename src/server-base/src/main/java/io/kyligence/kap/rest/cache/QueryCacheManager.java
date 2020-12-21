@@ -26,6 +26,9 @@ package io.kyligence.kap.rest.cache;
 
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
+import java.util.List;
+import java.util.Locale;
+
 import javax.annotation.PostConstruct;
 
 import org.apache.kylin.common.KylinConfig;
@@ -47,8 +50,6 @@ import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
-
-import java.util.List;
 
 /**
  * query cache manager that
@@ -79,7 +80,7 @@ public class QueryCacheManager {
     }
 
     private Ehcache getProjectCache(QueryCacheManager.Type type, String project) {
-        final String projectCacheName = String.format("%s-%s", type.rootCacheName, project);
+        final String projectCacheName = String.format(Locale.ROOT, "%s-%s", type.rootCacheName, project);
         // make sure project cache exists
         // cacheManager maintains a concurrentHashMap for caches, so that we can simply call its addCacheIfAbsent method
         if (cacheManager.getEhcache(projectCacheName) == null) {

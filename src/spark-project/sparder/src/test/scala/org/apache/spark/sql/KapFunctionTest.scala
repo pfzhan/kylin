@@ -23,16 +23,16 @@
  */
 package org.apache.spark.sql
 
-import java.util.Calendar
-
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.junit.Assert
 
+import java.util.{Calendar, Locale, TimeZone}
+
 class KapFunctionsTest extends SparderBaseFunSuite with SharedSparkSession {
 
   test("kapDayOfWeekTest") {
-    val cl = Calendar.getInstance
+    val cl = Calendar.getInstance(TimeZone.getDefault, Locale.getDefault(Locale.Category.FORMAT))
     cl.set(2013, 1, 9)
     val expected = cl.get(Calendar.DAY_OF_WEEK)
     val startTime = cl.getTimeInMillis

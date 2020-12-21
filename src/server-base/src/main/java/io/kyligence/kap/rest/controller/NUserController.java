@@ -37,7 +37,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -202,7 +204,7 @@ public class NUserController extends NBasicController {
         // merge with existing user
         val existing = getManagedUser(username);
         if (existing == null) {
-            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
         }
         if (StringUtils.isEmpty(user.getPassword()))
             user.setPassword(existing.getPassword());
@@ -246,7 +248,7 @@ public class NUserController extends NBasicController {
         }
 
         if (Objects.isNull(toBeDeleteUser)) {
-            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_EXIST(), userUUID));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_EXIST(), userUUID));
         }
 
         if (StringUtils.equals(getPrincipal(), toBeDeleteUser.getUsername())) {
@@ -276,7 +278,7 @@ public class NUserController extends NBasicController {
             logger.warn("Delete user failed, user {} not found.", username);
         }
         if (Objects.isNull(managedUser)) {
-            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
         }
 
         if (StringUtils.equals(getPrincipal(), username)) {
@@ -332,7 +334,7 @@ public class NUserController extends NBasicController {
 
         ManagedUser existingUser = getManagedUser(username);
         if (existingUser == null) {
-            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
         }
         val actualOldPassword = existingUser.getPassword();
 
@@ -396,7 +398,7 @@ public class NUserController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails data = null;
+        UserDetails data;
         val msg = MsgPicker.getMsg();
         if (authentication == null) {
             throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
@@ -506,7 +508,7 @@ public class NUserController extends NBasicController {
     private String pwdBase64Decode(String password) {
         boolean isMatch = base64Pattern.matcher(password).matches();
         if (isMatch) {
-            return new String(Base64.decodeBase64(password));
+            return new String(Base64.decodeBase64(password), Charset.defaultCharset());
         }
         return password;
     }
@@ -523,7 +525,7 @@ public class NUserController extends NBasicController {
         for (SimpleGrantedAuthority group : groups) {
             if (!userGroupService.exists(group.getAuthority())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), group));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), group));
             }
         }
     }

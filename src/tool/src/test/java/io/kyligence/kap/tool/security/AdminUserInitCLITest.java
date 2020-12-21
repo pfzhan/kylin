@@ -26,6 +26,7 @@ package io.kyligence.kap.tool.security;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -63,7 +64,7 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, beforeCreateAdminManager.list().size());
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
+        System.setOut(new PrintStream(output, false, Charset.defaultCharset().name()));
 
         // metadata without user, create admin user
         AdminUserInitCLI.initAdminUser(true);
@@ -74,11 +75,11 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(afterCreateAdminManager.exists("ADMIN"));
 
         // assert output on console
-        Assert.assertTrue(output.toString()
+        Assert.assertTrue(output.toString(Charset.defaultCharset().name())
                 .startsWith(StorageCleaner.ANSI_RED
                         + "Create default user finished. The username of initialized user is ["
                         + StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "], which password is "));
-        Assert.assertTrue(output.toString()
+        Assert.assertTrue(output.toString(Charset.defaultCharset().name())
                 .endsWith("Please keep the password properly. "
                         + "And if you forget the password, you can reset it according to user manual."
                         + StorageCleaner.ANSI_RESET + "\n"));

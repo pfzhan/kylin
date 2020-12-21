@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.var;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
@@ -74,6 +73,7 @@ import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
 import lombok.val;
+import lombok.var;
 
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
@@ -122,7 +122,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclTCRService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
-
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -223,7 +222,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         return false;
     }
 
-    private SensitiveDataMask.MaskType getColumnDataMask(AclTCRRequest acl, String database, String table, String column) {
+    private SensitiveDataMask.MaskType getColumnDataMask(AclTCRRequest acl, String database, String table,
+            String column) {
         if (acl.getDatabaseName().equals(database)) {
             for (val tb : acl.getTables()) {
                 if (tb.getTableName().equals(table)) {
@@ -420,7 +420,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         columnRow1.setRow(row1);
         column1.addAll(Arrays.asList("ORDER_ID", "BUYER_ID", "TEST_DATE_ENC"));
         columnRow1.setColumn(column1);
-        columnRow1.setColumnSensitiveDataMask(Lists.newArrayList(new SensitiveDataMask("ORDER_ID", SensitiveDataMask.MaskType.AS_NULL)));
+        columnRow1.setColumnSensitiveDataMask(
+                Lists.newArrayList(new SensitiveDataMask("ORDER_ID", SensitiveDataMask.MaskType.AS_NULL)));
         table.put("DEFAULT.TEST_ORDER", columnRow1);
         table.put("DEFAULT.TEST_ACCOUNT", null);
 
@@ -464,8 +465,10 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                         .anyMatch(t -> t.getRows().stream().anyMatch(r -> "COUNTRY".equals(r.getColumnName())
                                 && "country_a,country_b".equals(String.join(",", r.getItems()))))));
 
-        Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream().anyMatch(t -> t.getColumns()
-                .stream().anyMatch(c -> "ORDER_ID".equals(c.getColumnName()) && c.getDataMaskType() == SensitiveDataMask.MaskType.AS_NULL))));
+        Assert.assertTrue(responses.stream()
+                .anyMatch(resp -> resp.getTables().stream()
+                        .anyMatch(t -> t.getColumns().stream().anyMatch(c -> "ORDER_ID".equals(c.getColumnName())
+                                && c.getDataMaskType() == SensitiveDataMask.MaskType.AS_NULL))));
 
         Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream().anyMatch(t -> t.getColumns()
                 .stream().anyMatch(c -> "BUYER_ID".equals(c.getColumnName()) && "bigint".equals(c.getDatatype())))));
@@ -478,9 +481,12 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, responses.size());
         Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream()
                 .anyMatch(t -> t.isAuthorized() && "TEST_ORDER".equals(t.getTableName()))));
-        Assert.assertTrue(responses.stream().anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 11));
-        Assert.assertTrue(responses.stream().anyMatch(res -> "EDW".equals(res.getDatabaseName()) && res.getTables().size() == 3));
-        Assert.assertTrue(responses.stream().anyMatch(res -> "SSB".equals(res.getDatabaseName()) && res.getTables().size() == 6));
+        Assert.assertTrue(responses.stream()
+                .anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 11));
+        Assert.assertTrue(
+                responses.stream().anyMatch(res -> "EDW".equals(res.getDatabaseName()) && res.getTables().size() == 3));
+        Assert.assertTrue(
+                responses.stream().anyMatch(res -> "SSB".equals(res.getDatabaseName()) && res.getTables().size() == 6));
     }
 
     @Test
@@ -765,7 +771,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                                 && table.getColumns().stream().anyMatch(column -> !column.isAuthorized()
                                         && column.getColumnName().equals("DIM_CRE_USER")))));
 
-
         // grant columnRequest
         columnRequest.setColumnName("DIM_CRE_USER");
         columnRequest.setAuthorized(true);
@@ -780,7 +785,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                         .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
                         .anyMatch(table -> table.getAuthorizedColumnNum() == authorizedColumnNum.get()
                                 && table.getColumns().stream().anyMatch(column -> column.isAuthorized()
-                                && column.getColumnName().equals("DIM_CRE_USER")))));
+                                        && column.getColumnName().equals("DIM_CRE_USER")))));
     }
 
     @Test
@@ -880,7 +885,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                         .anyMatch(table -> table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized)
                                 && table.getRows().size() == 2)));
 
-
         tableRequest.setRows(new ArrayList<>());
         row.setColumnName("DIM_CRE_USER");
         row.setItems(Arrays.asList("user1", "user2"));
@@ -896,7 +900,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                         .anyMatch(table -> table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized)
                                 && table.getRows().size() == 1)));
 
-
         tableRequest.setRows(new ArrayList<>());
         aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
 
@@ -907,8 +910,6 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                         .filter(table -> table.getTableName().equals("TEST_SELLER_TYPE_DIM"))
                         .anyMatch(table -> table.getColumns().stream().allMatch(AclTCRResponse.Column::isAuthorized)
                                 && table.getRows().size() == 0)));
-
-
 
     }
 
@@ -942,12 +943,12 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         row.setItems(Arrays.asList("user1", "user2"));
         tableRequest.getRows().add(row);
 
-
         thrown.expectCause(new BaseMatcher<Throwable>() {
             @Override
             public boolean matches(Object item) {
                 if (item instanceof KylinException) {
-                    return ((KylinException) item).getMessage().contains("The current user/group does not have permission of column DIM_CRE_USER.");
+                    return ((KylinException) item).getMessage()
+                            .contains("The current user/group does not have permission of column DIM_CRE_USER.");
                 }
                 return false;
             }
@@ -982,7 +983,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         columnRequest.setAuthorized(true);
         AclTCRRequest.DependentColumnData dependentColumnData = new AclTCRRequest.DependentColumnData();
         dependentColumnData.setColumnIdentity("EDW.TEST_SELLER_TYPE_DIM.DIM_CRE_DATE");
-        dependentColumnData.setValues(new String[]{"2020-01-01 00:00:00", "2020-01-02 00:00:00"});
+        dependentColumnData.setValues(new String[] { "2020-01-01 00:00:00", "2020-01-02 00:00:00" });
 
         columnRequest.getDependentColumns().add(dependentColumnData);
         tableRequest.getColumns().add(columnRequest);
@@ -993,7 +994,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         columnRequest.setAuthorized(true);
         dependentColumnData = new AclTCRRequest.DependentColumnData();
         dependentColumnData.setColumnIdentity("EDW.TEST_SELLER_TYPE_DIM.DIM_CRE_USER");
-        dependentColumnData.setValues(new String[]{"user1", "user2"});
+        dependentColumnData.setValues(new String[] { "user1", "user2" });
 
         columnRequest.getDependentColumns().add(dependentColumnData);
 
@@ -1004,7 +1005,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             @Override
             public boolean matches(Object item) {
                 if (item instanceof KylinException) {
-                    return ((KylinException) item).getMessage().contains("Not Supported setting association rules on association columns [DIM_CRE_DATE, DIM_CRE_USER]");
+                    return ((KylinException) item).getMessage().contains(
+                            "Not Supported setting association rules on association columns [DIM_CRE_DATE, DIM_CRE_USER]");
                 }
                 return false;
             }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,21 +42,23 @@
 
 package org.apache.kylin.common.metrics.common;
 
+import java.util.Locale;
+
 public final class MetricsNameBuilder {
     public final static String METRICS = "metrics:";
     public final static String PROJECT_TEMPLATE = METRICS + "project=%s";
     public final static String CUBE_TEMPLATE = METRICS + "project=%s,cube=%s";
 
     public static String buildMetricName(String prefix, String name) {
-        return String.format(prefix + ",name=%s", name);
+        return String.format(Locale.ROOT, prefix + ",name=%s", name);
     }
 
     public static String buildCubeMetricPrefix(String project) {
-        return String.format(PROJECT_TEMPLATE, project);
+        return String.format(Locale.ROOT, PROJECT_TEMPLATE, project);
     }
 
     public static String buildCubeMetricPrefix(String project, String cube) {
-        return String.format(CUBE_TEMPLATE, project, cube);
+        return String.format(Locale.ROOT, CUBE_TEMPLATE, project, cube);
     }
 
 }

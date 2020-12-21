@@ -24,21 +24,23 @@
 
 package org.apache.kylin.sdk.datasource.adaptor;
 
-import com.google.common.base.Preconditions;
-import org.apache.commons.lang3.StringUtils;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.google.common.base.Preconditions;
+
 public class MssqlAdaptor extends DefaultAdaptor {
 
-    private Pattern patternASYM = Pattern.compile("BETWEEN(\\s*)ASYMMETRIC");
-    private Pattern patternSYM = Pattern.compile("BETWEEN(\\s*)SYMMETRIC");
+    private final Pattern patternASYM = Pattern.compile("BETWEEN(\\s*)ASYMMETRIC");
+    private final Pattern patternSYM = Pattern.compile("BETWEEN(\\s*)SYMMETRIC");
 
     public MssqlAdaptor(AdaptorConfig config) throws Exception {
         super(config);
@@ -57,7 +59,7 @@ public class MssqlAdaptor extends DefaultAdaptor {
     public String fixSql(String sql) {
         sql = sql.replaceAll(" DOUBLE", " FLOAT");
 
-        boolean hasOrderBy = sql.toLowerCase().contains("order by ");
+        boolean hasOrderBy = sql.toLowerCase(Locale.ROOT).contains("order by ");
         if (!hasOrderBy) {
             int idx = sql.indexOf("OFFSET ");
             if (idx >= 0)
@@ -95,12 +97,12 @@ public class MssqlAdaptor extends DefaultAdaptor {
 
     @Override
     public String toSourceTypeName(String kylinTypeName) {
-        String lower = kylinTypeName.toLowerCase();
+        String lower = kylinTypeName.toLowerCase(Locale.ROOT);
         switch (lower) {
-            case "double":
-                return "float";
-            default:
-                return lower;
+        case "double":
+            return "float";
+        default:
+            return lower;
         }
     }
 

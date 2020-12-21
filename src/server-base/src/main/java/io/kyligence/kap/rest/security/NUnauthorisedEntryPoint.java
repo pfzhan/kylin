@@ -64,6 +64,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 @Component(value = "nUnauthorisedEntryPoint")
 public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
 
@@ -86,7 +88,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
             throws IOException {
         response.setStatus(statusCode);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        ErrorResponse errorResponse = new ErrorResponse(request.getRequestURL().toString(), ex);
+        ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(request), ex);
         String errorStr = JsonUtil.writeValueAsIndentString(errorResponse);
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();

@@ -21,11 +21,11 @@
  */
 package org.apache.spark.sql.common
 
-import java.io.File
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
+import io.kyligence.kap.common.util.{NLocalFileMetadataTestCase, Unsafe}
 import org.apache.curator.test.TestingServer
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
+
+import java.io.File
 
 trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
@@ -42,7 +42,7 @@ trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
       metaStore.createTestMetadata("../" + metadata)
     }
     zkTestServer = new TestingServer(true)
-    System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString)
+    Unsafe.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString)
   }
 
 
@@ -52,7 +52,7 @@ trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
       metaStore.cleanupTestMetadata()
       if (zkTestServer != null) {
         zkTestServer.close()
-        System.clearProperty("kylin.env.zookeeper-connect-string")
+        Unsafe.clearProperty("kylin.env.zookeeper-connect-string")
       }
     } catch {
       case ignore: Exception =>

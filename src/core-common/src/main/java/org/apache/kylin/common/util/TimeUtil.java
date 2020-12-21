@@ -85,14 +85,14 @@ public class TimeUtil {
     }
 
     public static long getWeekStart(long ts) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault());
         calendar.setTimeInMillis(getDayStart(ts));
         calendar.add(Calendar.DAY_OF_WEEK, calendar.getFirstDayOfWeek() - calendar.get(Calendar.DAY_OF_WEEK));
         return calendar.getTimeInMillis();
     }
 
     public static long getMonthStart(long ts) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault());
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
@@ -102,7 +102,7 @@ public class TimeUtil {
     }
 
     public static long getQuarterStart(long ts) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault());
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
         int month = calendar.get(Calendar.MONTH);
@@ -112,7 +112,7 @@ public class TimeUtil {
     }
 
     public static long getYearStart(long ts) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getDefault());
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault());
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
         calendar.clear();

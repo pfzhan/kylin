@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.USER_LOCKED;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
@@ -114,7 +115,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             authenticateFail(managedUser, userName);
             if (managedUser != null && managedUser.isLocked()) {
                 if (UserLockRuleUtil.isLockedPermanently(managedUser)) {
-                    String msg = String.format(MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(), userName);
+                    String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(),
+                            userName);
                     limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
                     throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
                 }
@@ -169,8 +171,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         if (managedUser != null && managedUser.isLocked()) {
 
             if (UserLockRuleUtil.isLockedPermanently(managedUser)) {
-                throw new LockedException(
-                        String.format(MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(), userName));
+                throw new LockedException(String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(), userName));
             }
 
             long lockedTime = managedUser.getLockedTime();
@@ -182,8 +184,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             } else {
                 long leftSeconds = UserLockRuleUtil.getLockLeftSeconds(managedUser, timeDiff);
                 long nextLockSeconds = UserLockRuleUtil.getLockDurationSeconds(managedUser.getWrongTime() + 1);
-                String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(leftSeconds, nextLockSeconds),
-                        userName);
+                String msg = String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(leftSeconds, nextLockSeconds), userName);
                 throw new LockedException(msg);
             }
         }

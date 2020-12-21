@@ -46,12 +46,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
@@ -412,19 +412,13 @@ public class RestClient {
     }
 
     private String getContent(HttpResponse response) throws IOException {
-        InputStreamReader reader = null;
-        BufferedReader rd = null;
-        StringBuffer result = new StringBuffer();
-        try {
-            reader = new InputStreamReader(response.getEntity().getContent());
-            rd = new BufferedReader(reader);
-            String line = null;
+        StringBuilder result = new StringBuilder();
+        try (InputStreamReader reader = new InputStreamReader(response.getEntity().getContent(),
+                Charset.defaultCharset()); BufferedReader rd = new BufferedReader(reader)) {
+            String line;
             while ((line = rd.readLine()) != null) {
                 result.append(line);
             }
-        } finally {
-            IOUtils.closeQuietly(reader);
-            IOUtils.closeQuietly(rd);
         }
         return result.toString();
     }

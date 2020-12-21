@@ -33,11 +33,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Scanner;
@@ -76,6 +78,7 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -146,7 +149,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             System.out.println(
                     "This script will help you modify the duplicate project names. The system will add a number to the project name created later, for example, project_a-> project_a1\n"
                             + "Please confirm if you need to execute the script？(y/n)");
-            Scanner scanner = new Scanner(System.in);
+            Scanner scanner = new Scanner(System.in, Charset.defaultCharset().name());
 
             String prompt = scanner.nextLine();
 
@@ -155,7 +158,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             }
 
             if (StringUtils.equals("n", prompt)) {
-                System.exit(0);
+                Unsafe.systemExit(0);
             }
         }
 
@@ -182,7 +185,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
         val tool = new RenameProjectResourceTool();
         tool.execute(args);
         System.out.println("Rename project resource finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override
@@ -209,8 +212,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             NProjectManager projectManager = NProjectManager.getInstance(fileSystemConfig);
             ProjectInstance projectInstance = projectManager.getProject(originProjectName);
             if (projectInstance == null) {
-                System.out.println(String.format("project %s does not exists", originProjectName));
-                System.exit(1);
+                System.out.printf(Locale.ROOT, "project %s does not exists%n", originProjectName);
+                Unsafe.systemExit(1);
             }
 
         } else {
@@ -323,13 +326,14 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             results.add(new RenameEntity(srcResourcePath, destResourcePath, dataflow, NDataflow.class));
 
             // dataflow_details
-            NavigableSet<String> daflowDetails = resourceStore.listResources(String.format("/%s%s/%s",
+            NavigableSet<String> daflowDetails = resourceStore.listResources(String.format(Locale.ROOT, "/%s%s/%s",
                     originProjectName, NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT, dataflow.getUuid()));
 
             if (daflowDetails != null) {
                 for (String daflowDetail : daflowDetails) {
-                    results.add(new RenameEntity(daflowDetail, daflowDetail.replace(
-                            String.format("/%s/", originProjectName), String.format("/%s/", destProjectName))));
+                    results.add(new RenameEntity(daflowDetail,
+                            daflowDetail.replace(String.format(Locale.ROOT, "/%s/", originProjectName),
+                                    String.format(Locale.ROOT, "/%s/", destProjectName))));
                 }
             }
         }
@@ -527,7 +531,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateUserGroupAcl(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
         NavigableSet<String> userAclPaths = resourceStore
-                .listResources(String.format("/%s/acl/user", originProjectName));
+                .listResources(String.format(Locale.ROOT, "/%s/acl/user", originProjectName));
         if (userAclPaths != null) {
             for (String userAclPath : userAclPaths) {
                 String destUserAclPath = userAclPath.replace("/" + originProjectName + "/",
@@ -537,7 +541,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
         }
 
         NavigableSet<String> groupAclPaths = resourceStore
-                .listResources(String.format("/%s/acl/group", originProjectName));
+                .listResources(String.format(Locale.ROOT, "/%s/acl/group", originProjectName));
         if (groupAclPaths != null) {
             for (String groupAclPath : groupAclPaths) {
                 String destGroupAclPath = groupAclPath.replace("/" + originProjectName + "/",
@@ -622,15 +626,15 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
 
                 String distMetaUrl = taskParams.get(P_DIST_META_URL);
                 if (distMetaUrl != null) {
-                    distMetaUrl = distMetaUrl.replace(String.format("/%s/", originProjectName),
-                            String.format("/%s/", destProjectName));
+                    distMetaUrl = distMetaUrl.replace(String.format(Locale.ROOT, "/%s/", originProjectName),
+                            String.format(Locale.ROOT, "/%s/", destProjectName));
                     taskParams.put(P_DIST_META_URL, distMetaUrl);
                 }
 
                 String outputMetaUrl = taskParams.get(P_OUTPUT_META_URL);
                 if (outputMetaUrl != null) {
-                    outputMetaUrl = outputMetaUrl.replace(String.format("/%s/", originProjectName),
-                            String.format("/%s/", destProjectName));
+                    outputMetaUrl = outputMetaUrl.replace(String.format(Locale.ROOT, "/%s/", originProjectName),
+                            String.format(Locale.ROOT, "/%s/", destProjectName));
                     taskParams.put(P_OUTPUT_META_URL, outputMetaUrl);
                 }
             }
@@ -640,8 +644,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
                 Map<String, String> info = jobOutput.getInfo();
                 String dependentFiles = info.get(DEPENDENT_FILES);
                 if (dependentFiles != null) {
-                    dependentFiles = dependentFiles.replace(String.format("/%s/", originProjectName),
-                            String.format("/%s/", destProjectName));
+                    dependentFiles = dependentFiles.replace(String.format(Locale.ROOT, "/%s/", originProjectName),
+                            String.format(Locale.ROOT, "/%s/", destProjectName));
                     info.put(DEPENDENT_FILES, dependentFiles);
                 }
             }
@@ -678,20 +682,20 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         Path src = new Path(hdfsWorkingDirectory, originPath);
         if (!fs.exists(src)) {
-            System.out.println(String.format("src file %s not exists", src));
+            System.out.printf(Locale.ROOT, "src file %s not exists%n", src);
             return;
         }
         Path dst = new Path(hdfsWorkingDirectory, destPath);
         if (fs.exists(dst)) {
-            System.out.println(String.format("dst file %s already exists", dst));
+            System.out.printf(Locale.ROOT, "dst file %s already exists%n", dst);
             return;
         }
 
-        System.out.println(String.format("move file from  %s to %s", src, dst));
+        System.out.printf(Locale.ROOT, "move file from  %s to %s%n", src, dst);
         boolean success = HadoopUtil.getWorkingFileSystem().rename(src, dst);
         if (!success) {
-            System.out.println(String.format("move file from  %s to %s failed", src, dst));
-            System.exit(1);
+            System.out.printf(Locale.ROOT, "move file from  %s to %s failed%n", src, dst);
+            Unsafe.systemExit(1);
         }
     }
 
@@ -709,7 +713,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private String generateAvailableResourceName(String originName, Set<String> existsResourceNames) {
         int suffix = 1;
         while (true) {
-            String destName = String.format("%s%s", originName, suffix);
+            String destName = String.format(Locale.ROOT, "%s%s", originName, suffix);
             if (!existsResourceNames.contains(destName)) {
                 return destName;
             }
@@ -720,10 +724,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private String getMetadataUrl(String rootPath) {
         if (rootPath.startsWith("file://")) {
             rootPath = rootPath.replace("file://", "");
-            return StringUtils.appendIfMissing(rootPath, "/");
-        } else {
-            return StringUtils.appendIfMissing(rootPath, "/");
-
         }
+        return StringUtils.appendIfMissing(rootPath, "/");
     }
 }

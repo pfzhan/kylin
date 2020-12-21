@@ -24,15 +24,6 @@
 
 package org.apache.kylin.job.dao;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,9 +32,21 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
+
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class JobStatisticsManager {
 
@@ -207,7 +210,8 @@ public class JobStatisticsManager {
     private String formatDateTime(long time) {
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDateTime localDateTime = Instant.ofEpochMilli(time).atZone(zoneId).toLocalDateTime();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd",
+                Locale.getDefault(Locale.Category.FORMAT));
         return localDateTime.format(formatter);
     }
 

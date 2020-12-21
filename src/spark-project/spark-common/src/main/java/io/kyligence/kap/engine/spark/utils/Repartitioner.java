@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.utils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -128,14 +129,15 @@ public class Repartitioner {
         return partitionSize;
     }
 
-    public void doRepartition(String outputPath, String inputPath, int repartitionNum, SparkSession ss) throws IOException {
+    public void doRepartition(String outputPath, String inputPath, int repartitionNum, SparkSession ss)
+            throws IOException {
         Path tempResourcePath = new Path(inputPath);
 
         FileSystem readFileSystem = HadoopUtil.getWorkingFileSystem();
         if (needRepartition()) {
             // repartition and write to target path
-            logger.info("Repartition {} to {}, [repartition number: {}, use shard column: {}]",
-                    inputPath, outputPath, repartitionNum, needRepartitionForShardByColumns());
+            logger.info("Repartition {} to {}, [repartition number: {}, use shard column: {}]", inputPath, outputPath,
+                    repartitionNum, needRepartitionForShardByColumns());
             long start = System.currentTimeMillis();
             Dataset<Row> data;
 
@@ -171,8 +173,9 @@ public class Repartitioner {
                 logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", inputPath,
                         outputPath);
             } else {
-                throw new RuntimeException(String.format(
-                        "Rename temp path to target path wrong. Temp path: %s, target path: %s.", inputPath, outputPath));
+                throw new RuntimeException(String.format(Locale.ROOT,
+                        "Rename temp path to target path wrong. Temp path: %s, target path: %s.", inputPath,
+                        outputPath));
             }
         }
     }

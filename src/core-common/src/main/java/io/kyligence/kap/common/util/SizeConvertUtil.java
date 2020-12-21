@@ -24,6 +24,8 @@
 package io.kyligence.kap.common.util;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 public class SizeConvertUtil {
 
@@ -32,10 +34,12 @@ public class SizeConvertUtil {
     }
 
     public static String getReadableFileSize(long size) {
-        if (size <= 0) return "0";
-        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB", "PB", "EB"};
+        if (size <= 0)
+            return "0";
+        final String[] units = new String[] { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
-        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+        return new DecimalFormat("#,##0.#", DecimalFormatSymbols.getInstance(Locale.getDefault(Locale.Category.FORMAT)))
+                .format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
 
 }

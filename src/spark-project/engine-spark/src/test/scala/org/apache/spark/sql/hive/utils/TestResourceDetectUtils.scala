@@ -24,13 +24,14 @@ package org.apache.spark.sql.hive.utils
 
 import java.io.FileOutputStream
 import java.util.{List => JList, Map => JMap}
-
 import com.google.common.collect.{Lists, Maps}
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.apache.spark.util.Utils
+
+import java.nio.charset.Charset
 
 class TestResourceDetectUtils extends SparderBaseFunSuite {
   private var config: KylinConfig = _
@@ -77,11 +78,11 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
     try {
       for (i <- 0 to 1) {
         val out = new FileOutputStream(files.apply(i).toString)
-        out.write(contents.apply(i).getBytes)
+        out.write(contents.apply(i).getBytes(Charset.defaultCharset()))
         out.close()
       }
       val l = ResourceDetectUtils.getResourceSize(files.head, files.last)
-      assert(l == contents.map(_.getBytes.length).sum)
+      assert(l == contents.map(_.getBytes(Charset.defaultCharset()).length).sum)
     } finally {
       Utils.deleteRecursively(tempDir)
     }
@@ -99,13 +100,13 @@ class TestResourceDetectUtils extends SparderBaseFunSuite {
     try {
       for (i <- 0 to 1) {
         val out = new FileOutputStream(files.apply(i).toString)
-        out.write(contents.apply(i).getBytes)
+        out.write(contents.apply(i).getBytes(Charset.defaultCharset()))
         out.close()
       }
       import scala.collection.JavaConverters._
 
      val l = resourcePaths.values().asScala.map(path => ResourceDetectUtils.getResourceSize(new Path(path.get(0)))).max
-      assert(l == contents.last.getBytes.length)
+      assert(l == contents.last.getBytes(Charset.defaultCharset()).length)
     } finally {
       Utils.deleteRecursively(tempDir)
     }

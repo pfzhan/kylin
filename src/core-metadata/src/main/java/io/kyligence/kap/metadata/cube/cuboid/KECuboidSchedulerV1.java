@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -177,7 +178,7 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
                 setCreatorFunc, maxCombination); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() + children.size() > maxCombination) {
-                throw new OutOfMaxCombinationException(String.format(OUT_OF_MAX_COMBINATION_MSG_FORMAT,
+                throw new OutOfMaxCombinationException(String.format(Locale.ROOT, OUT_OF_MAX_COMBINATION_MSG_FORMAT,
                         cuboidHolder.size() + children.size(), maxCombination));
             }
             cuboidHolder.addAll(children);
@@ -215,7 +216,7 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
                 }
                 if (++cuboidCount > maxCombination) {
                     throw new OutOfMaxCombinationException(
-                            String.format(OUT_OF_MAX_COMBINATION_MSG_FORMAT, cuboidCount, maxCombination));
+                            String.format(Locale.ROOT, OUT_OF_MAX_COMBINATION_MSG_FORMAT, cuboidCount, maxCombination));
                 }
 
                 BigInteger cuboidBits = cuboidId.getDimMeas();

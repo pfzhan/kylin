@@ -46,6 +46,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -103,9 +104,9 @@ public class ResourceTool {
     public static String cat(KylinConfig config, String path) throws IOException {
         ResourceStore store = ResourceStore.getKylinMetaStore(config);
         RawResource resource = store.getResource(path);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         try (InputStream is = resource.getByteSource().openStream();
-                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is, Charset.defaultCharset()))) {
 
             String line;
             while ((line = br.readLine()) != null) {

@@ -23,7 +23,11 @@
  */
 package io.kyligence.kap.rest.transaction;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+
+import java.util.Locale;
+import java.util.Objects;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -38,11 +42,8 @@ import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Objects;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 @Slf4j
 @Aspect
@@ -72,7 +73,7 @@ public class TransactionAspect {
                     .getProject(unitName);
             if (projectInstance == null) {
                 throw new KylinException(PROJECT_NOT_EXIST,
-                        String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), unitName));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), unitName));
             }
         }
 

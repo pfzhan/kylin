@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.stats.analyzer.delegate;
 
+import java.util.Locale;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.spark.sql.Row;
@@ -56,7 +58,7 @@ public class ColumnSchemaAnalysisDelegate extends AbstractColumnAnalysisDelegate
         if (once) {
             // check schema
             if (columnDesc.getName().startsWith("_")
-                    || ArrayUtils.contains(HIVE_KEYWORD, columnDesc.getName().toUpperCase())) {
+                    || ArrayUtils.contains(HIVE_KEYWORD, columnDesc.getName().toUpperCase(Locale.ROOT))) {
                 illegal = true;
             }
 

@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.kylin.rest.constant.Constant;
@@ -98,9 +99,9 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         MockMultipartFile file3 = new MockMultipartFile("sqls3.txt", "sqls3.txt", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls3.txt")));
         MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql",
-                "text/plain", "".getBytes());
+                "text/plain", "".getBytes(StandardCharsets.UTF_8));
         MockMultipartFile errorFile = new MockMultipartFile("error_file.sql", "error_file.sql", "text/plain",
-                "".getBytes());
+                "".getBytes(StandardCharsets.UTF_8));
 
         Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile, PROJECT)).thenThrow(IOException.class);
         Mockito.when(favoriteRuleService.transformFileToSqls(errorFile, PROJECT)).thenThrow(Error.class);
@@ -119,7 +120,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("error_file.sql", failedFilesMsg.get(1));
         // import empty file
         MockMultipartFile emptyFile = new MockMultipartFile("empty_file.sql", "empty_file.sql", "text/plain",
-                "".getBytes());
+                "".getBytes(StandardCharsets.UTF_8));
         result = favoriteRuleService.importSqls(new MultipartFile[] { emptyFile }, PROJECT);
         Assert.assertNotNull(result);
         Assert.assertEquals(0, result.getSize());
@@ -192,7 +193,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         // PRICE * ITEM_COUNT expression already exists
         String sql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
 
-        MockMultipartFile file1 = new MockMultipartFile("file.sql", "file.sql", "text/plain", sql.getBytes());
+        MockMultipartFile file1 = new MockMultipartFile("file.sql", "file.sql", "text/plain",
+                sql.getBytes(StandardCharsets.UTF_8));
         SQLParserResponse result = favoriteRuleService.importSqls(new MultipartFile[] { file1 }, PROJECT);
         List<ImportSqlResponse> responses = result.getData();
         Assert.assertEquals(1, responses.size());

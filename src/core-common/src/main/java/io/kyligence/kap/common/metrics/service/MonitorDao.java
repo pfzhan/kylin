@@ -24,6 +24,7 @@
 package io.kyligence.kap.common.metrics.service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.KapConfig;
@@ -43,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MonitorDao {
 
-    private InfluxDBInstance influxDBInstance;
+    private final InfluxDBInstance influxDBInstance;
     public static final String QUERY_METRICS_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE create_time >= %d AND create_time < %d";
 
     private MonitorDao() {
@@ -130,7 +131,7 @@ public class MonitorDao {
     }
 
     private QueryResult readFromInfluxDBByTime(InfluxDBReadRequest readRequest) {
-        String influxDBSql = String.format(QUERY_METRICS_BY_TIME_SQL_FORMAT, readRequest.getMeasurement(),
+        String influxDBSql = String.format(Locale.ROOT, QUERY_METRICS_BY_TIME_SQL_FORMAT, readRequest.getMeasurement(),
                 readRequest.getStartTime(), readRequest.getEndTime());
 
         return this.influxDBInstance.read(influxDBSql);

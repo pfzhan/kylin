@@ -24,8 +24,13 @@
 
 package io.kyligence.kap.rest.interceptor;
 
-import io.kyligence.kap.metadata.project.NProjectLoader;
-import lombok.val;
+import java.io.IOException;
+import java.nio.charset.Charset;
+
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.Assert;
 import org.junit.Test;
@@ -35,10 +40,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import java.io.IOException;
+import io.kyligence.kap.metadata.project.NProjectLoader;
+import lombok.val;
 
 public class RepeatableRequestBodyFilterTest extends ServiceTestBase {
 
@@ -48,8 +51,8 @@ public class RepeatableRequestBodyFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(
-                ("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}")
+                .getBytes(Charset.defaultCharset()));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {
@@ -69,8 +72,8 @@ public class RepeatableRequestBodyFilterTest extends ServiceTestBase {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");
         request.setContentType("application/json");
-        request.setContent(
-                ("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}").getBytes());
+        request.setContent(("" + "{\n" + "    \"project\": \"default\",\n" + "    \"hello\": \"world\"\n" + "}")
+                .getBytes(Charset.defaultCharset()));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain(new DefaultServlet() {

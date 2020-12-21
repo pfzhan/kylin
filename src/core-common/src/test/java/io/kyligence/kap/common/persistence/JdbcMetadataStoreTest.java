@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -48,6 +51,7 @@ import lombok.val;
 public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
 
     private static int index = 0;
+    public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
     @Before
     public void setup() {
@@ -66,11 +70,12 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     public void testBasic() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes()), 0);
-            store.checkAndPutResource("/p1/abc4", ByteStreams.asByteSource("abc2".getBytes()), 1000L, -1);
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes(DEFAULT_CHARSET)), 0);
+            store.checkAndPutResource("/p1/abc4", ByteStreams.asByteSource("abc2".getBytes(DEFAULT_CHARSET)), 1000L,
+                    -1);
             store.deleteResource("/p1/abc");
             return 0;
         }, "p1");
@@ -107,7 +112,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = new JdbcTemplate(dataSource);
 
         val tableName = url.getIdentifier();
-        jdbcTemplate.execute(String.format(
+        jdbcTemplate.execute(String.format(Locale.ROOT,
                 "create table if not exists %s ( META_TABLE_KEY varchar(255) primary key, META_TABLE_CONTENT longblob, META_TABLE_TS bigint,  META_TABLE_MVCC bigint)",
                 tableName));
 
@@ -115,16 +120,16 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 "insert into " + tableName
                         + " ( META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC ) values (?, ?, ?, ?)",
                 Lists.newArrayList(
-                        new Object[] { "/_global/project/p0.json", "project".getBytes(), System.currentTimeMillis(),
-                                0L },
-                        new Object[] { "/_global/project/p1.json", "project".getBytes(), System.currentTimeMillis(),
-                                0L }));
+                        new Object[] { "/_global/project/p0.json", "project".getBytes(DEFAULT_CHARSET),
+                                System.currentTimeMillis(), 0L },
+                        new Object[] { "/_global/project/p1.json", "project".getBytes(DEFAULT_CHARSET),
+                                System.currentTimeMillis(), 0L }));
         jdbcTemplate.batchUpdate(
                 "insert into " + tableName
                         + " ( META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC ) values (?, ?, ?, ?)",
-                IntStream
-                        .range(0, 2048).mapToObj(i -> new Object[] { "/p" + (i / 1024) + "/res" + i,
-                                ("content" + i).getBytes(), System.currentTimeMillis(), 0L })
+                IntStream.range(0, 2048)
+                        .mapToObj(i -> new Object[] { "/p" + (i / 1024) + "/res" + i,
+                                ("content" + i).getBytes(DEFAULT_CHARSET), System.currentTimeMillis(), 0L })
                         .collect(Collectors.toList()));
 
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
@@ -137,8 +142,8 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     public void testDuplicate() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), 0);
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), 0);
             return 0;
         }, "p1");
 
@@ -153,7 +158,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes()), 1);
+            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), 1);
             return 0;
         }, "p1");
     }

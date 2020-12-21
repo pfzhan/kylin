@@ -65,7 +65,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENT
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,6 +74,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -304,7 +304,8 @@ public class ModelService extends BasicService {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
         if (null == nDataModel) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
         return nDataModel;
     }
@@ -314,7 +315,7 @@ public class ModelService extends BasicService {
         NDataModel nDataModel = modelManager.getDataModelDescByAlias(modelAlias);
         if (null == nDataModel) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         return nDataModel;
     }
@@ -485,7 +486,7 @@ public class ModelService extends BasicService {
         NDataModel dataModel = getDataModelManager(projectName).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         NDataModelResponse cube = new NDataModelResponse(dataModel);
         NCubeDescResponse result = new NCubeDescResponse();
@@ -733,7 +734,8 @@ public class ModelService extends BasicService {
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
         return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
-                || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
+                || (!exactMatch
+                        && originValue.toLowerCase(Locale.ROOT).contains(valueToMatch.toLowerCase(Locale.ROOT)));
     }
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
@@ -748,7 +750,7 @@ public class ModelService extends BasicService {
             return nDataModelResponse;
         }
         nDataModelResponse.setAllTableRefs(modelDesc.getAllTables());
-        if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
+        if (ManagementType.MODEL_BASED == modelDesc.getManagementType()) {
             Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getUuid(), projectName, "0",
                     "" + Long.MAX_VALUE);
             if (CollectionUtils.isNotEmpty(segments)) {
@@ -967,7 +969,7 @@ public class ModelService extends BasicService {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             val model = dataModelDesc.getUuid();
             if (StringUtils.isEmpty(modelId)
-                    || dataModelDesc.getAlias().toLowerCase().contains(modelId.toLowerCase())) {
+                    || dataModelDesc.getAlias().toLowerCase(Locale.ROOT).contains(modelId.toLowerCase(Locale.ROOT))) {
                 RelatedModelResponse relatedModelResponse = new RelatedModelResponse(dataModelDesc);
                 Segments<NDataSegment> segments = getSegmentsByRange(model, project, "", "");
                 for (NDataSegment segment : segments) {
@@ -995,7 +997,7 @@ public class ModelService extends BasicService {
     private void checkAliasExist(String modelId, String newAlias, String project) {
         if (!checkModelAliasUniqueness(modelId, newAlias, project)) {
             throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(), newAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(), newAlias));
         }
     }
 
@@ -1022,7 +1024,7 @@ public class ModelService extends BasicService {
     void dropModel(String modelId, String project, boolean ignoreType) {
         val projectInstance = getProjectManager().getProject(project);
         if (!ignoreType) {
-            Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN.equals(projectInstance.getMaintainModelType()));
+            Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN == projectInstance.getMaintainModelType());
         }
 
         NDataModel dataModelDesc = getModelById(modelId, project);
@@ -1059,9 +1061,9 @@ public class ModelService extends BasicService {
     public void purgeModelManually(String modelId, String project) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModelDesc = getModelById(modelId, project);
-        if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+        if (ManagementType.TABLE_ORIENTED == dataModelDesc.getManagementType()) {
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
         }
         purgeModel(modelId, project);
     }
@@ -1120,7 +1122,7 @@ public class ModelService extends BasicService {
         NDataModelManager dataModelManager = getDataModelManager(project);
 
         NDataModel nDataModel = getModelById(modelId, project);
-        if (nDataModel.getManagementType().equals(ManagementType.MODEL_BASED)) {
+        if (ManagementType.MODEL_BASED == nDataModel.getManagementType()) {
             throw new IllegalStateException("Model " + nDataModel.getAlias() + " is model based, can not unlink it!");
         } else {
             NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
@@ -1212,9 +1214,9 @@ public class ModelService extends BasicService {
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         checkDataflowStatus(dataflow, modelId);
         boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
-                && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
+                && RealizationStatusEnum.ONLINE == dataflow.getStatus())
                 || (status.equals(RealizationStatusEnum.ONLINE.name())
-                        && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
+                        && RealizationStatusEnum.OFFLINE == dataflow.getStatus());
         if (needChangeStatus) {
             NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
@@ -1238,9 +1240,9 @@ public class ModelService extends BasicService {
     }
 
     private void checkDataflowStatus(NDataflow dataflow, String modelId) {
-        if (dataflow.getStatus().equals(RealizationStatusEnum.BROKEN)) {
+        if (RealizationStatusEnum.BROKEN == dataflow.getStatus()) {
             throw new KylinException(DUPLICATE_JOIN_CONDITION,
-                    String.format(MsgPicker.getMsg().getBROKEN_MODEL_CANNOT_ONOFFLINE(), modelId));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBROKEN_MODEL_CANNOT_ONOFFLINE(), modelId));
         }
     }
 
@@ -1265,7 +1267,7 @@ public class ModelService extends BasicService {
         val dfManager = getDataflowManager(project);
         long byteSize = 0L;
         List<RelatedModelResponse> models = getRelateModels(project, table, "").stream().filter(
-                relatedModelResponse -> relatedModelResponse.getManagementType().equals(ManagementType.TABLE_ORIENTED))
+                relatedModelResponse -> ManagementType.TABLE_ORIENTED == relatedModelResponse.getManagementType())
                 .collect(Collectors.toList());
 
         if (CollectionUtils.isEmpty(models)) {
@@ -1289,7 +1291,7 @@ public class ModelService extends BasicService {
         for (NDataModel model : models) {
             val dataflow = dfManager.getDataflow(model.getId());
             Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, start, end);
-            if (!dataflow.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
+            if (RealizationStatusEnum.LAG_BEHIND != dataflow.getStatus()) {
                 if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING))) {
                     if (loadingRange == null) {
                         //full build
@@ -1322,7 +1324,7 @@ public class ModelService extends BasicService {
 
     private void checkSegRefreshingInLagBehindModel(Segments<NDataSegment> segments) {
         for (val seg : segments) {
-            if (segments.getSegmentStatusToDisplay(seg).equals(SegmentStatusEnumToDisplay.REFRESHING)) {
+            if (SegmentStatusEnumToDisplay.REFRESHING == segments.getSegmentStatusToDisplay(seg)) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
             }
         }
@@ -1332,8 +1334,8 @@ public class ModelService extends BasicService {
             SegmentRange toBeRefreshSegmentRange) {
         SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
         if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
-            throw new KylinException(INVALID_SEGMENT_RANGE, String.format(MsgPicker.getMsg().getSEGMENT_INVALID_RANGE(),
-                    toBeRefreshSegmentRange, coveredReadySegmentRange));
+            throw new KylinException(INVALID_SEGMENT_RANGE, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getSEGMENT_INVALID_RANGE(), toBeRefreshSegmentRange, coveredReadySegmentRange));
         }
     }
 
@@ -1375,12 +1377,13 @@ public class ModelService extends BasicService {
             if (matcher.find()) {
                 String column = matcher.group(1);
                 String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-                String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(), column,
-                        table);
+                String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(),
+                        column, table);
                 throw new KylinException(TABLE_NOT_EXIST, error);
             } else {
-                String errorMsg = String.format("model [%s], %s", dataModel.getAlias(), String.format(
-                        MsgPicker.getMsg().getDEFAULT_REASON(), null != e.getMessage() ? e.getMessage() : "null"));
+                String errorMsg = String.format(Locale.ROOT, "model [%s], %s", dataModel.getAlias(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_REASON(),
+                                null != e.getMessage() ? e.getMessage() : "null"));
                 throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
             }
         }
@@ -1642,7 +1645,7 @@ public class ModelService extends BasicService {
 
         if (isProjectNotExist(project)) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
 
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
@@ -1665,7 +1668,8 @@ public class ModelService extends BasicService {
         val msg = MsgPicker.getMsg();
         int limit = kylinConfig1.getSuggestModelSqlLimit();
         if (sqls.size() > limit) {
-            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, String.format(msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
+            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT,
+                    String.format(Locale.ROOT, msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
         }
     }
 
@@ -1829,8 +1833,8 @@ public class ModelService extends BasicService {
         val prjManager = getProjectManager();
         val prj = prjManager.getProject(project);
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
-        if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
-                || dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+        if (MaintainModelType.AUTO_MAINTAIN == prj.getMaintainModelType()
+                || ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
             throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getINVALID_CREATE_MODEL());
         }
 
@@ -1914,13 +1918,14 @@ public class ModelService extends BasicService {
             // check if the dimension name is valid
             if (StringUtils.length(dimension.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(dimension.getName()).matches())
-                throw new KylinException(INVALID_NAME, String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(),
-                        dimension.getName(), maxModelDimensionMeasureNameLength));
+                throw new KylinException(INVALID_NAME,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName(),
+                                maxModelDimensionMeasureNameLength));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
-                throw new KylinException(DUPLICATE_DIMENSION_NAME,
-                        String.format(MsgPicker.getMsg().getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
+                throw new KylinException(DUPLICATE_DIMENSION_NAME, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
 
             dimensionNames.add(dimension.getName());
         }
@@ -1938,18 +1943,19 @@ public class ModelService extends BasicService {
             // check if the measure name is valid
             if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(measure.getName()).matches())
-                throw new KylinException(INVALID_NAME, String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(),
-                        measure.getName(), maxModelDimensionMeasureNameLength));
+                throw new KylinException(INVALID_NAME,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName(),
+                                maxModelDimensionMeasureNameLength));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))
                 throw new KylinException(DUPLICATE_MEASURE_NAME,
-                        String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure definitions
             if (measures.contains(measure))
-                throw new KylinException(DUPLICATE_MEASURE_EXPRESSION,
-                        String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
+                throw new KylinException(DUPLICATE_MEASURE_EXPRESSION, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
 
             measureNames.add(measure.getName());
             measures.add(measure);
@@ -1966,8 +1972,8 @@ public class ModelService extends BasicService {
 
             for (int i = 0; i < size; i++) {
                 if (joinKeys.contains(Pair.newPair(primaryKeys[i], foreignKey[i])))
-                    throw new KylinException(DUPLICATE_JOIN_CONDITION, String
-                            .format(MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
+                    throw new KylinException(DUPLICATE_JOIN_CONDITION, String.format(Locale.ROOT,
+                            MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
 
                 joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
             }
@@ -2041,9 +2047,9 @@ public class ModelService extends BasicService {
     public SegmentCheckResponse checkSegHoleIfSegDeleted(String model, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
-        if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
+        if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
+            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExistById(model, project, ids);
@@ -2108,8 +2114,8 @@ public class ModelService extends BasicService {
             throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
-            throw new KylinException(PARTITION_VALUE_NOT_SUPPORT,
-                    String.format(MsgPicker.getMsg().getPARTITION_VALUE_NOT_SUPPORT(), modelDesc.getAlias()));
+            throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getPARTITION_VALUE_NOT_SUPPORT(), modelDesc.getAlias()));
         }
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
@@ -2438,7 +2444,8 @@ public class ModelService extends BasicService {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel dataModel = modelManager.getDataModelDesc(modelId);
         if (dataModel == null) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
 
         MultiPartitionDesc multiPartitionDesc = dataModel.getMultiPartitionDesc();
@@ -2474,9 +2481,9 @@ public class ModelService extends BasicService {
 
     private void checkModelAndIndexManually(FullBuildSegmentParams params) {
         NDataModel modelDesc = getDataModelManager(params.getProject()).getDataModelDesc(params.getModelId());
-        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT_MANUALLY(), modelDesc.getAlias()));
+        if (ManagementType.MODEL_BASED != modelDesc.getManagementType()) {
+            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT_MANUALLY(), modelDesc.getAlias()));
         }
 
         if (params.isNeedBuild()) {
@@ -2514,7 +2521,7 @@ public class ModelService extends BasicService {
             for (NDataSegment existedSegment : segments) {
                 if (existedSegment.getSegRange().overlaps(segmentRangeToBuild)) {
                     throw new KylinException(SEGMENT_RANGE_OVERLAP,
-                            String.format(MsgPicker.getMsg().getSEGMENT_RANGE_OVERLAP(),
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_RANGE_OVERLAP(),
                                     existedSegment.getSegRange().getStart().toString(),
                                     existedSegment.getSegRange().getEnd().toString()));
                 }
@@ -2535,7 +2542,8 @@ public class ModelService extends BasicService {
             throw new KylinException(EMPTY_MODEL_NAME, msg.getEMPTY_MODEL_NAME());
         }
         if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL)) {
-            throw new KylinException(INVALID_MODEL_NAME, String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
+            throw new KylinException(INVALID_MODEL_NAME,
+                    String.format(Locale.ROOT, msg.getINVALID_MODEL_NAME(), modelAlias));
         }
     }
 
@@ -2622,14 +2630,14 @@ public class ModelService extends BasicService {
     }
 
     static void checkCCName(String name) {
-        if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
-                || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase())) {
-            throw new KylinException(INVALID_NAME,
-                    String.format(MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD(), name));
+        if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase(Locale.ROOT))
+                || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase(Locale.ROOT))) {
+            throw new KylinException(INVALID_NAME, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD(), name));
         }
         if (!Pattern.compile("^[a-zA-Z]+\\w*$").matcher(name).matches()) {
             throw new KylinException(INVALID_NAME,
-                    String.format(MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME(), name));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME(), name));
         }
     }
 
@@ -2663,7 +2671,7 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isNotEmpty(ambiguousCCNameSet)) {
             StringBuilder error = new StringBuilder();
             ambiguousCCNameSet.forEach(name -> {
-                error.append(String.format(MsgPicker.getMsg().getCHECK_CC_AMBIGUITY(), name));
+                error.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCHECK_CC_AMBIGUITY(), name));
                 error.append("\r\n");
             });
             throw new KylinException(DUPLICATE_COMPUTED_COLUMN_NAME, error.toString());
@@ -2695,7 +2703,8 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelId);
         if (dataModel == null) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
 
         dataModel.setDataCheckDesc(DataCheckDesc.valueOf(checkOptions, faultThreshold, faultActions));
@@ -2716,9 +2725,9 @@ public class ModelService extends BasicService {
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
-        if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
+        if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
+            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExistById(model, project, ids);
@@ -2731,8 +2740,8 @@ public class ModelService extends BasicService {
             if (dataflow.getSegment(id) != null) {
                 idsToDelete.add(id);
             } else {
-                throw new IllegalArgumentException(
-                        String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, dataflow.getModelAlias()));
+                throw new IllegalArgumentException(String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id,
+                        dataflow.getModelAlias()));
             }
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
@@ -2742,7 +2751,7 @@ public class ModelService extends BasicService {
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
         val df = dfManager.getDataflow(modelId);
-        if (df.getSegments().isEmpty() && RealizationStatusEnum.ONLINE.equals(df.getStatus())) {
+        if (df.getSegments().isEmpty() && RealizationStatusEnum.ONLINE == df.getStatus()) {
             dfManager.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
         }
     }
@@ -2759,8 +2768,8 @@ public class ModelService extends BasicService {
         List<String> notExistIds = Stream.of(ids).filter(segmentId -> null == dataflow.getSegment(segmentId))
                 .filter(Objects::nonNull).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(notExistIds)) {
-            throw new KylinException(SEGMENT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), StringUtils.join(notExistIds, ",")));
+            throw new KylinException(SEGMENT_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), StringUtils.join(notExistIds, ",")));
         }
     }
 
@@ -2777,8 +2786,8 @@ public class ModelService extends BasicService {
                 .filter(segmentName -> null == dataflow.getSegmentByName(segmentName)).filter(Objects::nonNull)
                 .collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(notExistNames)) {
-            throw new KylinException(SEGMENT_NOT_EXIST, String.format(MsgPicker.getMsg().getSEGMENT_NAME_NOT_EXIST(),
-                    StringUtils.join(notExistNames, ",")));
+            throw new KylinException(SEGMENT_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getSEGMENT_NAME_NOT_EXIST(), StringUtils.join(notExistNames, ",")));
         }
     }
 
@@ -2794,12 +2803,13 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Segments<NDataSegment> segments = dataflow.getSegments();
-        String message = status.equals(SegmentStatusEnumToDisplay.LOCKED) ? MsgPicker.getMsg().getSEGMENT_LOCKED()
+        String message = SegmentStatusEnumToDisplay.LOCKED == status ? MsgPicker.getMsg().getSEGMENT_LOCKED()
                 : MsgPicker.getMsg().getSEGMENT_STATUS(status.name());
         for (String id : ids) {
             val segment = dataflow.getSegment(id);
-            if (segments.getSegmentStatusToDisplay(segment).equals(status)) {
-                throw new KylinException(PERMISSION_DENIED, String.format(message, segment.displayIdName()));
+            if (segments.getSegmentStatusToDisplay(segment) == status) {
+                throw new KylinException(PERMISSION_DENIED,
+                        String.format(Locale.ROOT, message, segment.displayIdName()));
             }
         }
     }
@@ -2814,8 +2824,8 @@ public class ModelService extends BasicService {
         for (int i = 0; i < segmentList.size() - 1; i++) {
             if (!segmentList.get(i).getSegRange().connects(segmentList.get(i + 1).getSegRange())) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
-                        String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), segmentList.get(i).displayIdName(),
-                                segmentList.get(i + 1).displayIdName()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(),
+                                segmentList.get(i).displayIdName(), segmentList.get(i + 1).displayIdName()));
             }
         }
     }
@@ -2843,11 +2853,10 @@ public class ModelService extends BasicService {
             val segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
             }
 
-            if (!segment.getStatus().equals(SegmentStatusEnum.READY)
-                    && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            if (SegmentStatusEnum.READY != segment.getStatus() && SegmentStatusEnum.WARNING != segment.getStatus()) {
                 throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT());
             }
 
@@ -2905,7 +2914,7 @@ public class ModelService extends BasicService {
             NDataSegment segment = df.getSegment(id);
             if (segment == null) {
                 throw new IllegalArgumentException(
-                        String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
             }
 
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
@@ -3002,8 +3011,8 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
-                        StringUtils.join(dimensionNames, ",")));
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
             }
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
@@ -3011,8 +3020,8 @@ public class ModelService extends BasicService {
                     val measureNames = Arrays.stream(agg.getMeasures())
                             .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                    throw new KylinException(FAILED_UPDATE_MODEL, String
-                            .format(MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
+                    throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
+                            MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
                 }
             }
         }
@@ -3025,8 +3034,8 @@ public class ModelService extends BasicService {
         if (!allSelectedColumns.containsAll(tableIndexColumns)) {
             val columnNames = tableIndexColumns.stream().filter(x -> !allSelectedColumns.contains(x))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-            throw new KylinException(FAILED_UPDATE_MODEL,
-                    String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(columnNames, ",")));
+            throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(columnNames, ",")));
         }
 
         //check recommend agg index contains removed columns
@@ -3038,16 +3047,16 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
-                        StringUtils.join(dimensionNames, ",")));
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
             }
 
             if (!newModel.getEffectiveMeasures().keySet().containsAll(aggIndex.getMeasures())) {
                 val measureNames = aggIndex.getMeasures().stream()
                         .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                         .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
 
             }
         }
@@ -3075,8 +3084,8 @@ public class ModelService extends BasicService {
         val prjManager = getProjectManager();
         val prj = prjManager.getProject(project);
 
-        if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
-                || broken.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+        if (MaintainModelType.AUTO_MAINTAIN == prj.getMaintainModelType()
+                || ManagementType.TABLE_ORIENTED == broken.getManagementType()) {
             throw new KylinException(FAILED_UPDATE_MODEL, "Can not repair model manually smart mode!");
         }
         broken.setPartitionDesc(modelRequest.getPartitionDesc());
@@ -3141,7 +3150,7 @@ public class ModelService extends BasicService {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
                 Preconditions.checkState(getDataLoadingRangeManager(project).getDataLoadingRange(tableName) == null);
-                throw new KylinException(PERMISSION_DENIED, String.format(
+                throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getINVALID_SET_TABLE_INC_LOADING(), tableName, modelDesc.getAlias()));
             }
         }
@@ -3215,7 +3224,7 @@ public class ModelService extends BasicService {
         for (val pair : props.entrySet()) {
             if (Objects.isNull(pair.getValue())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        String.format(MsgPicker.getMsg().getINVALID_NULL_VALUE(), pair.getKey()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), pair.getKey()));
             }
         }
         String cores = props.get("kylin.engine.spark-conf.spark.executor.cores");
@@ -3225,24 +3234,24 @@ public class ModelService extends BasicService {
         String baseCuboidAllowed = props.get("kylin.cube.aggrgroup.is-base-cuboid-always-valid");
         if (null != cores && !StringUtil.validateNumber(cores)) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores"));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores"));
         }
         if (null != instances && !StringUtil.validateNumber(instances)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances"));
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances"));
         }
         if (null != pattitions && !StringUtil.validateNumber(pattitions)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions"));
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions"));
         }
         if (null != memory
                 && (!memory.endsWith("g") || !StringUtil.validateNumber(memory.substring(0, memory.length() - 1)))) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory"));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory"));
         }
         if (null != baseCuboidAllowed && !StringUtil.validateBoolean(baseCuboidAllowed)) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid"));
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid"));
         }
     }
 
@@ -3254,19 +3263,16 @@ public class ModelService extends BasicService {
         RetentionRange retentionRange = request.getRetentionRange();
 
         if (Boolean.TRUE.equals(autoMergeEnabled) && (null == timeRanges || timeRanges.isEmpty())) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG());
         }
         if (null != volatileRange && volatileRange.isVolatileRangeEnabled()
                 && (volatileRange.getVolatileRangeNumber() < 0 || null == volatileRange.getVolatileRangeType())) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG());
         }
         if (null != retentionRange && retentionRange.isRetentionRangeEnabled()
                 && (null == autoMergeEnabled || !autoMergeEnabled || retentionRange.getRetentionRangeNumber() < 0
-                        || !retentionRange.getRetentionRangeType().equals(Collections.max(timeRanges)))) {
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
+                        || Collections.max(timeRanges) != retentionRange.getRetentionRangeType())) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG());
         }
         checkPropParameter(request);
     }
@@ -3296,9 +3302,9 @@ public class ModelService extends BasicService {
     public BuildIndexResponse buildIndicesManually(String modelId, String project, int priority) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
-        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_INDICES_MANUALLY(), modelDesc.getAlias()));
+        if (ManagementType.MODEL_BASED != modelDesc.getManagementType()) {
+            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getCAN_NOT_BUILD_INDICES_MANUALLY(), modelDesc.getAlias()));
         }
 
         NDataflow df = getDataflowManager(project).getDataflow(modelId);
@@ -3355,7 +3361,7 @@ public class ModelService extends BasicService {
     }
 
     private void checkCascadeErrorOfNestedCC(ComputedColumnDesc cc, String ccInCheck) {
-        String upperCcInCheck = ccInCheck.toUpperCase();
+        String upperCcInCheck = ccInCheck.toUpperCase(Locale.ROOT);
         try {
             SqlVisitor<Void> sqlVisitor = new SqlBasicVisitor<Void>() {
                 @Override
@@ -3367,7 +3373,7 @@ public class ModelService extends BasicService {
             };
             CalciteParser.getExpNode(cc.getExpression()).accept(sqlVisitor);
         } catch (Util.FoundOne e) {
-            throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR, String.format(
+            throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(), cc.getFullName(), ccInCheck, cc.getExpression()));
         }
     }
@@ -3428,12 +3434,12 @@ public class ModelService extends BasicService {
     public NModelDescResponse getModelDesc(String modelAlias, String project) {
         if (getProjectManager().getProject(project) == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         NDataModel dataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         NDataModelResponse model = new NDataModelResponse(dataModel);
         NModelDescResponse response = new NModelDescResponse();
@@ -3472,18 +3478,18 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         if (getProjectManager().getProject(project) == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         NDataModel oldDataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (oldDataModel == null) {
             throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
 
         PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
         if (partitionDesc != null) {
             String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
-            if (!partitionDesc.getPartitionDateColumn().toUpperCase().startsWith(rootFactTable + ".")) {
+            if (!partitionDesc.getPartitionDateColumn().toUpperCase(Locale.ROOT).startsWith(rootFactTable + ".")) {
                 throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_PARTITION_COLUMN());
             }
         }
@@ -3641,12 +3647,13 @@ public class ModelService extends BasicService {
     }
 
     public void checkDuplicateAliasInModelRequests(Collection<ModelRequest> modelRequests) {
-        Map<String, List<ModelRequest>> aliasModelRequestMap = modelRequests.stream()
-                .collect(groupingBy(modelRequest -> modelRequest.getAlias().toLowerCase(), Collectors.toList()));
+        Map<String, List<ModelRequest>> aliasModelRequestMap = modelRequests.stream().collect(
+                groupingBy(modelRequest -> modelRequest.getAlias().toLowerCase(Locale.ROOT), Collectors.toList()));
         aliasModelRequestMap.forEach((alias, requests) -> {
             if (requests.size() > 1) {
-                throw new KylinException(INVALID_NAME, String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(),
-                        requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))));
+                throw new KylinException(INVALID_NAME,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(),
+                                requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))));
             }
         });
     }
@@ -3666,7 +3673,7 @@ public class ModelService extends BasicService {
                 ComputedColumnDesc ccCopy = JsonUtil.deepCopy(computedColumnDesc, ComputedColumnDesc.class);
                 ComputedColumnEvalUtil.evaluateExprAndType(model, ccCopy);
                 if (!matchCCDataType(computedColumnDesc.getDatatype(), ccCopy.getDatatype())) {
-                    errorSb.append(MessageFormat.format(MsgPicker.getMsg().getCheckCCType(),
+                    errorSb.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCheckCCType(),
                             computedColumnDesc.getFullName(), ccCopy.getDatatype(), computedColumnDesc.getDatatype()));
                 }
             } catch (Exception e) {
@@ -3686,8 +3693,8 @@ public class ModelService extends BasicService {
             return false;
         }
 
-        actual = actual.toUpperCase();
-        expected = expected.toUpperCase();
+        actual = actual.toUpperCase(Locale.ROOT);
+        expected = expected.toUpperCase(Locale.ROOT);
         // char, varchar, string are of the same
         if (StringTypes.contains(actual)) {
             return StringTypes.contains(expected);
@@ -3706,7 +3713,7 @@ public class ModelService extends BasicService {
         NDataModel model = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (model == null) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         if (model.isBroken()) {
             throw new KylinException(MODEL_BROKEN,
@@ -3796,7 +3803,7 @@ public class ModelService extends BasicService {
         val segment = dataflow.getSegment(segmentId);
         if (segment == null) {
             throw new KylinException(SEGMENT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), segmentId));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), segmentId));
         }
 
         Comparator<SegmentPartitionResponse> comparator = propertyComparator(
@@ -3924,7 +3931,7 @@ public class ModelService extends BasicService {
         NDataModel model = getModelById(modelId, project);
         if (!model.isMultiPartitionModel()) {
             throw new KylinException(INVALID_MODEL_TYPE,
-                    String.format(MsgPicker.getMsg().getMODEL_IS_NOT_MLP(), model.getAlias()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_IS_NOT_MLP(), model.getAlias()));
         }
     }
 
@@ -3933,7 +3940,7 @@ public class ModelService extends BasicService {
         int submitJobLimit = runningJobLimit * 5;
         if (partitionSize > submitJobLimit) {
             throw new KylinException(CONCURRENT_SUBMIT_JOB_LIMIT,
-                    String.format(MsgPicker.getMsg().getCONCURRENT_SUBMIT_JOB_LIMIT(), submitJobLimit));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getCONCURRENT_SUBMIT_JOB_LIMIT(), submitJobLimit));
         }
     }
 }

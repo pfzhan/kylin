@@ -26,7 +26,10 @@ package io.kyligence.kap.event;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 import static org.awaitility.Awaitility.await;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -61,6 +64,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
     private KylinConfig queryKylinConfig;
     private ResourceStore queryResourceStore;
+    private final Charset charset = StandardCharsets.UTF_8;
 
     @Before
     public void setUp() throws Exception {
@@ -95,10 +99,10 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         queryResourceStore.catchup();
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = getStore();
-            resourceStore.checkAndPutResource("/p0/path1", ByteStreams.asByteSource("path1".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path2", ByteStreams.asByteSource("path2".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path3", ByteStreams.asByteSource("path3".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path4", ByteStreams.asByteSource("path4".getBytes()), -1);
+            resourceStore.checkAndPutResource("/p0/path1", ByteStreams.asByteSource("path1".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path2", ByteStreams.asByteSource("path2".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path3", ByteStreams.asByteSource("path3".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path4", ByteStreams.asByteSource("path4".getBytes(charset)), -1);
             return 0;
         }, "p0");
         await().atMost(3, TimeUnit.SECONDS).until(() -> 5 == queryResourceStore.listResourcesRecursively("/").size());
@@ -108,10 +112,10 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
     public void testMetadataCatchupWithBackup() throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = getStore();
-            resourceStore.checkAndPutResource("/p0/path1", ByteStreams.asByteSource("path1".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path2", ByteStreams.asByteSource("path2".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path3", ByteStreams.asByteSource("path3".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path4", ByteStreams.asByteSource("path4".getBytes()), -1);
+            resourceStore.checkAndPutResource("/p0/path1", ByteStreams.asByteSource("path1".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path2", ByteStreams.asByteSource("path2".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path3", ByteStreams.asByteSource("path3".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path4", ByteStreams.asByteSource("path4".getBytes(charset)), -1);
             return 0;
         }, "p0");
         String[] args = new String[] { "-backup", "-dir", HadoopUtil.getBackupFolder(getTestConfig()) };
@@ -123,19 +127,20 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = getStore();
-            resourceStore.checkAndPutResource("/p0/path1", ByteStreams.asByteSource("path1".getBytes()), 0);
-            resourceStore.checkAndPutResource("/p0/path2", ByteStreams.asByteSource("path2".getBytes()), 0);
-            resourceStore.checkAndPutResource("/p0/path3", ByteStreams.asByteSource("path3".getBytes()), 0);
+            resourceStore.checkAndPutResource("/p0/path1", ByteStreams.asByteSource("path1".getBytes(charset)), 0);
+            resourceStore.checkAndPutResource("/p0/path2", ByteStreams.asByteSource("path2".getBytes(charset)), 0);
+            resourceStore.checkAndPutResource("/p0/path3", ByteStreams.asByteSource("path3".getBytes(charset)), 0);
             resourceStore.deleteResource("/p0/path4");
-            resourceStore.checkAndPutResource("/p0/path5", ByteStreams.asByteSource("path5".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path6", ByteStreams.asByteSource("path6".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path7", ByteStreams.asByteSource("path7".getBytes()), -1);
+            resourceStore.checkAndPutResource("/p0/path5", ByteStreams.asByteSource("path5".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path6", ByteStreams.asByteSource("path6".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path7", ByteStreams.asByteSource("path7".getBytes(charset)), -1);
             return 0;
         }, "p0");
 
         await().atMost(3, TimeUnit.SECONDS).until(() -> 7 == queryResourceStore.listResourcesRecursively("/").size());
         String table = getTestConfig().getMetadataUrl().getIdentifier() + "_audit_log";
-        val auditCount = getJdbcTemplate().queryForObject(String.format("select count(*) from %s", table), Long.class);
+        val auditCount = getJdbcTemplate().queryForObject(String.format(Locale.ROOT, "select count(*) from %s", table),
+                Long.class);
         Assert.assertEquals(12L, auditCount.longValue());
     }
 
@@ -144,30 +149,30 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
     public void testMetadata_RemoveAuditLog_Restore() throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = getStore();
-            resourceStore.checkAndPutResource("/_global/project/p0.json",
-                    ByteStreams.asByteSource("{  \"uuid\": \"1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b\"}".getBytes()), -1);
-            resourceStore.checkAndPutResource("/p0/path1.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
-                    -1);
-            resourceStore.checkAndPutResource("/p0/path2.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
-                    -1);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
-                    -1);
-            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes()),
-                    -1);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes()),
-                    0);
-            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes()),
-                    0);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes()),
-                    1);
-            resourceStore.checkAndPutResource("/p0/path4.json", ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes()),
-                    1);
-            resourceStore.checkAndPutResource("/p0/path3.json", ByteStreams.asByteSource("{ \"mvcc\": 3 }".getBytes()),
-                    2);
+            resourceStore.checkAndPutResource("/_global/project/p0.json", ByteStreams
+                    .asByteSource("{  \"uuid\": \"1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b\"}".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path1.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path2.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path3.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path4.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 0 }".getBytes(charset)), -1);
+            resourceStore.checkAndPutResource("/p0/path3.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes(charset)), 0);
+            resourceStore.checkAndPutResource("/p0/path4.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 1 }".getBytes(charset)), 0);
+            resourceStore.checkAndPutResource("/p0/path3.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes(charset)), 1);
+            resourceStore.checkAndPutResource("/p0/path4.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 2 }".getBytes(charset)), 1);
+            resourceStore.checkAndPutResource("/p0/path3.json",
+                    ByteStreams.asByteSource("{ \"mvcc\": 3 }".getBytes(charset)), 2);
             return 0;
         }, "p0");
         String table = getTestConfig().getMetadataUrl().getIdentifier() + "_audit_log";
-        getJdbcTemplate().update(String.format("delete from %s where id=7", table));
+        getJdbcTemplate().update(String.format(Locale.ROOT, "delete from %s where id=7", table));
         try {
             queryResourceStore.catchup();
             Assert.fail();
@@ -198,7 +203,8 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         queryResourceStore.catchup();
 
         Assert.assertEquals(7, queryResourceStore.listResourcesRecursively("/").size());
-        val auditCount = getJdbcTemplate().queryForObject(String.format("select count(*) from %s", table), Long.class);
+        val auditCount = getJdbcTemplate().queryForObject(String.format(Locale.ROOT, "select count(*) from %s", table),
+                Long.class);
         Assert.assertEquals(15, auditCount.longValue());
         val imageDesc = JsonUtil.readValue(queryResourceStore.getResource("/_image").getByteSource().read(),
                 ImageDesc.class);

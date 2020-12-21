@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -224,22 +225,24 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
                 expr = "'" + expr + "'";
             }
             if (type.equals("date")) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
                 sdf.setTimeZone(TimeZone.getDefault());
-                expr = sdf.format(new Date(Long.valueOf(expr)));
+                expr = sdf.format(new Date(Long.parseLong(expr)));
                 expr = "DATE '" + expr + "'";
             }
             if (type.equals("timestamp") || type.equals("datetime")) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                        Locale.getDefault(Locale.Category.FORMAT));
                 sdf.setTimeZone(TimeZone.getDefault());
-                expr = sdf.format(new Date(Long.valueOf(expr)));
+                expr = sdf.format(new Date(Long.parseLong(expr)));
                 expr = "TIMESTAMP '" + expr + "'";
             }
             if (type.equals("time")) {
                 final int TIME_START_POS = 11; //"1970-01-01 ".length() = 11
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                        Locale.getDefault(Locale.Category.FORMAT));
                 sdf.setTimeZone(TimeZone.getDefault());
-                expr = sdf.format(new Date(Long.valueOf(expr)));
+                expr = sdf.format(new Date(Long.parseLong(expr)));
                 //transform "1970-01-01 00:00:59" into "00:00:59"
                 expr = "TIME '" + expr.substring(TIME_START_POS, expr.length()) + "'";
             }

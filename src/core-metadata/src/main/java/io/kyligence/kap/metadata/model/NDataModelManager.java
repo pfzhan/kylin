@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.model;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -224,7 +225,8 @@ public class NDataModelManager {
         List<NDataModel> allModels = crud.listAll();
         for (NDataModel model : allModels.stream().filter(model -> !model.isBroken()).collect(Collectors.toList())) {
             if (model.getAlias().equals(name)) {
-                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), name));
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), name));
             }
         }
 
@@ -254,7 +256,8 @@ public class NDataModelManager {
             if (partition != null) {
                 partitionIds.add(partition.getId());
             } else {
-                MultiPartitionDesc.PartitionInfo toAddPartition = new MultiPartitionDesc.PartitionInfo(maxPartitionId.incrementAndGet(), value);
+                MultiPartitionDesc.PartitionInfo toAddPartition = new MultiPartitionDesc.PartitionInfo(
+                        maxPartitionId.incrementAndGet(), value);
                 copy.getMultiPartitionDesc().getPartitions().add(toAddPartition);
                 partitionIds.add(toAddPartition.getId());
             }

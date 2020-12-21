@@ -61,6 +61,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -79,7 +80,8 @@ public class QueryDependentColumnMask implements QueryResultMask {
         defaultDatabase = NProjectManager.getInstance(kylinConfig).getProject(project).getDefaultDatabase();
         QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
         if (aclInfo != null) {
-            dependentInfo = AclTCRManager.getInstance(kylinConfig, project).getDependentColumns(aclInfo.getUsername(), aclInfo.getGroups());
+            dependentInfo = AclTCRManager.getInstance(kylinConfig, project).getDependentColumns(aclInfo.getUsername(),
+                    aclInfo.getGroups());
         }
     }
 
@@ -102,7 +104,6 @@ public class QueryDependentColumnMask implements QueryResultMask {
             }
         }
     }
-
 
     public Dataset<Row> doMaskResult(Dataset<Row> df) {
         if (dependentInfo == null || rootRelNode == null || !dependentInfo.needMask()) {
@@ -128,7 +129,8 @@ public class QueryDependentColumnMask implements QueryResultMask {
                 continue;
             }
             if (maskInfo.maskAsNull) {
-                columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
+                columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType()))
+                        .as(dfWithIndexedCol.columns()[i]);
                 continue;
             }
 
@@ -153,8 +155,9 @@ public class QueryDependentColumnMask implements QueryResultMask {
             }
             Expression expr = null;
             try {
-                expr = dfWithIndexedCol.sparkSession().sessionState().sqlParser().parseExpression(
-                        String.format("CASE WHEN (%s) THEN `%s` ELSE NULL END", condExpr.toString(), dfWithIndexedCol.columns()[i]));
+                expr = dfWithIndexedCol.sparkSession().sessionState().sqlParser()
+                        .parseExpression(String.format(Locale.ROOT, "CASE WHEN (%s) THEN `%s` ELSE NULL END",
+                                condExpr.toString(), dfWithIndexedCol.columns()[i]));
             } catch (ParseException e) {
                 throw new KylinException(ServerErrorCode.ACL_DEPENDENT_COLUMN_PARSE_ERROR, e);
             }
@@ -195,7 +198,8 @@ public class QueryDependentColumnMask implements QueryResultMask {
                         break;
                     }
 
-                    maskInfo.addDependentValues(new ResultDependentValues(depIdx, dependentColumn.getDependentValues()));
+                    maskInfo.addDependentValues(
+                            new ResultDependentValues(depIdx, dependentColumn.getDependentValues()));
                 }
             }
 
@@ -214,7 +218,8 @@ public class QueryDependentColumnMask implements QueryResultMask {
         if (relNode instanceof TableScan) {
             return getTableColRefs((TableScan) relNode);
         } else if (relNode instanceof Values) {
-            return relNode.getRowType().getFieldList().stream().map(f -> new ColumnReferences()).collect(Collectors.toList());
+            return relNode.getRowType().getFieldList().stream().map(f -> new ColumnReferences())
+                    .collect(Collectors.toList());
         } else if (relNode instanceof Aggregate) {
             return getAggregateColRefs((Aggregate) relNode);
         } else if (relNode instanceof Project) {
@@ -235,7 +240,8 @@ public class QueryDependentColumnMask implements QueryResultMask {
     private List<ColumnReferences> getWindowColRefs(Window window) {
         List<ColumnReferences> inputRefs = getRefCols(window.getInput(0));
         List<ColumnReferences> colRefs = new LinkedList<>(inputRefs);
-        List<RexNode> aggCalls = window.groups.stream().flatMap(group -> group.aggCalls.stream()).collect(Collectors.toList());
+        List<RexNode> aggCalls = window.groups.stream().flatMap(group -> group.aggCalls.stream())
+                .collect(Collectors.toList());
         for (RexNode aggCall : aggCalls) {
             ColumnReferences ref = new ColumnReferences();
             for (Integer bit : RelOptUtil.InputFinder.bits(aggCall)) {

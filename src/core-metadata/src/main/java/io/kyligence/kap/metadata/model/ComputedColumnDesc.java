@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.model;
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 
 import java.io.Serializable;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -110,9 +111,9 @@ public class ComputedColumnDesc implements Serializable {
         Preconditions.checkState(datatype.equals(datatype.trim()),
                 "datatype of ComputedColumnDesc has heading/tailing whitespace");
 
-        tableIdentity = tableIdentity.toUpperCase();
-        tableAlias = tableAlias.toUpperCase();
-        columnName = columnName.toUpperCase();
+        tableIdentity = tableIdentity.toUpperCase(Locale.ROOT);
+        tableAlias = tableAlias.toUpperCase(Locale.ROOT);
+        columnName = columnName.toUpperCase(Locale.ROOT);
 
         TableRef hostTblRef = model.findTable(tableAlias);
         if (!model.isFactTable(hostTblRef)) {
@@ -183,7 +184,7 @@ public class ComputedColumnDesc implements Serializable {
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
                     throw new KylinException(COLUMN_NOT_EXIST,
-                            String.format(MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id.toString()));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id.toString()));
                 }
                 return null;
             }

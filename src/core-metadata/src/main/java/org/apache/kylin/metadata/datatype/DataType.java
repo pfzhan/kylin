@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -219,7 +220,7 @@ public class DataType implements Serializable {
     }
 
     private DataType(String datatype) {
-        datatype = datatype.trim().toLowerCase();
+        datatype = datatype.trim().toLowerCase(Locale.ROOT);
         datatype = replaceLegacy(datatype);
 
         Pattern pattern = TYPE_PATTERN;

@@ -184,7 +184,7 @@ public class ExpressionComparator {
 
         private boolean isSqlIntervalQualifierEqual(SqlIntervalQualifier querySqlIntervalQualifier,
                 SqlIntervalQualifier exprIntervalQualifier) {
-            return querySqlIntervalQualifier.getUnit().equals(exprIntervalQualifier.getUnit());
+            return querySqlIntervalQualifier.getUnit() == exprIntervalQualifier.getUnit();
         }
 
         protected boolean isSqlDataTypeSpecEqual(SqlDataTypeSpec querySqlDataTypeSpec,

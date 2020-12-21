@@ -29,9 +29,12 @@ import static org.apache.kylin.common.util.HadoopUtil.PARQUET_STORAGE_ROOT;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.charset.Charset;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -65,6 +68,7 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -126,13 +130,13 @@ public class RollbackTool extends ExecutableApplication {
         try {
             tool.execute(args);
         } catch (Exception e) {
-            log.error("rollback error: {}", e);
-            System.exit(1);
+            log.error("rollback error", e);
+            Unsafe.systemExit(1);
         }
-        if (tool.rollbackStatus.equals(RollbackStatusEnum.RESTORE_MIRROR_SUCCESS)) {
-            System.exit(0);
+        if (RollbackStatusEnum.RESTORE_MIRROR_SUCCESS == tool.rollbackStatus) {
+            Unsafe.systemExit(0);
         } else {
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
     }
@@ -239,7 +243,7 @@ public class RollbackTool extends ExecutableApplication {
 
     @VisibleForTesting
     public Boolean waitUserConfirm() {
-        Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in, Charset.defaultCharset().name());
         while (true) {
             log.info("please enter:understand the impact and confirm the implementation");
             String line = scanner.nextLine();
@@ -265,7 +269,7 @@ public class RollbackTool extends ExecutableApplication {
 
     @VisibleForTesting
     public Boolean checkClusterStatus() {
-        return isPortAvailable(Integer.valueOf(kylinConfig.getServerPort()));
+        return isPortAvailable(Integer.parseInt(kylinConfig.getServerPort()));
     }
 
     private boolean isPortAvailable(int port) {
@@ -273,7 +277,7 @@ public class RollbackTool extends ExecutableApplication {
             log.info("The port : {} is available", port);
             return true;
         } catch (IOException e) {
-            log.error("dectect port available failed: {}", e);
+            log.error("dectect port available failed: ", e);
         }
         return false;
     }
@@ -555,7 +559,8 @@ public class RollbackTool extends ExecutableApplication {
     }
 
     private String backupCurrentMetadata(KylinConfig kylinConfig) throws Exception {
-        val currentBackupFolder = LocalDateTime.now().format(MetadataTool.DATE_TIME_FORMATTER) + "_backup";
+        val currentBackupFolder = LocalDateTime.now(Clock.systemDefaultZone()).format(MetadataTool.DATE_TIME_FORMATTER)
+                + "_backup";
         MetadataTool.backup(kylinConfig, kylinConfig.getHdfsWorkingDirectory() + "_current_backup",
                 currentBackupFolder);
         return currentBackupFolder;
@@ -575,7 +580,7 @@ public class RollbackTool extends ExecutableApplication {
 
     String getMetadataUrl(String rootPath, boolean compressed) {
         if (rootPath.startsWith("hdfs://")) {
-            val url = String.format(HDFS_METADATA_URL_FORMATTER,
+            val url = String.format(Locale.ROOT, HDFS_METADATA_URL_FORMATTER,
                     Path.getPathWithoutSchemeAndAuthority(new Path(rootPath)).toString() + "/");
             return compressed ? url + ",zip=1" : url;
 

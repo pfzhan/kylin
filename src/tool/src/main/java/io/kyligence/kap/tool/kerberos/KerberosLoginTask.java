@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -40,12 +39,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.Unsafe;
 
 public class KerberosLoginTask implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosLoginTask.class);
 
-    private static Configuration KRB_CONF = new Configuration();
+    private static final Configuration KRB_CONF = new Configuration();
 
     private KapConfig kapConfig;
 
@@ -133,10 +133,10 @@ public class KerberosLoginTask implements IKeep {
     private void loginFIKerberos() throws IOException {
         String zkServerPrincipal = kapConfig.getKerberosZKPrincipal();
 
-        System.setProperty("zookeeper.sasl.client", "true");
+        Unsafe.setProperty("zookeeper.sasl.client", "true");
         String jaasFilePath = kapConfig.getKerberosJaasConfPath();
-        System.setProperty("java.security.auth.login.config", jaasFilePath);
-        System.setProperty("java.security.krb5.conf", kapConfig.getKerberosKrb5ConfPath());
+        Unsafe.setProperty("java.security.auth.login.config", jaasFilePath);
+        Unsafe.setProperty("java.security.krb5.conf", kapConfig.getKerberosKrb5ConfPath());
 
         KerberosLoginUtil.setJaasConf("Client", kapConfig.getKerberosPrincipal(), kapConfig.getKerberosKeytabPath());
         KerberosLoginUtil.setZookeeperServerPrincipal(zkServerPrincipal);
@@ -159,11 +159,7 @@ public class KerberosLoginTask implements IKeep {
             Collection<Token<? extends TokenIdentifier>> allTokens = credentials.getAllTokens();
             for (Token token : allTokens) {
                 TokenIdentifier tokenIdentifier = token.decodeIdentifier();
-                if (tokenIdentifier instanceof DelegationTokenIdentifier) {
-                    logger.info(((DelegationTokenIdentifier) tokenIdentifier).toString());
-                } else {
-                    logger.info(tokenIdentifier.toString());
-                }
+                logger.info(tokenIdentifier.toString());
             }
             if (!allTokens.isEmpty()) {
                 logger.info("Current user should have 0 token but there are non-zero. ReLogin current user: "

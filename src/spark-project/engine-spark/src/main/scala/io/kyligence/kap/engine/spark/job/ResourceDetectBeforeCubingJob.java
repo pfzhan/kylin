@@ -100,7 +100,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
                 resourcePaths.put(String.valueOf(source.getLayoutId()), pathList);
-                layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), Integer.valueOf(leafNodeNum));
+                layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), Integer.parseInt(leafNodeNum));
             }
             ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),

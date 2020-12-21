@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.sql.rowset.CachedRowSet;
@@ -119,7 +120,7 @@ public class JdbcExplorer implements ISourceMetadataExplorer, ISampleDataDeploye
         if (tableType != null) {
             tableDesc.setTableType(tableType);
         } else {
-            throw new RuntimeException(String.format("table %s not found in schema:%s", table, database));
+            throw new RuntimeException(String.format(Locale.ROOT, "table %s not found in schema:%s", table, database));
         }
 
         CachedRowSet columns = dataSource.listColumns(database, table);
@@ -133,7 +134,7 @@ public class JdbcExplorer implements ISourceMetadataExplorer, ISampleDataDeploye
             String remarks = columns.getString("REMARKS");
 
             ColumnDesc columnDesc = new ColumnDesc();
-            columnDesc.setName(cname.toUpperCase());
+            columnDesc.setName(cname.toUpperCase(Locale.ROOT));
             columnDesc.setCaseSensitiveName(cname);
             String kylinType = dataSource.toKylinTypeName(type);
             if ("any".equals(kylinType)) {

@@ -58,6 +58,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -678,7 +679,7 @@ public class AccessService extends BasicService {
         ManagedUser user = getManagedUser(username);
         if (Objects.isNull(user)) {
             val msg = MsgPicker.getMsg();
-            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), username));
         }
         List<SimpleGrantedAuthority> authorities = user.getAuthorities();
         return authorities.stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toList());
@@ -770,11 +771,11 @@ public class AccessService extends BasicService {
         checkSidNotEmpty(sid, principal);
         if (principal && !userService.userExists(sid)) {
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
         }
         if (!principal && !userGroupService.exists(sid)) {
             throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
         }
     }
 

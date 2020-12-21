@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool.discovery;
 
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.curator.x.discovery.ServiceInstance;
@@ -30,7 +31,6 @@ import org.apache.curator.x.discovery.ServiceType;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 
 public class ServiceInstanceSerializer<T> extends JsonInstanceSerializer<T> {
 
@@ -42,7 +42,7 @@ public class ServiceInstanceSerializer<T> extends JsonInstanceSerializer<T> {
 
     @Override
     public ServiceInstance<T> deserialize(byte[] bytes) throws Exception {
-        String content = new String(bytes);
+        String content = new String(bytes, Charset.defaultCharset());
         Map map = mapper.readValue(content, Map.class);
         return castToServiceInstance(map);
     }

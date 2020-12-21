@@ -25,6 +25,7 @@
 package io.kyligence.kap.common.metrics;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -84,11 +85,12 @@ public class MetricsInfluxdbReporter implements MetricsReporter {
         this.underlying.getMetrics().forEach(point -> {
             StringBuilder sql = new StringBuilder("SELECT ");
             sql.append(StringUtils.join(point.getFields().keySet().stream()
-                    .map(field -> String.format(" LAST(\"%s\") AS \"%s\" ", field, field)).collect(Collectors.toList()),
-                    ","));
-            sql.append(String.format(" FROM %s WHERE ", METRICS_MEASUREMENT));
-            sql.append(String.format(" time >= %dms AND time < %dms ", yesterdayStart, todayStart));
-            point.getTags().forEach((tag, value) -> sql.append(String.format(" AND %s='%s' ", tag, value)));
+                    .map(field -> String.format(Locale.ROOT, " LAST(\"%s\") AS \"%s\" ", field, field))
+                    .collect(Collectors.toList()), ","));
+            sql.append(String.format(Locale.ROOT, " FROM %s WHERE ", METRICS_MEASUREMENT));
+            sql.append(String.format(Locale.ROOT, " time >= %dms AND time < %dms ", yesterdayStart, todayStart));
+            point.getTags()
+                    .forEach((tag, value) -> sql.append(String.format(Locale.ROOT, " AND %s='%s' ", tag, value)));
 
             QueryResult queryResult = this.underlying.getInfluxDb()
                     .query(new Query(sql.toString(), config.getMetricsDB()));

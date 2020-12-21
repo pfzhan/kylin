@@ -33,9 +33,11 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -219,7 +221,7 @@ public class JobService extends BasicService {
 
         NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
         // prepare time range
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         calendar.setTime(new Date());
         long timeStartInMillis = getTimeStartInMillis(calendar, filterEnum);
         long timeEndInMillis = Long.MAX_VALUE;
@@ -302,7 +304,8 @@ public class JobService extends BasicService {
         case ALL:
             return 0;
         default:
-            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, msg.getILLEGAL_TIME_FILTER(), timeFilter));
         }
     }
 
@@ -325,7 +328,8 @@ public class JobService extends BasicService {
         case STOPPED:
             return ExecutableState.PAUSED;
         default:
-            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
     }
 
@@ -339,8 +343,8 @@ public class JobService extends BasicService {
         val executableManager = getExecutableManager(project);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
-        JobActionEnum.validateValue(action.toUpperCase());
-        switch (JobActionEnum.valueOf(action.toUpperCase())) {
+        JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
+        switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
@@ -365,12 +369,11 @@ public class JobService extends BasicService {
 
     private void discardJob(String project, String jobId) throws IOException {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
-        if (job.getStatus().equals(ExecutableState.SUCCEED)) {
-            throw new KylinException(
-                    FAILED_UPDATE_JOB_STATUS,
-                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", job.getStatus(), jobId));
+        if (ExecutableState.SUCCEED == job.getStatus()) {
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", job.getStatus(), jobId));
         }
-        if (job.getStatus().equals(ExecutableState.DISCARDED)) {
+        if (ExecutableState.DISCARDED == job.getStatus()) {
             return;
         }
         getExecutableManager(project).discardJob(job.getId());

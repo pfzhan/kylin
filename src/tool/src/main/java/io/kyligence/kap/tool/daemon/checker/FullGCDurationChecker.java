@@ -23,18 +23,21 @@
  */
 package io.kyligence.kap.tool.daemon.checker;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.tool.daemon.CheckResult;
-import io.kyligence.kap.tool.daemon.CheckStateEnum;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ShellException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicLong;
+import com.google.common.annotations.VisibleForTesting;
+
+import io.kyligence.kap.tool.daemon.CheckResult;
+import io.kyligence.kap.tool.daemon.CheckStateEnum;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 public class FullGCDurationChecker extends AbstractHealthChecker {
     private static final Logger logger = LoggerFactory.getLogger(FullGCDurationChecker.class);
@@ -88,16 +91,18 @@ public class FullGCDurationChecker extends AbstractHealthChecker {
 
                 if (restartEnabled && fullGCRatio >= ratioThreshold) {
                     result = new CheckResult(CheckStateEnum.RESTART,
-                            String.format("Full gc time duration ratio in %d seconds is more than %.2f%%",
+                            String.format(Locale.ROOT, "Full gc time duration ratio in %d seconds is more than %.2f%%",
                                     factor * guardianCheckInterval, ratioThreshold));
                 } else if (busyEnabled) {
                     if (fullGCRatio >= highWatermark) {
                         result = new CheckResult(CheckStateEnum.QUERY_DOWNGRADE,
-                                String.format("Full gc time duration ratio in %d seconds is more than %.2f%%",
+                                String.format(Locale.ROOT,
+                                        "Full gc time duration ratio in %d seconds is more than %.2f%%",
                                         factor * guardianCheckInterval, highWatermark));
                     } else if (fullGCRatio < lowWatermark) {
                         result = new CheckResult(CheckStateEnum.QUERY_UPGRADE,
-                                String.format("Full gc time duration ratio in %d seconds is less than %.2f%%",
+                                String.format(Locale.ROOT,
+                                        "Full gc time duration ratio in %d seconds is less than %.2f%%",
                                         factor * guardianCheckInterval, lowWatermark));
                     }
                 }
@@ -132,7 +137,7 @@ public class FullGCDurationChecker extends AbstractHealthChecker {
     @Getter
     @Setter
     @AllArgsConstructor
-    private class FullGCRecord {
+    private static class FullGCRecord {
         private long checkTime;
         private double fgcTime;
     }

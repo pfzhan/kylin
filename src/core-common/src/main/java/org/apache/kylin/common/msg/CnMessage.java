@@ -44,6 +44,8 @@ package org.apache.kylin.common.msg;
 
 import org.apache.kylin.common.Singletons;
 
+import java.util.Locale;
+
 public class CnMessage extends Message {
 
     protected CnMessage() {
@@ -1605,22 +1607,22 @@ public class CnMessage extends Message {
 
     @Override
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
-        return String.format("可计算列%s的表达式%s与可计算列%s相同。", newCCName, newCCExpression, existedCCName);
+        return String.format(Locale.ROOT, "可计算列%s的表达式%s与可计算列%s相同。", newCCName, newCCExpression, existedCCName);
     }
 
     @Override
     public String getCC_NAME_CONFLICT(String ccName) {
-        return String.format("计算列%s已存在。", ccName);
+        return String.format(Locale.ROOT, "可计算列%s已存在。", ccName);
     }
 
     @Override
     public String getDIMENSION_CONFLICT(String dimensionName) {
-        return String.format("维度%s已存在。", dimensionName);
+        return String.format(Locale.ROOT, "维度%s已存在。", dimensionName);
     }
 
     @Override
     public String getMEASURE_CONFLICT(String measureName) {
-        return String.format("度量%s已存在。", measureName);
+        return String.format(Locale.ROOT, "度量%s已存在。", measureName);
     }
 
     @Override
@@ -1689,7 +1691,7 @@ public class CnMessage extends Message {
     }
 
     public String getCOLUMN_PARAMETER_INVALID(String column) {
-        return String.format("列 [%s] 赋值失败，请检查该列类型后重新赋值。", column);
+        return String.format(Locale.ROOT, "列 [%s] 赋值失败，请检查该列类型后重新赋值。", column);
     }
 
     public String getINVALID_VOLATILE_RANGE_CONFIG() {
@@ -1794,12 +1796,12 @@ public class CnMessage extends Message {
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
-        return String.format("添加任务失败，分区 [%s] 是重复的.", dupPartitions);
+        return String.format(Locale.ROOT, "添加任务失败，分区 [%s] 是重复的.", dupPartitions);
     }
 
     @Override
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
-        return String.format("当前暂不可重载表。表 %s 中已经存在列 %s。", table, column);
+        return String.format(Locale.ROOT, "当前暂不可重载表。表 %s 中已经存在列 %s。", table, column);
     }
 
     @Override

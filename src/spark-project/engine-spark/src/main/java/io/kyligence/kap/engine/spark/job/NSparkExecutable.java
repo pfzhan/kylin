@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -257,7 +258,7 @@ public class NSparkExecutable extends AbstractExecutable {
      * @return
      */
     public String getSparkDriverLogHdfsPath(KylinConfig config) {
-        return String.format("%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
+        return String.format(Locale.ROOT, "%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
                 System.currentTimeMillis());
     }
 
@@ -386,24 +387,27 @@ public class NSparkExecutable extends AbstractExecutable {
         }
 
         String log4jConfiguration = "file:" + config.getLogSparkDriverPropertiesFile();
-        sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
-        sb.append(String.format(" -Dkylin.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
+        sb.append(String.format(Locale.ROOT, " -Dlog4j.configuration=%s ", log4jConfiguration));
+        sb.append(String.format(Locale.ROOT, " -Dkylin.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
 
         if (kapConfig.isKerberosEnabled()) {
-            sb.append(String.format(" -Dkylin.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
-            sb.append(String.format(" -Dkylin.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
+            sb.append(String.format(Locale.ROOT, " -Dkylin.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
+            sb.append(String.format(Locale.ROOT, " -Dkylin.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
             if (kapConfig.getKerberosPlatform().equalsIgnoreCase(KapConfig.FI_PLATFORM)
                     || kapConfig.getPlatformZKEnable()) {
-                sb.append(String.format(" -Djava.security.auth.login.config=%s", kapConfig.getKerberosJaasConfPath()));
-                sb.append(String.format(" -Djava.security.krb5.conf=%s", kapConfig.getKerberosKrb5ConfPath()));
+                sb.append(String.format(Locale.ROOT, " -Djava.security.auth.login.config=%s",
+                        kapConfig.getKerberosJaasConfPath()));
+                sb.append(String.format(Locale.ROOT, " -Djava.security.krb5.conf=%s",
+                        kapConfig.getKerberosKrb5ConfPath()));
             }
         }
-        sb.append(String.format(" -Dkylin.hdfs.working.dir=%s ", hdfsWorkingDir));
-        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", sparkDriverHdfsLogPath));
-        sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
-        sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
-        sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
-        sb.append(String.format(" -Dspark.driver.local.logDir=%s ", KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
+        sb.append(String.format(Locale.ROOT, " -Dkylin.hdfs.working.dir=%s ", hdfsWorkingDir));
+        sb.append(String.format(Locale.ROOT, " -Dspark.driver.log4j.appender.hdfs.File=%s ", sparkDriverHdfsLogPath));
+        sb.append(String.format(Locale.ROOT, " -Dspark.driver.rest.server.ip=%s ", serverIp));
+        sb.append(String.format(Locale.ROOT, " -Dspark.driver.rest.server.port=%s ", serverPort));
+        sb.append(String.format(Locale.ROOT, " -Dspark.driver.param.taskId=%s ", getId()));
+        sb.append(String.format(Locale.ROOT, " -Dspark.driver.local.logDir=%s ",
+                KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
         sparkConfigOverride.put(sparkDriverExtraJavaOptionsKey, sb.toString());
     }
 
@@ -430,7 +434,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         sb.append("--name job_step_%s ");
         sb.append("--jars %s %s %s");
-        String cmd = String.format(sb.toString(), hadoopConf, KylinConfigBase.getSparkHome(), getId(), jars,
+        String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, KylinConfigBase.getSparkHome(), getId(), jars,
                 kylinJobJar, appArgs);
         logger.info("spark submit cmd: {}", cmd);
         return cmd;

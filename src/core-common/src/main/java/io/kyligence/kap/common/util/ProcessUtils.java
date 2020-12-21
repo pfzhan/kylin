@@ -28,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import java.util.Objects;
 
 import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
@@ -43,7 +44,7 @@ public class ProcessUtils {
         String className = process.getClass().getName();
         Preconditions.checkState(className.equals("java.lang.UNIXProcess"));
         Field f = process.getClass().getDeclaredField("pid");
-        f.setAccessible(true);
+        Unsafe.changeAccessibleObject(f, true);
         return f.getInt(process);
     }
 
@@ -51,7 +52,8 @@ public class ProcessUtils {
         try {
             String line;
             Process p = Runtime.getRuntime().exec("ps -e");
-            try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            try (BufferedReader input = new BufferedReader(
+                    new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
                 while ((line = input.readLine()) != null) {
                     if (Objects.equals(line.split("\\s+")[0], pid + "")) {
                         return true;

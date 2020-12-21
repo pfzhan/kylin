@@ -28,6 +28,7 @@ import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.cli.Option;
@@ -104,7 +105,7 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication implements IKe
             });
 
             long fr = globalFavoriteRuleList.values().stream().mapToLong(List::size).sum();
-            printlnGreen(String.format("found %d recommendation metadata need to be updated.", fr));
+            printlnGreen(String.format(Locale.ROOT, "found %d recommendation metadata need to be updated.", fr));
 
             if (optionsHelper.hasOption(OPTION_EXEC)) {
                 globalFavoriteRuleList.forEach((project, frList) -> frList

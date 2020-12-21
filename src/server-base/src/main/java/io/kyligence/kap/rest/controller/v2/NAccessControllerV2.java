@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -77,7 +78,8 @@ public class NAccessControllerV2 extends NBasicController {
 
     private void checkUserName(String userName) {
         if (!userService.userExists(userName)) {
-            throw new KylinException(USER_NOT_EXIST, String.format("User '%s' does not exists.", userName));
+            throw new KylinException(USER_NOT_EXIST,
+                    String.format(Locale.ROOT, "User '%s' does not exists.", userName));
         }
     }
 

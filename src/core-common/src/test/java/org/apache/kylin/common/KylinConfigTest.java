@@ -88,7 +88,7 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         Map<String, String> override = Maps.newHashMap();
         override.put(oldk, "1");
         KylinConfigExt ext = KylinConfigExt.createInstance(config, override);
-        Assert.assertEquals(ext.getOptional(oldk), null);
+        Assert.assertNull(ext.getOptional(oldk));
         Assert.assertEquals(ext.getOptional(newk), "1");
         Assert.assertNotEquals(config.getOptional(newk), "1");
 
@@ -109,7 +109,7 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Map<String, String> override = Maps.newHashMap();
         KylinConfig configExt = KylinConfigExt.createInstance(config, override);
-        Assert.assertTrue(config.properties == configExt.properties);
+        Assert.assertSame(config.properties, configExt.properties);
         config.setProperty("1234", "1234");
         Assert.assertEquals("1234", configExt.getOptional("1234"));
     }
@@ -181,7 +181,7 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         if (StringUtils.isBlank(oldSparkJobJarPath)) {
             // remove property, otherwise org.apache.kylin.common.KylinConfigBase.getOptional(java.lang.String, java.lang.String)
             // will return empty str
-            System.clearProperty("kylin.engine.spark.job-jar");
+            restoreSystemProp("kylin.engine.spark.job-jar");
         } else {
             conf.overrideSparkJobJarPath(oldSparkJobJarPath);
         }

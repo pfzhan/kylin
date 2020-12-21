@@ -45,6 +45,7 @@ package io.kyligence.kap.rest.service;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 
 import com.google.common.collect.Lists;
 
@@ -68,7 +69,7 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
 
     private void init() {
         String currentDate = "2018-01-02";
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         try {
             currentTime = format.parse(currentDate).getTime();
         } catch (ParseException e) {
@@ -82,10 +83,11 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
             queryHistory.setEngineType("HIVE");
             QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
-            queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{
-                    new QueryMetrics.RealizationMetrics("1", "Agg Index", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList()),
-                    new QueryMetrics.RealizationMetrics("1", "Agg Index", "82fa7671-a935-45f5-8779-85703601f49a", Lists.newArrayList())
-            }));
+            queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(
+                    new QueryMetrics.RealizationMetrics("1", "Agg Index", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                            Lists.newArrayList()),
+                    new QueryMetrics.RealizationMetrics("1", "Agg Index", "82fa7671-a935-45f5-8779-85703601f49a",
+                            Lists.newArrayList())));
             queryHistory.setQueryHistoryInfo(queryHistoryInfo);
             if (i == 4)
                 queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
@@ -96,7 +98,7 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
 
         // These are three sql patterns that are already loaded in database
         for (int i = 0; i < 3; i++) {
-            QueryHistory queryHistoryForUpdate = new QueryHistory("select * from sql" + (i+1),
+            QueryHistory queryHistoryForUpdate = new QueryHistory("select * from sql" + (i + 1),
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistoryForUpdate.setInsertTime(currentTime + 30 * i * 1000L);
             queryHistoryForUpdate.setEngineType("HIVE");

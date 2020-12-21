@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -223,8 +224,9 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
 
-        List<NDataModelResponse> modelResponses = modelService.getModels(modelBeforeApprove.getAlias().toLowerCase(),
-                getProject(), true, null, null, "last_modify", true);
+        List<NDataModelResponse> modelResponses = modelService.getModels(
+                modelBeforeApprove.getAlias().toLowerCase(Locale.ROOT), getProject(), true, null, null, "last_modify",
+                true);
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
@@ -258,8 +260,9 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
 
-        List<NDataModelResponse> modelResponses = modelService.getModels(modelBeforeApprove.getAlias().toUpperCase(),
-                getProject(), true, null, null, "last_modify", true);
+        List<NDataModelResponse> modelResponses = modelService.getModels(
+                modelBeforeApprove.getAlias().toUpperCase(Locale.ROOT), getProject(), true, null, null, "last_modify",
+                true);
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);

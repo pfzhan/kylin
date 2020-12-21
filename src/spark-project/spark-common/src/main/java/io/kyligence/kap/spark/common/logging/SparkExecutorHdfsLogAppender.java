@@ -23,9 +23,15 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
-import com.google.common.annotations.VisibleForTesting;
-import lombok.Getter;
-import lombok.Setter;
+import java.io.File;
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -37,20 +43,18 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.yarn.YarnSparkHadoopUtil;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import com.google.common.annotations.VisibleForTesting;
+
+import lombok.Getter;
+import lombok.Setter;
 
 public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
     private static final long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
     private static final long A_HOUR_MILLIS = 60 * 60 * 1000L;
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-    private SimpleDateFormat hourFormat = new SimpleDateFormat("HH");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd",
+            Locale.getDefault(Locale.Category.FORMAT));
+    private final SimpleDateFormat hourFormat = new SimpleDateFormat("HH", Locale.getDefault(Locale.Category.FORMAT));
 
     @VisibleForTesting
     String outPutPath;

@@ -35,8 +35,10 @@ import static org.apache.kylin.common.exception.ServerErrorCode.REMOTE_SERVER_ER
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -173,7 +175,7 @@ public class NSystemController extends NBasicController {
         }
 
         byte[] bytes = uploadfile.getBytes();
-        licenseInfoService.updateLicense(new String(bytes));
+        licenseInfoService.updateLicense(new String(bytes, Charset.defaultCharset()));
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
@@ -186,7 +188,7 @@ public class NSystemController extends NBasicController {
         byte[] bytes = null;
 
         if (!StringUtils.isEmpty(licenseContent)) {
-            bytes = licenseContent.getBytes("UTF-8");
+            bytes = licenseContent.getBytes(StandardCharsets.UTF_8);
         }
 
         if (ArrayUtils.isEmpty(bytes))
@@ -250,7 +252,8 @@ public class NSystemController extends NBasicController {
             projectInstanceList = availableProjects.stream().filter(projectInstance -> {
                 for (String projectName : projects) {
                     if (exactMatch ? projectInstance.getName().equals(projectName)
-                            : projectInstance.getName().toUpperCase().contains(projectName.toUpperCase())) {
+                            : projectInstance.getName().toUpperCase(Locale.ROOT)
+                                    .contains(projectName.toUpperCase(Locale.ROOT))) {
                         return true;
                     }
                 }

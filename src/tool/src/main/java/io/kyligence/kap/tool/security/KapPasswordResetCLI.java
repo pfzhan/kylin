@@ -24,7 +24,8 @@
 
 package io.kyligence.kap.tool.security;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
+import java.util.Locale;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -36,6 +37,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.MaintainModeTool;
 import io.kyligence.kap.tool.MetadataTool;
@@ -59,7 +62,7 @@ public class KapPasswordResetCLI {
             exit = 1;
             logger.warn("Fail to reset admin password.", e);
         }
-        System.exit(exit);
+        Unsafe.systemExit(exit);
     }
 
     public static boolean reset() throws Exception {
@@ -103,7 +106,7 @@ public class KapPasswordResetCLI {
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + AdminUserInitCLI.ADMIN_USER_NAME
                     + StorageCleaner.ANSI_RED;
             String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;
-            String info = String.format(
+            String info = String.format(Locale.ROOT,
                     "Reset password of [%s] succeed. The password is [%s].\n" + "Please keep the password properly.",
                     blackColorUsernameForPrint, blackColorPasswordForPrint);
             System.out.println(StorageCleaner.ANSI_RED + info + StorageCleaner.ANSI_RESET);

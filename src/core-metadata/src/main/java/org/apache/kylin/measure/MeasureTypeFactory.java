@@ -43,6 +43,7 @@
 package org.apache.kylin.measure;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
@@ -161,11 +162,11 @@ abstract public class MeasureTypeFactory<T> {
         // register factories & data type serializers
         for (MeasureTypeFactory<?> factory : factoryInsts) {
             String funcName = factory.getAggrFunctionName();
-            if (!funcName.equals(funcName.toUpperCase()))
+            if (!funcName.equals(funcName.toUpperCase(Locale.ROOT)))
                 throw new IllegalArgumentException(
                         "Aggregation function name '" + funcName + "' must be in upper case");
             String dataTypeName = factory.getAggrDataTypeName();
-            if (!dataTypeName.equals(dataTypeName.toLowerCase()))
+            if (!dataTypeName.equals(dataTypeName.toLowerCase(Locale.ROOT)))
                 throw new IllegalArgumentException(
                         "Aggregation data type name '" + dataTypeName + "' must be in lower case");
             Class<? extends DataTypeSerializer<?>> serializer = factory.getAggrDataTypeSerializer();
@@ -192,7 +193,7 @@ abstract public class MeasureTypeFactory<T> {
             return;
 
         for (String udaf : udafs.keySet()) {
-            udaf = udaf.toUpperCase();
+            udaf = udaf.toUpperCase(Locale.ROOT);
             if (udaf.equals(FunctionDesc.FUNC_COUNT_DISTINCT))
                 continue; // skip built-in function
 
@@ -227,7 +228,7 @@ abstract public class MeasureTypeFactory<T> {
     }
 
     public static MeasureType<?> create(String funcName, DataType dataType) {
-        funcName = funcName.toUpperCase();
+        funcName = funcName.toUpperCase(Locale.ROOT);
 
         List<MeasureTypeFactory<?>> factory = factories.get(funcName);
         if (factory == null)

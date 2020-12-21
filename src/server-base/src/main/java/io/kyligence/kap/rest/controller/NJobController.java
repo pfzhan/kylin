@@ -30,8 +30,10 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
@@ -197,10 +199,10 @@ public class NJobController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
-        String downloadFilename = String.format("%s_%s.log", project, stepId);
+        String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", project, stepId);
 
         String jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
-        setDownloadResponse(new ByteArrayInputStream(jobOutput.getBytes()), downloadFilename,
+        setDownloadResponse(new ByteArrayInputStream(jobOutput.getBytes(Charset.defaultCharset())), downloadFilename,
                 MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

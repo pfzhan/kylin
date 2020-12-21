@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -204,7 +205,7 @@ public class QueryAliasMatcher {
         }
 
         private ColumnRowType buildColumnRowType(String alias, String schemaName, String tableName) {
-            OLAPTable olapTable = getTable(schemaName.toUpperCase(), tableName);
+            OLAPTable olapTable = getTable(schemaName.toUpperCase(Locale.ROOT), tableName);
 
             List<TblColRef> columns = new ArrayList<>();
             if (olapTable != null) {
@@ -424,10 +425,10 @@ public class QueryAliasMatcher {
         }
     }
 
-    private String project;
-    private String defaultSchema;
-    private Map<String, OLAPSchema> schemaMap = Maps.newHashMap();
-    private Map<String, Map<String, OLAPTable>> schemaTables = Maps.newHashMap();
+    private final String project;
+    private final String defaultSchema;
+    private final Map<String, OLAPSchema> schemaMap = Maps.newHashMap();
+    private final Map<String, Map<String, OLAPTable>> schemaTables = Maps.newHashMap();
 
     public QueryAliasMatcher(String project, String defaultSchema) {
         this.project = project;
@@ -435,7 +436,7 @@ public class QueryAliasMatcher {
     }
 
     public QueryAliasMatchInfo match(NDataModel model, SqlSelect sqlSelect) {
-        if (sqlSelect.getFrom() == null || sqlSelect.getFrom().getKind().equals(SqlKind.VALUES)) {
+        if (sqlSelect.getFrom() == null || SqlKind.VALUES == sqlSelect.getFrom().getKind()) {
             return null;
         }
 
@@ -498,9 +499,9 @@ public class QueryAliasMatcher {
     private SqlSelect getSubquery(SqlNode sqlNode) {
         if (sqlNode instanceof SqlSelect) {
             return (SqlSelect) sqlNode;
-        } else if (sqlNode.getKind().equals(SqlKind.UNION)) {
+        } else if (SqlKind.UNION == sqlNode.getKind()) {
             return (SqlSelect) ((SqlBasicCall) sqlNode).getOperandList().get(0);
-        } else if (sqlNode.getKind().equals(SqlKind.AS)) {
+        } else if (SqlKind.AS == sqlNode.getKind()) {
             return getSubquery(((SqlBasicCall) sqlNode).getOperandList().get(0));
         }
 

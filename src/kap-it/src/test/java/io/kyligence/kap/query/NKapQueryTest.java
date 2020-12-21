@@ -34,7 +34,6 @@ import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -81,9 +80,6 @@ public class NKapQueryTest extends KylinTestBase {
         config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
 
-        //setup cube conn
-        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
@@ -96,13 +92,11 @@ public class NKapQueryTest extends KylinTestBase {
 
     @After
     public void tearDown() throws Exception {
-        if (Shell.MAC)
-            System.clearProperty("org.xerial.snappy.lib.name");//reset
 
         logger.info("tearDown in NKapQueryTest");
-        System.clearProperty("kylin.query.engine.sparder-enabled");
-        if (cubeConnection != null)
+        if (cubeConnection != null) {
             closeConnection(cubeConnection);
+        }
 
         cleanupTestMetadata();
     }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,6 +44,7 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Locale;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.EqualsAndHashCode;
@@ -82,7 +82,7 @@ public class ModelDimensionDesc implements Serializable {
     }
 
     public void init(NDataModel model) {
-        table = table.toUpperCase();
+        table = table.toUpperCase(Locale.ROOT);
         if (columns != null) {
             StringUtil.toUpperCaseArray(columns, columns);
         }

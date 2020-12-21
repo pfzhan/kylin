@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,17 +42,20 @@
 
 package org.apache.kylin.measure;
 
-import com.google.common.collect.Lists;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.measure.basic.LongMinAggregator;
-import org.apache.kylin.measure.basic.LongMaxAggregator;
-import org.apache.kylin.measure.basic.LongSumAggregator;
-import org.apache.kylin.measure.basic.DoubleMinAggregator;
-import org.apache.kylin.measure.basic.DoubleMaxAggregator;
-import org.apache.kylin.measure.basic.DoubleSumAggregator;
-import org.apache.kylin.measure.basic.BigDecimalMinAggregator;
 import org.apache.kylin.measure.basic.BigDecimalMaxAggregator;
+import org.apache.kylin.measure.basic.BigDecimalMinAggregator;
 import org.apache.kylin.measure.basic.BigDecimalSumAggregator;
+import org.apache.kylin.measure.basic.DoubleMaxAggregator;
+import org.apache.kylin.measure.basic.DoubleMinAggregator;
+import org.apache.kylin.measure.basic.DoubleSumAggregator;
+import org.apache.kylin.measure.basic.LongMaxAggregator;
+import org.apache.kylin.measure.basic.LongMinAggregator;
+import org.apache.kylin.measure.basic.LongSumAggregator;
 import org.apache.kylin.measure.bitmap.BitmapAggregator;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
@@ -64,14 +66,13 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.github.jamm.MemoryMeter;
 import org.junit.Test;
 
-import java.math.BigDecimal;
-import java.util.List;
+import com.google.common.collect.Lists;
 
 public class AggregatorMemEstimateTest {
     private static final MemoryMeter meter = new MemoryMeter();
 
     private List<? extends MeasureAggregator> basicAggregators() {
-        Long longVal = new Long(1000);
+        Long longVal = 1000L;
         LongMinAggregator longMin = new LongMinAggregator();
         LongMaxAggregator longMax = new LongMaxAggregator();
         LongSumAggregator longSum = new LongSumAggregator();
@@ -79,7 +80,7 @@ public class AggregatorMemEstimateTest {
         longMax.aggregate(longVal);
         longSum.aggregate(longVal);
 
-        Double doubleVal = new Double(1.0);
+        Double doubleVal = 1.0;
         DoubleMinAggregator doubleMin = new DoubleMinAggregator();
         DoubleMaxAggregator doubleMax = new DoubleMaxAggregator();
         DoubleSumAggregator doubleSum = new DoubleSumAggregator();
@@ -129,10 +130,10 @@ public class AggregatorMemEstimateTest {
         aggregators.add(bitmapAggregator);
         aggregators.add(extendedColumnAggregator);
 
-        System.out.printf("%40s %10s %10s\n", "Class", "Estimate", "Actual");
+        System.out.printf(Locale.ROOT, "%40s %10s %10s\n", "Class", "Estimate", "Actual");
         for (MeasureAggregator aggregator : aggregators) {
             String clzName = getAggregatorName(aggregator.getClass());
-            System.out.printf("%40s %10d %10d\n", clzName, aggregator.getMemBytesEstimate(),
+            System.out.printf(Locale.ROOT, "%40s %10d %10d\n", clzName, aggregator.getMemBytesEstimate(),
                     meter.measureDeep(aggregator));
         }
     }

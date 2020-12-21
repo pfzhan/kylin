@@ -44,6 +44,7 @@
 package org.apache.kylin.measure.extendedcolumn;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ByteArray;
@@ -100,7 +101,7 @@ public class ExtendedColumnSerializerTest {
         serializer.serialize(array, buffer);
         buffer.flip();
         ByteArray des = serializer.deserialize(buffer);
-        Assert.assertTrue(new ByteArray(text.getBytes()).equals(des));
+        Assert.assertEquals(new ByteArray(text.getBytes(Charset.defaultCharset())), des);
     }
 
     @Test
@@ -114,6 +115,6 @@ public class ExtendedColumnSerializerTest {
         serializer.serialize(array, buffer);
         buffer.flip();
         ByteArray des = serializer.deserialize(buffer);
-        Assert.assertTrue(new ByteArray(StringUtils.repeat("h", 20).getBytes()).equals(des));
+        Assert.assertEquals(new ByteArray(StringUtils.repeat("h", 20).getBytes(Charset.defaultCharset())), des);
     }
 }

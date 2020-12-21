@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.kylin.common.exception.KylinException;
@@ -136,7 +137,7 @@ public class NSnapshotController extends NBasicController {
         try {
             SnapshotResponse.class.getDeclaredField(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, sortBy));
         } catch (NoSuchFieldException e) {
-            throw new KylinException(INVALID_PARAMETER, String.format("No field called '%s'.", sortBy));
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "No field called '%s'.", sortBy));
         }
         List<SnapshotResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter, sortBy,
                 isReversed);

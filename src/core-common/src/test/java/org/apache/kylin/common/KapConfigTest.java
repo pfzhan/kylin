@@ -45,6 +45,7 @@ package org.apache.kylin.common;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -163,12 +164,13 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
 
         map.put("getInfluxDBFlushDuration", new PropertiesEntity("kylin.influxdb.flush-duration", "3000", 3000));
 
-        map.put("getMetricsDbNameWithMetadataUrlPrefix", new PropertiesEntity("kylin.metrics.influx-db", "KE_METRICS",
-                String.format("%s_%s", KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "KE_METRICS")));
+        map.put("getMetricsDbNameWithMetadataUrlPrefix",
+                new PropertiesEntity("kylin.metrics.influx-db", "KE_METRICS", String.format(Locale.ROOT, "%s_%s",
+                        KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "KE_METRICS")));
 
-        map.put("getDailyMetricsDbNameWithMetadataUrlPrefix", new PropertiesEntity("kylin.metrics.daily-influx-db",
-                "KE_METRICS_DAILY",
-                String.format("%s_%s", KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "KE_METRICS_DAILY")));
+        map.put("getDailyMetricsDbNameWithMetadataUrlPrefix",
+                new PropertiesEntity("kylin.metrics.daily-influx-db", "KE_METRICS_DAILY", String.format(Locale.ROOT,
+                        "%s_%s", KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "KE_METRICS_DAILY")));
 
         map.put("getMetricsRpcServiceBindAddress", new PropertiesEntity("kylin.metrics.influx-rpc-service-bind-address",
                 "127.0.0.1:8088", "127.0.0.1:8088"));
@@ -287,7 +289,8 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("isRecordSourceUsage", new PropertiesEntity("kylin.source.record-source-usage-enabled", "true", true));
 
         map.put("isInfluxdbHttpsEnabled", new PropertiesEntity("kylin.influxdb.https.enabled", "false", false));
-        map.put("isInfluxdbUnsafeSslEnabled", new PropertiesEntity("kylin.influxdb.https.unsafe-ssl.enabled", "true", true));
+        map.put("isInfluxdbUnsafeSslEnabled",
+                new PropertiesEntity("kylin.influxdb.https.unsafe-ssl.enabled", "true", true));
     }
 
     @Before
@@ -321,8 +324,8 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(method);
             kapConfig.getKylinConfig().setProperty(propertiesEntity.getKey(), propertiesEntity.getValue());
             Object invoke = method.invoke(kapConfig);
-            System.out.println(String.format("assert func %s expect %s actual %s", func,
-                    propertiesEntity.getExpectValue(), invoke));
+            System.out.printf(Locale.ROOT, "assert func %s expect %s actual %s%n", func,
+                    propertiesEntity.getExpectValue(), invoke);
 
             if (invoke != null && invoke.getClass().isArray()) {
                 Class<?> componentType = invoke.getClass().getComponentType();

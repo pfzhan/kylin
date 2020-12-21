@@ -48,6 +48,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -456,7 +457,7 @@ public class CodahaleMetrics implements Metrics {
         MetricsReporting reporter = null;
         for (String metricsReportingName : metricsReporterNames) {
             try {
-                reporter = MetricsReporting.valueOf(metricsReportingName.trim().toUpperCase());
+                reporter = MetricsReporting.valueOf(metricsReportingName.trim().toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
                 LOGGER.error("Invalid reporter name " + metricsReportingName, e);
                 throw e;

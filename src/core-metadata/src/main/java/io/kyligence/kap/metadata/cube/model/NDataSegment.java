@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -618,6 +619,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public String displayIdName() {
-        return String.format("[id:%s,name:%s]", id, name);
+        return String.format(Locale.ROOT, "[id:%s,name:%s]", id, name);
     }
 }

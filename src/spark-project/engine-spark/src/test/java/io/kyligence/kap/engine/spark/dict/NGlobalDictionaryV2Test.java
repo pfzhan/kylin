@@ -34,7 +34,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -83,10 +82,8 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     @Test
     public void testGlobalDictS3StoreRoundTest() throws IOException {
         // global s3 dict store
-        try (SetAndUnsetSystemProp prop = new SetAndUnsetSystemProp("kylin.engine.global-dict.store.impl",
-                "org.apache.spark.dict.NGlobalDictS3Store")) {
-            testAll();
-        }
+        overwriteSystemProp("kylin.engine.global-dict.store.impl", "org.apache.spark.dict.NGlobalDictS3Store");
+        testAll();
     }
 
     private void testAll() throws IOException {
@@ -137,7 +134,7 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
                         bucketDict.addRelativeValue(tuple2._1);
                     }
                     bucketDict.saveBucketDict(bucketId);
-                    return Lists.newArrayList().iterator();
+                    return Collections.emptyIterator();
                 }, true).count();
 
         dict.writeMetaDict(BUCKET_SIZE, config.getGlobalDictV2MaxVersions(), config.getGlobalDictV2VersionTTL());
@@ -177,7 +174,7 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         NGlobalDictMetaInfo metadata1 = dict1.getMetaInfo();
         NGlobalDictMetaInfo metadata2 = dict2.getMetaInfo();
         // compare dict meta info
-        Assert.assertTrue(metadata1.equals(metadata2));
+        Assert.assertEquals(metadata1, metadata2);
 
         for (int i = 0; i < metadata1.getBucketSize(); i++) {
             NBucketDictionary bucket1 = dict1.loadBucketDictionary(i);

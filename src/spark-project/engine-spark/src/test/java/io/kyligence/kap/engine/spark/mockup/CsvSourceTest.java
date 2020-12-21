@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.mockup;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.kylin.common.util.Pair;
@@ -81,9 +82,9 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         CsvSource csvSource = new CsvSource(getTestConfig());
         ISourceMetadataExplorer sourceMetadataExplorer = csvSource.getSourceMetadataExplorer();
         List<String> databases = sourceMetadataExplorer.listDatabases();
-        String database = getProject().toUpperCase();
+        String database = getProject().toUpperCase(Locale.ROOT);
         Assert.assertTrue(databases.contains(database));
-        List<String> tables = sourceMetadataExplorer.listTables(getProject().toUpperCase());
+        List<String> tables = sourceMetadataExplorer.listTables(getProject().toUpperCase(Locale.ROOT));
         String table = DEFAULT_TABLE.split("\\.")[1];
         Assert.assertTrue(tables.contains(table));
         Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sourceMetadataExplorer.loadTableMetadata(database,
@@ -99,7 +100,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         System.out.println(getTestConfig().getMetadataUrl());
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataModel model = (NDataModel) df.getModel();
+        NDataModel model = df.getModel();
 
         NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan(),
                 new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()), true);
@@ -109,7 +110,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
         StructType schema = ds.schema();
         for (StructField field : schema.fields()) {
-            Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.valueOf(field.name()))));
+            Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.parseInt(field.name()))));
         }
 
         Set<Integer> dims = df.getIndexPlan().getEffectiveDimCols().keySet();

@@ -128,7 +128,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
     public static String getAggrFuncName(AggregateCall aggCall) {
         // issue 4337
-        if (aggCall.getAggregation().kind.equals(SqlKind.SINGLE_VALUE)) {
+        if (SqlKind.SINGLE_VALUE == aggCall.getAggregation().kind) {
             return SqlKind.SINGLE_VALUE.sql;
         }
         String sqlName = getSqlFuncName(aggCall);

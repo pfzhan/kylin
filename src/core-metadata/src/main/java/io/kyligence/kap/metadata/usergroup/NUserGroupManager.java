@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.USERGROUP_NOT_EX
 import static org.apache.kylin.common.persistence.ResourceStore.USER_GROUP_ROOT;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -109,7 +110,7 @@ public class NUserGroupManager implements IKeep {
         String realGroupName = getRealUserGroupByName(name);
         if (StringUtils.isNotEmpty(realGroupName)) {
             throw new KylinException(DUPLICATE_USERGROUP_NAME,
-                    String.format(MsgPicker.getMsg().getUSERGROUP_EXIST(), realGroupName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_EXIST(), realGroupName));
         }
         UserGroup userGroup = new UserGroup(name);
         crud.save(userGroup);
@@ -119,7 +120,7 @@ public class NUserGroupManager implements IKeep {
         String realGroupName = getRealUserGroupByName(name);
         if (StringUtils.isEmpty(realGroupName)) {
             throw new KylinException(USERGROUP_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), name));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), name));
         }
         crud.delete(realGroupName);
     }

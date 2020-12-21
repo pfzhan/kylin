@@ -45,15 +45,16 @@ package org.apache.kylin.rest.security;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.velocity.util.StringBuilderWriter;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -62,14 +63,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.Unsafe;
 
 /**
  * @author xduo
  * 
  */
 public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer {
-    private final static Set<String> passwordWhiteList = Sets
-            .newHashSet("kylin.security.user-password-encoder");
+    private final static Set<String> passwordWhiteList = Sets.newHashSet("kylin.security.user-password-encoder");
 
     /**
      * The PasswordPlaceholderConfigurer will read Kylin properties as the Spring resource
@@ -78,9 +79,9 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
         Resource[] resources = new Resource[1];
         //Properties prop = KylinConfig.getKylinProperties();
         Properties prop = getAllKylinProperties();
-        StringWriter writer = new StringWriter();
+        StringBuilderWriter writer = new StringBuilderWriter();
         prop.store(new PrintWriter(writer), "kylin properties");
-        String propString = writer.getBuffer().toString();
+        String propString = writer.getBuilder().toString();
         IOUtils.closeQuietly(writer);
         InputStream is = IOUtils.toInputStream(propString, Charset.defaultCharset());
         resources[0] = new InputStreamResource(is);
@@ -89,11 +90,11 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
 
     public Properties getAllKylinProperties() {
         // hack to get all config properties
-        Properties allProps = null;
+        Properties allProps;
         try {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             Method getAllMethod = KylinConfigBase.class.getDeclaredMethod("getAllProperties");
-            getAllMethod.setAccessible(true);
+            Unsafe.changeAccessibleObject(getAllMethod, true);
             allProps = (Properties) getAllMethod.invoke(kylinConfig);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -102,7 +103,7 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
     }
 
     protected String resolvePlaceholder(String placeholder, Properties props) {
-        if (placeholder.toLowerCase().contains("password") && !passwordWhiteList.contains(placeholder)) {
+        if (placeholder.toLowerCase(Locale.ROOT).contains("password") && !passwordWhiteList.contains(placeholder)) {
             return EncryptUtil.decrypt(props.getProperty(placeholder));
         } else {
             return props.getProperty(placeholder);
@@ -118,7 +119,7 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
     public static void main(String[] args) {
         if (args.length != 2) {
             printUsage();
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         String encryptMethod = args[0];
@@ -134,7 +135,7 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
             System.out.println(bCryptPasswordEncoder.encode(passwordTxt));
         } else {
             printUsage();
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
     }
 }

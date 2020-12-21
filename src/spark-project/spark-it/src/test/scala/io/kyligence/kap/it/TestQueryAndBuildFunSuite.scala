@@ -22,9 +22,7 @@
 
 package io.kyligence.kap.it
 
-import java.io.File
-import java.util.TimeZone
-
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
@@ -32,10 +30,12 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.realization.RealizationStatusEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
-import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
+import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
+import java.io.File
+import java.util.TimeZone
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 
@@ -124,8 +124,8 @@ class TestQueryAndBuildFunSuite
   conf.set("spark.shuffle.detectCorrupt", "false")
 
   override def beforeAll(): Unit = {
-    System.setProperty("calcite.keep-in-clause", "true")
-    System.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
+    Unsafe.setProperty("calcite.keep-in-clause", "true")
+    Unsafe.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
     val timeZones = Array("GMT", "GMT+8", "CST")
     val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
     TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))
@@ -145,7 +145,7 @@ class TestQueryAndBuildFunSuite
   override def afterAll(): Unit = {
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
-    System.clearProperty("calcite.keep-in-clause")
+    Unsafe.clearProperty("calcite.keep-in-clause")
   }
 
   ignore("temp") {
@@ -250,11 +250,11 @@ class TestQueryAndBuildFunSuite
           joinType.map { joinType =>
             val afterChangeJoin = changeJoinType(query, joinType)
 
-              Future[String] {
-                runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT, floderInfo.checkOrder,
-                  s"$joinType\n$fileName\n $query\n")
-              }
+            Future[String] {
+              runAndCompare(afterChangeJoin, cleanSql(afterChangeJoin), DEFAULT_PROJECT, floderInfo.checkOrder,
+                s"$joinType\n$fileName\n $query\n")
             }
+          }
       }
     // scalastyle:off
     val result = Await.result(Future.sequence(futures.toList), Duration.Inf)

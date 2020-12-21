@@ -25,6 +25,7 @@
 package org.apache.kylin.common.util;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -91,18 +92,18 @@ public class MailHelper {
     public static BasicEmailNotificationContent creatContentForCapacityUsage(Long licenseVolume, Long currentCapacity) {
         BasicEmailNotificationContent content = new BasicEmailNotificationContent();
         content.setIssue("Over capacity threshold");
-        content.setTime(LocalDate.now().toString());
+        content.setTime(LocalDate.now(Clock.systemDefaultZone()).toString());
         content.setJobType("CHECK_USAGE");
         content.setProject("NULL");
 
         String readableCurrentCapacity = SizeConvertUtil.getReadableFileSize(currentCapacity);
         String readableLicenseVolume = SizeConvertUtil.getReadableFileSize(licenseVolume);
         double overCapacityThreshold = KylinConfig.getInstanceFromEnv().getOverCapacityThreshold() * 100;
-        content.setConclusion(content.CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD
+        content.setConclusion(BasicEmailNotificationContent.CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD
                 .replaceAll("\\$\\{volume_used\\}", readableCurrentCapacity)
                 .replaceAll("\\$\\{volume_total\\}", readableLicenseVolume)
                 .replaceAll("\\$\\{capacity_threshold\\}", BigDecimal.valueOf(overCapacityThreshold).toString()));
-        content.setSolution(content.SOLUTION_FOR_OVER_CAPACITY_THRESHOLD);
+        content.setSolution(BasicEmailNotificationContent.SOLUTION_FOR_OVER_CAPACITY_THRESHOLD);
         return content;
     }
 

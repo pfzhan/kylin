@@ -48,11 +48,9 @@
 
 package io.kyligence.kap.query.util;
 
-import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -79,6 +77,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -330,12 +329,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             toBeReplacedUsages.add(replaceRange);
         }
 
-        Collections.sort(toBeReplacedUsages, new Comparator<ReplaceRange>() {
-            @Override
-            public int compare(ReplaceRange o1, ReplaceRange o2) {
-                return Integer.compare(o2.beginPos, o1.beginPos);
-            }
-        });
+        toBeReplacedUsages.sort((o1, o2) -> Integer.compare(o2.beginPos, o1.beginPos));
 
         //check
         ReplaceRange last = null;
@@ -345,12 +339,12 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                         "Positions for two column usage has overlaps");
             }
 
-            logger.debug("Column Usage at [" + toBeReplaced.beginPos + "," + toBeReplaced.endPos + "] "
-                    + " is replaced by  " + toBeReplaced.replaceExpr);
+            logger.debug("Column Usage at [{}, {}] is replaced by {}.", toBeReplaced.beginPos, toBeReplaced.endPos,
+                    toBeReplaced.replaceExpr);
 
             String pattern = (needParenthesis(inputSql, topColumns, toBeReplaced)) ? "{0}({1}){2}" : "{0}{1}{2}";
-            result = MessageFormat.format(pattern, result.substring(0, toBeReplaced.beginPos), toBeReplaced.replaceExpr,
-                    result.substring(toBeReplaced.endPos));
+            result = Unsafe.format(Locale.ROOT, pattern, result.substring(0, toBeReplaced.beginPos),
+                    toBeReplaced.replaceExpr, result.substring(toBeReplaced.endPos));
 
             last = toBeReplaced;// new Pair<>(toBeReplaced.getFirst(), new Pair<>(start, end+6));// toBeReplaced;
         }
@@ -360,8 +354,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
     //find child inner select first
     static class ColumnUsagesFinder extends SqlBasicVisitor<SqlNode> {
-        private List<ColumnUsage> usages;
-        private Set<String> columnNames;
+        private final List<ColumnUsage> usages;
+        private final Set<String> columnNames;
 
         ColumnUsagesFinder(Set<String> columnNames) {
             this.columnNames = columnNames;

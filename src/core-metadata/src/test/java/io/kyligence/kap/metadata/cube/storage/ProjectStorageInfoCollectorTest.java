@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.storage;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -428,15 +430,15 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     public void testGetStorageVolumeException() throws NoSuchFieldException, IllegalAccessException, IOException {
         List<StorageInfoEnum> storageInfoEnumList = Lists.newArrayList();
         TotalStorageCollector totalStorageCollector = Mockito.spy(TotalStorageCollector.class);
-        val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
-        val field = collector.getClass().getDeclaredField("collectors");
-        field.setAccessible(true);
+        ProjectStorageInfoCollector collector = new ProjectStorageInfoCollector(storageInfoEnumList);
+        Field field = collector.getClass().getDeclaredField("collectors");
+        Unsafe.changeAccessibleObject(field, true);
         List<StorageInfoCollector> collectors = (List<StorageInfoCollector>) field.get(collector);
         collectors.add(totalStorageCollector);
         Mockito.doThrow(new RuntimeException("catch me")).when(totalStorageCollector).collect(Mockito.any(),
                 Mockito.anyString(), Mockito.any(StorageVolumeInfo.class));
 
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
+        StorageVolumeInfo storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
 
         Assert.assertEquals(-1L, storageVolumeInfo.getTotalStorageSize());
         Assert.assertEquals(1, storageVolumeInfo.getThrowableMap().size());

@@ -26,6 +26,8 @@ package io.kyligence.kap.tool.hadoop;
 
 import org.apache.hadoop.fs.Path;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 /**
  * used for getting a relative path without schema and authority
  */
@@ -33,9 +35,9 @@ public class KapGetPathWithoutSchemeAndAuthorityCLI {
     public static void main(String[] args) {
         if (args.length < 1) {
             System.out.println("Usage: KapGetPathWithoutSchemeAndAuthorityCLI <path>");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
         System.out.println(Path.getPathWithoutSchemeAndAuthority(new Path(args[0])));
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

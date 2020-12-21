@@ -41,6 +41,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -71,17 +72,17 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
             setLocalEnvs();
         }
         // enable CC check
-        System.setProperty("needCheckCC", "true");
+        Unsafe.setProperty("needCheckCC", "true");
         val config = KylinConfig.getInstanceFromEnv();
         if (config.isCalciteInClauseEnabled()) {
-            System.setProperty("calcite.keep-in-clause", "true");
+            Unsafe.setProperty("calcite.keep-in-clause", "true");
         } else {
-            System.setProperty("calcite.keep-in-clause", "false");
+            Unsafe.setProperty("calcite.keep-in-clause", "false");
         }
         if (config.isCalciteConvertMultipleColumnsIntoOrEnabled()) {
-            System.setProperty("calcite.convert-multiple-columns-in-to-or", "true");
+            Unsafe.setProperty("calcite.convert-multiple-columns-in-to-or", "true");
         } else {
-            System.setProperty("calcite.convert-multiple-columns-in-to-or", "false");
+            Unsafe.setProperty("calcite.convert-multiple-columns-in-to-or", "false");
         }
         TimeZoneUtils.setDefaultTimeZone(config);
         KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
@@ -98,10 +99,10 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
     private static void setSandboxEnvs() {
         File dir1 = new File("../examples/test_case_data/sandbox");
         ClassUtil.addClasspath(dir1.getAbsolutePath());
-        System.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
+        Unsafe.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
 
-        System.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
-        System.setProperty("hdp.version", "version");
+        Unsafe.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
+        Unsafe.setProperty("hdp.version", "version");
 
     }
 
@@ -111,19 +112,19 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         File localMetadata = new File(tempMetadataDir);
 
         // pass checkHadoopHome
-        System.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
-        System.setProperty("spark.local", "true");
+        Unsafe.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
+        Unsafe.setProperty("spark.local", "true");
 
         // enable push down
-        System.setProperty("kylin.query.pushdown-enabled", "true");
-        System.setProperty("kylin.query.pushdown.runner-class-name",
+        Unsafe.setProperty("kylin.query.pushdown-enabled", "true");
+        Unsafe.setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
 
         // set h2 configuration
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+        Unsafe.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        Unsafe.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        Unsafe.setProperty("kylin.query.pushdown.jdbc.username", "sa");
+        Unsafe.setProperty("kylin.query.pushdown.jdbc.password", "");
 
         // Load H2 Tables (inner join)
         try {

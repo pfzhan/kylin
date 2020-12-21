@@ -516,8 +516,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         NDataSegment newSegment = mgr.refreshSegment(df, segment.getSegRange());
 
-        Assert.assertEquals(newSegment.getSegRange().equals(segment.getSegRange()), true);
-        Assert.assertEquals(newSegment.getStatus().equals(SegmentStatusEnum.NEW), true);
+        Assert.assertTrue(newSegment.getSegRange().equals(segment.getSegRange()));
+        Assert.assertEquals(SegmentStatusEnum.NEW, newSegment.getStatus());
     }
 
     @Test

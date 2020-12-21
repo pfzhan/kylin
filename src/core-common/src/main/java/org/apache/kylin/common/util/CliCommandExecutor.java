@@ -46,6 +46,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
@@ -69,7 +70,7 @@ public class CliCommandExecutor {
     private int port;
     private String remoteUser;
     private String remotePwd;
-    private int remoteTimeoutSeconds = 3600;
+    private static final int REMOTE_TIMEOUT_SECONDS = 3600;
 
     // records down child process ids
 
@@ -140,7 +141,7 @@ public class CliCommandExecutor {
             SSHClient ssh = new SSHClient(remoteHost, port, remoteUser, remotePwd);
 
             SSHClientOutput sshOutput;
-            sshOutput = ssh.execCommand(command, remoteTimeoutSeconds, logAppender);
+            sshOutput = ssh.execCommand(command, REMOTE_TIMEOUT_SECONDS, logAppender);
             int exitCode = sshOutput.getExitCode();
             String output = sshOutput.getText();
             return Pair.newPair(exitCode, output);
@@ -173,18 +174,21 @@ public class CliCommandExecutor {
             logger.info("sub process {} on behalf of job {}, start to run...", pid, jobId);
             EventBusFactory.getInstance().postSync(new ProcessStart(pid, jobId));
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-            String line;
             StringBuilder result = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                result.append(line).append('\n');
-                if (logAppender != null) {
-                    logAppender.log(line);
-                }
-                if (Thread.currentThread().isInterrupted()) {
-                    String msg = Arrays.toString(cmd) + " is interrupt";
-                    logger.warn(msg);
-                    throw new InterruptedException(msg);
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    result.append(line).append('\n');
+                    if (logAppender != null) {
+                        logAppender.log(line);
+                    }
+                    if (Thread.currentThread().isInterrupted()) {
+                        String msg = Arrays.toString(cmd) + " is interrupt";
+                        logger.warn(msg);
+                        throw new InterruptedException(msg);
+                    }
                 }
             }
 

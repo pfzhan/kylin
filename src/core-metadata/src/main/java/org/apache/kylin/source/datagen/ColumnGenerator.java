@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,12 +44,14 @@ package org.apache.kylin.source.datagen;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.TreeSet;
@@ -213,7 +214,8 @@ public class ColumnGenerator {
         }
 
         private String formatNumber(double i) {
-            return new DecimalFormat(format).format(i);
+            return new DecimalFormat(format,
+                    DecimalFormatSymbols.getInstance(Locale.getDefault(Locale.Category.FORMAT))).format(i);
         }
 
         private int randomInt() {
@@ -281,7 +283,7 @@ public class ColumnGenerator {
         public String next() {
             if (values.isEmpty())
                 throw new NoSuchElementException();
-            
+
             return values.get(rand.nextInt(values.size()));
         }
     }
@@ -343,7 +345,7 @@ public class ColumnGenerator {
             if (input.hasNext()) {
                 r = input.next();
             }
-            
+
             if (rand.nextDouble() < nullPct) {
                 r = nullStr;
             }

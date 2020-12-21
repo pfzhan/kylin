@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.recommendation.util;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,7 +61,8 @@ public class RawRecUtil {
             }
             paramNames.add(colUniqueName(colRef, ccMap));
         });
-        return String.format("%s__%s", measure.getFunction().getExpression(), String.join("__", paramNames));
+        return String.format(Locale.ROOT, "%s__%s", measure.getFunction().getExpression(),
+                String.join("__", paramNames));
     }
 
     private static String colUniqueName(TblColRef tblColRef, Map<String, ComputedColumnDesc> ccMap) {

@@ -55,6 +55,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.val;
@@ -110,7 +111,7 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
             @Override
             public void cacheChanged() {
                 List<String> serverNodes = getServerStrByServerMode(serverMode);
-                System.setProperty("kylin.server.cluster-mode-" + serverMode.getName(),
+                Unsafe.setProperty("kylin.server.cluster-mode-" + serverMode.getName(),
                         StringUtils.join(serverNodes, ","));
                 logger.info("kylin.server.cluster-mode-{} update to {}", serverMode.getName(), serverNodes);
 

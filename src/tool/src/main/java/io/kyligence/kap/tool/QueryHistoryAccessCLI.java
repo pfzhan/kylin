@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
@@ -40,7 +41,7 @@ public class QueryHistoryAccessCLI {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccessCLI.class);
     private static final String PROJECT = "test_project";
     private static final String FAIL_LOG = "query history access test failed.";
-    private RDBMSQueryHistoryDAO queryHistoryDAO;
+    private final RDBMSQueryHistoryDAO queryHistoryDAO;
 
     public QueryHistoryAccessCLI() {
         this.queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
@@ -93,11 +94,11 @@ public class QueryHistoryAccessCLI {
             cli = new QueryHistoryAccessCLI();
         } catch (Exception e) {
             logger.error("Test failed.", e);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         if (args.length != 1) {
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         long repetition = Long.parseLong(args[0]);
@@ -105,12 +106,12 @@ public class QueryHistoryAccessCLI {
         while (repetition > 0) {
             if (!cli.testAccessQueryHistory()) {
                 logger.error("Test failed.");
-                System.exit(1);
+                Unsafe.systemExit(1);
             }
             repetition--;
         }
 
         logger.info("Test succeed.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

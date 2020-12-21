@@ -101,11 +101,11 @@ public class IndicesResponse {
         this.dataFlow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
                 .getDataflow(indexPlan.getId());
         this.nonNewSegments = this.dataFlow.getSegments().getSegmentsExcludeRefreshingAndMerging().stream()
-                .filter(seg -> !SegmentStatusEnum.NEW.equals(seg.getStatus()))
+                .filter(seg -> SegmentStatusEnum.NEW != seg.getStatus())
                 .collect(Collectors.toCollection(Segments::new));
 
         this.isAnySegReady = nonNewSegments.stream().map(NDataSegment::getStatus)
-                .anyMatch(SegmentStatusEnum.READY::equals);
+                .anyMatch(status -> SegmentStatusEnum.READY == status);
         if (!isAnySegReady) {
             return;
         }
@@ -184,8 +184,8 @@ public class IndicesResponse {
                     .orElse(0L);
             val layoutSet = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
             this.queryHitCount = indicesResponse.getDataFlow().getLayoutHitCount().entrySet().stream()
-                    .filter(entry -> layoutSet.contains(entry.getKey()))
-                    .map(Map.Entry::getValue).mapToInt(hit -> hit.getFrequency(indexEntity.getIndexPlan().getProject())).sum();
+                    .filter(entry -> layoutSet.contains(entry.getKey())).map(Map.Entry::getValue)
+                    .mapToInt(hit -> hit.getFrequency(indexEntity.getIndexPlan().getProject())).sum();
 
         }
 

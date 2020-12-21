@@ -42,7 +42,6 @@
 
 package org.apache.kylin.common;
 
-import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -64,30 +63,27 @@ public class ReadFsSwitchTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test() throws InterruptedException {
-        try (SetAndUnsetSystemProp r = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system-backup-reset-sec",
-                "1");
-                SetAndUnsetSystemProp a = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system", "a://");
-                SetAndUnsetSystemProp b = new SetAndUnsetSystemProp("kylin.storage.columnar.file-system-backup",
-                        "b://");) {
+        overwriteSystemProp("kylin.storage.columnar.file-system-backup-reset-sec", "1");
+        overwriteSystemProp("kylin.storage.columnar.file-system", "a://");
+        overwriteSystemProp("kylin.storage.columnar.file-system-backup", "b://");
 
-            for (int i = 0; i < 15; i++) {
-                if (i == 2)
-                    Assert.assertEquals(true, ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),
-                            KapConfig.getInstanceFromEnv().getSwitchBackupFsExceptionAllowString()));
-                if (i == 3)
-                    Assert.assertEquals(false, ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),
-                            KapConfig.getInstanceFromEnv().getSwitchBackupFsExceptionAllowString()));
+        for (int i = 0; i < 15; i++) {
+            if (i == 2)
+                Assert.assertTrue(ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),
+                        KapConfig.getInstanceFromEnv().getSwitchBackupFsExceptionAllowString()));
+            if (i == 3)
+                Assert.assertFalse(ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(ex(),
+                        KapConfig.getInstanceFromEnv().getSwitchBackupFsExceptionAllowString()));
 
-                String fs = KapConfig.getInstanceFromEnv().getParquetReadFileSystem();
-                if (i == 1)
-                    Assert.assertEquals("a://", fs);
-                if (i >= 2 && i < 12)
-                    Assert.assertEquals("b://", fs);
-                if (i > 12)
-                    Assert.assertEquals("a://", fs);
+            String fs = KapConfig.getInstanceFromEnv().getParquetReadFileSystem();
+            if (i == 1)
+                Assert.assertEquals("a://", fs);
+            if (i >= 2 && i < 12)
+                Assert.assertEquals("b://", fs);
+            if (i > 12)
+                Assert.assertEquals("a://", fs);
 
-                Thread.sleep(100);
-            }
+            Thread.sleep(100);
         }
     }
 

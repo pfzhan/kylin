@@ -121,7 +121,6 @@ public class RexToTblColRefTranslatorTest {
         boolRelDataType = null;
         timestampRelDataType = null;
         x = y = z = null;
-        System.clearProperty("KYLIN_HOME");
     }
 
     private RexNode lessThan(RexNode a0, RexNode a1) {

@@ -42,7 +42,9 @@
 
 package org.apache.kylin.job.execution;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Locale;
 
 import org.apache.kylin.common.util.BasicEmailNotificationContent;
 import org.apache.kylin.common.util.DateFormat;
@@ -60,7 +62,7 @@ public class EmailNotificationContent extends BasicEmailNotificationContent {
     public static EmailNotificationContent createContent(JobIssueEnum issue, AbstractExecutable executable) {
         EmailNotificationContent content = new EmailNotificationContent();
         content.setIssue(issue.getDisplayName());
-        content.setTime(LocalDate.now().toString());
+        content.setTime(LocalDate.now(Clock.systemDefaultZone()).toString());
         content.setJobType(executable.getJobType().toString());
         content.setProject(executable.getProject());
         content.setExecutable(executable);
@@ -84,7 +86,7 @@ public class EmailNotificationContent extends BasicEmailNotificationContent {
                             DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS)));
             break;
         default:
-            throw new IllegalArgumentException(String.format("no process for jobIssue: %s.", issue));
+            throw new IllegalArgumentException(String.format(Locale.ROOT, "no process for jobIssue: %s.", issue));
         }
         return content;
     }

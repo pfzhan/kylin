@@ -26,6 +26,8 @@ package io.kyligence.kap.common.persistence.metadata;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -136,8 +138,8 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
                 val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                 val path = "/0p1/abc-" + System.currentTimeMillis();
                 val originAbc = store.getResource(path);
-                store.checkAndPutResource(path, ByteStreams.asByteSource("abc".getBytes()), System.currentTimeMillis(),
-                        originAbc == null ? -1 : originAbc.getMvcc());
+                store.checkAndPutResource(path, ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())),
+                        System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
                 return 0;
             }, "0p1");
             try {
@@ -157,23 +159,23 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
             RawResource result = systemStore.getResource(path);
             val newMvcc = result == null ? 0 : result.getMvcc() + 1;
             if (newMvcc == 0) {
-                jdbcTemplate.update(String.format(INSERT_SQL, table), ps -> {
+                jdbcTemplate.update(String.format(Locale.ROOT, INSERT_SQL, table), ps -> {
                     ps.setString(1, path);
-                    ps.setBytes(2, path.getBytes());
+                    ps.setBytes(2, path.getBytes(Charset.defaultCharset()));
                     ps.setLong(3, ts);
                     ps.setLong(4, newMvcc);
                 });
             } else {
-                jdbcTemplate.update(String.format(UPDATE_SQL, table), ps -> {
-                    ps.setBytes(1, path.getBytes());
+                jdbcTemplate.update(String.format(Locale.ROOT, UPDATE_SQL, table), ps -> {
+                    ps.setBytes(1, path.getBytes(Charset.defaultCharset()));
                     ps.setLong(2, newMvcc);
                     ps.setLong(3, ts);
                     ps.setString(4, path);
                 });
             }
-            jdbcTemplate.update(String.format(INSERT_AUDIT_LOG_SQL, table + "_audit_log"), ps -> {
+            jdbcTemplate.update(String.format(Locale.ROOT, INSERT_AUDIT_LOG_SQL, table + "_audit_log"), ps -> {
                 ps.setString(1, path);
-                ps.setBytes(2, path.getBytes());
+                ps.setBytes(2, path.getBytes(Charset.defaultCharset()));
                 ps.setLong(3, ts);
                 ps.setLong(4, newMvcc);
                 ps.setString(5, unitId);
@@ -190,11 +192,12 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
         IntStream.range(1000, 1000 + size).forEach(id -> {
             String path = "/p2/abc" + id;
             if (systemStore.exists(path)) {
-                systemStore.checkAndPutResource(path, ByteStreams.asByteSource(path.getBytes()),
+                systemStore.checkAndPutResource(path, ByteStreams.asByteSource(path.getBytes(Charset.defaultCharset())),
                         System.currentTimeMillis(), versions.get(path) - 1);
             } else {
-                systemStore.putResourceWithoutCheck(path, ByteStreams.asByteSource(path.getBytes()),
-                        System.currentTimeMillis(), versions.get(path));
+                systemStore.putResourceWithoutCheck(path,
+                        ByteStreams.asByteSource(path.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
+                        versions.get(path));
             }
         });
 
@@ -211,7 +214,8 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
             IntStream.range(1000, 1000 + size).forEach(id -> {
                 String path = "/p2/abc" + id;
                 val originAbc = store.getResource(path);
-                store.checkAndPutResource(path, ByteStreams.asByteSource((path + "-version2").getBytes()),
+                store.checkAndPutResource(path,
+                        ByteStreams.asByteSource((path + "-version2").getBytes(Charset.defaultCharset())),
                         System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
             });
             return 0;

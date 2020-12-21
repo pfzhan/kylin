@@ -67,7 +67,6 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
     @After
     public void cleanUp() {
         cleanupTestMetadata();
-        System.clearProperty("calcite.keep-in-clause");
     }
 
     @Test

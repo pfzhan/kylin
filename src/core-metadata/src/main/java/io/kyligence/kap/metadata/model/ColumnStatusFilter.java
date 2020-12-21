@@ -55,7 +55,7 @@ public final class ColumnStatusFilter {
         if (Objects.isNull(obj) || !(obj instanceof NDataModel.ColumnStatus)) {
             return true;
         }
-        return NDataModel.ColumnStatus.EXIST.equals(obj);
+        return NDataModel.ColumnStatus.EXIST == obj;
     }
 
     @Override

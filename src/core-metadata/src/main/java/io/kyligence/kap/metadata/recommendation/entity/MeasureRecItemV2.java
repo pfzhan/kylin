@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.recommendation.entity;
 
 import java.io.Serializable;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,7 +72,7 @@ public class MeasureRecItemV2 extends RecItemV2 implements Serializable {
                         Preconditions.checkArgument(tableMap.containsKey(alias));
                         ColumnDesc[] columns = tableMap.get(alias).getTableDesc().getColumns();
                         ColumnDesc dependColumn = columns[Integer.parseInt(splits[1])];
-                        String aliasDotName = String.format("%s.%s", alias, dependColumn.getName());
+                        String aliasDotName = String.format(Locale.ROOT, "%s.%s", alias, dependColumn.getName());
                         dependIDs[i - 1] = namedColumnMap.get(aliasDotName).getId();
                     } catch (NumberFormatException e) {
                         dependIDs[i - 1] = Integer.MAX_VALUE;

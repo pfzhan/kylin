@@ -38,10 +38,17 @@ import static org.apache.kylin.common.exception.ToolErrorCode.TABLE_PARAMETER_NO
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -66,10 +73,13 @@ import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 public class AuditLogTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
+
+    private static final String CHARSET = Charset.defaultCharset().name();
 
     private static final Option OPTION_START_TIME = OptionBuilder.getInstance().hasArg().withArgName("START_TIMESTAMP")
             .withDescription("Specify the start timestamp (sec) (optional)").isRequired(false).create("startTime");
@@ -94,7 +104,7 @@ public class AuditLogTool extends ExecutableApplication {
 
     private static final String AUDIT_LOG_SUFFIX = ".jsonl";
 
-    private static int MAX_BATCH_SIZE = 50000;
+    private static final int MAX_BATCH_SIZE = 50000;
 
     private final Options options;
 
@@ -126,10 +136,10 @@ public class AuditLogTool extends ExecutableApplication {
             tool.execute(args);
         } catch (Exception e) {
             System.out.println(ANSI_RED + "Audit log task failed." + ANSI_RESET);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
         System.out.println("Audit log task finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override
@@ -166,7 +176,8 @@ public class AuditLogTool extends ExecutableApplication {
         long startTs = job.getStartTime();
         long endTs = job.getEndTime();
 
-        extract(startTs, endTs, Paths.get(dir, String.format("%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
+        extract(startTs, endTs,
+                Paths.get(dir, String.format(Locale.ROOT, "%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
     }
 
     private void extractFull(OptionsHelper optionsHelper, final String dir) throws Exception {
@@ -179,7 +190,8 @@ public class AuditLogTool extends ExecutableApplication {
         long startTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_START_TIME));
         long endTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_END_TIME));
 
-        extract(startTs, endTs, Paths.get(dir, String.format("%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
+        extract(startTs, endTs,
+                Paths.get(dir, String.format(Locale.ROOT, "%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
     }
 
     private void restore(OptionsHelper optionsHelper, final String dir) throws Exception {
@@ -203,12 +215,13 @@ public class AuditLogTool extends ExecutableApplication {
         val jdbcTemplate = new JdbcTemplate(dataSource);
         try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig, jdbcTemplate, transactionManager,
                 table)) {
-            for (File logFile : dirFile.listFiles()) {
+            for (File logFile : Objects.requireNonNull(dirFile.listFiles())) {
                 if (!logFile.getName().endsWith(AUDIT_LOG_SUFFIX)) {
                     continue;
                 }
                 String line;
-                try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
+                try (InputStream fin = new FileInputStream(logFile);
+                        BufferedReader br = new BufferedReader(new InputStreamReader(fin, CHARSET))) {
                     List<AuditLog> auditLogs = Lists.newArrayList();
                     while ((line = br.readLine()) != null) {
                         try {
@@ -231,7 +244,9 @@ public class AuditLogTool extends ExecutableApplication {
         logger.info("Audit log batch size is {}.", batchSize);
         try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig,
                 kylinConfig.getAuditLogBatchTimeout());
-                BufferedWriter bw = new BufferedWriter(new FileWriter(auditLogFile), Constant.AUDIT_MAX_BUFFER_SIZE)) {
+                OutputStream fos = new FileOutputStream(auditLogFile);
+                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos, CHARSET),
+                        Constant.AUDIT_MAX_BUFFER_SIZE)) {
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("audit log task is interrupt");

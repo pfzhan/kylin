@@ -47,6 +47,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.calcite.sql.SqlKind;
@@ -82,7 +83,8 @@ public class TblColRef implements Serializable {
         }
 
         public static boolean contains(String name) {
-            return LITERAL.getDataType().equals(name) || DERIVED.getDataType().equals(name) || AGGREGATION_TYPE.getDataType().equals(name);
+            return LITERAL.getDataType().equals(name) || DERIVED.getDataType().equals(name)
+                    || AGGREGATION_TYPE.getDataType().equals(name);
         }
 
         public static boolean isAggregationType(String name) {
@@ -282,7 +284,6 @@ public class TblColRef implements Serializable {
         return getTable() + "." + getName();
     }
 
-
     public String getDatatype() {
         return column.getDatatype();
     }
@@ -372,13 +373,13 @@ public class TblColRef implements Serializable {
         if (column.getTable() == null) {
             return "NULL";
         } else {
-            return column.getTable().getIdentity().toUpperCase();
+            return column.getTable().getIdentity().toUpperCase(Locale.ROOT);
         }
     }
 
     // return DB.TABLE.COLUMN
     public String getColumnWithTableAndSchema() {
-        return (getTableWithSchema() + "." + column.getName()).toUpperCase();
+        return (getTableWithSchema() + "." + column.getName()).toUpperCase(Locale.ROOT);
     }
 
     public boolean isCastInnerColumn() {

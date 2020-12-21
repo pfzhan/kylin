@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,6 +44,7 @@ package org.apache.kylin.query.relnode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Stack;
 
@@ -227,7 +227,8 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     }
 
     protected ColumnRowType buildColumnRowType() {
-        this.alias = ("T_" + context.allTableScans.size() + "_" + Integer.toHexString(System.identityHashCode(this))).toUpperCase();
+        this.alias = ("T_" + context.allTableScans.size() + "_" + Integer.toHexString(System.identityHashCode(this)))
+                .toUpperCase(Locale.ROOT);
         TableRef tableRef = TblColRef.tableForUnknownModel(this.alias, olapTable.getSourceTable());
 
         List<TblColRef> columns = new ArrayList<TblColRef>();

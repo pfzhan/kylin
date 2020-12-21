@@ -41,9 +41,9 @@
  */
 package org.apache.kylin.source.datagen;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -55,8 +55,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class DataGenTest extends NLocalFileMetadataTestCase {
 
@@ -79,14 +81,14 @@ public class DataGenTest extends NLocalFileMetadataTestCase {
         gen.generate();
 
         Method method = ModelDataGenerator.class.getDeclaredMethod("path", NDataModel.class);
-        method.setAccessible(true);
+        Unsafe.changeAccessibleObject(method, true);
         String path = (String) method.invoke(gen, model);
 
         ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
 
         RawResource rawResource = store.getResource(path);
 
-        Assert.assertTrue(rawResource != null);
+        Assert.assertNotNull(rawResource);
 
         String sql = ResourceTool.cat(KylinConfig.getInstanceFromEnv(), path);
 
@@ -104,7 +106,7 @@ public class DataGenTest extends NLocalFileMetadataTestCase {
                 .forName("org.apache.kylin.source.datagen.ModelDataGenerator", ModelDataGenerator.class);
         Constructor<? extends ModelDataGenerator> constructor = clz.getDeclaredConstructor(NDataModel.class, int.class,
                 ResourceStore.class);
-        constructor.setAccessible(true);
+        Unsafe.changeAccessibleObject(constructor, true);
         ModelDataGenerator gen = constructor.newInstance(model, 100, store);
         gen.outprint = false;
         return gen;
@@ -112,7 +114,6 @@ public class DataGenTest extends NLocalFileMetadataTestCase {
 
     private NDataModel getModel(String name) {
         NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectDefault);
-        NDataModel model = mgr.getDataModelDesc(name);
-        return model;
+        return mgr.getDataModelDesc(name);
     }
 }

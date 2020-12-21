@@ -26,6 +26,7 @@ package io.kyligence.kap.tool.garbage;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -49,7 +50,7 @@ public class DataflowCleanerCLI {
     public static void main(String[] args) {
         execute();
         System.out.println("Cleanup dataflow finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     public static void execute() {
@@ -60,7 +61,7 @@ public class DataflowCleanerCLI {
             try {
                 cleanupRedundantIndex(project);
             } catch (Exception e) {
-                log.warn(String.format("Clean dataflow for project<%s> failed", project.getName()), e);
+                log.warn("Clean dataflow for project<{}> failed", project.getName(), e);
             }
             log.info("Dataflow cleanup for project<{}> finished", project.getName());
         }

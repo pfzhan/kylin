@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -124,8 +125,8 @@ class IndexSuggester {
 
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
                 if (aliasMap == null) {
-                    throw new PendingException(String
-                            .format(getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
+                    throw new PendingException(String.format(Locale.ROOT,
+                            getMsgTemplateByModelMaintainType(JOIN_NOT_MATCHED, Type.TABLE), model.getAlias()));
                 }
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
@@ -277,7 +278,7 @@ class IndexSuggester {
         return dimCols.stream().map(dimCol -> {
             if (colIdMap.get(dimCol) == null) {
                 throw new PendingException(
-                        String.format(getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
+                        String.format(Locale.ROOT, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
                                 model.getAlias(), dimCol.getIdentity()));
             }
             return colIdMap.get(dimCol);
@@ -295,12 +296,12 @@ class IndexSuggester {
             if (measureId != null) {
                 measureIds.add(measureId);
             } else if (CollectionUtils.isNotEmpty(aggFunc.getParameters())) {
-                String measure = String.format("%s(%s)", aggFunc.getExpression(), aggFunc.getParameters());
+                String measure = String.format(Locale.ROOT, "%s(%s)", aggFunc.getExpression(), aggFunc.getParameters());
                 for (TblColRef tblColRef : aggFunc.getColRefs()) {
                     if (colIdMap.get(tblColRef) == null) {
-                        throw new PendingException(
-                                String.format(getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE),
-                                        model.getAlias(), measure));
+                        throw new PendingException(String.format(Locale.ROOT,
+                                getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE),
+                                model.getAlias(), measure));
                     }
                 }
             }

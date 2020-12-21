@@ -27,9 +27,12 @@ package io.kyligence.kap.metadata.recommendation.util;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -53,6 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RawRecStoreUtil {
 
+    private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
     public static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
     public static final String CREATE_INDEX = "create.rawrecommendation.store.index";
 
@@ -81,20 +85,22 @@ public class RawRecStoreUtil {
         }
 
         Properties properties = JdbcUtil.getProperties(dataSource);
-        String createTableStmt = String.format(properties.getProperty(CREATE_REC_TABLE), tableName);
-        String crateIndexStmt = String.format(properties.getProperty(CREATE_INDEX), tableName, tableName);
+        String createTableStmt = String.format(Locale.ROOT, properties.getProperty(CREATE_REC_TABLE), tableName);
+        String crateIndexStmt = String.format(Locale.ROOT, properties.getProperty(CREATE_INDEX), tableName, tableName);
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
-            sr.setLogWriter(new PrintWriter(new LogOutputStream(log)));
+            sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
             log.debug("start to create table({})", tableName);
-            sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
+            sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes(DEFAULT_CHARSET)),
+                    DEFAULT_CHARSET));
             log.debug("create table finished");
-            sr.runScript(new InputStreamReader(new ByteArrayInputStream(crateIndexStmt.getBytes())));
+            sr.runScript(new InputStreamReader(new ByteArrayInputStream(crateIndexStmt.getBytes(DEFAULT_CHARSET)),
+                    DEFAULT_CHARSET));
         }
 
         if (!JdbcUtil.isTableExists(dataSource.getConnection(), tableName)) {
             log.debug("failed to create table({})", tableName);
-            throw new IllegalStateException(String.format("create table(%s) failed", tableName));
+            throw new IllegalStateException(String.format(Locale.ROOT, "create table(%s) failed", tableName));
         } else {
             log.debug("table({}) already exists.", tableName);
         }

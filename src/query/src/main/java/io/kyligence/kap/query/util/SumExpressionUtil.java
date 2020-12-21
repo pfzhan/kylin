@@ -282,19 +282,19 @@ public class SumExpressionUtil {
             return false;
         SqlKind kind = call.getAggregation().getKind();
 
-        return SqlKind.SUM.equals(kind) || SqlKind.SUM0.equals(kind) || SqlKind.COUNT.equals(kind)
-                || SqlKind.MAX.equals(kind) || SqlKind.MIN.equals(kind);
+        return SqlKind.SUM == kind || SqlKind.SUM0 == kind || SqlKind.COUNT == kind || SqlKind.MAX == kind
+                || SqlKind.MIN == kind;
     }
 
     public static boolean hasSumCaseWhen(AggregateCall call, RexNode expression) {
         if (isSum(call.getAggregation().getKind())) {
-            return expression.getKind().equals(SqlKind.CASE);
+            return SqlKind.CASE == expression.getKind();
         }
         return false;
     }
 
     public static boolean isSum(SqlKind kind) {
-        return SqlKind.SUM.equals(kind) || SqlKind.SUM0.equals(kind);
+        return SqlKind.SUM == kind || SqlKind.SUM0 == kind;
     }
 
     public static List<AggExpression> collectSumExpressions(Aggregate oldAgg, Project oldProject) {
@@ -304,7 +304,7 @@ public class SumExpressionUtil {
 
             AggExpression aggExpression = new AggExpression(call);
             aggExpressions.add(aggExpression);
-            if (SqlKind.COUNT.equals(call.getAggregation().getKind())) {
+            if (SqlKind.COUNT == call.getAggregation().getKind()) {
                 aggExpression.setCount();
             }
             if (call.getArgList().isEmpty()) {

@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.acl;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -87,7 +88,8 @@ public class AclTCRManager {
         this.project = project;
 
         ResourceStore metaStore = ResourceStore.getKylinMetaStore(this.config);
-        userCrud = new CachedCrudAssist<AclTCR>(metaStore, String.format("/%s/acl/user", project), AclTCR.class) {
+        userCrud = new CachedCrudAssist<AclTCR>(metaStore, String.format(Locale.ROOT, "/%s/acl/user", project),
+                AclTCR.class) {
             @Override
             protected AclTCR initEntityAfterReload(AclTCR acl, String resourceName) {
                 acl.init(resourceName);
@@ -96,7 +98,8 @@ public class AclTCRManager {
         };
         userCrud.reloadAll();
 
-        groupCrud = new CachedCrudAssist<AclTCR>(metaStore, String.format("/%s/acl/group", project), AclTCR.class) {
+        groupCrud = new CachedCrudAssist<AclTCR>(metaStore, String.format(Locale.ROOT, "/%s/acl/group", project),
+                AclTCR.class) {
             @Override
             protected AclTCR initEntityAfterReload(AclTCR acl, String resourceName) {
                 acl.init(resourceName);
@@ -294,7 +297,7 @@ public class AclTCRManager {
             // fail-fast column
             return entry.getValue().stream()
                     .filter(colName -> !authorizedTableColumns.get(entry.getKey()).contains(colName))
-                    .map(colName -> String.format(IDENTIFIER_FORMAT, entry.getKey(), colName)).findAny();
+                    .map(colName -> String.format(Locale.ROOT, IDENTIFIER_FORMAT, entry.getKey(), colName)).findAny();
         }).filter(Optional::isPresent).findAny().orElse(Optional.empty());
     }
 
@@ -466,14 +469,14 @@ public class AclTCRManager {
         if (columnDesc.isComputedColumn()) {
             result.addAll(ComputedColumnUtil.getCCUsedColsWithProject(project, columnDesc));
         } else {
-            result.add(String.format(IDENTIFIER_FORMAT, tableDesc.getIdentity(), columnDesc.getName()));
+            result.add(String.format(Locale.ROOT, IDENTIFIER_FORMAT, tableDesc.getIdentity(), columnDesc.getName()));
         }
         return result;
     }
 
     private Map<String, Set<String>> getAuthorizedTableColumns(List<AclTCR> all) {
         Map<String, Set<String>> authorizedCoarse = Maps.newHashMap();
-        all.stream().forEach(aclTCR -> aclTCR.getTable().forEach((dbTblName, columnRow) -> {
+        all.forEach(aclTCR -> aclTCR.getTable().forEach((dbTblName, columnRow) -> {
             if (authorizedCoarse.containsKey(dbTblName) && Objects.isNull(authorizedCoarse.get(dbTblName))) {
                 return;
             }

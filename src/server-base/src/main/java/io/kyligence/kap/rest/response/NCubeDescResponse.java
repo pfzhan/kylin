@@ -24,21 +24,22 @@
 package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Data
 public class NCubeDescResponse implements Serializable, IKeep {
@@ -88,14 +89,14 @@ public class NCubeDescResponse implements Serializable, IKeep {
 
         public Dimension3X(NDataModel.NamedColumn namedColumn, boolean isDerived) {
             this.name = namedColumn.getName();
-            this.table = namedColumn.getAliasDotColumn().split("\\.")[0].toUpperCase().trim();
-            String columnName = namedColumn.getAliasDotColumn().split("\\.")[1].toUpperCase().trim();
+            this.table = namedColumn.getAliasDotColumn().split("\\.")[0].toUpperCase(Locale.ROOT).trim();
+            String columnName = namedColumn.getAliasDotColumn().split("\\.")[1].toUpperCase(Locale.ROOT).trim();
             if (!isDerived) {
                 this.column = columnName;
                 this.derived = null;
             } else {
                 this.column = null;
-                this.derived = Arrays.asList(columnName);
+                this.derived = Collections.singletonList(columnName);
             }
 
         }

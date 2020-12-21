@@ -24,15 +24,16 @@
 
 package org.apache.spark.sql.udf
 
-import java.util.Calendar
-
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.MICROS_PER_MILLIS
 import org.apache.spark.sql.catalyst.util.KapDateTimeUtils.MONTHS_PER_QUARTER
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 
+import java.util.{Calendar, Locale, TimeZone}
+
 object TimestampAddImpl {
   private val localCalendar = new ThreadLocal[Calendar] {
-    override def initialValue(): Calendar = Calendar.getInstance()
+    override def initialValue(): Calendar = Calendar.getInstance(TimeZone.getDefault,
+      Locale.getDefault(Locale.Category.FORMAT))
   }
 
   private def calendar: Calendar = localCalendar.get()
@@ -80,7 +81,7 @@ object TimestampAddImpl {
 
 
   private def addTime(unit: String, increment: Int, cal: Calendar): Unit = {
-    unit.toUpperCase match {
+    unit.toUpperCase(Locale.ROOT) match {
       case "FRAC_SECOND" | "SQL_TSI_FRAC_SECOND" =>
         cal.add(Calendar.MILLISECOND, increment)
       case "SECOND" | "SQL_TSI_SECOND" =>

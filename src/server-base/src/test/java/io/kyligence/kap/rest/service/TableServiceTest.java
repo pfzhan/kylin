@@ -55,6 +55,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -591,7 +592,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
 
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
         sdf.setTimeZone(TimeZone.getDefault());
 
         long t2 = sdf.parse("2014/01/01").getTime();
@@ -683,7 +684,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testTogglePartitionKey_NullToOneWithLagBehindModel() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        Assert.assertTrue(df.getStatus().equals(RealizationStatusEnum.ONLINE));
+        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
         dfMgr.updateDataflow(df.getId(), copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND);
         });
@@ -695,7 +696,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNotNull(loadingRange);
         Assert.assertEquals(loadingRange.getColumnName(), "TEST_KYLIN_FACT.CAL_DT");
-        Assert.assertTrue(df.getStatus().equals(RealizationStatusEnum.ONLINE));
+        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
 
     }
 
@@ -714,7 +715,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     private void testSetDataRangeOverlapOrGap() throws ParseException {
 
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
         sdf.setTimeZone(TimeZone.getDefault());
 
         long t1 = sdf.parse("2012/01/01").getTime();
@@ -761,7 +762,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     private void testGetLatestData() throws Exception {
-        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault(Locale.Category.FORMAT));
         sdf.setTimeZone(TimeZone.getDefault());
 
         long t1 = sdf.parse("2012/01/01").getTime();

@@ -57,7 +57,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
     }
 
     public NDataLayout[] mergeMultiPartitionModel(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-                                                  ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
 
@@ -75,14 +75,13 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         NDataSegment localSegment = localDataflow.getSegment(segmentIds.iterator().next());
         val availableLayoutIds = getAvailableLayoutIds(localDataflow, layoutIds);
 
-
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = Lists.newArrayList();
-        if (!JobTypeEnum.SUB_PARTITION_REFRESH.equals(jobType)) {
+        if (JobTypeEnum.SUB_PARTITION_REFRESH != jobType) {
             toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, remoteSegment);
         }
 
-        if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
+        if (JobTypeEnum.INDEX_MERGE == jobType) {
             mergedSegment = remoteSegment;
             final long lastBuildTime = System.currentTimeMillis();
             mergedSegment.getMultiPartitions().forEach(partition -> {
@@ -105,13 +104,12 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             }
         }
 
-
         if (mergedSegment.getStatus() == SegmentStatusEnum.NEW)
             mergedSegment.setStatus(SegmentStatusEnum.READY);
 
         toUpdateSegments.add(mergedSegment);
 
-        if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
+        if (JobTypeEnum.INDEX_MERGE == jobType) {
             Optional<Long> reduce = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize)
                     .filter(size -> size != -1).reduce(Long::sum);
             if (reduce.isPresent()) {
@@ -135,7 +133,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
     }
 
     public NDataLayout[] mergeNormalModel(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-                                          ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         NDataflowManager mgr = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
 
@@ -153,7 +151,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
-        if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
+        if (JobTypeEnum.INDEX_MERGE == jobType) {
             Optional<Long> reduce = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize)
                     .filter(size -> size != -1).reduce(Long::sum);
             if (reduce.isPresent()) {
@@ -180,9 +178,10 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
     @Override
     public NDataLayout[] merge(String dataflowId, Set<String> segmentIds, Set<Long> layoutIds,
-                               ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
+            ResourceStore remoteResourceStore, JobTypeEnum jobType, Set<Long> partitions) {
         if (CollectionUtils.isNotEmpty(partitions)) {
-            return mergeMultiPartitionModel(dataflowId, segmentIds, layoutIds, remoteResourceStore, jobType, partitions);
+            return mergeMultiPartitionModel(dataflowId, segmentIds, layoutIds, remoteResourceStore, jobType,
+                    partitions);
         } else {
             return mergeNormalModel(dataflowId, segmentIds, layoutIds, remoteResourceStore, jobType, partitions);
         }

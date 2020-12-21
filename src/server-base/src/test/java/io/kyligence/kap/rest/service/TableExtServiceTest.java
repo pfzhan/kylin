@@ -110,7 +110,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(),
                 "default");
         LoadTableResponse response = tableExtService.loadTables(tables, "default");
-        Assert.assertTrue(response.getLoaded().size() == 2);
+        Assert.assertEquals(2, response.getLoaded().size());
     }
 
     @Test

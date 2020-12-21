@@ -96,7 +96,7 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
             SqlWithItem sqlWithQuery = (SqlWithItem) call;
             subqueryAlias.add(sqlWithQuery.name);
         }
-        if (includeNestedQueries && call.getKind().equals(SqlKind.UNION)) {
+        if (includeNestedQueries && SqlKind.UNION == call.getKind()) {
             sqlSelectsOrOrderbys.add(call);
         }
 
@@ -143,7 +143,7 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
 
             return null;
         }
-        
+
         @Override
         public SqlNode visit(SqlIdentifier id) {
             for (SqlIdentifier alias : subqueryAlias) {

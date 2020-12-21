@@ -53,6 +53,7 @@ import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -273,7 +274,7 @@ public class UnitOfWork {
         } catch (Exception e) {
             // in theory, this should not happen
             log.error("Unexpected error happened! Aborting right now.", e);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
     }
 

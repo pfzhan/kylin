@@ -42,6 +42,7 @@
 package org.apache.kylin.common.exception;
 
 import java.util.Collection;
+import java.util.Locale;
 
 import org.apache.kylin.common.response.ResponseCode;
 import org.slf4j.Logger;
@@ -106,7 +107,7 @@ public class KylinException extends RuntimeException {
 
     @Override
     public String getLocalizedMessage() {//for front
-        return String.format("%s:%s", errorCode.getLocalizedString(), super.getLocalizedMessage());
+        return String.format(Locale.ROOT, "%s:%s", errorCode.getLocalizedString(), super.getLocalizedMessage());
     }
 
 }

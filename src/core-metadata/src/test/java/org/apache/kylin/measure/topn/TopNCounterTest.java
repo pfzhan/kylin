@@ -44,11 +44,15 @@ package org.apache.kylin.measure.topn;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 
@@ -99,18 +103,16 @@ public class TopNCounterTest {
 
         File tempFile = File.createTempFile("ZipfDistribution", ".txt");
 
-        if (tempFile.exists())
+        if (tempFile.exists()) {
             FileUtils.forceDelete(tempFile);
-        FileWriter fw = new FileWriter(tempFile);
-        try {
+        }
+        try (OutputStream fos = new FileOutputStream(tempFile);
+                Writer fw = new OutputStreamWriter(fos, Charset.defaultCharset().name())) {
             for (int i = 0; i < TOTAL_RECORDS; i++) {
                 keyIndex = zipf.sample() - 1;
                 fw.write(allKeys[keyIndex]);
                 fw.write('\n');
             }
-        } finally {
-            if (fw != null)
-                fw.close();
         }
 
         outputMsg("Create test data takes : " + (System.currentTimeMillis() - startTime) / 1000 + " seconds.");
@@ -147,7 +149,7 @@ public class TopNCounterTest {
         for (int i = 0; i < topResult1.size(); i++) {
             outputMsg("Compare " + i);
 
-            if (isClose(topResult1.get(i).getSecond().doubleValue(), realSequence.get(i).getSecond().doubleValue())) {
+            if (isClose(topResult1.get(i).getSecond(), realSequence.get(i).getSecond())) {
                 //            if (topResult1.get(i).getFirst().equals(realSequence.get(i).getFirst()) && topResult1.get(i).getSecond().doubleValue() == realSequence.get(i).getSecond().doubleValue()) {
                 outputMsg("Passed; key:" + topResult1.get(i).getFirst() + ", value:" + topResult1.get(i).getSecond());
             } else {
@@ -163,11 +165,7 @@ public class TopNCounterTest {
     }
 
     private boolean isClose(double value1, double value2) {
-
-        if (Math.abs(value1 - value2) < 5.0)
-            return true;
-
-        return false;
+        return Math.abs(value1 - value2) < 5.0;
     }
 
     @Test
@@ -233,7 +231,7 @@ public class TopNCounterTest {
      */
     @Test
     public void testComparatorSymmetry() {
-        List<Counter> counters = Lists.newArrayList(new Counter<>("item", 0d), new Counter<>("item", 0d),
+        List<Counter<String>> counters = Lists.newArrayList(new Counter<>("item", 0d), new Counter<>("item", 0d),
                 new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
                 new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 3d),
                 new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
@@ -259,9 +257,7 @@ public class TopNCounterTest {
                 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d,
                 0d, 0d, 0d, 0d, 0d, 0d, 1d, 1d, 1d, 1d, 1d, 1d, 1d, 2d, 2d, 3d, 3d, 4d);
         List<Double> originCounts = Lists.newArrayList();
-        counters.stream().forEach(counter -> {
-            originCounts.add(counter.getCount());
-        });
+        counters.forEach(counter -> originCounts.add(counter.getCount()));
         Assert.assertArrayEquals(expectedCounts.toArray(), originCounts.toArray());
 
         counters.sort(TopNCounter.DESC_COMPARATOR);
@@ -269,22 +265,19 @@ public class TopNCounterTest {
                 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d,
                 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d);
         List<Double> originDescCounts = Lists.newArrayList();
-        counters.stream().forEach(counter -> {
-            originDescCounts.add(counter.getCount());
-        });
+        counters.forEach(counter -> originDescCounts.add(counter.getCount()));
         Assert.assertArrayEquals(expectedDescCounts.toArray(), originDescCounts.toArray());
     }
 
-    private TopNCounterTest.SpaceSavingConsumer[] singleMerge(TopNCounterTest.SpaceSavingConsumer[] consumers)
-            throws IOException, ClassNotFoundException {
+    private TopNCounterTest.SpaceSavingConsumer[] singleMerge(TopNCounterTest.SpaceSavingConsumer[] consumers) {
         List<TopNCounterTest.SpaceSavingConsumer> list = Lists.newArrayList();
         if (consumers.length == 1)
             return consumers;
 
         TopNCounterTest.SpaceSavingConsumer merged = new TopNCounterTest.SpaceSavingConsumer(TOP_K * SPACE_SAVING_ROOM);
 
-        for (int i = 0, n = consumers.length; i < n; i++) {
-            merged.vs.merge(consumers[i].vs);
+        for (SpaceSavingConsumer consumer : consumers) {
+            merged.vs.merge(consumer.vs);
         }
 
         merged.vs.retain(TOP_K * SPACE_SAVING_ROOM); // remove extra elements;
@@ -292,8 +285,7 @@ public class TopNCounterTest {
 
     }
 
-    private TopNCounterTest.SpaceSavingConsumer[] binaryMerge(TopNCounterTest.SpaceSavingConsumer[] consumers)
-            throws IOException, ClassNotFoundException {
+    private TopNCounterTest.SpaceSavingConsumer[] binaryMerge(TopNCounterTest.SpaceSavingConsumer[] consumers) {
         List<TopNCounterTest.SpaceSavingConsumer> list = Lists.newArrayList();
         if (consumers.length == 1)
             return consumers;
@@ -306,25 +298,26 @@ public class TopNCounterTest {
             list.add(consumers[i]);
         }
 
-        return binaryMerge(list.toArray(new TopNCounterTest.SpaceSavingConsumer[list.size()]));
+        return binaryMerge(list.toArray(new SpaceSavingConsumer[0]));
     }
 
     private void feedDataToConsumer(String dataFile, TopNCounterTest.TestDataConsumer consumer, int startLine,
             int endLine) throws IOException {
         long startTime = System.currentTimeMillis();
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(dataFile));
-
-        int lineNum = 0;
-        String line = bufferedReader.readLine();
-        while (line != null) {
-            if (lineNum >= startLine && lineNum < endLine) {
-                consumer.addElement(line, 1.0);
+        try (InputStream inputStream = new FileInputStream(dataFile);
+                BufferedReader bufferedReader = new BufferedReader(
+                        new InputStreamReader(inputStream, Charset.defaultCharset().name()))) {
+            int lineNum = 0;
+            String line = bufferedReader.readLine();
+            while (line != null) {
+                if (lineNum >= startLine && lineNum < endLine) {
+                    consumer.addElement(line, 1.0);
+                }
+                line = bufferedReader.readLine();
+                lineNum++;
             }
-            line = bufferedReader.readLine();
-            lineNum++;
-        }
 
-        bufferedReader.close();
+        }
         outputMsg("feed data to " + consumer.getClass().getCanonicalName() + " take time "
                 + (System.currentTimeMillis() - startTime) / 1000 + "s");
     }
@@ -334,12 +327,12 @@ public class TopNCounterTest {
             System.out.println(msg);
     }
 
-    private static interface TestDataConsumer {
-        public void addElement(String elementKey, double value);
+    private interface TestDataConsumer {
+        void addElement(String elementKey, double value);
 
-        public List<Pair<String, Double>> getTopN(int k);
+        List<Pair<String, Double>> getTopN(int k);
 
-        public long getSpentTime();
+        long getSpentTime();
     }
 
     private class SpaceSavingConsumer implements TopNCounterTest.TestDataConsumer {
@@ -379,7 +372,7 @@ public class TopNCounterTest {
     private class HashMapConsumer implements TopNCounterTest.TestDataConsumer {
 
         private long timeSpent = 0;
-        private Map<String, Double> hashMap;
+        private final Map<String, Double> hashMap;
 
         public HashMapConsumer() {
             hashMap = Maps.newHashMap();
@@ -404,12 +397,7 @@ public class TopNCounterTest {
                 allRecords.add(Pair.newPair(entry.getKey(), entry.getValue()));
             }
 
-            Collections.sort(allRecords, new Comparator<Pair<String, Double>>() {
-                @Override
-                public int compare(Pair<String, Double> o1, Pair<String, Double> o2) {
-                    return o1.getSecond() < o2.getSecond() ? 1 : (o1.getSecond() > o2.getSecond() ? -1 : 0);
-                }
-            });
+            allRecords.sort((o1, o2) -> o2.getSecond().compareTo(o1.getSecond()));
             timeSpent += (System.currentTimeMillis() - startTime);
             return allRecords.subList(0, k);
         }

@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.rest.health;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.util.UUID;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.spark.SparkConf;
@@ -39,8 +41,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.actuate.health.Health;
 
-import java.io.File;
-import java.util.UUID;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class SparkSqlContextHealthIndicatorTest extends NLocalFileMetadataTestCase {
 
@@ -51,7 +52,7 @@ public class SparkSqlContextHealthIndicatorTest extends NLocalFileMetadataTestCa
     public static void beforeClass() {
 
         if (Shell.MAC)
-            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+            overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
@@ -72,9 +73,6 @@ public class SparkSqlContextHealthIndicatorTest extends NLocalFileMetadataTestCa
 
     @AfterClass
     public static void afterClass() {
-        if (Shell.MAC)
-            System.clearProperty("org.xerial.snappy.lib.name");//reset
-
         ss.close();
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
@@ -90,7 +88,7 @@ public class SparkSqlContextHealthIndicatorTest extends NLocalFileMetadataTestCa
     }
 
     @Test
-    public void testHealth() throws Exception {
+    public void testHealth() {
         SparkSqlContextHealthIndicator indicator = Mockito.spy(new SparkSqlContextHealthIndicator());
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());

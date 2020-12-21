@@ -35,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import javax.servlet.http.HttpServletResponse;
@@ -99,8 +100,9 @@ public class NMetaStoreController extends NBasicController {
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
                 byteArrayOutputStream.toByteArray())) {
             byte[] md5 = HashFunction.MD5.checksum(byteArrayInputStream);
-            filename = String.format("%s_model_metadata_%s_%s.zip", project.toLowerCase(),
-                    new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()),
+            filename = String.format(Locale.ROOT, "%s_model_metadata_%s_%s.zip", project.toLowerCase(Locale.ROOT),
+                    new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
+                            .format(new Date()),
                     DatatypeConverter.printHexBinary(md5));
         }
 

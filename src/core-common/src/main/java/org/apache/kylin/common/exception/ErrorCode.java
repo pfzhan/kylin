@@ -44,6 +44,7 @@ package org.apache.kylin.common.exception;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -102,12 +103,12 @@ public class ErrorCode implements Serializable {
 
     public String getLocalizedString() {
         String description = getMap().getOrDefault(keCode, "unknown");
-        return String.format("%s(%s)", keCode, description);
+        return String.format(Locale.ROOT, "%s(%s)", keCode, description);
     }
 
     public String getString() {
         String description = enMap.getOrDefault(keCode, "unknown");
-        return String.format("%s(%s)", keCode, description);
+        return String.format(Locale.ROOT, "%s(%s)", keCode, description);
     }
 
 }

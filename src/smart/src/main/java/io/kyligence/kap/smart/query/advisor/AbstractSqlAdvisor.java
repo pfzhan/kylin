@@ -69,9 +69,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
         // parse error from calcite
         Matcher m = PTN_SYNTAX_UNEXPECTED_TOKEN.matcher(message);
         if (m.matches()) {
-            return SQLAdvice.build(
-                    String.format(MsgPicker.getMsg().getUNEXPECTED_TOKEN(), m.group(1), m.group(2), m.group(3)),
-                    MsgPicker.getMsg().getBAD_SQL_SUGGEST());
+            return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getUNEXPECTED_TOKEN(), m.group(1),
+                    m.group(2), m.group(3)), MsgPicker.getMsg().getBAD_SQL_SUGGEST());
         }
 
         // syntax error from calcite
@@ -80,7 +79,7 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             return proposeSyntaxError(m.group(1));
         }
 
-        return SQLAdvice.build(String.format(MsgPicker.getMsg().getDEFAULT_REASON(), message),
+        return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_REASON(), message),
                 MsgPicker.getMsg().getDEFAULT_SUGGEST());
     }
 
@@ -91,8 +90,9 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             if (m.group(3) != null) {
                 tblName = m.group(3) + "." + tblName;
             }
-            return SQLAdvice.build(String.format(MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_REASON(), tblName),
-                    String.format(MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_SUGGEST(), tblName));
+            return SQLAdvice.build(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_REASON(), tblName),
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_SUGGEST(), tblName));
         }
 
         m = PTN_SYNTAX_COLUMN_MISSING.matcher(message);
@@ -100,8 +100,9 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             String colName = m.group(1);
             String tblName = m.group(2);
             if (tblName == null) {
-                return SQLAdvice.build(String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), colName),
-                        String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(), colName));
+                return SQLAdvice.build(
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), colName),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(), colName));
             } else {
                 return SQLAdvice.build(
                         String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(),
@@ -111,7 +112,7 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             }
         }
 
-        return SQLAdvice.build(String.format(MsgPicker.getMsg().getBAD_SQL_REASON(), message),
+        return SQLAdvice.build(String.format(Locale.ROOT, MsgPicker.getMsg().getBAD_SQL_REASON(), message),
                 MsgPicker.getMsg().getBAD_SQL_SUGGEST());
     }
 

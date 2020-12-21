@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -82,12 +83,10 @@ public class SQLConverter {
         sqlToRelConverter = createSqlToRelConverter(planner, validator, catalogReader);
     }
 
-    private SqlValidator createValidator(CalciteConnectionConfig connectionConfig,
-            Prepare.CatalogReader catalogReader, SqlOperatorTable sqlOperatorTable) {
-        SqlValidator sqlValidator = new KylinSqlValidator((SqlValidatorImpl) SqlValidatorUtil.newValidator(sqlOperatorTable,
-                        catalogReader,
-                        javaTypeFactory(),
-                        connectionConfig.conformance()));
+    private SqlValidator createValidator(CalciteConnectionConfig connectionConfig, Prepare.CatalogReader catalogReader,
+            SqlOperatorTable sqlOperatorTable) {
+        SqlValidator sqlValidator = new KylinSqlValidator((SqlValidatorImpl) SqlValidatorUtil
+                .newValidator(sqlOperatorTable, catalogReader, javaTypeFactory(), connectionConfig.conformance()));
         sqlValidator.setIdentifierExpansion(true);
         sqlValidator.setDefaultNullCollation(connectionConfig.defaultNullCollation());
         return sqlValidator;
@@ -108,15 +107,14 @@ public class SQLConverter {
                 tables.add(CalciteCatalogReader.operatorTable(GeoFunctions.class.getName()));
                 break;
             default:
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ROOT,
                         "Unknown operator table: '%s'. Check the kylin.query.calcite.extras-props.FUN config please",
                         opTable));
             }
         }
         tables.add(SqlStdOperatorTable.instance()); // make sure the standard optable is added
         SqlOperatorTable composedOperatorTable = ChainedSqlOperatorTable.of(tables.toArray(new SqlOperatorTable[0]));
-        return ChainedSqlOperatorTable.of(
-                composedOperatorTable, // calcite optables
+        return ChainedSqlOperatorTable.of(composedOperatorTable, // calcite optables
                 catalogReader // optable for udf
         );
     }

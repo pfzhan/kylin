@@ -24,6 +24,7 @@
 package org.apache.kylin.sdk.datasource.framework.conv;
 
 import java.sql.SQLException;
+import java.util.Locale;
 
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -368,7 +369,7 @@ public class SqlConverterTest extends NLocalFileMetadataTestCase {
 
             @Override
             public String fixIdentifierCaseSensitive(String orig) {
-                return orig.toUpperCase();
+                return orig.toUpperCase(Locale.ROOT);
             }
 
             @Override
@@ -430,7 +431,7 @@ public class SqlConverterTest extends NLocalFileMetadataTestCase {
 
             @Override
             public String fixIdentifierCaseSensitive(String orig) {
-                return orig.toUpperCase();
+                return orig.toUpperCase(Locale.ROOT);
             }
 
             @Override
@@ -537,7 +538,7 @@ public class SqlConverterTest extends NLocalFileMetadataTestCase {
 
             @Override
             public String fixIdentifierCaseSensitive(String orig) {
-                return orig.toUpperCase();
+                return orig.toUpperCase(Locale.ROOT);
             }
 
             @Override

@@ -34,12 +34,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -129,7 +131,8 @@ public class QueryHistoryService extends BasicService {
         queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).forEach(query -> {
             QueryHistoryInfo queryHistoryInfo = query.getQueryHistoryInfo();
             if ((queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
-                    || queryHistoryInfo.getRealizationMetrics().isEmpty()) && StringUtils.isEmpty(query.getQueryRealizations())) {
+                    || queryHistoryInfo.getRealizationMetrics().isEmpty())
+                    && StringUtils.isEmpty(query.getQueryRealizations())) {
                 queryHistories.add(query);
                 return;
             }
@@ -152,7 +155,7 @@ public class QueryHistoryService extends BasicService {
                         return;
                     }
                     if (brokenModel.isBroken()) {
-                        realization.setModelAlias(String.format("%s broken", brokenModel.getAlias()));
+                        realization.setModelAlias(String.format(Locale.ROOT, "%s broken", brokenModel.getAlias()));
                         realizations.add(realization);
                     }
                 }
@@ -257,7 +260,7 @@ public class QueryHistoryService extends BasicService {
         Object object = null;
         try {
             Field field = statistics.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
+            Unsafe.changeAccessibleObject(field, true);
             object = field.get(statistics);
         } catch (Exception e) {
             logger.error("Error caught when get value from query statistics {}", e.getMessage());
@@ -274,13 +277,14 @@ public class QueryHistoryService extends BasicService {
             if (dimension.equals("month")) {
                 TimeZone timeZone = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone());
                 LocalDate date = singleStatistics.getTime().atZone(timeZone.toZoneId()).toLocalDate();
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM",
+                        Locale.getDefault(Locale.Category.FORMAT));
                 result.put(date.withDayOfMonth(1).format(formatter), getValueByField(singleStatistics, fieldName));
                 return;
             }
             long time = singleStatistics.getTime().toEpochMilli();
             Date date = new Date(time);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
             result.put(sdf.format(date), getValueByField(singleStatistics, fieldName));
         });
 
@@ -288,10 +292,10 @@ public class QueryHistoryService extends BasicService {
     }
 
     public Map<String, String> getQueryHistoryTableMap(List<String> projects) {
-        List<String> filterProjects = getProjectManager().listAllProjects().stream()
-                .filter(projectInstance -> projects == null || projects.stream().map(String::toLowerCase)
-                        .collect(Collectors.toList()).contains(projectInstance.getName().toLowerCase()))
-                .map(ProjectInstance::getName).collect(Collectors.toList());
+        List<String> filterProjects = getProjectManager().listAllProjects().stream().map(ProjectInstance::getName)
+                .filter(s -> projects == null || projects.stream().map(str -> str.toLowerCase(Locale.ROOT))
+                        .collect(Collectors.toList()).contains(s.toLowerCase(Locale.ROOT)))
+                .collect(Collectors.toList());
 
         Map<String, String> result = Maps.newHashMap();
         for (String project : filterProjects) {
@@ -300,7 +304,7 @@ public class QueryHistoryService extends BasicService {
             ProjectInstance projectInstance = getProjectManager().getProject(project);
             if (projectInstance == null)
                 throw new KylinException(PROJECT_NOT_EXIST,
-                        String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
             result.put(project, getQueryHistoryDao().getQueryMetricMeasurement());
         }
 

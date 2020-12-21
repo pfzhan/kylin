@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,6 +48,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.kylin.common.util.DBUtils;
@@ -106,7 +106,7 @@ public class HiveEnumerator implements Enumerator<Object[]> {
             if (hasNext) {
                 List<String> allFields = olapContext.returnTupleInfo.getAllFields();
                 for (int i = 0; i < allFields.size(); i++) {
-                    Object value = rs.getObject(allFields.get(i).toLowerCase());
+                    Object value = rs.getObject(allFields.get(i).toLowerCase(Locale.ROOT));
                     current[i] = value;
                 }
             }

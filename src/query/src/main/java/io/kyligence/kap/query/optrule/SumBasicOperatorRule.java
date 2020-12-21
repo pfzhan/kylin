@@ -24,13 +24,10 @@
 
 package io.kyligence.kap.query.optrule;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.query.exception.SumExprUnSupportException;
-import io.kyligence.kap.query.relnode.ContextUtil;
-import io.kyligence.kap.query.util.SumExpressionUtil;
-import io.kyligence.kap.query.util.SumExpressionUtil.AggExpression;
-import io.kyligence.kap.query.util.SumExpressionUtil.GroupExpression;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -38,10 +35,10 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -56,9 +53,14 @@ import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.query.exception.SumExprUnSupportException;
+import io.kyligence.kap.query.relnode.ContextUtil;
+import io.kyligence.kap.query.util.SumExpressionUtil;
+import io.kyligence.kap.query.util.SumExpressionUtil.AggExpression;
+import io.kyligence.kap.query.util.SumExpressionUtil.GroupExpression;
 
 /**
  * sql: select sum(price*3) from KYLIN_SALES;
@@ -274,7 +276,7 @@ public class SumBasicOperatorRule extends RelOptRule {
             AggExpression aggExpression = aggExpressions.get(aggIndex);
             AggregateCall aggCall = aggExpression.getAggCall();
             String aggName = "AGG$" + aggIndex;
-            SqlAggFunction aggFunction = SqlKind.COUNT.equals(aggCall.getAggregation().getKind())
+            SqlAggFunction aggFunction = SqlKind.COUNT == aggCall.getAggregation().getKind() //
                     ? SqlStdOperatorTable.SUM
                     : aggCall.getAggregation();
             topAggregates.add(AggregateCall.create(aggFunction, false, false,
@@ -315,8 +317,8 @@ public class SumBasicOperatorRule extends RelOptRule {
         if (expr instanceof RexLiteral || expr instanceof RexInputRef)
             return true;
 
-        if (SqlKind.PLUS.equals(expr.getKind()) || SqlKind.MINUS.equals(expr.getKind())
-                || SqlKind.TIMES.equals(expr.getKind()) || KapRuleUtils.isDivide(expr)) {
+        if (SqlKind.PLUS == expr.getKind() || SqlKind.MINUS == expr.getKind() || SqlKind.TIMES == expr.getKind()
+                || KapRuleUtils.isDivide(expr)) {
             if (!(expr instanceof RexCall)) {
                 return false;
             }

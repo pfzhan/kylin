@@ -45,6 +45,7 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 
@@ -70,7 +71,7 @@ public interface UserInsensitiveRequest extends InsensitiveRequest {
                 if (field == null) {
                     return;
                 }
-                field.setAccessible(true);
+                Unsafe.changeAccessibleObject(field, true);
                 String username = (String) field.get(this);
                 if (StringUtils.isEmpty(username)) {
                     return;

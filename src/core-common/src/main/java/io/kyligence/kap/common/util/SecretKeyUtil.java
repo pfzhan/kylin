@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Locale;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -134,7 +135,7 @@ public class SecretKeyUtil {
         try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(kgSecretKeyFile))) {
             byte[] keyBytes = new byte[16];
             if (bis.read(keyBytes) < 1) {
-                throw new RuntimeException(String.format("%s file is empty!", KG_SECRET_KEY_FILE_NAME));
+                throw new RuntimeException(String.format(Locale.ROOT, "%s file is empty!", KG_SECRET_KEY_FILE_NAME));
             }
             return new SecretKeySpec(keyBytes, ENCRYPTION_ALGORITHM_AES);
         }

@@ -23,6 +23,8 @@
  */
 package org.apache.kylin.sdk.datasource.framework.def;
 
+import java.util.Locale;
+
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
 public class FunctionDef {
@@ -45,7 +47,7 @@ public class FunctionDef {
     }
 
     void init() {
-        id = id.toUpperCase();
+        id = id.toUpperCase(Locale.ROOT);
     }
 
     FunctionDef() {

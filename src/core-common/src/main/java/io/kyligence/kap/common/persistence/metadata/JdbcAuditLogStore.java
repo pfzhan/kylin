@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -139,30 +140,31 @@ public class JdbcAuditLogStore implements AuditLogStore {
         val unitId = unitMessages.getUnitId();
         val operator = Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
                 .map(Principal::getName).orElse(null);
-        withTransaction(transactionManager, () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table),
-                unitMessages.getMessages().stream().map(e -> {
-                    if (e instanceof ResourceCreateOrUpdateEvent) {
-                        ResourceCreateOrUpdateEvent createEvent = (ResourceCreateOrUpdateEvent) e;
-                        try {
-                            return new Object[] { createEvent.getResPath(),
-                                    createEvent.getCreatedOrUpdated().getByteSource().read(),
-                                    createEvent.getCreatedOrUpdated().getTimestamp(),
-                                    createEvent.getCreatedOrUpdated().getMvcc(), unitId, operator, instance };
-                        } catch (IOException ignore) {
+        withTransaction(transactionManager,
+                () -> jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table),
+                        unitMessages.getMessages().stream().map(e -> {
+                            if (e instanceof ResourceCreateOrUpdateEvent) {
+                                ResourceCreateOrUpdateEvent createEvent = (ResourceCreateOrUpdateEvent) e;
+                                try {
+                                    return new Object[] { createEvent.getResPath(),
+                                            createEvent.getCreatedOrUpdated().getByteSource().read(),
+                                            createEvent.getCreatedOrUpdated().getTimestamp(),
+                                            createEvent.getCreatedOrUpdated().getMvcc(), unitId, operator, instance };
+                                } catch (IOException ignore) {
+                                    return null;
+                                }
+                            } else if (e instanceof ResourceDeleteEvent) {
+                                ResourceDeleteEvent deleteEvent = (ResourceDeleteEvent) e;
+                                return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null,
+                                        unitId, operator, instance };
+                            }
                             return null;
-                        }
-                    } else if (e instanceof ResourceDeleteEvent) {
-                        ResourceDeleteEvent deleteEvent = (ResourceDeleteEvent) e;
-                        return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null, unitId,
-                                operator, instance };
-                    }
-                    return null;
-                }).filter(Objects::nonNull).collect(Collectors.toList())));
+                        }).filter(Objects::nonNull).collect(Collectors.toList())));
     }
 
     public void batchInsert(List<AuditLog> auditLogs) {
-        withTransaction(transactionManager,
-                () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
+        withTransaction(transactionManager, () -> jdbcTemplate
+                .batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), auditLogs.stream().map(x -> {
                     try {
                         val bs = Objects.isNull(x.getByteSource()) ? null : x.getByteSource().read();
                         return new Object[] { x.getResPath(), bs, x.getTimestamp(), x.getMvcc(), x.getUnitId(),
@@ -175,25 +177,29 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
     public List<AuditLog> fetch(long currentId, long size) {
         log.trace("fetch log from {} < id <= {}", currentId, currentId + size);
-        return jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, currentId, currentId + size),
+        return jdbcTemplate.query(String.format(Locale.ROOT, SELECT_BY_RANGE_SQL, table, currentId, currentId + size),
                 new AuditLogRowMapper());
     }
 
     public List<AuditLog> fetchRange(long fromId, long start, long end, int limit) {
         log.trace("Fetch log from {} meta_ts between {} and {}, fromId: {}.", table, start, end, fromId);
-        return jdbcTemplate.query(String.format(SELECT_TS_RANGE, table, fromId, start, end, limit),
+        return jdbcTemplate.query(String.format(Locale.ROOT, SELECT_TS_RANGE, table, fromId, start, end, limit),
                 new AuditLogRowMapper());
     }
 
     @Override
     public long getMaxId() {
-        return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MAX_ID_SQL, table), Long.class))
+        return Optional
+                .ofNullable(
+                        jdbcTemplate.queryForObject(String.format(Locale.ROOT, SELECT_MAX_ID_SQL, table), Long.class))
                 .orElse(0L);
     }
 
     @Override
     public long getMinId() {
-        return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MIN_ID_SQL, table), Long.class))
+        return Optional
+                .ofNullable(
+                        jdbcTemplate.queryForObject(String.format(Locale.ROOT, SELECT_MIN_ID_SQL, table), Long.class))
                 .orElse(0L);
     }
 
@@ -237,7 +243,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
             val maxSize = config.getMetadataAuditLogMaxSize();
             val deletableMaxId = getMaxId() - maxSize + 1;
             log.info("try to delete audit_logs which id less than {}", deletableMaxId);
-            jdbcTemplate.update(String.format(DELETE_ID_LESSTHAN_SQL, table), deletableMaxId);
+            jdbcTemplate.update(String.format(Locale.ROOT, DELETE_ID_LESSTHAN_SQL, table), deletableMaxId);
             return null;
         });
     }
@@ -295,8 +301,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
         properties.load(is);
         var sql = properties.getProperty("create.auditlog.store.table");
 
-        jdbcTemplate.execute(String.format(sql, table, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
-                AUDIT_LOG_TABLE_MVCC));
+        jdbcTemplate.execute(String.format(Locale.ROOT, sql, table, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT,
+                AUDIT_LOG_TABLE_TS, AUDIT_LOG_TABLE_MVCC));
         log.info("Succeed to create table: {}", table);
     }
 

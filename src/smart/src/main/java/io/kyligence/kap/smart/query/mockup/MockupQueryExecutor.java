@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.query.mockup;
 
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Locale;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -86,7 +87,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             }
 
             String message = e.getMessage() == null
-                    ? String.format("%s, check kylin.log for details", e.getClass().toString())
+                    ? String.format(Locale.ROOT, "%s, check kylin.log for details", e.getClass().toString())
                     : QueryUtil.makeErrorMsgUserFriendly(e);
             if (printException) {
                 logger.debug("Failed to run in MockupQueryExecutor.", e);

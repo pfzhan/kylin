@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,6 +48,8 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -62,8 +65,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.AliasDeduce;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ComputedColumnUtil {
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnUtil.class);
@@ -453,8 +454,8 @@ public class ComputedColumnUtil {
                     : CalciteParser.replaceAliasInExpr(existingCC.getExpression(), aliasMapping.getAliasMapping());
 
             String finalExpr = advisedExpr != null ? advisedExpr : existingCC.getExpression();
-            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED(), newCC.getFullName(),
-                    existingModel.getAlias(), finalExpr);
+            String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED(),
+                    newCC.getFullName(), existingModel.getAlias(), finalExpr);
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg,
                     BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr, existingModel.getAlias(),
                     newCC.getFullName());
@@ -469,11 +470,11 @@ public class ComputedColumnUtil {
             String msg = null;
 
             if (advice != null) {
-                msg = String.format(
+                msg = String.format(Locale.ROOT,
                         "Computed column %s is already defined in model %s, to reuse it you have to define it on alias table: %s",
                         newCC.getColumnName(), existingModel.getAlias(), advice);
             } else {
-                msg = String.format(
+                msg = String.format(Locale.ROOT,
                         "Computed column %s is already defined in model %s, no suggestion could be provided to reuse it",
                         newCC.getColumnName(), existingModel.getAlias());
             }
@@ -491,11 +492,11 @@ public class ComputedColumnUtil {
             String msg = null;
 
             if (advice != null) {
-                msg = String.format(
+                msg = String.format(Locale.ROOT,
                         "Computed column %s's expression is already defined in model %s, to reuse it you have to define it on alias table: %s",
                         newCC.getColumnName(), existingModel.getAlias(), advice);
             } else {
-                msg = String.format(
+                msg = String.format(Locale.ROOT,
                         "Computed column %s's expression is already defined in model %s, no suggestion could be provided to reuse it",
                         newCC.getColumnName(), existingModel.getAlias());
             }
@@ -508,7 +509,7 @@ public class ComputedColumnUtil {
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
             String adviseName = existingCC.getColumnName();
-            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED(),
+            String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED(),
                     existingModel.getAlias(), existingCC.getColumnName());
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
                     BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName, existingModel.getAlias(),
@@ -518,17 +519,18 @@ public class ComputedColumnUtil {
         @Override
         public void handleOnSingleModelSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
-            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL());
-            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg,
-                    BadModelException.CauseType.SELF_CONFLICT, null, null, newCC.getFullName());
+            String msg = MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL();
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg, BadModelException.CauseType.SELF_CONFLICT,
+                    null, null, newCC.getFullName());
         }
 
         @Override
         public void handleOnSingleModelSameExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
-            logger.error(String.format("In model %s, computed columns %s and %s have equivalent expressions.",
-                    existingModel.getAlias(), existingCC.getFullName(), newCC.getFullName()));
-            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL());
+            logger.error(
+                    String.format(Locale.ROOT, "In model %s, computed columns %s and %s have equivalent expressions.",
+                            existingModel.getAlias(), existingCC.getFullName(), newCC.getFullName()));
+            String msg = MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL();
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
                     BadModelException.CauseType.SELF_CONFLICT, null, null, newCC.getFullName());
         }

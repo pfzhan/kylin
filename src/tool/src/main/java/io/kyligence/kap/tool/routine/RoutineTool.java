@@ -37,6 +37,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -184,7 +185,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
     public static void main(String[] args) {
         RoutineTool tool = new RoutineTool();
         tool.execute(args);
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     public void setProjects(String[] projects) {

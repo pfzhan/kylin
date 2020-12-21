@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.transaction;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -99,7 +100,7 @@ public class AuditLogReplayWorker {
             log.info("Wait for catchup to {} failed", targetId, e);
         }
         throw new TimeoutException(
-                String.format("Cannot reach %s before %s, current is %s", targetId, endTime, logOffset));
+                String.format(Locale.ROOT, "Cannot reach %s before %s, current is %s", targetId, endTime, logOffset));
     }
 
     public void close(boolean isGracefully) {

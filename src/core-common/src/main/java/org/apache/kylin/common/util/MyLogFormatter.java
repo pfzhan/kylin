@@ -66,7 +66,7 @@ public class MyLogFormatter extends Formatter {
      * @return a formatted log record
      */
     public synchronized String format(LogRecord record) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         // Minimize memory allocations here.
         Timestamp ts = new Timestamp(record.getMillis());
         String text = ts.toString();

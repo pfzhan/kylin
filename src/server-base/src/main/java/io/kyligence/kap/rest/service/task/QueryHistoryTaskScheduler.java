@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service.task;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -412,9 +413,9 @@ public class QueryHistoryTaskScheduler {
         protected abstract String name();
 
         public void batchHandle(int batchSize, int maxSize, Consumer<List<QueryHistory>> consumer) {
-            if (!(maxSize > 0 && batchSize > 0 && maxSize >= batchSize)) {
-                throw new IllegalArgumentException(
-                        String.format("%s task, batch size: %d , maxsize: %d is illegal", name(), batchSize, maxSize));
+            if (!(batchSize > 0 && maxSize >= batchSize)) {
+                throw new IllegalArgumentException(String.format(Locale.ROOT,
+                        "%s task, batch size: %d , maxsize: %d is illegal", name(), batchSize, maxSize));
             }
             if (!KylinConfig.getInstanceFromEnv().isUTEnv()
                     && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {

@@ -24,13 +24,16 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import java.util.Locale;
+import java.util.Set;
+
+import org.apache.kylin.metadata.datatype.DataType;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.common.obf.IKeep;
-import org.apache.kylin.metadata.datatype.DataType;
 
-import java.util.Set;
+import io.kyligence.kap.common.obf.IKeep;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
         getterVisibility = JsonAutoDetect.Visibility.NONE, //
@@ -46,8 +49,8 @@ public class SensitiveDataMask implements IKeep {
     public static boolean isValidDataType(String dataType) {
         int parenthesesIdx = dataType.indexOf('(');
         return VALID_DATA_TYPES
-                .contains(parenthesesIdx > -1 ? dataType.substring(0, parenthesesIdx).trim().toLowerCase()
-                        : dataType.trim().toLowerCase());
+                .contains(parenthesesIdx > -1 ? dataType.substring(0, parenthesesIdx).trim().toLowerCase(Locale.ROOT)
+                        : dataType.trim().toLowerCase(Locale.ROOT));
     }
 
     public enum MaskType implements IKeep {

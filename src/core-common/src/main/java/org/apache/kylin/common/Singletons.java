@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 public class Singletons implements Serializable {
@@ -53,7 +54,7 @@ public class Singletons implements Serializable {
     static <T> Creator<T> defaultCreator(String project) {
         return clz -> {
             Constructor<T> method = clz.getDeclaredConstructor(String.class);
-            method.setAccessible(true);
+            Unsafe.changeAccessibleObject(method, true);
             return method.newInstance(project);
         };
     }
@@ -61,7 +62,7 @@ public class Singletons implements Serializable {
     static <T> Creator<T> defaultCreator() {
         return clz -> {
             Constructor<T> method = clz.getDeclaredConstructor();
-            method.setAccessible(true);
+            Unsafe.changeAccessibleObject(method, true);
             return method.newInstance();
         };
     }

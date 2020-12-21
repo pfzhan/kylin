@@ -23,15 +23,17 @@
  */
 package io.kyligence.kap.tool.daemon.handler;
 
-import io.kyligence.kap.tool.daemon.CheckResult;
-import io.kyligence.kap.tool.daemon.HandleResult;
-import io.kyligence.kap.tool.daemon.HandleStateEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.tool.daemon.CheckResult;
+import io.kyligence.kap.tool.daemon.HandleResult;
+import io.kyligence.kap.tool.daemon.HandleStateEnum;
 
 public class SuicideStateHandler extends AbstractCheckStateHandler {
     private static final Logger logger = LoggerFactory.getLogger(SuicideStateHandler.class);
@@ -53,7 +55,7 @@ public class SuicideStateHandler extends AbstractCheckStateHandler {
             logger.error("Failed to delete the file: {}", pidFile);
         }
 
-        System.exit(0);
+        Unsafe.systemExit(0);
         return new HandleResult(HandleStateEnum.STOP_CHECK);
     }
 }

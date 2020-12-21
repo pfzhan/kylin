@@ -31,6 +31,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.servlet.Filter;
@@ -73,6 +74,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
@@ -170,7 +172,8 @@ public class QueryNodeFilter implements Filter {
                 // no leaders
                 if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                     Message msg = MsgPicker.getMsg();
-                    servletRequest.setAttribute(ERROR, new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
+                    servletRequest.setAttribute(ERROR,
+                            new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }
@@ -180,7 +183,7 @@ public class QueryNodeFilter implements Filter {
                 String project = projectInfo.getFirst();
                 if (!checkProjectExist(project)) {
                     servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
-                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
                     servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                     return;
                 }
@@ -227,7 +230,7 @@ public class QueryNodeFilter implements Filter {
             } catch (IllegalStateException | ResourceAccessException e) {
                 responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
                 Message msg = MsgPicker.getMsg();
-                ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
+                ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
                         new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER()));
                 responseBody = JsonUtil.writeValueAsBytes(errorResponse);
                 responseHeaders = new HttpHeaders();
@@ -313,8 +316,9 @@ public class QueryNodeFilter implements Filter {
         return true;
     }
 
-    public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {
-        ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
+    public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
+            throws IOException {
+        ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
                 new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getCONNECT_DATABASE_ERROR(), false));
         byte[] responseBody = JsonUtil.writeValueAsBytes(errorResponse);
         HttpHeaders responseHeaders = new HttpHeaders();

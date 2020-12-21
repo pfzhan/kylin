@@ -44,7 +44,9 @@ package org.apache.kylin.rest.security;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
@@ -124,11 +126,11 @@ public class KylinAclPermissionEvaluator extends AclPermissionEvaluator {
             try {
                 p = permissionFactory.buildFromName(permString);
             } catch (IllegalArgumentException notfound) {
-                p = permissionFactory.buildFromName(permString.toUpperCase());
+                p = permissionFactory.buildFromName(permString.toUpperCase(Locale.ROOT));
             }
 
             if (Objects.nonNull(p)) {
-                return Arrays.asList(p);
+                return Collections.singletonList(p);
             }
 
         }

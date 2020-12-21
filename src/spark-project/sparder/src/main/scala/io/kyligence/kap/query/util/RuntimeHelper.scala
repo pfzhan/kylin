@@ -72,7 +72,7 @@ object RuntimeHelper {
         val deriveNames = derivedUtil.derivedColumnNameMapping.get(hostToDerived)
         val columns = mutable.ListBuffer.empty[(Int, Column)]
         val derivedTableName = hostToDerived.aliasTableName
-        if (hostToDerived.deriveType.equals(DeriveType.PK_FK)) {
+        if (DeriveType.PK_FK == hostToDerived.deriveType) {
           // composite keys are split, so only copy [0] is enough,
           // see CubeDesc.initDimensionColumns()
           require(hostToDerived.calciteIdx.length == 1)

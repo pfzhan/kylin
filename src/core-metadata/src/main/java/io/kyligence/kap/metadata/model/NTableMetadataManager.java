@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -127,7 +128,7 @@ public class NTableMetadataManager {
     }
 
     public Set<String> listDatabases() {
-        return listAllTables().stream().map(TableDesc::getDatabase).map(String::toUpperCase)
+        return listAllTables().stream().map(TableDesc::getDatabase).map(name -> name.toUpperCase(Locale.ROOT))
                 .collect(Collectors.toSet());
     }
 
@@ -177,9 +178,9 @@ public class NTableMetadataManager {
      */
     private String getTableIdentity(String tableName) {
         if (!tableName.contains("."))
-            return "DEFAULT." + tableName.toUpperCase();
+            return "DEFAULT." + tableName.toUpperCase(Locale.ROOT);
         else
-            return tableName.toUpperCase();
+            return tableName.toUpperCase(Locale.ROOT);
     }
 
     public void saveSourceTable(TableDesc srcTable) {

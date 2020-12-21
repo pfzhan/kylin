@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.udf;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,9 +55,9 @@ public class MassInUDF implements IKeep {
                 set = manager.load(Functions.FilterTableType.HDFS,
                         MassinFilterManager.getResourceIdentifier(kapConfig, filterTable));
             } catch (IOException e) {
-                logger.error("{}", e);
+                logger.error("", e);
             }
         }
-        return set == null ? false : set.contains(new ByteArray(col.toString().getBytes()));
+        return set != null && set.contains(new ByteArray(col.toString().getBytes(Charset.defaultCharset())));
     }
 }

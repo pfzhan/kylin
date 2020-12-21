@@ -54,6 +54,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.kyligence.kap.common.util.Unsafe;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.Dictionary;
@@ -159,14 +160,15 @@ public class TopNMeasureTypeTest {
         TblColRef col2 = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 2, "TOTAL_PRICE", "double");
 
         FunctionDesc functionDesc = FunctionDesc.newInstance(TopNMeasureType.FUNC_TOP_N, //
-                Lists.newArrayList(ParameterDesc.newInstance(col1), ParameterDesc.newInstance(col2)), returnDataType.toString());
+                Lists.newArrayList(ParameterDesc.newInstance(col1), ParameterDesc.newInstance(col2)),
+                returnDataType.toString());
 
         return functionDesc;
     }
 
     private void initField(Object obj, String fieldName, Object value) throws Exception {
         Field field = obj.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
+        Unsafe.changeAccessibleObject(field, true);
         field.set(obj, value);
     }
 

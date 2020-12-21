@@ -45,6 +45,7 @@
     <properties>
         <!-- General Properties -->
         <javaVersion>1.8</javaVersion>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <maven-model.version>3.3.9</maven-model.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -127,6 +128,7 @@
         <t-digest.version>3.1</t-digest.version>
         <jsonpath.version>2.3.0</jsonpath.version>
         <lombok.version>1.18.2</lombok.version>
+        <forbiddenapis.version>3.1</forbiddenapis.version>
         <!--metric-->
         <dropwizard.version>3.1.2</dropwizard.version>
         <!-- REST Service, ref https://github.com/spring-projects/spring-boot/blob/v1.3.8.RELEASE/spring-boot-dependencies/pom.xml -->
@@ -1454,6 +1456,11 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>de.thetaphi</groupId>
+                    <artifactId>forbiddenapis</artifactId>
+                    <version>${forbiddenapis.version}</version>
+                </plugin>
+                <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
                     <version>3.2.2</version>
@@ -1729,6 +1736,74 @@
         </pluginManagement>
 
         <plugins>
+            <plugin>
+                <groupId>de.thetaphi</groupId>
+                <artifactId>forbiddenapis</artifactId>
+                <version>${forbiddenapis.version}</version>
+                <configuration>
+                    <!--
+                      if the used Java version is too new, don't fail, just do nothing:
+                    -->
+                    <failOnUnsupportedJava>false</failOnUnsupportedJava>
+                    <bundledSignatures>
+
+                        <!--
+                          This will automatically choose the right
+                          signatures based on 'maven.compiler.target':
+                        -->
+                        <bundledSignature>jdk-unsafe</bundledSignature>
+                        <bundledSignature>jdk-deprecated</bundledSignature>
+                        <!-- disallow undocumented classes like sun.misc.Unsafe: -->
+                        <bundledSignature>jdk-non-portable</bundledSignature>
+                        <!-- don't allow unsafe reflective access: -->
+                        <bundledSignature>jdk-reflection</bundledSignature>
+                    </bundledSignatures>
+                    <suppressAnnotations>
+                        <!-- Java <= 8 -->
+                        <suppressAnnotation>javax.processing.Generated</suppressAnnotation>
+                        <!-- Java 9+ via javax.annotation-pi -->
+                        <suppressAnnotation>javax.annotation.processing.Generated</suppressAnnotation>
+                        <!-- immutables.org -->
+                        <suppressAnnotation>org.immutables.value.Generated</suppressAnnotation>
+                        <!-- Project Lombok -->
+                        <suppressAnnotation>api.lombok.Generated</suppressAnnotation>
+                    </suppressAnnotations>
+                    <excludes>
+                        <exclude>**/ParseException.class</exclude>
+                        <exclude>**/SimpleCharStream.class</exclude>
+                        <exclude>**/*TokenManager.class</exclude>
+                        <exclude>**/TokenMgrError.class</exclude>
+                        <exclude>**/org/apache/kylin/common/util/Bytes$LexicographicalComparerHolder$UnsafeComparer.class</exclude>
+                        <exclude>**/org/apache/kylin/common/util/Bytes$LexicographicalComparerHolder$UnsafeComparer$1.class</exclude>
+                        <exclude>**/org/apache/kylin/common/util/Bytes.class</exclude>
+                        <exclude>**/org/apache/kylin/common/util/AbstractTestCase.class</exclude>
+                        <exclude>**/org/apache/kylin/sdk/datasource/framework/FixedCachedRowSetImpl.class</exclude>
+                        <exclude>**/org/apache/kylin/sdk/datasource/adaptor/GreenplumAdaptor.class</exclude>
+                        <exclude>**/org/apache/spark/sql/util/SparderTypeUtil$.class</exclude>
+                        <exclude>**/org/apache/spark/sql/udf/SparderAggFun.class</exclude>
+                        <exclude>**/org/apache/spark/sql/execution/utils/SchemaProcessor$.class</exclude>
+                        <exclude>**/org/apache/spark/util/KylinReflectUtils$.class</exclude>
+                        <exclude>**/io/kyligence/kap/common/util/Unsafe.class</exclude>
+                        <exclude>**/io/kyligence/kap/query/runtime/ExpressionConverter$.class</exclude>
+                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest.class</exclude>
+                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$TimeoutHandler.class</exclude>
+                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$ModelHandler.class</exclude>
+                        <exclude>**/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.class</exclude>
+                    </excludes>
+                    <signaturesFiles>
+                        <signaturesFile>${user.dir}/dev-support/forbidden-signatures.txt</signaturesFile>
+                    </signaturesFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                            <goal>testCheck</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>

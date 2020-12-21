@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Locale;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -47,7 +48,8 @@ import lombok.val;
 
 public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTestBase {
 
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+            Locale.getDefault(Locale.Category.FORMAT));
 
     private void mockTimestamp(LoggingEvent mockEvent, String dateTime) throws IllegalAccessException, ParseException {
         val timestamp = dateFormat.parse(dateTime).getTime();

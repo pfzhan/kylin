@@ -29,7 +29,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
@@ -253,13 +252,10 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
         File tFile = new File(sparkLogDir, "a.txt");
         FileUtils.writeStringToFile(tFile, "111");
-        try (SetAndUnsetSystemProp extractor = new SetAndUnsetSystemProp("kylin.tool.spark-log-extractor",
-                "io.kyligence.kap.tool.MountSparkLogExtractor");
-                SetAndUnsetSystemProp diagTmpDir = new SetAndUnsetSystemProp("kylin.tool.mount-spark-log-dir",
-                        mainDir.getAbsolutePath());
-                SetAndUnsetSystemProp clearTmp = new SetAndUnsetSystemProp("kylin.tool.clean-diag-tmp-file", "true")) {
-            KylinLogTool.extractSparkLog(mainDir, project, jobId);
-        }
+        overwriteSystemProp("kylin.tool.spark-log-extractor", "io.kyligence.kap.tool.MountSparkLogExtractor");
+        overwriteSystemProp("kylin.tool.mount-spark-log-dir", mainDir.getAbsolutePath());
+        overwriteSystemProp("kylin.tool.clean-diag-tmp-file", "true");
+        KylinLogTool.extractSparkLog(mainDir, project, jobId);
         Assert.assertFalse(sparkLogDir.exists());
         Assert.assertTrue(new File(mainDir, "spark_logs/" + jobId + "/a.txt").exists());
     }
@@ -320,25 +316,22 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.forceMkdir(mainDir);
         String[] childDirs = { "2019-08-29/application_1563861406192_0139", "2019-08-30/application_1563861406192_0139",
                 "2019-08-31/application_1563861406192_0144" };
-        try (SetAndUnsetSystemProp extractor = new SetAndUnsetSystemProp("kylin.tool.spark-log-extractor",
-                "io.kyligence.kap.tool.MountSparkLogExtractor");
-                SetAndUnsetSystemProp diagTmpDir = new SetAndUnsetSystemProp("kylin.tool.mount-spark-log-dir",
-                        mainDir.getAbsolutePath());
-                SetAndUnsetSystemProp clearTmp = new SetAndUnsetSystemProp("kylin.tool.clean-diag-tmp-file", "true")) {
-            File sparkLogDir = new File(mainDir, "_sparder_logs");
-            for (String childDir : childDirs) {
-                File sparderLogDir = new File(sparkLogDir, childDir);
-                FileUtils.forceMkdir(sparderLogDir);
+        overwriteSystemProp("kylin.tool.spark-log-extractor", "io.kyligence.kap.tool.MountSparkLogExtractor");
+        overwriteSystemProp("kylin.tool.mount-spark-log-dir", mainDir.getAbsolutePath());
+        overwriteSystemProp("kylin.tool.clean-diag-tmp-file", "true");
+        File sparkLogDir = new File(mainDir, "_sparder_logs");
+        for (String childDir : childDirs) {
+            File sparderLogDir = new File(sparkLogDir, childDir);
+            FileUtils.forceMkdir(sparderLogDir);
 
-                File tFile = new File(sparderLogDir, "executor-1.log");
-                FileUtils.writeStringToFile(tFile, "111");
-            }
-
-            long startTime = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
-            long endTime = DateTime.parse("2019-08-30").withTimeAtStartOfDay().getMillis() + 3600_000L;
-
-            KylinLogTool.extractSparderLog(mainDir, startTime, endTime);
+            File tFile = new File(sparderLogDir, "executor-1.log");
+            FileUtils.writeStringToFile(tFile, "111");
         }
+
+        long startTime = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
+        long endTime = DateTime.parse("2019-08-30").withTimeAtStartOfDay().getMillis() + 3600_000L;
+
+        KylinLogTool.extractSparderLog(mainDir, startTime, endTime);
 
         for (String childDir : childDirs) {
             Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());

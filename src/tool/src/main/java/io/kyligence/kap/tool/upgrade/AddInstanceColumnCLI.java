@@ -23,11 +23,14 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
+import java.util.Locale;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,12 +45,13 @@ public class AddInstanceColumnCLI {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         try (val auditLogStore = new JdbcAuditLogStore(kylinConfig)) {
             String auditLogTable = auditLogStore.getTable();
-            String checkSql = String.format(SHOW_COLUMNS_FROM_SQL, auditLogTable, INSTANCE);
-            String upgradeSql = String.format(ADD_COL_TO_TABLE_SQL, auditLogTable, INSTANCE, "varchar(100)");
+            String checkSql = String.format(Locale.ROOT, SHOW_COLUMNS_FROM_SQL, auditLogTable, INSTANCE);
+            String upgradeSql = String.format(Locale.ROOT, ADD_COL_TO_TABLE_SQL, auditLogTable, INSTANCE,
+                    "varchar(100)");
             checkAndUpgrade(auditLogStore.getJdbcTemplate(), checkSql, upgradeSql);
         }
         log.info("Add instance column finished!");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     public static void checkAndUpgrade(JdbcTemplate jdbcTemplate, String checkSql, String upgradeSql) {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -63,10 +62,7 @@ public class LongIngester extends MeasureIngester<Long> {
             return (param.isConstant() || values[0] != null) ? new Long(1L) : new Long(0L);
         }
 
-        if (values[0] == null || values[0].length() == 0)
-            return new Long(0L);
-        else
-            return Long.valueOf(values[0]);
+        return values[0] == null || values[0].length() == 0 ? 0L : Long.parseLong(values[0]);
     }
 
     @Override

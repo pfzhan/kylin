@@ -46,6 +46,7 @@ import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -183,13 +184,14 @@ public class PushDownUtil {
 
     public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table, String project)
             throws Exception {
-        String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
+        String sql = String.format(Locale.ROOT, "select min(%s), max(%s) from %s", partitionColumn, partitionColumn,
+                table);
         Pair<String, String> result = new Pair<>();
         // pushdown
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
 
         if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
+            throw new BadRequestException(String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         result.setFirst(returnRows.get(0).get(0));
         result.setSecond(returnRows.get(0).get(1));
@@ -234,13 +236,14 @@ public class PushDownUtil {
     }
 
     public static String getFormatIfNotExist(String table, String partitionColumn, String project) throws Exception {
-        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
-                partitionColumn);
+        String sql = String.format(Locale.ROOT, "select %s from %s where %s is not null limit 1", partitionColumn,
+                table, partitionColumn);
 
         // push down
         List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
         if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
-            throw new KylinException(EMPTY_TABLE, String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
+            throw new KylinException(EMPTY_TABLE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         return returnRows.get(0).get(0);
     }

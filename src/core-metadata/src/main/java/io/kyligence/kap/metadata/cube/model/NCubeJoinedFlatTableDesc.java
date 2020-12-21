@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -78,9 +79,9 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     protected String makeTableName() {
         if (segmentRange == null) {
-            return "kylin_intermediate_" + indexPlan.getUuid().toLowerCase();
+            return "kylin_intermediate_" + indexPlan.getUuid().toLowerCase(Locale.ROOT);
         } else {
-            return "kylin_intermediate_" + indexPlan.getUuid().toLowerCase() + "_" + segmentRange.toString();
+            return "kylin_intermediate_" + indexPlan.getUuid().toLowerCase(Locale.ROOT) + "_" + segmentRange.toString();
         }
     }
 

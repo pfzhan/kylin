@@ -55,6 +55,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -111,7 +112,7 @@ public class ModelDataGenerator {
             if (generated.contains(table))
                 continue;
 
-            logger.info(String.format("generating data for %s", table));
+            logger.info(String.format(Locale.ROOT, "generating data for %s", table));
             boolean gen = generateTable(table);
 
             if (gen)

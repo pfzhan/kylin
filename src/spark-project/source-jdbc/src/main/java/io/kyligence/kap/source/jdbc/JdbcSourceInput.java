@@ -24,6 +24,7 @@
 package io.kyligence.kap.source.jdbc;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
@@ -58,7 +59,7 @@ public class JdbcSourceInput implements NSparkCubingEngine.NSparkCubingSource {
         }
         String[] colNames = tblColNames.toArray(new String[0]);
         String colString = Joiner.on(",").join(colNames);
-        String sql = String.format("select %s from %s", colString, table.getIdentity());
+        String sql = String.format(Locale.ROOT, "select %s from %s", colString, table.getIdentity());
         KylinConfig config = table.getConfig();
         ISourceConnector connector = (ISourceConnector) ClassUtil.newInstance(config.getJdbcSourceConnector());
         log.info("Use source connector: {}", connector.getClass().getCanonicalName());

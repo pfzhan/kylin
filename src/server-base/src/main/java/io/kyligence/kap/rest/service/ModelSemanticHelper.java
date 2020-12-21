@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -371,7 +372,7 @@ public class ModelSemanticHelper extends BasicService {
             .stream().filter(m -> !m.isTomb())
             .collect(Collectors.toMap(SimplifiedMeasure::fromMeasure, Function.identity(), (u, v) -> {
                 throw new KylinException(DUPLICATE_MEASURE_EXPRESSION,
-                        String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
             }));
 
     private Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toDimensionMap = allCols -> allCols

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +36,7 @@ public class QueryModelPriorities {
     private static final Pattern MODEL_PRIORITY_PATTERN = Pattern.compile("SELECT\\W+/\\*\\+\\W*([^*/]+)\\*/");
 
     private static String getHint(String sql) {
-        Matcher matcher = MODEL_PRIORITY_PATTERN.matcher(sql.toUpperCase());
+        Matcher matcher = MODEL_PRIORITY_PATTERN.matcher(sql.toUpperCase(Locale.ROOT));
         if (matcher.find()) {
             return matcher.group(1).trim();
         } else {
@@ -44,7 +45,7 @@ public class QueryModelPriorities {
     }
 
     public static String[] getModelPrioritiesFromComment(String sql) {
-        String hint = getHint(sql).toUpperCase();
+        String hint = getHint(sql).toUpperCase(Locale.ROOT);
         if (hint.isEmpty() || hint.indexOf("MODEL_PRIORITY(") != 0) {
             return new String[0];
         }

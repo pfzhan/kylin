@@ -92,7 +92,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     public static void beforeClass() {
         ExecutableUtils.initJobFactory();
         if (Shell.MAC)
-            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+            overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
@@ -107,9 +107,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @AfterClass
     public static void afterClass() {
-        if (Shell.MAC)
-            System.clearProperty("org.xerial.snappy.lib.name");//reset
-
         ss.close();
     }
 

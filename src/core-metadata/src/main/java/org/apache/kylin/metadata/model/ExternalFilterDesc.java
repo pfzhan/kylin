@@ -52,6 +52,8 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Locale;
+
 /**
  * External filter enables user to register dynamic external filters out the scope of cubes.
  * External filters are maintained logically in a filter store (which may or may not share same physical store with cubes),
@@ -116,7 +118,7 @@ public class ExternalFilterDesc extends RootPersistentEntity implements ISourceA
 
     public void init() {
         if (name != null)
-            name = name.toUpperCase();
+            name = name.toUpperCase(Locale.ROOT);
     }
 
     @Override

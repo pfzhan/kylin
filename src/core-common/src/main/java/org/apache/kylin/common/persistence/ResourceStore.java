@@ -53,6 +53,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
@@ -396,7 +397,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
             resPath = "/" + resPath;
 
         Preconditions.checkArgument(!resPath.contains("//"),
-                String.format("input resPath contains consequent slash: %s", resPath));
+                String.format(Locale.ROOT, "input resPath contains consequent slash: %s", resPath));
 
         return resPath;
     }

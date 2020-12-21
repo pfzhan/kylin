@@ -41,6 +41,7 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udaf.SingleValueAgg
 import org.apache.spark.sql.util.SparderTypeUtil
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -143,7 +144,7 @@ object AggregatePlan extends LogEx {
           }
           val separator = s"\\${KylinConfig.getInstanceFromEnv.getIntersectFilterOrSeparator}"
           val upperBound = KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound
-          call.name.toUpperCase match {
+          call.name.toUpperCase(Locale.ROOT) match {
             case FunctionDesc.FUNC_INTERSECT_COUNT => KapFunctions.intersect_count(separator, upperBound, columns.toList: _*).alias(aggName)
             case FunctionDesc.FUNC_INTERSECT_VALUE => KapFunctions.intersect_value(separator, upperBound, columns.toList: _*).alias(aggName)
             case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID => KapFunctions.intersect_bitmap(separator, upperBound, columns.toList: _*).alias(aggName)

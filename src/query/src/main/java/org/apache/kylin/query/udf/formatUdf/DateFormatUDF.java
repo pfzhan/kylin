@@ -46,34 +46,35 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.Locale;
 
 public class DateFormatUDF {
 
     public String DATE_FORMAT(@Parameter(name = "date") Timestamp date, @Parameter(name = "part") String part) {
         String partOfDate = null;
-        switch (part.toUpperCase()) {
-            case "YEAR":
-                partOfDate = date.toString().substring(0, 4);
-                break;
-            case "MONTH":
-                partOfDate = date.toString().substring(5, 7);
-                break;
-            case "DAY":
-                partOfDate = date.toString().substring(8, 10);
-                break;
-            case "HOUR":
-                partOfDate = date.toString().substring(11, 13);
-                break;
-            case "MINUTE":
-            case "MINUTES":
-                partOfDate = date.toString().substring(14, 16);
-                break;
-            case "SECOND":
-            case "SECONDS":
-                partOfDate = date.toString().substring(17, 19);
-                break;
-            default:
-                //throws
+        switch (part.toUpperCase(Locale.ROOT)) {
+        case "YEAR":
+            partOfDate = date.toString().substring(0, 4);
+            break;
+        case "MONTH":
+            partOfDate = date.toString().substring(5, 7);
+            break;
+        case "DAY":
+            partOfDate = date.toString().substring(8, 10);
+            break;
+        case "HOUR":
+            partOfDate = date.toString().substring(11, 13);
+            break;
+        case "MINUTE":
+        case "MINUTES":
+            partOfDate = date.toString().substring(14, 16);
+            break;
+        case "SECOND":
+        case "SECONDS":
+            partOfDate = date.toString().substring(17, 19);
+            break;
+        default:
+            //throws
         }
         return partOfDate;
     }

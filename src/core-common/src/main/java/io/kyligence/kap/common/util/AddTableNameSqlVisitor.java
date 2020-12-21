@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.util;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,15 +55,15 @@ public class AddTableNameSqlVisitor extends SqlBasicVisitor<Object> {
     public Object visit(SqlIdentifier id) {
         boolean ok = true;
         if (id.names.size() == 1) {
-            String column = id.names.get(0).toUpperCase().trim();
+            String column = id.names.get(0).toUpperCase(Locale.ROOT).trim();
             if (!colToTable.containsKey(column) || ambiguityCol.contains(column)) {
                 ok = false;
             } else {
                 id.names = ImmutableList.of(colToTable.get(column), column);
             }
         } else if (id.names.size() == 2) {
-            String table = id.names.get(0).toUpperCase().trim();
-            String column = id.names.get(1).toUpperCase().trim();
+            String table = id.names.get(0).toUpperCase(Locale.ROOT).trim();
+            String column = id.names.get(1).toUpperCase(Locale.ROOT).trim();
             ok = allColumn.contains(table + "." + column);
         } else {
             ok = false;
@@ -78,11 +79,11 @@ public class AddTableNameSqlVisitor extends SqlBasicVisitor<Object> {
     public Object visit(SqlCall call) {
         if (call instanceof SqlBasicCall) {
             if (call.getOperator() instanceof SqlAsOperator) {
-                throw new IllegalArgumentException(String.format(DEFAULT_REASON, "null"));
+                throw new IllegalArgumentException(String.format(Locale.ROOT, DEFAULT_REASON, "null"));
             }
 
             if (call.getOperator() instanceof SqlAggFunction) {
-                throw new IllegalArgumentException(String.format(DEFAULT_REASON, "null"));
+                throw new IllegalArgumentException(String.format(Locale.ROOT, DEFAULT_REASON, "null"));
             }
         }
         return call.getOperator().acceptCall(this, call);

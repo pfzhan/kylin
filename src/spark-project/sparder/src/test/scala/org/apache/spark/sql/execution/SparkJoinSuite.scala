@@ -44,12 +44,14 @@ import org.apache.spark.sql.test.SharedSQLContext
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, QueryTest, Row, functions}
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.language.existentials
 
 // directly copied from Spark
 class SparkJoinSuite extends QueryTest with SharedSQLContext {
+
   import testImplicits._
 
   setupTestData()
@@ -619,9 +621,11 @@ class SparkJoinSuite extends QueryTest with SharedSQLContext {
       "SELECT * FROM testData full outer join testData2",
       "SELECT * FROM testData, testData2",
       "SELECT * FROM testData, testData2 where testData.key = 1 and testData2.a = 22",
+
       /** The following should fail because after reordering there are cartesian products */
       "select * from (A join B on (A.key = B.key)) join D on (A.key=D.a) join C",
       "select * from ((A join B on (A.key = B.key)) join C) join D on (A.key = D.a)",
+
       /** Cartesian product involving C, which is not involved in a CROSS join */
       "select * from ((A join B on (A.key = B.key)) cross join D) join C on (A.key = D.a)");
 
@@ -639,7 +643,7 @@ class SparkJoinSuite extends QueryTest with SharedSQLContext {
     withSQLConf(SQLConf.CROSS_JOINS_ENABLED.key -> "false") {
       checkAnswer(
         sql("SELECT * FROM testData3 LEFT SEMI JOIN testData2"),
-        Row(1, null) :: Row (2, 2) :: Nil)
+        Row(1, null) :: Row(2, 2) :: Nil)
       checkAnswer(
         sql("SELECT * FROM testData3 LEFT ANTI JOIN testData2"),
         Nil)
@@ -849,11 +853,11 @@ class SparkJoinSuite extends QueryTest with SharedSQLContext {
         case _ =>
       }
       val joinPairs = physicalJoins.zip(executedJoins)
-      val numOfJoins = sqlString.split(" ").count(_.toUpperCase == "JOIN")
+      val numOfJoins = sqlString.split(" ").count(str => str.toUpperCase(Locale.ROOT) == "JOIN")
       assert(joinPairs.size == numOfJoins)
 
       joinPairs.foreach {
-        case(join1, join2) =>
+        case (join1, join2) =>
           val leftKeys = join1.leftKeys
           val rightKeys = join1.rightKeys
           val outputOrderingPhysical = join1.outputOrdering
@@ -906,7 +910,7 @@ class SparkJoinSuite extends QueryTest with SharedSQLContext {
       SQLConf.CONSTRAINT_PROPAGATION_ENABLED.key -> "false",
       SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key -> "-1") {
       val df1 = spark.range(0, 100, 1, 2)
-      val df2 = spark.range(100).select($"id".as("b1"), (- $"id").as("b2"))
+      val df2 = spark.range(100).select($"id".as("b1"), (-$"id").as("b2"))
       val res = df1.join(df2, $"id" === $"b1" && $"id" === $"b2").select($"b1", $"b2", $"id")
       checkAnswer(res, Row(0, 0, 0))
     }

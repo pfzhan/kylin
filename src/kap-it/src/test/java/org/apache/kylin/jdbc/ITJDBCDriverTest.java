@@ -49,7 +49,6 @@ import java.sql.Driver;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
@@ -74,15 +73,14 @@ import com.google.common.collect.Lists;
 public class ITJDBCDriverTest extends SandboxMetadataTestCase {
 
     private static Server server = null;
-    private static SystemPropertiesOverride sysPropsOverride = new SystemPropertiesOverride();
     private static final int PORT = new Random().nextInt(100) + 37070;
     private static final Logger logger = LoggerFactory.getLogger(ITJDBCDriverTest.class);
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         logger.info("random jetty port: " + PORT);
-        sysPropsOverride.override("spring.profiles.active", "testing");
-        sysPropsOverride.override("catalina.home", "."); // resources/log4j.properties ref ${catalina.home}
+        overwriteSystemPropBeforeClass("spring.profiles.active", "testing");
+        overwriteSystemPropBeforeClass("catalina.home", "."); // resources/log4j.properties ref ${catalina.home}
         staticCreateTestMetadata();
         startJetty();
     }
@@ -91,7 +89,6 @@ public class ITJDBCDriverTest extends SandboxMetadataTestCase {
     public static void afterClass() throws Exception {
         stopJetty();
         staticCleanupTestMetadata();
-        sysPropsOverride.restore();
     }
 
     protected static void stopJetty() throws Exception {
@@ -325,25 +322,5 @@ public class ITJDBCDriverTest extends SandboxMetadataTestCase {
         rs.close();
         conn.close();
 
-    }
-
-    private static class SystemPropertiesOverride {
-        HashMap<String, String> backup = new HashMap<String, String>();
-
-        public void override(String key, String value) {
-            backup.put(key, System.getProperty(key));
-            System.setProperty(key, value);
-        }
-
-        public void restore() {
-            for (String key : backup.keySet()) {
-                String value = backup.get(key);
-                if (value == null)
-                    System.clearProperty(key);
-                else
-                    System.setProperty(key, value);
-            }
-            backup.clear();
-        }
     }
 }

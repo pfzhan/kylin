@@ -143,7 +143,7 @@ public class ExecutableParams {
     public Set<Long> getLayoutIds() {
         if (getParam(NBatchConstants.P_LAYOUT_IDS) != null) {
             return Sets.newHashSet(org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_LAYOUT_IDS), ","))
-                    .stream().map(Long::valueOf).collect(Collectors.toSet());
+                    .stream().map(Long::parseLong).collect(Collectors.toSet());
         } else {
             return null;
         }

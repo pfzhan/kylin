@@ -31,7 +31,9 @@ import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_UPDATE_ME
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Properties;
@@ -123,28 +125,30 @@ public class JdbcMetadataStore extends MetadataStore {
             throws Exception {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
-            public Object handle() throws Exception {
+            public Object handle() {
                 checkEpochModified(unitPath, epochId);
-                int affectedRow = 0;
+                int affectedRow;
                 if (bs != null) {
-                    val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
+                    val result = jdbcTemplate.query(
+                            String.format(Locale.ROOT, SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
                             RAW_RESOURCE_ROW_MAPPER);
                     if (CollectionUtils.isEmpty(result)) {
-                        affectedRow = insert(String.format(INSERT_SQL, table), path, bs, ts, mvcc);
+                        affectedRow = insert(String.format(Locale.ROOT, INSERT_SQL, table), path, bs, ts, mvcc);
                     } else {
-                        affectedRow = update(String.format(UPDATE_SQL, table), bs, mvcc, ts, path, mvcc - 1);
+                        affectedRow = update(String.format(Locale.ROOT, UPDATE_SQL, table), bs, mvcc, ts, path,
+                                mvcc - 1);
                     }
                 } else {
-                    val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_SQL, table, path),
+                    val result = jdbcTemplate.query(String.format(Locale.ROOT, SELECT_BY_KEY_SQL, table, path),
                             RAW_RESOURCE_ROW_MAPPER);
                     if (CollectionUtils.isEmpty(result)) {
                         return null;
                     }
-                    affectedRow = jdbcTemplate.update(String.format(DELETE_SQL, table), path);
+                    affectedRow = jdbcTemplate.update(String.format(Locale.ROOT, DELETE_SQL, table), path);
                 }
                 if (affectedRow == 0) {
                     throw new KylinException(FAILED_UPDATE_METADATA,
-                            String.format("Failed to update or insert path: " + path + " ,mvcc:" + mvcc));
+                            String.format(Locale.ROOT, "Failed to update or insert path: %s, mvcc: %s", path, mvcc));
                 }
                 return null;
             }
@@ -152,7 +156,8 @@ public class JdbcMetadataStore extends MetadataStore {
             @Override
             public void onError() {
                 try {
-                    log.warn("write {} {} {} failed", path, mvcc, bs == null ? null : new String(bs.read()));
+                    log.warn("write {} {} {} failed", path, mvcc,
+                            bs == null ? null : new String(bs.read(), Charset.defaultCharset()));
                 } catch (IOException ignore) {
                 }
             }
@@ -175,7 +180,7 @@ public class JdbcMetadataStore extends MetadataStore {
             }
             long epochId = epoch.getEpochId();
             if (oriEpochId != epochId)
-                throw new IllegalStateException(String.format(
+                throw new IllegalStateException(String.format(Locale.ROOT,
                         "EpochId for path %s dose not match, origin epoch id is %s, but epoch id in db is %s.",
                         unitPath, oriEpochId, epochId));
         }
@@ -185,9 +190,9 @@ public class JdbcMetadataStore extends MetadataStore {
     public void move(String srcPath, String destPath) throws Exception {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
-            public Object handle() throws Exception {
-                jdbcTemplate.update(String.format(UPDATE_KEY_SQL, table, destPath), System.currentTimeMillis(),
-                        srcPath);
+            public Object handle() {
+                jdbcTemplate.update(String.format(Locale.ROOT, UPDATE_KEY_SQL, table, destPath),
+                        System.currentTimeMillis(), srcPath);
                 return null;
             }
 
@@ -230,14 +235,14 @@ public class JdbcMetadataStore extends MetadataStore {
     @Override
     public NavigableSet<String> list(String rootPath) {
         val allPaths = withTransaction(transactionManager,
-                () -> jdbcTemplate.queryForList(String.format(SELECT_ALL_KEY_SQL, table), String.class));
+                () -> jdbcTemplate.queryForList(String.format(Locale.ROOT, SELECT_ALL_KEY_SQL, table), String.class));
         return Sets.newTreeSet(allPaths);
     }
 
     @Override
     public RawResource load(String path) throws IOException {
         return withTransaction(transactionManager, () -> jdbcTemplate
-                .queryForObject(String.format(SELECT_BY_KEY_SQL, table, path), RAW_RESOURCE_ROW_MAPPER));
+                .queryForObject(String.format(Locale.ROOT, SELECT_BY_KEY_SQL, table, path), RAW_RESOURCE_ROW_MAPPER));
     }
 
     @Override
@@ -258,7 +263,8 @@ public class JdbcMetadataStore extends MetadataStore {
             log.debug("start restore");
             restoreProject(store, "_global");
             //for lock meta store table
-            jdbcTemplate.queryForObject(String.format("select max(%s) from %s", META_TABLE_KEY, table), String.class);
+            jdbcTemplate.queryForObject(String.format(Locale.ROOT, "select max(%s) from %s", META_TABLE_KEY, table),
+                    String.class);
             val projects = store.listResources("/_global/project");
             Optional.ofNullable(projects).orElse(Sets.newTreeSet()).parallelStream().forEach(projectRes -> {
                 val words = projectRes.split("/");
@@ -267,7 +273,7 @@ public class JdbcMetadataStore extends MetadataStore {
             });
             try {
                 val uuidRaw = jdbcTemplate.queryForObject(
-                        String.format(SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG),
+                        String.format(Locale.ROOT, SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG),
                         RAW_RESOURCE_ROW_MAPPER);
                 store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
                         uuidRaw.getMvcc());
@@ -306,7 +312,8 @@ public class JdbcMetadataStore extends MetadataStore {
         val rowMapper = new RawResourceRowMapper();
         var prevKey = "/" + project + "/";
         val endKey = "/" + project + "/~";
-        val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
+        val resources = jdbcTemplate.query(String.format(Locale.ROOT, SELECT_BY_RANGE_SQL, table, prevKey, endKey),
+                rowMapper);
         for (RawResource resource : resources) {
             store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(),
                     resource.getMvcc());
@@ -328,8 +335,8 @@ public class JdbcMetadataStore extends MetadataStore {
         Properties properties = new Properties();
         properties.load(is);
         var sql = properties.getProperty("create.metadata.store.table");
-        jdbcTemplate
-                .execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
+        jdbcTemplate.execute(String.format(Locale.ROOT, sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS,
+                META_TABLE_MVCC));
         log.info("Succeed to create table: {}", table);
     }
 

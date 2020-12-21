@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -97,7 +98,7 @@ import scala.collection.mutable.WrappedArray;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
-    private static String DF_NAME = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+    private static final String DF_NAME = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
 
     @Before
     public void setup() throws Exception {
@@ -598,13 +599,15 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                         distinctStr.append(",").append(col.getExpressionInSourceDB());
                     }
                     distinctStr = new StringBuilder(distinctStr.toString().replaceFirst(",", " "));
-                    sqlBuilder.append(String.format("%s(%s)", "count", distinctStr.toString())).append(",");
+                    sqlBuilder.append(String.format(Locale.ROOT, "%s(%s)", "count", distinctStr.toString()))
+                            .append(",");
                 } else {
-                    sqlBuilder.append(String.format("%s(%s)", exp, parmeter.getColRef().getExpressionInSourceDB()))
+                    sqlBuilder.append(
+                            String.format(Locale.ROOT, "%s(%s)", exp, parmeter.getColRef().getExpressionInSourceDB()))
                             .append(",");
                 }
             } else {
-                sqlBuilder.append(String.format("%s(%s)", exp, parmeter.getValue())).append(",");
+                sqlBuilder.append(String.format(Locale.ROOT, "%s(%s)", exp, parmeter.getValue())).append(",");
             }
 
         }

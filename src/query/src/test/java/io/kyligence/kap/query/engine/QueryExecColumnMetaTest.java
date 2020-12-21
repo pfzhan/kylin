@@ -26,6 +26,7 @@ package io.kyligence.kap.query.engine;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -72,7 +73,7 @@ public class QueryExecColumnMetaTest extends NLocalFileMetadataTestCase {
                     .getColumnMetaData(sql);
             String actualColNames = columns.stream().map(StructField::getName).collect(Collectors.joining(", "));
 
-            Assert.assertEquals(String.format("ColumnName test failed: sql-%d [%s]", i, sql), expectedColumnNames,
+            Assert.assertEquals(String.format(Locale.ROOT, "ColumnName test failed: sql-%d [%s]", i, sql), expectedColumnNames,
                     actualColNames);
         }
     }

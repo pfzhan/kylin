@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -375,9 +376,9 @@ public class RowFilter extends TransformWithAcl implements IKeep {
         @Override
         public SqlNode visit(SqlIdentifier id) {
             // if table has no alias, will come into this method.Put table name as alias
-            String[] dotSplits = id.toString().toUpperCase().split("\\.");
+            String[] dotSplits = id.toString().toUpperCase(Locale.ROOT).split("\\.");
             String table = dotSplits[dotSplits.length - 1];
-            tablesWithAlias.add(new Table(id.toString().toUpperCase(), table));
+            tablesWithAlias.add(new Table(id.toString().toUpperCase(Locale.ROOT), table));
             return null;
         }
     }

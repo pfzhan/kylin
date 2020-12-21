@@ -23,6 +23,7 @@
  */
 package org.apache.kylin.sdk.datasource.framework.def;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,11 +50,11 @@ public class TypeDef {
     private int defaultScale;
 
     void init() {
-        id = id.toUpperCase();
+        id = id.toUpperCase(Locale.ROOT);
 
         Matcher m = P.matcher(expression);
         if (m.matches()) {
-            name = m.group(1).toUpperCase();
+            name = m.group(1).toUpperCase(Locale.ROOT);
             Integer p = m.group(2) != null ? Ints.tryParse(m.group(2)) : null;
             Integer s = m.group(3) != null ? Ints.tryParse(m.group(3)) : null;
             defaultPrecision = p != null ? p : -1;

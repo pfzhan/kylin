@@ -65,15 +65,15 @@ public class SegmentPartitionResponse {
     }
 
     private void setPartitionStatusToDisplay(PartitionStatusEnum status) {
-        if (status.equals(PartitionStatusEnum.NEW)) {
+        if (PartitionStatusEnum.NEW == status) {
             this.status = PartitionStatusEnumToDisplay.LOADING;
         }
 
-        if (status.equals(PartitionStatusEnum.REFRESH)) {
+        if (PartitionStatusEnum.REFRESH == status) {
             this.status = PartitionStatusEnumToDisplay.REFRESHING;
         }
 
-        if (status.equals(PartitionStatusEnum.READY)) {
+        if (PartitionStatusEnum.READY == status) {
             this.status = PartitionStatusEnumToDisplay.ONLINE;
         }
     }

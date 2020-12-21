@@ -29,6 +29,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -59,7 +60,7 @@ public class ToolUtil {
     }
 
     public static void dumpKylinJStack(File outputFile) throws IOException, ShellException {
-        String jstackDumpCmd = String.format("jstack -l %s", getKylinPid());
+        String jstackDumpCmd = String.format(Locale.ROOT, "jstack -l %s", getKylinPid());
         val result = new CliCommandExecutor().execute(jstackDumpCmd, null);
         FileUtils.writeStringToFile(outputFile, result.getCmd());
     }

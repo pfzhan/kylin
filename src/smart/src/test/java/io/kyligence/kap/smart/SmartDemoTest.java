@@ -28,8 +28,10 @@ import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHo
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Properties;
@@ -97,18 +99,20 @@ public class SmartDemoTest {
                     sqlList.add(FileUtils.readFileToString(file, Charset.defaultCharset()));
                 }
             } else if (sqlFile.isFile()) {
-                BufferedReader br = new BufferedReader(new FileReader(sqlFile));
-                String line;
-                StringBuilder sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    if (line.endsWith(";")) {
-                        sb.append(line);
-                        sb.deleteCharAt(sb.length() - 1);
-                        sqlList.add(sb.toString());
-                        sb = new StringBuilder();
-                    } else {
-                        sb.append(line);
-                        sb.append("\n");
+                try (InputStream os = new FileInputStream(sqlFile);
+                        BufferedReader br = new BufferedReader(new InputStreamReader(os, Charset.defaultCharset()))) {
+                    String line;
+                    StringBuilder sb = new StringBuilder();
+                    while ((line = br.readLine()) != null) {
+                        if (line.endsWith(";")) {
+                            sb.append(line);
+                            sb.deleteCharAt(sb.length() - 1);
+                            sqlList.add(sb.toString());
+                            sb = new StringBuilder();
+                        } else {
+                            sb.append(line);
+                            sb.append("\n");
+                        }
                     }
                 }
             }

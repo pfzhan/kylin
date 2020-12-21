@@ -26,6 +26,7 @@ package io.kyligence.kap.common.logging;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -176,11 +177,11 @@ public class QueryLoggerBufferUtil {
         public void flush(Logger output) throws IOException {
             try {
                 if (throwable != null) {
-                    MethodUtils.invokeMethod(output, level.toLowerCase(), msg, throwable);
+                    MethodUtils.invokeMethod(output, level.toLowerCase(Locale.ROOT), msg, throwable);
                 } else if (arguments != null) {
-                    MethodUtils.invokeMethod(output, level.toLowerCase(), msg, arguments);
+                    MethodUtils.invokeMethod(output, level.toLowerCase(Locale.ROOT), msg, arguments);
                 } else {
-                    MethodUtils.invokeMethod(output, level.toLowerCase(), msg);
+                    MethodUtils.invokeMethod(output, level.toLowerCase(Locale.ROOT), msg);
                 }
             } catch (Exception ex) {
                 throw new IOException(ex);

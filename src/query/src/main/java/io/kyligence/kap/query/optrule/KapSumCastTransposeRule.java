@@ -78,7 +78,8 @@ public class KapSumCastTransposeRule extends RelOptRule {
     }
 
     public static boolean needSumCastTranspose(Project project) {
-        if (project.getInput() instanceof HepRelVertex && ((HepRelVertex) project.getInput()).getCurrentRel() instanceof KapAggregateRel) {
+        if (project.getInput() instanceof HepRelVertex
+                && ((HepRelVertex) project.getInput()).getCurrentRel() instanceof KapAggregateRel) {
             return false;
         }
         List<RexNode> childExps = project.getChildExps();
@@ -122,7 +123,6 @@ public class KapSumCastTransposeRule extends RelOptRule {
         }
     }
 
-
     private RelNode transposeSumCast(RelBuilder relBuilder, Aggregate oldAgg, Project oldProject) {
         // #0 Set base input
         relBuilder.push(oldProject.getInput());
@@ -137,8 +137,8 @@ public class KapSumCastTransposeRule extends RelOptRule {
         // #2 Build bottom aggregate
         ImmutableBitSet bottomAggGroupSet = oldAgg.getGroupSet();
         RelBuilder.GroupKey groupKey = relBuilder.groupKey(bottomAggGroupSet, null);
-        List<AggregateCall> aggCalls = buildBottomAggregate(relBuilder,
-                aggExpressions, bottomAggGroupSet.cardinality());
+        List<AggregateCall> aggCalls = buildBottomAggregate(relBuilder, aggExpressions,
+                bottomAggGroupSet.cardinality());
         relBuilder.aggregate(groupKey, aggCalls);
 
         // #3 Build top project
@@ -164,7 +164,7 @@ public class KapSumCastTransposeRule extends RelOptRule {
                 if (containCast(value)) {
                     bottomProjectList.set(index, ((RexCall) (value)).operands.get(0));
                     RelDataType type = ((RexCall) (value)).operands.get(0).getType();
-                    if (type instanceof BasicSqlType && type.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
+                    if (type instanceof BasicSqlType && SqlTypeName.INTEGER == type.getSqlTypeName()) {
                         type = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.BIGINT),
                                 type.isNullable());
                     }
@@ -175,18 +175,17 @@ public class KapSumCastTransposeRule extends RelOptRule {
         return bottomProjectList;
     }
 
-    private List<AggregateCall> buildBottomAggregate(
-            RelBuilder relBuilder,
-            List<SumExpressionUtil.AggExpression> aggExpressions,
-            int bottomAggOffset) {
+    private List<AggregateCall> buildBottomAggregate(RelBuilder relBuilder,
+            List<SumExpressionUtil.AggExpression> aggExpressions, int bottomAggOffset) {
         List<AggregateCall> bottomAggCalls = Lists.newArrayList();
 
         for (SumExpressionUtil.AggExpression aggExpression : aggExpressions) {
             AggregateCall aggCall = aggExpression.getAggCall();
             if (SumExpressionUtil.isSum(aggCall.getAggregation().kind)) {
                 AggregateCall oldAggCall = aggExpression.getAggCall();
-                bottomAggCalls.add(AggregateCall.create(SqlStdOperatorTable.SUM, false, false, aggExpression.getAggCall().getArgList(), -1, bottomAggOffset,
-                        relBuilder.peek(), aggExpression.getType(), oldAggCall.name));
+                bottomAggCalls.add(AggregateCall.create(SqlStdOperatorTable.SUM, false, false,
+                        aggExpression.getAggCall().getArgList(), -1, bottomAggOffset, relBuilder.peek(),
+                        aggExpression.getType(), oldAggCall.name));
             } else {
                 bottomAggCalls.add(aggExpression.getAggCall());
             }
@@ -196,7 +195,7 @@ public class KapSumCastTransposeRule extends RelOptRule {
     }
 
     private List<RexNode> buildTopProject(RelBuilder relBuilder, Project oldProject, Aggregate oldAgg,
-                                          List<SumExpressionUtil.AggExpression> aggExpressions) {
+            List<SumExpressionUtil.AggExpression> aggExpressions) {
         List<RexNode> topProjectList = Lists.newArrayList();
         RexBuilder rexBuilder = relBuilder.getRexBuilder();
 

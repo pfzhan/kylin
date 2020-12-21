@@ -44,6 +44,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
@@ -51,6 +52,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -164,19 +166,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setJobNames(jobNames);
         jobFilter.setTimeFilter(2);
         List<ExecutableResponse> jobs3 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs3.size() == 1);
+        Assert.assertEquals(1, jobs3.size());
 
         jobFilter.setSubject("");
         jobFilter.setStatuses(Lists.newArrayList("NEW"));
         jobFilter.setTimeFilter(1);
         List<ExecutableResponse> jobs4 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs4.size() == 2);
+        Assert.assertEquals(2, jobs4.size());
 
         jobFilter.setSubject("");
         jobFilter.setStatuses(Lists.newArrayList("NEW", "FINISHED"));
         jobFilter.setTimeFilter(1);
         jobs4 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs4.size() == 3);
+        Assert.assertEquals(3, jobs4.size());
 
         jobFilter.setStatuses(Lists.newArrayList());
         jobFilter.setTimeFilter(3);
@@ -203,7 +205,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setStatuses(Lists.newArrayList());
         jobFilter.setSortBy("");
         List<ExecutableResponse> jobs10 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs10.size() == 3);
+        Assert.assertEquals(3, jobs10.size());
 
         jobFilter.setSortBy("job_status");
         List<ExecutableResponse> jobs11 = jobService.listJobs(jobFilter);
@@ -304,7 +306,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE",
                 Lists.newArrayList());
-        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
+        Assert.assertEquals(manager.getJob(executable.getId()).getStatus(), ExecutableState.PAUSED);
         UnitOfWork.doInTransactionWithRetry(() -> {
             jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME",
                     Lists.newArrayList());
@@ -312,25 +314,24 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         }, "default");
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE",
                 Lists.newArrayList());
-        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
+        Assert.assertEquals(manager.getJob(executable.getId()).getStatus(), ExecutableState.PAUSED);
         UnitOfWork.doInTransactionWithRetry(() -> {
             jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME",
                     Lists.newArrayList("STOPPED"));
             return null;
         }, "default");
-        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
+        Assert.assertEquals(manager.getJob(executable.getId()).getStatus(), ExecutableState.READY);
         UnitOfWork.doInTransactionWithRetry(() -> {
             jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD",
                     Lists.newArrayList());
             return null;
         }, "default");
-        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
-        Assert.assertTrue(
-                dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment() == null);
+        Assert.assertEquals(manager.getJob(executable.getId()).getStatus(), ExecutableState.DISCARDED);
+        Assert.assertNull(dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment());
         Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
         jobService.batchDropJob("default", Lists.newArrayList(executable.getId()), Lists.newArrayList());
         List<AbstractExecutable> executables = manager.getAllExecutables();
-        Assert.assertTrue(!executables.contains(executable));
+        Assert.assertFalse(executables.contains(executable));
     }
 
     @Test
@@ -408,7 +409,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.addTask(new FiveSecondSucceedTestExecutable());
         manager.addJob(executable);
         List<ExecutableStepResponse> result = jobService.getJobDetail("default", executable.getId());
-        Assert.assertTrue(result.size() == 1);
+        Assert.assertEquals(1, result.size());
     }
 
     @Test
@@ -490,7 +491,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, jobStats.getTotalByteSize(), 0);
         Assert.assertEquals(0, jobStats.getTotalDuration(), 0);
 
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         String date = "2018-01-01";
         long startTime = format.parse(date).getTime();
         date = "2018-02-01";
@@ -528,7 +529,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testGetAllJobOutput() throws IOException {
         File file = temporaryFolder.newFile("execute_output.json." + System.currentTimeMillis() + ".log");
         for (int i = 0; i < 200; i++) {
-            Files.write(file.toPath(), String.format("lines: %s\n", i).getBytes(), StandardOpenOption.APPEND);
+            Files.write(file.toPath(), String.format(Locale.ROOT, "lines: %s\n", i).getBytes(Charset.defaultCharset()),
+                    StandardOpenOption.APPEND);
         }
 
         String[] exceptLines = Files.readAllLines(file.toPath()).toArray(new String[0]);

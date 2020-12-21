@@ -312,7 +312,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
                 + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['ABIN', 'Auction'], 'RAWSTRING'))"
                 + "from TEST_KYLIN_FACT";
         List<Integer> acutal = NExecAndComp.queryCube(getProject(), query).collectAsList().get(0).getList(0).stream()
-                .map(row -> Integer.valueOf(row.toString())).collect(Collectors.toList());
+                .map(row -> Integer.parseInt(row.toString())).collect(Collectors.toList());
 
         Dataset<Row> fg = ss.sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'FP-GTC'");
         Dataset<Row> fng = ss

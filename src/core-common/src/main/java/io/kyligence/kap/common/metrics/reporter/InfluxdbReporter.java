@@ -31,6 +31,7 @@ import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -315,7 +316,7 @@ public class InfluxdbReporter extends ScheduledReporter {
         private String handleCollection(final String key, final Collection collection) {
             for (final Object value : collection) {
                 if (!isValidField(value)) {
-                    throw new IllegalArgumentException(String.format(
+                    throw new IllegalArgumentException(String.format(Locale.ROOT,
                             "Measure collection field '%s' must contain only Strings and primitives: invalid field '%s'",
                             key, value));
                 }

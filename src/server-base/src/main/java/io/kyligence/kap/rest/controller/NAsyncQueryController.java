@@ -28,6 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -94,13 +95,13 @@ public class NAsyncQueryController extends NBasicController {
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException, IOException {
         checkProjectName(sqlRequest.getProject());
-        if (!FILE_ENCODING.contains(sqlRequest.getEncode().toLowerCase())) {
+        if (!FILE_ENCODING.contains(sqlRequest.getEncode().toLowerCase(Locale.ROOT))) {
             return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
                     new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED, "Format "
                             + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
                     "");
         }
-        if (!FILE_FORMAT.contains(sqlRequest.getFormat().toLowerCase())) {
+        if (!FILE_FORMAT.contains(sqlRequest.getFormat().toLowerCase(Locale.ROOT))) {
             return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
                     new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED, "Format "
                             + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
@@ -113,8 +114,8 @@ public class NAsyncQueryController extends NBasicController {
         executorService.submit(new Runnable() {
             @Override
             public void run() {
-                String format = sqlRequest.getFormat().toLowerCase();
-                String encode = sqlRequest.getEncode().toLowerCase();
+                String format = sqlRequest.getFormat().toLowerCase(Locale.ROOT);
+                String encode = sqlRequest.getEncode().toLowerCase(Locale.ROOT);
                 SecurityContextHolder.setContext(context);
 
                 SparderEnv.setSeparator(sqlRequest.getSeparator());

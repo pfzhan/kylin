@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
@@ -70,7 +71,7 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         when(request.getParameter("project")).thenReturn("test_project");
         final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
-                "{\"project\": \"test_project\"}".getBytes());
+                "{\"project\": \"test_project\"}".getBytes(StandardCharsets.UTF_8));
 
         when(request.getInputStream()).thenReturn(new ServletInputStream() {
             @Override
@@ -91,7 +92,7 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
             private boolean isFinished;
 
             @Override
-            public int read() throws IOException {
+            public int read() {
                 int b = byteArrayInputStream.read();
                 isFinished = b == -1;
                 return b;

@@ -43,6 +43,7 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -233,8 +234,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         }
 
         // create new folder to contain the output
-        String packageName = packageType.toLowerCase() + "_"
-                + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
+        String packageName = packageType.toLowerCase(Locale.ROOT) + "_"
+                + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
+                        .format(new Date());
         if (!submodule) {
             exportDest = exportDest + packageName + SLASH;
         }
@@ -360,9 +362,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
         basicSb.append("MetaStoreID: ").append(ToolUtil.getMetaStoreId()).append("\n");
         basicSb.append(licSb.toString());
-        basicSb.append("PackageType: ").append(packageType.toUpperCase()).append("\n");
+        basicSb.append("PackageType: ").append(packageType.toUpperCase(Locale.ROOT)).append("\n");
         String hostname = ToolUtil.getHostName();
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z",
+                Locale.getDefault(Locale.Category.FORMAT));
         basicSb.append("PackageTimestamp: ").append(format.format(new Date())).append("\n");
         basicSb.append("Host: ").append(hostname).append("\n");
         FileUtils.writeStringToFile(new File(exportDir, "info"), basicSb.toString());
@@ -395,7 +398,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         }
 
         File destFile = new File(destDir, srcFile.getName());
-        String copyCmd = String.format("cp -r %s %s", srcFile.getAbsolutePath(), destFile.getAbsolutePath());
+        String copyCmd = String.format(Locale.ROOT, "cp -r %s %s", srcFile.getAbsolutePath(),
+                destFile.getAbsolutePath());
         logger.info("The command is: {}", copyCmd);
 
         try {
@@ -442,15 +446,16 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     public boolean getBooleanOption(OptionsHelper optionsHelper, Option option, boolean defaultVal) {
-        return optionsHelper.hasOption(option) ? Boolean.valueOf(optionsHelper.getOptionValue(option)) : defaultVal;
+        return optionsHelper.hasOption(option) ? Boolean.parseBoolean(optionsHelper.getOptionValue(option))
+                : defaultVal;
     }
 
     public int getIntOption(OptionsHelper optionsHelper, Option option, int defaultVal) {
-        return optionsHelper.hasOption(option) ? Integer.valueOf(optionsHelper.getOptionValue(option)) : defaultVal;
+        return optionsHelper.hasOption(option) ? Integer.parseInt(optionsHelper.getOptionValue(option)) : defaultVal;
     }
 
     public long getLongOption(OptionsHelper optionsHelper, Option option, long defaultVal) {
-        return optionsHelper.hasOption(option) ? Long.valueOf(optionsHelper.getOptionValue(option)) : defaultVal;
+        return optionsHelper.hasOption(option) ? Long.parseLong(optionsHelper.getOptionValue(option)) : defaultVal;
     }
 
     public String getStage() {
@@ -665,7 +670,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
                     try {
                         task.get(waitTime, TimeUnit.MILLISECONDS);
                     } catch (Exception e) {
-                        logger.warn(String.format("Task %s call get function.", task), e);
+                        logger.warn(String.format(Locale.ROOT, "Task %s call get function.", task), e);
                     }
                 }
                 if (task.cancel(true)) {

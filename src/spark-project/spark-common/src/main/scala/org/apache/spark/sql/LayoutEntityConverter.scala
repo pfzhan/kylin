@@ -28,6 +28,7 @@ import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogStorageFormat, 
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SparderTypeUtil
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 
 
@@ -130,7 +131,7 @@ object LayoutEntityConverter {
 
 
   def generateFunctionReturnDataType(function: FunctionDesc): DataType = {
-    function.getExpression.toUpperCase match {
+    function.getExpression.toUpperCase(Locale.ROOT) match {
       case "SUM" =>
         val parameter = function.getParameters.get(0)
         if (parameter.isColumnType) {

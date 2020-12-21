@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.model;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -211,7 +212,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             item.setDataType(tblColRef.getDatatype());
             item.setCreateTime(System.currentTimeMillis());
             item.setUniqueContent(uniqueContent);
-            item.setUuid(String.format("dimension_%s", UUID.randomUUID().toString()));
+            item.setUuid(String.format(Locale.ROOT, "dimension_%s", UUID.randomUUID().toString()));
             modelContext.getDimensionRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 
@@ -225,7 +226,8 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 boolean isNewMeasure = false;
                 if (!candidateMeasures.containsKey(agg)) {
                     FunctionDesc fun = copyFunctionDesc(agg);
-                    String name = String.format("%s_%s", fun.getExpression(), String.join("_", paramNames));
+                    String name = String.format(Locale.ROOT, "%s_%s", fun.getExpression(),
+                            String.join("_", paramNames));
                     NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                     if (CubeUtils.isValidMeasure(agg)) {
                         candidateMeasures.put(fun, measure);
@@ -234,7 +236,8 @@ public class QueryScopeProposer extends AbstractModelProposer {
                         dimensionAsMeasureColumns.addAll(fun.getColRefs());
                     }
                 } else if (candidateMeasures.get(agg).isTomb()) {
-                    String name = String.format("%s_%s", agg.getExpression(), String.join("_", paramNames));
+                    String name = String.format(Locale.ROOT, "%s_%s", agg.getExpression(),
+                            String.join("_", paramNames));
                     Measure measure = CubeUtils.newMeasure(agg, name, ++maxMeasureId);
                     candidateMeasures.put(agg, measure);
                     isNewMeasure = true;
@@ -261,7 +264,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             item.setMeasure(measure);
             item.setCreateTime(System.currentTimeMillis());
             item.setUniqueContent(uniqueContent);
-            item.setUuid(String.format("measure_%s", UUID.randomUUID().toString()));
+            item.setUuid(String.format(Locale.ROOT, "measure_%s", UUID.randomUUID().toString()));
             modelContext.getMeasureRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 

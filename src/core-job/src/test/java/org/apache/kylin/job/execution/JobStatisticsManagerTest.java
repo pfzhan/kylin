@@ -24,8 +24,16 @@
 
 package org.apache.kylin.job.execution;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsBasic;
@@ -35,14 +43,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -65,27 +68,28 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
 
         long time = 0;
         String date = "2018-01-02";
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         try {
             time = format.parse(date).getTime();
         } catch (ParseException e) {
             // ignore
         }
-        jobStatisticsManager.updateStatistics(time, "test_model", 1000, 1024*1024, 1);
+        jobStatisticsManager.updateStatistics(time, "test_model", 1000, 1024 * 1024, 1);
         jobStatistics = jobStatisticsManager.getAll();
         Assert.assertEquals(1, jobStatistics.size());
         Assert.assertEquals(time, jobStatistics.get(0).getDate());
         Assert.assertEquals(1, jobStatistics.get(0).getCount());
         Assert.assertEquals(1000, jobStatistics.get(0).getTotalDuration());
-        Assert.assertEquals(1024*1024, jobStatistics.get(0).getTotalByteSize());
+        Assert.assertEquals(1024 * 1024, jobStatistics.get(0).getTotalByteSize());
         Assert.assertEquals(1, jobStatistics.get(0).getJobStatisticsByModels().get("test_model").getCount());
     }
 
-    private List<JobStatistics> getTestJobStats() throws ParseException {
+    private List<JobStatistics> getTestJobStats() {
         List<JobStatistics> jobStatistics = Lists.newArrayList();
 
         ZoneId zoneId = TimeZone.getTimeZone(getTestConfig().getTimeZone()).toZoneId();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd",
+                Locale.getDefault(Locale.Category.FORMAT));
 
         String date = "2017-12-30";
         LocalDate localDate = LocalDate.parse(date, formatter);
@@ -153,12 +157,13 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetJobStats() throws ParseException {
+    public void testGetJobStats() {
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getTestConfig(), PROJECT);
         List<JobStatistics> jobStatisticsForTest = getTestJobStats();
         for (JobStatistics jobStatistics : jobStatisticsForTest) {
             for (Map.Entry<String, JobStatisticsBasic> model : jobStatistics.getJobStatisticsByModels().entrySet()) {
-                jobStatisticsManager.updateStatistics(jobStatistics.getDate(), model.getKey(), jobStatistics.getTotalDuration(), jobStatistics.getTotalByteSize(), 1);
+                jobStatisticsManager.updateStatistics(jobStatistics.getDate(), model.getKey(),
+                        jobStatistics.getTotalDuration(), jobStatistics.getTotalByteSize(), 1);
             }
         }
 
@@ -166,7 +171,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(6, jobStatisticsSaved.size());
 
         ZoneId zoneId = TimeZone.getTimeZone(getTestConfig().getTimeZone()).toZoneId();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd",
+                Locale.getDefault(Locale.Category.FORMAT));
         String date = "2017-12-30";
         LocalDate localDate = LocalDate.parse(date, formatter);
 
@@ -219,7 +225,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, (int) jobCountByModel.get("nmodel_full_measure_test"));
 
         // get job duration per mb by model
-        Map<String, Double> jobDurationPerMbByModel = jobStatisticsManager.getDurationPerByteByModel(startTime, endTime);
+        Map<String, Double> jobDurationPerMbByModel = jobStatisticsManager.getDurationPerByteByModel(startTime,
+                endTime);
         Assert.assertEquals(4, jobDurationPerMbByModel.size());
         Assert.assertEquals(2.2, jobDurationPerMbByModel.get("nmodel_basic"), 0.1);
         Assert.assertEquals(1.2, jobDurationPerMbByModel.get("all_fixed_length"), 0.1);
@@ -230,7 +237,8 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         date = "2018-02-10";
         localDate = LocalDate.parse(date, formatter);
         endTime = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
-        Map<String, Double> jobDurationPerMbByTime = jobStatisticsManager.getDurationPerByteByTime(startTime, endTime, "day");
+        Map<String, Double> jobDurationPerMbByTime = jobStatisticsManager.getDurationPerByteByTime(startTime, endTime,
+                "day");
         Assert.assertEquals(43, jobDurationPerMbByTime.size());
         Assert.assertEquals(2.3, jobDurationPerMbByTime.get("2017-12-30"), 0.1);
         Assert.assertEquals(0, jobDurationPerMbByTime.get("2018-01-01"), 0.1);

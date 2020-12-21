@@ -40,7 +40,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -1297,6 +1296,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val scheduler = NDefaultScheduler.getInstance(project);
         val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val executableManager = Mockito.spy(originExecutableManager);
+        executableManager.deleteAllJob();
         Mockito.doAnswer(invocation -> {
             String jobId = invocation.getArgument(0);
             originExecutableManager.destroyProcess(jobId);
@@ -1511,8 +1511,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(0, context.getStepRecords().get(1).getWaitTime());
     }
 
-    private void assertErrorPending(ExecutableDurationContext context1, ExecutableDurationContext context2,
-            long interval) {
+    private void assertErrorPending(ExecutableDurationContext context1, ExecutableDurationContext context2) {
         assertContextStateEquals(context1, context2);
         Assert.assertEquals(context1.getRecord().getDuration(), context2.getRecord().getDuration());
         Assert.assertEquals(context1.getStepRecords().get(0).getDuration(),
@@ -1603,7 +1602,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             e.printStackTrace();
         }
         val context2 = new ExecutableDurationContext(project, job.getId());
-        assertErrorPending(context1, context2, 1000);
+        assertErrorPending(context1, context2);
         assertMemoryRestore(currMem);
 
         //resume
@@ -1671,7 +1670,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             e.printStackTrace();
         }
         val context2 = new ExecutableDurationContext(project, job.getId());
-        assertErrorPending(context1, context2, 1000);
+        assertErrorPending(context1, context2);
 
         assertMemoryRestore(currMem);
 
@@ -1762,11 +1761,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId(), 200000);
 
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
-        System.clearProperty("kylin.scheduler.schedule-job-timeout-minute");
     }
 
     @Test
-    public void testSubmitParallelTasksSucceed() throws InterruptedException {
+    public void testSubmitParallelTasksSucceed() {
         logger.info("testSubmitParallelTasksSuccessed");
         val currMem = NDefaultScheduler.currentAvailableMem();
         val df = NDataflowManager.getInstance(getTestConfig(), project)
@@ -1833,7 +1831,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testMarkJobError_AfterUpdateJobStateFailed() throws ExecuteException {
+    public void testMarkJobError_AfterUpdateJobStateFailed() {
         changeSchedulerInterval(1);
 
         DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();

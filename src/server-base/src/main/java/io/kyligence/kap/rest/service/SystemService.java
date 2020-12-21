@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -142,10 +143,10 @@ public class SystemService extends BasicService {
         } else {//job
             arguments = new String[] { "-job", jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
         }
-        Future task = executorService.submit(() -> {
+        Future<?> task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
-                String finalCommand = String.format("%s/bin/diag.sh %s", KylinConfig.getKylinHome(),
+                String finalCommand = String.format(Locale.ROOT, "%s/bin/diag.sh %s", KylinConfig.getKylinHome(),
                         StringUtils.join(arguments, " "));
                 commandExecutor.execute(finalCommand, patternedLogger, uuid);
 
@@ -194,12 +195,13 @@ public class SystemService extends BasicService {
         }
         File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
         if (exportFile == null) {
-            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
+            throw new KylinException(DIAG_UUID_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
-            throw new KylinException(FILE_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getDIAG_PACKAGE_NOT_AVAILABLE(), exportFile.getAbsoluteFile()));
+            throw new KylinException(FILE_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getDIAG_PACKAGE_NOT_AVAILABLE(), exportFile.getAbsoluteFile()));
         }
         return zipFilePath;
     }
@@ -233,7 +235,8 @@ public class SystemService extends BasicService {
         }
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         if (Objects.isNull(diagInfo)) {
-            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
+            throw new KylinException(DIAG_UUID_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);
@@ -247,7 +250,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(diagProgressRequest.getDiagId());
         if (Objects.isNull(diagInfo)) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getINVALID_ID(), diagProgressRequest.getDiagId()));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), diagProgressRequest.getDiagId()));
         }
         diagInfo.setStage(diagProgressRequest.getStage());
         diagInfo.setProgress(diagProgressRequest.getProgress());
@@ -258,7 +261,8 @@ public class SystemService extends BasicService {
         logger.debug("Stop diagnostic package task {}", uuid);
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         if (diagInfo == null) {
-            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
+            throw new KylinException(DIAG_UUID_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(uuid));
     }

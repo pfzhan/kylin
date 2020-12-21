@@ -50,6 +50,7 @@ import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.Enumeration;
 
+import io.kyligence.kap.common.util.Unsafe;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -69,9 +70,9 @@ public class ClassUtil {
         try {
             if (file.exists()) {
                 Class<URLClassLoader> urlClass = URLClassLoader.class;
-                Method method = urlClass.getDeclaredMethod("addURL", new Class[] { URL.class });
-                method.setAccessible(true);
-                method.invoke((URLClassLoader) classLoader, new Object[] { file.toURI().toURL() });
+                Method method = urlClass.getDeclaredMethod("addURL", URL.class);
+                Unsafe.changeAccessibleObject(method, true);
+                method.invoke((URLClassLoader) classLoader, file.toURI().toURL());
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

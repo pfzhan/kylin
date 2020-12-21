@@ -23,7 +23,8 @@
  */
 package org.apache.kylin.sdk.datasource.framework.conv;
 
-import com.google.common.collect.Lists;
+import java.util.Locale;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlLiteral;
@@ -37,15 +38,17 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 
+import com.google.common.collect.Lists;
+
 public class ConvSqlWriter extends SqlPrettyWriter {
 
     private static final SqlOrderBy DUMMY_ORDER_BY_NODE = new SqlOrderBy(SqlParserPos.ZERO,
             new DummySqlNode(SqlParserPos.ZERO),
-            new SqlNodeList(Lists.<SqlNode>newArrayList(SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+            new SqlNodeList(Lists.<SqlNode> newArrayList(SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
                     SqlParserPos.ZERO),
             null, null);
 
-    private SqlConverter.IConfigurer configurer;
+    private final SqlConverter.IConfigurer configurer;
     private FrameImpl lastFrame;
 
     ConvSqlWriter(SqlConverter.IConfigurer configurer) {
@@ -66,23 +69,23 @@ public class ConvSqlWriter extends SqlPrettyWriter {
             return;
         }
 
-        switch (configurer.getPagingType().toUpperCase()) {
-            case "ROWNUM":
-                doWriteRowNum(fetch, offset);
-                break;
-            case "FETCH_NEXT":
+        switch (configurer.getPagingType().toUpperCase(Locale.ROOT)) {
+        case "ROWNUM":
+            doWriteRowNum(fetch, offset);
+            break;
+        case "FETCH_NEXT":
+            doWriteFetchNext(fetch, offset);
+            break;
+        case "LIMIT_OFFSET":
+            doWriteLimitOffset(fetch, offset);
+            break;
+        default:
+            if (getDialect().supportsOffsetFetch()) {
                 doWriteFetchNext(fetch, offset);
-                break;
-            case "LIMIT_OFFSET":
+            } else {
                 doWriteLimitOffset(fetch, offset);
-                break;
-            default:
-                if (getDialect().supportsOffsetFetch()) {
-                    doWriteFetchNext(fetch, offset);
-                } else {
-                    doWriteLimitOffset(fetch, offset);
-                }
-                break;
+            }
+            break;
         }
     }
 
@@ -222,7 +225,7 @@ public class ConvSqlWriter extends SqlPrettyWriter {
 
     @Override
     public void writeWithItem(SqlCall call, SqlWithItem.SqlWithItemOperator sqlWithItemOperator, int leftPrec,
-                              int rightPrec) {
+            int rightPrec) {
         final SqlWithItem withItem = (SqlWithItem) call;
         int newLeftPrec = sqlWithItemOperator.getLeftPrec();
         int newRightPrec = sqlWithItemOperator.getRightPrec();

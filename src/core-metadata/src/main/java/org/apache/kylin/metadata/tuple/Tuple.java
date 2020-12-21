@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,11 +45,12 @@ package org.apache.kylin.metadata.tuple;
 import java.math.BigDecimal;
 import java.util.List;
 
-import net.sf.ehcache.pool.sizeof.annotations.IgnoreSizeOf;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.datatype.DoubleMutable;
 import org.apache.kylin.metadata.datatype.LongMutable;
 import org.apache.kylin.metadata.model.TblColRef;
+
+import net.sf.ehcache.pool.sizeof.annotations.IgnoreSizeOf;
 
 /**
  * @author xjiang
@@ -198,46 +198,47 @@ public class Tuple implements ITuple {
     public static long getTs(ITuple row, TblColRef partitionCol) {
         //ts column type differentiate
         if (partitionCol.getDatatype().equals("date")) {
-            return epicDaysToMillis(Integer.valueOf(row.getValue(partitionCol).toString()));
+            return epicDaysToMillis(Integer.parseInt(row.getValue(partitionCol).toString()));
         } else {
-            return Long.valueOf(row.getValue(partitionCol).toString());
+            return Long.parseLong(row.getValue(partitionCol).toString());
         }
     }
 
     private static long epicDaysToMillis(int days) {
-        return 1L * days * (1000 * 3600 * 24);
+        return (long) days * (1000 * 3600 * 24);
     }
 
     public static Object convertOptiqCellValue(String strValue, String dataTypeName) {
         if (strValue == null)
             return null;
 
-        if ((strValue.equals("") || strValue.equals("\\N")) && !dataTypeName.equals("string") && !dataTypeName.startsWith("varchar"))
+        if ((strValue.equals("") || strValue.equals("\\N")) && !dataTypeName.equals("string")
+                && !dataTypeName.startsWith("varchar"))
             return null;
 
         switch (dataTypeName) {
         case "date":
             // convert epoch time
-            return Integer.valueOf(dateToEpicDays(strValue));// Optiq expects Integer instead of Long. by honma
+            return dateToEpicDays(strValue);// Optiq expects Integer instead of Long. by honma
         case "datetime":
         case "timestamp":
-            return Long.valueOf(DateFormat.stringToMillis(strValue));
+            return DateFormat.stringToMillis(strValue);
         case "tinyint":
-            return Byte.valueOf(strValue);
+            return Byte.parseByte(strValue);
         case "smallint":
-            return Short.valueOf(strValue);
+            return Short.parseShort(strValue);
         case "integer":
-            return Integer.valueOf(strValue);
+            return Integer.parseInt(strValue);
         case "bigint":
-            return Long.valueOf(strValue);
+            return Long.parseLong(strValue);
         case "double":
-            return Double.valueOf(strValue);
+            return Double.parseDouble(strValue);
         case "decimal":
             return normalizeDecimal(new BigDecimal(strValue));
         case "float":
-            return Float.valueOf(strValue);
+            return Float.parseFloat(strValue);
         case "boolean":
-            return Boolean.valueOf(strValue) || "1".equals(strValue); // in some extended encodings boolean might be encoded as a number
+            return Boolean.parseBoolean(strValue) || "1".equals(strValue); // in some extended encodings boolean might be encoded as a number
         default:
             return strValue;
         }

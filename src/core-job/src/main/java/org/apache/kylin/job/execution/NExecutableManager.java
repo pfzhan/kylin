@@ -36,6 +36,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -228,8 +230,8 @@ public class NExecutableManager {
     public void checkJobCanBeDeleted(String jobId) {
         AbstractExecutable executable = getJob(jobId);
         ExecutableState status = executable.getStatus();
-        if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED)
-                && !status.equals(ExecutableState.SUICIDAL)) {
+        if (ExecutableState.SUCCEED != status && ExecutableState.DISCARDED != status
+                && ExecutableState.SUICIDAL != status) {
             throw new IllegalStateException(
                     "Cannot drop running job " + executable.getDisplayName() + ", please discard it first.");
         }
@@ -341,8 +343,9 @@ public class NExecutableManager {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> predicate.test(e.getStatus()))
-                .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).collect(Collectors.toList());
+                .filter(e -> predicate.test(e.getStatus())) //
+                .filter(e -> jobType == null || jobType == e.getJobType()) //
+                .collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
@@ -362,10 +365,10 @@ public class NExecutableManager {
                      *  Attention: Refresh/Index build job will include all partitions.
                      */
                     boolean checkAllPartition = CollectionUtils.isEmpty(targetPartitions)
-                            || JobTypeEnum.INDEX_REFRESH.equals(e.getJobType())
-                            || JobTypeEnum.INDEX_REFRESH.equals(jobType)
-                            || JobTypeEnum.INDEX_BUILD.equals(e.getJobType())
-                            || JobTypeEnum.INDEX_BUILD.equals(jobType);
+                            || JobTypeEnum.INDEX_REFRESH == e.getJobType() //
+                            || JobTypeEnum.INDEX_REFRESH == jobType //
+                            || JobTypeEnum.INDEX_BUILD == e.getJobType() //
+                            || JobTypeEnum.INDEX_BUILD == jobType;
                     if (checkAllPartition) {
                         return true;
                     }
@@ -412,7 +415,7 @@ public class NExecutableManager {
         val executables = getAllExecutables();
 
         if (Objects.nonNull(status)) {
-            return executables.stream().filter(t -> t.getStatus().equals(status)).collect(Collectors.toList());
+            return executables.stream().filter(t -> t.getStatus() == status).collect(Collectors.toList());
         } else {
             return executables;
         }
@@ -512,8 +515,8 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isNotProgressing()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String
-                    .format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", job.getStatus(), jobId));
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", job.getStatus(), jobId));
         }
 
         if (job instanceof DefaultChainedExecutable) {
@@ -531,7 +534,7 @@ public class NExecutableManager {
             return;
         }
         if (jobToRestart.getStatus().isFinalState()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobToRestart.getStatus(), jobId));
         }
 
@@ -636,8 +639,8 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isProgressing()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String
-                    .format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", job.getStatus(), jobId));
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", job.getStatus(), jobId));
         }
 
         updateJobOutput(jobId, ExecutableState.PAUSED);
@@ -707,7 +710,7 @@ public class NExecutableManager {
                             "[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer! There is no valid state transfer from: {} to: {}, job id: {}",
                             oldStatus, newStatus, taskOrJobId);
                     throw new KylinException(ILLEGAL_JOB_STATE_TRANSFER,
-                            String.format(MsgPicker.getMsg().getILLEGAL_STATE_TRANSFER(), jobId,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_STATE_TRANSFER(), jobId,
                                     oldStatus.toJobStatus(), newStatus.toJobStatus()));
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
@@ -912,7 +915,7 @@ public class NExecutableManager {
 
             FileStatus fileStatus = fs.getFileStatus(path);
             try (FSDataInputStream din = fs.open(path);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(din, Charset.defaultCharset()))) {
 
                 String line;
                 StringBuilder sampleData = new StringBuilder();
@@ -923,7 +926,7 @@ public class NExecutableManager {
                     sampleData.append(line);
                 }
 
-                int offset = sampleData.toString().getBytes().length + 1;
+                int offset = sampleData.toString().getBytes(Charset.defaultCharset()).length + 1;
                 if (offset < fileStatus.getLen()) {
                     sampleData.append("\n================================================================\n");
                     sampleData.append(tailHdfsFileInputStream(din, offset, fileStatus.getLen(), nLines));

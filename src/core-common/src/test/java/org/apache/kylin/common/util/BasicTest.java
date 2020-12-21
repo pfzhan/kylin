@@ -50,6 +50,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,11 +82,11 @@ public class BasicTest {
     }
 
     private void foo(Long a) {
-        System.out.printf("a");
+        System.out.printf(Locale.ROOT, "a");
     }
 
     private void foo(Integer b) {
-        System.out.printf("b");
+        System.out.printf(Locale.ROOT, "b");
     }
 
     private enum MetricType {
@@ -219,9 +221,9 @@ public class BasicTest {
         long current = System.currentTimeMillis();
         System.out.println(time(current));
 
-        Calendar a = Calendar.getInstance();
-        Calendar b = Calendar.getInstance();
-        Calendar c = Calendar.getInstance();
+        Calendar a = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
+        Calendar b = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
+        Calendar c = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         b.clear();
         c.clear();
 
@@ -261,8 +263,8 @@ public class BasicTest {
     }
 
     private static String time(long t) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        Calendar cal = Calendar.getInstance();
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault(Locale.Category.FORMAT));
+        Calendar cal = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         cal.setTimeInMillis(t);
         return dateFormat.format(cal.getTime());
     }

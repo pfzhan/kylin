@@ -78,7 +78,6 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
     public void after() throws IOException {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
@@ -141,7 +140,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         long startTime = endTime - 604800000L;
 
         var stats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
-        Assert.assertTrue(stats.getFirst() == 0);
+        Assert.assertEquals(0, (int) stats.getFirst());
 
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
@@ -153,7 +152,7 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(ExecutableState.SUCCEED, samplingJob.getStatus());
 
         stats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
-        Assert.assertTrue(stats.getFirst() == 1);
+        Assert.assertEquals(1, (int) stats.getFirst());
 
     }
 

@@ -29,6 +29,7 @@ import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
 import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -131,7 +132,8 @@ public class UpdateModelCLI extends ExecutableApplication implements IKeep {
                 globalUpdateModelList.addAll(updateModelList);
             });
 
-            printlnGreen(String.format("found %d models need to be modified.", globalUpdateModelList.size()));
+            printlnGreen(
+                    String.format(Locale.ROOT, "found %d models need to be modified.", globalUpdateModelList.size()));
             if (optionsHelper.hasOption(OPTION_EXEC)) {
                 globalUpdateModelList.forEach(model -> NDataModelManager.getInstance(kylinConfig, model.getProject())
                         .updateDataModelDesc(model));

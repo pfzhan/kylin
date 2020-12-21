@@ -30,6 +30,7 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.YARN;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -111,7 +112,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         val job = getJobByJobId(jobId);
         if (null == job) {
             logger.error("Can not find the jobId: {}", jobId);
-            throw new RuntimeException(String.format("Can not find the jobId: %s", jobId));
+            throw new RuntimeException(String.format(Locale.ROOT, "Can not find the jobId: %s", jobId));
         }
         String project = job.getProject();
         long startTime = job.getCreateTime();

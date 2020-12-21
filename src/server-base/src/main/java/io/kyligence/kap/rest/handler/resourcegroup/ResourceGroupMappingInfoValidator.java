@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.handler.resourcegroup;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,8 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
             return;
         }
         // check project exist and not empty
-        List<String> resourceGroups = request.getResourceGroupEntities().stream().map(ResourceGroupEntity::getId).collect(Collectors.toList());
+        List<String> resourceGroups = request.getResourceGroupEntities().stream().map(ResourceGroupEntity::getId)
+                .collect(Collectors.toList());
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         List<ResourceGroupMappingInfo> mappingInfo = request.getResourceGroupMappingInfoList();
         for (ResourceGroupMappingInfo info : mappingInfo) {
@@ -62,30 +64,35 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
             }
             ProjectInstance prjInstance = projectManager.getProject(info.getProject());
             if (prjInstance == null) {
-                throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), info.getProject()));
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), info.getProject()));
             }
             if (StringUtils.isBlank(info.getResourceGroupId())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO());
+                throw new KylinException(INVALID_PARAMETER,
+                        MsgPicker.getMsg().getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO());
             }
             if (!resourceGroups.contains(info.getResourceGroupId())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO());
+                throw new KylinException(INVALID_PARAMETER,
+                        MsgPicker.getMsg().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO());
             }
         }
 
         // check the relationship between project and resource group
-        Map<String, List<ResourceGroupMappingInfo>> projectMappingInfo = mappingInfo
-                .stream()
+        Map<String, List<ResourceGroupMappingInfo>> projectMappingInfo = mappingInfo.stream()
                 .collect(Collectors.groupingBy(ResourceGroupMappingInfo::getProject));
         for (Map.Entry<String, List<ResourceGroupMappingInfo>> entry : projectMappingInfo.entrySet()) {
             String project = entry.getKey();
             List<ResourceGroupMappingInfo> projectMapping = entry.getValue();
 
             boolean bindInvalidTotalNum = projectMapping.size() > 2;
-            boolean bindInvalidNumInOneType = projectMapping.stream().filter(info -> info.getRequestType() == RequestTypeEnum.BUILD).count() > 1
-                    || projectMapping.stream().filter(info -> info.getRequestType() == RequestTypeEnum.QUERY).count() > 1;
+            boolean bindInvalidNumInOneType = projectMapping.stream()
+                    .filter(info -> info.getRequestType() == RequestTypeEnum.BUILD).count() > 1
+                    || projectMapping.stream().filter(info -> info.getRequestType() == RequestTypeEnum.QUERY)
+                            .count() > 1;
 
             if (bindInvalidTotalNum || bindInvalidNumInOneType) {
-                throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getPROJECT_BINDING_RESOURCE_GROUP_INVALID(), project));
+                throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getPROJECT_BINDING_RESOURCE_GROUP_INVALID(), project));
             }
         }
     }

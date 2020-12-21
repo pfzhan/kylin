@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.kylin.common.msg.MsgPicker;
 
@@ -45,19 +46,19 @@ public abstract class OpenUserGroupService extends NUserGroupService {
     @Override
     public void addGroup(String name) {
         throw new UnsupportedOperationException(
-                String.format(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "addGroup"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "addGroup"));
     }
 
     @Override
     public void deleteGroup(String name) {
         throw new UnsupportedOperationException(
-                String.format(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteGroup"));
+                String.format(Locale.ROOT, MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "deleteGroup"));
     }
 
     @Override
     public void modifyGroupUsers(String groupName, List<String> users) {
-        throw new UnsupportedOperationException(
-                String.format(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "modifyGroupUsers"));
+        throw new UnsupportedOperationException(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "modifyGroupUsers"));
     }
 
     @Override

@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.query.validator;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -65,11 +66,11 @@ public class SQLValidateResult implements IKeep, Serializable {
         StringBuilder message = new StringBuilder();
         getSqlAdvices().forEach(sqlAdvice -> {
             message.append("\n");
-            message.append(String.format("reason: %s", sqlAdvice.getIncapableReason().replace(",", "，")));
+            message.append(String.format(Locale.ROOT, "reason: %s", sqlAdvice.getIncapableReason().replace(",", "，")));
             message.append(";");
-            message.append(String.format("suggest: %s", sqlAdvice.getSuggestion().replace(",", "，")));
+            message.append(String.format(Locale.ROOT, "suggest: %s", sqlAdvice.getSuggestion().replace(",", "，")));
         });
 
-        return String.format("capable:%s %s", isCapable(), message.toString());
+        return String.format(Locale.ROOT, "capable:%s %s", isCapable(), message.toString());
     }
 }

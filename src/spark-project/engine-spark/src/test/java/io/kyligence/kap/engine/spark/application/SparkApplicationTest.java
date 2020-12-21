@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.application;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,12 +77,12 @@ public class SparkApplicationTest extends NSparkBasicTest {
         // write source file
         FileOutputStream out1 = new FileOutputStream(sourceFile1);
         String minString = "test";
-        out1.write(minString.getBytes());
+        out1.write(minString.getBytes(Charset.defaultCharset()));
         out1.close();
 
         FileOutputStream out2 = new FileOutputStream(sourceFile2);
         String maxString = "test_test";
-        out2.write(maxString.getBytes());
+        out2.write(maxString.getBytes(Charset.defaultCharset()));
         out2.close();
 
         // write resource_path file
@@ -93,7 +94,7 @@ public class SparkApplicationTest extends NSparkBasicTest {
         map2.put("1", Lists.newArrayList(sourceFile2.getAbsolutePath()));
         ResourceDetectUtils.write(new Path(file2.getAbsolutePath()), map2);
 
-        Assert.assertEquals(maxString.getBytes().length + "b",
+        Assert.assertEquals(maxString.getBytes(Charset.defaultCharset()).length + "b",
                 application.chooseContentSize(new Path(tempDir.getAbsolutePath())));
     }
 
@@ -151,7 +152,7 @@ public class SparkApplicationTest extends NSparkBasicTest {
         File empty = new File(tempDir, "empty.json");
         FileOutputStream emptyOut = new FileOutputStream(empty);
         String newLine = System.getProperty("line.separator");
-        emptyOut.write(newLine.getBytes());
+        emptyOut.write(newLine.getBytes(Charset.defaultCharset()));
         emptyOut.close();
         String[] args = { empty.getAbsolutePath() };
 

@@ -583,7 +583,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, queryHistoryList.get(1).getQueryHistoryInfo().isExactlyMatch());
         Assert.assertEquals(3, queryHistoryList.get(1).getQueryHistoryInfo().getScanSegmentNum());
         Assert.assertEquals("PENDING", queryHistoryList.get(1).getQueryHistoryInfo().getState().toString());
-        Assert.assertEquals(true, queryHistoryList.get(1).getQueryHistoryInfo().isExecutionError());
+        Assert.assertTrue(queryHistoryList.get(1).getQueryHistoryInfo().isExecutionError());
     }
 
     @Test
@@ -629,7 +629,6 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryMetrics.setQueryStatus("SUCCEEDED");
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
 
-
         QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                 "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea", Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
         realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
@@ -637,7 +636,8 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         realizationMetrics.setQueryTime(1586405449387L);
         realizationMetrics.setProjectName(project);
 
-        realizationMetrics.setSnapshots(Lists.newArrayList(new String[]{"DEFAULT.TEST_KYLIN_ACCOUNT", "DEFAULT.TEST_COUNTRY"}));
+        realizationMetrics.setSnapshots(
+                Lists.newArrayList(new String[] { "DEFAULT.TEST_KYLIN_ACCOUNT", "DEFAULT.TEST_COUNTRY" }));
 
         List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
         realizationMetricsList.add(realizationMetrics);

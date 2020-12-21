@@ -49,13 +49,11 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -63,9 +61,12 @@ import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
@@ -98,7 +99,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         super(copy);
     }
 
-    public static List<SegmentRange> getSplitedSegRanges(SegmentRange rangeToSplit, List<AutoMergeTimeEnum> autoMergeTimeRanges, VolatileRange volatileRange) {
+    public static List<SegmentRange> getSplitedSegRanges(SegmentRange rangeToSplit,
+            List<AutoMergeTimeEnum> autoMergeTimeRanges, VolatileRange volatileRange) {
         List<SegmentRange> result = Lists.newArrayList();
         if (rangeToSplit == null) {
             return null;
@@ -118,7 +120,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                 break;
             }
             if (splitedRanges.size() > 1) {
-                if (Long.parseLong(rangeToSplit.end.toString()) == getMergeEnd(Long.parseLong(lastRange.start.toString()), sortedTimeRanges.get(i))) {
+                if (Long.parseLong(rangeToSplit.end.toString()) == getMergeEnd(
+                        Long.parseLong(lastRange.start.toString()), sortedTimeRanges.get(i))) {
                     result.addAll(splitedRanges);
                     break;
                 } else {
@@ -130,7 +133,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         Collections.sort(result);
         return result;
     }
-
 
     private static List<SegmentRange> splitSegRange(SegmentRange range, AutoMergeTimeEnum autoMergeTimeRange) {
         List<SegmentRange> result = Lists.newArrayList();
@@ -145,7 +147,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     @VisibleForTesting
-    public static Pair<SegmentRange, List<SegmentRange>> splitVolatileRanges(SegmentRange rangeToSplit, VolatileRange volatileRange) {
+    public static Pair<SegmentRange, List<SegmentRange>> splitVolatileRanges(SegmentRange rangeToSplit,
+            VolatileRange volatileRange) {
         val result = new Pair<SegmentRange, List<SegmentRange>>();
         List<SegmentRange> volatileRanges = Lists.newArrayList();
         if (!volatileRange.isVolatileRangeEnabled() || volatileRange.getVolatileRangeNumber() <= 0) {
@@ -156,7 +159,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             long ms = getMillisecondByType(Long.parseLong(rangeToSplit.getEnd().toString()),
                     volatileRange.getVolatileRangeType(), -1);
 
-            val rangeLength = Long.parseLong(rangeToSplit.getEnd().toString()) - Long.parseLong(rangeToSplit.getStart().toString());
+            val rangeLength = Long.parseLong(rangeToSplit.getEnd().toString())
+                    - Long.parseLong(rangeToSplit.getStart().toString());
             if (rangeLength <= ms) {
                 volatileRanges.add(rangeToSplit);
                 break;
@@ -171,7 +175,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         result.setSecond(volatileRanges);
         return result;
     }
-
 
     public T getFirstSegment() {
         if (this.size() == 0) {
@@ -188,7 +191,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return this.get(this.size() - 1);
         }
     }
-
 
     public long getTSStart() {
         Segments<T> readySegs = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
@@ -246,9 +248,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public Segments<T> getSegments(SegmentStatusEnum... statuslst) {
         Segments<T> result = new Segments<>();
 
-
         for (T segment : this) {
-            for (SegmentStatusEnum status: statuslst) {
+            for (SegmentStatusEnum status : statuslst) {
                 if (segment.getStatus() == status) {
                     result.add(segment);
                     break;
@@ -321,7 +322,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return null;
         }
         Segments<T> readySegs = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        if (retentionRange.isRetentionRangeEnabled() && retentionRange.getRetentionRangeNumber() > 0 && retentionRange.getRetentionRangeType() != null) {
+        if (retentionRange.isRetentionRangeEnabled() && retentionRange.getRetentionRangeNumber() > 0
+                && retentionRange.getRetentionRangeType() != null) {
             removeSegmentsByRetention(readySegs, retentionRange);
         }
         if (volatileRange.isVolatileRangeEnabled()) {
@@ -355,7 +357,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
     private void removeSegmentsByRetention(Segments<T> readySegs, RetentionRange retentionRange) {
 
-        val range = getSegmentRangeToRemove(retentionRange.getRetentionRangeType(), retentionRange.getRetentionRangeNumber());
+        val range = getSegmentRangeToRemove(retentionRange.getRetentionRangeType(),
+                retentionRange.getRetentionRangeNumber());
 
         if (range == null) {
             return;
@@ -366,72 +369,71 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public static long getMergeEnd(long start, AutoMergeTimeEnum autoMergeTimeEnum) {
-        Calendar calendar = Calendar.getInstance();
         TimeZone zone = TimeZone.getDefault();
+        Calendar calendar = Calendar.getInstance(zone, Locale.getDefault());
         calendar.setTimeZone(zone);
         calendar.setTimeInMillis(start);
         int month = calendar.get(Calendar.MONTH);
         String weekFirstDay = KylinConfig.getInstanceFromEnv().getFirstDayOfWeek();
         switch (autoMergeTimeEnum) {
-            case HOUR:
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.add(Calendar.HOUR_OF_DAY, 1);
-                break;
-            case DAY:
-                calendar.add(Calendar.DAY_OF_MONTH, 1);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                break;
-            case WEEK:
+        case HOUR:
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.add(Calendar.HOUR_OF_DAY, 1);
+            break;
+        case DAY:
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case WEEK:
 
-                if (weekFirstDay.equalsIgnoreCase("monday")) {
-                    if (calendar.get(Calendar.DAY_OF_WEEK) != 1) {
-                        calendar.add(Calendar.WEEK_OF_MONTH, 1);
-                    }
-                    calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
-                } else {
+            if (weekFirstDay.equalsIgnoreCase("monday")) {
+                if (calendar.get(Calendar.DAY_OF_WEEK) != 1) {
                     calendar.add(Calendar.WEEK_OF_MONTH, 1);
-                    calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+                }
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+            } else {
+                calendar.add(Calendar.WEEK_OF_MONTH, 1);
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
 
-                }
-                if (calendar.get(Calendar.MONTH) > month) {
-                    calendar.set(Calendar.DAY_OF_MONTH, 1);
-                }
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                break;
-            case MONTH:
+            }
+            if (calendar.get(Calendar.MONTH) > month) {
                 calendar.set(Calendar.DAY_OF_MONTH, 1);
-                calendar.add(Calendar.MONTH, 1);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                break;
-            case QUARTER:
-                calendar.set(Calendar.DAY_OF_MONTH, 1);
-                calendar.set(Calendar.MONTH, month / 3 * 3);
-                calendar.add(Calendar.MONTH, 3);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                break;
-            case YEAR:
-                calendar.set(Calendar.DAY_OF_MONTH, 1);
-                calendar.set(Calendar.MONTH, 0);
-                calendar.add(Calendar.YEAR, 1);
-                calendar.set(Calendar.MINUTE, 0);
-                calendar.set(Calendar.SECOND, 0);
-                calendar.set(Calendar.HOUR_OF_DAY, 0);
-                break;
-            default:
-                break;
+            }
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case MONTH:
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.add(Calendar.MONTH, 1);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case QUARTER:
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.MONTH, month / 3 * 3);
+            calendar.add(Calendar.MONTH, 3);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case YEAR:
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.MONTH, 0);
+            calendar.add(Calendar.YEAR, 1);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        default:
+            break;
         }
         return calendar.getTimeInMillis();
     }
-
 
     private static List<AutoMergeTimeEnum> sortTimeRangesDesc(List<AutoMergeTimeEnum> autoMergeTimeEnums) {
         return autoMergeTimeEnums.stream().sorted(new Comparator<AutoMergeTimeEnum>() {
@@ -451,29 +453,29 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
      */
     @VisibleForTesting
     public static long getMillisecondByType(long latestSegEnd, AutoMergeTimeEnum autoMergeTimeEnum, long offset) {
-        Calendar calendar = Calendar.getInstance();
         TimeZone zone = TimeZone.getDefault();
+        Calendar calendar = Calendar.getInstance(zone, Locale.getDefault());
         calendar.setTimeZone(zone);
         calendar.setTimeInMillis(latestSegEnd);
         int plusNum = (int) offset;
         switch (autoMergeTimeEnum) {
-            case HOUR:
-                calendar.add(Calendar.HOUR_OF_DAY, plusNum);
-                break;
-            case DAY:
-                calendar.add(Calendar.DAY_OF_MONTH, plusNum);
-                break;
-            case WEEK:
-                calendar.add(Calendar.WEEK_OF_MONTH, plusNum);
-                break;
-            case MONTH:
-                calendar.add(Calendar.MONTH, plusNum);
-                break;
-            case YEAR:
-                calendar.add(Calendar.YEAR, plusNum);
-                break;
-            default:
-                break;
+        case HOUR:
+            calendar.add(Calendar.HOUR_OF_DAY, plusNum);
+            break;
+        case DAY:
+            calendar.add(Calendar.DAY_OF_MONTH, plusNum);
+            break;
+        case WEEK:
+            calendar.add(Calendar.WEEK_OF_MONTH, plusNum);
+            break;
+        case MONTH:
+            calendar.add(Calendar.MONTH, plusNum);
+            break;
+        case YEAR:
+            calendar.add(Calendar.YEAR, plusNum);
+            break;
+        default:
+            break;
         }
         return latestSegEnd - calendar.getTimeInMillis() > 0 ? latestSegEnd - calendar.getTimeInMillis() : 0;
     }
@@ -793,7 +795,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
         if (segRange instanceof SegmentRange.TimePartitionedSegmentRange) {
             // using time
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss",
+                    Locale.getDefault(Locale.Category.FORMAT));
             dateFormat.setTimeZone(TimeZone.getDefault());
             return dateFormat.format(segRange.getStart()) + "_" + dateFormat.format(segRange.getEnd());
         } else {
@@ -815,7 +818,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public SegmentStatusEnumToDisplay getSegmentStatusToDisplay(T segment) {
         Segments<T> overlapSegs = getSegmentsByRange(segment.getSegRange());
         overlapSegs.remove(segment);
-        if (segment.getStatus().equals(SegmentStatusEnum.NEW)) {
+        if (SegmentStatusEnum.NEW == segment.getStatus()) {
             if (CollectionUtils.isEmpty(overlapSegs)) {
                 return SegmentStatusEnumToDisplay.LOADING;
             }
@@ -835,7 +838,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return SegmentStatusEnumToDisplay.REFRESHING;
         }
 
-        if (segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+        if (SegmentStatusEnum.WARNING == segment.getStatus()) {
             return SegmentStatusEnumToDisplay.WARNING;
         }
 
@@ -853,7 +856,9 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
         if (CollectionUtils.isEmpty(partitions))
             return false;
-        val loadingPartition = partitions.stream().filter(partition -> partition.getStatus().equals(PartitionStatusEnum.NEW)).findAny().orElse(null);
+        val loadingPartition = partitions.stream() //
+                .filter(partition -> PartitionStatusEnum.NEW == partition.getStatus()) //
+                .findAny().orElse(null);
         return loadingPartition != null;
     }
 
@@ -863,7 +868,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
         if (CollectionUtils.isEmpty(partitions))
             return false;
-        val refreshPartition = partitions.stream().filter(partition -> partition.getStatus().equals(PartitionStatusEnum.REFRESH)).findAny().orElse(null);
+        val refreshPartition = partitions.stream()
+                .filter(partition -> PartitionStatusEnum.REFRESH == partition.getStatus()).findAny().orElse(null);
         return refreshPartition != null;
     }
 
@@ -911,33 +917,30 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public static long getRetentionEnd(long time, AutoMergeTimeEnum autoMergeTimeEnum, long offset) {
-        Calendar calendar = Calendar.getInstance();
-        TimeZone zone = TimeZone.getDefault();
-        calendar.setTimeZone(zone);
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         calendar.setTimeInMillis(time);
         int plusNum = (int) offset;
         switch (autoMergeTimeEnum) {
-            case HOUR:
-                calendar.add(Calendar.HOUR_OF_DAY, plusNum);
-                break;
-            case DAY:
-                calendar.add(Calendar.DAY_OF_MONTH, plusNum);
-                break;
-            case WEEK:
-                calendar.add(Calendar.WEEK_OF_MONTH, plusNum);
-                break;
-            case MONTH:
-                calendar.add(Calendar.MONTH, plusNum);
-                break;
-            case YEAR:
-                calendar.add(Calendar.YEAR, plusNum);
-                break;
-            default:
-                break;
+        case HOUR:
+            calendar.add(Calendar.HOUR_OF_DAY, plusNum);
+            break;
+        case DAY:
+            calendar.add(Calendar.DAY_OF_MONTH, plusNum);
+            break;
+        case WEEK:
+            calendar.add(Calendar.WEEK_OF_MONTH, plusNum);
+            break;
+        case MONTH:
+            calendar.add(Calendar.MONTH, plusNum);
+            break;
+        case YEAR:
+            calendar.add(Calendar.YEAR, plusNum);
+            break;
+        default:
+            break;
         }
         return calendar.getTimeInMillis();
     }
-
 
     public Segments getSegmentsByRangeContains(SegmentRange range) {
         val result = new Segments<T>();

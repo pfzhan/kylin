@@ -25,6 +25,7 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.commons.cli.Option;
@@ -43,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 public class YarnApplicationTool extends ExecutableApplication {
@@ -81,7 +83,7 @@ public class YarnApplicationTool extends ExecutableApplication {
         val tool = new YarnApplicationTool();
         tool.execute(args);
         System.out.println("Yarn application task finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override
@@ -130,7 +132,7 @@ public class YarnApplicationTool extends ExecutableApplication {
                     if (!applicationId.startsWith("application")) {
                         continue;
                     }
-                    val result = cmdExecutor.execute(String.format(cmd, applicationId), null);
+                    val result = cmdExecutor.execute(String.format(Locale.ROOT, cmd, applicationId), null);
 
                     if (result.getCode() != 0) {
                         logger.error("Failed to execute the yarn cmd: {}", cmd);

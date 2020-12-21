@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,6 +44,7 @@ package org.apache.kylin.query.aggregate;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.measure.dim.DimCountDistinctAggFunc;
 import org.apache.kylin.measure.dim.DimCountDistinctCounter;
@@ -54,7 +54,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class DimCountDistinctAggFuncTest {
+public class DimCountDistinctAggFuncTest extends AbstractTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -95,7 +95,7 @@ public class DimCountDistinctAggFuncTest {
 
     @Test
     public void testThreshold() {
-        System.setProperty("kylin.query.max-dimension-count-distinct", "100");
+        overwriteSystemProp("kylin.query.max-dimension-count-distinct", "100");
 
         DimCountDistinctCounter counter = DimCountDistinctAggFunc.init();
 
@@ -105,7 +105,5 @@ public class DimCountDistinctAggFuncTest {
         for (int i = 0; i < 200; i++) {
             counter = DimCountDistinctAggFunc.add(counter, i);
         }
-
-        System.clearProperty("kylin.query.max-dimension-count-distinct");
     }
 }

@@ -180,10 +180,10 @@ public class JobParam {
     }
 
     public static boolean isBuildIndexJob(JobTypeEnum jobTypeEnum) {
-        return JobTypeEnum.INDEX_BUILD.equals(jobTypeEnum) || JobTypeEnum.SUB_PARTITION_BUILD.equals(jobTypeEnum);
+        return JobTypeEnum.INDEX_BUILD == jobTypeEnum || JobTypeEnum.SUB_PARTITION_BUILD == jobTypeEnum;
     }
 
     public static boolean isRefreshJob(JobTypeEnum jobTypeEnum) {
-        return JobTypeEnum.INDEX_REFRESH.equals(jobTypeEnum) || JobTypeEnum.SUB_PARTITION_REFRESH.equals(jobTypeEnum);
+        return JobTypeEnum.INDEX_REFRESH == jobTypeEnum || JobTypeEnum.SUB_PARTITION_REFRESH == jobTypeEnum;
     }
 }

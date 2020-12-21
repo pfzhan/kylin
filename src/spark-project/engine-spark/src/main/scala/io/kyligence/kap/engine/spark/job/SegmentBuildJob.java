@@ -69,7 +69,7 @@ public class SegmentBuildJob extends SegmentJob {
         if (config.getSparkEngineTaskImpactInstanceEnabled()) {
             String maxLeafTasksNums = maxLeafTasksNums();
             int factor = config.getSparkEngineTaskCoreFactor();
-            int requiredCore = Double.valueOf(maxLeafTasksNums).intValue() / factor;
+            int requiredCore = (int) Double.parseDouble(maxLeafTasksNums) / factor;
             logger.info("The maximum number of tasks required to run the job is {}, require cores: {}",
                     maxLeafTasksNums, requiredCore);
             return String.valueOf(requiredCore);
@@ -114,7 +114,8 @@ public class SegmentBuildJob extends SegmentJob {
     protected void tryRefreshSnapshots() throws IOException {
         SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
         if (config.isSnapshotManualManagementEnabled()) {
-            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows", dataflowId);
+            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
+                    dataflowId);
             snapshotBuilder.calculateTotalRows(getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
             return;
         } else if (!needBuildSnapshots()) {

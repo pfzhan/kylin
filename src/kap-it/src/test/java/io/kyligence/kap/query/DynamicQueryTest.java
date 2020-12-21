@@ -26,6 +26,7 @@ package io.kyligence.kap.query;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
@@ -86,7 +87,8 @@ public class DynamicQueryTest extends NAutoTestBase {
         proposeAndBuildIndex(new String[] { "select time2 from test_measure" });
         String sql = "select time2 from test_measure where time2=?";
         QueryExec queryExec = new QueryExec(PROJECT, KylinConfig.getInstanceFromEnv());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS",
+                Locale.getDefault(Locale.Category.FORMAT));
         String ts = "2012-03-21 10:10:10.789";
         Date parsedDate = dateFormat.parse(ts);
         queryExec.setPrepareParam(0, new java.sql.Timestamp(parsedDate.getTime()));

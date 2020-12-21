@@ -40,7 +40,6 @@ import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
-@SuppressWarnings("serial")
 public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
     private KylinConfig config;
@@ -65,10 +64,6 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.engine.persist-flattable-threshold");
-        System.clearProperty("kylin.engine.persist-flatview");
-        System.clearProperty("kylin.engine.persist-flattable-enabled");
     }
 
     @Test

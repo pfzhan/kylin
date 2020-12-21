@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.junit.Before;
@@ -86,7 +87,7 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
         String[] sqls = generateMoreSqls(sqlList.toArray(new String[0]), factor);
         int numOfQueries = sqls.length;
         Runtime runtime = Runtime.getRuntime();
-        NumberFormat format = NumberFormat.getInstance();
+        NumberFormat format = NumberFormat.getInstance(Locale.getDefault(Locale.Category.FORMAT));
 
         long proposeStartTime = System.currentTimeMillis();
         AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);

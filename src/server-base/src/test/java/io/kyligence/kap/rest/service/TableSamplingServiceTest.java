@@ -157,7 +157,8 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         // launch another job on the same table will discard the already existing job and create a new job(secondJob)
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS,
+                    ExecutablePO.DEFAULT_PRIORITY);
             return null;
         }, PROJECT);
         Assert.assertEquals(ExecutableState.DISCARDED, initialJob.getStatus());
@@ -175,7 +176,8 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
             executableManager.updateJobOutput(secondJob.getId(), ExecutableState.RUNNING);
-            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS,
+                    ExecutablePO.DEFAULT_PRIORITY);
             return null;
         }, PROJECT);
         Assert.assertEquals(ExecutableState.DISCARDED, secondJob.getStatus());
@@ -193,7 +195,8 @@ public class TableSamplingServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tableSamplingService.hasSamplingJob(PROJECT, table));
         UnitOfWork.doInTransactionWithRetry(() -> {
             executableManager.updateJobOutput(thirdJob.getId(), ExecutableState.ERROR);
-            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS, ExecutablePO.DEFAULT_PRIORITY);
+            tableSamplingService.sampling(Sets.newHashSet(table), PROJECT, SAMPLING_ROWS,
+                    ExecutablePO.DEFAULT_PRIORITY);
             return null;
         }, PROJECT);
         Assert.assertEquals(ExecutableState.DISCARDED, thirdJob.getStatus());

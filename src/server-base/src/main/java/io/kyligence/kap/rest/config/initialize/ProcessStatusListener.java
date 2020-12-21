@@ -25,8 +25,12 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +58,9 @@ public class ProcessStatusListener {
     @Subscribe
     public void onProcessStart(CliCommandExecutor.ProcessStart processStart) {
         int pid = processStart.getPid();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(CHILD_PROCESS_FILE, true))) {
+        try (OutputStream os = new FileOutputStream(CHILD_PROCESS_FILE, true);
+                BufferedWriter writer = new BufferedWriter(
+                        new OutputStreamWriter(os, Charset.defaultCharset().name()))) {
             writer.write(pid + "," + processStart.getJobId() + "\n");
             writer.flush();
         } catch (IOException ex) {
@@ -98,7 +104,7 @@ public class ProcessStatusListener {
         if (ProcessUtils.isAlive(pid)) {
             try {
                 log.info("Start to destroy process {} of job {}", pid, jobId);
-                final String killCmd = String.format("bash %s/sbin/%s %s", KylinConfig.getKylinHome(),
+                final String killCmd = String.format(Locale.ROOT, "bash %s/sbin/%s %s", KylinConfig.getKylinHome(),
                         KILL_PROCESS_TREE, pid);
                 Process killProc = Runtime.getRuntime().exec(killCmd);
                 if (killProc.waitFor(CMD_EXEC_TIMEOUT_SEC, TimeUnit.SECONDS)) {

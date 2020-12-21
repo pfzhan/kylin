@@ -22,19 +22,20 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util.concurrent.ConcurrentHashMap
-
 import org.apache.spark.sql.catalyst.catalog.CatalogStatistics
+
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 object TableMetaManager {
 
   val tableMetaManager = new ConcurrentHashMap[String, CatalogStatistics]()
 
   def putTableMeta(table: String, sizeInBytes: Long, rowCount: Long): Unit = {
-    tableMetaManager.put(table.toLowerCase, CatalogStatistics(sizeInBytes, Some(rowCount)))
+    tableMetaManager.put(table.toLowerCase(Locale.ROOT), CatalogStatistics(sizeInBytes, Some(rowCount)))
   }
 
   def getTableMeta(table: String): Option[CatalogStatistics] = {
-    Option(tableMetaManager.get(table.toLowerCase))
+    Option(tableMetaManager.get(table.toLowerCase(Locale.ROOT)))
   }
 }

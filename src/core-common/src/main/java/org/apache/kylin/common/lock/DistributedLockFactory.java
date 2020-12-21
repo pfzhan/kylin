@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,6 +43,7 @@
 package org.apache.kylin.common.lock;
 
 import java.lang.management.ManagementFactory;
+import java.nio.charset.Charset;
 
 public abstract class DistributedLockFactory {
 
@@ -60,9 +60,9 @@ public abstract class DistributedLockFactory {
     private static String threadProcessAndHost() {
         return Thread.currentThread().getId() + "-" + processAndHost();
     }
-    
+
     private static String processAndHost() {
-        byte[] bytes = ManagementFactory.getRuntimeMXBean().getName().getBytes();
-        return new String(bytes);
+        byte[] bytes = ManagementFactory.getRuntimeMXBean().getName().getBytes(Charset.defaultCharset());
+        return new String(bytes, Charset.defaultCharset());
     }
 }

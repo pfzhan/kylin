@@ -23,14 +23,12 @@
  */
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.engine.spark.application.SparkApplication;
-import io.kyligence.kap.engine.spark.job.TableAnalysisJob;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.val;
-import lombok.var;
+import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
@@ -44,25 +42,29 @@ import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.IntStream;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.engine.spark.job.TableAnalysisJob;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
+import lombok.var;
 
 public class TableAnalyzerJob extends SparkApplication implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(TableAnalyzerJob.class);
 
-    public static final ImmutableList<String> TABLE_STATS_METRICS = ImmutableList.<String>builder()
+    public static final ImmutableList<String> TABLE_STATS_METRICS = ImmutableList.<String> builder()
             .add("COUNT", "COUNT_DISTINCT", "MAX", "MIN").build();
 
     @Override
     protected void doExecute() {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
-        Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
+        long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
         String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        analyzeTable(tableDesc, prjName, rowCount.intValue(), config, ss);
+        analyzeTable(tableDesc, prjName, (int) rowCount, config, ss);
     }
 
     void analyzeTable(TableDesc tableDesc, String project, int rowCount, KylinConfig config, SparkSession ss) {
@@ -95,21 +97,21 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
                         : row[0].get(i + 1 + metricLen * colIdx).toString();
 
                 switch (TABLE_STATS_METRICS.get(i)) {
-                    case "COUNT":
-                        colStats.setNullCount(count_star - Long.parseLong(value));
-                        break;
-                    case "MAX":
-                        colStats.setMaxValue(value);
-                        break;
-                    case "MIN":
-                        colStats.setMinValue(value);
-                        break;
-                    case "COUNT_DISTINCT":
-                        colStats.setCardinality(Long.parseLong(value));
-                        break;
-                    default:
-                        throw new IllegalArgumentException(
-                                "not support this metric" + TABLE_STATS_METRICS.get(i) + "in table Sampling");
+                case "COUNT":
+                    colStats.setNullCount(count_star - Long.parseLong(value));
+                    break;
+                case "MAX":
+                    colStats.setMaxValue(value);
+                    break;
+                case "MIN":
+                    colStats.setMinValue(value);
+                    break;
+                case "COUNT_DISTINCT":
+                    colStats.setCardinality(Long.parseLong(value));
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                            "not support this metric" + TABLE_STATS_METRICS.get(i) + "in table Sampling");
                 }
             }
             columnStatsList.add(colStats);
@@ -140,7 +142,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
     @Override
     protected String calculateRequiredCores() throws Exception {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
-        Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
+        long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         val child = tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix();
         val detectItems = ResourceDetectUtils.readDetectItems(new Path(shareDir, child));

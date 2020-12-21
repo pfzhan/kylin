@@ -26,6 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.common.exception.KylinException;
@@ -46,8 +49,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.fixture.FixtureController;
-
-import java.text.SimpleDateFormat;
 
 public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
@@ -179,7 +180,8 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTimeRangeEndEqualToStartWithDateFormat() {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                Locale.getDefault(Locale.Category.FORMAT));
         String start = null;
         String end = null;
         try {

@@ -92,7 +92,6 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
     public void cleanup() {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test

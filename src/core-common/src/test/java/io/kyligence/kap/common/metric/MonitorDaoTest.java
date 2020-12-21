@@ -26,6 +26,7 @@ package io.kyligence.kap.common.metric;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -41,7 +42,7 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 
 public class MonitorDaoTest {
 
-    private InfluxDBInstance influxDBInstance = Mockito.mock(InfluxDBInstance.class);
+    private final InfluxDBInstance influxDBInstance = Mockito.mock(InfluxDBInstance.class);
 
     @Before
     public void setUp() {
@@ -52,10 +53,10 @@ public class MonitorDaoTest {
         Mockito.doReturn(false).when(influxDBInstance).write(eq("tb_job_status"), Mockito.anyMap(), Mockito.anyMap(),
                 Mockito.anyLong());
 
-        Mockito.doReturn(mockQueryMonitorMetricQueryResult()).when(influxDBInstance)
-                .read(String.format(MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_query", 0, Long.MAX_VALUE));
-        Mockito.doReturn(mockJobStatusMonitorMetricQueryResult()).when(influxDBInstance)
-                .read(String.format(MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_job_status", 0, Long.MAX_VALUE));
+        Mockito.doReturn(mockQueryMonitorMetricQueryResult()).when(influxDBInstance).read(
+                String.format(Locale.ROOT, MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_query", 0, Long.MAX_VALUE));
+        Mockito.doReturn(mockJobStatusMonitorMetricQueryResult()).when(influxDBInstance).read(String.format(Locale.ROOT,
+                MonitorDao.QUERY_METRICS_BY_TIME_SQL_FORMAT, "tb_job_status", 0, Long.MAX_VALUE));
     }
 
     public QueryMonitorMetric mockQueryMonitorMetric() {

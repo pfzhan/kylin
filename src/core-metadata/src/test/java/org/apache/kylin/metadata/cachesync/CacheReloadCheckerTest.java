@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,9 +42,9 @@
 
 package org.apache.kylin.metadata.cachesync;
 
-import com.google.common.cache.Cache;
-import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import java.nio.charset.Charset;
+import java.util.List;
+
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -54,15 +53,18 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.List;
+import com.google.common.cache.Cache;
+import com.google.common.collect.Lists;
+import com.google.common.io.ByteStreams;
 
 public class CacheReloadCheckerTest {
 
-    private String resPath = "/mock/mock.json";
+    private final String resPath = "/mock/mock.json";
 
-    private String depPath1 = "/mock/mock/dep1.json";
-    private String depPath2 = "/mock/mock/dep2.json";
-    private String depPath3 = "/mock/mock/dep3.json";
+    private final String depPath1 = "/mock/mock/dep1.json";
+    private final String depPath2 = "/mock/mock/dep2.json";
+    private final String depPath3 = "/mock/mock/dep3.json";
+    private final Charset charset = Charset.defaultCharset();
 
     @Test
     public void test() {
@@ -81,14 +83,14 @@ public class CacheReloadCheckerTest {
         Mockito.when(entity.getDependencies()).thenReturn(dependencies);
 
         Mockito.when(cache.getIfPresent("mock")).thenReturn(entity);
-        Mockito.when(store.getResource(resPath)).thenReturn(
-                new RawResource(resPath, ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
-        Mockito.when(store.getResource(depPath1)).thenReturn(
-                new RawResource(depPath1, ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
-        Mockito.when(store.getResource(depPath2)).thenReturn(
-                new RawResource(depPath2, ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
-        Mockito.when(store.getResource(depPath3)).thenReturn(
-                new RawResource(depPath3, ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
+        Mockito.when(store.getResource(resPath))
+                .thenReturn(new RawResource(resPath, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+        Mockito.when(store.getResource(depPath1))
+                .thenReturn(new RawResource(depPath1, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+        Mockito.when(store.getResource(depPath2))
+                .thenReturn(new RawResource(depPath2, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+        Mockito.when(store.getResource(depPath3))
+                .thenReturn(new RawResource(depPath3, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
 
         Assert.assertFalse(checker.needReload("mock"));
         Mockito.when(store.getResource(depPath3)).thenReturn(null);
@@ -98,8 +100,8 @@ public class CacheReloadCheckerTest {
         dependencies.add(new MissingRootPersistentEntity(depPath3));
         Assert.assertFalse(checker.needReload("mock"));
 
-        Mockito.when(store.getResource(depPath3)).thenReturn(
-                new RawResource(depPath3, ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
+        Mockito.when(store.getResource(depPath3))
+                .thenReturn(new RawResource(depPath3, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
         Assert.assertTrue(checker.needReload("mock"));
     }
 
@@ -122,7 +124,5 @@ public class CacheReloadCheckerTest {
         lists.add(dep3);
         return lists;
     }
-
-
 
 }

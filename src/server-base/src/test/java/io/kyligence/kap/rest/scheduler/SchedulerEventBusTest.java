@@ -108,9 +108,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);
         cleanupTestMetadata();
-        System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
-        System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
-
     }
 
     @Ignore

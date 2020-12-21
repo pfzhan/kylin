@@ -32,6 +32,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 public class CheckHadoopConfDir {
     public static final String CHECKENV_REPORT_PFX = ">   ";
 
@@ -39,7 +41,7 @@ public class CheckHadoopConfDir {
 
         if (1 != args.length) {
             usage();
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         File hadoopConfDir = new File(args[0]).getCanonicalFile();
@@ -48,12 +50,12 @@ public class CheckHadoopConfDir {
 
         if (!hadoopConfDir.exists()) {
             System.err.println("ERROR: Hadoop config dir '" + hadoopConfDir + "' does not exist");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         if (!hadoopConfDir.isDirectory()) {
             System.err.println("ERROR: Hadoop config dir '" + hadoopConfDir + "' is not a directory");
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
 
         LocalFileSystem localfs = getLocalFSAndHitUGIForTheFirstTime();
@@ -76,7 +78,7 @@ public class CheckHadoopConfDir {
                     + hadoopConfDir + "/hdfs-site.xml");
         }
 
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     /*
@@ -84,15 +86,14 @@ public class CheckHadoopConfDir {
      * This is the very first time we hit UGI during the check-env process, and could hit Kerberos exception in a secured Hadoop.
      * Be careful about the error reporting.
      */
-    private static LocalFileSystem getLocalFSAndHitUGIForTheFirstTime() throws IOException {
+    private static LocalFileSystem getLocalFSAndHitUGIForTheFirstTime() {
         try {
-            LocalFileSystem localfs = FileSystem.getLocal(new Configuration());
-            return localfs;
+            return FileSystem.getLocal(new Configuration());
         } catch (IOException e) {
             System.err.println(
                     "ERROR: Hadoop security exception? Seems the classpath is not setup propertly regarding Hadoop security.");
             System.err.println("Detailed error message: " + e.getMessage());
-            System.exit(1);
+            Unsafe.systemExit(1);
             return null;
         }
     }

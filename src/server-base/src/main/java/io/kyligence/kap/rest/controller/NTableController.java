@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -227,8 +228,8 @@ public class NTableController extends NBasicController {
         checkProjectName(tableLoadRequest.getProject());
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(tableLoadRequest.getProject()) == null) {
-            throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), tableLoadRequest.getProject()));
+            throw new KylinException(PROJECT_NOT_EXIST, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getPROJECT_NOT_FOUND(), tableLoadRequest.getProject()));
         }
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
@@ -512,12 +513,12 @@ public class NTableController extends NBasicController {
         Message msg = MsgPicker.getMsg();
         if (rows > MAX_SAMPLING_ROWS) {
             throw new KylinException(INVALID_SAMPLING_RANGE,
-                    String.format(msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
+                    String.format(Locale.ROOT, msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
         }
 
         if (rows < MIN_SAMPLING_ROWS) {
             throw new KylinException(INVALID_SAMPLING_RANGE,
-                    String.format(msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
+                    String.format(Locale.ROOT, msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
         }
     }
 
@@ -529,7 +530,7 @@ public class NTableController extends NBasicController {
 
         if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
             throw new KylinException(INVALID_TABLE_NAME,
-                    String.format(msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
+                    String.format(Locale.ROOT, msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
         }
     }
 

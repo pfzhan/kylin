@@ -43,6 +43,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.Locale;
 
 import org.apache.kylin.metadata.datatype.DataType;
 
@@ -175,7 +176,7 @@ public class ColumnDesc implements Serializable {
     }
 
     public String getName() {
-        return (name == null) ? null : name.toUpperCase();
+        return (name == null) ? null : name.toUpperCase(Locale.ROOT);
     }
 
     public String getIdentity() {

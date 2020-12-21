@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,6 +50,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.common.util.Unsafe;
 
 public class MemoryBudgetController {
 
@@ -90,7 +91,7 @@ public class MemoryBudgetController {
 
     // all budget numbers are in MB
     private final int totalBudgetMB;
-    private final ConcurrentMap<MemoryConsumer, ConsumerEntry> booking = new ConcurrentHashMap<MemoryConsumer, ConsumerEntry>();
+    private final ConcurrentMap<MemoryConsumer, ConsumerEntry> booking = new ConcurrentHashMap<>();
     private int totalReservedMB;
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -132,7 +133,8 @@ public class MemoryBudgetController {
             try {
                 reserve(consumer, requestMB);
                 if (debug && waitStart > 0)
-                    logger.debug(consumer + " waited " + (System.currentTimeMillis() - waitStart) + " ms on the " + requestMB + " MB request");
+                    logger.debug(consumer + " waited " + (System.currentTimeMillis() - waitStart) + " ms on the "
+                            + requestMB + " MB request");
                 return;
             } catch (NotEnoughBudgetException ex) {
                 // retry
@@ -143,7 +145,7 @@ public class MemoryBudgetController {
 
             synchronized (lock) {
                 try {
-                    lock.wait();
+                    Unsafe.wait(lock);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new NotEnoughBudgetException(e);
@@ -201,7 +203,8 @@ public class MemoryBudgetController {
 
         if (debug) {
             if (getSystemAvailMB() < getRemainingBudgetMB()) {
-                logger.debug("Remaining budget is " + getRemainingBudgetMB() + " MB free, but system only has " + getSystemAvailMB() + " MB free. If this persists, some memory calculation must be wrong.");
+                logger.debug("Remaining budget is " + getRemainingBudgetMB() + " MB free, but system only has "
+                        + getSystemAvailMB() + " MB free. If this persists, some memory calculation must be wrong.");
             }
         }
     }
@@ -252,12 +255,13 @@ public class MemoryBudgetController {
             booking.remove(entry.consumer);
         }
         if (debug) {
-            logger.debug(entry.consumer + " reserved " + entry.reservedMB + " MB, total reserved " + totalReservedMB + " MB, remaining budget " + getRemainingBudgetMB() + " MB");
+            logger.debug("{} reserved {} MB, total reserved {} MB, remaining budget {} MB", entry.consumer,
+                    entry.reservedMB, totalReservedMB, getRemainingBudgetMB());
         }
 
         if (delta < 0) {
             synchronized (lock) {
-                lock.notifyAll();
+                Unsafe.notifyAll(lock);
             }
         }
 
@@ -295,8 +299,7 @@ public class MemoryBudgetController {
         long freeMemory = runtime.freeMemory(); // out of the current heap, how much is free
         long maxMemory = runtime.maxMemory(); // Max heap VM can use e.g. Xmx setting
         long usedMemory = totalMemory - freeMemory; // how much of the current heap the VM is using
-        long availableMemory = maxMemory - usedMemory; // available memory i.e. Maximum heap size minus the current amount used
-        return availableMemory;
+        return maxMemory - usedMemory;
     }
 
     public static int getSystemAvailMB() {
@@ -313,7 +316,7 @@ public class MemoryBudgetController {
             int mb = MemoryBudgetController.getSystemAvailMB();
             if (mb < lowAvail) {
                 lowAvail = mb;
-                logger.warn("Lower system avail " + lowAvail + " MB in markHigh()");
+                logger.warn("Lower system avail {} MB in markHigh()", lowAvail);
             }
         }
 
@@ -322,7 +325,7 @@ public class MemoryBudgetController {
             int mb = MemoryBudgetController.gcAndGetSystemAvailMB();
             if (mb > highAvail) {
                 highAvail = mb;
-                logger.warn("Higher system avail " + highAvail + " MB in markLow()");
+                logger.warn("Higher system avail {} MB in markLow()", highAvail);
             }
         }
 

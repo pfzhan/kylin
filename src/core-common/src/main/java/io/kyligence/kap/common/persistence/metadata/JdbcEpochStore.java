@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -103,8 +104,9 @@ public class JdbcEpochStore extends EpochStore {
     }
 
     public static String getEpochSql(String sql, String tableName) {
-        return String.format(sql, tableName, EPOCH_ID, EPOCH_TARGET, CURRENT_EPOCH_OWNER, LAST_EPOCH_RENEW_TIME,
-                SERVER_MODE, MAINTENANCE_MODE_REASON, MVCC, tableName, EPOCH_TARGET, EPOCH_TARGET);
+        return String.format(Locale.ROOT, sql, tableName, EPOCH_ID, EPOCH_TARGET, CURRENT_EPOCH_OWNER,
+                LAST_EPOCH_RENEW_TIME, SERVER_MODE, MAINTENANCE_MODE_REASON, MVCC, tableName, EPOCH_TARGET,
+                EPOCH_TARGET);
     }
 
     public void createIfNotExist() throws Exception {
@@ -136,12 +138,12 @@ public class JdbcEpochStore extends EpochStore {
             return;
         }
         executeWithTransaction(() -> {
-            int affectedRow = jdbcTemplate.update(String.format(UPDATE_SQL, table), ps -> {
+            int affectedRow = jdbcTemplate.update(String.format(Locale.ROOT, UPDATE_SQL, table), ps -> {
                 genUpdateEpochStatement(ps, epoch);
             });
             if (affectedRow == 0) {
                 throw new KylinException(FAILED_UPDATE_METADATA,
-                        String.format("Failed to update or save epoch:%s", epoch.toString()));
+                        String.format(Locale.ROOT, "Failed to update or save epoch:%s", epoch.toString()));
             }
             return affectedRow;
         });
@@ -153,12 +155,12 @@ public class JdbcEpochStore extends EpochStore {
             return;
         }
         executeWithTransaction(() -> {
-            int affectedRow = jdbcTemplate.update(String.format(INSERT_SQL, table), ps -> {
+            int affectedRow = jdbcTemplate.update(String.format(Locale.ROOT, INSERT_SQL, table), ps -> {
                 genInsertEpochStatement(ps, epoch);
             });
             if (affectedRow == 0) {
                 throw new KylinException(FAILED_UPDATE_METADATA,
-                        String.format("Failed to update or save epoch:%s", epoch.toString()));
+                        String.format(Locale.ROOT, "Failed to update or save epoch:%s", epoch.toString()));
             }
             return affectedRow;
         });
@@ -170,7 +172,7 @@ public class JdbcEpochStore extends EpochStore {
             return;
         }
 
-        jdbcTemplate.batchUpdate(String.format(UPDATE_SQL, table), new BatchPreparedStatementSetter() {
+        jdbcTemplate.batchUpdate(String.format(Locale.ROOT, UPDATE_SQL, table), new BatchPreparedStatementSetter() {
 
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -191,7 +193,7 @@ public class JdbcEpochStore extends EpochStore {
             return;
         }
 
-        jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), new BatchPreparedStatementSetter() {
+        jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), new BatchPreparedStatementSetter() {
 
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -230,8 +232,8 @@ public class JdbcEpochStore extends EpochStore {
     @Override
     public Epoch getEpoch(String epochTarget) {
         return executeWithTransaction(() -> {
-            List<Epoch> result = jdbcTemplate.query(String.format(SELECT_BY_EPOCH_TARGET_SQL, table, epochTarget),
-                    new EpochRowMapper());
+            List<Epoch> result = jdbcTemplate.query(
+                    String.format(Locale.ROOT, SELECT_BY_EPOCH_TARGET_SQL, table, epochTarget), new EpochRowMapper());
             if (result.isEmpty()) {
                 return null;
             }
@@ -241,12 +243,14 @@ public class JdbcEpochStore extends EpochStore {
 
     @Override
     public List<Epoch> list() {
-        return executeWithTransaction(() -> jdbcTemplate.query(String.format(SELECT_SQL, table), new EpochRowMapper()));
+        return executeWithTransaction(
+                () -> jdbcTemplate.query(String.format(Locale.ROOT, SELECT_SQL, table), new EpochRowMapper()));
     }
 
     @Override
     public void delete(String epochTarget) {
-        withTransaction(transactionManager, () -> jdbcTemplate.update(String.format(DELETE_SQL, table), epochTarget));
+        withTransaction(transactionManager,
+                () -> jdbcTemplate.update(String.format(Locale.ROOT, DELETE_SQL, table), epochTarget));
     }
 
     @Override

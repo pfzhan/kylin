@@ -26,11 +26,11 @@ package org.apache.spark.memory
 
 import java.lang.management._
 import java.text.SimpleDateFormat
-
 import com.google.common.collect.Lists
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -118,7 +118,7 @@ class MemoryMonitor() extends Logging {
 
 object MemoryMonitor extends Logging {
 
-  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault(Locale.Category.FORMAT))
 
   private var monitor: MemoryMonitor = _
 

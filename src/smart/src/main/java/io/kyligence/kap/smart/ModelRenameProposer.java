@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,7 +63,8 @@ public class ModelRenameProposer extends AbstractProposer {
     }
 
     private String proposeModelAlias(NDataModel model, Set<String> usedModelNames) {
-        Set<String> usedNames = usedModelNames.stream().map(String::toUpperCase).collect(Collectors.toSet());
+        Set<String> usedNames = usedModelNames.stream().map(name -> name.toUpperCase(Locale.ROOT))
+                .collect(Collectors.toSet());
         String rootTableAlias = model.getRootFactTable().getAlias();
         int suffix = 0;
         String targetName;
@@ -71,9 +73,9 @@ public class ModelRenameProposer extends AbstractProposer {
                 throw new IllegalStateException("Potential infinite loop in getModelName().");
             }
             targetName = ModelRenameProposer.MODEL_ALIAS_PREFIX + rootTableAlias + "_" + suffix;
-        } while (usedNames.contains(targetName.toUpperCase()));
+        } while (usedNames.contains(targetName.toUpperCase(Locale.ROOT)));
         log.info("The alias of the model({}) was rename to {}.", model.getId(), targetName);
-        usedModelNames.add(targetName.toUpperCase());
+        usedModelNames.add(targetName.toUpperCase(Locale.ROOT));
         return targetName;
     }
 

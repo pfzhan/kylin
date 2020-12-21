@@ -48,6 +48,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -291,7 +292,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     // so we need only the filter out duplicated named cols to avoid duplication of names and exprs
     private List<ComputedColumnDesc> removeDuplicatedNamedComputedCols(List<ComputedColumnDesc> computedColumnDescs) {
         // remove duplicated named computed cols
-        CollectionUtil.distinct(computedColumnDescs, cc -> cc.getIdentName().toUpperCase());
+        CollectionUtil.distinct(computedColumnDescs, cc -> cc.getIdentName().toUpperCase(Locale.ROOT));
         return computedColumnDescs;
     }
 

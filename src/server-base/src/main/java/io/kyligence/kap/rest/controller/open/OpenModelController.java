@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -142,7 +143,7 @@ public class OpenModelController extends NBasicController {
         NDataModel model = modelService.getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (model == null) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         return model;
     }

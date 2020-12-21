@@ -29,11 +29,10 @@ import org.junit.Test;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@SuppressWarnings("serial")
-/***
+/**
  * test type related queries
  */
+@Slf4j
 public class NAutoRelDataTypeTest extends NAutoTestBase {
 
     @Test

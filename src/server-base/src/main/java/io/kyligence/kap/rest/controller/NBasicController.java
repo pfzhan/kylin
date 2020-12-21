@@ -68,6 +68,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -125,6 +126,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
@@ -150,7 +152,8 @@ public class NBasicController {
             }
         }
 
-        throw new KylinException(PROJECT_NOT_EXIST, String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        throw new KylinException(PROJECT_NOT_EXIST,
+                String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -173,7 +176,7 @@ public class NBasicController {
         if (kylinException != null) {
             cause = kylinException;
         }
-        return new ErrorResponse(req.getRequestURL().toString(), cause);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), cause);
     }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
@@ -181,7 +184,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleForbidden(HttpServletRequest req, Exception ex) {
         logger.error("", ex);
-        return new ErrorResponse(req.getRequestURL().toString(), ex);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
     }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -189,7 +192,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleNotFound(HttpServletRequest req, Exception ex) {
         logger.error("", ex);
-        return new ErrorResponse(req.getRequestURL().toString(), ex);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -213,7 +216,7 @@ public class NBasicController {
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(ACCESS_DENIED, ex);
         logger.error("", e);
-        return new ErrorResponse(req.getRequestURL().toString(), e);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -223,7 +226,7 @@ public class NBasicController {
     ErrorResponse handleInvalidRequestParam(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(INVALID_PARAMETER, ex);
         logger.error("", e);
-        return new ErrorResponse(req.getRequestURL().toString(), e);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -235,14 +238,14 @@ public class NBasicController {
         while (cause != null && cause.getCause() != null && cause.getCause() instanceof KylinException) {
             cause = (KylinException) cause.getCause();
         }
-        return new ErrorResponse(req.getRequestURL().toString(), cause);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), cause);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseBody
     ErrorResponse handleInvalidArgument(HttpServletRequest request, MethodArgumentNotValidException ex) {
-        val response = new ErrorResponse(request.getRequestURL().toString(), ex);
+        val response = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(request), ex);
         val target = ex.getBindingResult().getTarget();
         if (target instanceof Validation) {
             response.setMsg(((Validation) target).getErrorMessage(ex.getBindingResult().getFieldErrors()));
@@ -260,25 +263,25 @@ public class NBasicController {
     ErrorResponse handleUnauthorized(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(USER_UNAUTHORIZED, ex);
         logger.error("", e);
-        return new ErrorResponse(req.getRequestURL().toString(), ex);
+        return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
     }
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException(INVALID_PARAMETER, String.format("'%s' is required.", fieldName));
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is required.", fieldName));
         }
     }
 
     protected void checkNonNegativeIntegerArg(String fieldName, Object fieldValue) {
         checkRequiredArg(fieldName, fieldValue);
         try {
-            Integer i = Integer.parseInt(String.valueOf(fieldValue));
+            int i = Integer.parseInt(String.valueOf(fieldValue));
             if (i < 0) {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException e) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format("'%s' must be a non-negative integer.", fieldName));
+                    String.format(Locale.ROOT, "'%s' must be a non-negative integer.", fieldName));
         }
     }
 
@@ -286,7 +289,8 @@ public class NBasicController {
         checkRequiredArg(fieldName, fieldValue);
         String booleanString = String.valueOf(fieldValue);
         if (!"true".equalsIgnoreCase(booleanString) && !"false".equalsIgnoreCase(booleanString)) {
-            throw new KylinException(INVALID_PARAMETER, String.format("'%s' must be boolean type.", fieldName));
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, "'%s' must be boolean type.", fieldName));
         }
     }
 
@@ -349,7 +353,7 @@ public class NBasicController {
         ProjectInstance prjInstance = projectManager.getProject(project);
         if (prjInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         return prjInstance.getName();
     }
@@ -384,7 +388,8 @@ public class NBasicController {
     public void checkJobStatus(String jobStatus) {
         Message msg = MsgPicker.getMsg();
         if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException(ILLEGAL_JOB_STATUS, String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
+            throw new KylinException(ILLEGAL_JOB_STATUS,
+                    String.format(Locale.ROOT, msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
     }
 
@@ -463,7 +468,7 @@ public class NBasicController {
             throw new KylinException(INVALID_PARAMETER, "Invalid empty datetime format ");
         }
         try {
-            new SimpleDateFormat(pattern);
+            new SimpleDateFormat(pattern, Locale.getDefault(Locale.Category.FORMAT));
         } catch (IllegalArgumentException e) {
             throw new KylinException(INVALID_PARAMETER,
                     "Invalid datetime format " + pattern + ". " + e.getLocalizedMessage());

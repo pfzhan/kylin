@@ -46,7 +46,6 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
-@SuppressWarnings("serial")
 public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Before

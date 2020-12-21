@@ -28,6 +28,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
@@ -136,11 +137,12 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
         QueryMetrics.RealizationMetrics metrics1 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[]{}));
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics metrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[]{}));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] {}));
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
-        queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{metrics1, metrics2}));
+        queryHistoryInfo.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { metrics1, metrics2 }));
         acceleratedQuery.setQueryHistoryInfo(queryHistoryInfo);
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
@@ -215,7 +217,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryCount() throws ParseException {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         long startTime = format.parse("2018-01-01").getTime();
         long endTime = format.parse("2018-01-03").getTime();
 
@@ -254,7 +256,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAvgDuration() throws ParseException {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         long startTime = format.parse("2018-01-01").getTime();
         long endTime = format.parse("2018-01-03").getTime();
 
@@ -295,7 +297,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private List<QueryStatistics> getTestStatistics() throws ParseException {
         int rawOffsetTime = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).getRawOffset();
         String date = "2018-01-01";
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault(Locale.Category.FORMAT));
         long time = format.parse(date).getTime();
 
         QueryStatistics queryStatistics1 = new QueryStatistics();
@@ -375,22 +377,24 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         layoutNullQuery.setSql("select * from test_table_1");
         layoutNullQuery.setEngineType("NATIVE");
         QueryMetrics.RealizationMetrics nullQueryMetrics1 = new QueryMetrics.RealizationMetrics(null, null,
-                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[]{}));
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics nullQueryMetrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[]{}));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] {}));
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
-        queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{nullQueryMetrics1, nullQueryMetrics2}));
+        queryHistoryInfo.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { nullQueryMetrics1, nullQueryMetrics2 }));
         layoutNullQuery.setQueryHistoryInfo(queryHistoryInfo);
 
         // accelerated query
         QueryHistory acceleratedQuery = new QueryHistory();
         acceleratedQuery.setSql("select * from test_table_3");
         QueryMetrics.RealizationMetrics metrics1 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[]{}));
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics metrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[]{}));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] {}));
         QueryHistoryInfo queryHistoryInfo2 = new QueryHistoryInfo();
-        queryHistoryInfo2.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{metrics1, metrics2}));
+        queryHistoryInfo2.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { metrics1, metrics2 }));
         acceleratedQuery.setQueryHistoryInfo(queryHistoryInfo2);
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
@@ -424,21 +428,23 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         noSnapshotQuery.setSql("select * from test_table_1");
         noSnapshotQuery.setEngineType("NATIVE");
         QueryMetrics.RealizationMetrics noSnapshotMetrics1 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[]{}));
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics noSnapshotMetrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[]{"test_snapshot"}));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] { "test_snapshot" }));
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
-        queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{noSnapshotMetrics1, noSnapshotMetrics2}));
+        queryHistoryInfo.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { noSnapshotMetrics1, noSnapshotMetrics2 }));
         noSnapshotQuery.setQueryHistoryInfo(queryHistoryInfo);
 
         QueryHistory containSnapshotQuery = new QueryHistory();
         containSnapshotQuery.setSql("select * from test_table_3");
         QueryMetrics.RealizationMetrics metrics1 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[]{}));
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics metrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[]{"test_snapshot"}));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] { "test_snapshot" }));
         QueryHistoryInfo queryHistoryInfo2 = new QueryHistoryInfo();
-        queryHistoryInfo2.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{metrics1, metrics2}));
+        queryHistoryInfo2.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { metrics1, metrics2 }));
         containSnapshotQuery.setQueryHistoryInfo(queryHistoryInfo2);
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
@@ -472,11 +478,12 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         snapshotQuery.setSql("select * from test_table_1");
         snapshotQuery.setEngineType("NATIVE");
         QueryMetrics.RealizationMetrics metrics1 = new QueryMetrics.RealizationMetrics(null, null,
-                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[]{}));
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics metrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[]{"snapshot1", "snapshot2"}));
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] { "snapshot1", "snapshot2" }));
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
-        queryHistoryInfo.setRealizationMetrics(Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{metrics1, metrics2}));
+        queryHistoryInfo.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { metrics1, metrics2 }));
         snapshotQuery.setQueryHistoryInfo(queryHistoryInfo);
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);

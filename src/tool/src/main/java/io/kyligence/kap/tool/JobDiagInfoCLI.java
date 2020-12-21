@@ -26,6 +26,8 @@ package io.kyligence.kap.tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 public class JobDiagInfoCLI {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
@@ -35,7 +37,7 @@ public class JobDiagInfoCLI {
         jobDiagInfoTool.execute(args);
 
         logger.info("Collect job diagnosis info completely.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
 }

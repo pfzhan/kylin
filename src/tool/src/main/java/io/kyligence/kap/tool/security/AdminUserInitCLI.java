@@ -26,6 +26,7 @@ package io.kyligence.kap.tool.security;
 
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
+import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -36,6 +37,7 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +45,7 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import org.apache.kylin.util.PasswordEncodeFactory;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
@@ -69,9 +71,9 @@ public class AdminUserInitCLI {
             initAdminUser(randomPasswordEnabled);
         } catch (Exception e) {
             logger.error("Create Admin user failed.", e);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     public static void initAdminUser(boolean randomPasswordEnabled) throws Exception {
@@ -103,8 +105,9 @@ public class AdminUserInitCLI {
 
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + ADMIN_USER_NAME + StorageCleaner.ANSI_RED;
             String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;
-            String info = String.format("Create default user finished. The username of initialized user is [%s], which password is [%s].\n"
-                    + "Please keep the password properly. And if you forget the password, you can reset it according to user manual.",
+            String info = String.format(Locale.ROOT,
+                    "Create default user finished. The username of initialized user is [%s], which password is [%s].\n"
+                            + "Please keep the password properly. And if you forget the password, you can reset it according to user manual.",
                     blackColorUsernameForPrint, blackColorPasswordForPrint);
             System.out.println(StorageCleaner.ANSI_RED + info + StorageCleaner.ANSI_RESET);
         } catch (PersistException e) {

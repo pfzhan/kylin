@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool.garbage;
 
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +40,6 @@ public class StorageCleanerCLI {
         }
         log.info("cleanup HDFS finished.");
         System.out.println("cleanup HDFS finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

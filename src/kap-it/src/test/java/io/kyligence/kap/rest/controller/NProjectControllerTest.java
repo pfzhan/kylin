@@ -44,6 +44,8 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.util.Locale;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -100,7 +102,8 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
         ComputedColumnConfigRequest request = new ComputedColumnConfigRequest();
         request.setExposeComputedColumn(false);
         mockMvc.perform(MockMvcRequestBuilders
-                .put(String.format("/api/projects/%s/computed_column_config", projectName.toUpperCase()))
+                .put(String.format(Locale.ROOT, "/api/projects/%s/computed_column_config",
+                        projectName.toUpperCase(Locale.ROOT)))
                 .content(JsonUtil.writeValueAsString(request)).contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -123,10 +126,10 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         JdbcRequest jdbcRequest = new JdbcRequest();
-        mockMvc.perform(
-                MockMvcRequestBuilders.put(String.format("/api/projects/%s/jdbc_config", projectName.toUpperCase()))
-                        .content(JsonUtil.writeValueAsString(jdbcRequest)).contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders
+                .put(String.format(Locale.ROOT, "/api/projects/%s/jdbc_config", projectName.toUpperCase(Locale.ROOT)))
+                .content(JsonUtil.writeValueAsString(jdbcRequest)).contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 

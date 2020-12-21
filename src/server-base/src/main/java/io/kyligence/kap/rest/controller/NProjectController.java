@@ -37,6 +37,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIS
 
 import java.io.File;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -257,7 +258,7 @@ public class NProjectController extends NBasicController {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
         if (projectInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectService.cleanupGarbage(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");

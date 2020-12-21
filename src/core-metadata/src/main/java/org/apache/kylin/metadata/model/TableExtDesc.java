@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @SuppressWarnings("serial")
@@ -146,7 +147,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     @Setter
     @JsonProperty("original_size")
     private long originalSize = -1;
-
 
     public TableExtDesc() {
     }
@@ -257,7 +257,7 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     public void init(String project) {
         this.project = project;
         if (this.identity != null)
-            this.identity = this.identity.toUpperCase();
+            this.identity = this.identity.toUpperCase(Locale.ROOT);
     }
 
     public boolean isPartitioned() {

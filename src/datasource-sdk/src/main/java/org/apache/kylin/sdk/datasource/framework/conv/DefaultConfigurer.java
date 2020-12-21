@@ -23,6 +23,7 @@
  */
 package org.apache.kylin.sdk.datasource.framework.conv;
 
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.calcite.sql.SqlDialect;
@@ -31,7 +32,7 @@ import org.apache.kylin.sdk.datasource.framework.def.DataSourceDef;
 
 import com.google.common.collect.Maps;
 
-public class DefaultConfigurer implements SqlConverter.IConfigurer{
+public class DefaultConfigurer implements SqlConverter.IConfigurer {
 
     private static final Map<String, SqlDialect> sqlDialectMap = Maps.newHashMap();
 
@@ -89,7 +90,7 @@ public class DefaultConfigurer implements SqlConverter.IConfigurer{
     @Override
     public SqlDialect getSqlDialect() {
         String dialectName = dsDef.getDialectName() == null ? dsDef.getId() : dsDef.getDialectName();
-        SqlDialect sqlDialect = sqlDialectMap.get(dialectName.toLowerCase());
+        SqlDialect sqlDialect = sqlDialectMap.get(dialectName.toLowerCase(Locale.ROOT));
         return sqlDialect == null ? sqlDialectMap.get("unkown") : sqlDialect;
     }
 

@@ -26,6 +26,8 @@ package io.kyligence.kap.tool.general;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
@@ -43,7 +45,7 @@ public class CryptToolTest {
     @Before
     public void setup() throws Exception {
         output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
+        System.setOut(new PrintStream(output, false, Charset.defaultCharset().name()));
     }
 
     @After
@@ -52,16 +54,17 @@ public class CryptToolTest {
     }
 
     @Test
-    public void testAES() {
+    public void testAES() throws UnsupportedEncodingException {
         val tool = new CryptTool();
         tool.execute(new String[] { "-e", "AES", "-s", "secret" });
-        Assert.assertEquals("x0vzfDV1ZQ7ME4M/dO4bCw==\n", output.toString());
+        Assert.assertEquals("x0vzfDV1ZQ7ME4M/dO4bCw==\n", output.toString(Charset.defaultCharset().name()));
     }
 
     @Test
-    public void testBCrypt() {
+    public void testBCrypt() throws UnsupportedEncodingException {
         val tool = new CryptTool();
         tool.execute(new String[] { "-e", "BCrypt", "-s", "secret" });
-        Assert.assertTrue(new BCryptPasswordEncoder().matches("secret", StringUtils.chomp(output.toString())));
+        Assert.assertTrue(new BCryptPasswordEncoder().matches("secret",
+                StringUtils.chomp(output.toString(Charset.defaultCharset().name()))));
     }
 }

@@ -27,6 +27,7 @@ package io.kyligence.kap.tool.upgrade;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.lang.StringUtils;
@@ -135,6 +136,6 @@ class RenameEntity {
 
     @Override
     public String toString() {
-        return String.format("%s -> %s", originName, destName);
+        return String.format(Locale.ROOT, "%s -> %s", originName, destName);
     }
 }

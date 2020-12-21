@@ -227,7 +227,8 @@ public class NDataLoadingRangeManager {
         if (CollectionUtils.isEmpty(readySegments)) {
             return null;
         }
-        val readySegRange = readySegments.getFirstSegment().getSegRange().coverWith(readySegments.getLastSegment().getSegRange());
+        val readySegRange = readySegments.getFirstSegment().getSegRange()
+                .coverWith(readySegments.getLastSegment().getSegRange());
         return readySegRange.getOverlapRange(querableRange);
 
     }
@@ -243,14 +244,13 @@ public class NDataLoadingRangeManager {
         if (!segConfig.getAutoMergeEnabled()) {
             return Lists.newArrayList(dataLoadingRange.getCoveredRange());
         }
-        return Segments.getSplitedSegRanges(dataLoadingRange.getCoveredRange(), segConfig.getAutoMergeTimeRanges(), segConfig.getVolatileRange());
+        return Segments.getSplitedSegRanges(dataLoadingRange.getCoveredRange(), segConfig.getAutoMergeTimeRanges(),
+                segConfig.getVolatileRange());
 
     }
 
-
-
     public void updateCoveredRangeAfterRetention(NDataModel model, NDataSegment lastSegment) {
-        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
+        if (model.getManagementType() == ManagementType.MODEL_BASED) {
             return;
         }
         val loadingRange = getDataLoadingRange(model.getRootFactTableName());

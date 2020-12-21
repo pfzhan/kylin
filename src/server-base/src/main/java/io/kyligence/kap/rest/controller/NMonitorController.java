@@ -28,6 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
@@ -117,7 +118,7 @@ public class NMonitorController extends NBasicController {
         long now = System.currentTimeMillis();
         end = end > now ? now : end;
         if (start > end) {
-            throw new KylinException(INVALID_RANGE, String.format("start: %s > end: %s", start, end));
+            throw new KylinException(INVALID_RANGE, String.format(Locale.ROOT, "start: %s > end: %s", start, end));
         }
 
         ClusterStatisticStatusResponse result;

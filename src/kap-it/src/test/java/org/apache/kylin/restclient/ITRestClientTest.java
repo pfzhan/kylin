@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -68,8 +67,6 @@ public class ITRestClientTest extends SandboxMetadataTestCase {
 
     private static Server server = null;
 
-    private static SystemPropertiesOverride sysPropsOverride = new SystemPropertiesOverride();
-
     private static final String HOST = "localhost";
 
     private static final int PORT = new Random().nextInt(100) + 37070;
@@ -87,8 +84,8 @@ public class ITRestClientTest extends SandboxMetadataTestCase {
     @BeforeClass
     public static void beforeClass() throws Exception {
         logger.info("random jetty port: " + PORT);
-        sysPropsOverride.override("spring.profiles.active", "testing");
-        sysPropsOverride.override("catalina.home", "."); // resources/log4j.properties ref ${catalina.home}
+        overwriteSystemPropBeforeClass("spring.profiles.active", "testing");
+        overwriteSystemPropBeforeClass("catalina.home", "."); // resources/log4j.properties ref ${catalina.home}
         staticCreateTestMetadata();
         startJetty();
     }
@@ -97,7 +94,6 @@ public class ITRestClientTest extends SandboxMetadataTestCase {
     public static void afterClass() throws Exception {
         stopJetty();
         staticCleanupTestMetadata();
-        sysPropsOverride.restore();
     }
 
     @Test
@@ -152,25 +148,5 @@ public class ITRestClientTest extends SandboxMetadataTestCase {
 
         server.start();
 
-    }
-
-    private static class SystemPropertiesOverride {
-        HashMap<String, String> backup = new HashMap<String, String>();
-
-        public void override(String key, String value) {
-            backup.put(key, System.getProperty(key));
-            System.setProperty(key, value);
-        }
-
-        public void restore() {
-            for (String key : backup.keySet()) {
-                String value = backup.get(key);
-                if (value == null)
-                    System.clearProperty(key);
-                else
-                    System.setProperty(key, value);
-            }
-            backup.clear();
-        }
     }
 }

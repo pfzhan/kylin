@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -224,20 +225,19 @@ public class SourceUsageManager {
     private void checkTableKind(TableCapacityDetail tableDetail, NDataModel model) {
         String tableName = tableDetail.getName();
         if (tableName.equals(model.getRootFactTableName())
-                && !SourceUsageRecord.TableKind.FACT.equals(tableDetail.getTableKind())) {
+                && SourceUsageRecord.TableKind.FACT != tableDetail.getTableKind()) {
             tableDetail.setTableKind(SourceUsageRecord.TableKind.FACT);
-        } else if (model.isLookupTable(tableName)
-                && !SourceUsageRecord.TableKind.FACT.equals(tableDetail.getTableKind())) {
+        } else if (model.isLookupTable(tableName) && SourceUsageRecord.TableKind.FACT != tableDetail.getTableKind()) {
             tableDetail.setTableKind(SourceUsageRecord.TableKind.WITHSNAP);
-        } else if (model.isFactTable(tableName) && !SourceUsageRecord.TableKind.FACT.equals(tableDetail.getTableKind())
-                && !SourceUsageRecord.TableKind.WITHSNAP.equals(tableDetail.getTableKind())) {
+        } else if (model.isFactTable(tableName) && SourceUsageRecord.TableKind.FACT != tableDetail.getTableKind()
+                && SourceUsageRecord.TableKind.WITHSNAP != tableDetail.getTableKind()) {
             tableDetail.setTableKind(SourceUsageRecord.TableKind.WITHOUTSNAP);
         }
     }
 
     private long calculateTableSourceBytes(TableCapacityDetail table, ProjectCapacityDetail project) {
         long sourceBytes;
-        if (table.getTableKind().equals(SourceUsageRecord.TableKind.FACT)) {
+        if (SourceUsageRecord.TableKind.FACT == table.getTableKind()) {
             sourceBytes = Long.MAX_VALUE - 1;
         } else {
             sourceBytes = getLookupTableSource(table, project);
@@ -548,7 +548,8 @@ public class SourceUsageManager {
 
     private int getThresholdByDayFromOrigin() {
         try {
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd",
+                    Locale.getDefault(Locale.Category.FORMAT));
             Date date = simpleDateFormat.parse("1970-01-01");
             return (int) ((System.currentTimeMillis() - date.getTime()) / (1000 * 60 * 60 * 24));
         } catch (ParseException e) {
@@ -571,8 +572,7 @@ public class SourceUsageManager {
     }
 
     private boolean isNotOk(SourceUsageRecord.CapacityStatus status) {
-        return SourceUsageRecord.CapacityStatus.TENTATIVE.equals(status)
-                || SourceUsageRecord.CapacityStatus.ERROR.equals(status);
+        return SourceUsageRecord.CapacityStatus.TENTATIVE == status || SourceUsageRecord.CapacityStatus.ERROR == status;
     }
 
     private void setNodeInfo(LicenseInfo info) {
@@ -684,28 +684,28 @@ public class SourceUsageManager {
         if (checkProject) {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY(),
                                 info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(),
                                 info.getCurrentCapacity(), info.getCapacity()));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
-                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(
+                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
             }
             logger.info("Current capacity status of project: {} is ok", project);
         } else {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_SOURCE_NODES_OVER_CAPACITY(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_SOURCE_NODES_OVER_CAPACITY(),
                                 info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(), info.getCurrentCapacity(),
-                                info.getCapacity()));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(),
+                                info.getCurrentCapacity(), info.getCapacity()));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
-                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(
+                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
             }
             logger.info("Current capacity status is ok");

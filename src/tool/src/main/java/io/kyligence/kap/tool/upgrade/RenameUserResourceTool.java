@@ -30,11 +30,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
@@ -63,6 +65,7 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -123,7 +126,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
             System.out.println(
                     "This script will help you modify the duplicate user name.  The system will add a number after the group name created according to the modification time, for example abc-> abc1\n"
                             + "Please confirm if you need to execute the script？(y/n)");
-            Scanner scanner = new Scanner(System.in);
+            Scanner scanner = new Scanner(System.in, Charset.defaultCharset().name());
 
             String prompt = scanner.nextLine();
 
@@ -132,7 +135,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
             }
 
             if (StringUtils.equals("n", prompt)) {
-                System.exit(0);
+                Unsafe.systemExit(0);
             }
         }
 
@@ -158,7 +161,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
         val tool = new RenameUserResourceTool();
         tool.execute(args);
         System.out.println("Rename user resource finished.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     @Override
@@ -184,8 +187,8 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
             NKylinUserManager kylinUserManager = NKylinUserManager.getInstance(config);
             ManagedUser managedUser = kylinUserManager.get(originUsername);
             if (managedUser == null) {
-                System.out.println(String.format("user %s does not exists", originUsername));
-                System.exit(1);
+                System.out.printf(Locale.ROOT, "user %s does not exists%n", originUsername);
+                Unsafe.systemExit(1);
             }
         } else {
             collectDuplicateUser();
@@ -285,9 +288,9 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
         AclTCR aclTCR = tcrManager.getAclTCR(oriUsername, true);
 
         if (aclTCR != null) {
-            String oriUserAclPath = String.format("/%s/acl/user/%s%s", projectName, oriUsername,
+            String oriUserAclPath = String.format(Locale.ROOT, "/%s/acl/user/%s%s", projectName, oriUsername,
                     MetadataConstants.FILE_SURFIX);
-            String destUserAclPath = String.format("/%s/acl/user/%s%s", projectName, destUsername,
+            String destUserAclPath = String.format(Locale.ROOT, "/%s/acl/user/%s%s", projectName, destUsername,
                     MetadataConstants.FILE_SURFIX);
             result = Optional.of(new RenameEntity(oriUserAclPath, destUserAclPath));
         }
@@ -304,7 +307,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
     private Optional<RenameEntity> updateProjectAcl(String oriUsername, String destUsername,
             ProjectInstance projectInstance) {
         Optional<RenameEntity> result = Optional.empty();
-        String projectAclPath = String.format("/_global/acl/%s", projectInstance.getUuid());
+        String projectAclPath = String.format(Locale.ROOT, "/_global/acl/%s", projectInstance.getUuid());
         RawResource rs = resourceStore.getResource(projectAclPath);
         if (rs == null) {
             return result;
@@ -431,7 +434,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
     private String generateAvailableResourceName(String originName, Set<String> existsResourceNames) {
         int suffix = 1;
         while (true) {
-            String destName = String.format("%s%s", originName, suffix);
+            String destName = String.format(Locale.ROOT, "%s%s", originName, suffix);
             if (!existsResourceNames.contains(destName)) {
                 return destName;
             }

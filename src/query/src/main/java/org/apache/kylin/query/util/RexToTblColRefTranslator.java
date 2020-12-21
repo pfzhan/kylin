@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -280,7 +281,7 @@ public class RexToTblColRefTranslator {
             return true;
         }
 
-        return rexNode instanceof RexCall && SqlKind.CAST.equals(rexNode.getKind())
+        return rexNode instanceof RexCall && SqlKind.CAST == rexNode.getKind()
                 && ((RexCall) rexNode).getOperands().get(0) instanceof RexLiteral;
     }
 
@@ -290,7 +291,7 @@ public class RexToTblColRefTranslator {
         private static final BigDecimal MONTHS_OF_QUARTER = new BigDecimal(3); // a quarter equals 3 months
         final Map<TimeUnit, SqlDatePartFunction> timeUnitFunctions = initTimeUnitFunctionMap();
 
-        private Map<String, SqlNode> rexToSqlMap;
+        private final Map<String, SqlNode> rexToSqlMap;
 
         public OLAPRexSqlStandardConvertletTable(RexCall call, Map<String, SqlNode> rexToSqlMap) {
             super();
@@ -313,13 +314,13 @@ public class RexToTblColRefTranslator {
                 try {
                     val methods = Class.forName(value).getMethods();
                     for (Method method : methods) {
-                        udfs.add(method.getName().toLowerCase());
+                        udfs.add(method.getName().toLowerCase(Locale.ROOT));
                     }
                 } catch (Exception e) {
                     log.error("registerUdfOperator not found method for :", e);
                 }
             });
-            if (udfs.contains(call.getOperator().toString().toLowerCase())) {
+            if (udfs.contains(call.getOperator().toString().toLowerCase(Locale.ROOT))) {
                 SqlOperator operator = call.getOperator();
                 this.registerEquivOp(operator);
             }

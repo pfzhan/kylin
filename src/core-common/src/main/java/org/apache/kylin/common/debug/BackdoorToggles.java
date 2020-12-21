@@ -126,7 +126,7 @@ public class BackdoorToggles {
         if (v == null)
             return -1;
         else
-            return Integer.valueOf(v);
+            return Integer.parseInt(v);
     }
 
     public static Pair<Short, Short> getShardAssignment() {
@@ -135,16 +135,13 @@ public class BackdoorToggles {
             return null;
         } else {
             String[] parts = StringUtils.split(v, "#");
-            return Pair.newPair(Short.valueOf(parts[0]), Short.valueOf(parts[1]));
+            return Pair.newPair(Short.parseShort(parts[0]), Short.parseShort(parts[1]));
         }
     }
 
     public static Integer getStatementMaxRows() {
         String v = getString(ATTR_STATEMENT_MAX_ROWS);
-        if (v == null)
-            return null;
-        else
-            return Integer.valueOf(v);
+        return v == null ? null : Integer.parseInt(v);
     }
 
     public static boolean getPrepareOnly() {

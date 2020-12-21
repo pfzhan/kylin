@@ -26,6 +26,8 @@ package io.kyligence.kap.tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 public class DiagClientCLI {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
@@ -35,6 +37,6 @@ public class DiagClientCLI {
         diagClientTool.execute(args);
 
         logger.info("Collect full diagnosis info completely.");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -85,7 +84,8 @@ public abstract class ExecutableUtil {
     }
 
     public static void computeParams(JobParam jobParam) {
-        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject()).getDataModelDesc(jobParam.getModel());
+        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
+                .getDataModelDesc(jobParam.getModel());
         if (model.isMultiPartitionModel()) {
             jobParam.getCondition().put(JobParam.ConditionConstant.MULTI_PARTITION_JOB, true);
         }
@@ -97,7 +97,7 @@ public abstract class ExecutableUtil {
     }
 
     public static void computeJobBucket(JobParam jobParam) {
-        if(!jobParam.isMultiPartitionJob()){
+        if (!jobParam.isMultiPartitionJob()) {
             return;
         }
         if (CollectionUtils.isEmpty(jobParam.getTargetPartitions())) {
@@ -112,16 +112,15 @@ public abstract class ExecutableUtil {
             val bucketStart = new AtomicLong(segment.getMaxBucketId());
             Set<Long> partitions;
             // Different segments with different partitions will only happen in index build job.
-            if (jobParam.getJobTypeEnum().equals(JobTypeEnum.INDEX_BUILD)) {
+            if (JobTypeEnum.INDEX_BUILD == jobParam.getJobTypeEnum()) {
                 partitions = segment.getAllPartitionIds();
             } else {
                 partitions = jobParam.getTargetPartitions();
             }
-            jobParam.getProcessLayouts().forEach(layout ->
-                    partitions.forEach(partition ->
-                            buckets.add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition)))
-            );
-            dfm.updateDataflow(df.getId(), copyForWrite -> copyForWrite.getSegment(targetSegment).setMaxBucketId(bucketStart.get()));
+            jobParam.getProcessLayouts().forEach(layout -> partitions.forEach(partition -> buckets
+                    .add(new JobBucket(segment.getId(), layout.getId(), bucketStart.incrementAndGet(), partition))));
+            dfm.updateDataflow(df.getId(),
+                    copyForWrite -> copyForWrite.getSegment(targetSegment).setMaxBucketId(bucketStart.get()));
         }
         jobParam.setTargetBuckets(buckets);
     }

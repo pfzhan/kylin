@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -85,8 +84,8 @@ public class PartitionBuildJobUtil extends ExecutableUtil {
         // segment is first built or other partition jobs (first built in this segment) are running
         if (segment.getMultiPartitions().isEmpty() || segment.getLayoutsMap().isEmpty()) {
             val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject());
-            val executables = execManager.listMultiPartitionModelExec(jobParam.getModel(), ExecutableState::isRunning, null,
-                    null, jobParam.getTargetSegments());
+            val executables = execManager.listMultiPartitionModelExec(jobParam.getModel(), ExecutableState::isRunning,
+                    null, null, jobParam.getTargetSegments());
             if (executables.size() > 0) {
                 Set<Long> layoutIds = executables.get(0).getLayoutIds();
                 indexPlan.getAllLayouts().forEach(layout -> {
@@ -117,8 +116,10 @@ public class PartitionBuildJobUtil extends ExecutableUtil {
                 .getDataflow(jobParam.getModel());
         NDataSegment segment = df.getSegment(jobParam.getSegment());
         segment.getMultiPartitions().forEach(partition -> {
-            if (jobParam.getTargetPartitions().contains(partition.getPartitionId()) && partition.getStatus().equals(PartitionStatusEnum.READY)) {
-                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
+            if (jobParam.getTargetPartitions().contains(partition.getPartitionId())
+                    && partition.getStatus() == PartitionStatusEnum.READY) {
+                throw new KylinException(FAILED_CREATE_JOB,
+                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
             }
         });
     }

@@ -40,9 +40,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -295,7 +297,7 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
 
         List<String> status = nonOffline ? modelService.getModelNonOffOnlineStatus()
-                : Arrays.asList(ModelStatusToDisplayEnum.OFFLINE.name());
+                : Collections.singletonList(ModelStatusToDisplayEnum.OFFLINE.name());
         List<String> scd2ModelsOnline = modelService.getSCD2ModelsAliasByStatus(project, status);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, scd2ModelsOnline, "");
     }
@@ -488,7 +490,7 @@ public class NModelController extends NBasicController {
 
     @PutMapping(value = "/semantic")
     @ResponseBody
-    public EnvelopeResponse<String> updateSemantic(@RequestBody ModelRequest request) throws Exception {
+    public EnvelopeResponse<String> updateSemantic(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(request.getProject(), request.getId());
         validateDataRange(request.getStart(), request.getEnd(), partitionColumnFormat);
@@ -535,7 +537,7 @@ public class NModelController extends NBasicController {
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL)) {
             throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
         }
 
         modelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
@@ -596,7 +598,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL)) {
             throw new KylinException(INVALID_MODEL_NAME,
-                    String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -788,7 +790,7 @@ public class NModelController extends NBasicController {
         String[] segIds = modelService.convertSegmentIdWithName(modelId, request.getProject(), request.getIds(),
                 request.getNames());
 
-        if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
+        if (SegmentsRequest.SegmentsRequestType.REFRESH == request.getType()) {
             if (ArrayUtils.isEmpty(segIds)) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
@@ -918,13 +920,15 @@ public class NModelController extends NBasicController {
 
         BISyncModel syncModel = modelService.exportModel(project, modelId, exportAs, element, host, port);
 
-        String fileName = String.format("%s_%s_%s", project, modelService.getModelById(modelId, project).getAlias(),
-                new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+        String fileName = String.format(Locale.ROOT, "%s_%s_%s", project,
+                modelService.getModelById(modelId, project).getAlias(),
+                new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault(Locale.Category.FORMAT)).format(new Date()));
         switch (exportAs) {
         case TABLEAU_CONNECTOR_TDS:
         case TABLEAU_ODBC_TDS:
             response.setContentType("application/xml");
-            response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s.tds\"", fileName));
+            response.setHeader("Content-Disposition",
+                    String.format(Locale.ROOT, "attachment; filename=\"%s.tds\"", fileName));
             break;
         default:
             throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");

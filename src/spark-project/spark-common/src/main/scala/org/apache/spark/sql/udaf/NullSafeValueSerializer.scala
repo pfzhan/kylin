@@ -140,7 +140,7 @@ class LongSerializer extends NullSafeValueSerializer {
 @SerialVersionUID(1)
 class StringSerializer extends NullSafeValueSerializer {
   override def serialize0(output: DataOutput, value: Any): Unit = {
-    val bytes = value.toString.getBytes
+    val bytes = value.toString.getBytes(StandardCharsets.UTF_8)
     output.writeInt(bytes.length)
     output.write(bytes)
   }

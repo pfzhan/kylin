@@ -23,6 +23,7 @@
  */
 package org.apache.kylin.sdk.datasource.framework.def;
 
+import java.util.Locale;
 import java.util.UUID;
 
 import org.junit.Assert;
@@ -37,7 +38,7 @@ public class TypeDefTest {
             Assert.assertEquals(4, t.getDefaultScale());
             Assert.assertEquals("DECIMAL(19,4)", t.buildString(30, 2));
             Assert.assertEquals("DECIMAL", t.getName());
-            Assert.assertEquals(t.getId(), t.getId().toUpperCase());
+            Assert.assertEquals(t.getId(), t.getId().toUpperCase(Locale.ROOT));
         }
         {
             TypeDef t = defineType("DECIMAL($p,$s)");
@@ -45,13 +46,13 @@ public class TypeDefTest {
             Assert.assertEquals(-1, t.getDefaultScale());
             Assert.assertEquals("DECIMAL(19,4)", t.buildString(19, 4));
             Assert.assertEquals("DECIMAL", t.getName());
-            Assert.assertEquals(t.getId(), t.getId().toUpperCase());
+            Assert.assertEquals(t.getId(), t.getId().toUpperCase(Locale.ROOT));
         }
     }
 
     private TypeDef defineType(String pattern) {
         TypeDef t = new TypeDef();
-        t.setId(UUID.randomUUID().toString().toLowerCase());
+        t.setId(UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
         t.setExpression(pattern);
         t.init();
         return t;

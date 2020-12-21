@@ -25,6 +25,7 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
@@ -87,10 +88,12 @@ public class InfluxDBToolTest extends LogOutputTestCase {
         String originHost = kapConfig.getMetricsRpcServiceBindAddress();
         kylinConfig.setProperty("kylin.metrics.influx-rpc-service-bind-address", "127.0.0.1:" + port);
         InfluxDBTool.dumpInfluxDBMetrics(mainDir);
-        Assert.assertTrue(containsLog(String.format("Failed to Connect influxDB in 127.0.0.1:%s, skip dump.", port)));
+        Assert.assertTrue(containsLog(
+                String.format(Locale.ROOT, "Failed to Connect influxDB in 127.0.0.1:%s, skip dump.", port)));
         clearLogs();
         InfluxDBTool.dumpInfluxDBMonitorMetrics(mainDir);
-        Assert.assertTrue(containsLog(String.format("Failed to Connect influxDB in 127.0.0.1:%s, skip dump.", port)));
+        Assert.assertTrue(containsLog(
+                String.format(Locale.ROOT, "Failed to Connect influxDB in 127.0.0.1:%s, skip dump.", port)));
         kylinConfig.setProperty("kylin.metrics.influx-rpc-service-bind-address", originHost);
     }
 

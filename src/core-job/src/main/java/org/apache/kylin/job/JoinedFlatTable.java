@@ -44,6 +44,7 @@ package org.apache.kylin.job;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -87,10 +88,11 @@ public class JoinedFlatTable {
 
     private static String quotedTable(TableDesc table) {
         if (table.getCaseSensitiveDatabase().equals("null")) {
-            return quote(table.getCaseSensitiveName().toUpperCase());
+            return quote(table.getCaseSensitiveName().toUpperCase(Locale.ROOT));
         }
-        return String.format(DATABASE_AND_TABLE, quote(table.getCaseSensitiveDatabase().toUpperCase()),
-                quote(table.getCaseSensitiveName().toUpperCase()));
+        return String.format(Locale.ROOT, DATABASE_AND_TABLE,
+                quote(table.getCaseSensitiveDatabase().toUpperCase(Locale.ROOT)),
+                quote(table.getCaseSensitiveName().toUpperCase(Locale.ROOT)));
     }
 
     private static String quotedColExpressionInSourceDB(NDataModel modelDesc, TblColRef col) {
@@ -150,7 +152,7 @@ public class JoinedFlatTable {
             if (checkJoinDesc(join)) {
                 continue;
             }
-            String joinType = join.getType().toUpperCase();
+            String joinType = join.getType().toUpperCase(Locale.ROOT);
             TableRef dimTable = lookupDesc.getTableRef();
             if (dimTableCache.contains(dimTable)) {
                 continue;
@@ -165,7 +167,8 @@ public class JoinedFlatTable {
                 TblColRef[] pk = join.getPrimaryKeyColumns();
                 TblColRef[] fk = join.getForeignKeyColumns();
                 if (pk.length != fk.length) {
-                    throw new RuntimeException(String.format("Invalid join condition of lookup table: %s", lookupDesc));
+                    throw new RuntimeException(
+                            String.format(Locale.ROOT, "Invalid join condition of lookup table: %s", lookupDesc));
                 }
 
                 for (int i = 0; i < pk.length; i++) {

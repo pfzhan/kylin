@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -82,7 +81,7 @@ public class SandboxMetadataTestCase extends AbstractKylinTestCase {
         KylinConfig.destroyInstance();
 
         if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
-            System.setProperty(KylinConfig.KYLIN_CONF, kylinConfigFolder);
+            overwriteSystemPropBeforeClass(KylinConfig.KYLIN_CONF, kylinConfigFolder);
 
     }
 

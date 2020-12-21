@@ -46,12 +46,13 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.Locale;
 
 public class ToCharUDF {
 
     public String TO_CHAR(@Parameter(name = "date") Timestamp date, @Parameter(name = "part") String part) {
         String partOfDate = null;
-        switch (part.toUpperCase()) {
+        switch (part.toUpperCase(Locale.ROOT)) {
         case "YEAR":
             partOfDate = date.toString().substring(0, 4);
             break;

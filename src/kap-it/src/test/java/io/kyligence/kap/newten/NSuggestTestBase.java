@@ -27,8 +27,10 @@ package io.kyligence.kap.newten;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -107,7 +109,6 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         super.cleanupTestMetadata();
         ResourceStore.clearCache(kylinConfig);
         excludedSqlPatterns.clear();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
 
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
@@ -122,14 +123,15 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             return result;
         }
 
-        String[] fileContentArr = new String(getFileBytes(files[0])).split(System.getProperty("line.separator"));
+        String[] fileContentArr = new String(getFileBytes(files[0]), StandardCharsets.UTF_8)
+                .split(System.getProperty("line.separator"));
         final List<String> fileNames = Arrays.stream(fileContentArr)
                 .filter(name -> !name.startsWith("-") && name.length() > 0) //
                 .collect(Collectors.toList());
         final List<Pair<String, String>> queries = Lists.newArrayList();
         for (String name : fileNames) {
             File tmp = new File(NAutoTestBase.IT_SQL_KAP_DIR + "/" + name);
-            final String sql = new String(getFileBytes(tmp));
+            final String sql = new String(getFileBytes(tmp), StandardCharsets.UTF_8);
             queries.add(new Pair<>(tmp.getCanonicalPath(), sql));
         }
 
@@ -138,7 +140,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             result.addAll(changeJoinType(sql));
 
             // add limit
-            if (!sql.toLowerCase().contains("limit ")) {
+            if (!sql.toLowerCase(Locale.ROOT).contains("limit ")) {
                 result.addAll(changeJoinType(sql + " limit 5"));
             }
         });
@@ -407,7 +409,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         Map<Integer, List<Pair<String, String>>> result = Maps.newHashMap();
         queryList.forEach(pair -> {
             String sqlContent = pair.getSecond();
-            int times = StringUtils.countMatches(sqlContent.toLowerCase(), " join ");
+            int times = StringUtils.countMatches(sqlContent.toLowerCase(Locale.ROOT), " join ");
             result.putIfAbsent(times, Lists.newArrayList());
             result.get(times).add(pair);
         });
@@ -441,7 +443,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
     protected void assertOrPrintCmpResult(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap) {
         // print details
         compareMap.forEach((key, value) -> {
-            if (value.getLevel().equals(RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY)) {
+            if (RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY == value.getLevel()) {
                 return;
             }
             final String sqlPattern = value.getFilePath().contains("/sql_parentheses_escape/") //

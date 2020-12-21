@@ -889,8 +889,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), "data_size", true,
                 Lists.newArrayList(AUTO_TABLE, MANUAL_TABLE));
 
-        Assert.assertTrue(indexResponses.stream().allMatch(indexResponse -> indexResponse.getSource().equals(AUTO_TABLE)
-                || indexResponse.getSource().equals(MANUAL_TABLE)));
+        Assert.assertTrue(indexResponses.stream().allMatch(
+                indexResponse -> AUTO_TABLE == indexResponse.getSource() || MANUAL_TABLE == indexResponse.getSource()));
 
         // test default order by
         indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), null, false,

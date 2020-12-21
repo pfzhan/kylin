@@ -43,6 +43,7 @@ import org.apache.kylin.job.lock.ZookeeperAclBuilder;
 import org.apache.zookeeper.data.Stat;
 
 import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.tool.discovery.ServiceInstanceSerializer;
 import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
 import lombok.val;
@@ -98,7 +99,7 @@ public class CuratorOperator implements AutoCloseable {
             log.error("", e);
             ret = 1;
         }
-        System.exit(ret);
+        Unsafe.systemExit(ret);
     }
 
     public String getAddress() throws Exception {

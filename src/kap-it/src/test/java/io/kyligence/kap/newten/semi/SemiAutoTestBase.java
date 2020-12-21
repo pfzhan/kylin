@@ -187,9 +187,8 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         // 4. compare layout propose result and query cube result
         RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
         // 5. check layout
-        assertOrPrintCmpResult(compareMap.entrySet().stream()
-                .filter(entry -> !entry.getValue().getLevel()
-                        .equals(RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY))
+        assertOrPrintCmpResult(compareMap.entrySet().stream().filter(
+                entry -> RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY != entry.getValue().getLevel())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         log.debug("compare realization cost {} s", System.currentTimeMillis() - startTime);
 

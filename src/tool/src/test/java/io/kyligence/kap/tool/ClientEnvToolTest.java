@@ -23,7 +23,10 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.io.IOException;
+import java.util.Locale;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -33,8 +36,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ClientEnvToolTest extends NLocalFileMetadataTestCase {
 
@@ -62,7 +64,8 @@ public class ClientEnvToolTest extends NLocalFileMetadataTestCase {
         ClientEnvTool clientEnvTool = new ClientEnvTool();
 
         File file = new File(mainDir, "a.txt");
-        clientEnvTool.extractInfoByCmd(String.format("echo \"hello world\" > %s", file.getAbsolutePath()), file);
+        clientEnvTool.extractInfoByCmd(String.format(Locale.ROOT, "echo \"hello world\" > %s", file.getAbsolutePath()),
+                file);
 
         Assert.assertTrue(FileUtils.readFileToString(file).startsWith("hello world"));
     }

@@ -43,7 +43,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 
-public class NComputColumnTest extends NLocalWithSparkSessionTest {
+public class NComputedColumnTest extends NLocalWithSparkSessionTest {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");

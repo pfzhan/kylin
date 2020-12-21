@@ -131,7 +131,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             TableDesc tableDesc = NTableMetadataManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
                     .getTableDesc(executableResponse.getTargetSubject());
-            if (snapshotJob.getStatus().isFinalState() && (tableDesc == null || tableDesc.getLastSnapshotPath() == null)) {
+            if (snapshotJob.getStatus().isFinalState()
+                    && (tableDesc == null || tableDesc.getLastSnapshotPath() == null)) {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
@@ -151,13 +152,13 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
         int successSteps = 0;
         for (AbstractExecutable task : tasks) {
-            if (task.getStatus().equals(ExecutableState.SUCCEED)) {
+            if (ExecutableState.SUCCEED == task.getStatus()) {
                 successSteps++;
             }
         }
         var stepRatio = (float) successSteps / tasks.size();
         // in case all steps are succeed, but the job is paused, the stepRatio should be 99%
-        if (stepRatio == 1 && ExecutableState.PAUSED.equals(abstractExecutable.getStatus())) {
+        if (stepRatio == 1 && ExecutableState.PAUSED == abstractExecutable.getStatus()) {
             stepRatio = 0.99F;
         }
         executableResponse.setStepRatio(stepRatio);
@@ -167,7 +168,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
 
     @Override
     public int compareTo(ExecutableResponse o) {
-        return o.lastModified < this.lastModified ? -1 : o.lastModified > this.lastModified ? 1 : 0;
+        return Long.compare(o.lastModified, this.lastModified);
     }
 
     /**

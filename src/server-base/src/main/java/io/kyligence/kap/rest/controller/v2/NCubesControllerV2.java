@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -205,8 +206,8 @@ public class NCubesControllerV2 extends NBasicController {
                 .collect(Collectors.toSet());
 
         if (CollectionUtils.isNotEmpty(notExistSegList)) {
-            throw new KylinException(SEGMENT_NOT_EXIST, String.format("Can not find those segment names: [%s]",
-                    StringUtils.join(notExistSegList.iterator(), ",")));
+            throw new KylinException(SEGMENT_NOT_EXIST, String.format(Locale.ROOT,
+                    "Can not find those segment names: [%s]", StringUtils.join(notExistSegList.iterator(), ",")));
         }
 
         Set<String> idList = segList.stream().map(NDataSegmentResponse::getId).collect(Collectors.toSet());

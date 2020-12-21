@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -133,11 +134,11 @@ public class OpenMetaStoreController extends NBasicController {
             val modelDesc = modelManager.getDataModelDescByAlias(modelName);
             if (Objects.isNull(modelDesc)) {
                 throw new KylinException(MODEL_NOT_EXIST,
-                        String.format("The model is not exist. Model name: [%s].", modelName));
+                        String.format(Locale.ROOT, "The model is not exist. Model name: [%s].", modelName));
             }
             if (modelDesc.isBroken()) {
                 throw new KylinException(MODEL_BROKEN,
-                        String.format("Broken model cannot be exported. Model name: [%s].", modelName));
+                        String.format(Locale.ROOT, "Broken model cannot be exported. Model name: [%s].", modelName));
             }
         }
     }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,19 +46,20 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class StreamingManagerTest {
+public class StreamingManagerTest extends AbstractTestCase {
 
     private CleanMetadataHelper cleanMetadataHelper = null;
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("kylin.env", "UT");
+        overwriteSystemProp("kylin.env", "UT");
         cleanMetadataHelper = new CleanMetadataHelper();
         cleanMetadataHelper.setUp();
     }
@@ -67,7 +67,6 @@ public class StreamingManagerTest {
     @After
     public void after() throws Exception {
         cleanMetadataHelper.tearDown();
-        System.clearProperty("kylin.env");
     }
 
     @Test
@@ -82,7 +81,7 @@ public class StreamingManagerTest {
             streamingConfig.setType("type for test");
             mgr.createStreamingConfig(streamingConfig);
             List<StreamingConfig> reloadAll = mgr.reloadAll();
-            Assert.assertTrue(origin.size() + 1 == reloadAll.size());
+            Assert.assertEquals(origin.size() + 1, reloadAll.size());
         }
 
         // test update
@@ -91,7 +90,7 @@ public class StreamingManagerTest {
             streamingConfig.setType("updated type");
             mgr.updateStreamingConfig(streamingConfig);
             List<StreamingConfig> reloadAll = mgr.reloadAll();
-            Assert.assertTrue(origin.size() + 1 == reloadAll.size());
+            Assert.assertEquals(origin.size() + 1, reloadAll.size());
             streamingConfig = mgr.getStreamingConfig("name_for_test");
             Assert.assertEquals("updated type", streamingConfig.getType());
         }

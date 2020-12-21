@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.tool.util;
 
+import io.kyligence.kap.common.util.Unsafe;
+
 public class ScreenPrintUtil {
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_GREEN = "\u001B[32m";
@@ -60,7 +62,7 @@ public class ScreenPrintUtil {
 
     public static void systemExitWhenMainThread(int code) {
         if (isMainThread()) {
-            System.exit(code);
+            Unsafe.systemExit(code);
         }
     }
 

@@ -102,7 +102,7 @@ public class SmartConfig implements Serializable, IKeep {
     }
 
     public Boolean enableComputedColumnOnFilterKeySuggestion() {
-        return Boolean.valueOf(getOptional("computed-column.suggestion.filter-key.enabled", "FALSE"));
+        return Boolean.parseBoolean(getOptional("computed-column.suggestion.filter-key.enabled", "FALSE"));
     }
 
     public boolean needProposeCcIfNoSampling() {

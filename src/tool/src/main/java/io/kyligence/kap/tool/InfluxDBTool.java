@@ -24,6 +24,7 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
+import java.util.Locale;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
@@ -77,10 +78,9 @@ public class InfluxDBTool {
                 influxd = new File(influxDBHome + INFLUXD_PATH);
             }
 
-            String cmd = String.format("%s backup -portable -database %s -host %s %s", influxd.getAbsolutePath(),
-                    database, host, destDir.getAbsolutePath());
+            String cmd = String.format(Locale.ROOT, "%s backup -portable -database %s -host %s %s",
+                    influxd.getAbsolutePath(), database, host, destDir.getAbsolutePath());
             logger.info("InfluxDB backup cmd is {}.", cmd);
-
 
             val result = new CliCommandExecutor().execute(cmd, null);
             if (null != result.getCmd()) {

@@ -69,6 +69,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -280,7 +281,8 @@ public class QueryService extends BasicService {
         val record = getSavedQueries(creator, project);
         List<Query> currentQueries = record.getQueries();
         if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
-            throw new IllegalArgumentException(String.format(msg.getDUPLICATE_QUERY_NAME(), query.getName()));
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, msg.getDUPLICATE_QUERY_NAME(), query.getName()));
 
         currentQueries.add(query);
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
@@ -369,7 +371,7 @@ public class QueryService extends BasicService {
         logger.info(log);
         logger.info(report.jsonStyleLog());
         if (request.getExecuteAs() != null)
-            logger.info(String.format("[EXECUTE AS USER]: User [%s] executes the sql as user [%s].", user,
+            logger.info(String.format(Locale.ROOT, "[EXECUTE AS USER]: User [%s] executes the sql as user [%s].", user,
                     request.getExecuteAs()));
         return log;
     }
@@ -416,8 +418,8 @@ public class QueryService extends BasicService {
         String username = AclPermissionUtil.getCurrentUsername();
         Set<String> groups = getCurrentUserGroups();
         if (!AclPermissionUtil.isAdmin() && !aclTCRManager.isAllTablesAuthorized(username, groups))
-            throw new KylinException(PERMISSION_DENIED, String
-                    .format(MsgPicker.getMsg().getSERVICE_ACCOUNT_NOT_ALLOWED(), username, sqlRequest.getProject()));
+            throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getSERVICE_ACCOUNT_NOT_ALLOWED(), username, sqlRequest.getProject()));
 
         // check whether execute user has project read permission
         List<String> grantedProjects;
@@ -454,7 +456,7 @@ public class QueryService extends BasicService {
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
-                    String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
+                    String.format(Locale.ROOT, msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
         }
         if (StringUtils.isBlank(sqlRequest.getSql())) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());
@@ -782,7 +784,7 @@ public class QueryService extends BasicService {
                     ADMINISTRATION);
         } catch (Exception UsernameNotFoundException) {
             throw new KylinException(INVALID_USER_NAME,
-                    String.format(MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
         }
         return new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission);
     }
@@ -859,7 +861,7 @@ public class QueryService extends BasicService {
                     continue;
                 }
 
-                if (!colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
+                if (!colmnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")) {
                     tblMeta.addColumn(colmnMeta);
                 }
             }
@@ -948,7 +950,7 @@ public class QueryService extends BasicService {
                 }
 
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(columnMeta.getTABLE_SCHEM())
-                        && !columnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
+                        && !columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")) {
                     columnMap.put(columnMeta.getTABLE_SCHEM() + "#" + columnMeta.getTABLE_NAME() + "#"
                             + columnMeta.getCOLUMN_NAME(), columnMeta);
                 }
@@ -985,10 +987,10 @@ public class QueryService extends BasicService {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
         projectManager.listAllRealizations(project).forEach(rea -> {
-            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream().map(String::toUpperCase)
-                    .collect(Collectors.toList());
-            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(), upperCaseCcNames);
-            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(), upperCaseCcNames);
+            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream()
+                    .map(str -> str.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
+            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(Locale.ROOT), upperCaseCcNames);
+            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(Locale.ROOT), upperCaseCcNames);
         });
         return tbl2ccNames;
     }
@@ -1003,7 +1005,7 @@ public class QueryService extends BasicService {
 
         // only check cc expose when exposeComputedColumn=False
         // do not expose column if it is a computed column
-        return !isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(),
+        return !isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT),
                 columnMeta.getTABLE_NAME(), tbl2ccNames);
     }
 
@@ -1017,8 +1019,8 @@ public class QueryService extends BasicService {
     private boolean isComputedColumn(String project, String ccName, String table,
             SetMultimap<String, String> tbl2ccNames) {
 
-        return CollectionUtils.isNotEmpty(tbl2ccNames.get(table.toUpperCase()))
-                && tbl2ccNames.get(table.toUpperCase()).contains(ccName.toUpperCase());
+        return CollectionUtils.isNotEmpty(tbl2ccNames.get(table.toUpperCase(Locale.ROOT)))
+                && tbl2ccNames.get(table.toUpperCase(Locale.ROOT)).contains(ccName.toUpperCase(Locale.ROOT));
     }
 
     private void addColsToTblMeta(Map<String, TableMetaWithType> tblMap,
@@ -1267,23 +1269,23 @@ public class QueryService extends BasicService {
             break;
         case PRIMITIVE_INT:
         case INTEGER:
-            queryExec.setPrepareParam(index, isNull ? 0 : Integer.valueOf(param.getValue()));
+            queryExec.setPrepareParam(index, isNull ? 0 : Integer.parseInt(param.getValue()));
             break;
         case PRIMITIVE_SHORT:
         case SHORT:
-            queryExec.setPrepareParam(index, isNull ? 0 : Short.valueOf(param.getValue()));
+            queryExec.setPrepareParam(index, isNull ? 0 : Short.parseShort(param.getValue()));
             break;
         case PRIMITIVE_LONG:
         case LONG:
-            queryExec.setPrepareParam(index, isNull ? 0 : Long.valueOf(param.getValue()));
+            queryExec.setPrepareParam(index, isNull ? 0 : Long.parseLong(param.getValue()));
             break;
         case PRIMITIVE_FLOAT:
         case FLOAT:
-            queryExec.setPrepareParam(index, isNull ? 0 : Float.valueOf(param.getValue()));
+            queryExec.setPrepareParam(index, isNull ? 0 : Float.parseFloat(param.getValue()));
             break;
         case PRIMITIVE_DOUBLE:
         case DOUBLE:
-            queryExec.setPrepareParam(index, isNull ? 0 : Double.valueOf(param.getValue()));
+            queryExec.setPrepareParam(index, isNull ? 0 : Double.parseDouble(param.getValue()));
             break;
         case PRIMITIVE_BOOLEAN:
         case BOOLEAN:
@@ -1291,7 +1293,7 @@ public class QueryService extends BasicService {
             break;
         case PRIMITIVE_BYTE:
         case BYTE:
-            queryExec.setPrepareParam(index, isNull ? 0 : Byte.valueOf(param.getValue()));
+            queryExec.setPrepareParam(index, isNull ? 0 : Byte.parseByte(param.getValue()));
             break;
         case JAVA_UTIL_DATE:
         case JAVA_SQL_DATE:

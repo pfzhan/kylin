@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -252,16 +253,16 @@ public class NIndexPlanManager implements IKeepNames {
         }
 
         // validate columns of table index
-        Set<Integer> selectedColumnIds = NDataModelManager
-                .getInstance(config, indexPlan.getProject())
+        Set<Integer> selectedColumnIds = NDataModelManager.getInstance(config, indexPlan.getProject())
                 .getDataModelDesc(indexPlan.getUuid()).getAllSelectedColumns().stream()
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
         for (IndexEntity index : indexPlan.getAllIndexes(false)) {
             if (index.isTableIndex()) {
                 for (Integer dimId : index.getDimensions()) {
                     if (!selectedColumnIds.contains(dimId)) {
-                        throw new IllegalStateException(String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
-                                indexPlan.getModel().getTombColumnNameById(dimId)));
+                        throw new IllegalStateException(
+                                String.format(Locale.ROOT, MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
+                                        indexPlan.getModel().getTombColumnNameById(dimId)));
                     }
                 }
             }

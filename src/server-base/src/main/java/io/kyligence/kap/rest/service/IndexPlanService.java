@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -315,7 +316,7 @@ public class IndexPlanService extends BasicService {
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
             throw new KylinException(INVALID_PARAMETER,
-                    String.format(MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -392,7 +393,7 @@ public class IndexPlanService extends BasicService {
 
                 if (CollectionUtils.isNotEmpty(notExistCols)) {
                     throw new KylinException(ServerErrorCode.EFFECTIVE_DIMENSION_NOT_FIND,
-                            String.format(MsgPicker.getMsg().getEFFECTIVE_DIMENSION_NOT_FIND(),
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getEFFECTIVE_DIMENSION_NOT_FIND(),
                                     StringUtils.join(notExistCols.iterator(), ",")));
                 }
             }
@@ -476,7 +477,7 @@ public class IndexPlanService extends BasicService {
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
                 throw new KylinException(PERMISSION_DENIED,
-                        String.format(MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
             }
         }
 
@@ -562,7 +563,7 @@ public class IndexPlanService extends BasicService {
     }
 
     private boolean containsIgnoreCase(String s1, String s2) {
-        return s1.toUpperCase().contains(s2.toUpperCase());
+        return s1.toUpperCase(Locale.ROOT).contains(s2.toUpperCase(Locale.ROOT));
     }
 
     public IndexGraphResponse getIndexGraph(String project, String modelId, int maxSize) {
@@ -579,7 +580,7 @@ public class IndexPlanService extends BasicService {
         indexGraphResponse.setModel(modelId);
         indexGraphResponse.setTotalIndexes(indexResponses.size());
         indexGraphResponse.setEmptyIndexes(
-                indexResponses.stream().filter(r -> r.getStatus().equals(IndexResponse.Status.EMPTY)).count());
+                indexResponses.stream().filter(r -> IndexResponse.Status.EMPTY == r.getStatus()).count());
 
         Function<IndexResponse, IndexGraphResponse.Index> responseConverter = res -> {
             val index = new IndexGraphResponse.Index();
@@ -587,13 +588,13 @@ public class IndexPlanService extends BasicService {
             return index;
         };
         indexGraphResponse.setAutoAggIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> r.getSource().equals(IndexResponse.Source.AUTO_AGG)).map(responseConverter)));
+                .filter(r -> IndexResponse.Source.AUTO_AGG == r.getSource()).map(responseConverter)));
         indexGraphResponse.setManualAggIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> r.getSource().equals(IndexResponse.Source.MANUAL_AGG)).map(responseConverter)));
+                .filter(r -> IndexResponse.Source.MANUAL_AGG == r.getSource()).map(responseConverter)));
         indexGraphResponse.setAutoTableIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> r.getSource().equals(IndexResponse.Source.AUTO_TABLE)).map(responseConverter)));
+                .filter(r -> IndexResponse.Source.AUTO_TABLE == r.getSource()).map(responseConverter)));
         indexGraphResponse.setManualTableIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> r.getSource().equals(IndexResponse.Source.MANUAL_TABLE)).map(responseConverter)));
+                .filter(r -> IndexResponse.Source.MANUAL_TABLE == r.getSource()).map(responseConverter)));
 
         val dataflow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
                 .getDataflow(indexPlan.getId());

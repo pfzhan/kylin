@@ -53,11 +53,12 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.Unsafe;
 
 public class KylinConfigCLI implements IKeep {
     public static void main(String[] args) {
         execute(args);
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     public static void execute(String[] args) {
@@ -66,7 +67,7 @@ public class KylinConfigCLI implements IKeep {
             if (args.length < 2 || !Objects.equals(EncryptUtil.DEC_FLAG, args[1])) {
                 System.out.println("Usage: KylinConfigCLI conf_name");
                 System.out.println("Example: KylinConfigCLI kylin.server.mode");
-                System.exit(1);
+                Unsafe.systemExit(1);
             } else {
                 needDec = true;
             }

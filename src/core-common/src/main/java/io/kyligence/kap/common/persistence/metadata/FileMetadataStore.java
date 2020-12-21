@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 
@@ -54,7 +55,8 @@ public class FileMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long epochId) throws Exception {
+    protected void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long epochId)
+            throws Exception {
         File f = file(path);
         f.getParentFile().mkdirs();
         if (bs == null) {
@@ -85,7 +87,8 @@ public class FileMetadataStore extends MetadataStore {
 
         boolean renameResult = srcFilePath.renameTo(destFilePath);
         if (!renameResult) {
-            throw new RuntimeException(String.format("update path %s %s failed", srcFilePath, destFilePath));
+            throw new RuntimeException(
+                    String.format(Locale.ROOT, "update path %s %s failed", srcFilePath, destFilePath));
         }
     }
 

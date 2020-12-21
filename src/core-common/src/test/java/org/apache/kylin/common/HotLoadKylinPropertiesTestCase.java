@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,6 +48,7 @@ import java.io.FileOutputStream;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.junit.After;
 import org.junit.Before;
@@ -59,8 +59,7 @@ import com.google.common.collect.Lists;
  * @author kangkaisen
  */
 
-public class HotLoadKylinPropertiesTestCase {
-
+public class HotLoadKylinPropertiesTestCase extends AbstractTestCase {
 
     private CleanMetadataHelper cleanMetadataHelper = null;
 
@@ -86,7 +85,6 @@ public class HotLoadKylinPropertiesTestCase {
     public void after() throws Exception {
         cleanMetadataHelper.tearDown();
     }
-
 
     protected void updateProperty(String key, String value) {
         File propFile = KylinConfig.getSitePropertiesFile();

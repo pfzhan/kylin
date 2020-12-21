@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.recommendation.candidate;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -196,7 +197,7 @@ public class RawRecItem implements IKeep {
         case 5:
             return RawRecItem.RawRecType.REMOVAL_LAYOUT;
         default:
-            throw new IllegalStateException(String.format(RawRecItem.TYPE_ERROR_FORMAT, recType));
+            throw new IllegalStateException(String.format(Locale.ROOT, RawRecItem.TYPE_ERROR_FORMAT, recType));
         }
     }
 
@@ -213,7 +214,7 @@ public class RawRecItem implements IKeep {
         case 4:
             return RawRecItem.RawRecState.BROKEN;
         default:
-            throw new IllegalStateException(String.format(RawRecItem.STATE_ERROR_FORMAT, stateType));
+            throw new IllegalStateException(String.format(Locale.ROOT, RawRecItem.STATE_ERROR_FORMAT, stateType));
         }
     }
 
@@ -230,7 +231,7 @@ public class RawRecItem implements IKeep {
             case 5:
                 return JsonUtil.readValue(jsonString, LayoutRecItemV2.class);
             default:
-                throw new IllegalStateException(String.format(RawRecItem.TYPE_ERROR_FORMAT, recType));
+                throw new IllegalStateException(String.format(Locale.ROOT, RawRecItem.TYPE_ERROR_FORMAT, recType));
             }
         } catch (IOException | IllegalStateException e) {
             throw new IllegalStateException("cannot deserialize recommendation entity.", e);

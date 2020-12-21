@@ -140,7 +140,6 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Thread.interrupted();
         }
         slowQueryDetector.queryEnd();
-        System.clearProperty("kylin.query.engine.spark-sql-shuffle-partitions");
 
         Thread.sleep(1000);
         JobData jobData = new InfoHelper(ss).getJobsByGroupId(Thread.currentThread().getName()).apply(0);

@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
@@ -94,7 +95,7 @@ public class OpenAclTCRController extends NBasicController {
         if (!hasProjectPermission) {
             Message msg = MsgPicker.getMsg();
             throw new KylinException(ACCESS_DENIED,
-                    String.format(msg.getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION(), sid, project));
+                    String.format(Locale.ROOT, msg.getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION(), sid, project));
         }
         aclTCRService.mergeAclTCR(project, sid, principal, requests);
     }

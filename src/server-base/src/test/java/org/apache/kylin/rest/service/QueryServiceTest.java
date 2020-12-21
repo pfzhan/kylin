@@ -114,7 +114,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.common.util.SystemPropertyOverride;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -146,12 +145,12 @@ import net.sf.ehcache.CacheManager;
 public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
-    private CacheManager cacheManager = Mockito
+    private final CacheManager cacheManager = Mockito
             .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache.xml")));
 
-    private QueryCacheManager queryCacheManager = new QueryCacheManager();
+    private final QueryCacheManager queryCacheManager = new QueryCacheManager();
 
-    private ClusterManager clusterManager = new DefaultClusterManager(8080);
+    private final ClusterManager clusterManager = new DefaultClusterManager(8080);
 
     private QueryService origin;
 
@@ -159,7 +158,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     private QueryService queryService;
 
     @InjectMocks
-    private AppConfig appConfig = Mockito.spy(new AppConfig());
+    private final AppConfig appConfig = Mockito.spy(new AppConfig());
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -1143,7 +1142,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     //ref KE-12803
-    public void testDeepCopy() throws IOException {
+    public void testDeepCopy() {
         final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
         tableMetas.stream()
                 .map(tableMetaWithType -> JsonUtil.deepCopyQuietly(tableMetaWithType, TableMetaWithType.class))
@@ -1182,8 +1181,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlResponse.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponse.getScanBytes()));
         sqlResponse.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponse.getScanRows()));
 
-        Assert.assertTrue(sqlResponse.getTotalScanRows() == 3L);
-        Assert.assertTrue(sqlResponse.getTotalScanBytes() == 5L);
+        Assert.assertEquals(3L, sqlResponse.getTotalScanRows());
+        Assert.assertEquals(5L, sqlResponse.getTotalScanBytes());
 
         SQLResponse sqlResponseNull = new SQLResponse();
         sqlResponseNull.setScanRows(null);
@@ -1191,8 +1190,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlResponseNull.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponseNull.getScanBytes()));
         sqlResponseNull.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponseNull.getScanRows()));
 
-        Assert.assertTrue(sqlResponseNull.getTotalScanRows() == defaultValue);
-        Assert.assertTrue(sqlResponseNull.getTotalScanBytes() == defaultValue);
+        Assert.assertEquals(sqlResponseNull.getTotalScanRows(), defaultValue);
+        Assert.assertEquals(sqlResponseNull.getTotalScanBytes(), defaultValue);
 
         SQLResponse sqlResponseEmpty = new SQLResponse();
 
@@ -1201,15 +1200,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlResponseEmpty.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponseEmpty.getScanBytes()));
         sqlResponseEmpty.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponseEmpty.getScanRows()));
 
-        Assert.assertTrue(sqlResponseEmpty.getTotalScanRows() == 0);
-        Assert.assertTrue(sqlResponseEmpty.getTotalScanBytes() == 0);
+        Assert.assertEquals(0, sqlResponseEmpty.getTotalScanRows());
+        Assert.assertEquals(0, sqlResponseEmpty.getTotalScanBytes());
 
         QueryContext queryContext = QueryContext.current();
         queryContext.getMetrics().updateAndCalScanRows(Arrays.asList(1L, 2L));
         queryContext.getMetrics().updateAndCalScanBytes(Arrays.asList(2L, 3L));
 
-        Assert.assertTrue(queryContext.getMetrics().getScannedRows() == 3L);
-        Assert.assertTrue(queryContext.getMetrics().getScannedBytes() == 5L);
+        Assert.assertEquals(3L, queryContext.getMetrics().getScannedRows());
+        Assert.assertEquals(5L, queryContext.getMetrics().getScannedBytes());
 
     }
 
@@ -1311,49 +1310,45 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithAdminPermission() throws Exception {
+    public void testQueryWithAdminPermission() {
         QueryService queryService = Mockito.spy(new QueryService());
         SQLRequest sqlRequest = new SQLRequest();
         sqlRequest.setExecuteAs("ADMIN");
         sqlRequest.setProject("default");
         sqlRequest.setSql("select 1");
 
-        try (SystemPropertyOverride ignored = new SystemPropertyOverride()
-                .prop("kylin.query.security.acl-tcr-enabled", "true").override()) {
-            // role admin
-            {
-                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("ROLE_ADMIN"), false))
-                        .when(queryService).getExecuteAclInfo("default", "ADMIN");
-                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default",
-                        queryService.getExecuteAclInfo("default", "ADMIN")));
-            }
-
-            // project admin permission
-            {
-                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), true)).when(queryService)
-                        .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default",
-                        queryService.getExecuteAclInfo("default", "ADMIN")));
-            }
-
-            // normal user
-            {
-                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
-                        .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertFalse(queryService.isACLDisabledOrAdmin("default",
-                        queryService.getExecuteAclInfo("default", "ADMIN")));
-            }
+        overwriteSystemProp("kylin.query.security.acl-tcr-enabled", "true");
+        // role admin
+        {
+            Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("ROLE_ADMIN"), false)).when(queryService)
+                    .getExecuteAclInfo("default", "ADMIN");
+            Assert.assertTrue(
+                    queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
         }
 
-        try (SystemPropertyOverride ignored = new SystemPropertyOverride()
-                .prop("kylin.query.security.acl-tcr-enabled", "false").override()) {
-            // acl disabled
-            {
-                Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
-                        .getExecuteAclInfo("default", "ADMIN");
-                Assert.assertTrue(queryService.isACLDisabledOrAdmin("default",
-                        queryService.getExecuteAclInfo("default", "ADMIN")));
-            }
+        // project admin permission
+        {
+            Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), true)).when(queryService)
+                    .getExecuteAclInfo("default", "ADMIN");
+            Assert.assertTrue(
+                    queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+        }
+
+        // normal user
+        {
+            Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
+                    .getExecuteAclInfo("default", "ADMIN");
+            Assert.assertFalse(
+                    queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
+        }
+
+        overwriteSystemProp("kylin.query.security.acl-tcr-enabled", "false");
+        // acl disabled
+        {
+            Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("FOO"), false)).when(queryService)
+                    .getExecuteAclInfo("default", "ADMIN");
+            Assert.assertTrue(
+                    queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
         }
     }
 }
