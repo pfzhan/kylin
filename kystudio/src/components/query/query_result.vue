@@ -26,15 +26,15 @@
           <span class="text">
             <el-popover
               placement="right"
-              width="320"
+              :width="$lang === 'en' ? 340 : 320"
               popper-class="duration-popover"
               trigger="hover">
               <el-row v-for="(step, index) in querySteps" :key="step.name">
-                <el-col :span="12">
+                <el-col :span="14">
                   <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
                   <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="index === 1" @click.stop="isShowDetail = !isShowDetail"></i>
                 </el-col>
-                <el-col :span="6">
+                <el-col :span="4">
                   <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{step.duration / 1000 | fixed(2)}}s</span>
                 </el-col>
                 <el-col :span="6">
@@ -541,20 +541,24 @@ export default class queryResult extends Vue {
     }, 500)
   }
   getStepData (steps) {
-    let renderSteps = [
-      {name: 'totalDuration', duration: 0},
-      {name: 'PREPARATION', duration: 0}
-    ]
-    steps.forEach((s) => {
-      renderSteps[0].duration = renderSteps[0].duration + s.duration
-      if (s.group === 'PREPARATION') {
-        renderSteps[1].duration = renderSteps[1].duration + s.duration
-        renderSteps.push(s)
-      } else {
-        renderSteps.push(s)
-      }
-    })
-    return renderSteps
+    if (steps.length) {
+      let renderSteps = [
+        {name: 'totalDuration', duration: 0},
+        {name: 'PREPARATION', duration: 0}
+      ]
+      steps.forEach((s) => {
+        renderSteps[0].duration = renderSteps[0].duration + s.duration
+        if (s.group === 'PREPARATION') {
+          renderSteps[1].duration = renderSteps[1].duration + s.duration
+          renderSteps.push(s)
+        } else {
+          renderSteps.push(s)
+        }
+      })
+      return renderSteps
+    } else {
+      return []
+    }
   }
   get querySteps () {
     return this.getStepData(this.extraoption['traces'])
