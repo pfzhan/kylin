@@ -224,20 +224,24 @@ class FilePruner(val session: SparkSession,
     QueryContext.current().record("seg_pruning")
     QueryContext.current().getMetrics.setSegCount(selected.size)
 
+    logInfo(s"Query Id: ${QueryContext.current().getQueryId()};Segment Num: ${selected.size}.")
     selected = selected.par.map { e =>
-      var statuses = Seq.empty[FileStatus]
-      e.partitions.foreach(id => {
-        val bucketId = dataflow.getSegment(e.segmentID).getBucketId(layout.getId, id)
-        val childDir = if (bucketId == null) id else bucketId
-        val path = new Path(toPath(e.segmentID) + s"/${childDir}")
-        statuses = statuses ++ getFileStatues(path)
+      val logString = s"[fetch file status for Segment ID: ${e.segmentID}; Partition Num: ${e.partitions.size}]"
+      logTime(logString, true) {
+        var statuses = Seq.empty[FileStatus]
+        e.partitions.foreach(id => {
+          val bucketId = dataflow.getSegment(e.segmentID).getBucketId(layout.getId, id)
+          val childDir = if (bucketId == null) id else bucketId
+          val path = new Path(toPath(e.segmentID) + s"/${childDir}")
+          statuses = statuses ++ getFileStatues(path)
 
-      })
-      if (statuses.isEmpty) {
-        statuses = statuses ++ getFileStatues(new Path(toPath(e.segmentID)))
+        })
+        if (statuses.isEmpty) {
+          statuses = statuses ++ getFileStatues(new Path(toPath(e.segmentID)))
+        }
+
+        SegmentDirectory(e.segmentID, e.partitions, statuses)
       }
-
-      SegmentDirectory(e.segmentID, e.partitions, statuses)
     }.toIterator.toSeq
     QueryContext.current().record("fetch_file_status")
     // shards pruning
