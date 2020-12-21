@@ -333,6 +333,12 @@ public class NDataModel extends RootPersistentEntity {
                 aliasDotColumn = newAlias + "." + column;
             }
         }
+
+        public String getColTableName() {
+            String table = aliasDotColumn.split("\\.")[0];
+            String column = aliasDotColumn.split("\\.")[1];
+            return column + "_" + table;
+        }
     }
 
     @Data

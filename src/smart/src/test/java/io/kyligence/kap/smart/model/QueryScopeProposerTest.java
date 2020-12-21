@@ -64,7 +64,7 @@ public class QueryScopeProposerTest extends NLocalWithSparkSessionTest {
         NDataModel.NamedColumn namedColumn1 = scopeBuilder.transferToNamedColumn(col1, null);
         NDataModel.NamedColumn namedColumn2 = scopeBuilder.transferToNamedColumn(col2, null);
         Assert.assertNotEquals(namedColumn1, namedColumn2);
-        Assert.assertEquals("A_B_0_DOT_0_C", namedColumn1.getName());
-        Assert.assertEquals("A_0_DOT_0_B_C", namedColumn2.getName());
+        Assert.assertEquals("C", namedColumn1.getName());
+        Assert.assertEquals("B_C", namedColumn2.getName());
     }
 }

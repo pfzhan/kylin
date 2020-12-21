@@ -24,14 +24,13 @@
 
 package io.kyligence.kap.smart.model;
 
-import static io.kyligence.kap.engine.spark.job.NSparkCubingUtil.SEPARATOR;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -142,7 +141,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 if (!column.isExist()) {
                     continue;
                 }
-                column.setName(column.getAliasDotColumn().replaceAll("\\.", SEPARATOR));
+                column.setName(column.getName());
                 maxColId = Math.max(maxColId, column.getId());
                 candidateNamedColumns.put(column.getAliasDotColumn(), column);
             }
@@ -276,9 +275,22 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
             // 2. publish all named columns
             List<NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
+            changeNameIfDup(namedColumns);
+
             NDataModel.checkDuplicateColumn(namedColumns);
             NDataModel.checkIdOrderOfColumn(namedColumns);
             dataModel.setAllNamedColumns(namedColumns);
+        }
+
+        private void changeNameIfDup(List<NamedColumn> namedColumns) {
+            Map<String, List<NamedColumn>> colByName = namedColumns.stream()
+                    .collect(Collectors.groupingBy(NamedColumn::getName));
+            colByName.entrySet().stream().forEach(entry -> {
+                List<NamedColumn> dupCols = entry.getValue();
+                if (dupCols.size() > 1) {
+                    dupCols.forEach(col -> col.setName(col.getColTableName()));
+                }
+            });
         }
 
         private ParameterDesc copyParameterDesc(ParameterDesc param) {
@@ -314,7 +326,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         protected NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {
             NamedColumn col = new NamedColumn();
-            col.setName(colRef.getIdentity().replaceAll("\\.", SEPARATOR));
+            col.setName(colRef.getName());
             col.setAliasDotColumn(colRef.getIdentity());
             col.setId(++maxColId);
             col.setStatus(status);

@@ -298,7 +298,7 @@ public class ModelSemanticHelper extends BasicService {
             for (ColumnDesc column : modelRequest.getColumnsFetcher().apply(tableDesc, !isFact)) {
                 val namedColumn = new NDataModel.NamedColumn();
                 namedColumn.setId(id++);
-                namedColumn.setName(alias + "_" + column.getName());
+                namedColumn.setName(column.getName());
                 namedColumn.setAliasDotColumn(alias + "." + column.getName());
                 namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
                 val dimension = dimensionNameMap.get(namedColumn.getAliasDotColumn());

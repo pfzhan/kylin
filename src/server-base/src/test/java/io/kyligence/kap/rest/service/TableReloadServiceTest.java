@@ -470,7 +470,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, brokenModel.getJoinTables().size());
         Assert.assertEquals(17, brokenModel.getAllMeasures().size());
         Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
-        Assert.assertEquals("TEST_KYLIN_FACT_ORDER_ID", brokenModel.getAllNamedColumns().get(13).getName());
+        Assert.assertEquals("ORDER_ID", brokenModel.getAllNamedColumns().get(13).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(13).getStatus());
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             val brokenDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -497,7 +497,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
         Assert.assertEquals(198, reModel.getAllNamedColumns().size());
-        Assert.assertEquals("TEST_KYLIN_FACT_ORDER_ID", reModel.getAllNamedColumns().get(13).getName());
+        Assert.assertEquals("ORDER_ID", reModel.getAllNamedColumns().get(13).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(13).getStatus());
         val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow(reModel.getId());
@@ -529,7 +529,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, brokenModel.getJoinTables().size());
         Assert.assertEquals(17, brokenModel.getAllMeasures().size());
         Assert.assertEquals(197, brokenModel.getAllNamedColumns().size());
-        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", brokenModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("CAL_DT", brokenModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", brokenModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, brokenModel.getAllNamedColumns().get(28).getStatus());
@@ -559,7 +559,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
         Assert.assertEquals(198, reModel.getAllNamedColumns().size());
-        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", reModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
@@ -609,7 +609,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
         Assert.assertEquals(198, reModel.getAllNamedColumns().size());
-        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", reModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
@@ -738,7 +738,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertFalse(Joiner.on(",").join(sampleRow).contains("col_3"));
         }
 
-        Assert.assertEquals("TEST_KYLIN_FACT_PRICE", model.getAllNamedColumns().get(11).getName());
+        Assert.assertEquals("PRICE", model.getAllNamedColumns().get(11).getName());
         Assert.assertTrue(model.getAllNamedColumns().get(11).isExist());
         Assert.assertTrue(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
