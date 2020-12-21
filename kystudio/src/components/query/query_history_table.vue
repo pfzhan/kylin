@@ -55,7 +55,27 @@
                   </tr>
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.duration')}}</th>
-                    <td>{{props.row.duration / 1000 | fixed(2)}}s</td>
+                    <td>
+                      <el-popover
+                        placement="bottom"
+                        width="320"
+                        popper-class="duration-popover"
+                        trigger="hover">
+                        <el-row v-for="(step, index) in props.row.query_steps" :key="step.name">
+                          <el-col :span="12">
+                            <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
+                            <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="index === 1" @click.stop="isShowDetail = !isShowDetail"></i>
+                          </el-col>
+                          <el-col :span="6">
+                            <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{step.duration / 1000 | fixed(2)}}s</span>
+                          </el-col>
+                          <el-col :span="6">
+                            <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="step.duration/props.row.query_steps[0].duration*100" color="#A6D6F6" :show-text="false"></el-progress>
+                          </el-col>
+                        </el-row>
+                        <span slot="reference" class="duration">{{props.row.duration / 1000 | fixed(2)}}s</span>
+                      </el-popover>
+                    </td>
                   </tr>
                   <tr class="ksd-tr" :class="{'active': props.row.hightlight_realizations}">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
@@ -208,7 +228,19 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       SUCCEEDED: 'SUCCEEDED',
       FAILED: 'FAILED',
       pushdown: 'Pushdown',
-      modelName: 'Model'
+      modelName: 'Model',
+      totalDuration: 'Total Duration',
+      PREPARATION: 'Preparation',
+      SQL_TRANSFORMATION: 'SQL transformation',
+      SQL_PARSE_AND_OPTIMIZE: 'SQL parser optimization',
+      MODEL_MATCHING: 'Model matching',
+      PREPARE_AND_SUBMIT_JOB: 'Creating and Submitting Spark job',
+      WAIT_FOR_EXECUTION: 'Waiting for resources',
+      EXECUTION: 'Executing',
+      FETCH_RESULT: 'Receiving result',
+      SQL_PUSHDOWN_TRANSFORMATION: 'SQL pushdown transformation',
+      CONSTANT_QUERY: 'Constant query',
+      HIT_CACHE: 'Cache hit'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -224,7 +256,19 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       SUCCEEDED: '成功',
       FAILED: '失败',
       pushdown: '查询下压',
-      modelName: '模型'
+      modelName: '模型',
+      totalDuration: '总耗时',
+      PREPARATION: '查询准备',
+      SQL_TRANSFORMATION: 'SQL 转换',
+      SQL_PARSE_AND_OPTIMIZE: 'SQL 解析与优化',
+      MODEL_MATCHING: '模型匹配',
+      PREPARE_AND_SUBMIT_JOB: '创建并提交 Spark 任务',
+      WAIT_FOR_EXECUTION: '等待资源',
+      EXECUTION: '执行',
+      FETCH_RESULT: '返回结果',
+      SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
+      CONSTANT_QUERY: '常数查询',
+      HIT_CACHE: '击中缓存'
     }
   },
   filters: {
@@ -257,6 +301,7 @@ export default class QueryHistoryTable extends Vue {
   sqlLimitRows = 40 * 10
   statusList = ['SUCCEEDED', 'FAILED']
   filterTags = []
+  isShowDetail = false // 展开查询步骤详情
 
   @Watch('datetimerange')
   onDateRangeChange (val) {
@@ -281,6 +326,7 @@ export default class QueryHistoryTable extends Vue {
       element['server'] = [element['server']]
       element['flexHeight'] = 0
       element['editorH'] = 0
+      element['query_steps'] = this.getStepData(element.query_history_info.traces)
     })
     this.toggleExpandId = []
   }
@@ -297,6 +343,23 @@ export default class QueryHistoryTable extends Vue {
       }
       this.filterTags.splice(idx, 1)
     }
+  }
+
+  getStepData (steps) {
+    let renderSteps = [
+      {name: 'totalDuration', duration: 0},
+      {name: 'PREPARATION', duration: 0}
+    ]
+    steps.forEach((s) => {
+      renderSteps[0].duration = renderSteps[0].duration + s.duration
+      if (s.group === 'PREPARATION') {
+        renderSteps[1].duration = renderSteps[1].duration + s.duration
+        renderSteps.push(s)
+      } else {
+        renderSteps.push(s)
+      }
+    })
+    return renderSteps
   }
 
   // 清除响应时间筛选项
@@ -365,6 +428,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   expandChange (e) {
+    this.isShowDetail = false // 每次展开重置查询详情为隐藏
     if (this.toggleExpandId.includes(e.query_id)) {
       const index = this.toggleExpandId.indexOf(e.query_id)
       this.toggleExpandId.splice(index, 1)
@@ -811,6 +875,10 @@ export default class QueryHistoryTable extends Vue {
         .el-col {
           position: relative;
           .history_detail_table{
+            .duration {
+              color: @base-color;
+              cursor: pointer;
+            }
             tr.active{
               background-color: @base-color-9;
             }
@@ -983,6 +1051,38 @@ export default class QueryHistoryTable extends Vue {
           color: @base-color;
         }
       }
+    }
+  }
+  .duration-popover {
+    .step-name {
+      color: @color-text-regular;
+      &.sub-step {
+        color: @color-text-placeholder;
+      }
+    }
+    .step-duration {
+      color: @color-text-primary;
+    }
+    .el-icon-ksd-more_01 {
+      transform: scale(0.6);
+      &.up {
+        -webkit-transform: rotate(180deg) scale(0.6);
+        -moz-transform: rotate(180deg) scale(0.6);
+        -o-transform: rotate(180deg) scale(0.6);
+        -ms-transform: rotate(180deg) scale(0.6);
+        transform: rotate(180deg) scale(0.6);
+      }
+    }
+    .el-progress-bar__outer {
+      border-radius: 0;
+      background-color: transparent;
+      position: relative;
+      top: 5px;
+      width: 90%;
+      margin-left: 10px;
+    }
+    .el-progress-bar__inner {
+      border-radius: 0;
     }
   }
   .col-sql-popover {

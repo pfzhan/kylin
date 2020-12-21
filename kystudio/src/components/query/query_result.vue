@@ -23,7 +23,27 @@
         </p> -->
         <p class="resultText">
           <span class="label">{{$t('kylinLang.query.duration')}}: </span>
-          <span class="text">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
+          <span class="text">
+            <el-popover
+              placement="right"
+              width="320"
+              popper-class="duration-popover"
+              trigger="hover">
+              <el-row v-for="(step, index) in querySteps" :key="step.name">
+                <el-col :span="12">
+                  <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
+                  <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="index === 1" @click.stop="isShowDetail = !isShowDetail"></i>
+                </el-col>
+                <el-col :span="6">
+                  <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{step.duration / 1000 | fixed(2)}}s</span>
+                </el-col>
+                <el-col :span="6">
+                  <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="step.duration/querySteps[0].duration*100" color="#A6D6F6" :show-text="false"></el-progress>
+                </el-col>
+              </el-row>
+              <span slot="reference" class="duration">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
+            </el-popover>
+          </span>
         </p>
         <p class="resultText query-obj" :class="{'guide-queryAnswerBy': isWorkspace}">
           <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
@@ -188,7 +208,19 @@ import echarts from 'echarts'
       chartMeasure: 'Metrics',
       noDimensionOrMeasureData: 'Visualization unavailable for current dataset.',
       overSizeTips: 'The dataset exceeds the maximum limit of the chart. A sampling of 1,000 rows is occurred.',
-      overTenYearTips: 'Your data is too large, data sampling with 36,500 rows has been occurred.'
+      overTenYearTips: 'Your data is too large, data sampling with 36,500 rows has been occurred.',
+      totalDuration: 'Total Duration',
+      PREPARATION: 'Preparation',
+      SQL_TRANSFORMATION: 'SQL transformation',
+      SQL_PARSE_AND_OPTIMIZE: 'SQL parser optimization',
+      MODEL_MATCHING: 'Model matching',
+      PREPARE_AND_SUBMIT_JOB: 'Creating and Submitting Spark job',
+      WAIT_FOR_EXECUTION: 'Waiting for resources',
+      EXECUTION: 'Executing',
+      FETCH_RESULT: 'Receiving result',
+      SQL_PUSHDOWN_TRANSFORMATION: 'SQL pushdown transformation',
+      CONSTANT_QUERY: 'Constant query',
+      HIT_CACHE: 'Cache hit'
     },
     'zh-cn': {
       username: '用户名',
@@ -214,7 +246,19 @@ import echarts from 'echarts'
       chartMeasure: '度量',
       noDimensionOrMeasureData: '当前数据不支持可视化。',
       overSizeTips: '数据过大，已执行 1,000  条的数据抽样。',
-      overTenYearTips: '您的数据过大，我们已执行 36,500  条的数据抽样。'
+      overTenYearTips: '您的数据过大，我们已执行 36,500  条的数据抽样。',
+      totalDuration: '总耗时',
+      PREPARATION: '查询准备',
+      SQL_TRANSFORMATION: 'SQL 转换',
+      SQL_PARSE_AND_OPTIMIZE: 'SQL 解析与优化',
+      MODEL_MATCHING: '模型匹配',
+      PREPARE_AND_SUBMIT_JOB: '创建并提交 Spark 任务',
+      WAIT_FOR_EXECUTION: '等待资源',
+      EXECUTION: '执行',
+      FETCH_RESULT: '返回结果',
+      SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
+      CONSTANT_QUERY: '常数查询',
+      HIT_CACHE: '击中缓存'
     }
   },
   filters: {
@@ -242,6 +286,7 @@ export default class queryResult extends Vue {
   pageX = 0
   pageSizeX = 30
   hasClickExportBtn = false
+  isShowDetail = false
   activeResultType = 'data'
   charts = {
     type: 'lineChart',
@@ -495,6 +540,25 @@ export default class queryResult extends Vue {
       this.pageSizeChange(0)
     }, 500)
   }
+  getStepData (steps) {
+    let renderSteps = [
+      {name: 'totalDuration', duration: 0},
+      {name: 'PREPARATION', duration: 0}
+    ]
+    steps.forEach((s) => {
+      renderSteps[0].duration = renderSteps[0].duration + s.duration
+      if (s.group === 'PREPARATION') {
+        renderSteps[1].duration = renderSteps[1].duration + s.duration
+        renderSteps.push(s)
+      } else {
+        renderSteps.push(s)
+      }
+    })
+    return renderSteps
+  }
+  get querySteps () {
+    return this.getStepData(this.extraoption['traces'])
+  }
   @Watch('extraoption')
   onExtraoptionChange (val) {
     this.tableData = []
@@ -563,6 +627,10 @@ export default class queryResult extends Vue {
         }
         .text{
           color:@color-text-primary;
+          .duration {
+            color: @base-color;
+            cursor: pointer;
+          }
         }
         a {
           color: @base-color;
