@@ -30,13 +30,20 @@ import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARA
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -55,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
@@ -93,19 +101,20 @@ public class RecCandidateTool extends ExecutableApplication {
         if (StringUtils.isEmpty(path)) {
             path = KylinConfigBase.getKylinHome() + File.separator + "rec_candidate";
         }
-        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss"));
+        String time = LocalDateTime.now(Clock.systemDefaultZone())
+                .format(DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT)));
         if (optionsHelper.hasOption(OPTION_PROJECT)) {
             String project = optionsHelper.getOptionValue(OPTION_PROJECT);
-            String folder = String.format("project_%s", time);
+            String folder = String.format(Locale.ROOT, "project_%s", time);
             File dir = new File(path, folder);
             extractProject(project, dir);
         } else if (optionsHelper.hasOption(OPTION_MODEL_ID)) {
             String modelId = optionsHelper.getOptionValue(OPTION_MODEL_ID);
-            String folder = String.format("model_%s", time);
+            String folder = String.format(Locale.ROOT, "model_%s", time);
             File dir = new File(path, folder);
             extractModel(getProjectByModelId(modelId), modelId, dir);
         } else {
-            String folder = String.format("full_%s", time);
+            String folder = String.format(Locale.ROOT, "full_%s", time);
             File dir = new File(path, folder);
             extractFull(dir);
         }
@@ -143,7 +152,8 @@ public class RecCandidateTool extends ExecutableApplication {
             }
             for (val model : models) {
                 List<RawRecItem> data = new ArrayList<>();
-                try (BufferedReader br = new BufferedReader(new FileReader(model))) {
+                try (InputStream in = new FileInputStream(model);
+                        BufferedReader br = new BufferedReader(new InputStreamReader(in, Charset.defaultCharset()))) {
                     String line;
                     while ((line = br.readLine()) != null) {
                         try {
@@ -199,10 +209,10 @@ public class RecCandidateTool extends ExecutableApplication {
         } catch (Exception e) {
             printlnRed("Rec candidate task failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr");
             logger.error("Rec candidate", e);
-            System.exit(1);
+            Unsafe.systemExit(1);
         }
         printlnGreen("OK");
-        System.exit(0);
+        Unsafe.systemExit(0);
     }
 
     public void extractFull(File dir) throws Exception {
@@ -218,7 +228,8 @@ public class RecCandidateTool extends ExecutableApplication {
         logger.info("Extract project rec candidate.");
         if (!NProjectManager.getInstance(kylinConfig).listAllProjects().stream().map(ProjectInstance::getName)
                 .collect(Collectors.toSet()).contains(project)) {
-            throw new KylinException(INVALID_SHELL_PARAMETER, String.format("project %s not exist.", project));
+            throw new KylinException(INVALID_SHELL_PARAMETER,
+                    String.format(Locale.ROOT, "project %s not exist.", project));
         }
         val modelIds = NDataModelManager.getInstance(kylinConfig, project).listAllModelIds();
         for (val modelId : modelIds) {
@@ -237,7 +248,8 @@ public class RecCandidateTool extends ExecutableApplication {
 
         JdbcRawRecStore jdbcRawRecStore = new JdbcRawRecStore(kylinConfig);
         List<RawRecItem> result = jdbcRawRecStore.listAll(project, modelId, Integer.MAX_VALUE);
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(modelFile))) {
+        try (OutputStream os = new FileOutputStream(modelFile);
+                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os, Charset.defaultCharset()))) {
             for (RawRecItem line : result) {
                 try {
                     bw.write(JsonUtil.writeValueAsString(line));
