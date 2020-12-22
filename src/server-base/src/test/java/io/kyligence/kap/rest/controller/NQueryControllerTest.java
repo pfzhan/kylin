@@ -45,12 +45,11 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.hamcrest.CoreMatchers.containsString;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
@@ -81,7 +80,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
@@ -314,9 +315,15 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         queries.add(queryHistory1);
         QueryHistory queryHistory2 = new QueryHistory("sql2");
         queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory2.setQueryHistoryInfo(null);
+        queryHistory2.setNativeQueryRealizations(null);
         queries.add(queryHistory2);
         QueryHistory queryHistory3 = new QueryHistory("sql3");
         queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory3.setQueryHistoryInfo(new QueryHistoryInfo());
+        List<NativeQueryRealization> realizations = Lists.newArrayList();
+        realizations.add(new NativeQueryRealization());
+        queryHistory3.setNativeQueryRealizations(realizations);
         queries.add(queryHistory3);
 
         return queries;
@@ -362,5 +369,39 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .param("latency_from", "0").param("offset", "2").param("limit", "3")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(400));
+    }
+
+    //KE-22624 public query history api
+    @Test
+    public void testGetQueryHistoriesAPI() throws Exception {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo("1000");
+        HashMap<String, Object> data = Maps.newHashMap();
+        data.put("query_histories", mockedQueryHistories());
+        data.put("size", 6);
+        Mockito.when(queryHistoryService.getQueryHistories(request, 3, 2)).thenReturn(data);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
+                .param("offset", "2").param("limit", "3").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].sql_text").value("sql1"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].sql_text").value("sql2"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].sql_text").value("sql3"));
+
+        Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(), request.getStartTimeTo(), 2, 3);
+
+        HashMap<String, Object> dataWithNullHistories = Maps.newHashMap();
+        dataWithNullHistories.put("query_histories", null);
+        dataWithNullHistories.put("size", 6);
+        Mockito.when(queryHistoryService.getQueryHistories(request, 6, 2)).thenReturn(dataWithNullHistories);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
+                .param("offset", "2").param("limit", "6").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6));
     }
 }

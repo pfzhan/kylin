@@ -89,6 +89,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.util.QueryHisTransformStandardUtil;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SQLFormatRequest;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
@@ -205,6 +206,22 @@ public class NQueryController extends NBasicController {
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
+    }
+
+    @ApiOperation(value = "getQueryHistories", notes = "Update Param: start_time_from, start_time_to")
+    @GetMapping(value = "/query_histories")
+    @ResponseBody
+    public EnvelopeResponse<Map<String, Object>> getQueryHistories(@RequestParam(value = "project") String project,
+            @RequestParam(value = "start_time_from", required = false) String startTimeFrom,
+            @RequestParam(value = "start_time_to", required = false) String startTimeTo,
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo);
+        checkGetQueryHistoriesParam(request);
+        Map<String, Object> queryHistories = QueryHisTransformStandardUtil.transformQueryHistory(
+                queryHistoryService.getQueryHistories(request, limit, offset));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistories, "");
     }
 
     @GetMapping(value = "/servers")

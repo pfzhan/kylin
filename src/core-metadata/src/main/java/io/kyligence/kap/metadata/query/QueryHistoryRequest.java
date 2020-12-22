@@ -53,6 +53,12 @@ public class QueryHistoryRequest {
 
     List<String> realizations;
 
+    public QueryHistoryRequest(String project, String startTimeFrom, String startTimeTo) {
+        this.project = project;
+        this.startTimeFrom = startTimeFrom;
+        this.startTimeTo = startTimeTo;
+    }
+
     @JsonIgnore
     private boolean isAdmin;
     @JsonIgnore
