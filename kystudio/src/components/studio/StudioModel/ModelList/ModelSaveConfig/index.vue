@@ -630,10 +630,14 @@ export default class ModelPartitionModal extends Vue {
   }
   getOtherColumns () {
     const { simplified_dimensions } = this.modelDesc
-    const { all_named_columns } = this.modelInstance
+    const { tables } = this.modelInstance
     const selectDimensionIds = simplified_dimensions.map(it => it.column)
+    let allColumns = []
     const others = []
-    all_named_columns.filter(item => !selectDimensionIds.includes(item.column)).forEach((it, index, self) => {
+    Object.values(tables).forEach(it => {
+      it.columns && (allColumns = [...allColumns, ...it.columns.map(item => ({column: `${it.alias}.${item.name}`, name: item.name, datatype: item.datatype}))])
+    })
+    allColumns.filter(item => !selectDimensionIds.includes(item.column)).forEach((it, index, self) => {
       const names = self.map(it => it.name)
       const [table, column] = it.column.split('.')
       if (names.indexOf(it.name) !== names.lastIndexOf(it.name)) {
