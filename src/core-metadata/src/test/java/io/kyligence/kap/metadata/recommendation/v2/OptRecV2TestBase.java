@@ -110,7 +110,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         List<RawRecItem> recItems = loadAllRecItems(recDirectory);
         recItems.forEach(recItem -> recItem.setState(RawRecItem.RawRecState.INITIAL));
         recItems.sort(Comparator.comparingInt(RawRecItem::getId));
-        jdbcRawRecStore.save(recItems);
+        jdbcRawRecStore.save(recItems, false);
     }
 
     @After

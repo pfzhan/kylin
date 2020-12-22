@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -131,6 +132,10 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         String[] auditLogToolArgs = { OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR, auditLogDir.getAbsolutePath() };
         exportAuditLog(auditLogToolArgs, recordTime);
 
+        String modelId = job.getTargetModelId();
+        if (StringUtils.isNotEmpty(modelId)) {
+            exportRecCandidate(project, modelId, exportDir, false, recordTime);
+        }
         // extract yarn log
         if (includeYarnLogs && !isCloud) {
             Future future = executorService.submit(() -> {

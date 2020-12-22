@@ -138,6 +138,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
                 OPT_DIR, auditLogDir.getAbsolutePath() };
         exportAuditLog(auditLogToolArgs, recordTime);
 
+        exportRecCandidate(null, null, exportDir, true, recordTime);
+
         if (includeClient) {
             exportClient(recordTime);
         }

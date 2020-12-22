@@ -173,6 +173,17 @@ public abstract class AbstractExecutable implements Executable {
 
     }
 
+    public String getTargetModelId() {
+        val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
+        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
+                .getDataModelDesc(targetSubject);
+        if (dataModelDesc == null)
+            return null;
+        return modelManager.isModelBroken(targetSubject)
+                ? modelManager.getDataModelDescWithoutInit(targetSubject).getId()
+                : dataModelDesc.getId();
+    }
+
     public String getTargetSubjectAlias() {
         return getTargetModelAlias();
     }

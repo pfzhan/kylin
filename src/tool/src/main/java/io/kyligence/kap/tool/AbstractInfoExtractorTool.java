@@ -34,6 +34,7 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.JSTACK;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.KG_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.METADATA;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.REC_CANDIDATE;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_METRICS;
 
 import java.io.File;
@@ -500,6 +501,26 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(metadataTask, METADATA);
+    }
+
+    protected void exportRecCandidate(String project, String modelId, File exportDir, boolean full, File recordTime) {
+        val recTask = executorService.submit(() -> {
+            recordTaskStartTime(REC_CANDIDATE);
+            try {
+                File recDir = new File(exportDir, "rec_candidate");
+                FileUtils.forceMkdir(recDir);
+                if (full) {
+                    new RecCandidateTool().extractFull(recDir);
+                } else {
+                    new RecCandidateTool().extractModel(project, modelId, recDir);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to extract rec candidate.", e);
+            }
+            recordTaskExecutorTimeToFile(REC_CANDIDATE, recordTime);
+        });
+
+        scheduleTimeoutTask(recTask, REC_CANDIDATE);
     }
 
     protected void exportKgLogs(File exportDir, long startTime, long endTime, File recordTime) {

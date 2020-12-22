@@ -48,6 +48,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.mybatis.dynamic.sql.BasicColumn;
 import org.mybatis.dynamic.sql.SqlBuilder;
+import org.mybatis.dynamic.sql.delete.DeleteModel;
 import org.mybatis.dynamic.sql.delete.render.DeleteStatementProvider;
 import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.render.RenderingStrategies;
@@ -63,6 +64,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import lombok.Getter;
+import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -77,22 +80,27 @@ public class JdbcRawRecStore {
     private final SqlSessionFactory sqlSessionFactory;
 
     public JdbcRawRecStore(KylinConfig config) throws Exception {
+        this(config, genRawRecTableName(config));
+    }
+
+    public JdbcRawRecStore(KylinConfig config, String tableName) throws Exception {
         StorageURL url = config.getQueryHistoryUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
-        table = new RawRecItemTable(genRawRecTableName(url));
+        table = new RawRecItemTable(tableName);
         sqlSessionFactory = RawRecStoreUtil.getSqlSessionFactory(dataSource, table.tableNameAtRuntime());
     }
 
-    private String genRawRecTableName(StorageURL url) {
-        String tablePrefix = KylinConfig.getInstanceFromEnv().isUTEnv() ? "test_opt" : url.getIdentifier();
+    private static String genRawRecTableName(KylinConfig config) {
+        StorageURL url = config.getQueryHistoryUrl();
+        String tablePrefix = config.isUTEnv() ? "test_opt" : url.getIdentifier();
         return tablePrefix + RECOMMENDATION_CANDIDATE;
     }
 
     public void save(RawRecItem recItem) {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            InsertStatementProvider<RawRecItem> insertStatement = getInsertProvider(recItem);
+            InsertStatementProvider<RawRecItem> insertStatement = getInsertProvider(recItem, false);
             int rows = mapper.insert(insertStatement);
             session.commit();
             if (rows > 0) {
@@ -103,12 +111,12 @@ public class JdbcRawRecStore {
         }
     }
 
-    public void save(List<RawRecItem> recItems) {
+    public void save(List<RawRecItem> recItems, boolean reserveId) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             List<InsertStatementProvider<RawRecItem>> providers = Lists.newArrayList();
-            recItems.forEach(recItem -> providers.add(getInsertProvider(recItem)));
+            recItems.forEach(recItem -> providers.add(getInsertProvider(recItem, reserveId)));
             providers.forEach(mapper::insert);
             session.commit();
             log.info("Insert {} raw recommendations into database takes {} ms", recItems.size(),
@@ -143,22 +151,31 @@ public class JdbcRawRecStore {
         }
     }
 
-    public List<RawRecItem> listAll(String project, String model, int semanticVersion, int limit) {
+    private List<RawRecItem> list(String project, String model, Integer semanticVersion, int limit) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+            var statement = select(getSelectFields(table)) //
                     .from(table) //
                     .where(table.project, isEqualTo(project)) //
-                    .and(table.semanticVersion, isEqualTo(semanticVersion)) //
-                    .and(table.modelID, isEqualTo(model)) //
-                    .limit(limit) //
-                    .build().render(RenderingStrategies.MYBATIS3);
-            List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
+                    .and(table.modelID, isEqualTo(model));
+            if (semanticVersion != null) {
+                statement = statement.and(table.semanticVersion, isEqualTo(semanticVersion)); //
+            }
+            List<RawRecItem> rawRecItems = mapper.selectMany(statement.limit(limit) //
+                    .build().render(RenderingStrategies.MYBATIS3));
             log.info("List all raw recommendations of model({}/{}, semanticVersion: {}) takes {} ms.", //
                     project, model, semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
+    }
+
+    public List<RawRecItem> listAll(String project, String model, int semanticVersion, int limit) {
+        return list(project, model, semanticVersion, limit);
+    }
+
+    public List<RawRecItem> listAll(String project, String model, int limit) {
+        return list(project, model, null, limit);
     }
 
     public List<RawRecItem> queryAdditionalLayoutRecItems(String project, String model) {
@@ -358,7 +375,7 @@ public class JdbcRawRecStore {
             }
         });
         if (!recItemsToAdd.isEmpty()) {
-            save(recItemsToAdd);
+            save(recItemsToAdd, false);
         }
         if (!recItemsToUpdate.isEmpty()) {
             update(recItemsToUpdate);
@@ -375,7 +392,7 @@ public class JdbcRawRecStore {
                         item.getSemanticVersion()) != null) {
                     updaters.add(getUpdateProvider(item));
                 } else {
-                    inserts.add(getInsertProvider(item));
+                    inserts.add(getInsertProvider(item, false));
                 }
             });
             updaters.forEach(mapper::update);
@@ -384,18 +401,29 @@ public class JdbcRawRecStore {
         }
     }
 
-    public void deleteByProject(String project) {
+    private void delete(String project) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
-                    .where(table.project, isEqualTo(project)) //
-                    .build().render(RenderingStrategies.MYBATIS3);
-            int rows = mapper.delete(deleteStatement);
+            val from = SqlBuilder.deleteFrom(table);
+            DeleteModel deleteStatement;
+            if (project != null) {
+                deleteStatement = from.where(table.project, isEqualTo(project)).build();
+            } else {
+                deleteStatement = from.build();
+            }
+            int rows = mapper.delete(deleteStatement.render(RenderingStrategies.MYBATIS3));
             session.commit();
-            log.info("Delete {} row(s) raw recommendation takes {} ms for project [{}]", rows,
-                    System.currentTimeMillis() - startTime, project);
+            log.info("Delete {} row(s) raw recommendation takes {} ms.", rows, System.currentTimeMillis() - startTime);
         }
+    }
+
+    public void deleteByProject(String project) {
+        delete(project);
+    }
+
+    public void deleteAll() {
+        delete(null);
     }
 
     public void cleanForDeletedProject(List<String> projectList) {
@@ -560,8 +588,12 @@ public class JdbcRawRecStore {
                 .and(table.semanticVersion, isEqualTo(semanticVersion)).build().render(RenderingStrategies.MYBATIS3);
     }
 
-    InsertStatementProvider<RawRecItem> getInsertProvider(RawRecItem recItem) {
-        return SqlBuilder.insert(recItem).into(table).map(table.project).toProperty("project") //
+    InsertStatementProvider<RawRecItem> getInsertProvider(RawRecItem recItem, boolean reserveId) {
+        var provider = SqlBuilder.insert(recItem).into(table);
+        if (reserveId) {
+            provider = provider.map(table.id).toProperty("id");
+        }
+        return provider.map(table.project).toProperty("project") //
                 .map(table.modelID).toProperty("modelID") //
                 .map(table.uniqueFlag).toProperty("uniqueFlag") //
                 .map(table.semanticVersion).toProperty("semanticVersion") //

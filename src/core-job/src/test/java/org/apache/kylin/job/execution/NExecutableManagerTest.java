@@ -532,7 +532,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         content = EmailNotificationContent.createContent(JobIssueEnum.LOAD_EMPTY_DATA, job);
         Assert.assertTrue(content.getEmailBody().contains(job.getTargetModelAlias()));
-
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetModelId());
         content = EmailNotificationContent.createContent(JobIssueEnum.SOURCE_RECORDS_CHANGE, job);
         Assert.assertTrue(content.getEmailBody().contains(start));
         Assert.assertTrue(content.getEmailBody().contains(end));

@@ -25,6 +25,7 @@ package io.kyligence.kap.tool.constant;
 
 public enum DiagSubTaskEnum {
     METADATA, //
+    REC_CANDIDATE, //
     AUDIT_LOG, //
     CLIENT, //
     JSTACK, //

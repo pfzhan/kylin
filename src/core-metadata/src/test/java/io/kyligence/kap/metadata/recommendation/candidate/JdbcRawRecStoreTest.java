@@ -92,7 +92,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         SqlSessionFactory sqlSessionFactory = jdbcRawRecStore.getSqlSessionFactory();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            InsertStatementProvider<RawRecItem> insertStatement = jdbcRawRecStore.getInsertProvider(recItem);
+            InsertStatementProvider<RawRecItem> insertStatement = jdbcRawRecStore.getInsertProvider(recItem, false);
             mapper.insert(insertStatement);
             mapper.selectOne(jdbcRawRecStore.getSelectByIdStatementProvider(recItem.getId()));
         }
@@ -170,6 +170,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         // validate
         Assert.assertEquals(5, rawRecItems.size());
         Assert.assertEquals(1, jdbcRawRecStore.listAll("test", "abc", 2, 10).size());
+        Assert.assertEquals(6, jdbcRawRecStore.listAll("test", "abc", 10).size());
         Assert.assertEquals(1, rawRecItems.get(0).getId());
         Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(0).getType());
         Assert.assertEquals(1.0, rawRecItems.get(0).getCost(), 0.1);
@@ -297,8 +298,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(additionalLayoutRecItems.isEmpty());
     }
 
-    @Test
-    public void testDeleteByProject() {
+    private void prepare() {
         // prepare
         CCRecItemV2 ccRecItemV2 = new CCRecItemV2();
         RawRecItem recItem1 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
@@ -322,6 +322,11 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         jdbcRawRecStore.save(recItem1);
         jdbcRawRecStore.save(recItem2);
         jdbcRawRecStore.save(recItem3);
+    }
+
+    @Test
+    public void testDeleteByProject() {
+        prepare();
 
         // before delete
         Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
@@ -330,6 +335,14 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         jdbcRawRecStore.deleteByProject(TO_BE_DELETE);
         Assert.assertEquals(1, jdbcRawRecStore.queryAll().size());
         Assert.assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
+    }
+
+    @Test
+    public void testDeleteAll() {
+        prepare();
+        Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
+        jdbcRawRecStore.deleteAll();
+        Assert.assertEquals(0, jdbcRawRecStore.queryAll().size());
     }
 
     @Test
