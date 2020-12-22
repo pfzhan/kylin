@@ -621,8 +621,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            DefaultChainedExecutable job2 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            ExecutableState status = job2.getStatus();
+            Assert.assertEquals(ExecutableState.SUICIDAL, status);
+            Assert.assertEquals(ExecutableState.SUICIDAL, job2.getTasks().get(0).getStatus());
+        });
         assertTimeSuicide(createTime, job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);

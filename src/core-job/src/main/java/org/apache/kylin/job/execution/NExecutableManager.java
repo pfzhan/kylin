@@ -594,6 +594,14 @@ public class NExecutableManager {
             return;
         }
         job.cancelJob();
+
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.stream().filter(task -> task.getStatus() != ExecutableState.SUICIDAL)
+                    .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.SUICIDAL));
+        }
+
         updateJobOutput(jobId, ExecutableState.SUICIDAL);
     }
 
