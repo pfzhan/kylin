@@ -188,13 +188,9 @@ export default {
       return api.datasource.getRules(para)
     },
     [types.GET_USER_AND_GROUPS]: function ({commit, rootState}, para) {
-      const { user: { currentUserAccess }, project: { selected_project, allProject } } = rootState
+      const { project: { selected_project, allProject } } = rootState
       const projectId = allProject.filter(item => item.name === selected_project)[0].uuid
-      if (currentUserAccess === 'ADMINISTRATION') {
-        return api.datasource.getUserAndGroupsByProjectAdmin(para, projectId)
-      } else {
-        return api.datasource.getUserAndGroups(para)
-      }
+      return api.datasource.getUserAndGroupsByProjectAdmin(para, projectId)
     },
     [types.GET_RULES_IMPACT]: function ({commit}, para) {
       return api.datasource.getRulesImpact(para)
