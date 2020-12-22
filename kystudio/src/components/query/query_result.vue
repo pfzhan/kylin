@@ -152,7 +152,7 @@
         <el-tooltip :content="$t('overSizeTips')" effect="dark" placement="top" v-if="displayOverSize">
           <i class="el-icon-ksd-info ksd-fs-15 tips"></i>
         </el-tooltip>
-        <div id="charts" v-if="charts.dimension && charts.measure"></div>
+        <div :id="`charts_${tabsItem.name}`" class="chart-layout" v-if="charts.dimension && charts.measure"></div>
         <p class="no-fill-data" v-else>{{$t('noDimensionOrMeasureData')}}</p>
       </div>
     </template>
@@ -169,7 +169,7 @@ import { getOptions, compareDataSize } from './handler'
 import moment from 'moment'
 import echarts from 'echarts'
 @Component({
-  props: ['extraoption', 'isWorkspace', 'queryExportData', 'isStop'],
+  props: ['extraoption', 'isWorkspace', 'queryExportData', 'isStop', 'tabsItem'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
@@ -355,7 +355,7 @@ export default class queryResult extends Vue {
   }
   // 初始化 echarts 配置
   initChartOptions () {
-    this.chartLayout = echarts.init(document.getElementById('charts'))
+    this.chartLayout = echarts.init(this.$el.querySelector(`#charts_${this.tabsItem.name}`))
     this.chartLayout.setOption(getOptions(this))
   }
   changeChartType (v) {
@@ -686,7 +686,7 @@ export default class queryResult extends Vue {
       width: 100%;
       height: 400px;
       position: relative;
-      #charts {
+      .chart-layout {
         width: 100%;
         height: 100%;
       }

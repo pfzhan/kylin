@@ -52,7 +52,7 @@
         <pre class="error-block">{{errinfo}}</pre>
       </div>
     </div>
-    <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" :isStop="tabsItem.isStop" v-if="extraoptionObj && !errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
+    <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" :isStop="tabsItem.isStop" :tabsItem="tabsItem" v-if="extraoptionObj && !errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
     <div class="no-result-block"  :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" v-if="!extraoptionObj && !isLoading">
       <kap-nodata :content="$t('queryTips')"></kap-nodata>
     </div>
