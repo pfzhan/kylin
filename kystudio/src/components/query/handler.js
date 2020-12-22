@@ -11,8 +11,12 @@ export function getOptions (that) {
 // 折线图
 function initLineChart (that) {
   const dataMap = combinationData(that)
-  const xData = Object.keys(dataMap)
-  const yData = Object.values(dataMap)
+  const yMap = Object.values(dataMap)
+  // 折线图按照 x 轴排序
+  const dataList = Object.keys(dataMap).map((item, index) => ({key: item, value: yMap[index], tm: new Date(item).getTime()}))
+  const sortList = dataList.sort((a, b) => a.tm - b.tm)
+  const xData = sortList.map(it => it.key)
+  const yData = sortList.map(it => it.value)
   return {
     color: ['#3398DB'],
     xAxis: {
@@ -42,8 +46,12 @@ function initLineChart (that) {
 // 柱状图
 function initBarChart (that) {
   const dataMap = combinationData(that)
-  const xData = Object.keys(dataMap)
-  const yData = Object.values(dataMap)
+  const yMap = Object.values(dataMap)
+  // 柱状图需要按照 Y 轴排序
+  const dataList = Object.keys(dataMap).map((item, index) => ({key: item, value: yMap[index]}))
+  const sortList = dataList.sort((a, b) => a.value - b.value)
+  const xData = sortList.map(it => it.key)
+  const yData = sortList.map(it => it.value)
   return {
     color: ['#3398DB'],
     xAxis: [{
