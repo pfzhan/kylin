@@ -556,7 +556,7 @@ export default class ModelPartitionModal extends Vue {
       this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
       this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
     }
-    this.modelDesc.other_columns = this.otherColumns
+    this.modelDesc.other_columns = this.otherColumns.length ? this.otherColumns : this.getOtherColumns()
     if (this.mode === 'saveModel') {
       this.isLoadingSave = true
       const checkData = objectClone(this.modelDesc)
@@ -627,6 +627,22 @@ export default class ModelPartitionModal extends Vue {
       }
     })
     return len <= 15
+  }
+  getOtherColumns () {
+    const { simplified_dimensions } = this.modelDesc
+    const { all_named_columns } = this.modelInstance
+    const selectDimensionIds = simplified_dimensions.map(it => it.column)
+    const others = []
+    all_named_columns.filter(item => !selectDimensionIds.includes(item.column)).forEach((it, index, self) => {
+      const names = self.map(it => it.name)
+      const [table, column] = it.column.split('.')
+      if (names.indexOf(it.name) !== names.lastIndexOf(it.name)) {
+        others.push({...it, name: `${column}_${table}`})
+      } else {
+        others.push(it)
+      }
+    })
+    return others
   }
 }
 </script>
