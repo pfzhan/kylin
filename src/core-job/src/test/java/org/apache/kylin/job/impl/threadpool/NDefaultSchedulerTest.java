@@ -156,7 +156,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task2.getId()).getState());
         //in case hdfs write is not finished yet
-        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             Assertions
                     .assertThat(executableManager.getOutputFromHDFSByJobId(job.getId(), task1.getId()).getVerboseMsg())
                     .contains("succeed");
@@ -271,8 +271,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     private void assertMemoryRestore(double currMem) {
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(currMem, NDefaultScheduler.currentAvailableMem(), 0.1);
+        getConditionFactory().untilAsserted(() -> {
+            double availableMem = NDefaultScheduler.currentAvailableMem();
+            Assert.assertEquals(currMem, availableMem, 0.1);
         });
     }
 
@@ -303,7 +304,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task2.getId()).getState());
-        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
                     .contains("org.apache.kylin.job.execution.MockJobException");
             Assertions
@@ -357,7 +358,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(task1.getId()).getState());
         Assert.assertEquals(ExecutableState.READY, executableManager.getOutput(task2.getId()).getState());
         //in case hdfs write is not finished yet
-        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
                     .contains("test error");
             Assertions
@@ -392,14 +393,15 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
         // give time to launch job/task1
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> job.getStatus() == ExecutableState.RUNNING);
         discardJobWithLock(job.getId());
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.DISCARDED, executableManager.getOutput(job.getId()).getState());
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) getManager().getJob(job.getId())).getTasks().get(0).getStatus()
-                        .isFinalState());
+        getConditionFactory().until(() -> {
+            DefaultChainedExecutable job1 = (DefaultChainedExecutable) getManager().getJob(job.getId());
+            return job1.getTasks().get(0).getStatus().isFinalState();
+        });
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(1, killProcessCount.get());
@@ -426,8 +428,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             return null;
         }, project);
         executableManager.addJob(job);
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            AbstractExecutable job1 = executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
+        });
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -447,16 +451,20 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.ERROR, executableManager.getJob(job.getId()).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            AbstractExecutable job1 = executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.ERROR, job1.getStatus());
+        });
         UnitOfWork.doInTransactionWithRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             modelManager.dropModel(model);
             return null;
         }, project);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            AbstractExecutable job1 = executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
+        });
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -480,19 +488,25 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task2);
         executableManager.addJob(job);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.RUNNING, executableManager.getJob(job.getId()).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            final AbstractExecutable job1 = executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.RUNNING, job1.getStatus());
+        });
         pauseJobWithLock(job.getId());
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> Assert.assertEquals(ExecutableState.PAUSED,
-                ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.PAUSED, job1.getTasks().get(0).getStatus());
+        });
         UnitOfWork.doInTransactionWithRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             modelManager.dropModel(model);
             return null;
         }, project);
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            final AbstractExecutable job1 = executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
+        });
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -589,7 +603,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(task2.getId(),
                 ExecutableState.RUNNING);
-        waitForJobFinish(job.getId(), 10000);
+        waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
@@ -620,7 +634,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             DefaultChainedExecutable job2 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
             ExecutableState status = job2.getStatus();
             Assert.assertEquals(ExecutableState.SUICIDAL, status);
@@ -713,7 +727,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         assertMemoryRestore(currMem);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> job.getStatus() == ExecutableState.RUNNING);
         NoErrorStatusExecutableOnModel job2 = new NoErrorStatusExecutableOnModel();
         job2.setProject("default");
         job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
@@ -730,8 +744,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getJob(job.getId()).getStatus()));
+        getConditionFactory().untilAsserted(() -> {
+            final AbstractExecutable job1 = executableManager.getJob(job.getId());
+            Assert.assertEquals(ExecutableState.SUCCEED, job1.getStatus());
+        });
 
     }
 
@@ -752,7 +768,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
         executableManager.addJob(job);
 
-        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> job.getStatus() == ExecutableState.RUNNING);
         UnitOfWork.doInTransactionWithRetry(() -> {
             executableManager.discardJob(job.getId());
             return null;
@@ -857,7 +873,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
 
         executableManager.addJob(job);
-        await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> {
+        getConditionFactory().until(() -> {
             val executeManager = NExecutableManager.getInstance(getTestConfig(), project);
             String runningStatus = executeManager.getOutput(task.getId()).getExtra().get("runningStatus");
             return job.getStatus() == ExecutableState.RUNNING && StringUtils.isNotEmpty(runningStatus)
@@ -869,7 +885,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             return null;
         }, "default");
 
-        await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
             Assert.assertEquals(ExecutableState.PAUSED, task.getStatus());
         });
@@ -906,7 +922,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
         pauseJobWithLock(job.getId());
 
-        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
             Assert.assertEquals(ExecutableState.PAUSED, task.getStatus());
         });
@@ -932,7 +948,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
 
         // make sure the job is running
-        await().atMost(2 * 1000, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> job.getStatus() == ExecutableState.RUNNING);
         //scheduler failed due to some reason
         scheduler.shutdown();
         Assert.assertFalse(scheduler.hasStarted());
@@ -964,7 +980,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task1);
         executableManager.addJob(job);
 
-        waitForJobFinish(job.getId(), 6000);
+        waitForJobFinish(job.getId());
     }
 
     @Repeat(3)
@@ -995,9 +1011,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(createTime > 0L);
 
         //sleep 2s to make sure SucceedTestExecutable is running
-        await().atMost(2000, TimeUnit.MILLISECONDS).until(() -> {
-            return ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
-                    .getStatus() == ExecutableState.RUNNING;
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
         });
 
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
@@ -1030,9 +1046,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         startScheduler();
         currMem = NDefaultScheduler.currentAvailableMem();
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
-        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> {
-            return ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(1)
-                    .getStatus() == ExecutableState.RUNNING;
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(1).getStatus() == ExecutableState.RUNNING;
         });
         assertTimeRunning(createTime, job.getId());
         waitForJobFinish(job.getId());
@@ -1067,9 +1083,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
-                        .getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
+        });
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -1101,9 +1118,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         //resume
         resumeJobWithLock(job.getId());
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(1)
-                        .getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(1).getStatus() == ExecutableState.RUNNING;
+        });
         val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
         long totalDuration3 = stopJob.getDuration();
         long task1Duration3 = stopJob.getTasks().get(0).getDuration();
@@ -1155,9 +1173,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
-                        .getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
+        });
 
         DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
         Assert.assertEquals(ExecutableState.RUNNING, stopJob.getStatus());
@@ -1194,8 +1213,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(0, task1Duration3, 100);
         Assert.assertEquals(0, task2Duration3, 100);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.RUNNING);
         assertTimeRunning(newCreateTime, job.getId());
         waitForJobFinish(job.getId());
         assertTimeSucceed(newCreateTime, job.getId());
@@ -1228,9 +1246,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long createTime = executableManager.getJob(job.getId()).getCreateTime();
         Assert.assertTrue(createTime > 0L);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
-                        .getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
+        });
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -1273,7 +1292,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(0, task1Duration3, 200);
         Assert.assertEquals(0, task2Duration3, 200);
         AtomicBoolean ended = new AtomicBoolean(false);
-        await().atMost(60000, TimeUnit.MILLISECONDS).until(() -> {
+        getConditionFactory().until(() -> {
             if (executableManager.getJob(job.getId()).getStatus() == ExecutableState.SUCCEED) {
                 ended.set(true);
                 return true;
@@ -1590,8 +1609,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
 
         //sleep 3s to make sure SucceedTestExecutable is running
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.ERROR);
+        getConditionFactory().until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.ERROR);
 
         val context1 = new ExecutableDurationContext(project, job.getId());
         assertErrorState(context1);
@@ -1608,9 +1626,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         //resume
         resumeJobWithLock(job.getId());
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> ((DefaultChainedExecutable) executableManager.getJob(job.getId())).getTasks().get(0)
-                        .getStatus() == ExecutableState.RUNNING);
+        getConditionFactory().until(() -> {
+            final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
+            return job1.getTasks().get(0).getStatus() == ExecutableState.RUNNING;
+        });
         val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
         long totalDuration3 = stopJob.getDuration();
         long task1Duration3 = stopJob.getTasks().get(0).getDuration();
@@ -1658,8 +1677,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(createTime > 0L);
 
         //sleep 8s to make sure SucceedTestExecutable is running
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.ERROR);
+        getConditionFactory().until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.ERROR);
 
         val context1 = new ExecutableDurationContext(project, job.getId());
         assertErrorState(context1);
@@ -1676,7 +1694,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         //restart
         restartJobWithLock(job.getId());
-        await().atMost(60000, TimeUnit.MILLISECONDS)
+        getConditionFactory() //
                 .until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.READY
                         && executableManager.getJob(job.getId()).getCreateTime() > createTime);
         val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
@@ -1699,7 +1717,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(0, task2PendingDuration3);
 
         AtomicBoolean ended = new AtomicBoolean(false);
-        await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(60000, TimeUnit.MILLISECONDS).until(() -> {
+        getConditionFactory().until(() -> {
             if (executableManager.getJob(job.getId()).getStatus() == ExecutableState.ERROR) {
                 ended.set(true);
                 return true;
@@ -1825,8 +1843,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         getTestConfig().setProperty("kylin.engine.driver-memory-maximum", "102400");
         addParallelTasksForJob(dfs, executableManager);
 
-        await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(60000, TimeUnit.MILLISECONDS)
-                .until(() -> (NDefaultScheduler.currentAvailableMem() <= baseMem));
+        getConditionFactory().until(() -> (NDefaultScheduler.currentAvailableMem() <= baseMem));
         assertMemoryRestore(currMem);
     }
 
@@ -1849,7 +1866,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         executableManager.addJob(job);
         executableManager.updateJobOutput(job.getId(), ExecutableState.RUNNING);
 
-        await().atMost(60, TimeUnit.SECONDS).untilAsserted(() -> {
+        getConditionFactory().untilAsserted(() -> {
             DefaultChainedExecutable job2 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
             ExecutableState status = job2.getStatus();
             Assert.assertEquals(ExecutableState.ERROR, status);
@@ -1883,8 +1900,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         manager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         manager.updateEpochWithNotifier(project, true);
         instance.fetchJobsImmediately();
-        Thread.sleep(2000);
-        Assert.assertFalse(instance.hasStarted());
+        getConditionFactory().untilAsserted(() -> Assert.assertFalse(instance.hasStarted()));
     }
 
 }

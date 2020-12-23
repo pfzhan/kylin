@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.event;
 
+import static org.awaitility.Awaitility.with;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,6 +35,7 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -253,9 +256,13 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
             req.setProject(PROJECT);
             req.setUsername("ADMIN");
             val response = queryService.query(req);
-
-            Assert.assertEquals(pair.getFirst() + " failed", pair.getSecond(), response.isQueryPushDown());
-
+            with().pollInterval(10, TimeUnit.MILLISECONDS) //
+                    .and().with().pollDelay(10, TimeUnit.MILLISECONDS) //
+                    .await().atMost(60000, TimeUnit.MILLISECONDS) //
+                    .untilAsserted(() -> {
+                        String message = pair.getFirst() + " failed";
+                        Assert.assertEquals(message, pair.getSecond(), response.isQueryPushDown());
+                    });
         }
     }
 

@@ -42,7 +42,7 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
-import static org.awaitility.Awaitility.await;
+import static org.awaitility.Awaitility.with;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -53,6 +53,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.awaitility.core.ConditionFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Mockito;
@@ -70,10 +71,6 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     protected String project;
 
     protected AtomicInteger killProcessCount;
-
-    public BaseSchedulerTest() {
-
-    }
 
     public BaseSchedulerTest(String project) {
         this.project = project;
@@ -118,9 +115,9 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         waitForJobByStatus(jobId, maxWaitTime, null, executableManager);
     }
 
-    protected void waitForJobByStatus(String jobId, int maxWaitTime, final ExecutableState state,
+    protected void waitForJobByStatus(String jobId, int maxWaitMilliseconds, final ExecutableState state,
             final NExecutableManager executableManager) {
-        await().atMost(maxWaitTime, TimeUnit.MILLISECONDS).until(() -> {
+        getConditionFactory(maxWaitMilliseconds).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();
             if (state != null) {
@@ -130,6 +127,16 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
                     || status == ExecutableState.PAUSED || status == ExecutableState.DISCARDED
                     || status == ExecutableState.SUICIDAL;
         });
+    }
+
+    private ConditionFactory getConditionFactory(long maxWaitMilliseconds) {
+        return with().pollInterval(10, TimeUnit.MILLISECONDS) //
+                .and().with().pollDelay(10, TimeUnit.MILLISECONDS) //
+                .await().atMost(maxWaitMilliseconds, TimeUnit.MILLISECONDS);
+    }
+
+    protected final ConditionFactory getConditionFactory() {
+        return getConditionFactory(60000);
     }
 
 }
