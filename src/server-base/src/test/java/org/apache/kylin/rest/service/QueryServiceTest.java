@@ -512,6 +512,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(queryService.newQueryExec(project))
                 .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
+        Mockito.when(queryService.newQueryExec(project, null))
+                .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
 
         final SQLRequest request = new SQLRequest();
         request.setProject(project);

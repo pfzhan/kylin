@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.common.QueryTrace.FETCH_RESULT;
+import static org.apache.kylin.common.QueryTrace.GET_ACL_INFO;
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
@@ -483,6 +485,9 @@ public class QueryService extends BasicService {
         SQLResponse sqlResponse = null;
         try {
             long startTime = System.currentTimeMillis();
+            QueryContext.currentTrace().startSpan(GET_ACL_INFO);
+            QueryContext.current().setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
+            QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
 
             String userSQL = sqlRequest.getSql();
             String project = sqlRequest.getProject();
@@ -519,12 +524,15 @@ public class QueryService extends BasicService {
                     sqlResponse = queryAndUpdateCache(sqlRequest, startTime, isQueryCacheEnabled);
                 }
             } else {
+                QueryContext.currentTrace().clear();
                 QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
                 QueryContext.currentTrace().endLastSpan();
                 Trace.addTimelineAnnotation("response without real execution");
             }
             sqlResponse.setServer(clusterManager.getLocalServer());
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
+            QueryContext.currentTrace().endLastSpan();
+            QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
             logQuery(sqlRequest, sqlResponse);
@@ -677,7 +685,6 @@ public class QueryService extends BasicService {
                         sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                         queryExec.getSchema(), true);
                 queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
-                QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
                 String correctedSql = QueryUtil.massageSql(queryParams);
 
                 //CAUTION: should not change sqlRequest content!
@@ -771,6 +778,15 @@ public class QueryService extends BasicService {
     }
 
     protected QueryContext.AclInfo getExecuteAclInfo(String project, String executeAs) {
+        // check if it is cached in query context
+        if (QueryContext.current().getAclInfo() != null) {
+            val aclInfo = QueryContext.current().getAclInfo();
+            if ((executeAs != null && executeAs.equals(aclInfo.getUsername()))
+                    || (executeAs == null && Objects.equals(aclInfo.getUsername(), AclPermissionUtil.getCurrentUsername()))) {
+                return aclInfo;
+            }
+        }
+
         if (executeAs == null)
             return AclPermissionUtil.prepareQueryContextACLInfo(project,
                     userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername()));

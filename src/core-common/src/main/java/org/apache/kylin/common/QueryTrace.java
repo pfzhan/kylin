@@ -35,6 +35,7 @@ import java.util.Optional;
 public class QueryTrace {
 
     // span name
+    public static final String GET_ACL_INFO = "GET_ACL_INFO";
     public static final String SQL_TRANSFORMATION = "SQL_TRANSFORMATION";
     public static final String SQL_PARSE_AND_OPTIMIZE = "SQL_PARSE_AND_OPTIMIZE";
     public static final String MODEL_MATCHING = "MODEL_MATCHING";
@@ -49,6 +50,7 @@ public class QueryTrace {
     static final String PREPARATION = "PREPARATION";
     static final Map<String, String> SPAN_GROUPS = new HashMap<>();
     static {
+        SPAN_GROUPS.put(GET_ACL_INFO, PREPARATION);
         SPAN_GROUPS.put(SQL_TRANSFORMATION, PREPARATION);
         SPAN_GROUPS.put(SQL_PARSE_AND_OPTIMIZE, PREPARATION);
         SPAN_GROUPS.put(MODEL_MATCHING, PREPARATION);
@@ -88,6 +90,10 @@ public class QueryTrace {
                 return;
             }
         }
+    }
+
+    public void clear() {
+        spans = new LinkedList<>();
     }
 
     public List<Span> spans() {
