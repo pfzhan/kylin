@@ -576,7 +576,7 @@ export default class AddMeasure extends Vue {
     try {
       this.loadingSubmit = true
       // 创建measure 和 cc 整合，提交的时候统一检测 cc 是否符合规范，不再分看执行
-      if (this.ccVisible) {
+      if (this.ccVisible && this.isEdit) {
         this.$refs.ccEditForm && await this.$refs.ccEditForm.addCC()
         if (this.ccValidateError) {
           this.loadingSubmit = false

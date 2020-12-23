@@ -133,12 +133,12 @@
         <el-row :gutter="5">
           <el-col :span="4" class="content">
             <el-select v-model="charts.type" @change="changeChartType">
-              <el-option v-for="item in chartTypeOptions" :label="item.text" :key="item.value" :value="item.value"></el-option>
+              <el-option v-for="item in chartTypeOptions" :label="$t(item.text)" :disabled="item.isDisabled" :key="item.value" :value="item.value"></el-option>
             </el-select>
           </el-col>
           <el-col :span="10" class="content">
             <el-select v-model="charts.dimension" @change="changeChartDimension">
-              <el-option v-for="item in chartDimensionList.map(it => ({text: it, value: it}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
+              <el-option v-for="item in chartDimensionOptions.map(it => ({text: it, value: it}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
             </el-select>
           </el-col>
           <el-col :span="10" class="content">
@@ -152,8 +152,8 @@
         <el-tooltip :content="$t('overSizeTips')" effect="dark" placement="top" v-if="displayOverSize">
           <i class="el-icon-ksd-info ksd-fs-15 tips"></i>
         </el-tooltip>
-        <div :id="`charts_${tabsItem.name}`" class="chart-layout" v-if="charts.dimension && charts.measure"></div>
-        <p class="no-fill-data" v-else>{{$t('noDimensionOrMeasureData')}}</p>
+        <div :id="`charts_${tabsItem.name}`" class="chart-layout" v-show="charts.dimension && charts.measure"></div>
+        <p class="no-fill-data" v-if="!charts.dimension || !charts.measure">{{$t('noDimensionOrMeasureData')}}</p>
       </div>
     </template>
   </div>
@@ -203,7 +203,7 @@ import echarts from 'echarts'
       noModelRangeTips: 'The query is out of the data range for serving queries. Please add segment accordingly.',
       dataBtn: 'Data',
       visualizationBtn: 'Visualization',
-      chartType: 'Chart Type',
+      chartType: 'Chart Types',
       chartDimension: 'Dimensions',
       chartMeasure: 'Measures',
       noDimensionOrMeasureData: 'Visualization unavailable for current dataset.',
@@ -293,10 +293,16 @@ export default class queryResult extends Vue {
     dimension: '',
     measure: ''
   }
+  chartDimensionOptions = []
   dateTypes = [91, 92, 93]
   stringTypes = [-1, 1, 12]
   numberTypes = [-7, -6, -5, 3, 4, 5, 6, 7, 8]
   chartLayout = null
+  chartTypeOptions = [
+    {text: 'lineChart', value: 'lineChart', isDisabled: false},
+    {text: 'barChart', value: 'barChart', isDisabled: false},
+    {text: 'pieChart', value: 'pieChart', isDisabled: false}
+  ]
   // 增加可视化按钮
   get insightBtnGroups () {
     return [
@@ -304,17 +310,11 @@ export default class queryResult extends Vue {
       {text: this.$t('visualizationBtn'), value: 'visualization'}
     ]
   }
-  get chartTypeOptions () {
-    return [
-      {text: this.$t('lineChart'), value: 'lineChart'},
-      {text: this.$t('barChart'), value: 'barChart'},
-      {text: this.$t('pieChart'), value: 'pieChart'}
-    ]
-  }
   // 动态获取维度
-  get chartDimensionList () {
+  chartDimensionList (type) {
     const dimensionList = []
-    if (this.charts.type === 'lineChart') {
+    const chartType = type || this.charts.type
+    if (chartType === 'lineChart') {
       this.tableMetaBackup.forEach(item => {
         if (this.dateTypes.includes(item.columnType)) {
           dimensionList.push(item.label)
@@ -329,6 +329,7 @@ export default class queryResult extends Vue {
       })
     }
     this.charts.dimension = dimensionList[0] || ''
+    this.chartDimensionOptions = dimensionList
     return dimensionList
   }
   // 动态获取度量
@@ -342,12 +343,27 @@ export default class queryResult extends Vue {
     this.charts.measure = measureList[measureList.length - 1] || ''
     return measureList
   }
+  // 默认 disabled 不可选的图表类型
+  disabledChartType () {
+    if (!this.chartMeasureList.length) {
+      this.chartTypeOptions = this.chartTypeOptions.map(it => ({...it, isDisabled: true}))
+    } else {
+      this.chartTypeOptions.forEach(it => {
+        if (!this.chartDimensionList(it.value).length) {
+          it.isDisabled = true
+        }
+      })
+    }
+    this.charts.type = this.chartTypeOptions.filter(it => !it.isDisabled).length ? this.chartTypeOptions.filter(it => !it.isDisabled)[0].value : ''
+  }
 
   // 切换数据展示效果
   changeDataType (item) {
     if (item.value === this.activeResultType) return
     this.activeResultType = item.value
     if (item.value === 'visualization') {
+      this.disabledChartType()
+      this.chartDimensionList()
       this.$nextTick(() => {
         this.initChartOptions()
       })
@@ -355,15 +371,17 @@ export default class queryResult extends Vue {
   }
   // 初始化 echarts 配置
   initChartOptions () {
+    if (!this.charts.type) return
     this.chartLayout = echarts.init(this.$el.querySelector(`#charts_${this.tabsItem.name}`))
     this.chartLayout.setOption(getOptions(this))
   }
   changeChartType (v) {
     this.charts.type = v
+    this.chartDimensionList()
     this.resetEcharts()
   }
   // 更改维度
-  changeChartDimension () {
+  changeChartDimension (v) {
     this.resetEcharts()
   }
   // 更改度量
