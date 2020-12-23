@@ -655,9 +655,8 @@ export default class IndexList extends Vue {
           list: [
             ...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})),
             ...dimension_items.map(it => {
-              const {all_named_columns} = this.modelDesc
               const name = it.name.split('.').splice(-1).join('')
-              if ([...all_named_columns.map(it => it.name)].filter(v => v === name || v.split('_').slice(0, v.split('_').length - 1).join('_') === name).length > 0) {
+              if (this.sameNameValidation(name).length > 1) {
                 return {...it, name: it.name.split('.').reverse().join('_'), type: 'dimension'}
               } else {
                 return {...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'}
@@ -672,6 +671,18 @@ export default class IndexList extends Vue {
       }
     }).catch((e) => {
       handleError(e)
+    })
+  }
+
+  // 判断是否同名，同名则改成 column_table 形式
+  sameNameValidation (name) {
+    const { all_named_columns } = this.modelDesc
+    return all_named_columns.filter(v => {
+      const table = v.column ? v.column.split('.')[0] : ''
+      let regx = new RegExp(`_${table}$`)
+      if (v.name === name || v.name.replace(regx, '') === name) {
+        return v
+      }
     })
   }
 
