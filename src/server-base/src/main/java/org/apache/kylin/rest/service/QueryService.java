@@ -680,7 +680,7 @@ public class QueryService extends BasicService {
                 if (null != fakeResponse) {
                     logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
                     QueryContext.currentTrace().startSpan(EXECUTION);
-                    QueryContext.currentTrace().endLastSpan();
+                    QueryContext.currentTrace().startSpan(FETCH_RESULT);
                     return fakeResponse;
                 }
 

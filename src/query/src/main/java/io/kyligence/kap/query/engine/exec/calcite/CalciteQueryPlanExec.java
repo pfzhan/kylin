@@ -78,6 +78,7 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
         Enumerable<Object> rawResult = bindable.bind(dataContext);
         List<List<String>> result = new LinkedList<>();
 
+        QueryContext.currentTrace().startSpan(QueryTrace.FETCH_RESULT);
         for (Object rawRow : rawResult.toList()) {
             List<String> row = new LinkedList<>();
             if (rel.getRowType().getFieldCount() > 1) {
