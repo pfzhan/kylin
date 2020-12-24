@@ -42,6 +42,7 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.common.QueryTrace.EXECUTION;
 import static org.apache.kylin.common.QueryTrace.FETCH_RESULT;
 import static org.apache.kylin.common.QueryTrace.GET_ACL_INFO;
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
@@ -678,6 +679,8 @@ public class QueryService extends BasicService {
                 SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
                 if (null != fakeResponse) {
                     logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
+                    QueryContext.currentTrace().startSpan(EXECUTION);
+                    QueryContext.currentTrace().endLastSpan();
                     return fakeResponse;
                 }
 
