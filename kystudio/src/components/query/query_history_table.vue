@@ -59,13 +59,13 @@
                       <el-popover
                         placement="bottom"
                         :width="$lang === 'en' ? 340 : 320"
-                        v-if="props.row.query_steps.length"
+                        v-if="props.row.query_steps.length&&props.row.query_status==='SUCCEEDED'"
                         popper-class="duration-popover"
                         trigger="hover">
                         <el-row v-for="(step, index) in props.row.query_steps" :key="step.name">
                           <el-col :span="14">
                             <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
-                            <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="index === 1" @click.stop="isShowDetail = !isShowDetail"></i>
+                            <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
                           </el-col>
                           <el-col :span="4">
                             <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{step.duration / 1000 | fixed(2)}}s</span>
@@ -235,6 +235,7 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       PREPARATION: 'Preparation',
       SQL_TRANSFORMATION: 'SQL transformation',
       SQL_PARSE_AND_OPTIMIZE: 'SQL parser optimization',
+      GET_ACL_INFO: 'ACL Checking',
       MODEL_MATCHING: 'Model matching',
       PREPARE_AND_SUBMIT_JOB: 'Creating and Submitting Spark job',
       WAIT_FOR_EXECUTION: 'Waiting for resources',
@@ -263,6 +264,7 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       PREPARATION: '查询准备',
       SQL_TRANSFORMATION: 'SQL 转换',
       SQL_PARSE_AND_OPTIMIZE: 'SQL 解析与优化',
+      GET_ACL_INFO: 'ACL 检查',
       MODEL_MATCHING: '模型匹配',
       PREPARE_AND_SUBMIT_JOB: '创建并提交 Spark 任务',
       WAIT_FOR_EXECUTION: '等待资源',
@@ -353,15 +355,20 @@ export default class QueryHistoryTable extends Vue {
         {name: 'totalDuration', duration: 0},
         {name: 'PREPARATION', duration: 0}
       ]
+      let preStepNum = 0
       steps.forEach((s) => {
         renderSteps[0].duration = renderSteps[0].duration + s.duration
         if (s.group === 'PREPARATION') {
+          preStepNum++
           renderSteps[1].duration = renderSteps[1].duration + s.duration
           renderSteps.push(s)
         } else {
           renderSteps.push(s)
         }
       })
+      if (preStepNum === 0) {
+        renderSteps.splice(1, 1) // 击中缓存没有查询前置步骤
+      }
       return renderSteps
     } else {
       return []
