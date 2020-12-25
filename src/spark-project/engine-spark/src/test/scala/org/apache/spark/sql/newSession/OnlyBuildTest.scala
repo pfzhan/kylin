@@ -1,0 +1,79 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.apache.spark.sql.newSession
+
+import java.util
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
+import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
+import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.job.engine.JobEngineConfig
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
+import org.apache.kylin.metadata.model.SegmentRange
+import org.apache.spark.SparkFunSuite
+import org.apache.spark.sql.test.SQLTestUtils
+import org.spark_project.guava.collect.Sets
+
+abstract class OnlyBuildTest  extends SparkFunSuite with SQLTestUtils with WithKylinExternalCatalog {
+
+  val project = "file_pruning"
+  protected override val ut_meta = "../kap-it/src/test/resources/ut_meta/file_pruning"
+  val dfID = "8c670664-8d05-466a-802f-83c023b56c77"
+
+  protected def storageType: Integer
+
+  def setStorage(modelMgr: NDataModelManager, modelName: String): Unit = {
+    case class Updater(storageType: Integer) extends NDataModelUpdater {
+      override def modify(copyForWrite: NDataModel): Unit = copyForWrite.setStorageType(storageType)
+    }
+    if (storageType != 1) {
+      modelMgr.updateDataModel(modelName, Updater(storageType))
+    }
+  }
+
+  override def beforeAll(): Unit = {
+    overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1")
+    super.beforeAll()
+    val scheduler = NDefaultScheduler.getInstance(project)
+    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
+    assert(scheduler.hasStarted)
+    setStorage(NDataModelManager.getInstance(kylinConf, project), dfID)
+  }
+
+  override def afterAll(): Unit = {
+    NDefaultScheduler.destroyInstance()
+    super.afterAll()
+  }
+
+  test("testNonExistTimeRange") {
+    val start: Long = SegmentRange.dateToLong("2023-01-01 00:00:00")
+    val end: Long = SegmentRange.dateToLong("2025-01-01 00:00:00")
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(kylinConf, project)
+    val df: NDataflow = dsMgr.getDataflow(dfID)
+    val layouts: util.List[LayoutEntity] = df.getIndexPlan.getAllLayouts
+    NLocalWithSparkSessionTest.buildCuboid(dfID,
+      new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), project, true)
+  }
+}

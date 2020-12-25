@@ -53,4 +53,8 @@ class TestCapacitySchedulerParser extends SparderBaseFunSuite {
     val devResource = parser.availableResource("dev_test")
     assert(devResource == AvailableResource(ResourceInfo(10, 20), ResourceInfo(73727, 1073741823)))
   }
+
+  protected override def afterAll(): Unit = {
+    KylinBuildEnv.clean()
+  }
 }

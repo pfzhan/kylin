@@ -26,6 +26,12 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
+if [[ -d "/data/external-catalog" ]];then
+    plugin_version=`grep "kylin.datasource.ubs.version" ${KYLIN_HOME}/conf/kylin.properties.override | awk -F "=" '{print $2}'`
+    cp -rf /data/external-catalog/$plugin_version/*.jar ${KYLIN_HOME}/spark/jars/
+    source /data/external-catalog/$plugin_version/ubs_setenv.sh
+fi
+
 if [[ `isValidJavaVersion` == "false" ]]; then
     quit "ERROR: Java 1.8 or above is required for Kyligence Enterprise"
 fi

@@ -238,7 +238,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         SparderEnv.getSparkSession().sql(generateCreateSchemaSql(database));
     }
 
-    private String generateCreateSchemaSql(String schemaName) {
+    public static String generateCreateSchemaSql(String schemaName) {
         return String.format(Locale.ROOT, "CREATE DATABASE IF NOT EXISTS %s", schemaName);
     }
 
@@ -250,7 +250,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         }
     }
 
-    private String[] generateCreateTableSql(TableDesc tableDesc) {
+    public static String[] generateCreateTableSql(TableDesc tableDesc) {
         String dropSql = "DROP TABLE IF EXISTS " + tableDesc.getIdentity();
 
         StringBuilder ddl = new StringBuilder();

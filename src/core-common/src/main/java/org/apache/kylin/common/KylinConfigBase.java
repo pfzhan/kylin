@@ -2141,6 +2141,10 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(this.getOptional("kylin.query.async.result-retain-days", "7d"), TimeUnit.DAYS);
     }
 
+    public String getExternalCatalogClass(){
+        return getOptional("kylin.use.external.calatog", "");
+    }
+
     public Boolean isSparderAsync() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.init-sparder-async", TRUE));
     }

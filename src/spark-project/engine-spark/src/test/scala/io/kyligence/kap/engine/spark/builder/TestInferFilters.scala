@@ -43,9 +43,15 @@ class TestInferFilters extends SparderBaseFunSuite with SharedSparkSession with 
   private val MODEL_NAME1 = "89af4ee2-2cdb-4b07-b39e-4c29856309ab"
 
   def getTestConfig: KylinConfig = {
-    val config = KylinConfig.getInstanceFromEnv
-    config.setProperty("kylin.job.infer-filters-enabled", "true")
-    config
+    KylinConfig.getInstanceFromEnv
+  }
+
+  override def beforeEach(): Unit = {
+    SegmentFlatTable.inferFiltersEnabled = true
+  }
+
+  override def afterEach(): Unit = {
+    SegmentFlatTable.inferFiltersEnabled = false
   }
 
   test("infer filters from join desc") {

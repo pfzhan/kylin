@@ -21,40 +21,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.hive
+package org.apache.spark.sql.newSession
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionState}
-
-/**
- * hive session  hava some rule exp: find datasource table rule
- *
- * @param sparkSession
- * @param parentState
- */
-class KylinHiveSessionStateBuilder(sparkSession: SparkSession,
-                                   parentState: Option[SessionState] = None)
-    extends HiveSessionStateBuilder(sparkSession, parentState) {
-
-  private def externalCatalog: HiveExternalCatalog =
-    session.sharedState.externalCatalog.asInstanceOf[HiveExternalCatalog]
-
-  override protected def newBuilder: NewBuilder =
-    new KylinHiveSessionStateBuilder(_, _)
-
-}
-
-/**
- * use for no hive mode
- *
- * @param sparkSession
- * @param parentState
- */
-class KylinSessionStateBuilder(sparkSession: SparkSession,
-                               parentState: Option[SessionState] = None)
-    extends BaseSessionStateBuilder(sparkSession, parentState) {
-
-  override protected def newBuilder: NewBuilder =
-    new KylinSessionStateBuilder(_, _)
-
+class V2Build  extends  OnlyBuildTest {
+  override protected def storageType: Integer = 2
 }

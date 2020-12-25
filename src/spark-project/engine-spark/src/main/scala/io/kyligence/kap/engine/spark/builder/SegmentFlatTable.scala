@@ -421,7 +421,7 @@ object SegmentFlatTable extends LogEx {
   import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 
   private val conf = KylinConfig.getInstanceFromEnv
-  private val inferFiltersEnabled = conf.inferFiltersEnabled()
+  var inferFiltersEnabled: Boolean = conf.inferFiltersEnabled()
 
   def fulfillDS(originDS: Dataset[Row], cols: Set[TblColRef], tableRef: TableRef): Dataset[Row] = {
     // wrap computed columns, filter out valid columns

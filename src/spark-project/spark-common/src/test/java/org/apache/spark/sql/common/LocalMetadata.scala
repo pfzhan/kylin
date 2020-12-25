@@ -27,6 +27,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 import java.io.File
 
+
 trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   val metadata = "../examples/test_case_data/localmeta"
@@ -45,10 +46,15 @@ trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
     Unsafe.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString)
   }
 
+  protected def overwriteSystemProp (key: String, value: String): Unit = {
+    metaStore.overwriteSystemProp(key, value)
+  }
+
 
   override def afterAll() {
     super.afterAll()
     try {
+      metaStore.restoreSystemProps()
       metaStore.cleanupTestMetadata()
       if (zkTestServer != null) {
         zkTestServer.close()

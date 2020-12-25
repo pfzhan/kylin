@@ -21,40 +21,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.hive
+package io.kyligence.api;
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionState}
+import io.kyligence.api.annotation.InterfaceStability.Evolving;
 
-/**
- * hive session  hava some rule exp: find datasource table rule
- *
- * @param sparkSession
- * @param parentState
- */
-class KylinHiveSessionStateBuilder(sparkSession: SparkSession,
-                                   parentState: Option[SessionState] = None)
-    extends HiveSessionStateBuilder(sparkSession, parentState) {
+@Evolving
+public class ApiException extends Exception {
 
-  private def externalCatalog: HiveExternalCatalog =
-    session.sharedState.externalCatalog.asInstanceOf[HiveExternalCatalog]
+    public ApiException() {
+        super();
+    }
 
-  override protected def newBuilder: NewBuilder =
-    new KylinHiveSessionStateBuilder(_, _)
+    public ApiException(String message) {
+        super(message);
+    }
 
+    public ApiException(Throwable cause) {
+        super(cause);
+    }
+
+    public ApiException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
 
-/**
- * use for no hive mode
- *
- * @param sparkSession
- * @param parentState
- */
-class KylinSessionStateBuilder(sparkSession: SparkSession,
-                               parentState: Option[SessionState] = None)
-    extends BaseSessionStateBuilder(sparkSession, parentState) {
-
-  override protected def newBuilder: NewBuilder =
-    new KylinSessionStateBuilder(_, _)
-
-}

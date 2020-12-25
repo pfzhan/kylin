@@ -163,7 +163,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         }
     }
 
-    protected static void populateSSWithCSVData(KylinConfig kylinConfig, String project, SparkSession sparkSession) {
+    public static void populateSSWithCSVData(KylinConfig kylinConfig, String project, SparkSession sparkSession) {
 
         ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
         Preconditions.checkArgument(projectInstance != null);
@@ -228,7 +228,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         throw new IllegalArgumentException("KAP data type: " + type + " can not be converted to spark's type.");
     }
 
-    protected ExecutableState wait(AbstractExecutable job) throws InterruptedException {
+    protected static ExecutableState wait(AbstractExecutable job) throws InterruptedException {
         while (true) {
             Thread.sleep(500);
             ExecutableState status = job.getStatus();
@@ -260,12 +260,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
+    public static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
             boolean isAppend) throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, prj, isAppend, null);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
+    protected static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
             boolean isAppend, List<String[]> partitionValues) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
@@ -275,7 +275,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         buildSegment(cubeName, oneSeg, toBuildLayouts, prj, isAppend, partitionValues);
     }
 
-    protected void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, String prj,
+    protected static void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, String prj,
             boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
@@ -309,7 +309,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             throw new IllegalStateException();
         }
 
-        val merger = new AfterBuildResourceMerger(config, getProject());
+        val merger = new AfterBuildResourceMerger(config, prj);
         if (isAppend) {
             merger.mergeAfterIncrement(df.getUuid(), segment.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                     ExecutableUtils.getRemoteStore(config, sparkStep));

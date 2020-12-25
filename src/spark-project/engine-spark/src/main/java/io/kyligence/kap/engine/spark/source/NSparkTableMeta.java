@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.source;
 import java.util.List;
 
 public class NSparkTableMeta {
-    static class SparkTableColumnMeta {
+    public static class SparkTableColumnMeta {
         String name;
         String dataType;
         String comment;
@@ -41,6 +41,16 @@ public class NSparkTableMeta {
         public String toString() {
             return "SparkTableColumnMeta{" + "name='" + name + '\'' + ", dataType='" + dataType + '\'' + ", comment='"
                     + comment + '\'' + '}';
+        }
+
+        public String getName() {
+            return name;
+        }
+        public String getDataType() {
+            return dataType;
+        }
+        public String getComment() {
+            return comment;
         }
     }
 
@@ -58,6 +68,10 @@ public class NSparkTableMeta {
     boolean isNative;
     List<SparkTableColumnMeta> allColumns;
     List<SparkTableColumnMeta> partitionColumns;
+
+    public List<SparkTableColumnMeta> getAllColumns() {
+        return allColumns;
+    }
 
     public NSparkTableMeta(String tableName, String sdLocation, String sdInputFormat, String sdOutputFormat,
             String owner, String provider, String tableType, String createTime, String lastAccessTime, long fileSize,

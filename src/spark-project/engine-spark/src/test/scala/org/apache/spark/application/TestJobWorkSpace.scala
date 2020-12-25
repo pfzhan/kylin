@@ -60,6 +60,10 @@ class TestJobWorkSpace extends SparderBaseFunSuite {
     val entry = new JobWorkSpace(loop, monitor, worker)
     assert(entry.run() == 1)
   }
+
+  protected override def afterAll(): Unit = {
+    KylinBuildEnv.clean()
+  }
 }
 
 

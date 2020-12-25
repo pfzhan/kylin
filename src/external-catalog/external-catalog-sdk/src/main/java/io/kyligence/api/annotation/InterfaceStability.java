@@ -21,40 +21,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.hive
+package io.kyligence.api.annotation;
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionState}
-
-/**
- * hive session  hava some rule exp: find datasource table rule
- *
- * @param sparkSession
- * @param parentState
- */
-class KylinHiveSessionStateBuilder(sparkSession: SparkSession,
-                                   parentState: Option[SessionState] = None)
-    extends HiveSessionStateBuilder(sparkSession, parentState) {
-
-  private def externalCatalog: HiveExternalCatalog =
-    session.sharedState.externalCatalog.asInstanceOf[HiveExternalCatalog]
-
-  override protected def newBuilder: NewBuilder =
-    new KylinHiveSessionStateBuilder(_, _)
-
-}
+import java.lang.annotation.Documented;
 
 /**
- * use for no hive mode
- *
- * @param sparkSession
- * @param parentState
+ * Annotation to inform users of how much to rely on a particular package,
+ * class or method not changing over time.
  */
-class KylinSessionStateBuilder(sparkSession: SparkSession,
-                               parentState: Option[SessionState] = None)
-    extends BaseSessionStateBuilder(sparkSession, parentState) {
+public class InterfaceStability {
+    /**
+     * Can evolve while retaining compatibility for minor release boundaries.;
+     * can break compatibility only at major release (ie. at m.0).
+     */
+    @Documented
+    public @interface Stable {}
 
-  override protected def newBuilder: NewBuilder =
-    new KylinSessionStateBuilder(_, _)
+    /**
+     * Evolving, but can break compatibility at minor release (i.e. m.x)
+     */
+    @Documented
+    public @interface Evolving {}
 
+    /**
+     * No guarantee is provided as to reliability or stability across any
+     * level of release granularity.
+     */
+    @Documented
+    public @interface Unstable {}
 }
+

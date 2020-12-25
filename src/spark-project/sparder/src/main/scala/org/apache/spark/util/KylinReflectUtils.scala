@@ -31,7 +31,7 @@ import scala.reflect.runtime._
 object KylinReflectUtils {
   private val rm = universe.runtimeMirror(getClass.getClassLoader)
 
-  def getSessionState(sparkContext: SparkContext, kylinSession: Object): Any = {
+  def getSessionState(sparkContext: SparkContext, kylinSession: Object, parentSessionState: Object): Any = {
     if (SPARK_VERSION.startsWith("2.4")) {
       var className: String =
         "org.apache.spark.sql.hive.KylinHiveSessionStateBuilder"
@@ -39,7 +39,7 @@ object KylinReflectUtils {
             .get(CATALOG_IMPLEMENTATION.key, "in-memory"))) {
         className = "org.apache.spark.sql.hive.KylinSessionStateBuilder"
       }
-      val tuple = createObject(className, kylinSession, None)
+      val tuple = createObject(className, kylinSession, parentSessionState)
       val method = tuple._2.getMethod("build")
       method.invoke(tuple._1)
     } else {

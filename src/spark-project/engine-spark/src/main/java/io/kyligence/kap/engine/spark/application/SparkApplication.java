@@ -61,6 +61,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.application.NoRetryException;
+import org.apache.spark.sql.KylinSession;
+import org.apache.spark.sql.KylinSession$;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.SparkSessionExtensions;
@@ -283,25 +285,7 @@ public abstract class SparkApplication implements Application, IKeep {
             waiteForResource(sparkConf, buildEnv);
 
             logger.info("Prepare job environment");
-            ss = SparkSession.builder().withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
-                @Override
-                public BoxedUnit apply(SparkSessionExtensions v1) {
-                    v1.injectPlannerStrategy(new AbstractFunction1<SparkSession, SparkStrategy>() {
-                        @Override
-                        public SparkStrategy apply(SparkSession session) {
-                            return new KylinJoinSelection(session);
-                        }
-                    });
-                    v1.injectPostHocResolutionRule(new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
-                        @Override
-                        public Rule<LogicalPlan> apply(SparkSession session) {
-                            return new AlignmentTableStats(session);
-                        }
-                    });
-                    return BoxedUnit.UNIT;
-                }
-            }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-                    .getOrCreate();
+            ss = createSpark(sparkConf);
 
             if (!config.isUTEnv()) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
@@ -335,6 +319,43 @@ public abstract class SparkApplication implements Application, IKeep {
                 JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();
             }
+        }
+    }
+
+    private SparkSession createSpark(SparkConf sparkConf) {
+        SparkSession.Builder sessionBuilder = SparkSession.builder()
+                .withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
+                    @Override
+                    public BoxedUnit apply(SparkSessionExtensions v1) {
+                        v1.injectPlannerStrategy(new AbstractFunction1<SparkSession, SparkStrategy>() {
+                            @Override
+                            public SparkStrategy apply(SparkSession session) {
+                                return new KylinJoinSelection(session);
+                            }
+                        });
+                        v1.injectPostHocResolutionRule(new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
+                            @Override
+                            public Rule<LogicalPlan> apply(SparkSession session) {
+                                return new AlignmentTableStats(session);
+                            }
+                        });
+                        return BoxedUnit.UNIT;
+                    }
+                }).enableHiveSupport().config(sparkConf)
+                .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false");
+
+        // If this is UT and SparkSession is already created, then use SparkSession.
+        // Otherwise, we always use KylinSession
+        boolean createWithSparkSession = !isJobOnCluster(sparkConf) && SparderEnv.isSparkAvailable();
+        if (createWithSparkSession) {
+            boolean isKylinSession = SparderEnv.getSparkSession() instanceof KylinSession;
+            createWithSparkSession = !isKylinSession;
+        }
+
+        if (createWithSparkSession) {
+            return sessionBuilder.getOrCreate();
+        } else {
+            return KylinSession$.MODULE$.KylinBuilder(sessionBuilder).buildCluster().getOrCreateKylinSession();
         }
     }
 

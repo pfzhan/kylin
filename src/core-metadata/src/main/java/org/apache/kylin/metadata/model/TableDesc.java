@@ -293,6 +293,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
             } else if (splits.length == 1) {
                 this.name = splits[0];
             }
+            identity = null;
         } else {
             this.name = null;
         }

@@ -39,48 +39,68 @@ import org.apache.kylin.query.util.{QueryParams, QueryUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
-import org.apache.spark.sql.hive.HiveSessionStateBuilder
 import org.apache.spark.sql.internal.{SessionState, SharedState}
+import org.apache.spark.sql.kylin.external.{KylinSessionStateBuilder, KylinSharedState}
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.KylinReflectUtils
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.HashMap
 import scala.util.{Failure, Success, Try}
 
 class KylinSession(
-                    @transient val sc: SparkContext,
-                    @transient private val existingSharedState: Option[SharedState],
-                    @transient private val parentSessionState: Option[SessionState])
+    @transient val sc: SparkContext,
+    @transient private val existingSharedState: Option[SharedState],
+    @transient private val parentSessionState: Option[SessionState])
   extends SparkSession(sc) {
-
   def this(sc: SparkContext) {
-    this(sc, None, None)
-  }
-
-  @transient
-  override lazy val sessionState: SessionState = {
-    if (parentSessionState ne None) {
-      new HiveSessionStateBuilder(this, parentSessionState).build()
-    } else {
-      KylinReflectUtils.getSessionState(sc, this).asInstanceOf[SessionState]
-    }
+    this(sc,
+      existingSharedState = None,
+      parentSessionState = None)
   }
 
   @transient
   override lazy val sharedState: SharedState = {
-    existingSharedState.getOrElse(new SharedState(sc))
+
+    val className = KylinConfig.getInstanceFromEnv.getExternalCatalogClass
+    val loadExternal = KylinSharedState.checkExternalClass(className)
+
+    if (loadExternal) {
+      existingSharedState.getOrElse(new KylinSharedState(sc, className))
+    } else {
+      // see https://stackoverflow.com/questions/45935672/scala-why-cant-we-do-super-val
+      // we can't call  super.sharedState, copy SparkSession#sharedState
+      existingSharedState.getOrElse(new SharedState(sparkContext))
+    }
   }
 
-  override def newSession(): SparkSession = {
-    new KylinSession(sparkContext, Some(sharedState), Some(sessionState))
+  @transient
+  override lazy val sessionState: SessionState = {
+    val loadExteral = sharedState.isInstanceOf[KylinSharedState]
+    if (loadExteral) {
+      new KylinSessionStateBuilder(this, parentSessionState).build()
+    } else {
+      KylinReflectUtils.getSessionState(sc, this, parentSessionState).asInstanceOf[SessionState]
+    }
+  }
+
+  override def newSession(): KylinSession = {
+    new KylinSession(sparkContext, Some(sharedState), parentSessionState = None)
+  }
+
+  override def cloneSession(): SparkSession = {
+    val result = new KylinSession(
+      sparkContext,
+      Some(sharedState),
+      Some(sessionState))
+    result.sessionState  // force copy of SessionState
+    result
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
     val prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
     try {
-      val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig;
+      val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig
       val queryExec = new QueryExec(project, projectKylinConfig)
       val queryParams = new QueryParams(QueryUtil.getKylinConfig(project),
         sql, project, 0, 0, queryExec.getSchema, true)
@@ -116,27 +136,28 @@ class KylinSession(
 object KylinSession extends Logging {
 
   implicit class KylinBuilder(builder: Builder) {
-
+    var queryCluster: Boolean = true
 
     def getOrCreateKylinSession(): SparkSession = synchronized {
       val options =
         getValue("options", builder)
-          .asInstanceOf[HashMap[String, String]]
-
-      var session: SparkSession = SparkSession.getActiveSession match {
+          .asInstanceOf[scala.collection.mutable.HashMap[String, String]]
+      val userSuppliedContext: Option[SparkContext] =
+        getValue("userSuppliedContext", builder)
+          .asInstanceOf[Option[SparkContext]]
+      var (session, existingSharedState, parentSessionState) = SparkSession.getActiveSession match {
         case Some(sparkSession: KylinSession) =>
           if ((sparkSession ne null) && !sparkSession.sparkContext.isStopped) {
             options.foreach {
               case (k, v) => sparkSession.sessionState.conf.setConfString(k, v)
             }
-            sparkSession
+            (sparkSession, None, None)
           } else if ((sparkSession ne null) && sparkSession.sparkContext.isStopped) {
-            val sparkContext = getSparkContext(options)
-            new KylinSession(sparkContext, Some(sparkSession.sharedState), Some(sparkSession.sessionState))
+            (null, Some(sparkSession.sharedState), Some(sparkSession.sessionState))
           } else {
-            null
+            (null, None, None)
           }
-        case _ => null
+        case _ => (null, None, None)
       }
       if (session ne null) {
         return session
@@ -156,12 +177,31 @@ object KylinSession extends Logging {
         if (session ne null) {
           return session
         }
-        val sparkContext = getSparkContext(options)
-        session = new KylinSession(sparkContext)
+        val sparkContext = userSuppliedContext.getOrElse {
+          // set app name if not given
+          val conf = new SparkConf()
+          options.foreach { case (k, v) => conf.set(k, v) }
+          val sparkConf: SparkConf = if (queryCluster) {
+            initSparkConf(conf)
+          } else {
+            conf
+          }
+          val sc = SparkContext.getOrCreate(sparkConf)
+          // maybe this is an existing SparkContext, update its SparkConf which maybe used
+          // by SparkSession
+
+          // KE-12678
+          if(sc.master.startsWith("yarn")) {
+            Unsafe.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
+          }
+
+          sc
+        }
+        session = new KylinSession(sparkContext, existingSharedState, parentSessionState)
         SparkSession.setDefaultSession(session)
+        SparkSession.setActiveSession(session)
         sparkContext.addSparkListener(new SparkListener {
-          override def onApplicationEnd(
-                                         applicationEnd: SparkListenerApplicationEnd): Unit = {
+          override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
             SparkSession.setDefaultSession(null)
           }
         })
@@ -169,28 +209,7 @@ object KylinSession extends Logging {
         session
       }
     }
-
-    def getSparkContext(options: HashMap[String, String]): SparkContext = {
-      val userSuppliedContext: Option[SparkContext] =
-        getValue("userSuppliedContext", builder)
-                .asInstanceOf[Option[SparkContext]]
-      userSuppliedContext.getOrElse {
-        // set app name if not given
-        val conf = new SparkConf()
-        options.foreach { case (k, v) => conf.set(k, v) }
-        val sparkConf = initSparkConf(conf)
-        val sc = SparkContext.getOrCreate(sparkConf)
-        // maybe this is an existing SparkContext, update its SparkConf which maybe used
-        // by SparkSession
-
-        // KE-12678
-        if(sc.master.startsWith("yarn")) {
-          Unsafe.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
-        }
-        sc
-      }
-    }
-
+    
     def getValue(name: String, builder: Builder): Any = {
       val currentMirror = scala.reflect.runtime.currentMirror
       val instanceMirror = currentMirror.reflect(builder)
@@ -209,7 +228,7 @@ object KylinSession extends Logging {
     private lazy val kapConfig: KapConfig = KapConfig.getInstanceFromEnv
 
     def initSparkConf(sparkConf: SparkConf): SparkConf = {
-      if (sparkConf.getBoolean("user.kylin.session", false)) {
+      if (sparkConf.getBoolean("user.kylin.session", defaultValue = false)) {
         return sparkConf
       }
       sparkConf.set("spark.amIpFilter.enabled", "false")
@@ -226,7 +245,6 @@ object KylinSession extends Logging {
       if (UserGroupInformation.isSecurityEnabled) {
         sparkConf.set("hive.metastore.sasl.enabled", "true")
       }
-
       kapConfig.getSparkConf.asScala.foreach {
         case (k, v) =>
           sparkConf.set(k, v)
@@ -283,11 +301,12 @@ object KylinSession extends Logging {
           s"$yarnAMJavaOptions $amKerberosConf")
       }
 
+
       if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect > 0L) {
         sparkConf.set("spark.sql.driver.maxMemoryUsageDuringCollect", KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect + "m")
       }
 
-      val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", false)
+      val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", defaultValue = false)
       var logDir = sparkConf.get("spark.eventLog.dir", "")
       if (eventLogEnabled && !logDir.isEmpty) {
         logDir = ExtractFactory.create.getSparderEvenLogDir
@@ -302,6 +321,10 @@ object KylinSession extends Logging {
       sparkConf
     }
 
+    def buildCluster(): KylinBuilder = {
+      queryCluster = false
+      this
+    }
   }
 
 }
