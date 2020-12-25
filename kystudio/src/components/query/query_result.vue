@@ -1,6 +1,6 @@
 <template>
   <div class="result_box">
-    <div class="ksd-title-label-small ksd-mb-10">{{$t('extraoptionrmation')}}</div>
+    <div class="ksd-title-label-small ksd-mb-10">{{$t('queryResults')}}</div>
     <el-alert
       :title="$t('noModelRangeTips')"
       type="warning"
@@ -79,24 +79,21 @@
         </p>
       </div>
     </div>
-    <el-button-group class="result-layout-btns ksd-mt-15">
-      <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
-    </el-button-group>
-    <template v-if="activeResultType === 'data'">
-      <div :class="[{'ksd-header': !showExportCondition}]" v-if="!isStop">
-        <div :class="['ksd-title-label-small', 'result-title', showExportCondition ? 'ksd-mt-20' : 'result-title-float', {'guide-queryResultBox': isWorkspace}]">{{$t('queryResults')}}</div>
-        <div :class="['clearfix', {'ksd-mt-15': showExportCondition}]">
-          <div class="ksd-fleft">
-            <el-button v-if="showExportCondition" :loading="hasClickExportBtn" type="primary" plain size="small" @click.native="exportData">
-              {{$t('exportCSV')}}
-            </el-button>
-          </div>
-          <div class="resultOperator ksd-fright">
-            <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
-            </el-input>
-          </div>
-        </div>
+    <div v-if="!isStop">
+      <el-button-group class="result-layout-btns ksd-mt-15">
+        <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
+      </el-button-group>
+      <div class="ksd-fright ksd-mt-15" v-if="activeResultType === 'data'">
+        <span class="resultOperator">
+          <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
+          </el-input>
+        </span>
+        <el-button v-if="showExportCondition" :loading="hasClickExportBtn" type="primary" plain size="small" @click.native="exportData">
+          {{$t('exportCSV')}}
+        </el-button>
       </div>
+    </div>
+    <template v-if="activeResultType === 'data'">
       <div class="ksd-mt-10 grid-box narrowTable" v-if="!isStop">
         <el-table
           :data="pagerTableData"
@@ -686,7 +683,7 @@ export default class queryResult extends Vue {
     }
     .resultOperator {
       .el-input {
-        width: auto;
+        width: 150px;
       }
     }
     .result-layout-btns {
