@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -278,22 +277,11 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
             // 2. publish all named columns
             List<NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
-            changeNameIfDup(namedColumns);
+            NDataModel.changeNameIfDup(namedColumns);
 
             NDataModel.checkDuplicateColumn(namedColumns);
             NDataModel.checkIdOrderOfColumn(namedColumns);
             dataModel.setAllNamedColumns(namedColumns);
-        }
-
-        private void changeNameIfDup(List<NamedColumn> namedColumns) {
-            Map<String, List<NamedColumn>> colByName = namedColumns.stream()
-                    .collect(Collectors.groupingBy(NamedColumn::getName));
-            colByName.entrySet().stream().forEach(entry -> {
-                List<NamedColumn> dupCols = entry.getValue();
-                if (dupCols.size() > 1) {
-                    dupCols.forEach(col -> col.setName(col.getColTableName()));
-                }
-            });
         }
 
         private ParameterDesc copyParameterDesc(ParameterDesc param) {

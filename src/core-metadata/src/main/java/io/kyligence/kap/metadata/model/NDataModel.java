@@ -1403,6 +1403,16 @@ public class NDataModel extends RootPersistentEntity {
                 "Unsorted named columns exception in process of proposing model.");
     }
 
+    public static void changeNameIfDup(List<NamedColumn> namedColumns) {
+        Map<String, List<NamedColumn>> colByName = namedColumns.stream()
+                .collect(Collectors.groupingBy(NamedColumn::getName));
+        colByName.forEach((key, dupCols) -> {
+            if (dupCols.size() > 1) {
+                dupCols.forEach(col -> col.setName(col.getColTableName()));
+            }
+        });
+    }
+
     public boolean isMultiPartitionModel() {
         return multiPartitionDesc != null && CollectionUtils.isNotEmpty(multiPartitionDesc.getColumns());
     }
