@@ -197,6 +197,8 @@ public class EpochManager implements IKeep {
             } catch (InterruptedException e) {
                 logger.error("renew epoch is interrupted....", e);
                 return;
+            } finally {
+                renewExecutor.shutdown();
             }
 
             notifierAfterUpdatedEpoch("renew", oriEpochs, currentEpochs);
