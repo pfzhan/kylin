@@ -29,11 +29,11 @@ export default {
   locales: {
     'en': {
       outputTips: 'The output log shows the first and last 100 lines by default. To view all the output, please click to ',
-      download: 'download the log file.',
+      download: 'download the log file',
       end: '.',
       outputTipsKC: 'The output log shows the first and last 100 lines by default. To view all the output, please download diagnosis package on Admin-Troubleshooting page.',
       gotoSystemLog: 'view all logs',
-      or: 'or'
+      or: ' or '
     },
     'zh-cn': {
       outputTips: '输出日志默认展示首尾各100行内容，如需查看所有内容，请点击',
