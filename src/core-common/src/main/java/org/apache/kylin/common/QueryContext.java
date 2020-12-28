@@ -107,6 +107,10 @@ public class QueryContext implements Closeable {
     @Getter
     private QueryTrace queryTrace = new QueryTrace();
 
+    @Getter
+    @Setter
+    private boolean partialMatchIndex = false;
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryId = UUID.randomUUID().toString();

@@ -698,6 +698,8 @@ public class QueryService extends BasicService {
 
                 //CAUTION: should not change sqlRequest content!
                 QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
+                QueryContext.current().setPartialMatchIndex(sqlRequest.isPartialMatchIndex());
+
                 logger.info("The corrected query: {}", correctedSql);
 
                 Trace.addTimelineAnnotation("query massaged");

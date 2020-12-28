@@ -85,6 +85,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private String stopId;
     private String format = "csv";
     private String encode = "utf-8";
+    private boolean partialMatchIndex = false;
 
     @JsonProperty("file_name")
     private String fileName = "result";

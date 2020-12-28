@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -68,13 +66,34 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
+import io.kyligence.kap.metadata.project.NProjectManager;
+
 import lombok.val;
 
 public class NQueryLayoutChooser {
     private static final Logger logger = LoggerFactory.getLogger(NQueryLayoutChooser.class);
 
     private NQueryLayoutChooser() {
+    }
+
+    public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectPartialCuboidLayout(NDataflow dataflow, List<NDataSegment> prunedSegments, SQLDigest sqlDigest) {
+
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> candidateListPair = null;
+        List<NDataSegment> toRemovedSegments = Lists.newArrayList();
+        for (NDataSegment segment: prunedSegments) {
+            if (candidateListPair == null) {
+                candidateListPair = selectCuboidLayout(dataflow, Lists.newArrayList(segment), sqlDigest);
+                if (candidateListPair == null) {
+                    toRemovedSegments.add(segment);
+                }
+            } else if (segment.getSegDetails().getLayoutById(candidateListPair.getFirst().getCuboidLayout().getId()) == null) {
+                toRemovedSegments.add(segment);
+            }
+        }
+        prunedSegments.removeAll(toRemovedSegments);
+        return candidateListPair;
     }
 
     public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectCuboidLayout(NDataflow dataflow, List<NDataSegment> prunedSegments, SQLDigest sqlDigest) {

@@ -30,6 +30,7 @@ import java.util.Set;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -67,8 +68,12 @@ public class NDataflowCapabilityChecker {
             }
         } else {
             // for query-on-facttable
+            boolean partialMatchIndex = QueryContext.current().isPartialMatchIndex();
             Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> candidateAndInfluence = NQueryLayoutChooser
                     .selectCuboidLayout(dataflow, prunedSegments, digest);
+            if (partialMatchIndex && candidateAndInfluence == null) {
+                candidateAndInfluence = NQueryLayoutChooser.selectPartialCuboidLayout(dataflow, prunedSegments, digest);
+            }
             if (candidateAndInfluence != null) {
                 chosenCandidate = candidateAndInfluence.getFirst();
                 result.influences.addAll(candidateAndInfluence.getSecond());
