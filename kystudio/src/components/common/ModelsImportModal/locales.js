@@ -1,7 +1,7 @@
 export default {
   'en': {
     importModelsMetadata: 'Add Model From Imported',
-    importModalTips: 'To ensure file integrity, don\'t unzip the file or modify the contents of the file.',
+    importModalTips: 'To ensure the file could be imported, please don\'t unzip the file or modify the contents.',
     tableMapLabel: 'Set mapping relationships for the database name and table name',
     tableMapLabelTip: 'You may set the mapping relationships if the database names and the table names are inconsistent in both environments.',
     tableMapPlaceholder: 'Import rules: Item name in export environment = Item name in import environment, Please use comma (,) to separate multiple mapping relationships. Example: DB1=DB2,DB3.Table1=DB3.Table2',
@@ -63,7 +63,7 @@ export default {
     tableIndex: 'Table Index',
     measureName: 'Measure Name: ',
     measureFunction: 'Function: ',
-    measureFunctionParams: 'Function Parameter: ',
+    measureFunctionParams: 'Return Type: ',
     confirmImportTips: 'Please confirm the following operations before import.',
     newConfirmTips: 'Add New ({num})',
     replaceConfirmTips: 'Replace ({num})',
@@ -140,7 +140,7 @@ export default {
     tableIndex: '明细索引',
     measureName: '度量名称：',
     measureFunction: '函数：',
-    measureFunctionParams: '函数参数：',
+    measureFunctionParams: '返回类型：',
     confirmImportTips: '在导入前，请再次确认对导入模型的操作。',
     newConfirmTips: '新建 ({num})',
     replaceConfirmTips: '覆盖 ({num})',

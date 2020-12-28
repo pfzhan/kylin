@@ -9,7 +9,7 @@ export default {
     exportFailed: 'Export models failed. Please try again.',
     export: 'Export',
     fetchModelsFailed: 'Fetch project models failed.',
-    exportAllTip: 'To ensure file integrity, don\'t unzip the file or modify the contents of the file.',
+    exportAllTip: 'To ensure the file could be imported, please don\'t unzip the file or modify the contents.',
     exportOneModelTip: 'Export the model\'s metadata, including tables referenced by the model, table relationships, partition columns, calculable columns, filter conditions, metrics, dimensions, and indexes.',
     exportOther: 'Select other contents to be exported',
     recommendations: 'Model\'s recommendations',

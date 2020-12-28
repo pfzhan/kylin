@@ -242,17 +242,17 @@
       <!-- 确认/取消: 上传元数据zip包界面 -->
       <template v-if="step === 'first'">
         <el-button plain size="medium" :disabled="isSubmiting" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" :disabled="!form.file || setTableMapping && !tableMapContent || showError" :loading="isSubmiting" @click="handleUploadFile">{{$t('parseFile')}}</el-button>
+        <el-button size="medium" type="primary" :disabled="!form.file || setTableMapping && !tableMapContent || showError" :loading="isSubmiting" @click="handleUploadFile">{{$t('parseFile')}}</el-button>
       </template>
       <!-- 确认/取消: 解析zip元数据包界面 -->
       <template v-else-if="step === 'second'">
         <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('first')">{{$t('kylinLang.common.prev')}}</el-button>
-        <el-button size="medium" @click="nextConfirmImport" :loading="isCheckName">{{$t('kylinLang.common.next')}}</el-button>
+        <el-button type="primary" size="medium" @click="nextConfirmImport" :disabled="checkSameName" :loading="isCheckName">{{$t('kylinLang.common.next')}}</el-button>
       </template>
       <!-- 确认导入模型 -->
       <template v-else>
         <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('second')">{{$t('kylinLang.common.prev')}}</el-button>
-         <el-button size="medium" :loading="isSubmiting" @click="handleSubmit">{{getImportBtnText}}</el-button>
+         <el-button type="primary" size="medium" :loading="isSubmiting" @click="handleSubmit">{{getImportBtnText}}</el-button>
       </template>
     </div>
   </el-dialog>
@@ -387,6 +387,10 @@ export default class ModelsImportModal extends Vue {
   get getImportBtnText () {
     const list = this.models.filter(it => it.action === 'noImport')
     return list.length === this.models.length ? this.$t('confirmNoImportBtn') : this.$t('confirmImportBtn')
+  }
+
+  get checkSameName () {
+    return this.models.filter(it => it.isNameError).length > 0 || this.showError
   }
 
   getJoinRaletionType (raletionType) {
@@ -702,6 +706,9 @@ export default class ModelsImportModal extends Vue {
       }
       .el-tabs--top {
         height: 100%;
+        .el-tabs__header {
+          margin: 0;
+        }
         .el-tabs__content {
           height: calc(~'100% - 50px');
           overflow: auto;
@@ -732,6 +739,7 @@ export default class ModelsImportModal extends Vue {
         }
         .detail-text {
           margin-top: 5px;
+          color: @color-text-regular;
           &:first-child {
             margin-top: 0;
           }
@@ -779,7 +787,7 @@ export default class ModelsImportModal extends Vue {
         }
       }
       .no-data {
-        color: @text-disabled-color;
+        color: @color-text-placeholder;
         text-align: center;
         position: absolute;
         top: 50%;
@@ -788,12 +796,12 @@ export default class ModelsImportModal extends Vue {
         font-size: 12px;
         i {
           font-size: 40px;
-          color: @text-disabled-color;
+          color: @color-text-placeholder;
           cursor: default;
           margin-bottom: 5px;
         }
         .nofound-icon {
-          font-size: 35px;
+          font-size: 30px;
         }
       }
     }
@@ -809,7 +817,7 @@ export default class ModelsImportModal extends Vue {
       border: 1px solid @line-border-color3;
       padding: 10px;
       box-sizing: border-box;
-      height: 120px;
+      height: auto;
       overflow: auto;
     }
     .contain {
@@ -897,9 +905,9 @@ export default class ModelsImportModal extends Vue {
   .el-collapse-item__content {
     padding: 0 0 0 20px;
   }
-  .model-list {
-    border-top: 1px solid @line-split-color;
-  }
+  // .model-list {
+  //   border-top: 1px solid @line-split-color;
+  // }
   .model-type-header {
     padding: 0 10px;
     background-color: @background-disabled-color;
