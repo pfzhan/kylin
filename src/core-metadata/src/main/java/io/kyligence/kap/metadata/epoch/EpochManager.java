@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -52,6 +51,8 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
@@ -62,6 +63,7 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import lombok.Getter;
@@ -487,7 +489,7 @@ public class EpochManager implements IKeep {
             epoch = new Epoch(1L, epochTarget, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), null,
                     0L);
         } else {
-            if (!epoch.getCurrentEpochOwner().equals(identity)) {
+            if (!checkEpochOwnerOnly(epoch)) {
                 if (isEpochLegal(epoch) && !force) {
                     return null;
                 }
@@ -506,10 +508,31 @@ public class EpochManager implements IKeep {
         epochUpdateManager.tryUpdateAllEpochs(true);
     }
 
-    public boolean checkEpochOwner(String epochTarget) {
-        Epoch epoch = epochStore.getEpoch(epochTarget);
-        return isEpochLegal(epoch) && epoch.getCurrentEpochOwner().equals(identity);
+    /**
+     * 1.get epoch by epochTarget
+     * 2.check epoch is legal
+     * 3.check epoch owner
+     * @param epochTarget
+     * @return
+     */
+    public boolean checkEpochOwner(@Nonnull String epochTarget) {
+        Epoch epoch = getEpochOwnerEpoch(epochTarget);
+
+        return Objects.nonNull(epoch) && checkEpochOwnerOnly(epoch);
     }
+
+    /**
+     * only check epoch owner
+     * don't check legal or not
+     * @param epoch
+     * @return
+     */
+    boolean checkEpochOwnerOnly(@Nonnull Epoch epoch){
+        Preconditions.checkNotNull(epoch, "epoch is null");
+
+        return epoch.getCurrentEpochOwner().equals(identity);
+    }
+
 
     public void updateEpochWithNotifier(String epochTarget, boolean force) {
         if (tryUpdateEpoch(epochTarget, force)) {
@@ -551,13 +574,36 @@ public class EpochManager implements IKeep {
     }
 
     public String getEpochOwner(String epochTarget) {
-        checkEpochTarget(epochTarget);
-        Epoch epoch = epochStore.getEpoch(epochTarget);
-        if (isEpochLegal(epoch)) {
-            return getHostAndPort(epoch.getCurrentEpochOwner());
-        } else {
+        val ownerEpoch = getEpochOwnerEpoch(epochTarget);
+
+        if(Objects.isNull(ownerEpoch)){
             return null;
         }
+
+        return getHostAndPort(ownerEpoch.getCurrentEpochOwner());
+
+    }
+
+    private Epoch getEpochOwnerEpoch(String epochTarget) {
+        checkEpochTarget(epochTarget);
+
+        String epochTargetTemp = epochTarget;
+
+        //get origin project name
+        if (!isGlobalProject(epochTargetTemp)) {
+            val targetProjectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(epochTargetTemp);
+            if (Objects.isNull(targetProjectInstance)) {
+                return null;
+            }
+
+            epochTargetTemp = targetProjectInstance.getName();
+        }
+
+        Epoch epoch = epochStore.getEpoch(epochTargetTemp);
+
+        return isEpochLegal(epoch) ? epoch : null;
+
     }
 
     public String getHostAndPort(String owner) {
@@ -584,6 +630,8 @@ public class EpochManager implements IKeep {
             throw new IllegalStateException("Project should not be empty");
         }
     }
+
+
 
     public Epoch getEpoch(String epochTarget) {
         return epochStore.getEpoch(epochTarget);
@@ -622,12 +670,16 @@ public class EpochManager implements IKeep {
         return false;
     }
 
+    private boolean isGlobalProject(@Nullable String project) {
+        return StringUtils.equals(GLOBAL, project);
+    }
+
     // when shutdown or meta data is inconsistent
     public void releaseOwnedEpochs() {
         logger.info("Release owned epochs");
         epochStore.executeWithTransaction(() -> {
             val epochs = epochStore.list().stream()
-                    .filter(epoch -> Objects.equals(epoch.getCurrentEpochOwner(), identity))
+                    .filter(this::checkEpochOwnerOnly)
                     .collect(Collectors.toList());
             epochs.forEach(epoch -> {
                 epoch.setCurrentEpochOwner("");

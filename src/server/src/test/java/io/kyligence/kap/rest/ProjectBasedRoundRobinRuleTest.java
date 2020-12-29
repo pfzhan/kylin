@@ -41,8 +41,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -53,11 +52,11 @@ import com.netflix.loadbalancer.Server;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
-
-    @Mock
-    HttpServletRequest request;
 
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -66,12 +65,31 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
     public ExpectedException exceptionRule = ExpectedException.none();
 
     @Before
-    public void setup() throws IOException {
-        MockitoAnnotations.initMocks(this);
+    public void setup() {
+        createTestMetadata();
+    }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
+    }
+
+    @Test
+    public void testChooseWithEmptyOwner() throws IOException {
+        createHttpServletRequestMock("default2");
+        exceptionRule.expect(KylinException.class);
+        exceptionRule.expectMessage("System is trying to recover, please try again later.");
+        new ProjectBasedRoundRobinRule().choose("");
+    }
+
+    private void createHttpServletRequestMock(String project) throws IOException {
+        HttpServletRequest request = Mockito.spy(HttpServletRequest.class);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-        when(request.getParameter("project")).thenReturn("test_project");
+        when(request.getParameter("project")).thenReturn(project);
+
+        val bodyJson = "{\"project\": \"" + project + "\"}";
         final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
-                "{\"project\": \"test_project\"}".getBytes(StandardCharsets.UTF_8));
+                bodyJson.getBytes(StandardCharsets.UTF_8));
 
         when(request.getInputStream()).thenReturn(new ServletInputStream() {
             @Override
@@ -98,35 +116,46 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
                 return b;
             }
         });
-
-        createTestMetadata();
     }
 
-    @After
-    public void teardown() {
-        cleanupTestMetadata();
+    private void createTestProjectAndEpoch(String project) {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.createProject(project, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateEpochWithNotifier(project, false);
+
     }
 
-    @Test
-    public void testChooseWithEmptyOwner() {
-        exceptionRule.expect(KylinException.class);
-        exceptionRule.expectMessage("System is trying to recover, please try again later.");
-        new ProjectBasedRoundRobinRule().choose("");
-    }
+    private void testChooseInternal() {
 
-    @Test
-    public void testChoose() {
         String instance = AddressUtil.getLocalInstance();
         String[] split = instance.split(":");
-
-        try {
-            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateEpochWithNotifier("test_project", false);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         Server server = new ProjectBasedRoundRobinRule().choose("");
         Assert.assertEquals(split[0], server.getHost());
         Assert.assertEquals(Integer.parseInt(split[1]), server.getPort());
+    }
+
+    /**
+     * test different project params that in request body
+     * choose the given project' epoch
+     * @param requestProject
+     * @param project
+     * @throws IOException
+     */
+    private void testRequestAndChooseOwner(String requestProject, String project) throws IOException {
+        createHttpServletRequestMock(requestProject);
+        createTestProjectAndEpoch(project);
+        testChooseInternal();
+    }
+
+    @Test
+    public void testChoose() throws IOException {
+
+        {
+            testRequestAndChooseOwner("TEst_ProJECT2", "test_project2");
+        }
+
+        {
+            testRequestAndChooseOwner("TEST_PROJECT", "test_project");
+        }
     }
 }

@@ -41,6 +41,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import lombok.val;
@@ -219,9 +220,7 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
         epochManager.tryUpdateEpoch("test2", false);
 
         //check owner
-        getEpochStore().list().forEach(epoch -> {
-            Assert.assertEquals(epoch.getCurrentEpochOwner(), testIdentity);
-        });
+        Assert.assertTrue(getEpochStore().list().stream().allMatch(epochManager::checkEpochOwnerOnly));
 
         epochManager.releaseOwnedEpochs();
 
@@ -293,5 +292,31 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
         result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(Lists.newArrayList(), false, "test", false);
         Assert.assertFalse(result);
+    }
+
+    @Test
+    public void testCheckEpochOwnerInsensitive() {
+        String testIdentity = "testIdentity";
+
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+
+        epochManager.setIdentity(testIdentity);
+
+        List<String> projectLists = Arrays.asList("test1", "test2");
+
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+
+        projectLists.forEach(projectTemp -> {
+            epochManager.tryUpdateEpoch(projectTemp, false);
+
+            projectManager.createProject(projectTemp, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+
+        });
+
+        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TesT1"));
+        Assert.assertEquals("testIdentity", epochManager.getEpochOwner("TEST2"));
+
+        Assert.assertTrue(epochManager.checkEpochOwner("TesT1"));
+        Assert.assertTrue(epochManager.checkEpochOwner("TEST2"));
     }
 }

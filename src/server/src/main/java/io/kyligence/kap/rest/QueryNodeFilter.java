@@ -295,15 +295,15 @@ public class QueryNodeFilter implements Filter {
     }
 
     private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType) {
-        if (!kylinConfig.isQueryNodeOnly()) {
-            // process local
-            if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
-                if (StringUtils.isEmpty(contentType) || !contentType.contains("multipart/form-data")) {
-                    return true;
-                }
-            }
+        if(kylinConfig.isQueryNodeOnly()){
+            return false;
         }
-        return false;
+
+        if(!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)){
+            return false;
+        }
+
+        return StringUtils.isEmpty(contentType) || !contentType.contains("multipart/form-data");
     }
 
     private boolean checkProjectExist(String project) {
