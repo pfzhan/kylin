@@ -53,7 +53,6 @@ object ResultPlan extends LogEx {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
   private def collectInternal(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = logTime("collectInternal", info = true) {
-    val resultTypes = rowType.getFieldList.asScala
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
@@ -103,6 +102,7 @@ object ResultPlan extends LogEx {
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
       QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
+      val resultTypes = rowType.getFieldList.asScala
       val dt = convertResultWithMemLimit(rows) { row =>
         if (Thread.interrupted()) {
           throw new InterruptedException
@@ -117,11 +117,11 @@ object ResultPlan extends LogEx {
     } catch {
       case e: InterruptedException =>
         Thread.currentThread.interrupt()
+        sparkContext.cancelJobGroup(jobGroup)
         if (SlowQueryDetector.getRunningQueries.get(Thread.currentThread()).isStopByUser) {
           throw new UserStopQueryException("")
         }
         QueryContext.current().getQueryTagInfo.setTimeout(true)
-        sparkContext.cancelJobGroup(jobGroup)
         logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
         throw new KylinTimeoutException(
           s"Query timeout after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s");

@@ -129,10 +129,10 @@ object SparkSqlClient {
       case e: Throwable =>
         if (e.isInstanceOf[InterruptedException]) {
           Thread.currentThread.interrupt()
+          ss.sparkContext.cancelJobGroup(jobGroup)
           if (SlowQueryDetector.getRunningQueries.get(Thread.currentThread()).isStopByUser) {
             throw new UserStopQueryException("")
           }
-          ss.sparkContext.cancelJobGroup(jobGroup)
           QueryContext.current.getQueryTagInfo.setTimeout(true)
           logger.info("Query timeout ", e)
           throw new KylinTimeoutException("Query timeout after: " + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s")
