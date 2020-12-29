@@ -47,7 +47,11 @@ public class SparkEngine implements QueryEngine {
         log.info("Begin planning spark plan.");
         long start = System.currentTimeMillis();
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
-        calciteToSparkPlaner.go(relNode);
+        try {
+            calciteToSparkPlaner.go(relNode);
+        } finally {
+            calciteToSparkPlaner.cleanCache();
+        }
         long takeTime = System.currentTimeMillis() - start;
         QueryContext.current().record("to_spark_plan");
         log.info("Plan take {} ms", takeTime);

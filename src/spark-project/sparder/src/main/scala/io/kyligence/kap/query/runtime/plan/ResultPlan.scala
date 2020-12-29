@@ -171,7 +171,6 @@ object ResultPlan extends LogEx {
       df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
       df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
       SparderEnv.setDF(df)
-      TableScanPlan.cacheDf.get().clear()
       HadoopUtil.setCurrentConfiguration(null)
     }
   }

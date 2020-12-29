@@ -59,7 +59,7 @@ object TableScanPlan extends LogEx {
     r
   }
 
-  val cacheDf: ThreadLocal[ConcurrentHashMap[String, DataFrame]] = new ThreadLocal[ConcurrentHashMap[String, DataFrame]] {
+  private[runtime] val cacheDf: ThreadLocal[ConcurrentHashMap[String, DataFrame]] = new ThreadLocal[ConcurrentHashMap[String, DataFrame]] {
     override def initialValue: ConcurrentHashMap[String, DataFrame] = {
       new ConcurrentHashMap[String, DataFrame]
     }

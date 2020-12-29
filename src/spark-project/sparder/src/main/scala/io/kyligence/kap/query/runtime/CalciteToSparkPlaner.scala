@@ -42,6 +42,9 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
   private val setOpStack = new util.Stack[Int]()
   private var unionLayer = 0
 
+  // clear cache before any op
+  cleanCache()
+
   override def visit(node: RelNode, ordinal: Int, parent: RelNode): Unit = {
     if (node.isInstanceOf[KapUnionRel]) {
       unionLayer = unionLayer + 1
@@ -137,6 +140,10 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
       }
       df
     }
+  }
+
+  def cleanCache(): Unit = {
+    TableScanPlan.cacheDf.get().clear()
   }
 
   def getResult(): DataFrame = {
