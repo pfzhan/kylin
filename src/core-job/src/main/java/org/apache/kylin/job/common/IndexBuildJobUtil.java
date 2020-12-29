@@ -52,12 +52,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -80,7 +81,7 @@ public class IndexBuildJobUtil extends ExecutableUtil {
         final HashSet<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
         final HashSet<LayoutEntity> toBeDeletedLayouts = Sets.newLinkedHashSet();
 
-        var readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
+        var readySegs = new Segments<NDataSegment>(df.getSegments(jobParam.getTargetSegments()));
         if (readySegs.isEmpty()) {
             log.warn("JobParam {} is no longer valid because no ready segment exists in target index_plan {}", jobParam,
                     jobParam.getModel());
@@ -115,10 +116,11 @@ public class IndexBuildJobUtil extends ExecutableUtil {
         NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject());
         val df = dfm.getDataflow(jobParam.getModel()).copy();
         val segments = df.getSegments(jobParam.getTargetSegments());
-        val partitionIds = Sets.<Long>newHashSet();
+        val partitionIds = Sets.<Long> newHashSet();
         segments.forEach(segment -> {
             if (CollectionUtils.isEmpty(segment.getAllPartitionIds())) {
-                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
+                throw new KylinException(FAILED_CREATE_JOB,
+                        MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_EMPTY());
             }
             partitionIds.addAll(segment.getAllPartitionIds());
         });
