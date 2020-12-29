@@ -74,8 +74,6 @@ public class RecCandidateTool extends ExecutableApplication {
 
     private static final Option OPERATE_BACKUP = OptionBuilder.getInstance()
             .withDescription("Backup rec candidate to local path").isRequired(false).create("backup");
-    private static final Option OPERATE_RESTORE = OptionBuilder.getInstance()
-            .withDescription("Restore rec candidate from local path").isRequired(false).create("restore");
 
     private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("DIRECTORY_PATH")
             .withDescription("Specify the target directory for backup and restore").isRequired(false).create("dir");
@@ -172,10 +170,8 @@ public class RecCandidateTool extends ExecutableApplication {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             backup(optionsHelper);
-        } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
-            restore(optionsHelper);
         } else {
-            throw new KylinException(INVALID_SHELL_PARAMETER, "must add parameter backup or parameter restore");
+            throw new KylinException(INVALID_SHELL_PARAMETER, "must add parameter backup");
         }
     }
 
@@ -191,7 +187,6 @@ public class RecCandidateTool extends ExecutableApplication {
         OptionGroup optionGroup1 = new OptionGroup();
         optionGroup1.setRequired(true);
         optionGroup1.addOption(OPERATE_BACKUP);
-        optionGroup1.addOption(OPERATE_RESTORE);
         OptionGroup optionGroup2 = new OptionGroup();
         optionGroup2.setRequired(false);
         optionGroup2.addOption(OPTION_MODEL_ID);
