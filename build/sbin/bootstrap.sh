@@ -208,6 +208,8 @@ function startKE(){
         fi
     fi
 
+    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
+
     START_TIME=$(date "+%Y-%m-%d %H:%M:%S")
 
     recordKylinStartOrStop "start" "${START_TIME}"
@@ -240,8 +242,6 @@ function startKE(){
     if [[ $? == 1 ]]; then
       quit "Create Admin user failed, for more details please refer to \"\$KYLIN_HOME/logs/shell.stderr\"."
     fi
-
-    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 
     if [[ -f ${KYLIN_HOME}/conf/kylin-server-log4j.properties ]]; then
         kylin_server_log4j="file:${KYLIN_HOME}/conf/kylin-server-log4j.properties"
