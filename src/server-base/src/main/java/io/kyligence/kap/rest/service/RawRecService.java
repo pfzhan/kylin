@@ -243,7 +243,6 @@ public class RawRecService {
                 if (uniqueFlagToUuid.containsKey(uniqueString)) {
                     recItem = layoutRecItems.get(uuid);
                     recItem.setUpdateTime(System.currentTimeMillis());
-                    recItem.setRecSource(recSource);
                     recItem.restoreIfNeed();
                 } else {
                     recItem = new RawRecItem(semiContextV2.getProject(), //
@@ -255,9 +254,9 @@ public class RawRecService {
                     recItem.setUpdateTime(layoutItem.getCreateTime());
                     recItem.setState(RawRecItem.RawRecState.INITIAL);
                     recItem.setUniqueFlag(layoutItem.getUuid());
-                    recItem.setDependIDs(layoutItem.genDependIds());
-                    recItem.setRecSource(recSource);
                 }
+                recItem.setDependIDs(layoutItem.genDependIds());
+                recItem.setRecSource(recSource);
                 if (recSource.equalsIgnoreCase(RawRecItem.IMPORTED)) {
                     recItem.cleanLayoutStatistics();
                     recItem.setState(RawRecItem.RawRecState.RECOMMENDED);
@@ -332,9 +331,9 @@ public class RawRecService {
                     item.setCreateTime(measureItem.getCreateTime());
                     item.setUpdateTime(measureItem.getCreateTime());
                     item.setRecEntity(measureItem);
-                    item.setDependIDs(measureItem.genDependIds(uniqueRecItemMap, measureItem.getUniqueContent(),
-                            modelContext.getOriginModel()));
                 }
+                item.setDependIDs(measureItem.genDependIds(uniqueRecItemMap, measureItem.getUniqueContent(),
+                        modelContext.getOriginModel()));
                 rawRecItems.add(item);
             });
         }
@@ -360,8 +359,8 @@ public class RawRecService {
                     item.setUpdateTime(dimItem.getCreateTime());
                     item.setState(RawRecItem.RawRecState.INITIAL);
                     item.setRecEntity(dimItem);
-                    item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, dimItem.getUniqueContent()));
                 }
+                item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, dimItem.getUniqueContent()));
                 rawRecItems.add(item);
             });
         }
@@ -387,8 +386,8 @@ public class RawRecService {
                     item.setUniqueFlag(uniqueFlag);
                     item.setRecEntity(ccItem);
                     item.setState(RawRecItem.RawRecState.INITIAL);
-                    item.setDependIDs(ccItem.genDependIds(modelContext.getTargetModel()));
                 }
+                item.setDependIDs(ccItem.genDependIds(modelContext.getTargetModel()));
 
                 rawRecItems.add(item);
             });

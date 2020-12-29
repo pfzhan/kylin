@@ -102,6 +102,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         private final Map<Integer, NDataModel.Measure> measures = Maps.newHashMap();
         private final List<Long> addedLayoutIdList = Lists.newArrayList();
         private final List<Long> removedLayoutIdList = Lists.newArrayList();
+        private final Map<String, NDataModel.Measure> functionToMeasureMap = Maps.newHashMap();
 
         @Getter
         private final OptRecV2 recommendation;
@@ -209,6 +210,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     }
                 });
 
+                copyForWrite.getAllMeasures().forEach(measure -> {
+                    if (!measure.isTomb()) {
+                        functionToMeasureMap.put(measure.getFunction().toString(), measure);
+                    }
+                });
+
                 for (RawRecItem rawRecItem : recItems) {
                     switch (rawRecItem.getType()) {
                     case DIMENSION:
@@ -253,6 +260,11 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
             MeasureRef measureRef = (MeasureRef) recommendationRef;
             NDataModel.Measure measure = measureRef.getMeasure();
+            if (functionToMeasureMap.containsKey(measure.getFunction().toString())) {
+                log.error("Fail to rewrite RawRecItem({}) for conflicting function ({})", rawRecItem.getId(),
+                        measure.getFunction().toString());
+                return;
+            }
             int maxMeasureId = model.getMaxMeasureId();
             if (userDefinedRecNameMap.containsKey(negRecItemId)) {
                 measureRef.rebuild(userDefinedRecNameMap.get(negRecItemId));
@@ -265,6 +277,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             model.getAllMeasures().add(measure);
             measures.put(negRecItemId, measure);
             measures.put(measure.getId(), measure);
+            functionToMeasureMap.put(measure.getFunction().toString(), measure);
             logWriteProperty(rawRecItem, measure);
         }
 
@@ -346,6 +359,11 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     List<Integer> nShardBy = translateToRealIds(shardBy, "ShardByColumns");
                     List<Integer> nSortBy = translateToRealIds(sortBy, "SortByColumns");
                     List<Integer> nPartitionBy = translateToRealIds(partitionBy, "PartitionByColumns");
+
+                    if (Sets.newHashSet(nColOrder).size() != colOrder.size()) {
+                        log.error("Fail to rewrite illegal RawRecItem({})", rawRecItem.getId());
+                        continue;
+                    }
 
                     layout.setColOrder(nColOrder);
                     layout.setShardByColumns(nShardBy);

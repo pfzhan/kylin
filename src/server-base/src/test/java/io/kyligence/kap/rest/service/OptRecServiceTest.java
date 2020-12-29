@@ -51,6 +51,8 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
@@ -285,6 +287,66 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals("m0", recToIndexResponse.getModelAlias());
         Assert.assertEquals(27, recToIndexResponse.getAddedIndexes().size());
         Assert.assertEquals(8, recToIndexResponse.getRemovedIndexes().size());
+    }
+
+    @Test
+    public void testApproveIllegalLayoutRecommendation() throws IOException {
+        prepareAllLayoutRecs();
+        NDataModel modelBeforeApprove = getModel();
+        Assert.assertEquals(7, modelBeforeApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
+
+        prepareAbnormalLayoutRecommendation();
+
+        RawRecItem rawRecItem = jdbcRawRecStore.queryAll().stream() //
+                .filter(recItem -> recItem.getId() == 6) //
+                .findAny().orElse(null);
+        Assert.assertNotNull(rawRecItem);
+        List<Integer> dependIds = Lists.newArrayList();
+        for (int dependID : rawRecItem.getDependIDs()) {
+            dependIds.add(dependID);
+        }
+        Assert.assertEquals(Lists.newArrayList(4, 16, 14, 100000, -1, -1), dependIds);
+
+        List<NDataModelResponse> modelResponses = modelService.getModels(modelBeforeApprove.getAlias().toLowerCase(),
+                getProject(), true, null, null, "last_modify", true);
+        List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
+
+        changeRecTopN(50);
+        List<RecToIndexResponse> allResponses = Lists.newArrayList();
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
+            allResponses.addAll(responses);
+            return 0;
+        }, "");
+
+        NDataModel modelAfterApprove = getModel();
+        Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
+        Assert.assertEquals(18, modelAfterApprove.getAllNamedColumns().size());
+        Assert.assertEquals(57, modelAfterApprove.getEffectiveMeasures().size());
+        Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
+
+        Assert.assertEquals(1, allResponses.size());
+        RecToIndexResponse recToIndexResponse = allResponses.get(0);
+        Assert.assertEquals("db89adb4-3aad-4f2a-ac2e-72ea0a30420b", recToIndexResponse.getModelId());
+        Assert.assertEquals("m0", recToIndexResponse.getModelAlias());
+        Assert.assertEquals(26, recToIndexResponse.getAddedIndexes().size());
+        Assert.assertEquals(8, recToIndexResponse.getRemovedIndexes().size());
+    }
+
+    private void prepareAbnormalLayoutRecommendation() {
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        rawRecItems.forEach(recItem -> {
+            // prepare an abnormal RawRecItem
+            if (recItem.getId() == 6) {
+                final LayoutRecItemV2 recEntity = (LayoutRecItemV2) recItem.getRecEntity();
+                recEntity.getLayout().setColOrder(Lists.newArrayList(4, 16, 14, 100000, -1, -1));
+                recItem.setDependIDs(new int[] { 4, 16, 14, 100000, -1, -1 });
+            }
+        });
+        jdbcRawRecStore.batchAddOrUpdate(rawRecItems);
     }
 
     private void prepare(List<Integer> addLayoutId) throws IOException {
