@@ -34,7 +34,7 @@
           <el-table-column prop="target_name" show-overflow-tooltip :label="$t('modelName')">
             <template slot-scope="scope">
               <template v-if="scope.row.action === 'new'">
-                <el-input :class="{'error-tip': scope.row.isNameError}" v-model="scope.row.target_name" size="mini" @change="handleRename(scope.row)" />
+                <el-input :class="{'error-tip': scope.row.isNameError}" v-model="scope.row.target_name" size="mini" @change="handleRenameReset(scope.row)"/>
                 <div class="rename-error" v-if="scope.row.isNameError">{{$t(scope.row.nameErrorMsg)}}</div>
               </template>
               <span v-else>{{scope.row.original_name}}</span>
@@ -390,7 +390,7 @@ export default class ModelsImportModal extends Vue {
   }
 
   get checkSameName () {
-    return this.models.filter(it => it.isNameError).length > 0 || this.showError
+    return this.models.filter(it => it.isNameError && it.action === 'new').length > 0 || this.showError
   }
 
   getJoinRaletionType (raletionType) {
@@ -424,9 +424,15 @@ export default class ModelsImportModal extends Vue {
   changeActions (row, type) {
     if (type !== 'new' && row.original_name !== row.target_name) {
       row.target_name = row.original_name
-      row.isNameError = false
-      row.nameErrorMsg = ''
     }
+    row.isNameError = false
+    row.nameErrorMsg = ''
+  }
+
+  // 重置重名校验
+  handleRenameReset (row) {
+    row.isNameError = false
+    row.nameErrorMsg = ''
   }
 
   // 新建模型时支持更改模型名称 - 以防重名

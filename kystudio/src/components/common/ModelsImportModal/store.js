@@ -202,8 +202,8 @@ export default {
             return {
               original_name: name,
               target_name: name,
-              isNameError: models[name].has_same_name || false,
-              nameErrorMsg: models[name].has_same_name ? 'kylinLang.model.sameModelName' : '',
+              isNameError: false,
+              nameErrorMsg: '',
               ...models[name],
               action: getDefaultAction(models[name]).defaultValue,
               ...otherData
