@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.rest.interceptor;
 
+import static java.lang.String.format;
+
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -32,6 +35,8 @@ import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
+
+import lombok.val;
 
 public class ProjectInfoParserTest {
     private final String project = "test";
@@ -72,7 +77,7 @@ public class ProjectInfoParserTest {
                 "/kylin/api/models/" + project + wrongUrl + "/model1/partition_desc", };
 
         for (String url : urls) {
-            Assert.assertNotEquals(project, ProjectInfoParser.extractProject(url));
+            Assert.assertNull(ProjectInfoParser.extractProject(url));
         }
     }
 
@@ -117,5 +122,34 @@ public class ProjectInfoParserTest {
         request.setContentType("application/json");
         pair = ProjectInfoParser.parseProjectInfo(request);
         Assert.assertEquals(pair.getFirst(), "_global");
+    }
+
+    private void checkProjectInfoParser(String uriString, String project) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServerName("localhost");
+        request.setRequestURI(uriString);
+        val parsedProject = ProjectInfoParser.parseProjectInfo(request).getFirst();
+        Assert.assertEquals(project, parsedProject);
+    }
+
+    @Test
+    public void testRequest_PROJECT_URL() {
+        final val projectApiList = Arrays.asList("backup", "default_database", "query_accelerate_threshold",
+                "storage_volume_info", "storage", "storage_quota", "favorite_rules", "statistics", "acceleration",
+                "shard_num_config", "garbage_cleanup_config", "job_notification_config", "push_down_config",
+                "scd2_config", "push_down_project_config", "snapshot_config", "computed_column_config",
+                "segment_config", "project_general_info", "project_config", "source_type", "yarn_queue",
+                "project_kerberos_info", "owner", "config", "jdbc_config");
+
+        projectApiList.forEach(projectApi -> {
+            checkProjectInfoParser(format("/kylin/api/projects/%s/%s", project, projectApi), project);
+        });
+
+        checkProjectInfoParser(format("/kylin/api/projects/%s", project), project);
+
+        checkProjectInfoParser(format("/kylin/api/models/%s/m1/model_desc", project), project);
+        checkProjectInfoParser(format("/kylin/api/models/%s/m1/partition_desc", project), project);
+        checkProjectInfoParser(format("/api/access/t1/%s", project), project);
+
     }
 }

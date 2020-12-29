@@ -28,8 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashMap;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
@@ -40,9 +39,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.glassfish.jersey.uri.UriTemplate;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.rest.constant.ProjectInfoParserConstant;
 import lombok.Data;
 import lombok.Getter;
 import lombok.val;
@@ -50,15 +51,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ProjectInfoParser implements IKeep {
-    private static final Pattern[] URL_PROJECT_PATTERNS = new Pattern[] {
-            Pattern.compile(
-                    "^/kylin/api/projects/([^/]+)/(backup|default_database" + "|query_accelerate_threshold|storage"
-                            + "|storage_quota|shard_num_config" + "|garbage_cleanup_config|job_notification_config"
-                            + "|push_down_config|push_down_project_config|computed_column_config"
-                            + "|segment_config|project_general_info" + "|project_config|source_type"
-                            + "|yarn_queue|project_kerberos_info" + "|owner|config)$"),
-            Pattern.compile("^/kylin/api/projects/([^/]+)$"),
-            Pattern.compile("^/kylin/api/models/([^/]+)/[^/]+/partition_desc$") };
+
+    private static final String PROJECT_PARAM = "project";
 
     private ProjectInfoParser() {
         throw new IllegalStateException("Utility class");
@@ -69,7 +63,7 @@ public class ProjectInfoParser implements IKeep {
         String project = null;
         try {
             requestWrapper = new RepeatableBodyRequestWrapper(request);
-            project = requestWrapper.getParameter("project");
+            project = requestWrapper.getParameter(PROJECT_PARAM);
             if (StringUtils.isEmpty(project) && request.getContentType() != null
                     && request.getContentType().contains("json")) {
                 val projectRequest = JsonUtil.readValue(((RepeatableBodyRequestWrapper) requestWrapper).getBody(),
@@ -148,11 +142,13 @@ public class ProjectInfoParser implements IKeep {
         private String project;
     }
 
-    public static String extractProject(String url) {
-        for (Pattern pattern : URL_PROJECT_PATTERNS) {
-            Matcher matcher = pattern.matcher(url);
-            if (matcher.find()) {
-                return matcher.group(1);
+    static String extractProject(String url) {
+        for (String needParserURI : ProjectInfoParserConstant.INSTANCE.PROJECT_PARSER_URI_LIST) {
+            val uriTemplate = new UriTemplate(needParserURI);
+            val kvMap = new HashMap<String, String>();
+
+            if (uriTemplate.match(url, kvMap)) {
+                return kvMap.get(PROJECT_PARAM);
             }
         }
 
