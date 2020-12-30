@@ -537,7 +537,9 @@ public class MetricsGroup {
             logger.trace("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
             return NumberFormat.getInstance(Locale.getDefault(Locale.Category.FORMAT)).parse(valStr).longValue();
         } catch (Exception e) {
-            logger.warn("ke.metrics tryRestoreCounter error {}", e.getMessage());
+            logger.warn(
+                    "ke.metrics tryRestoreCounter error. fieldName: [{}], category [{}], entity [{}], tags [{}]. error msg {}",
+                    fieldName, category, entity, tags, e.getMessage());
         }
         return 0;
     }
