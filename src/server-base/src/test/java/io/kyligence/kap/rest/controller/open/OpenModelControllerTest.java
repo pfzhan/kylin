@@ -29,8 +29,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
@@ -64,6 +66,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -570,6 +573,57 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testCheckIndex() {
+        List<String> statusStringList = Lists.newArrayList("recommended_table_index", "RECOMMENDED_AGG_INDEX",
+                "CUSTOM_AGG_INDEX", "custom_table_index");
+        List<IndexEntity.Source> statuses = OpenModelController.checkSources(statusStringList);
+        Assert.assertEquals(IndexEntity.Source.RECOMMENDED_TABLE_INDEX, statuses.get(0));
+        Assert.assertEquals(IndexEntity.Source.RECOMMENDED_AGG_INDEX, statuses.get(1));
+        Assert.assertEquals(IndexEntity.Source.CUSTOM_AGG_INDEX, statuses.get(2));
+        Assert.assertEquals(IndexEntity.Source.CUSTOM_TABLE_INDEX, statuses.get(3));
+
+        try {
+            OpenModelController.checkSources(Lists.newArrayList("ab"));
+        } catch (KylinException e) {
+            Assert.assertEquals("999", e.getCode());
+            Assert.assertEquals(MsgPicker.getMsg().getINDEX_SOURCE_TYPE_ERROR(), e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCheckIndexStatus() {
+        List<String> statusStringList = Lists.newArrayList("NO_BUILD", "BUILDING", "LOCKED", "ONLINE");
+        List<IndexEntity.Status> statuses = OpenModelController.checkIndexStatus(statusStringList);
+        Assert.assertEquals(IndexEntity.Status.NO_BUILD, statuses.get(0));
+        Assert.assertEquals(IndexEntity.Status.BUILDING, statuses.get(1));
+        Assert.assertEquals(IndexEntity.Status.LOCKED, statuses.get(2));
+        Assert.assertEquals(IndexEntity.Status.ONLINE, statuses.get(3));
+
+        try {
+            OpenModelController.checkIndexStatus(Lists.newArrayList("ab"));
+        } catch (KylinException e) {
+            Assert.assertEquals("999", e.getCode());
+            Assert.assertEquals(MsgPicker.getMsg().getINDEX_STATUS_TYPE_ERROR(), e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCheckIndexSortBy() {
+        List<String> orderBy = Lists.newArrayList("last_modify", "usage", "data_size");
+        orderBy.forEach(element -> {
+            String actual = OpenModelController.checkIndexSortBy(element);
+            Assert.assertEquals(element.toLowerCase(Locale.ROOT), actual);
+        });
+
+        try {
+            OpenModelController.checkIndexSortBy("ab");
+        } catch (KylinException e) {
+            Assert.assertEquals("999", e.getCode());
+            Assert.assertEquals(MsgPicker.getMsg().getINDEX_SORT_BY_ERROR(), e.getMessage());
+        }
     }
 
     private void changeProjectToSemiAutoMode(String project) {

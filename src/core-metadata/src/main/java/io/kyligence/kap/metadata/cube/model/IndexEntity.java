@@ -321,6 +321,14 @@ public class IndexEntity implements Serializable, IKeep {
                 + "}.";
     }
 
+    public enum Status {
+        NO_BUILD, BUILDING, LOCKED, ONLINE
+    }
+
+    public enum Source {
+        RECOMMENDED_AGG_INDEX, RECOMMENDED_TABLE_INDEX, CUSTOM_AGG_INDEX, CUSTOM_TABLE_INDEX
+    }
+
     public static class IndexIdentifier {
         int[] dims;
         int[] measures;

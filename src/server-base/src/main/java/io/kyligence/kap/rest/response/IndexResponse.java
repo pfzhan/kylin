@@ -25,12 +25,12 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.model.IStorageAware;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -46,7 +46,7 @@ public class IndexResponse {
 
     private String owner;
 
-    private IndexResponse.Status status;
+    private IndexEntity.Status status;
 
     @JsonProperty("col_order")
     private List<ColOrderPair> colOrder;
@@ -72,27 +72,19 @@ public class IndexResponse {
     @JsonIgnore
     private boolean isManual;
 
-    public enum Status {
-        EMPTY, BUILDING, TO_BE_DELETED, AVAILABLE
-    }
-
-    public enum Source {
-        AUTO_AGG, AUTO_TABLE, MANUAL_AGG, MANUAL_TABLE
-    }
-
     @JsonProperty("source")
-    public Source getSource() {
+    public IndexEntity.Source getSource() {
         if (getId() < IndexEntity.TABLE_INDEX_START_ID) {
             if (isManual()) {
-                return Source.MANUAL_AGG;
+                return IndexEntity.Source.CUSTOM_AGG_INDEX;
             } else {
-                return Source.AUTO_AGG;
+                return IndexEntity.Source.RECOMMENDED_AGG_INDEX;
             }
         } else {
             if (isManual()) {
-                return Source.MANUAL_TABLE;
+                return IndexEntity.Source.CUSTOM_TABLE_INDEX;
             } else {
-                return Source.AUTO_TABLE;
+                return IndexEntity.Source.RECOMMENDED_TABLE_INDEX;
             }
         }
 

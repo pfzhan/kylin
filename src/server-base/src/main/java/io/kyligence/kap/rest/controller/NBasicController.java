@@ -341,9 +341,8 @@ public class NBasicController {
     }
 
     public String checkProjectName(String project) {
-        Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -381,7 +380,6 @@ public class NBasicController {
             throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
-
 
     public void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
@@ -474,7 +472,7 @@ public class NBasicController {
     }
 
     private ResponseEntity<byte[]> getHttpResponse(final HttpServletRequest request, String url) throws Exception {
-        val body = IOUtils.toByteArray(request.getInputStream());
+        byte[] body = IOUtils.toByteArray(request.getInputStream());
         HttpHeaders headers = new HttpHeaders();
         Collections.list(request.getHeaderNames())
                 .forEach(k -> headers.put(k, Collections.list(request.getHeaders(k))));

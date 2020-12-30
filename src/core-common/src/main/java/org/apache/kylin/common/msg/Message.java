@@ -363,6 +363,19 @@ public class Message {
         return "Illegal users! Only the system administrator, project administrator role, and management role can be set as the model owner.";
     }
 
+    // index
+    public String getINDEX_STATUS_TYPE_ERROR() {
+        return "Parameter \"status\" only support NO_BUILD, ONLINE, LOCKED, BUILDING.";
+    }
+
+    public String getINDEX_SOURCE_TYPE_ERROR() {
+        return "Parameter \"sources\" only support RECOMMENDED_AGG_INDEX, RECOMMENDED_TABLE_INDEX, CUSTOM_AGG_INDEX, CUSTOM_TABLE_INDEX.";
+    }
+
+    public String getINDEX_SORT_BY_ERROR() {
+        return "Parameter \"sort_by\" only support last_modify, usage, data_size.";
+    }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "Illegal timeFilter: %s.";
@@ -377,7 +390,7 @@ public class Message {
     }
 
     public String getILLEGAL_JOB_ACTION() {
-        return "Invalid value in parameter “action“ or “statuses“,  "
+        return "Invalid value in parameter “action“ or “statuses“,  " //
                 + "The value of “statuses“ contains “%s“, "
                 + "this status of jobs can only perform the following actions: “%s“ .";
     }

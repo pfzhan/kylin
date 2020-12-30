@@ -39,7 +39,6 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -518,12 +517,10 @@ public class IndexPlanService extends BasicService {
         return result;
     }
 
-    public List<IndexResponse> getIndexes(String project, String modelId, String key, List<String> status,
-            String orderBy, Boolean desc, List<IndexResponse.Source> sources) {
+    public List<IndexResponse> getIndexes(String project, String modelId, String key, List<IndexEntity.Status> status,
+            String orderBy, Boolean desc, List<IndexEntity.Source> sources) {
         aclEvaluate.checkProjectReadPermission(project);
-        Set<IndexResponse.Status> statusSet = Sets.newHashSet();
-        Optional.ofNullable(status).ifPresent(stringStatus -> statusSet
-                .addAll(stringStatus.stream().map(IndexResponse.Status::valueOf).collect(Collectors.toSet())));
+        Set<IndexEntity.Status> statusSet = Sets.newHashSet(status);
 
         val indexPlan = getIndexPlan(project, modelId);
         Preconditions.checkState(indexPlan != null);
@@ -580,7 +577,7 @@ public class IndexPlanService extends BasicService {
         indexGraphResponse.setModel(modelId);
         indexGraphResponse.setTotalIndexes(indexResponses.size());
         indexGraphResponse.setEmptyIndexes(
-                indexResponses.stream().filter(r -> IndexResponse.Status.EMPTY == r.getStatus()).count());
+                indexResponses.stream().filter(r -> IndexEntity.Status.NO_BUILD == r.getStatus()).count());
 
         Function<IndexResponse, IndexGraphResponse.Index> responseConverter = res -> {
             val index = new IndexGraphResponse.Index();
@@ -588,13 +585,13 @@ public class IndexPlanService extends BasicService {
             return index;
         };
         indexGraphResponse.setAutoAggIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> IndexResponse.Source.AUTO_AGG == r.getSource()).map(responseConverter)));
+                .filter(r -> IndexEntity.Source.RECOMMENDED_AGG_INDEX == r.getSource()).map(responseConverter)));
         indexGraphResponse.setManualAggIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> IndexResponse.Source.MANUAL_AGG == r.getSource()).map(responseConverter)));
+                .filter(r -> IndexEntity.Source.CUSTOM_AGG_INDEX == r.getSource()).map(responseConverter)));
         indexGraphResponse.setAutoTableIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> IndexResponse.Source.AUTO_TABLE == r.getSource()).map(responseConverter)));
+                .filter(r -> IndexEntity.Source.RECOMMENDED_TABLE_INDEX == r.getSource()).map(responseConverter)));
         indexGraphResponse.setManualTableIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
-                .filter(r -> IndexResponse.Source.MANUAL_TABLE == r.getSource()).map(responseConverter)));
+                .filter(r -> IndexEntity.Source.CUSTOM_TABLE_INDEX == r.getSource()).map(responseConverter)));
 
         val dataflow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
                 .getDataflow(indexPlan.getId());
@@ -627,7 +624,7 @@ public class IndexPlanService extends BasicService {
     }
 
     private List<IndexResponse> sortAndFilterLayouts(Stream<IndexResponse> layouts, String orderBy, boolean reverse,
-            List<IndexResponse.Source> sources) {
+            List<IndexEntity.Source> sources) {
         if (CollectionUtils.isNotEmpty(sources)) {
             layouts = layouts.filter(r -> sources.contains(r.getSource()));
         }
@@ -723,18 +720,18 @@ public class IndexPlanService extends BasicService {
             dataSize += dataCuboid.getByteSize();
         }
 
-        IndexResponse.Status status;
+        IndexEntity.Status status;
         if (readyCount <= 0) {
-            status = IndexResponse.Status.EMPTY;
+            status = IndexEntity.Status.NO_BUILD;
             if (layoutIdsOfRunningJobs.contains(layoutEntity.getId())) {
-                status = IndexResponse.Status.BUILDING;
+                status = IndexEntity.Status.BUILDING;
             }
         } else {
-            status = IndexResponse.Status.AVAILABLE;
+            status = IndexEntity.Status.ONLINE;
         }
 
         if (layoutEntity.isToBeDeleted()) {
-            status = IndexResponse.Status.TO_BE_DELETED;
+            status = IndexEntity.Status.LOCKED;
         }
         response.setStatus(status);
         response.setDataSize(dataSize);

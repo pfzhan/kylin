@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,6 +42,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -61,9 +63,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
@@ -80,10 +84,13 @@ import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
+import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.OpenGetIndexResponse;
+import io.kyligence.kap.rest.response.OpenGetIndexResponse.IndexDetail;
 import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.OpenOptRecLayoutsResponse;
@@ -92,6 +99,7 @@ import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
+import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
@@ -103,8 +111,20 @@ import lombok.val;
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenModelController extends NBasicController {
 
+    private static final String LAST_MODIFY = "last_modify";
+    private static final String USAGE = "usage";
+    private static final String DATA_SIZE = "data_size";
+    private static final Set<String> INDEX_SORT_BY_SET = ImmutableSet.of(USAGE, LAST_MODIFY, DATA_SIZE);
+    private static final Set<String> INDEX_SOURCE_SET = Arrays.stream(IndexEntity.Source.values()).map(Enum::name)
+            .collect(Collectors.toSet());
+    private static final Set<String> INDEX_STATUS_SET = Arrays.stream(IndexEntity.Status.values()).map(Enum::name)
+            .collect(Collectors.toSet());
+
     @Autowired
     private NModelController modelController;
+
+    @Autowired
+    private IndexPlanService indexPlanService;
 
     @Autowired
     private ModelService modelService;
@@ -136,6 +156,95 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(project);
         return modelController.getModels(modelAlias, exactMatch, projectName, owner, status, table, offset, limit,
                 sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
+    }
+
+    @GetMapping(value = "/{model_name:.+}/indexes")
+    @ResponseBody
+    public EnvelopeResponse<OpenGetIndexResponse> getIndexes(@RequestParam(value = "project") String project,
+            @PathVariable(value = "model_name") String modelAlias,
+            @RequestParam(value = "status", required = false) List<String> status,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "sources", required = false) List<String> sources,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
+            @RequestParam(value = "key", required = false, defaultValue = "") String key,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        String projectName = checkProjectName(project);
+        NDataModel model = getModel(modelAlias, projectName);
+        checkNonNegativeIntegerArg("page_offset", offset);
+        checkNonNegativeIntegerArg("page_size", limit);
+        List<IndexEntity.Status> statuses = checkIndexStatus(status);
+        String modifiedSortBy = checkIndexSortBy(sortBy);
+        List<IndexEntity.Source> modifiedSources = checkSources(sources);
+        List<IndexResponse> indexes = indexPlanService.getIndexes(projectName, model.getUuid(), key, statuses,
+                modifiedSortBy, reverse, modifiedSources);
+        List<IndexResponse> listDataResult = DataResult.get(indexes, offset, limit).getValue();
+
+        OpenGetIndexResponse response = new OpenGetIndexResponse();
+        response.setModelId(model.getUuid());
+        response.setModelAlias(model.getAlias());
+        response.setProject(projectName);
+        response.setOwner(model.getOwner());
+        response.setLimit(limit);
+        response.setOffset(offset);
+        response.setTotalSize(indexes.size());
+        List<IndexDetail> detailList = Lists.newArrayList();
+        listDataResult.forEach(indexResponse -> detailList.add(IndexDetail.newIndexDetail(indexResponse)));
+        response.setIndexDetailList(detailList);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    static List<IndexEntity.Status> checkIndexStatus(List<String> statusList) {
+        if (statusList == null || statusList.isEmpty()) {
+            return Lists.newArrayList();
+        }
+        List<IndexEntity.Status> statuses = Lists.newArrayList();
+        statusList.forEach(status -> {
+            if (status != null) {
+                String s = status.toUpperCase(Locale.ROOT);
+                if (INDEX_STATUS_SET.contains(s)) {
+                    statuses.add(IndexEntity.Status.valueOf(s));
+                } else {
+                    throw new KylinException(ServerErrorCode.INVALID_INDEX_STATUS_TYPE,
+                            MsgPicker.getMsg().getINDEX_STATUS_TYPE_ERROR());
+                }
+            }
+        });
+        return statuses;
+    }
+
+    static List<IndexEntity.Source> checkSources(List<String> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return Lists.newArrayList();
+        }
+        List<IndexEntity.Source> sourceList = Lists.newArrayList();
+        sources.forEach(source -> {
+            if (source != null) {
+                String s = source.toUpperCase(Locale.ROOT);
+                if (INDEX_SOURCE_SET.contains(s)) {
+                    sourceList.add(IndexEntity.Source.valueOf(s));
+                } else {
+                    throw new KylinException(ServerErrorCode.INVALID_INDEX_SOURCE_TYPE,
+                            MsgPicker.getMsg().getINDEX_SOURCE_TYPE_ERROR());
+                }
+            }
+        });
+        return sourceList;
+    }
+
+    static String checkIndexSortBy(String sortBy) {
+        if (sortBy == null) {
+            return LAST_MODIFY;
+        }
+        sortBy = sortBy.toLowerCase(Locale.ROOT).trim();
+        if (sortBy.length() == 0) {
+            return LAST_MODIFY;
+        }
+        if (INDEX_SORT_BY_SET.contains(sortBy)) {
+            return sortBy;
+        }
+        throw new KylinException(ServerErrorCode.INVALID_INDEX_SORT_BY_FIELD,
+                MsgPicker.getMsg().getINDEX_SORT_BY_ERROR());
     }
 
     @VisibleForTesting

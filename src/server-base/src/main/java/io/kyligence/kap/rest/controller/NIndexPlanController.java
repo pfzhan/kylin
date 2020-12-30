@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -173,9 +174,9 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "sort_by", required = false, defaultValue = "") String order,
             @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
-            @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexResponse.Source> sources,
+            @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexEntity.Source> sources,
             @RequestParam(value = "key", required = false, defaultValue = "") String key,
-            @RequestParam(value = "status", required = false, defaultValue = "") List<String> status,
+            @RequestParam(value = "status", required = false, defaultValue = "") List<IndexEntity.Status> status,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);

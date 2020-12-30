@@ -577,8 +577,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testCheckJobStatus() {
         jobService.checkJobStatus(Lists.newArrayList("RUNNING"));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT,
-                MsgPicker.getMsg().getILLEGAL_JOB_STATE(), "UNKNOWN"));
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_STATE(), "UNKNOWN"));
         jobService.checkJobStatus("UNKNOWN");
     }
 

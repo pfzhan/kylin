@@ -447,6 +447,22 @@ public class CnMessage extends Message {
         return "非法用户！仅系统管理员、项目的管理员角色和 Management 角色可以被设置成模型的所有者。";
     }
 
+    // index
+    @Override
+    public String getINDEX_STATUS_TYPE_ERROR() {
+        return "参数“status”仅支持传入 NO_BUILD，ONLINE，LOCKED，BUILDING。";
+    }
+
+    @Override
+    public String getINDEX_SOURCE_TYPE_ERROR() {
+        return "参数“sources”仅支持传入 RECOMMENDED_AGG_INDEX，RECOMMENDED_TABLE_INDEX，CUSTOM_AGG_INDEX，CUSTOM_TABLE_INDEX。";
+    }
+
+    @Override
+    public String getINDEX_SORT_BY_ERROR() {
+        return "参数“sort_by”仅支持传入 last_modify，usage，data_size。";
+    }
+
     // Job
     @Override
     public String getILLEGAL_TIME_FILTER() {

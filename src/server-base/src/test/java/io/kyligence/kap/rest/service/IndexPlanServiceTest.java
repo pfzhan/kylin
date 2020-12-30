@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.rest.response.IndexResponse.Source.AUTO_TABLE;
-import static io.kyligence.kap.rest.response.IndexResponse.Source.MANUAL_TABLE;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.CUSTOM_TABLE_INDEX;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.RECOMMENDED_TABLE_INDEX;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.READY;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.WARNING;
 
@@ -85,6 +85,7 @@ import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
+import io.kyligence.kap.rest.response.OpenGetIndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import lombok.val;
 import lombok.var;
@@ -887,22 +888,35 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1000001L, indexResponses.get(0).getId().longValue());
 
         indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), "data_size", true,
-                Lists.newArrayList(AUTO_TABLE, MANUAL_TABLE));
+                Lists.newArrayList(RECOMMENDED_TABLE_INDEX, CUSTOM_TABLE_INDEX));
 
-        Assert.assertTrue(indexResponses.stream().allMatch(
-                indexResponse -> AUTO_TABLE == indexResponse.getSource() || MANUAL_TABLE == indexResponse.getSource()));
+        List<OpenGetIndexResponse.IndexDetail> indexDetails = indexResponses.stream()
+                .map(OpenGetIndexResponse.IndexDetail::newIndexDetail).collect(Collectors.toList());
+        indexDetails.forEach(indexDetail -> {
+            if (indexDetail.getId() == 20000000001L || indexDetail.getId() == 20000010001L) {
+                Assert.assertEquals(RECOMMENDED_TABLE_INDEX, indexDetail.getSource());
+                Assert.assertEquals(IndexEntity.Status.ONLINE, indexDetail.getStatus());
+            } else if (indexDetail.getId() == 20000020001L || indexDetail.getId() == 20000030001L) {
+                Assert.assertEquals(RECOMMENDED_TABLE_INDEX, indexDetail.getSource());
+                Assert.assertEquals(IndexEntity.Status.BUILDING, indexDetail.getStatus());
+            }
+        });
+
+        Assert.assertTrue(
+                indexResponses.stream().allMatch(indexResponse -> RECOMMENDED_TABLE_INDEX == indexResponse.getSource()
+                        || CUSTOM_TABLE_INDEX == indexResponse.getSource()));
 
         // test default order by
         indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), null, false,
                 null);
-        Assert.assertSame(indexResponses.get(0).getStatus(), IndexResponse.Status.BUILDING);
+        Assert.assertSame(indexResponses.get(0).getStatus(), IndexEntity.Status.BUILDING);
         IndexResponse prev = null;
         for (IndexResponse current : indexResponses) {
             if (prev == null) {
                 prev = current;
                 continue;
             }
-            if (current.getStatus() == IndexResponse.Status.AVAILABLE) {
+            if (current.getStatus() == IndexEntity.Status.ONLINE) {
                 Assert.assertTrue(current.getDataSize() >= prev.getDataSize());
             }
             prev = current;
@@ -954,21 +968,21 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         // find normal column, and measure parameter
-        var response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("EMPTY"), "data_size",
-                false, null);
+        var response = indexPlanService.getIndexes(getProject(), modelId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null);
         var ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(3, response.size());
         Assert.assertTrue(ids.contains(20000020001L));
         Assert.assertTrue(ids.contains(20000030001L));
 
-        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("AVAILABLE"), "data_size",
-                false, null);
+        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(IndexEntity.Status.ONLINE),
+                "data_size", false, null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(7, response.size());
         Assert.assertFalse(ids.contains(20000010001L));
         Assert.assertTrue(ids.contains(10001L));
 
-        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("TO_BE_DELETED"),
+        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(IndexEntity.Status.LOCKED),
                 "data_size", false, null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(1, response.size());
@@ -976,8 +990,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         Mockito.doReturn(Sets.newHashSet(20000020001L)).when(indexPlanService).getLayoutsByRunningJobs(getProject(),
                 modelId);
-        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("BUILDING"), "data_size",
-                false, null);
+        response = indexPlanService.getIndexes(getProject(), modelId, "",
+                Lists.newArrayList(IndexEntity.Status.BUILDING), "data_size", false, null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(1, response.size());
         Assert.assertTrue(ids.contains(20000020001L));

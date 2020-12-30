@@ -27,6 +27,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import lombok.Data;
 
 @Data
@@ -76,7 +77,7 @@ public class IndexGraphResponse {
 
         private long usage;
 
-        private IndexResponse.Status status;
+        private IndexEntity.Status status;
 
         @JsonProperty("last_modified_time")
         private long lastModifiedTime;
