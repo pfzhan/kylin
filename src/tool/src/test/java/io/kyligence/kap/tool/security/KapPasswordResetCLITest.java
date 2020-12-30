@@ -44,13 +44,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.LogOutputTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
 
-public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
+public class KapPasswordResetCLITest extends LogOutputTestCase {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -115,5 +115,18 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
         val props = datasourceParameters(url);
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         return new JdbcTemplate(dataSource);
+    }
+
+    @Test
+    public void testUpdatePasswordInQueryNode() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val mode = config.getServerMode();
+        try {
+            config.setProperty("kylin.server.mode", "query");
+            Assert.assertFalse(KapPasswordResetCLI.reset());
+            Assert.assertTrue(containsLog("Only job/all node can update metadata."));
+        } finally {
+            config.setProperty("kylin.server.mode", mode);
+        }
     }
 }

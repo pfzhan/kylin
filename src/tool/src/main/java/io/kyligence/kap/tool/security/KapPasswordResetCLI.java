@@ -66,9 +66,14 @@ public class KapPasswordResetCLI {
     }
 
     public static boolean reset() throws Exception {
+        val config = KylinConfig.getInstanceFromEnv();
+        if (config.isQueryNodeOnly()) {
+            logger.error("Only job/all node can update metadata.");
+            return false;
+        }
+
         PasswordEncoder pwdEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
         String id = "/_global/user/ADMIN";
-        val config = KylinConfig.getInstanceFromEnv();
 
         ResourceStore aclStore = ResourceStore.getKylinMetaStore(config);
         NKylinUserManager userManager = NKylinUserManager.getInstance(config);
