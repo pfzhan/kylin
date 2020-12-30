@@ -93,6 +93,11 @@ public class JdbcAuditLogStore implements AuditLogStore {
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
             + " from %s where id < %d and meta_ts between %d and %d order by id desc limit %d";
 
+    static final String SELECT_BY_META_KET_AND_MVCC = "select "
+            + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
+                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
+            + " from %s where meta_key = '%s' and meta_mvcc = %s";
+
     private final KylinConfig config;
     @Getter
     private final JdbcTemplate jdbcTemplate;
@@ -235,6 +240,19 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Override
     public void setInstance(String instance) {
         this.instance = instance;
+    }
+
+    @Override
+    public AuditLog get(String resPath, long mvcc) {
+        return withTransaction(transactionManager, () -> {
+            val result = jdbcTemplate.query(
+                    String.format(Locale.ROOT, SELECT_BY_META_KET_AND_MVCC, table, resPath, mvcc),
+                    new AuditLogRowMapper());
+            if (!result.isEmpty()) {
+                return result.get(0);
+            }
+            return null;
+        });
     }
 
     @Override

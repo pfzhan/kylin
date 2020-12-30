@@ -49,7 +49,7 @@ public class VersionedRawResource {
         if (mvcc.compareAndSet(r.getMvcc() - 1, r.getMvcc())) {
             this.rawResource = r;
         } else {
-            throw new VersionConflictException(rawResource, "Overwriting conflict " + r.getResPath() + ", expect old mvcc: "
+            throw new VersionConflictException(rawResource, r, "Overwriting conflict " + r.getResPath() + ", expect old mvcc: "
                     + (r.getMvcc() - 1) + ", but found: " + mvcc.get());
         }
     }

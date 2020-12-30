@@ -156,6 +156,7 @@ public class AuditLogReplayWorker {
         private void handleConflictOnce(VersionConflictException e, int countDown) {
             val replayer = MessageSynchronization.getInstance(kylinConfig);
             val originResource = e.getResource();
+            val targetResource = e.getTargetResource();
             val conflictedPath = originResource.getResPath();
             log.warn("Resource <{}:{}> version conflict, msg:{}", conflictedPath, originResource.getMvcc(),
                     e.getMessage());
@@ -169,6 +170,12 @@ public class AuditLogReplayWorker {
                 val fixResource = new AuditLog(0L, conflictedPath, correctedResource.getByteSource(),
                         correctedResource.getTimestamp(), originResource.getMvcc() + 1, null, null, null);
                 replayer.replay(new UnitMessages(Lists.newArrayList(Event.fromLog(fixResource))));
+
+                val currentAuditLog = resourceStore.getAuditLogStore().get(conflictedPath, targetResource.getMvcc());
+                if (currentAuditLog != null) {
+                    log.info("After fix conflict, set offset to {}", currentAuditLog.getId());
+                    updateOffset(currentAuditLog.getId());
+                }
             } catch (IOException ioException) {
                 log.warn("Reload metadata <{}> failed", conflictedPath);
             }

@@ -28,12 +28,19 @@ public class VersionConflictException extends RuntimeException {
 
     private final RawResource resource;
 
-    public VersionConflictException(RawResource resource, String msg) {
+    private final RawResource targetResource;
+
+    public VersionConflictException(RawResource resource, RawResource targetResource, String msg) {
         super(msg);
         this.resource = resource;
+        this.targetResource = targetResource;
     }
 
     public RawResource getResource() {
         return resource;
+    }
+
+    public RawResource getTargetResource() {
+        return targetResource;
     }
 }

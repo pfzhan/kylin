@@ -258,4 +258,25 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
 
         auditLogStore.close();
     }
+
+    @Test
+    public void testGet() {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.checkAndPutResource("/p1/123", ByteStreams.asByteSource("123".getBytes(charset)), -1);
+            return 0;
+        }, "p1");
+
+        AuditLogStore auditLogStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+                .getAuditLogStore();
+
+        AuditLog auditLog = auditLogStore.get("/p1/123", 0);
+        Assert.assertNotNull(auditLog);
+
+        auditLog = auditLogStore.get("/p1/126", 0);
+        Assert.assertNull(auditLog);
+
+        auditLog = auditLogStore.get("/p1/abc", 1);
+        Assert.assertNull(auditLog);
+    }
 }

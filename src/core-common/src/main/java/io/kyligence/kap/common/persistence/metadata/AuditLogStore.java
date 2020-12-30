@@ -52,4 +52,6 @@ public interface AuditLogStore extends Closeable, IKeep {
 
     void setInstance(String instance);
 
+    AuditLog get(String resPath, long mvcc);
+
 }

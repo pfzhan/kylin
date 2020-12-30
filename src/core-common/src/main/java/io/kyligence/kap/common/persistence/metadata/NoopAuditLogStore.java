@@ -83,6 +83,11 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public AuditLog get(String resPath, long mvcc) {
+        return null;
+    }
+
+    @Override
     public void close() throws IOException {
         // just implement it
     }
