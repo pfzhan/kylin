@@ -168,13 +168,14 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @Test
     public void testLoadSamples() throws IOException {
-        Assert.assertEquals(3, sparkSourceService.loadSamples(ss, SaveMode.Overwrite).size());
+        Assert.assertEquals(9, sparkSourceService.loadSamples(ss, SaveMode.Overwrite).size());
+        Assert.assertEquals(9, sparkSourceService.loadSamples(ss, SaveMode.Overwrite).size());
         FileUtils.deleteDirectory(new File("spark-warehouse"));
     }
 
     @Test
     public void testLoadSamples2() throws IOException {
-        Assert.assertEquals(3, sparkSourceService.loadSamples().size());
+        Assert.assertEquals(9, sparkSourceService.loadSamples().size());
         FileUtils.deleteDirectory(new File("spark-warehouse"));
     }
 

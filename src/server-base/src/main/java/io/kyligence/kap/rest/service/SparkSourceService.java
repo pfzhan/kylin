@@ -80,6 +80,18 @@ public class SparkSourceService extends BasicService {
     private static final String HIVE_TYPE_STRING = "HIVE_TYPE_STRING";
     private static final String HIVE_COMMENT = "comment";
 
+    // constants for samples
+    private static final String TABLE_LINEORDER = "ssb.lineorder";
+    private static final String VIEW_P_LINEORDER = "ssb.p_lineorder";
+    private static final String CREATE_VIEW_P_LINEORDER = "create view if not exists SSB.P_LINEORDER as\n"
+            + "        select LO_ORDERKEY,\n" + "        LO_LINENUMBER,\n" + "        LO_CUSTKEY,\n"
+            + "        LO_PARTKEY,\n" + "        LO_SUPPKEY,\n" + "        LO_ORDERDATE,\n"
+            + "        LO_ORDERPRIOTITY,\n" + "        LO_SHIPPRIOTITY,\n" + "        LO_QUANTITY,\n"
+            + "        LO_EXTENDEDPRICE,\n" + "        LO_ORDTOTALPRICE,\n" + "        LO_DISCOUNT,\n"
+            + "        LO_REVENUE,\n" + "        LO_SUPPLYCOST,\n" + "        LO_TAX,\n" + "        LO_COMMITDATE,\n"
+            + "        LO_SHIPMODE,\n" + "        LO_EXTENDEDPRICE*LO_DISCOUNT as V_REVENUE\n"
+            + "        from SSB.LINEORDER";
+
     public DDLResponse executeSQL(DDLRequest request) {
         List<String> sqlList = Arrays.asList(request.getSql().split(";"));
         if (!Strings.isNullOrEmpty(request.getDatabase())) {
@@ -235,12 +247,19 @@ public class SparkSourceService extends BasicService {
         //list samples and use file-name as table name
         List<File> fileList = listSampleFiles();
         List<String> createdTables = Lists.newArrayList();
-        ss.catalog().setCurrentDatabase("DEFAULT");
         for (File file : fileList) {
             if (!file.isDirectory()) {
                 continue;
             }
-            String fileName = file.getName();
+            String fileName = file.getName(), tableName = fileName, db = "DEFAULT";
+            if (fileName.contains(".")) {
+                db = fileName.split("\\.")[0];
+                if (!ss.catalog().databaseExists(db)) {
+                    ss.sql("create database " + db);
+                }
+            } else {
+                tableName = String.format(Locale.ROOT, "%s.%s", db, tableName);
+            }
             String filePath = file.getAbsolutePath();
             FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
             String hdfsPath = String.format(Locale.ROOT, "/tmp/%s", fileName);
@@ -252,15 +271,18 @@ public class SparkSourceService extends BasicService {
                         fileSystem.copyFromLocalFile(new Path(parquetFile.getAbsolutePath()), new Path(hdfsPath));
                     }
                 }
-                ss.read().parquet(hdfsPath).write().mode(mode).saveAsTable(fileName);
+                ss.read().parquet(hdfsPath).write().mode(mode).saveAsTable(tableName);
             } catch (Exception e) {
                 log.error("Load sample {} failed.", fileName, e);
                 throw new IllegalStateException(String.format(Locale.ROOT, "Load sample %s failed", fileName), e);
             } finally {
                 fileSystem.delete(new Path(hdfsPath), false);
             }
-            String tableName = String.format(Locale.ROOT, "DEFAULT.%s", fileName.toUpperCase(Locale.ROOT));
             createdTables.add(tableName);
+        }
+        if (ss.catalog().tableExists(TABLE_LINEORDER)) {
+            ss.sql(CREATE_VIEW_P_LINEORDER);
+            createdTables.add(VIEW_P_LINEORDER);
         }
         log.info("Load samples {} successfully", StringUtil.join(createdTables, ","));
         return createdTables;
