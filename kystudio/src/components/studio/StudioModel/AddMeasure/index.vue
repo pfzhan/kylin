@@ -82,7 +82,7 @@
           </div>
           <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'&&measure.return_type!=='bitmap'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
-        <CCEditForm ref="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
+        <CCEditForm ref="ccEditForm" v-if="ccVisible" @checkSuccess="saveCC" @delSuccess="delCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" source="createMeasure" :ccDesc="ccObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
       </el-form-item>
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
@@ -138,7 +138,7 @@
             </el-option-group>
           </el-select>
           <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button></common-tip>
-          <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" :ccDesc="corrCCObject" :modelInstance="modelInstance"></CCEditForm>
+          <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
         </div>
       </el-form-item>
     </el-form>
@@ -418,7 +418,6 @@ export default class AddMeasure extends Vue {
     } else {
       this.ccVisible = false
       this.isEdit = false
-      this.measure.return_type = this.getParameterValue.filter(item => item.name === value).length ? this.getParameterValue.filter(item => item.name === value)[0].datatype : ''
     }
   }
 
@@ -559,6 +558,7 @@ export default class AddMeasure extends Vue {
   handleHide (isSubmit, measure, isEdit, fromSearch) {
     this.measureVisible = false
     this.ccValidateError = false
+    this.loadingSubmit = false
     this.$emit('closeAddMeasureDia', {
       isEdit: isEdit,
       fromSearch: fromSearch,
@@ -628,6 +628,10 @@ export default class AddMeasure extends Vue {
     } catch (e) {
       this.loadingSubmit = false
     }
+  }
+
+  resetSubmitType () {
+    this.loadingSubmit = false
   }
 
   resetMeasure () {

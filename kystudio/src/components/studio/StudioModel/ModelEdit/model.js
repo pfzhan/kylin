@@ -1352,7 +1352,7 @@ class NModel {
   editMeasure (measureObj) {
     return new Promise((resolve, reject) => {
       let index = indexOfObjWithSomeKey(this._mount.all_measures, 'guid', measureObj.guid)
-      Object.assign(this._mount.all_measures[index], measureObj)
+      Object.assign(this._mount.all_measures[index] || {}, measureObj)
       resolve()
     })
   }
