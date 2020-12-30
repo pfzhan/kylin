@@ -21,30 +21,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.response;
 
+import org.apache.kylin.common.exception.ErrorCodeSupplier;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
+
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class BuildIndexResponse extends BasicResponse{
+class BasicResponse {
 
-    @JsonProperty("type")
-    private BuildIndexType type = BuildIndexType.NORM_BUILD;
+    @JsonProperty("warn_code")
+    private String warnCode;
 
-    @JsonProperty("job_id")
-    private String jobId;
-
-    public BuildIndexResponse(BuildIndexType type) {
-        this.type = type;
-    }
-
-    public enum BuildIndexType {
-        NORM_BUILD, NO_LAYOUT, NO_SEGMENT
+    public void setWarnCodeWithSupplier(ErrorCodeSupplier errorCodeSupplier) {
+        setWarnCode(errorCodeSupplier.toErrorCode().getCodeString());
     }
 }

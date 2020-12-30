@@ -111,4 +111,8 @@ public class ErrorCode implements Serializable {
         return String.format(Locale.ROOT, "%s(%s)", keCode, description);
     }
 
+    public String getCodeString(){
+        return keCode;
+    }
+
 }

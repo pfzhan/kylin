@@ -230,6 +230,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10032xxx add job result
     FAILED_CREATE_JOB("KE-10032001"),
+    FAILED_CREATE_JOB_SAVE_INDEX_SUCCESS("KE-10032002"),
 
     // 10033xx snapshot
     SNAPSHOT_NOT_EXIST("KE-10033001"), //

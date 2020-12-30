@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB_SAVE_INDEX_SUCCESS;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -851,7 +852,14 @@ public class ModelSemanticHelper extends BasicService {
         // new cuboid
         if (difference.size() > 0 || forceFireEvent) {
             String jobId = jobManager.addFullIndexJob(new JobParam(model, getUsername()));
-            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
+
+            val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
+
+            if(Objects.isNull(jobId)){
+                buildIndexResponse.setWarnCodeWithSupplier(FAILED_CREATE_JOB_SAVE_INDEX_SUCCESS);
+            }
+
+            return buildIndexResponse;
         }
 
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
