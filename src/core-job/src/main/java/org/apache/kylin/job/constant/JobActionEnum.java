@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package org.apache.kylin.job.constant;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
@@ -35,7 +35,7 @@ import org.apache.kylin.common.exception.KylinException;
 
 public enum JobActionEnum {
 
-    RESUME, DISCARD, PAUSE, ROLLBACK, RESTART;
+    RESUME, DISCARD, PAUSE, RESTART;
 
     private static final Set<String> validValues = Arrays.stream(JobActionEnum.values()).map(Enum::name)
             .collect(Collectors.toSet());

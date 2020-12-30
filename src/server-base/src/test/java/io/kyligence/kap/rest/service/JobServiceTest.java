@@ -58,6 +58,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
@@ -392,7 +393,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.setProject("default");
         executable.setName("test");
         manager.addJob(executable);
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "ROLLBACK",
                 Lists.newArrayList());
     }
@@ -571,4 +572,23 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(executableResponse, jobService.manageJob("default", executableResponse, "RESUME"));
     }
+
+    @Test
+    public void testCheckJobStatus() {
+        jobService.checkJobStatus(Lists.newArrayList("RUNNING"));
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getILLEGAL_JOB_STATE(), "UNKNOWN"));
+        jobService.checkJobStatus("UNKNOWN");
+    }
+
+    @Test
+    public void testCheckJobStatusAndAction() {
+        jobService.checkJobStatusAndAction(Lists.newArrayList("RUNNING", "PENDING"), "PAUSE");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "ERROR",
+                "RESUME, DISCARD, RESTART"));
+        jobService.checkJobStatusAndAction("ERROR", "PAUSE");
+    }
+
 }

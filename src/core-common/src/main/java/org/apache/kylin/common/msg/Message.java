@@ -368,7 +368,13 @@ public class Message {
     }
 
     public String getILLEGAL_JOB_STATE() {
-        return "Illegal job status: %s.";
+        return "Illegal job status: %s. The value should be “PENDING“, “RUNNING“, “FINISHED“, “ERROR” or “DISCARDED“.";
+    }
+
+    public String getILLEGAL_JOB_ACTION() {
+        return "Invalid value in parameter “action“ or “statuses“,  "
+                + "The value of “statuses“ contains “%s“, "
+                + "this status of jobs can only perform the following actions: “%s“ .";
     }
 
     public String getILLEGAL_JOB_TYPE() {

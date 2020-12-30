@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,16 +42,71 @@
 
 package org.apache.kylin.job.constant;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-
-import org.apache.kylin.common.exception.KylinException;
-
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public enum JobStatusEnum {
 
-    NEW(0), PENDING(1), RUNNING(2), FINISHED(4), ERROR(8), DISCARDED(16), STOPPED(32), SUICIDAL(64);
+    NEW(0) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return true;
+        }
+    },
+    PENDING(1) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return actionEnum == JobActionEnum.PAUSE || actionEnum == JobActionEnum.DISCARD;
+        }
+    },
+    RUNNING(2) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return actionEnum == JobActionEnum.PAUSE || actionEnum == JobActionEnum.DISCARD
+                    || actionEnum == JobActionEnum.RESUME;
+        }
+    },
+    FINISHED(4) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return false;
+        }
+    },
+    ERROR(8) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return actionEnum == JobActionEnum.DISCARD || actionEnum == JobActionEnum.RESUME
+                    || actionEnum == JobActionEnum.RESTART;
+        }
+    },
+    DISCARDED(16) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return false;
+        }
+    },
+    STOPPED(32) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return actionEnum == JobActionEnum.DISCARD || actionEnum == JobActionEnum.RESUME
+                    || actionEnum == JobActionEnum.RESTART;
+        }
+    },
+    SUICIDAL(64) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return false;
+        }
+    };
+
+    public abstract boolean checkAction(JobActionEnum actionEnum);
+
+    public String getValidActions() {
+        return Arrays.stream(JobActionEnum.values()).filter(this::checkAction).map(JobActionEnum::name)
+                .collect(Collectors.joining(", "));
+    }
 
     private final int code;
 
@@ -82,15 +136,7 @@ public enum JobStatusEnum {
     }
 
     public static JobStatusEnum getByName(String name) {
-        if (null == name) {
-            return null;
-        }
-
-        JobStatusEnum status = nameMap.get(name);
-        if (status == null) {
-            throw new KylinException(INVALID_PARAMETER, "Invalid value in parameter “statuses“. The value should be “PENDING“, “RUNNING“, “FINISHED“, “ERROR” or “DISCARDED“.");
-        }
-        return status;
+        return nameMap.get(name);
     }
 
 }

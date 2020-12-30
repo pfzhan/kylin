@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
+import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
+import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.io.IOException;
@@ -84,7 +86,7 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
-import io.kyligence.kap.rest.request.JobActionEnum;
+import org.apache.kylin.job.constant.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableSortBean;
@@ -632,4 +634,40 @@ public class JobService extends BasicService {
 
         executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
     }
+
+    public void checkJobStatus(List<String> jobStatuses) {
+        if (CollectionUtils.isEmpty(jobStatuses)) {
+            return;
+        }
+        jobStatuses.forEach(this::checkJobStatus);
+    }
+
+    public void checkJobStatus(String jobStatus) {
+        Message msg = MsgPicker.getMsg();
+        if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
+            throw new KylinException(ILLEGAL_JOB_STATUS,
+                    String.format(Locale.ROOT, msg.getILLEGAL_JOB_STATE(), jobStatus));
+        }
+    }
+
+    public void checkJobStatusAndAction(String jobStatus, String action) {
+        checkJobStatus(jobStatus);
+        JobActionEnum.validateValue(action);
+        JobStatusEnum jobStatusEnum = JobStatusEnum.valueOf(jobStatus);
+        if (!jobStatusEnum.checkAction(JobActionEnum.valueOf(action))) {
+            throw new KylinException(ILLEGAL_JOB_ACTION, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), jobStatus, jobStatusEnum.getValidActions()));
+        }
+
+    }
+
+    public void checkJobStatusAndAction(List<String> jobStatuses, String action) {
+        if (CollectionUtils.isEmpty(jobStatuses)) {
+            return;
+        }
+        for (String jobStatus : jobStatuses) {
+            checkJobStatusAndAction(jobStatus, action);
+        }
+    }
+
 }

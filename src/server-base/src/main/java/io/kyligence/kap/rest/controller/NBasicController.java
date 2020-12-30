@@ -49,7 +49,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
-import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
@@ -69,7 +68,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -89,7 +87,6 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -385,20 +382,6 @@ public class NBasicController {
         }
     }
 
-    public void checkJobStatus(String jobStatus) {
-        Message msg = MsgPicker.getMsg();
-        if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException(ILLEGAL_JOB_STATUS,
-                    String.format(Locale.ROOT, msg.getILLEGAL_JOB_STATE(), jobStatus));
-        }
-    }
-
-    public void checkJobStatus(List<String> jobStatuses) {
-        if (CollectionUtils.isEmpty(jobStatuses)) {
-            return;
-        }
-        jobStatuses.forEach(this::checkJobStatus);
-    }
 
     public void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {

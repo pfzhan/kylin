@@ -51,7 +51,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.controller.v2.NJobControllerV2;
-import io.kyligence.kap.rest.request.JobActionEnum;
+import org.apache.kylin.job.constant.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;

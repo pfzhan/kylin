@@ -1457,7 +1457,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getILLEGAL_JOB_STATE() {
-        return "非法的任务状态:%s";
+        return "非法的任务状态:%s 状态必须是 “PENDING“, “RUNNING“, “FINISHED“, “ERROR” 或者 “DISCARDED“.";
+    }
+
+    @Override
+    public String getILLEGAL_JOB_ACTION() {
+        return "无效的参数值 “action“ 或者 “statuses“。“statuses“ 值包含 “%s“，此状态的任务只能执行以下操作 “%s“";
     }
 
     @Override

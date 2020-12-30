@@ -47,7 +47,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.request.JobActionEnum;
+import org.apache.kylin.job.constant.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;
@@ -90,7 +90,7 @@ public class NJobControllerV2 extends NBasicController {
         for (Integer code : status) {
             JobStatusEnum jobStatus = JobStatusEnum.getByCode(code);
             if (Objects.isNull(jobStatus)) {
-                checkJobStatus(String.valueOf(code));
+                jobService.checkJobStatus(String.valueOf(code));
                 continue;
             }
             statuses.add(jobStatus.toString());

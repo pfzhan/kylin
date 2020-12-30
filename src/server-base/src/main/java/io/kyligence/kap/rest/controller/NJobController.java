@@ -93,7 +93,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse) {
-        checkJobStatus(statuses);
+        jobService.checkJobStatus(statuses);
         checkRequiredArg("time_filter", timeFilter);
         JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, key, project, sortBy, reverse);
         DataResult<List<ExecutableResponse>> executables;
@@ -132,7 +132,7 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "job_ids", required = false) List<String> jobIds,
             @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
-        checkJobStatus(statuses);
+        jobService.checkJobStatus(statuses);
         if (StringUtils.isBlank(project) && CollectionUtils.isEmpty(jobIds)) {
             throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to delete!");
         }
@@ -150,7 +150,7 @@ public class NJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkRequiredArg("action", jobUpdateRequest.getAction());
-        checkJobStatus(jobUpdateRequest.getStatuses());
+        jobService.checkJobStatusAndAction(jobUpdateRequest.getStatuses(), jobUpdateRequest.getAction());
         if (StringUtils.isBlank(jobUpdateRequest.getProject())
                 && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
             throw new KylinException(EMPTY_JOB_ID,
