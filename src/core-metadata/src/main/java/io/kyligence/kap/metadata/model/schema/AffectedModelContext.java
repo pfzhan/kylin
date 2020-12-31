@@ -92,8 +92,11 @@ public class AffectedModelContext {
         this.updateMeasureMap = updateMeasures.stream()
                 .collect(Collectors.toMap(pair -> pair.getFirst().getId(), Pair::getSecond));
         this.shouldDeleteNodes = calcShouldDeletedNodes(isDelete);
-        isBroken = updatedNodes.stream().anyMatch(SchemaNode::isCauseModelBroken);
-
+        if(isDelete) {
+            isBroken = updatedNodes.stream().anyMatch(SchemaNode::isCauseModelBroken);
+        }else{
+            isBroken = false;
+        }
         updatedLayouts = filterIndexFromNodes(updatedNodes);
         shouldDeleteLayouts = filterIndexFromNodes(shouldDeleteNodes);
         columns = shouldDeleteNodes.stream().filter(node -> node.getType() == SchemaNodeType.MODEL_COLUMN)
