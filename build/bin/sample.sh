@@ -29,19 +29,6 @@ function help(){
     exit 1
 }
 
-source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
-
-source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
-
-cd ${KYLIN_HOME}/tool/ssb/data
-
-if [[ -z "${kylin_hadoop_conf_dir}" ]]; then
-    hadoop_conf_param=
-else
-    hadoop_conf_param="--config ${kylin_hadoop_conf_dir}"
-fi
-
-# Get the parameterS
 while [[ $# != 0 ]]; do
     if [[ $# != 1 ]]; then
         if [[ $1 == "--client" ]]; then
@@ -67,6 +54,19 @@ while [[ $# != 0 ]]; do
     fi
     shift
 done
+
+source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
+
+source ${KYLIN_HOME}/sbin/prepare-hadoop-conf-dir.sh
+
+cd ${KYLIN_HOME}/tool/ssb/data
+
+if [[ -z "${kylin_hadoop_conf_dir}" ]]; then
+    hadoop_conf_param=
+else
+    hadoop_conf_param="--config ${kylin_hadoop_conf_dir}"
+fi
+
 
 #judge hive_client for FusionInsight or default
 ## FusionInsight platform C60.
