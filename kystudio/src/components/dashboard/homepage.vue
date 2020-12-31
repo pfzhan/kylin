@@ -220,8 +220,10 @@
         </div>
       </div>
     </div>
-    <!-- 模型添加 -->
+    <!-- sql建模添加 -->
     <UploadSqlModel v-on:reloadModelList="init"/>
+    <!-- 模型添加 -->
+    <ModelAddModal/>
   </div>
 </template>
 
@@ -230,8 +232,9 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapActions, mapGetters } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../util/index'
-import { postCloudUrlMessage } from '../../util/business'
+import { postCloudUrlMessage, kapConfirm } from '../../util/business'
 import UploadSqlModel from '../common/UploadSql/UploadSql.vue'
+import ModelAddModal from '../studio/StudioModel/ModelList/ModelAddModal/addmodel'
 import locales from './locales'
 
 @Component({
@@ -246,7 +249,8 @@ import locales from './locales'
     ])
   },
   components: {
-    UploadSqlModel
+    UploadSqlModel,
+    ModelAddModal
   },
   methods: {
     ...mapActions({
@@ -261,6 +265,12 @@ import locales from './locales'
     }),
     ...mapActions('UploadSqlModel', {
       showUploadSqlDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelAddModal', {
+      callAddModelDialog: 'CALL_MODAL'
+    }),
+    ...mapActions({
+      getModelByModelName: 'LOAD_MODEL_INFO'
     })
   },
   locales
@@ -303,9 +313,9 @@ export default class Homepage extends Vue {
   }
   gotoHistory () {
     if (this.platform === 'iframe') {
-      postCloudUrlMessage(this.$route, { name: 'kapHistory' })
+      postCloudUrlMessage(this.$route, { name: 'kapHistory', params: {source: 'homepage-history'} })
     } else {
-      this.$router.push({path: '/query/queryhistory'})
+      this.$router.push({name: 'QueryHistory', params: {source: 'homepage-history'}})
     }
   }
   gotoModelList () {
@@ -373,6 +383,18 @@ export default class Homepage extends Vue {
   }
   async toAcce () {
     if (this.isAcceing || this.isAcce || this.infoData.unhandled_query_count === '0') return
+    const res = await this.getModelByModelName({status: 'ONLINE,WARNING', project: this.currentSelectedProject})
+    const data = await handleSuccessAsync(res)
+    if (data.total_size === 0) {
+      await kapConfirm(this.$t('noModelsTips'), {confirmButtonText: this.$t('addModel'), cancelButtonText: this.$t('viewAllModels'), closeOnClickModal: false, closeOnPressEscape: false, type: 'warning'}, this.$t('kylinLang.common.tip')).then(() => {
+        this.$nextTick(() => {
+          this.callAddModelDialog()
+        })
+      }).catch((e) => {
+        this.$router.push({name: 'ModelList'})
+      })
+      return
+    }
     try {
       this.isAcceing = true
       const res = await this.accelerateModel({project: this.currentSelectedProject})

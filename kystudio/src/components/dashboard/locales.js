@@ -45,7 +45,11 @@ export default {
     turnOnTips: 'With recommendation mode turned on, the system will generate recommendations for existing models by analyzing the query history and model usage. You may set the related rules in settings.<br/><br/>Please note that this feature is still in BETA phase. Potential risks or known limitations might exist. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">user manual</a> for details.<br/><br/>Do you want to continue?',
     turnOn: 'Turn On ',
     confirmOpen: 'Turn On',
-    enableSemiAutomatic: 'Recommendation'
+    enableSemiAutomatic: 'Recommendation',
+    historyDescTip: 'The last week refers to the past 7 days before 0 am of today',
+    noModelsTips: 'There is no available model for generating recommendations. Please ensure that the models which need to be optimized are either in ONLINE or WARNING status, or add a new model.',
+    addModel: 'Add Model',
+    viewAllModels: 'View All Model(s)'
   },
   'zh-cn': {
     aiAugmented: 'AI 增强引擎',
@@ -93,6 +97,10 @@ export default {
     turnOnTips: '开启智能推荐模式后，系统将根据您的查询历史及使用情况对已有模型进行优化建议。你可以在设置中对查询用户、查询延时、优化建议上限进行配置。<br/><br/>请注意，此功能尚属于 BETA 阶段，可能存在潜在风险或已知限制。详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/zh-cn/acceleration/" target="_blank">查看手册</a><br/><br/>确认要开启吗？',
     turnOn: '开启',
     confirmOpen: '确认开启',
-    enableSemiAutomatic: '智能推荐'
+    enableSemiAutomatic: '智能推荐',
+    historyDescTip: '过去一周是指当天 0 点之前的 7 天',
+    noModelsTips: '当前项目下没有模型可生成优化建议。请确保所需优化的模型处于 ONLINE 或 WARNING 状态，或添加模型。',
+    addModel: '添加模型',
+    viewAllModels: '查看所有模型'
   }
 }

@@ -1,6 +1,6 @@
 <template>
   <div id="queryHistory">
-    <query_history_table :queryHistoryData="queryHistoryData.query_histories" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
+    <query_history_table :queryHistoryData="queryHistoryData.query_histories" :filterDirectData="filterDirectData" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
     <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('kylinLang.model.aggregateGroupIndex')"
@@ -51,6 +51,16 @@ import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index
 import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
 import { pageRefTags } from 'config'
 @Component({
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      if (from.name && from.name === 'Dashboard' && to.params.source && to.params.source === 'homepage-history') {
+        let tm = new Date(new Date().toLocaleDateString()).getTime()
+        vm.filterDirectData.startTimeFrom = tm - 1000 * 60 * 60 * 24 * 7
+        vm.filterDirectData.startTimeTo = tm
+      }
+      vm.currentSelectedProject && vm.loadHistoryList()
+    })
+  },
   methods: {
     ...mapActions({
       getHistoryList: 'GET_HISTORY_LIST',
@@ -85,6 +95,10 @@ export default class QueryHistory extends Vue {
     accelerateStatus: [],
     sql: '',
     query_status: []
+  }
+  filterDirectData = {
+    startTimeFrom: null,
+    startTimeTo: null
   }
   model = {
     uuid: ''
@@ -125,7 +139,6 @@ export default class QueryHistory extends Vue {
   }
 
   async created () {
-    this.currentSelectedProject && this.loadHistoryList()
     const res = await this.loadOnlineQueryNodes()
     this.queryNodes = await handleSuccessAsync(res)
   }

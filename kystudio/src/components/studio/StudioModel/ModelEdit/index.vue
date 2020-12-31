@@ -1165,6 +1165,18 @@ export default class ModelEdit extends Vue {
     if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
       this.showChangeTips()
     }
+    // 拖拽首张表时，如果其它模型用了该表做为了事实表则默认为事实表，否者默认展开编辑菜单
+    const databaseArray = this.$refs.datasourceTree ? this.$refs.datasourceTree.databaseArray : []
+    const [database, table] = this.currentDragTable.split('.')
+    const tables = databaseArray.filter(it => it.label === database).length ? databaseArray.filter(it => it.label === database)[0].children : []
+    let tableIsFact = tables.filter(item => item.label === table && item.__data.root_fact).length > 0
+    if (Object.keys(this.modelInstance.tables).length === 1) {
+      if (tableIsFact) {
+        this.modelInstance.changeTableType(this.modelInstance.getTableByGuid(Object.keys(this.modelInstance.tables)[0]))
+        return
+      }
+      this.editTable(Object.keys(this.modelInstance.tables)[0])
+    }
     this.currentDragTableData = {}
     this.currentDragTable = null
     this.removeDragInClass()

@@ -189,7 +189,7 @@
 </template>
 
 <script>
-import { transToUtcTimeFormat, transToGmtTime, getStringLength } from '../../util/business'
+import { transToGmtTime, getStringLength } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
@@ -199,7 +199,7 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
 // import sqlFormatter from 'sql-formatter'
 @Component({
   name: 'QueryHistoryTable',
-  props: ['queryHistoryData', 'queryNodes'],
+  props: ['queryHistoryData', 'queryNodes', 'filterDirectData'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
@@ -307,20 +307,20 @@ export default class QueryHistoryTable extends Vue {
   filterTags = []
   isShowDetail = false // 展开查询步骤详情
 
-  @Watch('datetimerange')
-  onDateRangeChange (val) {
-    if (val) {
-      this.filterData.startTimeFrom = new Date(val[0]).getTime()
-      this.filterData.startTimeTo = new Date(val[1]).getTime()
-      this.clearDatetimeRange()
-      this.filterTags.push({label: `${this.transToGmtTime(this.filterData.startTimeFrom)} To ${this.transToGmtTime(this.filterData.startTimeTo)}`, source: 'kylinLang.query.startTime_th', key: 'datetimerange'})
-    } else {
-      this.filterData.startTimeFrom = null
-      this.filterData.startTimeTo = null
-      this.clearDatetimeRange()
-    }
-    this.filterList()
-  }
+  // @Watch('datetimerange')
+  // onDateRangeChange (val) {
+  //   if (val) {
+  //     this.filterData.startTimeFrom = new Date(val[0]).getTime()
+  //     this.filterData.startTimeTo = new Date(val[1]).getTime()
+  //     this.clearDatetimeRange()
+  //     this.filterTags.push({label: `${this.transToGmtTime(this.filterData.startTimeFrom)} To ${this.transToGmtTime(this.filterData.startTimeTo)}`, source: 'kylinLang.query.startTime_th', key: 'datetimerange'})
+  //   } else {
+  //     this.filterData.startTimeFrom = null
+  //     this.filterData.startTimeTo = null
+  //     this.clearDatetimeRange()
+  //   }
+  //   this.filterList()
+  // }
 
   @Watch('queryHistoryData')
   onQueryHistoryDataChange (val) {
@@ -333,6 +333,32 @@ export default class QueryHistoryTable extends Vue {
       element['query_steps'] = element.query_history_info && this.getStepData(element.query_history_info.traces) || []
     })
     this.toggleExpandId = []
+  }
+
+  @Watch('filterDirectData.startTimeFrom')
+  onInitFilterData (v) {
+    this.initFilterData()
+  }
+
+  dateRangeChange () {
+    if (this.datetimerange) {
+      this.filterData.startTimeFrom = new Date(this.datetimerange[0]).getTime()
+      this.filterData.startTimeTo = new Date(this.datetimerange[1]).getTime()
+      this.clearDatetimeRange()
+      this.filterTags.push({label: `${this.transToGmtTime(this.filterData.startTimeFrom)} To ${this.transToGmtTime(this.filterData.startTimeTo)}`, source: 'kylinLang.query.startTime_th', key: 'datetimerange'})
+    } else {
+      this.filterData.startTimeFrom = null
+      this.filterData.startTimeTo = null
+      this.clearDatetimeRange()
+    }
+  }
+
+  initFilterData () {
+    const { startTimeFrom, startTimeTo } = JSON.parse(JSON.stringify(this.filterDirectData))
+    if (!startTimeFrom || !startTimeTo) return
+    this.datetimerange = [startTimeFrom, startTimeTo]
+    this.dateRangeChange()
+    this.filterList()
   }
 
   // 清除查询开始事件筛选项
@@ -590,8 +616,8 @@ export default class QueryHistoryTable extends Vue {
   }
   renderColumn (h) {
     if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {
-      const startTime = transToUtcTimeFormat(this.filterData.startTimeFrom)
-      const endTime = transToUtcTimeFormat(this.filterData.startTimeTo)
+      const startTime = transToGmtTime(this.filterData.startTimeFrom)
+      const endTime = transToGmtTime(this.filterData.startTimeTo)
       return (<span onClick={e => (e.stopPropagation())}>
         <span>{this.$t('kylinLang.query.startTime_th')}</span>
         <el-tooltip placement="top">
@@ -603,7 +629,7 @@ export default class QueryHistoryTable extends Vue {
           </div>
           <el-date-picker
             value={this.datetimerange}
-            onInput={val => (this.datetimerange = val)}
+            onInput={this.handleInputDateRange}
             type="datetimerange"
             popper-class="table-filter-datepicker"
             toggle-icon="el-icon-ksd-data_range isFilter"
@@ -616,7 +642,7 @@ export default class QueryHistoryTable extends Vue {
         <span>{this.$t('kylinLang.query.startTime_th')}</span>
         <el-date-picker
           value={this.datetimerange}
-          onInput={val => (this.datetimerange = val)}
+          onInput={this.handleInputDateRange}
           popper-class="table-filter-datepicker"
           type="datetimerange"
           toggle-icon="el-icon-ksd-data_range"
@@ -624,6 +650,11 @@ export default class QueryHistoryTable extends Vue {
         </el-date-picker>
       </span>)
     }
+  }
+  handleInputDateRange (val) {
+    this.datetimerange = val
+    this.dateRangeChange()
+    this.filterList()
   }
   resetLatency () {
     this.startSec = 0
@@ -798,6 +829,7 @@ export default class QueryHistoryTable extends Vue {
   handleClose (tag) {
     if (tag.key === 'datetimerange') {
       this.datetimerange = ''
+      this.dateRangeChange()
     } else if (tag.key === 'latency') {
       this.filterData.latencyFrom = null
       this.filterData.latencyTo = null
@@ -822,6 +854,7 @@ export default class QueryHistoryTable extends Vue {
     this.filterData.latencyTo = null
     this.datetimerange = ''
     this.filterTags = []
+    this.dateRangeChange()
     this.filterList()
   }
   openAuthorityDialog (item) {
