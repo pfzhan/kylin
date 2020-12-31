@@ -1167,7 +1167,11 @@ export default class AggregateModal extends Vue {
         if (isCatchUp && this.model.segments.length > 0 && this.model.partition_desc && this.model.partition_desc.partition_date_column) {
           this.$emit('openComplementAllIndexesDialog', this.model)
         }
-        this.handleBuildIndexTip(result)
+        if (result.warn_code && result.type === 'NORM_BUILD') {
+          this.confirmBuildIndexTip()
+        } else {
+          this.handleBuildIndexTip(result)
+        }
         this.isSubmit = false
         this.handleClose(true)
         // this.hideLoading()
@@ -1184,6 +1188,9 @@ export default class AggregateModal extends Vue {
       this.isSubmit = false
       // this.hideLoading()
     }
+  }
+  confirmBuildIndexTip () {
+    kapConfirm(this.$t('buildIndexTip'), {showCancelButton: false, confirmButtonText: this.$t('kylinLang.common.ok'), type: 'error', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
   }
   editGlobalDim () {
     this.globalDim = this.form.globalDimCap

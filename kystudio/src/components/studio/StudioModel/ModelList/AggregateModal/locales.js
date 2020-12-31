@@ -97,7 +97,8 @@ export default {
     min_value: 'Min Value',
     null_count: 'Null Count',
     cardinalityMultiple: 'The Product of Cardinality: ',
-    noIncludesTip: 'No included dimensions.'
+    noIncludesTip: 'No included dimensions.',
+    buildIndexTip: 'Successfully saved the aggregate index(es). The building job can\'t be submitted at the moment, as there exists an ongoing building job for this model. Please try submitting the building job until the current one is completed or manually stop it.'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -197,6 +198,7 @@ export default {
     min_value: '最小值',
     null_count: '空值计数',
     cardinalityMultiple: '基数乘积：',
-    noIncludesTip: '当前没有添加包含维度。'
+    noIncludesTip: '当前没有添加包含维度。',
+    buildIndexTip: '聚合索引保存成功，当前无法提交构建任务。请等待该模型的构建任务完成或手动停止该任务后再提交。'
   }
 }
