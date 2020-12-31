@@ -49,7 +49,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.LogOutputTestCase;
@@ -59,8 +58,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ExecutorServiceUtilTest extends LogOutputTestCase {
 
     @Test
-    @Ignore
-    public void testShutdownGracefully() {
+    public void testShutdownGracefully() throws Exception {
         ExecutorService pool = Executors.newScheduledThreadPool(1);
         pool.execute(new Runnable() {
             public void run() {
@@ -71,12 +69,12 @@ public class ExecutorServiceUtilTest extends LogOutputTestCase {
                 }
             }
         });
+        Thread.sleep(2000);
         ExecutorServiceUtil.shutdownGracefully(pool, 1);
         Assert.assertTrue(containsLog("thread interrupted."));
     }
 
     @Test
-    @Ignore
     public void testForceShutdown() {
         ScheduledExecutorService pool = Executors.newScheduledThreadPool(1);
         Future task = pool.schedule(new Runnable() {
