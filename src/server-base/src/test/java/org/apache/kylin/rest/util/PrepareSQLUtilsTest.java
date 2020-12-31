@@ -24,6 +24,7 @@
 
 package org.apache.kylin.rest.util;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 
@@ -56,15 +57,21 @@ public class PrepareSQLUtilsTest {
                 "select * from (select \"a\", '?' as q from \"b\" where \"c\" = ? and \"e\" = 'abc' and d = ?) join (select \"b\" from z where x = ?)",
                 new String[] { "123", "d'2019-01-01'", "abcdef" },
                 "select * from (select \"a\", '?' as q from \"b\" where \"c\" = '123' and \"e\" = 'abc' and d = 'd'2019-01-01'') join (select \"b\" from z where x = 'abcdef')");
-        verifyPrepareResult("select a from b where c = ? and d = ? and e = ? and f = ? and g = ?",
+        verifyPrepareResult("select a from b where c = ? and d = ? and e = ? and f = ? and g = ? and h = ? and i = ? and j = ? and k = ?",
                 new PrepareSqlRequest.StateParam[] {
                         new PrepareSqlRequest.StateParam(Integer.class.getCanonicalName(), "123"),
                         new PrepareSqlRequest.StateParam(Double.class.getCanonicalName(), "123.0"),
                         new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), "a string"),
                         new PrepareSqlRequest.StateParam(Date.class.getCanonicalName(), "2019-01-01"),
                         new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(),
-                                "2019-01-01 00:12:34.123"), },
-                "select a from b where c = 123 and d = 123.0 and e = 'a string' and f = date'2019-01-01' and g = timestamp'2019-01-01 00:12:34.123'");
+                                "2019-01-01 00:12:34.123"),
+                        new PrepareSqlRequest.StateParam(Short.class.getCanonicalName(), "-128"),
+                        new PrepareSqlRequest.StateParam(Long.class.getCanonicalName(), "-2147483648"),
+                        new PrepareSqlRequest.StateParam(Boolean.class.getCanonicalName(), "true"),
+                        new PrepareSqlRequest.StateParam(BigDecimal.class.getCanonicalName(), "-9223372036854775"),
+                },
+                "select a from b where c = 123 and d = 123.0 and e = 'a string' and f = date'2019-01-01' and g = timestamp'2019-01-01 00:12:34.123' "
+                        + "and h = -128 and i = -2147483648 and j = true and k = -9223372036854775");
     }
 
 }

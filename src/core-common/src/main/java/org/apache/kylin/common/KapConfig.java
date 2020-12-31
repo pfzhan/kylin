@@ -556,6 +556,11 @@ public class KapConfig {
                 config.getOptional("kylin.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
     }
 
+    public boolean enableReplaceDynamicParams() {
+        return Boolean.parseBoolean(
+                config.getOptional("kylin.query.replace-dynamic-params-enabled", FALSE));
+    }
+
     public boolean runConstantQueryLocally() {
         return Boolean.parseBoolean(config.getOptional("kylin.query.engine.run-constant-query-locally", TRUE));
     }

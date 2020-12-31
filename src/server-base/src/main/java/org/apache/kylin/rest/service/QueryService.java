@@ -684,6 +684,12 @@ public class QueryService extends BasicService {
                     return fakeResponse;
                 }
 
+                if (KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()
+                        && isPrepareStatementWithParams(sqlRequest)) {
+                    String sqlString = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), ((PrepareSqlRequest) sqlRequest).getParams());
+                    sqlRequest.setSql(sqlString);
+                }
+
                 QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                         sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                         queryExec.getSchema(), true);
@@ -812,7 +818,8 @@ public class QueryService extends BasicService {
             String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
         String sqlString = sqlRequest.getSql();
         if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
-                && isPrepareStatementWithParams(sqlRequest)) {
+                && isPrepareStatementWithParams(sqlRequest)
+                && !KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()) {
             sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
         }
 

@@ -24,6 +24,7 @@
 
 package org.apache.kylin.rest.util;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -76,6 +77,9 @@ public class PrepareSQLUtils {
         }
 
         if (value instanceof String) {
+            if (param.getClassName().equals(BigDecimal.class.getCanonicalName())) {
+                return (String) value;
+            }
             return LITERAL_QUOTE + (String) value + LITERAL_QUOTE;
         } else if (value instanceof java.sql.Date) {
             return String.format(Locale.ROOT, "date'%s'", DateFormat.formatToDateStr(((Date) value).getTime()));
