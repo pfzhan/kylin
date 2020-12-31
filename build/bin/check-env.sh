@@ -52,6 +52,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
         echo ""
 
         rm -rf ${KYLIN_HOME}/logs/tmp
+        rm -f ${ERRORS}
         touch ${ERRORS}
 
         export CHECKENV_REPORT_PFX=">   "
