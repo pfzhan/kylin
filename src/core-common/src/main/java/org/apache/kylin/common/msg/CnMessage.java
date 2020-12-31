@@ -42,9 +42,9 @@
 
 package org.apache.kylin.common.msg;
 
-import org.apache.kylin.common.Singletons;
-
 import java.util.Locale;
+
+import org.apache.kylin.common.Singletons;
 
 public class CnMessage extends Message {
 
@@ -1991,5 +1991,10 @@ public class CnMessage extends Message {
     @Override
     public String getADMIN_PERMISSION_UPDATE_ABANDON() {
         return "管理员不支持被更新权限.";
+    }
+
+    @Override
+    public String getMODEL_ID_NOT_EXIST() {
+        return "模型ID '%s' 不存在。";
     }
 }

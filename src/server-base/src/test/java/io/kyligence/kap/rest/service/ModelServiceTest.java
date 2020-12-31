@@ -5145,6 +5145,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private void checkPropParameter(ModelConfigRequest request) {
+        request.setOverrideProps(null);
+        try {
+            modelService.checkModelConfigParameters(request);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), "override_props")));
+        }
         LinkedHashMap<String, String> prop = new LinkedHashMap<>();
         request.setOverrideProps(prop);
         prop.put("kylin.engine.spark-conf.spark.executor.cores", "1.2");
@@ -5310,7 +5319,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         AclTCR.Table aclTable = new AclTCR.Table();
         AclTCR.ColumnRow aclColumnRow = new AclTCR.ColumnRow();
         AclTCR.Column aclColumns = new AclTCR.Column();
-        if(hasColumn){
+        if (hasColumn) {
             Arrays.stream(table.getColumns()).forEach(x -> aclColumns.add(x.getName()));
         }
         aclColumnRow.setColumn(aclColumns);
@@ -5352,5 +5361,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         addAclTable("DEFAULT.TEST_ENCODING", "user", true);
         modelService.checkModelPermission(getProject(), "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+    }
+
+    @Test
+    public void testUpdateDataModelWithNotExistModelId() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        try {
+            modelManager.updateDataModel("abc", x -> {
+            });
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains("Data model with id 'abc' not found."));
+        }
     }
 }

@@ -42,9 +42,9 @@
 
 package org.apache.kylin.common.msg;
 
-import org.apache.kylin.common.Singletons;
-
 import java.util.Locale;
+
+import org.apache.kylin.common.Singletons;
 
 public class Message {
 
@@ -1751,5 +1751,9 @@ public class Message {
 
     public String getADMIN_PERMISSION_UPDATE_ABANDON() {
         return "Admin is not supported to update permission.";
+    }
+
+    public String getMODEL_ID_NOT_EXIST() {
+        return "Data model with id '%s' not found.";
     }
 }

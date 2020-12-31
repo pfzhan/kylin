@@ -3229,6 +3229,10 @@ public class ModelService extends BasicService {
 
     private void checkPropParameter(ModelConfigRequest request) {
         val props = request.getOverrideProps();
+        if (props == null) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_NULL_VALUE(), "override_props"));
+        }
         for (val pair : props.entrySet()) {
             if (Objects.isNull(pair.getValue())) {
                 throw new KylinException(INVALID_PARAMETER,

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.model;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -267,8 +270,12 @@ public class NDataModelManager {
         return partitionIds;
     }
 
-    public NDataModel updateDataModel(String model, NDataModelUpdater updater) {
-        val cached = getDataModelDesc(model);
+    public NDataModel updateDataModel(String modelId, NDataModelUpdater updater) {
+        val cached = getDataModelDesc(modelId);
+        if (cached == null) {
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_ID_NOT_EXIST(), modelId));
+        }
         val copy = copyForWrite(cached);
         updater.modify(copy);
         return updateDataModelDesc(copy);
