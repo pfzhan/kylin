@@ -370,8 +370,8 @@ export default class ModelAggregate extends Vue {
   }
   indexDetailShow = false
   tableIndexBaseList = []
-  realFilteArr = ['AUTO_AGG', 'MANUAL_AGG', 'AUTO_TABLE', 'MANUAL_TABLE']
-  statusArr = ['EMPTY', 'AVAILABLE', 'TO_BE_DELETED', 'BUILDING']
+  realFilteArr = ['RECOMMENDED_AGG_INDEX', 'RECOMMENDED_TABLE_INDEX', 'CUSTOM_AGG_INDEX', 'CUSTOM_TABLE_INDEX']
+  statusArr = ['NO_BUILD', 'ONLINE', 'LOCKED', 'BUILDING']
   detailType = ''
   currentPage = 0
   currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10
