@@ -96,6 +96,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     @Autowired
     public AclEvaluate aclEvaluate;
 
+    @Autowired
+    private ModelService modelService;
+
     private static final class RecApproveContext {
         private final Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
         private final Map<Integer, NDataModel.NamedColumn> dimensions = Maps.newHashMap();
@@ -472,7 +475,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         if (CollectionUtils.isEmpty(modelIds)) {
             return Lists.newArrayList();
         }
-
+        modelIds.forEach(modelId -> modelService.checkModelPermission(project, modelId));
         List<RecToIndexResponse> responseList = Lists.newArrayList();
         List<NDataflow> dataflowList = getDataflowManager(project).listAllDataflows();
         for (NDataflow df : dataflowList) {

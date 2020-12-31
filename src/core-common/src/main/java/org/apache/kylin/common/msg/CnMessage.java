@@ -283,6 +283,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getMODEL_MODIFY_ABANDON(String table) {
+        return String.format(Locale.ROOT, "模型不支持被修改，因为没有 ['%s'] 权限", table);
+    }
+
+    @Override
     public String getINDEX_ALREADY_DELETED() {
         return "该索引已经被删除";
     }

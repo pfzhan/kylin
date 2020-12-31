@@ -5303,4 +5303,54 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
         Assert.assertEquals(0, dataModel.getMultiPartitionDesc().getPartitions().size());
     }
+
+    private void addAclTable(String tableName, String user, boolean hasColumn) {
+        val table = NTableMetadataManager.getInstance(getTestConfig(), "default").getTableDesc(tableName);
+        AclTCR acl = new AclTCR();
+        AclTCR.Table aclTable = new AclTCR.Table();
+        AclTCR.ColumnRow aclColumnRow = new AclTCR.ColumnRow();
+        AclTCR.Column aclColumns = new AclTCR.Column();
+        if(hasColumn){
+            Arrays.stream(table.getColumns()).forEach(x -> aclColumns.add(x.getName()));
+        }
+        aclColumnRow.setColumn(aclColumns);
+        aclTable.put(tableName, aclColumnRow);
+        acl.setTable(aclTable);
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), "default");
+        manager.updateAclTCR(acl, "user", true);
+    }
+
+    @Test
+    public void testCheckModelPermission() {
+        List<NDataModel> models = new ArrayList<>();
+        models.addAll(modelService.getModels("", "default", false, "", null, "last_modify", true));
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        // Admin is allowed to modify model
+        modelService.checkModelPermission(getProject(), "b780e4e4-69af-449e-b09f-05c90dfa04b6");
+
+        addAclTable("DEFAULT.TEST_BANK_LOCATION", "user", true);
+        PasswordEncoder pwdEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
+        val user = new ManagedUser("user", pwdEncoder.encode("pw"), false);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(user, "ANALYST", Constant.ROLE_ANALYST));
+        // lack of table
+        assertKylinExeption(() -> {
+            modelService.checkModelPermission(getProject(), "b780e4e4-69af-449e-b09f-05c90dfa04b6");
+        }, "Model is not support to modify");
+
+        addAclTable("DEFAULT.TEST_ENCODING", "user", false);
+        // lack of column
+        assertKylinExeption(() -> {
+            modelService.checkModelPermission(getProject(), "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+        }, "Model is not support to modify");
+
+        // model id is invalid
+        assertKylinExeption(() -> {
+            modelService.checkModelPermission(getProject(), "xxx");
+        }, "Data Model with name 'xxx' not found");
+
+        addAclTable("DEFAULT.TEST_ENCODING", "user", true);
+        modelService.checkModelPermission(getProject(), "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+    }
 }

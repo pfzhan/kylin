@@ -296,6 +296,9 @@ public class ModelService extends BasicService {
     @Autowired
     private RawRecService rawRecService;
 
+    @Autowired
+    private AclTCRService aclTCRService;
+
     @Setter
     @Autowired
     private List<ModelUpdateListener> updateListeners = Lists.newArrayList();
@@ -1016,6 +1019,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 1)
     public void dropModel(String modelId, String project) {
         aclEvaluate.checkProjectWritePermission(project);
+        checkModelPermission(project, modelId);
         dropModel(modelId, project, false);
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onDelete(project, modelId));
@@ -2245,6 +2249,7 @@ public class ModelService extends BasicService {
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds, boolean parallelBuildBySegment, int priority) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkModelPermission(project, modelId);
         val dfManger = getDataflowManager(project);
         NDataflow dataflow = dfManger.getDataflow(modelId);
         checkSegmentsExistById(modelId, project, segmentIds.toArray(new String[0]));
@@ -2292,7 +2297,7 @@ public class ModelService extends BasicService {
     public void removeIndexesFromSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds) {
         aclEvaluate.checkProjectOperationPermission(project);
-
+        checkModelPermission(project, modelId);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val dfManger = getDataflowManager(project);
             NDataflow dataflow = dfManger.getDataflow(modelId);
@@ -2310,6 +2315,7 @@ public class ModelService extends BasicService {
     public JobInfoResponse incrementBuildSegmentsManually(IncrementBuildSegmentParams params) throws Exception {
         String project = params.getProject();
         aclEvaluate.checkProjectOperationPermission(project);
+        checkModelPermission(project, params.getModelId());
         val modelManager = getDataModelManager(project);
         if (params.getPartitionDesc() == null
                 || StringUtils.isEmpty(params.getPartitionDesc().getPartitionDateColumn())) {
@@ -2392,6 +2398,7 @@ public class ModelService extends BasicService {
     public void updatePartitionColumn(String project, String modelId, PartitionDesc partitionDesc,
             MultiPartitionDesc multiPartitionDesc) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
+        checkModelPermission(project, modelId);
         val dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(modelId);
         val model = df.getModel();
@@ -2933,6 +2940,7 @@ public class ModelService extends BasicService {
     public void updateDataModelSemantic(String project, ModelRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         checkModelRequest(request);
+        checkModelPermission(project, request.getUuid());
         validatePartitionDateColumn(request);
 
         val modelId = request.getUuid();
@@ -3485,6 +3493,7 @@ public class ModelService extends BasicService {
             throw new KylinException(INVALID_MODEL_NAME,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
+        checkModelPermission(project, oldDataModel.getId());
 
         PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
         if (partitionDesc != null) {
@@ -3539,6 +3548,7 @@ public class ModelService extends BasicService {
             throw new KylinException(MODEL_NOT_EXIST,
                     "Model " + modelId + " does not exist or broken in project " + project);
         }
+        checkModelPermission(project, modelId);
         checkModelIsMLP(modelId, project);
 
         val multiPartitionDesc = model.getMultiPartitionDesc();
@@ -3749,6 +3759,7 @@ public class ModelService extends BasicService {
             throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
         }
         checkModelExportPermission(projectName, modelId);
+        checkModelPermission(projectName, modelId);
 
         SyncContext syncContext = new SyncContext();
         syncContext.setProjectName(projectName);
@@ -3942,5 +3953,43 @@ public class ModelService extends BasicService {
             throw new KylinException(CONCURRENT_SUBMIT_JOB_LIMIT,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getCONCURRENT_SUBMIT_JOB_LIMIT(), submitJobLimit));
         }
+    }
+
+    public void checkModelPermission(String project, String modelId) {
+        String userName = aclEvaluate.getCurrentUserName();
+        Set<String> groups = getCurrentUserGroups();
+        if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project, groups)) {
+            return;
+        }
+        Set<String> allAuthTables = Sets.newHashSet();
+        Set<String> allAuthColumns = Sets.newHashSet();
+        var auths = getAclTCRManager(project).getAuthTablesAndColumns(project, userName, true);
+        allAuthTables.addAll(auths.getTables());
+        allAuthColumns.addAll(auths.getColumns());
+        for (val group : groups) {
+            auths = getAclTCRManager(project).getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+            allAuthColumns.addAll(auths.getColumns());
+        }
+
+        NDataModel model = getModelById(modelId, project);
+        Set<String> tablesInModel = Sets.newHashSet();
+        model.getJoinTables().forEach(table -> tablesInModel.add(table.getTable()));
+        tablesInModel.add(model.getRootFactTableName());
+        tablesInModel.forEach(table -> {
+            if (!allAuthTables.contains(table)) {
+                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getMODEL_MODIFY_ABANDON(table));
+            }
+        });
+        tablesInModel.stream().filter(allAuthTables::contains).forEach(table -> {
+            ColumnDesc[] columnDescs = NTableMetadataManager.getInstance(getConfig(), project).getTableDesc(table)
+                    .getColumns();
+            Arrays.stream(columnDescs).map(column -> table + "." + column.getName())
+                    .forEach(column -> {
+                        if (!allAuthColumns.contains(column)) {
+                            throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getMODEL_MODIFY_ABANDON(column));
+                        }
+                    });
+        });
     }
 }

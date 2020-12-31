@@ -258,6 +258,11 @@ public class Message {
         return "Data Model with name '%s' not found.";
     }
 
+    public String getMODEL_MODIFY_ABANDON(String table) {
+        return String.format(Locale.ROOT, "Model is not support to modify because you do not have permission of '%s'",
+                table);
+    }
+
     public String getEMPTY_PROJECT_NAME() {
         return "No valid project name. Please select one project.";
     }

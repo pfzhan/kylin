@@ -218,7 +218,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             if (StringUtils.isNotEmpty(msg)) {
-                Assert.assertEquals(msg, e.getMessage());
+                Assert.assertTrue(e.getMessage().contains(msg));
             }
         }
     }

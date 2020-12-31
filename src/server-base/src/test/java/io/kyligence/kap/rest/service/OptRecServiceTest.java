@@ -89,6 +89,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
     private void prepareACL() {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(optRecService, "modelService", modelService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
