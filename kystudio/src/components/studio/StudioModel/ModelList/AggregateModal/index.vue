@@ -659,7 +659,7 @@ export default class AggregateModal extends Vue {
   getMultipleCardinality (aggregateIdx, jointRowIdx) {
     const jointData = this.form.aggregateArray[aggregateIdx].jointArray[jointRowIdx].items
     let valueList = this.dimensions().filter(it => jointData.includes(it.column)).map(item => item.cardinality).filter(it => !!it)
-    return valueList.length ? valueList.reduce((prev, next) => prev * next) : '--'
+    return valueList.length ? (valueList.reduce((prev, next) => prev * next) + '').replace(/\d{1,3}(?=(\d{3})+$)/g, (v) => `${v},`) : '--'
   }
 
   showSelectedIncludes (aggregate, currentItem) {

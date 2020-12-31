@@ -222,7 +222,7 @@ export default class AggregateView extends Vue {
     const dimensionList = this.model ? this.model.simplified_dimensions.filter(column => column.status === 'DIMENSION') : []
     const joint = this.aggregationGroups[aggregateIdx].jointArray[jointRowIdx].items
     const valueList = dimensionList.filter(it => joint.includes(it.column)).map(d => d.cardinality).filter(it => !!it)
-    return valueList.length ? valueList.reduce((prev, next) => prev * next) : '--'
+    return valueList.length ? (valueList.reduce((prev, next) => prev * next) + '').replace(/\d{1,3}(?=(\d{3})+$)/g, (v) => `${v},`) : '--'
   }
   showSelectedIncludes (aggregate, currentItem) {
     return [...aggregate.mandatory, ...ArrayFlat(aggregate.hierarchyArray.map(it => it.items)), ...ArrayFlat(aggregate.jointArray.map(it => it.items))].includes(currentItem)
