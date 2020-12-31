@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,14 +36,26 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.AclEntity;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.AclEntityFactory;
+import org.apache.kylin.rest.security.AclEntityType;
+import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.MutableAclRecord;
+import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.AclService;
+import org.apache.kylin.rest.service.AclServiceTest;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -50,8 +64,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.security.acls.domain.PermissionFactory;
+import org.springframework.security.acls.model.PermissionGrantingStrategy;
+import org.springframework.security.acls.model.Sid;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -67,6 +89,7 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
@@ -75,12 +98,15 @@ import io.kyligence.kap.rest.response.AclTCRResponse;
 import lombok.val;
 import lombok.var;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     private final String user1 = "u1";
     private final String user2 = "u2";
     private final String user3 = "u3";
     private final String user4 = "u4";
+    private final String user5 = "u5";
     private final String group1 = "g1";
     private final String group2 = "g2";
 
@@ -112,22 +138,32 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private IUserGroupService userGroupService = Mockito.spy(IUserGroupService.class);
 
+    @Mock
+    private AclService aclService = Mockito.spy(AclService.class);
+
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
+        PowerMockito.mockStatic(SpringContext.class);
+
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
-        initUsers();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         ReflectionTestUtils.setField(aclTCRService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
+        ReflectionTestUtils.setField(accessService, "aclService", aclService);
+        initUsers();
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private void initUsers() {
+    private void initUsers() throws IOException {
         NKylinUserManager userManager = NKylinUserManager.getInstance(getTestConfig());
         userManager.update(new ManagedUser(user1, "Q`w11g23", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))));
@@ -137,6 +173,30 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                 new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
         userManager.update(new ManagedUser(user4, "Q`w11g23", false, Arrays.asList(//
                 new SimpleGrantedAuthority(Constant.ROLE_ADMIN))));
+        userManager.update(new ManagedUser(user5, "Q`w11g23", false, Arrays.asList(//
+                new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))));
+
+        switchToAdmin();
+        // mock AclManager bean in spring
+        ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
+        PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class)).thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class)).thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
+
+        AclManager aclManger = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(projectDefault);
+        AclEntity projectAE = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
+        AclServiceTest.MockAclEntity userAE = new AclServiceTest.MockAclEntity(user5);
+        MutableAclRecord projectAcl = (MutableAclRecord) aclService.createAcl(new ObjectIdentityImpl(projectAE));
+        aclService.createAcl(new ObjectIdentityImpl(userAE));
+        Sid sidUser5 = accessService.getSid(user5, true);
+        aclManger.upsertAce(projectAcl, sidUser5, ADMINISTRATION);
+    }
+
+    private void switchToAdmin() {
+        Authentication adminAuth = new TestingAuthenticationToken("ADMIN", "ADMIN", "ROLE_ADMIN");
+        SecurityContextHolder.getContext().setAuthentication(adminAuth);
     }
 
     @After
@@ -277,7 +337,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateAclTCRRequest() {
+    public void testUpdateAclTCRRequest() throws IOException {
         AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
         final String uuid = aclTCRService.getProjectManager().getProject(projectDefault).getUuid();
 
@@ -357,7 +417,10 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(tables.contains("DEFAULT.TEST_ORDER"));
         assertKylinExeption(() -> {
             aclTCRService.updateAclTCR(projectDefault, user4, true, fillAclTCRRequest(request));
-        }, "Global admin is not supported to update permission.");
+        }, "Admin is not supported to update permission.");
+        assertKylinExeption(() -> {
+            aclTCRService.updateAclTCR(projectDefault, user5, true, fillAclTCRRequest(request));
+        }, "Admin is not supported to update permission.");
     }
 
     @Test
@@ -528,7 +591,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRDuplicateDatabaseException() {
+    public void testACLTCRDuplicateDatabaseException() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Database [DEFAULT] is duplicated in API requests");
         val requests = getFillRequest();
@@ -539,7 +602,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRDuplicateTableException() {
+    public void testACLTCRDuplicateTableException() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Table [DEFAULT.TEST_ACCOUNT] is duplicated in API requests");
         val requests = getFillRequest();
@@ -550,7 +613,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRDuplicateColumnException() {
+    public void testACLTCRDuplicateColumnException() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Column [DEFAULT.TEST_ACCOUNT.ACCOUNT_ID] is duplicated in API requests");
         val requests = getFillRequest();
@@ -570,7 +633,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCREmptyDatabaseName() {
+    public void testACLTCREmptyDatabaseName() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘database_name’ which should not be empty");
         val requests = getFillRequest();
@@ -579,7 +642,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCREmptyTables() {
+    public void testACLTCREmptyTables() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘tables’ which should not be empty");
         val requests = getFillRequest();
@@ -588,7 +651,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRDatabaseMiss() {
+    public void testACLTCRDatabaseMiss() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("All the databases should be defined and the database below are missing: (DEFAULT)");
         val requests = getFillRequest();
@@ -597,7 +660,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCREmptyTableName() {
+    public void testACLTCREmptyTableName() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘table_name’ which should not be empty");
         val requests = getFillRequest();
@@ -606,7 +669,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRTableNotExist() {
+    public void testACLTCRTableNotExist() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Cannot find table 'DEFAULT.notexist'");
         val requests = getFillRequest();
@@ -622,7 +685,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRColumnNotExist() {
+    public void testACLTCRColumnNotExist() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Column:[DEFAULT.TEST_ACCOUNT.notexist] is not exist");
         val requests = getFillRequest();
@@ -638,7 +701,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRDatabaseNotExist() {
+    public void testACLTCRDatabaseNotExist() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Database:[notexist] is not exist");
         val requests = getFillRequest();
@@ -655,7 +718,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCREmptyColumns() {
+    public void testACLTCREmptyColumns() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘columns’ which should not be empty");
         val requests = getFillRequest();
@@ -664,7 +727,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCREmptyRows() {
+    public void testACLTCREmptyRows() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘rows’ which should not be empty");
         val requests = getFillRequest();
@@ -673,7 +736,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCREmptyColumnName() {
+    public void testACLTCREmptyColumnName() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘column_name’ which should not be empty");
         val requests = getFillRequest();
@@ -682,7 +745,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRTableMiss() {
+    public void testACLTCRTableMiss() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "All the tables should be defined and the table below are missing: (DEFAULT.TEST_ACCOUNT)");
@@ -695,7 +758,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testACLTCRColumnMiss() {
+    public void testACLTCRColumnMiss() throws IOException {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "All the columns should be defined and the column below are missing: (DEFAULT.TEST_ACCOUNT.ACCOUNT_ID)");

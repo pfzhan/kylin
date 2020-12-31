@@ -1984,7 +1984,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getGLOBAL_ADMIN_ABANDON() {
-        return "系统管理员不支持被更新权限.";
+    public String getADMIN_PERMISSION_UPDATE_ABANDON() {
+        return "管理员不支持被更新权限.";
     }
 }

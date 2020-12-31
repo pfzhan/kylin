@@ -224,6 +224,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public interface UserFunction {
-        void process();
+        void process() throws Exception;
     }
 }

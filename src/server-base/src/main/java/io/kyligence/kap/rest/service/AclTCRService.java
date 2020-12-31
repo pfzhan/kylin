@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -133,10 +134,7 @@ public class AclTCRService extends BasicService {
         aclEvaluate.checkProjectAdminPermission(project);
         AclTCRManager aclTCRManager = getAclTCRManager(project);
 
-        boolean userWithGlobalAdminPermission = principal
-                && (accessService.isGlobalAdmin(sid) || accessService.hasGlobalAdminGroup(sid));
-        boolean adminGroup = !principal && ROLE_ADMIN.equals(sid);
-        if (userWithGlobalAdminPermission || adminGroup) {
+        if (hasAdminPermissionInProject(sid, principal, project)) {
             return getAclTCRResponse(project, aclTCRManager.getAllDbAclTable(project));
         }
         AclTCR authorized = aclTCRManager.getAclTCR(sid, principal);
@@ -155,7 +153,25 @@ public class AclTCRService extends BasicService {
         return getAllTablesAclTCRResponse(project, aclTCRManager.getDbAclTable(project, authorized));
     }
 
-    public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
+    public boolean hasAdminPermissionInProject(String sid, boolean principal, String project) throws IOException {
+        if (principal) {
+            if (accessService.hasGlobalAdminGroup(sid) || accessService.isGlobalAdmin(sid)) {
+                return true;
+            }
+            val groupsOfUser = accessService.getGroupsOfExecuteUser(sid);
+            val groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfUser, project);
+            val hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(sid, groupsInProject, project, ADMINISTRATION);
+            if (hasAdminPermission) {
+                return true;
+            }
+        } else if (ROLE_ADMIN.equals(sid)) {
+            // role admin group
+            return true;
+        }
+        return false;
+    }
+
+    public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         checkAclTCRRequest(project, requests, sid, principal);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -294,7 +310,7 @@ public class AclTCRService extends BasicService {
 
     }
 
-    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal) {
+    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal) throws IOException {
         Set<String> databases = Sets.newHashSet();
         Set<String> tables = Sets.newHashSet();
         Set<String> columns = Sets.newHashSet();
@@ -310,9 +326,8 @@ public class AclTCRService extends BasicService {
                 columns.add(String.format(Locale.ROOT, IDENTIFIER_FORMAT, dbName, col.getIdentity()));
             });
         });
-        boolean userWithGlobalAdminPermission = principal && accessService.hasGlobalAdminGroup(sid);
-        if (userWithGlobalAdminPermission) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getGLOBAL_ADMIN_ABANDON());
+        if(hasAdminPermissionInProject(sid, principal, project)){
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
         }
         checkAClTCRRequestParameterValid(databases, tables, columns, requests);
         checkAClTCRExist(databases, tables, columns, requests);

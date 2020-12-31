@@ -1744,7 +1744,7 @@ public class Message {
         return "The subpartition column of model '%s' has not been set yet. Please set it first.";
     }
 
-    public String getGLOBAL_ADMIN_ABANDON() {
-        return "Global admin is not supported to update permission.";
+    public String getADMIN_PERMISSION_UPDATE_ABANDON() {
+        return "Admin is not supported to update permission.";
     }
 }

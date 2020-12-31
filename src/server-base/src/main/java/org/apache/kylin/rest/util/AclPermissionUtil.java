@@ -100,7 +100,7 @@ public class AclPermissionUtil {
         return Objects.isNull(auth) ? null : auth.getName();
     }
 
-    private static MutableAclRecord getProjectAcl(String project) {
+    public static MutableAclRecord getProjectAcl(String project) {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         AclEntity ae = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
