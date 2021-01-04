@@ -279,7 +279,7 @@ export default class DataSourceBar extends Vue {
     return allData.filter(data => !['isMore', 'isLoading'].includes(data.type))
   }
   get columnArray () {
-    return this.ignoreNodeTypes.indexOf('column') >= 0 ? [] : this.tableArray.reduce((columns, table) => [...columns, ...table.children], [])
+    return this.ignoreNodeTypes.indexOf('column') >= 0 ? [] : this.tableArray.reduce((columns, table) => [...columns, ...table.childContent], [])
   }
   get ignoreColumnTree () {
     return this.ignoreNodeTypes.indexOf('column') >= 0
@@ -350,6 +350,9 @@ export default class DataSourceBar extends Vue {
       if (this.datasources.length > 0) {
         await this.loadTreeData()
         this.freshAutoCompleteWords()
+        this.defaultExpandedKeys = this.allWords
+          .filter(word => this.expandNodeTypes.includes(word.meta))
+          .map(word => word.id)
       } else {
         this.isLoadingTreeData = false
       }
@@ -480,13 +483,19 @@ export default class DataSourceBar extends Vue {
   resetDefaultExpandedKeys () {
     this.cacheDefaultExpandedKeys = this.defaultExpandedKeys
     this.freshAutoCompleteWords()
+    this.defaultExpandedKeys = this.allWords
+      .filter(word => this.expandNodeTypes.includes(word.meta))
+      .map(word => word.id)
   }
-  reloadTables (isNotResetDefaultExpandedKeys) {
-    this.handleFilter(this.filterText, isNotResetDefaultExpandedKeys)
+  async reloadTables (isNotResetDefaultExpandedKeys) {
+    const res = await this.handleFilter(this.filterText, isNotResetDefaultExpandedKeys)
+    this.freshAutoCompleteWords()
+    return res
   }
   // 表数据变化，需要刷新，且保持之前的选中项 3016 临时修改方案
   async refreshTables () {
     await this.loadTreeData(this.filterText)
+    this.freshAutoCompleteWords()
     freshTreeOrder(this)
     // 刷完表之后，需要重置之前选中的表
     this.recoverySelectedTable()
@@ -504,6 +513,7 @@ export default class DataSourceBar extends Vue {
       tableName = idx === -1 ? this.filterText : this.filterText.substring(idx + 1, this.filterText.length)
     }
     await this.loadTables({ databaseId, tableName })
+    this.freshAutoCompleteWords()
   }
   handleClick (data, node) {
     if (data && this.clickableNodeTypes.includes(data.type)) {
@@ -586,9 +596,6 @@ export default class DataSourceBar extends Vue {
     const columnWords = this.columnArray.map(column => getWordsData(column))
     this.allWords = [...datasourceWords, ...databaseWords, ...tableWords, ...columnWords]
     this.$emit('autoComplete', [...databaseWords, ...tableWords, ...databaseTableWords, ...columnWords])
-    this.defaultExpandedKeys = this.allWords
-      .filter(word => this.expandNodeTypes.includes(word.meta))
-      .map(word => word.id)
   }
   async toImportDataSource (editType, project) {
     const result = await this.callDataSourceModal({ editType, project, databaseSizeObj: this.databaseSizeObj })
