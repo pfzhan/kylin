@@ -144,7 +144,7 @@ export default class TableIndexView extends Vue {
     key: '',
     sort_by: '',
     reverse: '',
-    sources: ['MANUAL_TABLE'],
+    sources: ['CUSTOM_TABLE_INDEX'],
     status: []
   }
   indexDatas = []
