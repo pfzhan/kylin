@@ -79,7 +79,8 @@ public class AclTCRController extends NBasicController {
     @Qualifier("accessService")
     private AccessService accessService;
 
-    @ApiOperation(value = "getProjectSidTCR", notes = "Update URL: {project}; Update Param: project, authorized_only")
+    @ApiOperation(value = "getProjectSidTCR", tags = { "MID" }, //
+            notes = "Update URL: {project}; Update Param: project, authorized_only")
     @GetMapping(value = "/sid/{sid_type:.+}/{sid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -100,7 +101,7 @@ public class AclTCRController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "updateProject", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "updateProject", tags = { "MID" }, notes = "Update URL: {project}")
     @PutMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> updateProject(@PathVariable("sid_type") String sidType, //

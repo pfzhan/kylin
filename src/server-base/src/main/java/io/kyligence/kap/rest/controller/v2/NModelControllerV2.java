@@ -45,6 +45,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.ModelService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/models")
@@ -54,6 +55,7 @@ public class NModelControllerV2 extends NBasicController {
     @Qualifier("modelService")
     private ModelService modelService;
 
+    @ApiOperation(value = "getModels", tags = { "AI" })
     @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getModels(

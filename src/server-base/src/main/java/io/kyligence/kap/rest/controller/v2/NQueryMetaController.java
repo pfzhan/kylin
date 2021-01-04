@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.KapQueryService;
+import io.swagger.annotations.ApiOperation;
 
 /**
  * Backward capable API for KyligenceODBC: /kylin/api/tables_and_columns
@@ -59,6 +60,7 @@ public class NQueryMetaController extends NBasicController {
     @Qualifier("kapQueryService")
     private KapQueryService queryService;
 
+    @ApiOperation(value = "getMetadataForDriver", tags = { "QE" })
     @GetMapping(value = "/tables_and_columns", produces = { "application/json", HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     @Deprecated

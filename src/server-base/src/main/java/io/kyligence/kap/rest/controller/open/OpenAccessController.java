@@ -76,6 +76,7 @@ import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.BatchProjectPermissionRequest;
 import io.kyligence.kap.rest.request.ProjectPermissionRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -92,6 +93,7 @@ public class OpenAccessController extends NBasicController {
     @Qualifier("userService")
     protected UserService userService;
 
+    @ApiOperation(value = "getProjectAccessPermissions", tags = { "MID" })
     @GetMapping(value = "/project")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ProjectPermissionResponse>>> getProjectAccessPermissions(
@@ -111,6 +113,7 @@ public class OpenAccessController extends NBasicController {
                 DataResult.get(permissionResponses, pageOffset, pageSize), "");
     }
 
+    @ApiOperation(value = "grantProjectPermission", tags = { "MID" })
     @PostMapping(value = "/project")
     @ResponseBody
     public EnvelopeResponse<String> grantProjectPermission(@RequestBody BatchProjectPermissionRequest permissionRequest)
@@ -133,6 +136,7 @@ public class OpenAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "updateProjectPermission", tags = { "MID" })
     @PutMapping(value = "/project")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectPermission(@RequestBody ProjectPermissionRequest permissionRequest)
@@ -155,6 +159,7 @@ public class OpenAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "revokeProjectPermission", tags = { "MID" })
     @DeleteMapping(value = "/project")
     @ResponseBody
     public EnvelopeResponse<String> revokeProjectPermission(@RequestParam("project") String project,
@@ -176,6 +181,7 @@ public class OpenAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "getUserOrGroupAclPermissions", tags = { "MID" })
     @GetMapping(value = "/acls")
     @ResponseBody
     public EnvelopeResponse<List<SidPermissionWithAclResponse>> getUserOrGroupAclPermissions(

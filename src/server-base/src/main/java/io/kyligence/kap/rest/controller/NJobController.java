@@ -79,7 +79,7 @@ public class NJobController extends NBasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @ApiOperation(value = "getJobList", notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getJobList", tags = { "DW" }, notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ExecutableResponse>>> getJobList(
@@ -105,7 +105,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, executables, "");
     }
 
-    @ApiOperation(value = "getWaitingJobs", notes = "Update Response: total_size")
+    @ApiOperation(value = "getWaitingJobs", tags = { "DW" }, notes = "Update Response: total_size")
     @GetMapping(value = "/waiting_jobs")
     @ResponseBody
     @Deprecated
@@ -118,6 +118,7 @@ public class NJobController extends NBasicController {
     }
 
     @Deprecated
+    @ApiOperation(value = "waitingJobsByModel", tags = { "DW" })
     @GetMapping(value = "/waiting_jobs/models")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getWaitingJobsInfoGroupByModel(
@@ -126,7 +127,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 
-    @ApiOperation(value = "dropJob dropGlobalJob (merge)(update)", notes = "Update URL: {project}; Update Param: project, job_ids")
+    @ApiOperation(value = "dropJob dropGlobalJob", tags = { "DW" }, notes = "Update URL: {project}; Update Param: project, job_ids")
     @DeleteMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
@@ -145,7 +146,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateJobStatus", notes = "Update Body: job_ids")
+    @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update Body: job_ids")
     @PutMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
@@ -167,7 +168,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateJobStatus", notes = "Update Param: job_id")
+    @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update Param: job_id")
     @GetMapping(value = "/{job_id:.+}/detail")
     @ResponseBody
     public EnvelopeResponse<List<ExecutableStepResponse>> getJobDetail(@PathVariable(value = "job_id") String jobId,
@@ -177,7 +178,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
     }
 
-    @ApiOperation(value = "updateJobStatus", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output")
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getJobOutput(@PathVariable("job_id") String jobId,
@@ -190,7 +191,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "downloadLogFile", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @ApiOperation(value = "downloadLogFile", tags = { "DW" }, notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log")
     @ResponseBody
     public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,
@@ -208,6 +209,7 @@ public class NJobController extends NBasicController {
     }
 
     @GetMapping(value = "/statistics")
+    @ApiOperation(value = "jobStatistics", tags = { "DW" })
     @ResponseBody
     public EnvelopeResponse<JobStatisticsResponse> getJobStats(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
@@ -217,6 +219,7 @@ public class NJobController extends NBasicController {
     }
 
     @GetMapping(value = "/statistics/count")
+    @ApiOperation(value = "jobStatisticsCount", tags = { "DW" })
     @ResponseBody
     public EnvelopeResponse<Map<String, Integer>> getJobCount(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
@@ -227,6 +230,7 @@ public class NJobController extends NBasicController {
     }
 
     @GetMapping(value = "/statistics/duration_per_byte")
+    @ApiOperation(value = "jobDurationCount", tags = { "DW" })
     @ResponseBody
     public EnvelopeResponse<Map<String, Double>> getJobDurationPerByte(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
@@ -243,6 +247,7 @@ public class NJobController extends NBasicController {
      * @return
      */
     @PutMapping(value = "/spark")
+    @ApiOperation(value = "updateURL", tags = { "DW" })
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) {
         checkProjectName(sparkJobUpdateRequest.getProject());
@@ -260,6 +265,7 @@ public class NJobController extends NBasicController {
      * @return
      */
     @PutMapping(value = "/wait_and_run_time")
+    @ApiOperation(value = "updateWaitTime", tags = { "DW" })
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest) {
         checkProjectName(sparkJobTimeRequest.getProject());

@@ -50,6 +50,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/user_group")
@@ -59,6 +60,7 @@ public class NUserGroupControllerV2 extends NBasicController {
     @Qualifier("userGroupService")
     private IUserGroupService userGroupService;
 
+    @ApiOperation(value = "getUsersWithGroup", tags = { "MID" })
     @GetMapping(value = "/usersWithGroup", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

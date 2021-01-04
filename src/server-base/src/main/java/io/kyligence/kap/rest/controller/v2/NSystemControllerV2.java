@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.controller.NBasicController;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
@@ -46,6 +47,7 @@ public class NSystemControllerV2 extends NBasicController {
     @Autowired
     private LicenseInfoService licenseInfoService;
 
+    @ApiOperation(value = "listLicense", tags = { "MID" })
     @GetMapping(value = "/license", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> listLicense() {

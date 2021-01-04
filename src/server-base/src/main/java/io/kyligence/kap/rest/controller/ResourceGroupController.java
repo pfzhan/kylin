@@ -45,6 +45,7 @@ import io.kyligence.kap.metadata.resourcegroup.ResourceGroup;
 import io.kyligence.kap.rest.handler.resourcegroup.IResourceGroupRequestValidator;
 import io.kyligence.kap.rest.request.resourecegroup.ResourceGroupRequest;
 import io.kyligence.kap.rest.service.resourcegroup.ResourceGroupService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/resource_groups", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -55,6 +56,7 @@ public class ResourceGroupController extends NBasicController {
     @Autowired
     private List<IResourceGroupRequestValidator> requestValidatorList;
 
+    @ApiOperation(value = "resourceGroup", tags = { "SM" })
     @PutMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> updateResourceGroup(@RequestBody ResourceGroupRequest request) {

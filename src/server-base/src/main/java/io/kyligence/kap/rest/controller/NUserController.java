@@ -154,7 +154,7 @@ public class NUserController extends NBasicController {
         CreateAdminUserUtils.createAllAdmins(userService, env);
     }
 
-    @ApiOperation(value = "createUser", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @ApiOperation(value = "createUser", tags = { "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -186,7 +186,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateUser", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @ApiOperation(value = "updateUser", tags = { "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
     @PutMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -231,6 +231,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "deleteUser", tags = { "MID" })
     @DeleteMapping(value = "/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -292,7 +293,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "listAllUsers", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "listAllUsers", tags = { "MID" }, notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -312,6 +313,7 @@ public class NUserController extends NBasicController {
                 DataResult.get(subList, usersByFuzzyMatching, pageOffset, pageSize), "");
     }
 
+    @ApiOperation(value = "changePassword", tags = { "MID" })
     @PutMapping(value = "/password")
     @ResponseBody
     //change passwd
@@ -369,6 +371,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "auth", tags = { "MID" })
     @PostMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -379,6 +382,7 @@ public class NUserController extends NBasicController {
         return response;
     }
 
+    @ApiOperation(value = "updateUser", tags = { "MID" })
     @PostMapping(value = "/update_user")
     @ResponseBody
     public EnvelopeResponse<UserDetails> updateUserWithoutAuth(@RequestBody ManagedUser user) {
@@ -393,6 +397,7 @@ public class NUserController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "authentication", tags = { "MID" })
     @GetMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody

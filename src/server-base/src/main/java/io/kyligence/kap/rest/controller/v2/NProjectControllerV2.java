@@ -41,6 +41,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping("/api/projects")
@@ -50,6 +51,7 @@ public class NProjectControllerV2 extends NBasicController {
     @Qualifier("projectService")
     private ProjectService projectService;
 
+    @ApiOperation(value = "getProjects", tags = { "SM" })
     @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse getProjects(@RequestParam(value = "projectName", required = false) String project,

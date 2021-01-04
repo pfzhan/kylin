@@ -46,6 +46,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.KapQueryService;
+import io.swagger.annotations.ApiOperation;
 
 @RestController
 @RequestMapping(value = "/api/query")
@@ -56,6 +57,7 @@ public class NQueryControllerV2 extends NBasicController {
     private KapQueryService queryService;
 
     @Deprecated
+    @ApiOperation(value = "query4JDBC", tags = { "QE" })
     @PostMapping(value = "", produces = { "application/json" })
     @ResponseBody
     public SQLResponse query4JDBC(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
@@ -64,6 +66,8 @@ public class NQueryControllerV2 extends NBasicController {
         return queryService.doQueryWithCache(sqlRequest, false);
     }
 
+
+    @ApiOperation(value = "query", tags = { "QE" })
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
@@ -73,6 +77,7 @@ public class NQueryControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
+    @ApiOperation(value = "prepareQuery", tags = { "QE" })
     @PostMapping(value = "/prestate", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<SQLResponse> prepareQuery(@Valid @RequestBody PrepareSqlRequest sqlRequest) {

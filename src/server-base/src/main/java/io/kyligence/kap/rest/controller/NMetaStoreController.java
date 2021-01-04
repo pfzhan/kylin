@@ -41,6 +41,7 @@ import java.util.Objects;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
@@ -77,6 +78,7 @@ public class NMetaStoreController extends NBasicController {
     @Qualifier("metaStoreService")
     private MetaStoreService metaStoreService;
 
+    @ApiOperation(value = "previewModels", tags = { "MID" })
     @GetMapping(value = "/previews/models")
     @ResponseBody
     public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project) {
@@ -85,6 +87,7 @@ public class NMetaStoreController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, simplifiedModels, "");
     }
 
+    @ApiOperation(value = "backupModels", tags = { "MID" })
     @PostMapping(value = "/backup/models", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @ResponseBody
     public void exportModelMetadata(@RequestParam(value = "project") String project, ModelPreviewRequest request,
@@ -112,6 +115,7 @@ public class NMetaStoreController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "validationModels", tags = { "MID" })
     @PostMapping(value = "/validation/models")
     @ResponseBody
     public EnvelopeResponse<SchemaChangeCheckResult> uploadAndCheckModelMetadata(
@@ -125,6 +129,7 @@ public class NMetaStoreController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelMetadataCheckResponse, "");
     }
 
+    @ApiOperation(value = "uploadModels", tags = { "MID" })
     @PostMapping(value = "/models", consumes = { MULTIPART_FORM_DATA_VALUE })
     @ResponseBody
     public EnvelopeResponse<String> importModelMetadata(@RequestParam(value = "project") String project,
@@ -143,6 +148,7 @@ public class NMetaStoreController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "cleanupModels", tags = { "SM" })
     @PostMapping(value = "/cleanup")
     @ResponseBody
     public EnvelopeResponse<String> cleanUpMetaStore(@RequestBody MetadataCleanupRequest request) throws Exception {
@@ -154,6 +160,7 @@ public class NMetaStoreController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "cleanupStorage", tags = { "SM" })
     @PostMapping(value = "/cleanup_storage")
     @ResponseBody
     public EnvelopeResponse<String> cleanupStorage(@RequestBody StorageCleanupRequest request) throws Exception {

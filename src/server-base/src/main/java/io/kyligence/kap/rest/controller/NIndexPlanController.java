@@ -80,7 +80,7 @@ public class NIndexPlanController extends NBasicController {
     @Qualifier("modelService")
     private ModelService modelService;
 
-    @ApiOperation(value = "updateRule", notes = "Update Body: model_id")
+    @ApiOperation(value = "updateRule", tags = { "AI" }, notes = "Update Body: model_id")
     @PutMapping(value = "/rule")
     public EnvelopeResponse<BuildIndexResponse> updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
@@ -91,6 +91,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
+    @ApiOperation(value = "getRule", tags = { "AI" })
     @GetMapping(value = "/rule")
     public EnvelopeResponse<RuleBasedIndex> getRule(@RequestParam("project") String project,
             @RequestParam("model") String modelId) {
@@ -100,6 +101,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
     }
 
+    @ApiOperation(value = "diffRule", tags = { "AI" })
     @PutMapping(value = "/rule_based_index_diff")
     public EnvelopeResponse<DiffRuleBasedIndexResponse> calculateDiffRuleBasedIndex(
             @RequestBody UpdateRuleBasedCuboidRequest request) {
@@ -110,7 +112,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, diffRuleBasedIndexResponse, "");
     }
 
-    @ApiOperation(value = "calculateAggIndexCombination", notes = "Update Body: model_id")
+    @ApiOperation(value = "calculateAggIndexCombination", tags = { "AI" }, notes = "Update Body: model_id")
     @PutMapping(value = "/agg_index_count")
     public EnvelopeResponse<AggIndexResponse> calculateAggIndexCombination(
             @RequestBody UpdateRuleBasedCuboidRequest request) {
@@ -121,7 +123,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, aggIndexCount, "");
     }
 
-    @ApiOperation(value = "createTableIndex", notes = "Update Body: model_id")
+    @ApiOperation(value = "createTableIndex", tags = { "AI" }, notes = "Update Body: model_id")
     @PostMapping(value = "/table_index")
     public EnvelopeResponse<BuildIndexResponse> createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
@@ -131,7 +133,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "updateTableIndex", notes = "Update Body: model_id")
+    @ApiOperation(value = "updateTableIndex", tags = { "AI" }, notes = "Update Body: model_id")
     @PutMapping(value = "/table_index")
     public EnvelopeResponse<BuildIndexResponse> updateTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
@@ -143,7 +145,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "deleteTableIndex", notes = "Update URL: {project}, Update Param: project")
+    @ApiOperation(value = "deleteTableIndex", tags = { "AI" }, notes = "Update URL: {project}, Update Param: project")
     @DeleteMapping(value = "/table_index/{id:.+}")
     public EnvelopeResponse<String> deleteTableIndex(@PathVariable("id") Long id, @RequestParam("model") String modelId,
             @RequestParam("project") String project) {
@@ -155,7 +157,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "getTableIndex", notes = "Update Param: page_offset, page_size; Update response: total_size")
+    @ApiOperation(value = "getTableIndex", tags = { "AI" }, notes = "Update Param: page_offset, page_size; Update response: total_size")
     @GetMapping(value = "/table_index")
     public EnvelopeResponse<DataResult<List<TableIndexResponse>>> getTableIndex(
             @RequestParam(value = "project") String project, // 
@@ -168,7 +170,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tableIndexs, offset, limit), "");
     }
 
-    @ApiOperation(value = "getIndex", notes = "Update response: total_size")
+    @ApiOperation(value = "getIndex", tags = { "AI" }, notes = "Update response: total_size")
     @GetMapping(value = "/index")
     public EnvelopeResponse<DataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
             @RequestParam(value = "model") String modelId, //
@@ -185,6 +187,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 
+    @ApiOperation(value = "indexGraph", tags = { "AI" })
     @GetMapping(value = "/index_graph")
     public EnvelopeResponse<IndexGraphResponse> getIndexGraph(@RequestParam(value = "project") String project,
             @RequestParam(value = "model") String modelId, //
@@ -195,7 +198,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, indexes, "");
     }
 
-    @ApiOperation(value = "deleteIndex", notes = "Update response: need to update total_size")
+    @ApiOperation(value = "deleteIndex", tags = { "AI" }, notes = "Update response: need to update total_size")
     @DeleteMapping(value = "/index/{layout_id:.+}")
     public EnvelopeResponse<String> deleteIndex(@PathVariable(value = "layout_id") long layoutId,
             @RequestParam(value = "project") String project, //
@@ -206,7 +209,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "batch deleteIndex")
+    @ApiOperation(value = "batch deleteIndex", tags = { "AI" })
     @DeleteMapping(value = "/index")
     public EnvelopeResponse<String> batchDeleteIndex(@RequestParam(value = "layout_ids") Set<Long> layoutIds,
             @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId) {

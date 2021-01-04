@@ -60,7 +60,7 @@ public class NMonitorController extends NBasicController {
     @Qualifier("monitorService")
     private MonitorService monitorService;
 
-    @ApiOperation(value = "getMemoryMetrics", notes = "Update URL: memory_info")
+    @ApiOperation(value = "getMemoryMetrics", tags = { "SM" }, notes = "Update URL: memory_info")
     @GetMapping(value = "/memory_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorMemoryResponse>> getMemoryMetrics() {
@@ -68,7 +68,7 @@ public class NMonitorController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, parseToMemoryResponse(memorySnapshotMap), "");
     }
 
-    @ApiOperation(value = "getThreadInfoMetrics", notes = "Update URL: thread_info")
+    @ApiOperation(value = "getThreadInfoMetrics", tags = { "SM" }, notes = "Update URL: thread_info")
     @GetMapping(value = "/thread_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorThreadInfoResponse>> getThreadInfoMetrics() {
@@ -98,6 +98,7 @@ public class NMonitorController extends NBasicController {
         return responseList;
     }
 
+    @ApiOperation(value = "getStatus", tags = { "SM" })
     @GetMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<ClusterStatusResponse> getClusterCurrentStatus() {
@@ -111,6 +112,7 @@ public class NMonitorController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
+    @ApiOperation(value = "getStatusStatistics", tags = { "SM" })
     @GetMapping(value = "/status/statistics")
     @ResponseBody
     public EnvelopeResponse<ClusterStatisticStatusResponse> getClusterStatisticStatus(

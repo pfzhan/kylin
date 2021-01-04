@@ -67,7 +67,7 @@ public class OpenAclTCRController extends NBasicController {
     @Qualifier("accessService")
     private AccessService accessService;
 
-    @ApiOperation(value = "updateProjectAcl", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "updateProjectAcl", tags = { "MID" }, notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> updateProject(@PathVariable("sid_type") String sidType, //

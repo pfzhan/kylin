@@ -89,7 +89,8 @@ public class NAsyncQueryController extends NBasicController {
 
     ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @ApiOperation(value = "query", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key; Update Response: query_id")
+    @ApiOperation(value = "query", tags = {
+            "QE" }, notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key; Update Response: query_id")
     @PostMapping(value = "/async_query")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
@@ -181,6 +182,7 @@ public class NAsyncQueryController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "cancel async query", tags = { "QE" })
     @DeleteMapping(value = "/async_query")
     @ResponseBody
     public EnvelopeResponse<Boolean> batchDelete(@RequestParam(value = "project", required = false) String project,
@@ -196,6 +198,7 @@ public class NAsyncQueryController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, msg.getCLEAN_FOLDER_FAIL());
     }
 
+    @ApiOperation(value = "cancel async query", tags = { "QE" })
     @DeleteMapping(value = "/async_query/{query_id:.+}")
     @ResponseBody
     public EnvelopeResponse<Boolean> deleteByQueryId(@PathVariable("query_id") String queryId,
@@ -213,7 +216,7 @@ public class NAsyncQueryController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, msg.getCLEAN_FOLDER_FAIL());
     }
 
-    @ApiOperation(value = "query", notes = "Update Response: query_id")
+    @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Response: query_id")
     @GetMapping(value = "/async_query/{query_id:.+}/status")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
@@ -246,7 +249,7 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryResponse, "");
     }
 
-    @ApiOperation(value = "fileStatus", notes = "Update URL: file_status")
+    @ApiOperation(value = "fileStatus", tags = { "QE" }, notes = "Update URL: file_status")
     @GetMapping(value = "/async_query/{query_id:.+}/file_status")
     @ResponseBody
     public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId,
@@ -260,6 +263,7 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, length, "");
     }
 
+    @ApiOperation(value = "async query status", tags = { "QE" })
     @GetMapping(value = "/async_query/{query_id:.+}/metadata")
     @ResponseBody
     public EnvelopeResponse<List<List<String>>> metadata(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
@@ -273,7 +277,7 @@ public class NAsyncQueryController extends NBasicController {
                 asyncQueryService.getMetaData(sqlRequest.getProject(), queryId), "");
     }
 
-    @ApiOperation(value = "downloadQueryResult", notes = "Update URL: result")
+    @ApiOperation(value = "downloadQueryResult", tags = { "QE" }, notes = "Update URL: result")
     @GetMapping(value = "/async_query/{query_id:.+}/result_download")
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
@@ -307,6 +311,7 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "async query result path", tags = { "QE" })
     @GetMapping(value = "/async_query/{query_id:.+}/result_path")
     @ResponseBody
     public EnvelopeResponse<String> queryPath(@PathVariable("query_id") String queryId,

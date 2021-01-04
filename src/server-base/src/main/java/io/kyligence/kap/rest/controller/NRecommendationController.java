@@ -68,7 +68,7 @@ public class NRecommendationController extends NBasicController {
     @Autowired
     private ProjectService projectService;
 
-    @ApiOperation(value = "approveOptimizeRecommendations", notes = "Add URL: {model}")
+    @ApiOperation(value = "approveOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}")
     @ResponseBody
     public EnvelopeResponse<String> approveOptimizeRecommendations(@PathVariable("model") String modelId,
@@ -81,7 +81,7 @@ public class NRecommendationController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "validateOptimizeRecommendations", notes = "Add URL: {model}")
+    @ApiOperation(value = "validateOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/validation")
     @ResponseBody
     public EnvelopeResponse<OptRecDetailResponse> validateOptimizeRecommendations(@PathVariable("model") String modelId,
@@ -94,7 +94,7 @@ public class NRecommendationController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecDetailResponse, "");
     }
 
-    @ApiOperation(value = "cleanOptimizeRecommendations", notes = "Add URL: {model}")
+    @ApiOperation(value = "cleanOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
     @DeleteMapping(value = "/{model:.+}/all")
     @ResponseBody
     public EnvelopeResponse<String> cleanOptimizeRecommendations(@PathVariable("model") String modelId,
@@ -106,7 +106,7 @@ public class NRecommendationController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "removeOptimizeRecommendationsV2", notes = "Add URL: {model}")
+    @ApiOperation(value = "removeOptimizeRecommendationsV2", tags = { "AI" }, notes = "Add URL: {model}")
     @DeleteMapping(value = "/{model:.+}")
     @ResponseBody
     public EnvelopeResponse<String> deleteOptimizeRecommendationsV2(@PathVariable(value = "model") String modelId,
@@ -130,7 +130,7 @@ public class NRecommendationController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getOptimizeRecommendations", notes = "Add URL: {model}")
+    @ApiOperation(value = "getOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}")
     @ResponseBody
     public EnvelopeResponse<OptRecLayoutsResponse> getOptimizeRecommendations(
@@ -149,7 +149,7 @@ public class NRecommendationController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecLayoutsResponse, "");
     }
 
-    @ApiOperation(value = "getOptimizeRecommendationDetail", notes = "Add URL: {model}")
+    @ApiOperation(value = "getOptimizeRecommendationDetail", tags = { "AI" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/{item_id:.+}")
     @ResponseBody
     public EnvelopeResponse<OptRecDetailResponse> getOptimizeRecommendations(
@@ -164,7 +164,7 @@ public class NRecommendationController extends NBasicController {
                 optRecService.getSingleOptRecDetail(project, modelId, itemId, isAdd), "");
     }
 
-    @ApiOperation(value = "accelerate query history and select topn", notes = "Add URL: {model}")
+    @ApiOperation(value = "accelerate query history and select topn", tags = { "AI" }, notes = "Add URL: {model}")
     @PutMapping(value = "/acceleration")
     @ResponseBody
     public EnvelopeResponse<String> accelerate(@RequestParam("project") String project) {

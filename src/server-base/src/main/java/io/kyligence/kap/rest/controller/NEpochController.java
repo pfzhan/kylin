@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.request.EpochRequest;
 import io.kyligence.kap.rest.service.EpochService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/epoch", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -48,6 +49,7 @@ public class NEpochController extends NBasicController {
     @Qualifier("epochService")
     private EpochService epochService;
 
+    @ApiOperation(value = "change epoch", tags = { "DW" })
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> updateEpochOwner(@RequestBody EpochRequest epochRequest) {
@@ -55,6 +57,7 @@ public class NEpochController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "change all epoch", tags = { "DW" })
     @PostMapping(value = "/all", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> updateAllEpochOwner(@RequestBody EpochRequest epochRequest) {

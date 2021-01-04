@@ -108,6 +108,7 @@ public class NAccessController extends NBasicController {
     /**
      * Get current user's permission in the project
      */
+    @ApiOperation(value = "access control APIs", tags = { "MID" })
     @GetMapping(value = "/permission/project_permission", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -121,7 +122,8 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, permission, "");
     }
 
-    @ApiOperation(value = "getAvailableSids", notes = "Update Param: sid_type, is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getAvailableSids", tags = { "MID" }, //
+            notes = "Update Param: sid_type, is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/available/{sid_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<String>>> getAvailableSids(@PathVariable("uuid") String uuid,
@@ -150,6 +152,7 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedSids), "");
     }
 
+    @ApiOperation(value = "access control APIs", tags = { "MID" })
     @GetMapping(value = "/available/{entity_type:.+}")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<String>>> getAvailableUsers(@PathVariable("entity_type") String entityType,
@@ -183,7 +186,8 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedUsers), "");
     }
 
-    @ApiOperation(value = "getAccessEntities", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getAccessEntities", tags = { "MID" }, //
+            notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -202,9 +206,9 @@ public class NAccessController extends NBasicController {
                 "");
     }
 
-
-    @ApiOperation(value = "get users and groups for project", notes = "")
-    @GetMapping(value = "/{uuid:.+}/all", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @ApiOperation(value = "get users and groups for project", tags = { "MID" })
+    @GetMapping(value = "/{uuid:.+}/all", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<Map<String, List<String>>> getProjectUsersAndGroups(@PathVariable("uuid") String uuid) {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
@@ -219,7 +223,7 @@ public class NAccessController extends NBasicController {
     /**
      * Grant a new access on a domain object to a user/role
      */
-    @ApiOperation(value = "grant", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
+    @ApiOperation(value = "grant", tags = { "MID" }, notes = "Update URL: {entity_type}; Update Body: access_entry_id")
     @PostMapping(value = "/{entity_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> grant(@PathVariable("entity_type") String entityType,
@@ -236,7 +240,8 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "batchGrant", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
+    @ApiOperation(value = "batchGrant", tags = {
+            "MID" }, notes = "Update URL: {entity_type}; Update Body: access_entry_id")
     @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -260,7 +265,7 @@ public class NAccessController extends NBasicController {
      *
      * @param accessRequest
      */
-    @ApiOperation(value = "batchGrant", notes = "Update Body: access_entry_id")
+    @ApiOperation(value = "batchGrant", tags = { "MID" }, notes = "Update Body: access_entry_id")
     @PutMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -281,7 +286,8 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
     }
 
-    @ApiOperation(value = "revokeAcl", notes = "URL: entity_type; Update Param: entity_type; Update Body: access_entry_id")
+    @ApiOperation(value = "revokeAcl", tags = { "MID" }, //
+            notes = "URL: entity_type; Update Param: entity_type; Update Body: access_entry_id")
     @DeleteMapping(value = "/{entity_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<Boolean> revokeAcl(@PathVariable("entity_type") String entityType,
@@ -302,7 +308,7 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
     }
 
-    @ApiOperation(value = "batch revoke Acl", notes = "")
+    @ApiOperation(value = "batch revoke Acl", tags = { "MID" }, notes = "")
     @PostMapping(value = "/{entity_type:.+}/{uuid:.+}/deletion", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<Boolean> deleteAces(@PathVariable("entity_type") String entityType,

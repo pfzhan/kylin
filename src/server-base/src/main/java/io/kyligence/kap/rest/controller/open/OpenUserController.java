@@ -53,6 +53,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserController;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/user", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -63,6 +64,7 @@ public class OpenUserController extends NBasicController {
     @Autowired
     private UserService userService;
 
+    @ApiOperation(value = "listAllUsers", tags = { "MID" })
     @GetMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -84,6 +86,7 @@ public class OpenUserController extends NBasicController {
                 DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }
 
+    @ApiOperation(value = "createUser", tags = { "MID" })
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -91,6 +94,7 @@ public class OpenUserController extends NBasicController {
         return userController.createUser(user);
     }
 
+    @ApiOperation(value = "updateUser", tags = { "MID" })
     @PutMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -98,6 +102,7 @@ public class OpenUserController extends NBasicController {
         return userController.updateUser(user);
     }
 
+    @ApiOperation(value = "delete", tags = { "MID" })
     @DeleteMapping(value = "/{username:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -105,12 +110,14 @@ public class OpenUserController extends NBasicController {
         return userController.delete(username);
     }
 
+    @ApiOperation(value = "updateUserPassword", tags = { "MID" })
     @PutMapping(value = "/password")
     @ResponseBody
     public EnvelopeResponse<String> updateUserPassword(@RequestBody PasswordChangeRequest user) {
         return userController.updateUserPassword(user);
     }
 
+    @ApiOperation(value = "deleteUser", tags = { "MID" })
     @DeleteMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

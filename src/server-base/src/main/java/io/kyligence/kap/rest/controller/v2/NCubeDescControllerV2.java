@@ -39,6 +39,7 @@ import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NCubeResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.swagger.annotations.ApiOperation;
 
 @RestController
 @RequestMapping(value = "/api/cube_desc", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
@@ -48,6 +49,7 @@ public class NCubeDescControllerV2 extends NBasicController {
     @Qualifier("modelService")
     private ModelService modelService;
 
+    @ApiOperation(value = "getCube", tags = { "AI" })
     @GetMapping(value = "/{projectName}/{cubeName}")
     @ResponseBody
     public EnvelopeResponse<NCubeResponse> getCube(@PathVariable("projectName") String project,

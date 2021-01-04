@@ -54,6 +54,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserController;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
@@ -67,6 +68,7 @@ public class NUserControllerV2 extends NBasicController {
     @Autowired
     private NUserController nUserController;
 
+    @ApiOperation(value = "listAllUsers", tags = { "MID" })
     @GetMapping(value = "/kap/user/users", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse listAllUsers(@RequestParam(value = "name", required = false) String nameSeg,
@@ -82,6 +84,7 @@ public class NUserControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(dataResult.getCode(), result, dataResult.getMsg());
     }
 
+    @ApiOperation(value = "authenticate", tags = { "MID" })
     @PostMapping(value = "/user/authentication", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
@@ -98,6 +101,7 @@ public class NUserControllerV2 extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "authenticatedUser", tags = { "MID" })
     @GetMapping(value = "/user/authentication", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {

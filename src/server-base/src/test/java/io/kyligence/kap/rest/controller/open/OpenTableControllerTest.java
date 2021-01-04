@@ -250,7 +250,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .param("project", project).param("table", tableName).param("column_name", columnName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openTableController).getPartitioinColumnFormat(project, tableName, columnName);
+        Mockito.verify(openTableController).getPartitionColumnFormat(project, tableName, columnName);
     }
 
 }

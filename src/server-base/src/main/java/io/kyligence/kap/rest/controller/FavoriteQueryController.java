@@ -53,7 +53,7 @@ public class FavoriteQueryController extends NBasicController {
     @Autowired
     private FavoriteRuleService favoriteRuleService;
 
-    @ApiOperation(value = "importSqls (response)", notes = "sql_advices")
+    @ApiOperation(value = "importSqls (response)", tags = { "AI" }, notes = "sql_advices")
     @PostMapping(value = "/sql_files")
     @ResponseBody
     public EnvelopeResponse<SQLParserResponse> importSqls(@RequestParam("project") String project,
@@ -64,7 +64,7 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @ApiOperation(value = "sqlValidate", notes = "Update Response: incapable_reason, sql_advices")
+    @ApiOperation(value = "sqlValidate", tags = { "AI" }, notes = "Update Response: incapable_reason, sql_advices")
     @PutMapping(value = "/sql_validation")
     @ResponseBody
     public EnvelopeResponse<SQLValidateResponse> sqlValidate(@RequestBody SQLValidateRequest request) {

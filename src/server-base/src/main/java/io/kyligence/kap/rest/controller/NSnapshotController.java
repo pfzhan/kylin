@@ -70,7 +70,7 @@ public class NSnapshotController extends NBasicController {
     @Qualifier("snapshotService")
     private SnapshotService snapshotService;
 
-    @ApiOperation(value = "buildSnapshotsManually", notes = "build snapshots")
+    @ApiOperation(value = "buildSnapshotsManually", tags = { "AI" }, notes = "build snapshots")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSnapshotsManually(@RequestBody SnapshotRequest snapshotsRequest) {
@@ -84,7 +84,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "refreshSnapshotsManually", notes = "refresh snapshots")
+    @ApiOperation(value = "refreshSnapshotsManually", tags = { "AI" }, notes = "refresh snapshots")
     @PutMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshSnapshotsManually(@RequestBody SnapshotRequest snapshotsRequest) {
@@ -99,7 +99,7 @@ public class NSnapshotController extends NBasicController {
 
     }
 
-    @ApiOperation(value = "checkBeforeDelete", notes = "check before delete snapshots")
+    @ApiOperation(value = "checkBeforeDelete", tags = { "AI" }, notes = "check before delete snapshots")
     @PostMapping(value = "/check_before_delete")
     @ResponseBody
     public EnvelopeResponse<SnapshotCheckResponse> checkBeforeDelete(@RequestBody SnapshotRequest snapshotsRequest) {
@@ -109,7 +109,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "deleteSnapshots", notes = "delete snapshots")
+    @ApiOperation(value = "deleteSnapshots", tags = { "AI" }, notes = "delete snapshots")
     @DeleteMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<SnapshotCheckResponse> deleteSnapshots(@RequestParam(value = "project") String project,
@@ -119,7 +119,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "getSnapshots", notes = "get snapshots")
+    @ApiOperation(value = "getSnapshots", tags = { "AI" }, notes = "get snapshots")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<SnapshotResponse>>> getSnapshots(
@@ -144,7 +144,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
-    @ApiOperation(value = "getTables", notes = "get all tables with or without snapshot")
+    @ApiOperation(value = "getTables", tags = { "AI" }, notes = "get all tables with or without snapshot")
     @GetMapping(value = "/tables")
     @ResponseBody
     public EnvelopeResponse<NInitTablesResponse> getTables(@RequestParam(value = "project") String project,
@@ -158,7 +158,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
     }
 
-    @ApiOperation(value = "loadMoreTables", notes = "load more table pages")
+    @ApiOperation(value = "loadMoreTables", tags = { "AI" }, notes = "load more table pages")
     @GetMapping(value = "/tables/more")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableNameResponse>>> loadMoreTables(

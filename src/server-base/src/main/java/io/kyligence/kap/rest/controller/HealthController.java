@@ -54,6 +54,7 @@ import io.kyligence.kap.rest.service.HealthService;
 import io.kyligence.kap.tool.daemon.ServiceOpLevelEnum;
 import io.kyligence.kap.tool.daemon.checker.KEStatusChecker;
 import io.kyligence.kap.tool.util.ToolUtil;
+import io.swagger.annotations.ApiOperation;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j;
 
@@ -77,6 +78,7 @@ public class HealthController extends NBasicController {
     @Qualifier("healthService")
     private HealthService healthService;
 
+    @ApiOperation(value = "health APIs", tags = {"SM"})
     @PostMapping(value = "/instance_info")
     @ResponseBody
     public EnvelopeResponse<HealthResponse> getHealthStatus(HttpServletRequest request) throws IOException {
@@ -89,6 +91,7 @@ public class HealthController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "health APIs", tags = {"SM"})
     @PostMapping(value = "/instance_service/{state}")
     @ResponseBody
     public EnvelopeResponse<String> changeServerState(HttpServletRequest request, @PathVariable String state)

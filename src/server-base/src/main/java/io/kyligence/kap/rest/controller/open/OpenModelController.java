@@ -138,6 +138,7 @@ public class OpenModelController extends NBasicController {
     @Autowired
     private FavoriteRuleService favoriteRuleService;
 
+    @ApiOperation(value = "getModels", tags = { "AI" })
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(@RequestParam(value = "project") String project,
@@ -158,6 +159,7 @@ public class OpenModelController extends NBasicController {
                 sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
     }
 
+    @ApiOperation(value = "getIndexes", tags = { "AI" })
     @GetMapping(value = "/{model_name:.+}/indexes")
     @ResponseBody
     public EnvelopeResponse<OpenGetIndexResponse> getIndexes(@RequestParam(value = "project") String project,
@@ -257,6 +259,7 @@ public class OpenModelController extends NBasicController {
         return model;
     }
 
+    @ApiOperation(value = "getSegments", tags = { "AI" })
     @GetMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
@@ -275,6 +278,7 @@ public class OpenModelController extends NBasicController {
                 sortBy, reverse);
     }
 
+    @ApiOperation(value = "getMultiPartitions", tags = { "DW" })
     @GetMapping(value = "/{model_name:.+}/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<SegmentPartitionResponse>>> getMultiPartitions(
@@ -292,6 +296,7 @@ public class OpenModelController extends NBasicController {
                 reverse);
     }
 
+    @ApiOperation(value = "buildSegmentsManually", tags = { "DW" })
     @PostMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelAlias,
@@ -303,6 +308,7 @@ public class OpenModelController extends NBasicController {
         return modelController.buildSegmentsManually(modelId, buildSegmentsRequest);
     }
 
+    @ApiOperation(value = "refreshOrMergeSegments", tags = { "DW" })
     @PutMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model_name") String modelAlias,
@@ -314,6 +320,7 @@ public class OpenModelController extends NBasicController {
         return modelController.refreshOrMergeSegments(modelId, request);
     }
 
+    @ApiOperation(value = "deleteSegments", tags = { "DW" })
     @DeleteMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model_name") String modelAlias,
@@ -330,6 +337,7 @@ public class OpenModelController extends NBasicController {
         return modelController.deleteSegments(modelId, projectName, purge, force, ids, names);
     }
 
+    @ApiOperation(value = "completeSegments", tags = { "DW" })
     @PostMapping(value = "/{model_name}/segments/completion")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> completeSegments(@PathVariable("model_name") String modelAlias,
@@ -348,6 +356,7 @@ public class OpenModelController extends NBasicController {
         return modelController.addIndexesToSegments(modelId, req);
     }
 
+    @ApiOperation(value = "getModelDesc", tags = { "AI" })
     @GetMapping(value = "/{project}/{model}/model_desc")
     @ResponseBody
     public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
@@ -357,6 +366,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
+    @ApiOperation(value = "updatePartitionDesc", tags = { "DW" })
     @PutMapping(value = "/{project}/{model}/partition_desc")
     @ResponseBody
     public EnvelopeResponse<String> updatePartitionDesc(@PathVariable("project") String project,
@@ -377,6 +387,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "couldAnsweredByExistedModel", tags = { "AI" })
     @PostMapping(value = "/validation")
     @ResponseBody
     public EnvelopeResponse<List<String>> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
@@ -416,6 +427,7 @@ public class OpenModelController extends NBasicController {
                 Lists.newArrayList(errorSqlDetailSet));
     }
 
+    @ApiOperation(value = "answeredByExistedModel", tags = { "AI" })
     @PostMapping(value = "/model_validation")
     @ResponseBody
     public EnvelopeResponse<OpenModelValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
@@ -429,6 +441,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
+    @ApiOperation(value = "buildIndicesManually", tags = { "AI" })
     @PostMapping(value = "/{model_name:.+}/indexes")
     @ResponseBody
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model_name") String modelAlias,
@@ -440,6 +453,7 @@ public class OpenModelController extends NBasicController {
         return modelController.buildIndicesManually(modelId, request);
     }
 
+    @ApiOperation(value = "getRecommendations", tags = { "AI" })
     @GetMapping(value = "/{model_name:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<OpenOptRecLayoutsResponse> getRecommendations(
@@ -455,6 +469,7 @@ public class OpenModelController extends NBasicController {
                 new OpenOptRecLayoutsResponse(projectName, modelId, response), "");
     }
 
+    @ApiOperation(value = "batchApproveRecommendations", tags = { "AI" })
     @PutMapping(value = "/recommendations/batch")
     @ResponseBody
     public EnvelopeResponse<OpenRecApproveResponse> batchApproveRecommendations(
@@ -482,6 +497,7 @@ public class OpenModelController extends NBasicController {
                 new OpenRecApproveResponse(projectName, approvedModelIndexes), "");
     }
 
+    @ApiOperation(value = "suggestModels", tags = { "AI" })
     @PostMapping(value = "/model_suggestion")
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
@@ -492,6 +508,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
     }
 
+    @ApiOperation(value = "optimizeModels", tags = { "AI" })
     @PostMapping(value = "/model_optimization")
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
@@ -502,6 +519,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
     }
 
+    @ApiOperation(value = "deleteModel", tags = { "AI" })
     @DeleteMapping(value = "/{model_name:.+}")
     @ResponseBody
     public EnvelopeResponse<String> deleteModel(@PathVariable("model_name") String modelAlias,
@@ -511,7 +529,7 @@ public class OpenModelController extends NBasicController {
         return modelController.deleteModel(modelId, projectName);
     }
 
-    @ApiOperation(value = "check segment range")
+    @ApiOperation(value = "checkSegments", tags = { "DW" })
     @PostMapping(value = "/{model:.+}/segments/check")
     @ResponseBody
     public EnvelopeResponse<CheckSegmentResponse> checkSegments(@PathVariable("model") String modelAlias,
@@ -526,7 +544,7 @@ public class OpenModelController extends NBasicController {
                 modelService.checkSegments(request.getProject(), modelAlias, request.getStart(), request.getEnd()), "");
     }
 
-    @ApiOperation(value = "updateMultiPartitionMapping")
+    @ApiOperation(value = "updateMultiPartitionMapping", tags = { "QE" })
     @PutMapping(value = "/{model_name:.+}/multi_partition/mapping")
     @ResponseBody
     public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model_name") String modelAlias,
@@ -538,7 +556,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "build multi_partition")
+    @ApiOperation(value = "build multi_partition", tags = { "DW" })
     @PostMapping(value = "/{model_name:.+}/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model_name") String modelAlias,
@@ -549,7 +567,7 @@ public class OpenModelController extends NBasicController {
         return modelController.buildMultiPartition(modelId, param);
     }
 
-    @ApiOperation(value = "refresh multi_partition")
+    @ApiOperation(value = "refresh multi_partition", tags = { "DW" })
     @PutMapping(value = "/{model_name:.+}/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model_name") String modelAlias,
@@ -560,7 +578,7 @@ public class OpenModelController extends NBasicController {
         return modelController.refreshMultiPartition(modelId, param);
     }
 
-    @ApiOperation(value = "delete multi_partition")
+    @ApiOperation(value = "delete multi_partition", tags = { "DW" })
     @DeleteMapping(value = "/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelAlias,
@@ -572,7 +590,7 @@ public class OpenModelController extends NBasicController {
         return modelController.deleteMultiPartition(modelId, projectName, segment, ids);
     }
 
-    @ApiOperation(value = "update partition")
+    @ApiOperation(value = "update partition", tags = { "DW" })
     @PutMapping(value = "/{model_name:.+}/partition")
     @ResponseBody
     public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model_name") String modelAlias,
@@ -583,7 +601,7 @@ public class OpenModelController extends NBasicController {
         return modelController.updatePartitionSemantic(modelId, param);
     }
 
-    @ApiOperation(value = "export model", notes = "Add URL: {model}")
+    @ApiOperation(value = "export model", tags = { "QE" }, notes = "Add URL: {model}")
     @GetMapping(value = "/{model_name:.+}/export")
     @ResponseBody
     public void exportModel(@PathVariable("model_name") String modelAlias,

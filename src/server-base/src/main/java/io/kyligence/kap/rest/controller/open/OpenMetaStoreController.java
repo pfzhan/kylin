@@ -60,6 +60,7 @@ import io.kyligence.kap.rest.request.ModelPreviewRequest;
 import io.kyligence.kap.rest.request.OpenModelPreviewRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
@@ -72,6 +73,7 @@ public class OpenMetaStoreController extends NBasicController {
     @Autowired
     private NMetaStoreController metaStoreController;
 
+    @ApiOperation(value = "previewModels", tags = { "MID" })
     @GetMapping(value = "/previews/models")
     @ResponseBody
     public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project) {
@@ -79,6 +81,7 @@ public class OpenMetaStoreController extends NBasicController {
         return metaStoreController.previewModels(projectName);
     }
 
+    @ApiOperation(value = "exportModelMetadata", tags = { "MID" })
     @PostMapping(value = "/backup/models")
     @ResponseBody
     public EnvelopeResponse<String> exportModelMetadata(@RequestParam(value = "project") String project,
@@ -90,6 +93,7 @@ public class OpenMetaStoreController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "uploadAndCheckModelMetadata", tags = { "MID" })
     @PostMapping(value = "/validation/models")
     @ResponseBody
     public EnvelopeResponse<SchemaChangeCheckResult> uploadAndCheckModelMetadata(
@@ -98,6 +102,7 @@ public class OpenMetaStoreController extends NBasicController {
         return metaStoreController.uploadAndCheckModelMetadata(project, uploadFile, request);
     }
 
+    @ApiOperation(value = "importModelMetadata", tags = { "MID" })
     @PostMapping(value = "/import/models")
     @ResponseBody
     public EnvelopeResponse<String> importModelMetadata(@RequestParam(value = "project") String project,

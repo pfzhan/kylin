@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.tool.util.ToolUtil;
+import io.swagger.annotations.ApiOperation;
 import scala.Tuple2;
 
 @Controller
@@ -54,6 +55,7 @@ public class NSparkController extends NBasicController {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @ApiOperation(value = "getBlacklist", tags = { "DW" })
     @GetMapping(value = "/blacklist")
     @ResponseBody
     public EnvelopeResponse<Tuple2<String[], String[]>> getBlacklist() {
@@ -62,6 +64,7 @@ public class NSparkController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, blacklist, "get blacklist");
     }
 
+    @ApiOperation(value = "updateBlacklist", tags = { "DW" })
     @PutMapping(value = "/blacklist/executor/{executor_id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> addExecutorToBlackListManually(@PathVariable("executor_id") String executorId) {
@@ -80,6 +83,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "updateBlacklistNode", tags = { "DW" })
     @PutMapping(value = "/blacklist/node/{node:.+}")
     @ResponseBody
     public EnvelopeResponse<String> addNodeToBlackListManually(@PathVariable("node") String node) {
@@ -92,6 +96,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "deleteBlacklist", tags = { "DW" })
     @DeleteMapping(value = "/blacklist/executor/{executor_id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeExecutorFromBlackListManually(
@@ -105,6 +110,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "deleteBlacklistNode", tags = { "DW" })
     @DeleteMapping(value = "/blacklist/node/{node:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeNodeFromBlackListManually(@PathVariable("node") String node) {
@@ -117,6 +123,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "rollEventlog", tags = { "DW" })
     @PutMapping(value = "/roll_event_log")
     @ResponseBody
     public EnvelopeResponse<String> rollEventLog() {

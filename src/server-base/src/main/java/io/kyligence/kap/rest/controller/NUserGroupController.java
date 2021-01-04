@@ -84,7 +84,7 @@ public class NUserGroupController extends NBasicController {
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
-    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/group_members/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -112,6 +112,7 @@ public class NUserGroupController extends NBasicController {
                 "get groups members");
     }
 
+    @ApiOperation(value = "groups", tags = { "MID" })
     @GetMapping(value = "/groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -120,7 +121,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, groups, "get groups");
     }
 
-    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
     @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -137,6 +138,7 @@ public class NUserGroupController extends NBasicController {
                 "get users with group and id");
     }
 
+    @ApiOperation(value = "userAndGroup", tags = { "MID" })
     @GetMapping(value = "/users_and_groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -144,7 +146,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, userGroupService.getUserAndUserGroup(), "");
     }
 
-    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_name; Update Param: group_name")
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_name; Update Param: group_name")
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -154,7 +156,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user group");
     }
 
-    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_name; Update Param: group_name")
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_name; Update Param: group_name")
     @DeleteMapping(value = "/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -166,6 +168,7 @@ public class NUserGroupController extends NBasicController {
     }
 
     //move users in/out from groups
+    @ApiOperation(value = "updateUserAndGroup", tags = { "MID" })
     @PutMapping(value = "/users")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

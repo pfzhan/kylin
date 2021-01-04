@@ -57,6 +57,7 @@ import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserGroupController;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.request.UserGroupRequest;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/user_group", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -71,6 +72,7 @@ public class OpenUserGroupController extends NBasicController {
     @Autowired
     private UserService userService;
 
+    @ApiOperation(value = "listGroups", tags = { "MID" })
     @GetMapping(value = "/groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -89,6 +91,7 @@ public class OpenUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(groups, pageOffset, pageSize), "");
     }
 
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" })
     @GetMapping(value = "/group_members/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -114,6 +117,7 @@ public class OpenUserGroupController extends NBasicController {
                 DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }
 
+    @ApiOperation(value = "addUserGroup", tags = { "MID" })
     @PostMapping(value = "/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -124,6 +128,7 @@ public class OpenUserGroupController extends NBasicController {
         return userGroupController.addUserGroup(request);
     }
 
+    @ApiOperation(value = "addUserGroupWithBody", tags = { "MID" })
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -131,6 +136,7 @@ public class OpenUserGroupController extends NBasicController {
         return userGroupController.addUserGroup(request);
     }
 
+    @ApiOperation(value = "delUserGroup", tags = { "MID" })
     @DeleteMapping(value = "/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -140,6 +146,7 @@ public class OpenUserGroupController extends NBasicController {
         return userGroupController.delUserGroup(groupUuid);
     }
 
+    @ApiOperation(value = "delUserGroupWithBody", tags = { "MID" })
     @DeleteMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -149,6 +156,7 @@ public class OpenUserGroupController extends NBasicController {
         return userGroupController.delUserGroup(groupUuid);
     }
 
+    @ApiOperation(value = "addOrDelUsersInGroup", tags = { "MID" })
     @PutMapping(value = "/users")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

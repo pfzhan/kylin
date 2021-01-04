@@ -48,23 +48,23 @@ public class SwaggerConfig {
     public static final String CONTACT = "https://kyligence.io/";
 
     @Order(2)
-    @Bean(value = "open")
+    @Bean(value = "v4 public")
     public Docket restApiOpen() {
-        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfoOpen()).groupName("Open").select()
+        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfoOpen()).groupName("v4 public").select()
                 .apis(KylinRequestHandlerSelectors.baseCurrentPackage("io.kyligence.kap.rest.controller.open")).build();
     }
 
     @Order(1)
-    @Bean(value = "newten")
+    @Bean(value = "ke4 internal")
     public Docket restApiV4() {
-        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfoV4()).groupName("Newten").select()
+        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfoV4()).groupName("v4 internal").select()
                 .apis(KylinRequestHandlerSelectors.baseCurrentPackage("io.kyligence.kap.rest.controller")).build();
     }
 
     @Order(3)
-    @Bean(value = "ke3")
+    @Bean(value = "v2 public")
     public Docket restApiV2() {
-        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfoV2()).groupName("KE 3x").select()
+        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfoV2()).groupName("v2 public").select()
                 .paths(Predicates.not(ant("/api")))
                 .apis(KylinRequestHandlerSelectors.baseCurrentPackage("io.kyligence.kap.rest.controller.v2")).build();
     }

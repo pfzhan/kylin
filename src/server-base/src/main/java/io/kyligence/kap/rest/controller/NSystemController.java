@@ -136,6 +136,7 @@ public class NSystemController extends NBasicController {
         return this.aclEvaluate;
     }
 
+    @ApiOperation(value = "license", tags = { "MID" })
     @GetMapping(value = "/license")
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> listLicense() {
@@ -158,6 +159,7 @@ public class NSystemController extends NBasicController {
     }
 
     // used for service discovery
+    @ApiOperation(value = "backupLicense", tags = { "MID" })
     @PostMapping(value = "/backup")
     @ResponseBody
     public EnvelopeResponse<String> remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
@@ -165,6 +167,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "uploadLicense", tags = { "MID" })
     @PostMapping(value = "/license/file")
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> uploadLicense(@RequestParam("file") MultipartFile uploadfile)
@@ -181,6 +184,7 @@ public class NSystemController extends NBasicController {
     }
 
     //either content or file is okay
+    @ApiOperation(value = "updateLicense", tags = { "MID" })
     @PostMapping(value = "/license/content")
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> uploadLicense(@RequestBody String licenseContent) throws IOException {
@@ -199,7 +203,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @ApiOperation(value = "trialLicense", notes = "Update Body: product_type")
+    @ApiOperation(value = "trialLicense", tags = { "MID" }, notes = "Update Body: product_type")
     @PostMapping(value = "/license/trial")
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> trialLicense(@RequestBody LicenseRequest licenseRequest) throws Exception {
@@ -229,7 +233,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @ApiOperation(value = "get license info")
+    @ApiOperation(value = "get license info", tags = { "MID" })
     @GetMapping(value = "/license/info")
     @ResponseBody
     public void requestLicense(final HttpServletResponse response) throws IOException {
@@ -288,21 +292,21 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "get license capacity info")
+    @ApiOperation(value = "get license capacity info", tags = { "MID" })
     @GetMapping(value = "/license/capacity")
     @ResponseBody
     public EnvelopeResponse getLicenseCapacityInfo() {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
-    @ApiOperation(value = "get license node info")
+    @ApiOperation(value = "get license node info", tags = { "MID" })
     @GetMapping(value = "/license/nodes")
     @ResponseBody
     public EnvelopeResponse getLicenseNodeInfo() {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseNodeInfo(), "");
     }
 
-    @ApiOperation(value = "get license monitor info single project")
+    @ApiOperation(value = "get license monitor info single project", tags = { "MID" })
     @GetMapping(value = "/capacity_info")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoSingleProject(@RequestParam(value = "project") String project,
@@ -311,7 +315,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacities, "");
     }
 
-    @ApiOperation(value = "get license monitor info in project", notes = "Update Param: page_offset, page_size;")
+    @ApiOperation(value = "get license monitor info in project", tags = { "MID" }, notes = "Update Param: page_offset, page_size;")
     @GetMapping(value = "/capacity")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoInProject(@RequestParam(value = "project") String project,
@@ -332,7 +336,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacityResponse, "");
     }
 
-    @ApiOperation(value = "get last month/quarter/year license monitor info")
+    @ApiOperation(value = "get last month/quarter/year license monitor info", tags = { "MID" })
     @GetMapping(value = "/capacity/dashboard")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoHistory(
@@ -340,7 +344,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getSourceUsageHistory(dataRange), "");
     }
 
-    @ApiOperation(value = "refresh license monitor info in a project")
+    @ApiOperation(value = "refresh license monitor info in a project", tags = { "MID" })
     @PutMapping(value = "/capacity/refresh")
     @ResponseBody
     public EnvelopeResponse refresh(@RequestParam("project") String project) {
@@ -349,7 +353,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "refresh license monitor info in all projects")
+    @ApiOperation(value = "refresh license monitor info in all projects", tags = { "MID" })
     @PutMapping(value = "/capacity/refresh_all")
     @ResponseBody
     public EnvelopeResponse refreshAll() {
@@ -358,6 +362,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
+    @ApiOperation(value = "diag", tags = { "SM" })
     @PostMapping(value = "/diag")
     @ResponseBody
     public EnvelopeResponse<String> getRemoteDumpDiagPackage(
@@ -374,6 +379,7 @@ public class NSystemController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "diagProgress", tags = { "SM" })
     @PutMapping(value = "/diag/progress")
     @ResponseBody
     public EnvelopeResponse<String> updateDiagProgress(@RequestBody DiagProgressRequest diagProgressRequest) {
@@ -381,6 +387,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "diagStatus", tags = { "SM" })
     @GetMapping(value = "/diag/status")
     @ResponseBody
     public EnvelopeResponse<DiagStatusResponse> getRemotePackageStatus(
@@ -394,6 +401,7 @@ public class NSystemController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "diagDownload", tags = { "SM" })
     @GetMapping(value = "/diag")
     @ResponseBody
     public void remoteDownloadPackage(@RequestParam(value = "host", required = false) String host,
@@ -408,6 +416,7 @@ public class NSystemController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "cancelDiag", tags = { "SM" })
     @DeleteMapping(value = "/diag")
     @ResponseBody
     public EnvelopeResponse<String> remoteStopPackage(@RequestParam(value = "host", required = false) String host,
@@ -421,6 +430,7 @@ public class NSystemController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "enterMaintenance", tags = { "DW" })
     @PostMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<String> setMaintenanceMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest) {
@@ -428,6 +438,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "exitMaintenance", tags = { "DW" })
     @DeleteMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<String> unsetReadMode(@RequestParam(value = "reason") String reason) {
@@ -436,12 +447,14 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "getMaintenance", tags = { "DW" })
     @GetMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<MaintenanceModeResponse> getMaintenanceMode() throws Exception {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, maintenanceModeService.getMaintenanceMode(), "");
     }
 
+    @ApiOperation(value = "servers", tags = { "DW" })
     @GetMapping(value = "/servers")
     @ResponseBody
     public EnvelopeResponse<ServersResponse> getServers(
@@ -458,6 +471,7 @@ public class NSystemController extends NBasicController {
     }
 
     //for kc
+    @ApiOperation(value = "licenseVolume", tags = { "MID" })
     @PutMapping(value = "/license/volume", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> modifyLicense() {
@@ -466,6 +480,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @ApiOperation(value = "host", tags = { "DW" })
     @GetMapping(value = "/host")
     @ResponseBody
     public EnvelopeResponse<String> getHostname() {

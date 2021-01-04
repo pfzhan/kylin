@@ -36,6 +36,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.swagger.annotations.ApiOperation;
+
 @Controller
 @RequestMapping(value = SparderUIUtil.UI_BASE)
 public class SparderUIController {
@@ -44,6 +46,7 @@ public class SparderUIController {
     @Qualifier("sparderUIUtil")
     private SparderUIUtil sparderUIUtil;
 
+    @ApiOperation(value = "proxy", tags = { "QE" })
     @RequestMapping(value = "/**")
     @ResponseBody
     public void proxy(HttpServletRequest request, HttpServletResponse response) throws IOException {

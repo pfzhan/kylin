@@ -69,6 +69,7 @@ import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.OpenReloadTableResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -106,6 +107,7 @@ public class OpenTableController extends NBasicController {
         projectService.setDataSourceType(project, String.valueOf(dataSourceType));
     }
 
+    @ApiOperation(value = "getTableDesc", tags = { "AI" })
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableDesc>>> getTableDesc(@RequestParam(value = "project") String project,
@@ -121,6 +123,7 @@ public class OpenTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
 
+    @ApiOperation(value = "loadTables", tags = { "AI" })
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
@@ -153,6 +156,7 @@ public class OpenTableController extends NBasicController {
      * @return
      * @throws Exception
      */
+    @ApiOperation(value = "setDateRanges", tags = { "AI" })
     @PostMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> setDateRanges(@RequestBody DateRangeRequest request) throws Exception {
@@ -170,6 +174,7 @@ public class OpenTableController extends NBasicController {
      * @return
      * @throws IOException
      */
+    @ApiOperation(value = "refreshSegments", tags = { "DW" })
     @PutMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
@@ -181,6 +186,7 @@ public class OpenTableController extends NBasicController {
         return tableController.refreshSegments(request);
     }
 
+    @ApiOperation(value = "preReloadTable", tags = { "AI" })
     @GetMapping(value = "/pre_reload")
     @ResponseBody
     public EnvelopeResponse<OpenPreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
@@ -195,6 +201,7 @@ public class OpenTableController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "reloadTable", tags = { "AI" })
     @PostMapping(value = "/reload")
     @ResponseBody
     public EnvelopeResponse<OpenReloadTableResponse> reloadTable(@RequestBody OpenReloadTableRequest request)
@@ -227,9 +234,10 @@ public class OpenTableController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "getPartitionColumnFormat", tags = { "DW" })
     @GetMapping(value = "/column_format")
     @ResponseBody
-    public EnvelopeResponse<OpenPartitionColumnFormatResponse> getPartitioinColumnFormat(
+    public EnvelopeResponse<OpenPartitionColumnFormatResponse> getPartitionColumnFormat(
             @RequestParam(value = "project") String project, @RequestParam(value = "table") String table,
             @RequestParam(value = "column_name") String columnName) throws Exception {
         String projectName = checkProjectName(project);

@@ -50,6 +50,7 @@ import io.kyligence.kap.rest.response.DDLResponse;
 import io.kyligence.kap.rest.response.ExportTablesResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.SparkSourceService;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 
 @ConditionalOnProperty(name = "kylin.env.channel", havingValue = "cloud")
@@ -62,6 +63,7 @@ public class SparkSourceController extends NBasicController {
     @Autowired
     private SparkSourceService sparkSourceService;
 
+    @ApiOperation(value = "execute", tags = { "DW" })
     @PostMapping(value = "/execute")
     @ResponseBody
     public EnvelopeResponse<DDLResponse> executeSQL(@RequestBody DDLRequest request) {
@@ -69,6 +71,7 @@ public class SparkSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, ddlResponse, "");
     }
 
+    @ApiOperation(value = "exportTable", tags = { "DW" })
     @PostMapping(value = "/export_table_structure")
     @ResponseBody
     public EnvelopeResponse<ExportTablesResponse> exportTableStructure(@RequestBody ExportTableRequest request) {
@@ -77,6 +80,7 @@ public class SparkSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableResponse, "");
     }
 
+    @ApiOperation(value = "dropTable", tags = { "DW" })
     @DeleteMapping(value = "/{database}/tables/{table}")
     public EnvelopeResponse<String> dropTable(@PathVariable("database") String database,
             @PathVariable("table") String table) throws AnalysisException {
@@ -84,51 +88,60 @@ public class SparkSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "listDatabase", tags = { "DW" })
     @GetMapping(value = "/databases")
     public EnvelopeResponse<List<String>> listDatabase() {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listDatabase(), "");
     }
 
+    @ApiOperation(value = "listTables", tags = { "DW" })
     @GetMapping(value = "/{database}/tables")
     public EnvelopeResponse<List<TableNameResponse>> listTables(@PathVariable("database") String database,
             @RequestParam("project") String project) throws Exception {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listTables(database, project), "");
     }
 
+    @ApiOperation(value = "listColumns", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/columns")
     public EnvelopeResponse listColumns(@PathVariable("database") String database,
             @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listColumns(database, table), "");
     }
 
+    @ApiOperation(value = "getTableDesc", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/desc")
     public EnvelopeResponse<String> getTableDesc(@PathVariable("database") String database,
             @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.getTableDesc(database, table), "");
     }
 
+    @ApiOperation(value = "hasPartition", tags = { "DW" })
     @GetMapping(value = "{database}/{table}/has_partition")
     public EnvelopeResponse<Boolean> hasPartition(@PathVariable("database") String database,
             @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.hasPartition(database, table), "");
     }
 
+    @ApiOperation(value = "databaseExists", tags = { "DW" })
     @GetMapping(value = "/{database}/exists")
     public EnvelopeResponse<Boolean> databaseExists(@PathVariable("database") String database) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.databaseExists(database), "");
     }
 
+    @ApiOperation(value = "tableExists", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/exists")
     public EnvelopeResponse<Boolean> tableExists(@PathVariable("database") String database,
             @PathVariable("table") String table) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.tableExists(database, table), "");
     }
 
+    @ApiOperation(value = "loadSamples", tags = { "DW" })
     @GetMapping(value = "/load_samples")
     public EnvelopeResponse<List<String>> loadSamples() throws IOException {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.loadSamples(), "");
     }
 
+    @ApiOperation(value = "msck", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/msck")
     public EnvelopeResponse<List<String>> msck(@PathVariable("database") String database,
             @PathVariable("table") String table) {

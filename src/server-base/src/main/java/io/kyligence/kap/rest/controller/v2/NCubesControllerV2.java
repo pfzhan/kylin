@@ -73,6 +73,7 @@ import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @RestController
@@ -88,6 +89,7 @@ public class NCubesControllerV2 extends NBasicController {
     @Autowired
     private ModelSemanticHelper semanticService;
 
+    @ApiOperation(value = "getCubes", tags = { "AI" })
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse getCubes(@RequestParam(value = "projectName") String project,
@@ -110,6 +112,7 @@ public class NCubesControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
 
+    @ApiOperation(value = "getCube", tags = { "AI" })
     @GetMapping(value = "/{cubeName}")
     @ResponseBody
     public EnvelopeResponse getCube(@PathVariable("cubeName") String modelAlias,
@@ -129,6 +132,7 @@ public class NCubesControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
+    @ApiOperation(value = "rebuild", tags = { "DW" })
     @PutMapping(value = "/{cubeName}/rebuild")
     @ResponseBody
     public EnvelopeResponse rebuild(@PathVariable("cubeName") String modelAlias,
@@ -185,6 +189,7 @@ public class NCubesControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
+    @ApiOperation(value = "manageSegments", tags = { "DW" })
     @PutMapping(value = "/{cubeName}/segments")
     @ResponseBody
     public EnvelopeResponse manageSegments(@PathVariable("cubeName") String modelAlias,
@@ -240,6 +245,7 @@ public class NCubesControllerV2 extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "getHoles", tags = { "DW" })
     @GetMapping(value = "/{cubeName}/holes")
     @ResponseBody
     public EnvelopeResponse getHoles(@PathVariable("cubeName") String modelAlias,
@@ -272,6 +278,7 @@ public class NCubesControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, holes, "");
     }
 
+    @ApiOperation(value = "getSql", tags = { "AI" })
     @GetMapping(value = "/{cubeName}/sql")
     @ResponseBody
     public EnvelopeResponse getSql(@PathVariable("cubeName") String modelAlias,

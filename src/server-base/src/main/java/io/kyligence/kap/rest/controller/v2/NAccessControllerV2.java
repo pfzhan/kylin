@@ -56,6 +56,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
@@ -90,6 +91,7 @@ public class NAccessControllerV2 extends NBasicController {
      * @return
      * @throws IOException
      */
+    @ApiOperation(value = "getAllAccessEntitiesOfUser", tags = { "MID" })
     @GetMapping(value = "/{userName:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -110,6 +112,7 @@ public class NAccessControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataList, "");
     }
 
+    @ApiOperation(value = "getAccessEntities", tags = { "MID" })
     @GetMapping(value = "/{type}/{project}", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

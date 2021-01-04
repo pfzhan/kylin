@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -47,10 +48,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.controller.NBasicController;
-import org.apache.kylin.job.constant.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
@@ -65,6 +66,7 @@ public class NJobControllerV2 extends NBasicController {
     @Autowired
     public AclEvaluate aclEvaluate;
 
+    @ApiOperation(value = "resume", tags = { "DW" })
     @PutMapping(value = "/{jobId}/resume")
     @ResponseBody
     public EnvelopeResponse<ExecutableResponse> resume(@PathVariable(value = "jobId") String jobId) throws IOException {
@@ -75,6 +77,7 @@ public class NJobControllerV2 extends NBasicController {
                 jobService.manageJob(jobInstance.getProject(), jobInstance, JobActionEnum.RESUME.toString()), "");
     }
 
+    @ApiOperation(value = "getJobList", tags = { "DW" })
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse getJobList(

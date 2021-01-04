@@ -121,7 +121,7 @@ public class NQueryController extends NBasicController {
     @Autowired
     private ClusterManager clusterManager;
 
-    @ApiOperation(value = "query", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
+    @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
@@ -130,6 +130,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
+    @ApiOperation(value = "cancelQuery", tags = { "QE" })
     @DeleteMapping(value = "/{id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> stopQuery(@PathVariable("id") String id) {
@@ -140,6 +141,7 @@ public class NQueryController extends NBasicController {
 
     // TODO should be just "prepare" a statement, get back expected ResultSetMetaData
 
+    @ApiOperation(value = "prepareStatement", tags = { "QE" })
     @PostMapping(value = "/prestate")
     @ResponseBody
     public EnvelopeResponse<SQLResponse> prepareQuery(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
@@ -153,6 +155,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
     }
 
+    @ApiOperation(value = "savedQueries", tags = { "QE" })
     @PostMapping(value = "/saved_queries")
     public EnvelopeResponse<String> saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
         String queryName = sqlRequest.getName();
@@ -164,6 +167,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "removeSavedQueries", tags = { "QE" })
     @DeleteMapping(value = "/saved_queries/{id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeSavedQuery(@PathVariable("id") String id,
@@ -174,6 +178,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "getSavedQueries", tags = { "QE" })
     @GetMapping(value = "/saved_queries")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<Query>>> getSavedQueries(@RequestParam(value = "project") String project,
@@ -186,7 +191,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(savedQueries, offset, limit), "");
     }
 
-    @ApiOperation(value = "getQueryHistories", notes = "Update Param: start_time_from, start_time_to, latency_from, latency_to")
+    @ApiOperation(value = "getQueryHistories", tags = { "QE" }, notes = "Update Param: start_time_from, start_time_to, latency_from, latency_to")
     @GetMapping(value = "/history_queries")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getQueryHistories(@RequestParam(value = "project") String project,
@@ -208,7 +213,7 @@ public class NQueryController extends NBasicController {
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
     }
 
-    @ApiOperation(value = "getQueryHistories", notes = "Update Param: start_time_from, start_time_to")
+    @ApiOperation(value = "getQueryHistories", tags = { "QE" }, notes = "Update Param: start_time_from, start_time_to")
     @GetMapping(value = "/query_histories")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getQueryHistories(@RequestParam(value = "project") String project,
@@ -224,6 +229,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistories, "");
     }
 
+    @ApiOperation(value = "getServers", tags = { "QE" })
     @GetMapping(value = "/servers")
     @ResponseBody
     public EnvelopeResponse<List> getServers(

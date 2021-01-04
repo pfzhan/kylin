@@ -34,10 +34,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.swagger.annotations.ApiOperation;
+
 @Controller
 @RequestMapping(value = "/api/config", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NConfigController extends NBasicController {
 
+    @ApiOperation(value = "is cloud", tags = { "MID" })
     @GetMapping(value = "/is_cloud")
     @ResponseBody
     public EnvelopeResponse<Boolean> isCloud() {
