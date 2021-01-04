@@ -2,7 +2,7 @@
   <div class="result_box">
     <div class="ksd-title-label-small ksd-mb-10">{{$t('queryResults')}}</div>
     <el-alert
-      :title="$t('noModelRangeTips')"
+      :title="noModelRangeTips"
       type="warning"
       class="ksd-mb-10"
       v-if="isShowNotModelRangeTips"
@@ -198,7 +198,8 @@ import echarts from 'echarts'
       queryResults: 'Query Results',
       exportCSV: 'Export to CSV',
       linkToSpark: 'Jump to Spark Web UI',
-      noModelRangeTips: 'The query is out of the data range for serving queries. Please add segment accordingly.',
+      noModelRangeTips: 'The query is out of the data range for serving queries. Please add segments accordingly.',
+      noModelRangeTips2: 'The query is out of the data range for serving queries. Please add segments or subpartitions accordingly.',
       dataBtn: 'Data',
       visualizationBtn: 'Visualization',
       chartType: 'Chart Types',
@@ -237,7 +238,8 @@ import echarts from 'echarts'
       queryResults: '查询结果',
       exportCSV: '导出 CSV',
       linkToSpark: '跳转至 Spark 任务详情',
-      noModelRangeTips: '当前查询不在模型服务的数据范围内。请添加相应 Segment。',
+      noModelRangeTips: '当前查询超出模型服务的数据范围。请添加相应 Segment。',
+      noModelRangeTips2: '当前查询超出模型服务的数据范围。请添加相应 Segment 或子分区。',
       dataBtn: '数据',
       visualizationBtn: '可视化',
       chartType: '图表类型',
@@ -513,6 +515,9 @@ export default class queryResult extends Vue {
       }
     }
     return isAnyNull
+  }
+  get noModelRangeTips () {
+    return this.$store.state.project.multi_partition_enabled ? this.$t('noModelRangeTips2') : this.$t('noModelRangeTips')
   }
   filterTableData () {
     if (this.resultFilter) {
