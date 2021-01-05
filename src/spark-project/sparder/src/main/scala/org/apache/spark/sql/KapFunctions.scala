@@ -47,7 +47,7 @@ object KapFunctions {
 
   def kap_day_of_week(date: Column): Column = Column(KapDayOfWeek(date.expr))
 
-  def k_like(left: Column, right: Column): Column = Column(Like(left.expr, right.expr))
+  def k_like(left: Column, right: Column, escapeChar: Char = '\\'): Column = Column(Like(left.expr, right.expr, escapeChar))
 
   def k_similar(left: Column, right: Column): Column = Column(RLike(left.expr, right.expr))
 

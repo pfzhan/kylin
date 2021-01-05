@@ -78,8 +78,19 @@ object ExpressionConverter {
         assert(children.size == 1)
         k_lit(children.head).isNotNull
       case LIKE =>
-        assert(children.size == 2)
-        k_like(k_lit(children.head), k_lit(children.last))
+        if (children.length == 3) {
+          if (!children.last.isInstanceOf[java.lang.String] || children.last.asInstanceOf[java.lang.String].length != 1) {
+            throw new UnsupportedOperationException(
+            s"Invalid paramters for LIKE ESCAPE, expecting a single char for ESCAPE")
+          }
+          val escapeChar = children.last.asInstanceOf[java.lang.String].charAt(0)
+          k_like(k_lit(children.head), k_lit(children(1)), escapeChar)
+        } else if (children.length == 2) {
+          k_like(k_lit(children.head), k_lit(children.last))
+        } else {
+          throw new UnsupportedOperationException(
+            s"Invalid paramters for LIKE, expecting LIKE ... , LIKE ... ESCAPE ... ")
+        }
       case SIMILAR =>
         assert(children.size == 2)
         k_similar(k_lit(children.head), k_lit(children.last))

@@ -235,7 +235,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
 
         assertResultsAndScanFiles(dfId, chinese0, 1, false, Lists.newArrayList());
-        assertResultsAndScanFiles(dfId, chinese1, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, chinese1, 4, false, Lists.newArrayList());
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", chinese0));
