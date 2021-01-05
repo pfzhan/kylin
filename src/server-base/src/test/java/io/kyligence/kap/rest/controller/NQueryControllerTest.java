@@ -384,7 +384,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryHistoryService.getQueryHistories(request, 3, 2)).thenReturn(data);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
-                .param("offset", "2").param("limit", "3").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .param("page_offset", "2").param("page_size", "3").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories.length()").value(3))
@@ -400,7 +400,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryHistoryService.getQueryHistories(request, 6, 2)).thenReturn(dataWithNullHistories);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
-                .param("offset", "2").param("limit", "6").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .param("page_offset", "2").param("page_size", "6").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6));
     }
