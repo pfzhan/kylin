@@ -93,6 +93,15 @@ public class ColumnRowType {
         return -1;
     }
 
+    public int getIndexByCanonicalName(String columnName) {
+        for (int i = 0; i < columns.size(); i++) {
+            if (columns.get(i).getCanonicalName().equalsIgnoreCase(columnName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public int getIndexByNameAndByContext(OLAPContext ctx, String columnName) {
         for (int i = 0; i < columns.size(); i++) {
             TblColRef colRef = columns.get(i);

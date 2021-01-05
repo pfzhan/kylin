@@ -305,6 +305,10 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         update.setStatus(RealizationStatusEnum.ONLINE);
         dataflowManager.updateDataflow(update);
 
+        dataflowManager.updateDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", d -> {
+            d.setStatus(RealizationStatusEnum.OFFLINE);
+        });
+
         val range = dataLoadingRangeManager.getQuerableSegmentRange(loadingRange);
         Assert.assertEquals("2010-12-24 20:33:39.000", DateFormat.formatToTimeStr(Long.parseLong(range.getStart().toString())));
         Assert.assertEquals("2011-05-18 09:00:19.000", DateFormat.formatToTimeStr(Long.parseLong(range.getEnd().toString())));

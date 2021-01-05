@@ -33,6 +33,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
@@ -56,6 +57,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
     private static final String DF_NAME1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+    private static final String DF_NAME2 = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
 
     private static final String SQL = "select\n" + " count(1) as TRANS_CNT \n" + " from test_kylin_fact \n"
             + " group by trans_id";
@@ -96,6 +98,10 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testEmptySegments() throws Exception {
+        NDataflowManager.getInstance(config, getProject()).updateDataflow(DF_NAME2, d -> {
+            d.setStatus(RealizationStatusEnum.OFFLINE);
+        });
+
         cleanupSegments(DF_NAME1);
 
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
@@ -118,6 +124,10 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
         testQuery(SQL);
         testQuery(SQL_DERIVED);
+
+        NDataflowManager.getInstance(config, getProject()).updateDataflow(DF_NAME2, d -> {
+            d.setStatus(RealizationStatusEnum.ONLINE);
+        });
     }
 
     private void cleanupSegments(String dfName) {

@@ -33,9 +33,14 @@ import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
-
 import java.io.File
 import java.util.TimeZone
+
+import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.model.NDataModel
+import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 
@@ -127,6 +132,12 @@ class TestQueryAndBuildFunSuite
   // opt memory
   conf.set("spark.shuffle.detectCorrupt", "false")
 
+  private val DF_NAME = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96"
+
+  case class Updater(status: RealizationStatusEnum) extends NDataflowUpdater {
+    override def modify(copyForWrite: NDataflow): Unit = copyForWrite.setStatus(status)
+  }
+
   override def beforeAll(): Unit = {
     Unsafe.setProperty("calcite.keep-in-clause", "true")
     Unsafe.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
@@ -136,6 +147,8 @@ class TestQueryAndBuildFunSuite
     logInfo(s"Curren time zone set to $timeZoneStr")
 
     super.beforeAll()
+    NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
+      .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown.runner-class-name", "")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.query.pushdown-enabled", "false")
     KylinConfig.getInstanceFromEnv.setProperty("kylin.snapshot.parallel-build-enabled", "true")
@@ -147,6 +160,8 @@ class TestQueryAndBuildFunSuite
   }
 
   override def afterAll(): Unit = {
+    NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
+      .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
     SparderEnv.cleanCompute()
     TimeZone.setDefault(defaultTimeZone)
     Unsafe.clearProperty("calcite.keep-in-clause")

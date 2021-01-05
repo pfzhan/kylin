@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -61,6 +60,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.alibaba.ttl.TtlRunnable;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -122,6 +123,9 @@ public class RealizationChooser {
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>(), new NamedThreadFactory("RealizationChooserRunner"),
             new ThreadPoolExecutor.CallerRunsPolicy());
+    
+    private static Cache<SQLDigest, Candidate> candidateCache = CacheBuilder.newBuilder().maximumSize(3000)
+            .expireAfterWrite(1, TimeUnit.DAYS).build();
 
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
@@ -131,7 +135,6 @@ public class RealizationChooser {
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
         // try different model for different context
-        Map<SQLDigest, Candidate> candidateCache = new ConcurrentHashMap<>();
         for (OLAPContext ctx : contexts) {
             if (ctx.isConstantQueryWithAggregations()) {
                 continue;
@@ -145,7 +148,6 @@ public class RealizationChooser {
     public static void multiThreadSelectLayoutCandidate(List<OLAPContext> contexts) {
         ArrayList<Future> futureList = Lists.newArrayList();
         try {
-            Map<SQLDigest, Candidate> candidateCache = new ConcurrentHashMap<>();
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             String project = QueryContext.current().getProject();
             String queryId = QueryContext.current().getQueryId();
@@ -195,7 +197,7 @@ public class RealizationChooser {
     }
 
     @VisibleForTesting
-    public static void attemptSelectCandidate(OLAPContext context, Map<SQLDigest, Candidate> candidateCache) {
+    public static void attemptSelectCandidate(OLAPContext context, Cache<SQLDigest, Candidate> candidateCache) {
         context.setHasSelected(true);
         // Step 1. get model through matching fact table with query
         Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
@@ -263,7 +265,7 @@ public class RealizationChooser {
 
     private static Candidate selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
             Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap,
-            Map<SQLDigest, Candidate> candidateCache) {
+            Cache<SQLDigest, Candidate> candidateCache) {
         final Map<String, String> map = matchJoins(model, context, isPartialMatch);
         if (map == null) {
             return null;

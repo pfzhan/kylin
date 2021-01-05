@@ -56,6 +56,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -89,6 +90,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -102,6 +104,9 @@ import lombok.extern.slf4j.Slf4j;
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
 
     private static final String CONVERT_TO_CC_ERROR_MSG = "Something unexpected while ConvertToComputedColumn transforming the query, return original query.";
+
+    private static Map<String, String> calciteExtrasProperties = KylinConfig.getInstanceFromEnv()
+            .getCalciteExtrasProperties();
 
     @Override
     public String transform(String originSql, String project, String defaultSchema) {
@@ -120,7 +125,11 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     public String transformImpl(String originSql, String project, String defaultSchema) throws SqlParseException {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<NDataModel> dataModelDescs = dataflowManager.listUnderliningDataModels();
+        List<NDataModel> dataModelDescs = dataflowManager.listOnlineDataModels().stream()
+                .filter(m -> !m.getComputedColumnDescs().isEmpty()).collect(Collectors.toList());
+        if (dataModelDescs.isEmpty()) {
+            return originSql;
+        }
         return transformImpl(originSql, project, defaultSchema, dataModelDescs);
     }
 
@@ -322,7 +331,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     private static String getCalciteConformance() {
         try {
-            return KylinConfig.getInstanceFromEnv().getCalciteExtrasProperties().get("conformance");
+            return calciteExtrasProperties.get("conformance");
         } catch (Throwable e) {
             return "DEFAULT";
         }
@@ -512,8 +521,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         Ordering<ComputedColumnDesc> ordering = Ordering.from(new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {
-                return Integer.compare(o1.replaceAll("\\s*", StringUtils.EMPTY).length(),
-                        o2.replaceAll("\\s*", StringUtils.EMPTY).length());
+                return Integer.compare(o1.length(), o2.length());
             }
         }).reverse().nullsLast().onResultOf(new Function<ComputedColumnDesc, String>() {
             @Nullable
@@ -524,6 +532,21 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         });
 
         return ordering.immutableSortedCopy(computedColumns);
+    }
+
+    private static final Set<Character> spaceSet = Sets.newHashSet(' ', '\t', '\n');
+
+    private static int countIgnoreSpace(String str) {
+        if (StringUtils.isEmpty(str)) {
+            return 0;
+        }
+        int len = 0;
+        for (char c : str.toCharArray()) {
+            if (!spaceSet.contains(c)) {
+                len++;
+            }
+        }
+        return len;
     }
 
     static class SqlTreeVisitor implements SqlVisitor<SqlNode> {

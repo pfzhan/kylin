@@ -6,7 +6,7 @@
   "owner" : "test_owner",
   "mp_values" : null,
   "create_time_utc" : 1509791792901,
-  "status" : "OFFLINE",
+  "status" : "ONLINE",
   "cost" : 50,
   "segments" : [ {
     "id" : "11124840-b3e3-43db-bcab-2b78da666d00",

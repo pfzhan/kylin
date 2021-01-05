@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
+import com.google.common.cache.Cache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -76,7 +76,7 @@ public class QueryRouter {
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
     public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations,
-            Map<String, String> aliasMap, Map<SQLDigest, Candidate> candidateCache) {
+            Map<String, String> aliasMap, Cache<SQLDigest, Candidate> candidateCache) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         IRealization readyReal = null;
@@ -100,9 +100,9 @@ public class QueryRouter {
         SQLDigest sqlDigest = olapContext.getSQLDigest();
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (kylinConfig.isUseQueryRealizationChooserCache() && candidateCache.get(sqlDigest) != null
-                && candidateCache.get(sqlDigest).getRealization() == readyReal) {
-            Candidate candidate = candidateCache.get(sqlDigest);
+        if (kylinConfig.isUseQueryRealizationChooserCache() && candidateCache.getIfPresent(sqlDigest) != null
+                && candidateCache.getIfPresent(sqlDigest).getRealization() == readyReal) {
+            Candidate candidate = candidateCache.getIfPresent(sqlDigest);
             candidate.setRewrittenCtx(preserveRewriteProps(olapContext));
             return candidate;
         }

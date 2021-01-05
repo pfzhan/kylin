@@ -26,7 +26,6 @@ package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +55,6 @@ import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 import org.apache.kylin.query.schema.OLAPTable;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -179,8 +177,9 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
             return;
         }
 
-        Map<Integer, RelDataTypeField> needReplaceCCFieldList = replaceCcFiledWithOriginInnerCol();
-        List<RelDataTypeField> newFieldList = rebuildMissPreCalcField();
+        List<RelDataTypeField> newFieldList = Lists.newLinkedList();
+        Map<Integer, RelDataTypeField> needReplaceCCFieldList = replaceCcFiledWithOriginInnerCol(newFieldList);
+        newFieldList.addAll(rebuildMissPreCalcField());
 
         // rebuild row type
         if (!newFieldList.isEmpty() && needReplaceCCFieldList.isEmpty()) {
@@ -209,7 +208,9 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         if (isMerelyPermutation || this.rewriting || this.afterAggregate)
             return;
 
-        ContextUtil.updateSubContexts(this.columnRowType.getSourceColumns().stream().flatMap(Collection::stream).collect(Collectors.toSet()), subContexts);
+        ContextUtil.updateSubContexts(
+                this.columnRowType.getSourceColumns().stream().flatMap(Collection::stream).collect(Collectors.toSet()),
+                subContexts);
     }
 
     @Override
@@ -222,10 +223,11 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         this.subContexts = contexts;
     }
 
-    private Map<Integer, RelDataTypeField> replaceCcFiledWithOriginInnerCol() {
+    private Map<Integer, RelDataTypeField> replaceCcFiledWithOriginInnerCol(List<RelDataTypeField> newFieldList) {
         Map<Integer, RelDataTypeField> needReplaceCCFieldList = Maps.newHashMap();
         Map<Integer, RexNode> posInTupleToCcCol = Maps.newHashMap();
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        int paramIndex = this.rowType.getFieldList().size();
         for (Map.Entry<TblColRef, TblColRef> originExprToCcCol : this.context.getGroupCCColRewriteMapping()
                 .entrySet()) {
             String replaceCCField = originExprToCcCol.getValue().getName();
@@ -234,13 +236,20 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
                 continue;
             }
 
+            RelDataType ccFieldType = OLAPTable.createSqlType(getCluster().getTypeFactory(),
+                    originExprToCcCol.getValue().getType(), true);
             int originExprIndex = findInnerColPosInPrjRelRowType(originExprToCcCol.getKey(), this);
-            Preconditions.checkArgument(originExprIndex >= 0,
-                    "The origin Computed Column Expression is not existed in {}", this);
+            if (originExprIndex < 0) {
+                newFieldList.add(new RelDataTypeFieldImpl(replaceCCField, paramIndex++, ccFieldType));
+                int idx = inputColumnRowType.getIndexByNameAndByContext(this.context, replaceCCField);
+                RelDataTypeField inputField = getInput().getRowType().getFieldList().get(idx);
+                List<RexNode> newRewriteProjects = Lists.newArrayList(this.rewriteProjects);
+                newRewriteProjects.add(new RexInputRef(inputField.getIndex(), inputField.getType()));
+                this.rewriteProjects = newRewriteProjects;
+                continue;
+            }
             int ccColInInputIndex = inputColumnRowType.getIndexByNameAndByContext(this.context, replaceCCField);
             if (ccColInInputIndex >= 0) {
-                RelDataType ccFieldType = OLAPTable.createSqlType(getCluster().getTypeFactory(),
-                        originExprToCcCol.getValue().getType(), true);
                 RelDataTypeField newCcFiled = new RelDataTypeFieldImpl(replaceCCField, originExprIndex, ccFieldType);
                 needReplaceCCFieldList.put(originExprIndex, newCcFiled);
                 RelDataTypeField inputField = getInput().getRowType().getFieldList().get(ccColInInputIndex);
@@ -259,12 +268,35 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     }
 
     private List<RelDataTypeField> rebuildMissPreCalcField() {
-
-        // find missed rewrite fields
-        List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
-        int paramIndex = this.rowType.getFieldList().size();
-        List<RexNode> newExpList = new ArrayList<RexNode>(this.rewriteProjects);
+        List<RelDataTypeField> newFieldList = Lists.newLinkedList();
+        List<RexNode> newExpList = Lists.newArrayList();
+        List<RelDataTypeField> inputFieldList = getInput().getRowType().getFieldList();
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+
+        // rebuild origin column
+        List<TblColRef> allColumns = this.columnRowType.getAllColumns();
+        for (int i = 0; i < this.rewriteProjects.size(); i++) {
+            RexNode rexNode = this.rewriteProjects.get(i);
+            if (i >= allColumns.size() || !(rexNode instanceof RexInputRef)) {
+                newExpList.add(rexNode);
+                continue;
+            }
+            String inputColumnName = inputColumnRowType.getAllColumns().get(((RexInputRef) rexNode).getIndex())
+                    .getCanonicalName();
+            String currentColumnName = allColumns.get(i).getCanonicalName();
+            int actualIndex = inputColumnRowType.getIndexByCanonicalName(currentColumnName);
+            if (!inputColumnName.equals(currentColumnName) && actualIndex >= 0) {
+                // need rebuild
+                RelDataTypeField inputField = inputFieldList.get(actualIndex);
+                RexInputRef newFieldRef = new RexInputRef(actualIndex, inputField.getType());
+                newExpList.add(newFieldRef);
+            } else {
+                newExpList.add(rexNode);
+            }
+        }
+
+        // rebuild pre-calculate column
+        int paramIndex = this.rowType.getFieldList().size();
         for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
             String rewriteFieldName = rewriteField.getKey();
             int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
@@ -278,7 +310,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
                 RelDataTypeField newField = new RelDataTypeFieldImpl(rewriteFieldName, paramIndex++, fieldType);
                 newFieldList.add(newField);
                 // new project
-                RelDataTypeField inputField = getInput().getRowType().getFieldList().get(inputIndex);
+                RelDataTypeField inputField = inputFieldList.get(inputIndex);
                 RexInputRef newFieldRef = new RexInputRef(inputField.getIndex(), inputField.getType());
                 newExpList.add(newFieldRef);
             }

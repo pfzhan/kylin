@@ -97,6 +97,7 @@ public class QueryContextCutter {
         // post-order travel children
         OLAPRel.OLAPImplementor kapImplementor = new OLAPRel.OLAPImplementor();
         kapImplementor.visitChild(queryRoot.getInput(0), queryRoot);
+        QueryContext.current().record("collect_olap_context_info");
         // identify model
         List<OLAPContext> contexts = ContextUtil.listContextsHavingScan();
 

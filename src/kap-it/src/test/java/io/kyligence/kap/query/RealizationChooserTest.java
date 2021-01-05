@@ -26,7 +26,10 @@ package io.kyligence.kap.query;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
@@ -102,7 +105,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.match-partial-inner-join-model", "true");
         Assert.assertFalse(RealizationChooser.matchJoins(dataModel1, context).isEmpty());
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
-        RealizationChooser.attemptSelectCandidate(context, Maps.newHashMap());
+        RealizationChooser.attemptSelectCandidate(context, CacheBuilder.newBuilder().maximumSize(10)
+                .expireAfterWrite(1, TimeUnit.DAYS).build());
         Assert.assertEquals(context.storageContext.getCandidate().getCuboidLayout().getModel().getId(), dataflow);
 
     }
@@ -127,7 +131,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
-        RealizationChooser.attemptSelectCandidate(context, Maps.newHashMap());
+        RealizationChooser.attemptSelectCandidate(context, CacheBuilder.newBuilder().maximumSize(10)
+                .expireAfterWrite(1, TimeUnit.DAYS).build());
         Assert.assertEquals("nmodel_basic_inner", context.realization.getModel().getAlias());
     }
 
@@ -146,11 +151,12 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(kylinConfig.base());
 
-        Map<SQLDigest, Candidate> candidateCache = Maps.newHashMap();
+        Cache<SQLDigest, Candidate> candidateCache = CacheBuilder.newBuilder().maximumSize(10)
+                .expireAfterWrite(1, TimeUnit.DAYS).build();
         RealizationChooser.attemptSelectCandidate(context, candidateCache);
         Assert.assertEquals(1, candidateCache.size());
         RealizationChooser.attemptSelectCandidate(context, candidateCache);
-        Assert.assertEquals(context.realization, candidateCache.get(context.getSQLDigest()).getRealization());
+        Assert.assertEquals(context.realization, candidateCache.getIfPresent(context.getSQLDigest()).getRealization());
         overwriteSystemProp("kylin.query.realization.chooser.cache-enabled", "false");
     }
 
@@ -504,7 +510,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
-        RealizationChooser.attemptSelectCandidate(context, Maps.newHashMap());
+        RealizationChooser.attemptSelectCandidate(context,
+                CacheBuilder.newBuilder().maximumSize(10).expireAfterWrite(1, TimeUnit.DAYS).build());
 
         if (expectedLayoutId == -1L) {
             Assert.assertTrue(context.storageContext.isEmptyLayout());

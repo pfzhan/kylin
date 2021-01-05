@@ -29,7 +29,12 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.kyligence.kap.query.engine.mask.QueryResultMasks;
+import io.kyligence.kap.query.optrule.KapFilterRule;
+import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
+import io.kyligence.kap.query.optrule.KapProjectMergeRule;
+import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
 import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -42,8 +47,12 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutorImpl;
@@ -164,6 +173,10 @@ public class QueryExec {
         if (kylinConfig.isConvertSumExpressionEnabled()) {
             node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
         }
+        node = HepUtils.runRuleCollection(node,
+                ImmutableList.of(KapProjectJoinTransposeRule.INSTANCE, KapProjectMergeRule.INSTANCE,
+                        KapProjectRule.INSTANCE, KapFilterRule.INSTANCE, new ProjectFilterTransposeRule(Project.class,
+                                Filter.class, RelFactories.LOGICAL_BUILDER, PushProjector.ExprCondition.FALSE)));
         return node;
     }
 

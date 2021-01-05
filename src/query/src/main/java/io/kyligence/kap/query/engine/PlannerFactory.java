@@ -90,7 +90,6 @@ import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
 import io.kyligence.kap.query.optrule.KapMinusRule;
 import io.kyligence.kap.query.optrule.KapOLAPToEnumerableConverterRule;
-import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSortRule;
@@ -272,7 +271,6 @@ public class PlannerFactory {
         // see KAP#16036
         planner.removeRule(UnionMergeRule.INSTANCE);
 
-        planner.addRule(KapProjectJoinTransposeRule.INSTANCE);
         planner.removeRule(ProjectRemoveRule.INSTANCE);
 
         //KE-15015

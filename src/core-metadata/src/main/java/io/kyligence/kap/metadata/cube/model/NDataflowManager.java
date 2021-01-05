@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.model;
 
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -207,6 +208,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     public List<NDataModel> listUnderliningDataModels(boolean includeBroken) {
         val dataflows = listAllDataflows(includeBroken);
         return dataflows.stream().map(NDataflow::getModel).collect(Collectors.toList());
+    }
+
+    public List<NDataModel> listOnlineDataModels() {
+        return listAllDataflows(false).stream().filter(d -> d.getStatus() == ONLINE).map(NDataflow::getModel)
+                .collect(Collectors.toList());
     }
 
     public Map<String, List<NDataModel>> getModelsGroupbyTable() {

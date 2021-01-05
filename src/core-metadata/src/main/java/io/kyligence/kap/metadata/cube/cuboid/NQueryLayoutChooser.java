@@ -123,7 +123,7 @@ public class NQueryLayoutChooser {
                 unmatchedCols.addAll(sqlDigest.allColumns);
                 matched = matchTableIndex(cuboid.getLayout(), configOfDataflow, unmatchedCols, needDerive,
                         tempResult);
-                if (!matched) {
+                if (!matched && logger.isDebugEnabled()) {
                     logger.debug("Table index {} with unmatched columns {}", cuboid, unmatchedCols);
                 }
             }
@@ -132,7 +132,7 @@ public class NQueryLayoutChooser {
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
                 matched = matchAggIndex(sqlDigest, cuboid.getLayout(), configOfDataflow, unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
-                if (!matched) {
+                if (!matched && logger.isDebugEnabled()) {
                     logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", cuboid,
                             unmatchedCols, unmatchedMetrics);
                 }
