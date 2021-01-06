@@ -77,6 +77,8 @@ public class DateFormatTest {
 
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01"));
 
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01T01:01:01.000Z"));
+
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-1-1"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010/1/1"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010.1.1"));
