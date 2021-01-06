@@ -30,12 +30,12 @@
                   <p class="info-block">
                     <span class="info-title">{{$t('useageMana')}}</span>
                     <span class="useage" v-if="quotaInfo.total_storage_size>=0">{{useageRatio*100 | fixed(2)}}%</span>
-                    <span v-else>--</span>
+                    <span v-else>-</span>
                   </p>
                   <p class="info-block">
                     <span  class="info-title">{{$t('trash')}}</span>
                     <span class="trash" v-if="quotaInfo.garbage_storage_size>=0">{{trashRatio*100 | fixed(2)}}%</span>
-                    <span v-else>--</span>
+                    <span v-else>-</span>
                   </p>
                 </el-popover>
                 <div class="quota-chart" :class="{'is_no_quota': isNoQuota}" v-popover:popover>
@@ -53,17 +53,17 @@
                     <span v-if="quotaInfo.storage_quota_size>=0">
                       <span class="ksd-fs-28">{{quotaTotalSize.size}}</span> <span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
                     </span>
-                    <span class="ksd-fs-28" v-else>--</span>
+                    <span class="ksd-fs-28" v-else>-</span>
                   </div>
                   <div class="info-title ksd-mt-15">{{$t('useageMana')}}</div>
                   <div class="useage">
                     <span v-if="quotaInfo.total_storage_size>=0">{{quotaInfo.total_storage_size | dataSize}}</span>
-                    <span v-else>--</span>
+                    <span v-else>-</span>
                   </div>
                   <div class="info-title ksd-mt-15">{{$t('trash')}}</div>
                   <div class="trash">
                     <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
-                    <span v-else>--</span><common-tip placement="right" :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
+                    <span v-else>-</span><common-tip placement="right" :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
                       <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
                       :class="{'is_no_quota': isNoQuota, 'is-disabled': !quotaInfo.garbage_storage_size || quotaInfo.garbage_storage_size === -1}"
                     @click="clearStorage"></i>

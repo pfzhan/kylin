@@ -1170,11 +1170,10 @@ export default class ModelEdit extends Vue {
     const [database, table] = this.currentDragTable.split('.')
     const tables = databaseArray.filter(it => it.label === database).length ? databaseArray.filter(it => it.label === database)[0].children : []
     let tableIsFact = tables.filter(item => item.label === table && item.__data.root_fact).length > 0
-    if (Object.keys(this.modelInstance.tables).length === 1) {
-      if (tableIsFact) {
-        this.modelInstance.changeTableType(this.modelInstance.getTableByGuid(Object.keys(this.modelInstance.tables)[0]))
-        return
-      }
+    const currentTablesIncludeFact = Object.values(this.modelInstance.tables).filter(it => it.kind === 'FACT')
+    if (!currentTablesIncludeFact.length && tableIsFact) {
+      this.modelInstance.changeTableType(this.modelInstance.getTableByGuid(Object.keys(this.modelInstance.tables).pop()))
+    } else if (Object.keys(this.modelInstance.tables).length === 1) {
       this.editTable(Object.keys(this.modelInstance.tables)[0])
     }
     this.currentDragTableData = {}

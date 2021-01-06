@@ -266,7 +266,7 @@
           width="170px"
           :render-header="renderExpansionRateHeader">
           <template slot-scope="scope">
-              <span v-if="scope.row.storage < 1073741824">--</span>
+              <span v-if="scope.row.storage < 1073741824">-</span>
               <span v-else-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
               <span v-else class="is-disabled">{{$t('tentative')}}</span>
           </template>

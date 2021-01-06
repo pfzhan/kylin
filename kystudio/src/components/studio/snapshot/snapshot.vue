@@ -98,7 +98,7 @@
       </el-table-column>
       <el-table-column prop="last_modified_time" sortable="custom" width="180" show-overflow-tooltip :label="$t('modifyTime')">
         <template slot-scope="scope">
-          <span v-if="!scope.row.last_modified_time">--</span>
+          <span v-if="!scope.row.last_modified_time">-</span>
           <span v-else>{{scope.row.last_modified_time | toServerGMTDate}}</span>
         </template>
       </el-table-column>
