@@ -1004,7 +1004,7 @@ public class NModelController extends NBasicController {
     @PutMapping(value = "/{model:.+}/multi_partition/mapping")
     @ResponseBody
     public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model") String modelId,
-            @RequestBody MultiPartitionMappingRequest mappingRequest) throws Exception {
+            @RequestBody MultiPartitionMappingRequest mappingRequest) {
         checkProjectName(mappingRequest.getProject());
         modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

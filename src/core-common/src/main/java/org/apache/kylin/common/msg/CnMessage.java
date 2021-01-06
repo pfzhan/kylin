@@ -540,6 +540,11 @@ public class CnMessage extends Message {
         return "非法用户！仅系统管理员和该项目的管理员可以被设置成项目的所有者。";
     }
 
+    @Override
+    public String getPROJECT_DISABLE_MLP() {
+        return "此项目未开启多级分区，多级分区无法使用。请开启后重试。";
+    }
+
     // Table
     public String getHIVE_TABLE_NOT_FOUND() {
         return "找不到 Hive 表 '%s'";
@@ -1666,8 +1671,9 @@ public class CnMessage extends Message {
         return "当前 Segments 所包含的索引不一致，请先构建索引并确保其一致后再合并。";
     }
 
+    @Override
     public String getSegmentMergePartitionConflictError() {
-        return "当前 segments 所包含的分区数不一致，请先构建分区并确保其一致后再合并";
+        return "当前 segments 所包含的分区不一致，请先构建分区并确保其一致后再合并";
     }
 
     @Override

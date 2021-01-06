@@ -3575,7 +3575,7 @@ public class ModelService extends BasicService {
             val partitionValues = request.getValueMapping().stream().map(pair -> pair.getFirst().toArray(new String[0]))
                     .collect(Collectors.toList());
             for (MultiPartitionDesc.PartitionInfo partitionInfo : multiPartitionDesc.getPartitions()) {
-                if (!partitionValues.stream().anyMatch(value -> Arrays.equals(value, partitionInfo.getValues()))) {
+                if (partitionValues.stream().noneMatch(value -> Arrays.equals(value, partitionInfo.getValues()))) {
                     throw new KylinException(INVALID_MULTI_PARTITION_MAPPING_REQUEST,
                             msg.getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID());
                 }

@@ -37,7 +37,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
@@ -81,13 +80,13 @@ import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.PartitionsBuildRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
@@ -109,9 +108,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     private AclEvaluate aclEvaluate;
 
     @Mock
-    private ProjectService projectService;
-
-    @Mock
     private RawRecService rawRecService;
 
     @InjectMocks
@@ -131,14 +127,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectWritePermission(Mockito.any());
         Mockito.doReturn(true).when(aclEvaluate).hasProjectOperationPermission(Mockito.any());
         Mockito.doNothing().when(rawRecService).transferAndSaveRecommendations(Mockito.any());
-        ProjectInstance projectInstance = new ProjectInstance();
-        projectInstance.setName("default");
-        Mockito.doReturn(Lists.newArrayList(projectInstance)).when(projectService)
-                .getReadableProjects(projectInstance.getName(), true);
     }
 
     @Before
-    public void setupResource() throws Exception {
+    public void setupResource() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
@@ -497,12 +489,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateMultiPartitionMapping() throws Exception {
-        String modelName = "default_model_name";
-        String project = "default";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         mockGetModelName(modelName, project, modelId);
         MultiPartitionMappingRequest request = new MultiPartitionMappingRequest();
-        request.setProject("default");
+        request.setProject("multi_level_partition");
         Mockito.doNothing().when(modelService).updateMultiPartitionMapping(request.getProject(),
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/multi_partition/mapping", modelName)
@@ -514,12 +506,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBuildMultiPartition() throws Exception {
-        String modelName = "default_model_name";
-        String project = "default";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         mockGetModelName(modelName, project, modelId);
         PartitionsBuildRequest request = new PartitionsBuildRequest();
-        request.setProject("default");
+        request.setProject("multi_level_partition");
         Mockito.doReturn(null).when(nModelController).buildMultiPartition(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -529,12 +521,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRefreshMultiPartition() throws Exception {
-        String modelName = "default_model_name";
-        String project = "default";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         mockGetModelName(modelName, project, modelId);
         PartitionsRefreshRequest request = new PartitionsRefreshRequest();
-        request.setProject("default");
+        request.setProject("multi_level_partition");
         Mockito.doReturn(null).when(nModelController).refreshMultiPartition(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments/multi_partition", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -544,13 +536,13 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDeleteMultiPartition() throws Exception {
-        String modelName = "default_model_name";
-        String project = "default";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String segmentId = "73570f31-05a5-448f-973c-44209830dd01";
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        String segmentId = "8892fa3f-f607-4eec-8159-7c5ae2f16942";
         mockGetModelName(modelName, project, modelId);
         PartitionsRefreshRequest request = new PartitionsRefreshRequest();
-        request.setProject("default");
+        request.setProject("multi_level_partition");
         Mockito.doReturn(null).when(nModelController).deleteMultiPartition(modelId, project, segmentId,
                 new String[] { "1" });
 
@@ -561,13 +553,38 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testAddMultiValues() throws Exception {
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        mockGetModelName(modelName, project, modelId);
+        UpdateMultiPartitionValueRequest request = new UpdateMultiPartitionValueRequest();
+        request.setProject("multi_level_partition");
+
+        Mockito.doReturn(null).when(nModelController).addMultiPartitionValues(modelId, request);
+        mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/values", modelName)
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        // test exception
+        request.setProject("default");
+        mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/values", modelName)
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is4xxClientError());
+    }
+
+    @Test
     public void testUpdatePartition() throws Exception {
-        String modelName = "default_model_name";
-        String project = "default";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String modelName = "multi_level_partition";
+        String project = "multi_level_partition";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         mockGetModelName(modelName, project, modelId);
         PartitionColumnRequest request = new PartitionColumnRequest();
-        request.setProject("default");
+        request.setProject("multi_level_partition");
         Mockito.doReturn(null).when(nModelController).updatePartitionSemantic(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/partition", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

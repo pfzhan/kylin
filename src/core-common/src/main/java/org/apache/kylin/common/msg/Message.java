@@ -608,6 +608,10 @@ public class Message {
         return "Illegal users! Only the system administrator and the project administrator role of this project can be set as the project owner.";
     }
 
+    public String getPROJECT_DISABLE_MLP() {
+        return "This project don't support multilevel partitioning, and multilevel partitioning can’t be used. Please turn it on in project setting and try again.";
+    }
+
     // Table
     public String getTABLE_NOT_FOUND() {
         return "Cannot find table '%s'.";

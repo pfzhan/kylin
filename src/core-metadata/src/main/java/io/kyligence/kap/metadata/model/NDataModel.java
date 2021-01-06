@@ -412,6 +412,7 @@ public class NDataModel extends RootPersistentEntity {
         this.configLastModified = other.configLastModified;
         this.semanticVersion = other.semanticVersion;
         this.multiPartitionDesc = other.multiPartitionDesc;
+        this.multiPartitionKeyMapping = other.multiPartitionKeyMapping;
     }
 
     public KylinConfig getConfig() {

@@ -41,10 +41,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -69,6 +71,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -82,6 +85,7 @@ import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.PartitionsBuildRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
@@ -366,7 +370,7 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "updatePartitionDesc", tags = { "DW" })
+    @ApiOperation(value = "update partition for single-partition model and forward compatible", tags = { "DW" })
     @PutMapping(value = "/{project}/{model}/partition_desc")
     @ResponseBody
     public EnvelopeResponse<String> updatePartitionDesc(@PathVariable("project") String project,
@@ -550,10 +554,10 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> updateMultiPartitionMapping(@PathVariable("model_name") String modelAlias,
             @RequestBody MultiPartitionMappingRequest mappingRequest) {
         String projectName = checkProjectName(mappingRequest.getProject());
+        checkProjectMLP(projectName);
         mappingRequest.setProject(projectName);
         val modelId = getModel(modelAlias, mappingRequest.getProject()).getId();
-        modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return modelController.updateMultiPartitionMapping(modelId, mappingRequest);
     }
 
     @ApiOperation(value = "build multi_partition", tags = { "DW" })
@@ -562,6 +566,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model_name") String modelAlias,
             @RequestBody PartitionsBuildRequest param) {
         String projectName = checkProjectName(param.getProject());
+        checkProjectMLP(projectName);
         param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.buildMultiPartition(modelId, param);
@@ -573,6 +578,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model_name") String modelAlias,
             @RequestBody PartitionsRefreshRequest param) {
         String projectName = checkProjectName(param.getProject());
+        checkProjectMLP(projectName);
         param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.refreshMultiPartition(modelId, param);
@@ -585,17 +591,30 @@ public class OpenModelController extends NBasicController {
             @RequestParam("project") String project, @RequestParam("segment") String segment,
             @RequestParam(value = "ids") String[] ids) {
         String projectName = checkProjectName(project);
+        checkProjectMLP(projectName);
         checkRequiredArg("ids", ids);
         val modelId = getModel(modelAlias, projectName).getId();
         return modelController.deleteMultiPartition(modelId, projectName, segment, ids);
     }
 
-    @ApiOperation(value = "update partition", tags = { "DW" })
+    @ApiOperation(value = "addMultiPartitionValues", notes = "Add URL: {model}", tags = { "DW" })
+    @PostMapping(value = "/{model_name:.+}/segments/multi_partition/values")
+    @ResponseBody
+    public EnvelopeResponse<String> addMultiPartitionValues(@PathVariable("model_name") String modelAlias,
+            @RequestBody UpdateMultiPartitionValueRequest request) {
+        String projectName = checkProjectName(request.getProject());
+        checkProjectMLP(projectName);
+        val modelId = getModel(modelAlias, projectName).getId();
+        return modelController.addMultiPartitionValues(modelId, request);
+    }
+
+    @ApiOperation(value = "update partition for multi partition", tags = { "DW" })
     @PutMapping(value = "/{model_name:.+}/partition")
     @ResponseBody
     public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model_name") String modelAlias,
             @RequestBody PartitionColumnRequest param) throws Exception {
         String projectName = checkProjectName(param.getProject());
+        checkProjectMLP(projectName);
         param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.updatePartitionSemantic(modelId, param);
@@ -613,5 +632,14 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getId();
         modelController.exportModel(modelId, projectName, exportAs, element, host, port, request, response);
+    }
+
+    private void checkProjectMLP(String project) {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
+        if (!projectInstance.getConfig().isMultiPartitionEnabled()) {
+            throw new KylinException(ServerErrorCode.MULTI_PARTITION_DISABLE,
+                    MsgPicker.getMsg().getPROJECT_DISABLE_MLP());
+        }
     }
 }
