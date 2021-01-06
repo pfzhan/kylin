@@ -124,3 +124,9 @@ VERSION
 _SUCCESS
 metastore_db
 ci.log*
+
+LICENSE
+LICENSE.backup
+appid
+child_process
+src/server-base/spark-warehouse/
