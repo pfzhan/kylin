@@ -21,7 +21,12 @@
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('history')}}</div>
-              <div class="content" v-html="$t('historyDesc', {last_week_query_count: infoData.last_week_query_count})"></div>
+              <div class="content">
+                <p v-html="$t('historyDesc', {last_week_query_count: infoData.last_week_query_count})"/>
+                <el-tooltip placement="top" :content="$t('historyDescTip')">
+                  <i class="el-icon-ksd-info ksd-ml-2 tips"></i>
+                </el-tooltip>
+              </div>
               <div class="card-link ky-a-like" @click="gotoHistory">{{$t('viewDetail')}}</div>
             </div>
           </div>
@@ -391,7 +396,11 @@ export default class Homepage extends Vue {
           this.callAddModelDialog()
         })
       }).catch((e) => {
-        this.$router.push({name: 'ModelList'})
+        if (this.platform === 'iframe') {
+          postCloudUrlMessage(this.$route, { name: 'kapModel' })
+        } else {
+          this.$router.push({name: 'ModelList'})
+        }
       })
       return
     }
@@ -542,6 +551,12 @@ export default class Homepage extends Vue {
               font-weight: bold;
               font-size: 1.1em;
               color: @text-title-color;
+            }
+            p {
+              display: inline-block;
+            }
+            .tips {
+              color: @color-text-placeholder;
             }
           }
           .card-link {

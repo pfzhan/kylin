@@ -57,6 +57,7 @@ import { pageRefTags } from 'config'
         let tm = new Date(new Date().toLocaleDateString()).getTime()
         vm.filterDirectData.startTimeFrom = tm - 1000 * 60 * 60 * 24 * 7
         vm.filterDirectData.startTimeTo = tm
+        return
       }
       vm.currentSelectedProject && vm.loadHistoryList()
     })
