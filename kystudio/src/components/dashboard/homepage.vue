@@ -237,7 +237,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapActions, mapGetters } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../util/index'
-import { postCloudUrlMessage, kapConfirm } from '../../util/business'
+import { postCloudUrlMessage } from '../../util/business'
 import UploadSqlModel from '../common/UploadSql/UploadSql.vue'
 import ModelAddModal from '../studio/StudioModel/ModelList/ModelAddModal/addmodel'
 import locales from './locales'
@@ -282,22 +282,22 @@ import locales from './locales'
 })
 export default class Homepage extends Vue {
   infoData = {
-    acceptable_rec_size: '--',
-    additional_rec_pattern_count: '--',
-    approved_additional_rec_count: '--',
-    approved_rec_count: '--',
-    approved_removal_rec_count: '--',
-    database_size: '--',
-    effective_rule_size: '--',
+    acceptable_rec_size: '-',
+    additional_rec_pattern_count: '-',
+    approved_additional_rec_count: '-',
+    approved_rec_count: '-',
+    approved_removal_rec_count: '-',
+    database_size: '-',
+    effective_rule_size: '-',
     is_refreshed: false,
-    last_week_query_count: '--',
-    model_size: '--',
-    rec_pattern_count: '--',
+    last_week_query_count: '-',
+    model_size: '-',
+    rec_pattern_count: '-',
     refreshed: false,
-    removal_rec_pattern_count: '--',
-    table_size: '--',
+    removal_rec_pattern_count: '-',
+    table_size: '-',
     unhandled_query_count: '0',
-    max_rec_show_size: '--'
+    max_rec_show_size: '-'
   }
   isAcce = false // 初始状态后台有优化任务在跑
   isShowGif = false
@@ -391,15 +391,24 @@ export default class Homepage extends Vue {
     const res = await this.getModelByModelName({status: 'ONLINE,WARNING', project: this.currentSelectedProject})
     const data = await handleSuccessAsync(res)
     if (data.total_size === 0) {
-      await kapConfirm(this.$t('noModelsTips'), {confirmButtonText: this.$t('addModel'), cancelButtonText: this.$t('viewAllModels'), closeOnClickModal: false, closeOnPressEscape: false, type: 'warning'}, this.$t('kylinLang.common.tip')).then(() => {
-        this.$nextTick(() => {
-          this.callAddModelDialog()
-        })
-      }).catch((e) => {
-        if (this.platform === 'iframe') {
-          postCloudUrlMessage(this.$route, { name: 'kapModel' })
+      await this.callGlobalDetailDialog({
+        msg: this.$t('noModelsTips'),
+        title: this.$t('kylinLang.common.tip'),
+        dialogType: 'warning',
+        isBeta: false,
+        showDetailBtn: false,
+        dangerouslyUseHTMLString: true,
+        needResolveCancel: true,
+        submitText: this.$t('addModel'),
+        cancelText: this.$t('viewAllModels')
+      }).then(e => {
+        if (!e) {
+          this.gotoModelList()
         } else {
-          this.$router.push({name: 'ModelList'})
+          this.gotoModelList()
+          this.$nextTick(() => {
+            this.callAddModelDialog()
+          })
         }
       })
       return
