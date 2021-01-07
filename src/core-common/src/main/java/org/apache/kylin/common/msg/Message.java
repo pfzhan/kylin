@@ -373,7 +373,7 @@ public class Message {
     }
 
     public String getINDEX_SORT_BY_ERROR() {
-        return "Parameter \"sort_by\" only support last_modify, usage, data_size.";
+        return "Parameter \"sort_by\" only support last_modified, usage, data_size.";
     }
 
     // Job

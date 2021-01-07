@@ -460,7 +460,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINDEX_SORT_BY_ERROR() {
-        return "参数“sort_by”仅支持传入 last_modify，usage，data_size。";
+        return "参数“sort_by”仅支持传入 last_modified，usage，data_size。";
     }
 
     // Job
