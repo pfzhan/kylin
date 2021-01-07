@@ -1352,20 +1352,18 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
 
+        val aliasDotColumnToCols = allNamedColumns.stream().filter(NamedColumn::isExist)
+                .collect(Collectors.toMap(entry -> entry.getAliasDotColumn().toUpperCase(), pair -> pair));
+
         for (Measure measure : allMeasures) {
             if (measure.tomb) {
                 continue;
             }
 
-            for (TblColRef tblColRef : measure.getFunction().getColRefs()) {
-                if (tblColRef != null) {
-                    for (NamedColumn namedColumn : allNamedColumns) {
-                        if (namedColumn.getAliasDotColumn().equalsIgnoreCase(tblColRef.getAliasDotName())) {
-                            selectedColumns.add(namedColumn);
-                        }
-                    }
-                }
-            }
+            measure.getFunction().getColRefs().stream().filter(Objects::nonNull)
+                    .map(tblColRef -> tblColRef.getAliasDotName().toUpperCase())
+                    .filter(aliasDotColumnToCols::containsKey).map(aliasDotColumnToCols::get)
+                    .forEach(selectedColumns::add);
         }
 
         List<NamedColumn> result = new ArrayList<>(selectedColumns);
