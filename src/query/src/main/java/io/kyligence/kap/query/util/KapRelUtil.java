@@ -24,6 +24,14 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rex.RexNode;
+import org.apache.kylin.common.util.Pair;
+
 public class KapRelUtil {
 
     public static String getDigestWithoutRelNodeId(String digest) {
@@ -48,5 +56,16 @@ public class KapRelUtil {
 
     private static boolean isCharNum(char c) {
         return c >= '0' && c <= '9';
+    }
+
+    public static RexNode isNotDistinctFrom(RelNode left, RelNode right, RexNode condition,
+                                            List<Pair<Integer, Integer>> pairs, List<Boolean> filterNulls) {
+        final List<Integer> leftKeys = new ArrayList<>();
+        final List<Integer> rightKeys = new ArrayList<>();
+        RexNode rexNode = RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys, filterNulls);
+        for (int i = 0; i < leftKeys.size(); i++) {
+            pairs.add(new Pair<>(leftKeys.get(i), rightKeys.get(i) + left.getRowType().getFieldCount()));
+        }
+        return rexNode;
     }
 }

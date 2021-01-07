@@ -21,9 +21,13 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import java.util
+
 import io.kyligence.kap.query.relnode.{KapJoinRel, KapNonEquiJoinRel}
 import io.kyligence.kap.query.runtime.SparderRexVisitor
+import io.kyligence.kap.query.util.KapRelUtil
 import org.apache.calcite.DataContext
+import org.apache.calcite.rex.RexCall
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
@@ -45,9 +49,29 @@ object JoinPlan {
     val visitor = new SparderRexVisitor(Array(lSchemaNames.slice(0, rel.getLeftInputSizeBeforeRewrite), rSchemaNames).flatten,
       null,
       dataContext)
-    val conditionExprCol = rel.getCondition.accept(visitor).asInstanceOf[Column]
+    val pairs = new util.ArrayList[org.apache.kylin.common.util.Pair[Integer, Integer]]()
+    val filterNuls = new util.ArrayList[java.lang.Boolean]()
+    val actRemaining = KapRelUtil.isNotDistinctFrom(rel.getInput(0), rel.getInput(1), rel.getCondition, pairs, filterNuls)
+    if (filterNuls.contains(java.lang.Boolean.FALSE)) {
+      var equalCond = makeEqualCond(col(visitor.inputFieldNames.apply(pairs.get(0).getFirst)),
+        col(visitor.inputFieldNames.apply(pairs.get(0).getSecond)), !filterNuls.get(0))
 
-    newLDataFrame.join(newRDataFrame, conditionExprCol, rel.getJoinType.lowerName)
+      var i = 1
+      while (i < filterNuls.size()) {
+        equalCond = equalCond.and(makeEqualCond(col(visitor.inputFieldNames.apply(pairs.get(i).getFirst)),
+          col(visitor.inputFieldNames.apply(pairs.get(i).getSecond)), !filterNuls.get(i)))
+        i = i + 1
+      }
+
+      if (actRemaining != null && actRemaining.isInstanceOf[RexCall]) {
+        equalCond = equalCond.and(actRemaining.accept(visitor).asInstanceOf[Column])
+      }
+
+      newLDataFrame.join(newRDataFrame, equalCond, rel.getJoinType.lowerName)
+    } else {
+      val conditionExprCol = rel.getCondition.accept(visitor).asInstanceOf[Column]
+      newLDataFrame.join(newRDataFrame, conditionExprCol, rel.getJoinType.lowerName)
+    }
   }
 
   def join(inputs: java.util.List[DataFrame],

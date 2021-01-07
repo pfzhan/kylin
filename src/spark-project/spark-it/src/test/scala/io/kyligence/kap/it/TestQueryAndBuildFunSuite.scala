@@ -100,6 +100,10 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_join/sql_inner_join")
   )
 
+  val isNotDistinctFrom = List(
+    FloderInfo("sql_join/sql_is_not_distinct_from")
+  )
+
   val noneCompare = List(
     FloderInfo("sql_current_date"),
     FloderInfo("sql_distinct"),
@@ -222,6 +226,18 @@ class TestQueryAndBuildFunSuite
     val sql2 = "select count(*) from TEST_KYLIN_FACT where LSTG_SITE_ID=10 or (LSTG_SITE_ID>0 and LSTG_SITE_ID<100)"
     assert(getFileSourceScanExec(singleQuery(sql1, DEFAULT_PROJECT)).dataFilters.size == 3)
     assert(getFileSourceScanExec(singleQuery(sql2, DEFAULT_PROJECT)).dataFilters.size == 1)
+  }
+
+  test("non-equal join with is not distinct from condition") {
+    val result = isNotDistinctFrom
+            .flatMap { folder =>
+              queryFolder(folder, List("left"))
+            }
+            .filter(_ != null)
+    if (result.nonEmpty) {
+      print(result)
+    }
+    assert(result.isEmpty)
   }
 
   private def assertNumScanFile(sql: String, numScanFiles: Long): Unit = {
