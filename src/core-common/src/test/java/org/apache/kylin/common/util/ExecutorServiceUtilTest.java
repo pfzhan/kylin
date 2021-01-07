@@ -49,6 +49,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.LogOutputTestCase;
@@ -58,6 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ExecutorServiceUtilTest extends LogOutputTestCase {
 
     @Test
+    @Ignore
     public void testShutdownGracefully() throws Exception {
         ExecutorService pool = Executors.newScheduledThreadPool(1);
         pool.execute(new Runnable() {
