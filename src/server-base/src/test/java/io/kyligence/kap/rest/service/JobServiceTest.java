@@ -56,6 +56,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.rest.request.JobUpdateRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -581,9 +582,13 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobService.checkJobStatus("UNKNOWN");
     }
 
+
     @Test
     public void testCheckJobStatusAndAction() {
-        jobService.checkJobStatusAndAction(Lists.newArrayList("RUNNING", "PENDING"), "PAUSE");
+        JobUpdateRequest request = new JobUpdateRequest();
+        request.setStatuses(Lists.newArrayList("RUNNING", "PENDING"));
+        request.setAction("PAUSE");
+        jobService.checkJobStatusAndAction(request);
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "ERROR",
                 "RESUME, DISCARD, RESTART"));

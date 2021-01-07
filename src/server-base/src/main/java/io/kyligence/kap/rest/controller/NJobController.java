@@ -151,7 +151,7 @@ public class NJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkRequiredArg("action", jobUpdateRequest.getAction());
-        jobService.checkJobStatusAndAction(jobUpdateRequest.getStatuses(), jobUpdateRequest.getAction());
+        jobService.checkJobStatusAndAction(jobUpdateRequest);
         if (StringUtils.isBlank(jobUpdateRequest.getProject())
                 && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
             throw new KylinException(EMPTY_JOB_ID,

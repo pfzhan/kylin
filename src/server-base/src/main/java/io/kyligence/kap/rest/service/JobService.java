@@ -51,6 +51,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.job.dao.JobStatistics;
@@ -75,6 +76,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
@@ -86,8 +88,8 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
-import org.apache.kylin.job.constant.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableSortBean;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
@@ -661,7 +663,16 @@ public class JobService extends BasicService {
 
     }
 
-    public void checkJobStatusAndAction(List<String> jobStatuses, String action) {
+    public void checkJobStatusAndAction(JobUpdateRequest jobUpdateRequest) {
+        List<String> jobIds = jobUpdateRequest.getJobIds();
+        List<String> jobStatuses = jobUpdateRequest.getStatuses() == null ? Lists.newArrayList()
+                : jobUpdateRequest.getStatuses();
+        jobIds.stream().map(this::getJobInstance).map(ExecutableResponse::getStatus).map(JobStatusEnum::toString)
+                .forEach(jobStatuses::add);
+        checkJobStatusAndAction(jobStatuses, jobUpdateRequest.getAction());
+    }
+
+    private void checkJobStatusAndAction(List<String> jobStatuses, String action) {
         if (CollectionUtils.isEmpty(jobStatuses)) {
             return;
         }

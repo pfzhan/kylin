@@ -1488,7 +1488,8 @@ public class CnMessage extends Message {
 
     @Override
     public String getILLEGAL_JOB_ACTION() {
-        return "无效的参数值 “action“ 或者 “statuses“。“statuses“ 值包含 “%s“，此状态的任务只能执行以下操作 “%s“";
+        return "无效的参数值 “action“ 或 “statuses“ 或 “job_ids“。"
+                + "“statuses“值或“job_ids“指定任务的状态 值包含 “%s“，此状态的任务只能执行以下操作 “%s“";
     }
 
     @Override

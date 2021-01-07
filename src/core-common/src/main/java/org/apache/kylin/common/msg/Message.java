@@ -390,8 +390,8 @@ public class Message {
     }
 
     public String getILLEGAL_JOB_ACTION() {
-        return "Invalid value in parameter “action“ or “statuses“,  " //
-                + "The value of “statuses“ contains “%s“, "
+        return "Invalid value in parameter “action“ or “statuses“ or “job_ids“,  " //
+                + "The value of “statuses“ or the status of jobs specified by “job_ids“ contains “%s“, "
                 + "this status of jobs can only perform the following actions: “%s“ .";
     }
 
