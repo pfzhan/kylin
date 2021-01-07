@@ -66,8 +66,8 @@ public class IndexResponse {
     @JsonProperty("usage")
     private long usage;
 
-    @JsonProperty("last_modified_time")
-    private long lastModifiedTime;
+    @JsonProperty("last_modified")
+    private long lastModified;
 
     @JsonIgnore
     private boolean isManual;

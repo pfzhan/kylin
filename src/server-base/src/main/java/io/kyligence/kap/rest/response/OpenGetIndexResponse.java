@@ -43,7 +43,7 @@ public class OpenGetIndexResponse implements Serializable {
     private String project;
     @JsonProperty("uuid")
     private String modelId;
-    @JsonProperty("alias")
+    @JsonProperty("model_name")
     private String modelAlias;
     @JsonProperty("total_size")
     private int totalSize;
@@ -77,8 +77,8 @@ public class OpenGetIndexResponse implements Serializable {
         private long dataSize;
         @JsonProperty("usage")
         private long usage;
-        @JsonProperty("last_modified_time")
-        private long lastModifiedTime;
+        @JsonProperty("last_modified")
+        private long lastModified;
         @JsonProperty("storage_type")
         private int storageType;
 
@@ -92,7 +92,7 @@ public class OpenGetIndexResponse implements Serializable {
             detail.setSortByColumns(indexResponse.getSortByColumns());
             detail.setDataSize(indexResponse.getDataSize());
             detail.setUsage(indexResponse.getUsage());
-            detail.setLastModifiedTime(indexResponse.getLastModifiedTime());
+            detail.setLastModified(indexResponse.getLastModified());
             detail.setStorageType(indexResponse.getStorageType());
             return detail;
         }

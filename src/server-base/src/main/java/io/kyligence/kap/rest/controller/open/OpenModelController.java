@@ -115,7 +115,7 @@ import lombok.val;
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenModelController extends NBasicController {
 
-    private static final String LAST_MODIFY = "last_modify";
+    private static final String LAST_MODIFY = "last_modified";
     private static final String USAGE = "usage";
     private static final String DATA_SIZE = "data_size";
     private static final Set<String> INDEX_SORT_BY_SET = ImmutableSet.of(USAGE, LAST_MODIFY, DATA_SIZE);
@@ -259,6 +259,10 @@ public class OpenModelController extends NBasicController {
         if (model == null) {
             throw new KylinException(MODEL_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+        }
+        if (model.isBroken()) {
+            throw new KylinException(ServerErrorCode.MODEL_BROKEN,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getBROKEN_MODEL_OPERATION_DENIED(), modelAlias));
         }
         return model;
     }

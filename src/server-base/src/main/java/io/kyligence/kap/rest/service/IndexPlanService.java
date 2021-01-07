@@ -110,7 +110,6 @@ import lombok.extern.slf4j.Slf4j;
 public class IndexPlanService extends BasicService {
 
     public static final String DATA_SIZE = "data_size";
-    public static final String LAST_MODIFIED_TIME = "last_modified_time";
 
     @Setter
     @Autowired
@@ -120,7 +119,7 @@ public class IndexPlanService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     @Autowired
-    private List<ModelUpdateListener> updateListeners = Lists.newArrayList();
+    private final List<ModelUpdateListener> updateListeners = Lists.newArrayList();
 
     @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
@@ -735,7 +734,7 @@ public class IndexPlanService extends BasicService {
         }
         response.setStatus(status);
         response.setDataSize(dataSize);
-        response.setLastModifiedTime(layoutEntity.getUpdateTime());
+        response.setLastModified(layoutEntity.getUpdateTime());
         if (dataflow.getLayoutHitCount().get(layoutEntity.getId()) != null) {
             response.setUsage(dataflow.getLayoutHitCount().get(layoutEntity.getId()).getDateFrequency().values()
                     .stream().mapToInt(Integer::intValue).sum());

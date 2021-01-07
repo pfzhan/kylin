@@ -273,8 +273,8 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getBROKEN_MODEL_DESC() {
-        return "损坏的模型描述 '%s'";
+    public String getBROKEN_MODEL_OPERATION_DENIED() {
+        return "无法操作 BROKEN 模型 “%s”。";
     }
 
     @Override

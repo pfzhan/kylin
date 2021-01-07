@@ -250,8 +250,8 @@ public class Message {
         return "Model cannot save because there are dimensions, measures or join relations modified to be inconsistent with existing cube.";
     }
 
-    public String getBROKEN_MODEL_DESC() {
-        return "Broken model desc named '%s'.";
+    public String getBROKEN_MODEL_OPERATION_DENIED() {
+        return "BROKEN model \"%s\" cannot be operated.";
     }
 
     public String getMODEL_NOT_FOUND() {
