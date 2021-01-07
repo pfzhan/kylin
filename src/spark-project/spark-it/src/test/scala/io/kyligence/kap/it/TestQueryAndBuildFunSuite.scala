@@ -72,7 +72,7 @@ class TestQueryAndBuildFunSuite
         "query_17.sql", "query_18.sql", "query_19.sql", "query_20.sql")),
     FloderInfo("sql_join/sql_right_join"),
     FloderInfo("sql_kap", List("query03.sql")),
-    FloderInfo("sql_like"),
+    FloderInfo("sql_like", List("query25.sql", "query26.sql")),
     FloderInfo("sql_lookup"),
     FloderInfo("sql_magine", List("query13.sql")),
     FloderInfo("sql_magine_left"),
