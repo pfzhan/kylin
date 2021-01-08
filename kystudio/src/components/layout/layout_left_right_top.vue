@@ -175,7 +175,7 @@
       <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
       <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
       <span slot="footer" class="dialog-footer">
-        <el-button plain @click="getLicense">{{$t('applayLisence')}}</el-button>
+        <el-button plain @click="concatSales">{{$t('applayLisence')}}</el-button>
         <el-button type="primary" @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
       </span>
     </el-dialog>
@@ -358,7 +358,7 @@ let MessageBox = ElementUI.MessageBox
       validPeriod: 'Valid Period: ',
       overtip1: 'This License will be expired in ',
       overtip2: 'days. Please contact sales support to apply for the Enterprise License.',
-      applayLisence: 'Apply for Enterprise License',
+      applayLisence: 'Contact Sales',
       'continueUse': 'I Know',
       speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> {speedModel}! Do you want to apply it?',
       ignore: 'Ignore',
@@ -394,7 +394,7 @@ let MessageBox = ElementUI.MessageBox
       validPeriod: '使用期限: ',
       overtip1: '当前使用的许可证将在 ',
       overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。',
-      applayLisence: '申请企业版许可证',
+      applayLisence: '联系销售',
       'continueUse': '我知道了',
       speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的{speedModel}有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？',
       ignore: '忽略建议',
