@@ -4613,6 +4613,88 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testModelSelectedColumns_WithTombCCColumn() {
+        NDataModel model = modelService.getModels("nmodel_basic", "default", false, "", null, "last_modify", true)
+                .get(0);
+
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        model = modelManager.updateDataModel(model.getId(), copyForWrite -> {
+            val col1 = new NDataModel.NamedColumn();
+            col1.setId(202);
+            col1.setAliasDotColumn("TEST_KYLIN_FACT.CC1");
+            col1.setName("CC1");
+            col1.setStatus(NDataModel.ColumnStatus.TOMB);
+
+            val col2 = new NDataModel.NamedColumn();
+            col2.setId(203);
+            col2.setAliasDotColumn("TEST_KYLIN_FACT.CC1");
+            col2.setName("CC1");
+            copyForWrite.getAllNamedColumns().add(col1);
+            copyForWrite.getAllNamedColumns().add(col2);
+
+            try {
+                val measure1 = JsonUtil.readValue("{" //
+                        + "            \"name\": \"sum_cc\",\n" //
+                        + "            \"function\": {\n" //
+                        + "                \"expression\": \"SUM\",\n" //
+                        + "                \"parameters\": [\n" //
+                        + "                    {\n" //
+                        + "                        \"type\": \"column\",\n" //
+                        + "                        \"value\": \"TEST_KYLIN_FACT.CC1\"\n" //
+                        + "                    }\n" //
+                        + "                ],\n" //
+                        + "                \"returntype\": \"bigint\"\n" //
+                        + "            },\n" //
+                        + "            \"id\": 100018,\n" //
+                        + "            \"tomb\": true" //
+                        + "}", NDataModel.Measure.class);
+                val measure2 = JsonUtil.readValue("{" //
+                        + "            \"name\": \"sum_cc\",\n" //
+                        + "            \"function\": {\n" //
+                        + "                \"expression\": \"SUM\",\n" //
+                        + "                \"parameters\": [\n" //
+                        + "                    {\n" //
+                        + "                        \"type\": \"column\",\n" //
+                        + "                        \"value\": \"TEST_KYLIN_FACT.CC1\"\n" //
+                        + "                    }\n" //
+                        + "                ],\n" //
+                        + "                \"returntype\": \"bigint\"\n" //
+                        + "            },\n" //
+                        + "            \"id\": 100019" + "}", NDataModel.Measure.class);
+                copyForWrite.getAllMeasures().add(measure1);
+                copyForWrite.getAllMeasures().add(measure2);
+
+                copyForWrite.getComputedColumnDescs()
+                        .add(JsonUtil.readValue(
+                                "        {\n" + "            \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                                        + "            \"tableAlias\": \"TEST_KYLIN_FACT\",\n"
+                                        + "            \"columnName\": \"CC1\",\n"
+                                        + "            \"expression\": \"TEST_KYLIN_FACT.PRICE+1\",\n"
+                                        + "            \"datatype\": \"BIGINT\"\n" + "        }",
+                                ComputedColumnDesc.class));
+            } catch (IOException ignore) {
+            }
+        });
+
+        Set<String> dimCols = model.getAllNamedColumns().stream()
+                .filter(col -> col.getStatus() == NDataModel.ColumnStatus.DIMENSION)
+                .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet());
+
+        Set<String> colsInMeasure = model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .flatMap(measure -> measure.getFunction().getColRefs().stream()).filter(Objects::nonNull)
+                .map(TblColRef::getIdentity).collect(Collectors.toSet());
+
+        Set<String> expected = new HashSet<>();
+        expected.addAll(dimCols);
+        expected.addAll(colsInMeasure);
+
+        Assert.assertEquals(expected, model.getAllSelectedColumns().stream()
+                .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet()));
+        Assert.assertEquals(1,
+                model.getAllSelectedColumns().stream().filter(col -> col.getName().equals("CC1")).count());
+    }
+
+    @Test
     public void testModelResponseJoinSimplified() throws Exception {
         NDataModelResponse modelResponse = modelService
                 .getModels("nmodel_basic", "default", false, "", null, "last_modify", true).get(0);

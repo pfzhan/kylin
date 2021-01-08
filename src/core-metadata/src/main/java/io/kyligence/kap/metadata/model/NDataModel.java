@@ -1353,7 +1353,7 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         val aliasDotColumnToCols = allNamedColumns.stream().filter(NamedColumn::isExist)
-                .collect(Collectors.toMap(entry -> entry.getAliasDotColumn().toUpperCase(), pair -> pair));
+                .collect(Collectors.toMap(entry -> entry.getAliasDotColumn().toUpperCase(Locale.ROOT), pair -> pair));
 
         for (Measure measure : allMeasures) {
             if (measure.tomb) {
@@ -1361,7 +1361,7 @@ public class NDataModel extends RootPersistentEntity {
             }
 
             measure.getFunction().getColRefs().stream().filter(Objects::nonNull)
-                    .map(tblColRef -> tblColRef.getAliasDotName().toUpperCase())
+                    .map(tblColRef -> tblColRef.getAliasDotName().toUpperCase(Locale.ROOT))
                     .filter(aliasDotColumnToCols::containsKey).map(aliasDotColumnToCols::get)
                     .forEach(selectedColumns::add);
         }
