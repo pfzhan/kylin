@@ -629,7 +629,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckIndexSortBy() {
-        List<String> orderBy = Lists.newArrayList("last_modify", "usage", "data_size");
+        List<String> orderBy = Lists.newArrayList("last_modified", "usage", "data_size");
         orderBy.forEach(element -> {
             String actual = OpenModelController.checkIndexSortBy(element);
             Assert.assertEquals(element.toLowerCase(Locale.ROOT), actual);
