@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -33,7 +34,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class SnapshotRequest {
+public class SnapshotRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("project")
     private String project;

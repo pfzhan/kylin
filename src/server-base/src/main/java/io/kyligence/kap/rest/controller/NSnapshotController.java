@@ -114,7 +114,7 @@ public class NSnapshotController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<SnapshotCheckResponse> deleteSnapshots(@RequestParam(value = "project") String project,
             @RequestParam(value = "tables") Set<String> tables) {
-        checkProjectName(project);
+        project = checkProjectName(project);
         SnapshotCheckResponse response = snapshotService.deleteSnapshots(project, tables);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -130,7 +130,7 @@ public class NSnapshotController extends NBasicController {
             @RequestParam(value = "status", required = false, defaultValue = "") Set<String> statusFilter,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean isReversed) {
-        checkProjectName(project);
+        project = checkProjectName(project);
         checkNonNegativeIntegerArg("page_offset", offset);
         checkNonNegativeIntegerArg("page_size", limit);
         checkBooleanArg("reverse", isReversed);
@@ -151,7 +151,7 @@ public class NSnapshotController extends NBasicController {
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
-        checkProjectName(project);
+        project = checkProjectName(project);
         checkNonNegativeIntegerArg("page_offset", offset);
         checkNonNegativeIntegerArg("page_size", limit);
         val res = snapshotService.getTables(project, table, offset, limit);
@@ -167,7 +167,7 @@ public class NSnapshotController extends NBasicController {
             @RequestParam(value = "database") String database,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
-        checkProjectName(project);
+        project = checkProjectName(project);
         checkRequiredArg("database", database);
         checkNonNegativeIntegerArg("page_offset", offset);
         checkNonNegativeIntegerArg("page_size", limit);
