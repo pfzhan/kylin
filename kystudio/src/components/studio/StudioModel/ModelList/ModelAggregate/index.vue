@@ -690,7 +690,7 @@ export default class ModelAggregate extends Vue {
       }
       return newitem
     })
-    const modifiedTime = transToGmtTime(this.cuboidData.last_modified_time)
+    const modifiedTime = transToGmtTime(this.cuboidData.last_modified)
     return { renderData, modifiedTime }
   }
   get isSpeedProject () {
@@ -700,7 +700,7 @@ export default class ModelAggregate extends Vue {
     if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'tabelIndexDetail') {
       return []
     }
-    const modifiedTime = transToGmtTime(this.cuboidData.last_modified_time)
+    const modifiedTime = transToGmtTime(this.cuboidData.last_modified)
     const cuboidContent = this.cuboidData.col_order.map(col => ({ content: col.key, type: col.value === 'measure' ? 'measure' : 'dimension' }))
     return { modifiedTime, cuboidContent }
   }

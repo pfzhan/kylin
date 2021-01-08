@@ -32,7 +32,7 @@
           </span><span class="index-type ksd-ml-10">
             {{$t('custom')}}</span><span class="index-time ksd-ml-15">
             <i class="el-icon-ksd-elapsed_time"></i>
-            {{index.last_modified_time | toServerGMTDate}}
+            {{index.last_modified | toServerGMTDate}}
           </span>
           <span class="ksd-fright icon-group">
             <common-tip :content="$t('kylinLang.common.edit')">

@@ -156,10 +156,7 @@
           return
         }
         this.isNodeLoadingSuccess = true
-        this.$set(this, 'nodeList', res.servers)
-        this.nodeList.forEach((v) => {
-          v.mode = this.modelObj[v.mode]
-        })
+        res.servers.length && (this.nodeList = res.servers.map(it => ({...it, mode: this.modelObj[it.mode]})))
         this.isNodeLoading = false
         clearTimeout(this.nodesTimer)
         this.nodesTimer = setTimeout(() => {
