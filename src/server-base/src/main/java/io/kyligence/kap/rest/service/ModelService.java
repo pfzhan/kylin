@@ -3808,7 +3808,6 @@ public class ModelService extends BasicService {
         }
     }
 
-    @Transaction(project = 0)
     public List<SegmentPartitionResponse> getSegmentPartitions(String project, String modelId, String segmentId,
             List<String> status, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
