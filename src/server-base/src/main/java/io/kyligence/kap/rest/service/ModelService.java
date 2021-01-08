@@ -3547,14 +3547,8 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void updateMultiPartitionMapping(String project, String modelId, MultiPartitionMappingRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
-        if (model == null || model.isBroken()) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    "Model " + modelId + " does not exist or broken in project " + project);
-        }
+        val model = checkModelIsMLP(modelId, project);
         checkModelPermission(project, modelId);
-        checkModelIsMLP(modelId, project);
-
         val multiPartitionDesc = model.getMultiPartitionDesc();
         val msg = MsgPicker.getMsg();
         if (CollectionUtils.isNotEmpty(request.getPartitionCols())) {
@@ -3915,6 +3909,13 @@ public class ModelService extends BasicService {
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());
     }
 
+    public void deletePartitionsByValues(String project, String segmentId, String modelId,
+            List<String[]> partitionValues) {
+        NDataModel model = checkModelIsMLP(modelId, project);
+        Set<Long> ids = model.getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
+        deletePartitions(project, segmentId, model.getId(), ids);
+    }
+
     @Transaction(project = 0)
     public void deletePartitions(String project, String segmentId, String modelId, Set<Long> partitions) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -3941,12 +3942,13 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkModelIsMLP(String modelId, String project) {
+    private NDataModel checkModelIsMLP(String modelId, String project) {
         NDataModel model = getModelById(modelId, project);
         if (!model.isMultiPartitionModel()) {
             throw new KylinException(INVALID_MODEL_TYPE,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_IS_NOT_MLP(), model.getAlias()));
         }
+        return model;
     }
 
     private void checkConcurrentSubmit(int partitionSize) {
@@ -3987,12 +3989,11 @@ public class ModelService extends BasicService {
         tablesInModel.stream().filter(allAuthTables::contains).forEach(table -> {
             ColumnDesc[] columnDescs = NTableMetadataManager.getInstance(getConfig(), project).getTableDesc(table)
                     .getColumns();
-            Arrays.stream(columnDescs).map(column -> table + "." + column.getName())
-                    .forEach(column -> {
-                        if (!allAuthColumns.contains(column)) {
-                            throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getMODEL_MODIFY_ABANDON(column));
-                        }
-                    });
+            Arrays.stream(columnDescs).map(column -> table + "." + column.getName()).forEach(column -> {
+                if (!allAuthColumns.contains(column)) {
+                    throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getMODEL_MODIFY_ABANDON(column));
+                }
+            });
         });
     }
 }

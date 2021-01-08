@@ -592,13 +592,14 @@ public class OpenModelController extends NBasicController {
     @DeleteMapping(value = "/segments/multi_partition")
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartition(@RequestParam("model") String modelAlias,
-            @RequestParam("project") String project, @RequestParam("segment") String segment,
-            @RequestParam(value = "ids") String[] ids) {
+            @RequestParam("project") String project, @RequestParam("segment_id") String segmentId,
+            @RequestParam(value = "values") List<String[]> values) {
         String projectName = checkProjectName(project);
         checkProjectMLP(projectName);
-        checkRequiredArg("ids", ids);
-        val modelId = getModel(modelAlias, projectName).getId();
-        return modelController.deleteMultiPartition(modelId, projectName, segment, ids);
+        checkRequiredArg("values", values);
+        NDataModel model = getModel(modelAlias, projectName);
+        modelService.deletePartitionsByValues(project, segmentId, model.getId(), values);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "addMultiPartitionValues", notes = "Add URL: {model}", tags = { "DW" })

@@ -786,6 +786,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
         Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
 
+        List<String[]> partitionValues = Lists.<String[]> newArrayList(new String[] { "2" });
+        modelService.deletePartitionsByValues(project, null, modelId, partitionValues);
+        values = modelService.getMultiPartitionValues(project, modelId);
+        Assert.assertEquals(3, values.size());
+        Assert.assertEquals(3L, values.get(2).getId());
+        Assert.assertArrayEquals(new String[] { "3" }, values.get(2).getPartitionValue());
     }
 
     @Test

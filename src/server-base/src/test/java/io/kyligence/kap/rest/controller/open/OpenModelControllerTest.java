@@ -24,6 +24,8 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
@@ -543,11 +545,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         PartitionsRefreshRequest request = new PartitionsRefreshRequest();
         request.setProject("multi_level_partition");
-        Mockito.doReturn(null).when(nModelController).deleteMultiPartition(modelId, project, segmentId,
-                new String[] { "1" });
+        Mockito.doNothing().when(modelService).deletePartitionsByValues(anyString(), anyString(), anyString(),
+                anyList());
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/multi_partition").param("model", modelName)
-                .param("project", project).param("segment", segmentId).param("ids", new String[] { "1" })
+                .param("project", project).param("segment_id", segmentId).param("values", "1")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
