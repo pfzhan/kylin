@@ -103,7 +103,6 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -998,6 +997,8 @@ public class NDataModel extends RootPersistentEntity {
         initFk2Pk();
         checkSingleIncrementingLoadingTable();
         setDependencies(calcDependencies());
+        keepColumnOrder();
+        keepMeasureOrder();
 
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(getProject());
         if (Objects.nonNull(projectInstance)
@@ -1009,6 +1010,14 @@ public class NDataModel extends RootPersistentEntity {
                 throw new LookupTableException(MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_THIS_MODEL());
             }
         }
+    }
+
+    public void keepColumnOrder() {
+        allNamedColumns.sort(Comparator.comparing(NamedColumn::getId));
+    }
+
+    public void keepMeasureOrder() {
+        allMeasures.sort(Comparator.comparing(Measure::getId));
     }
 
     @Override
@@ -1390,18 +1399,6 @@ public class NDataModel extends RootPersistentEntity {
             }
             set.add(nameGetter.apply(target));
         });
-    }
-
-    public static void checkIdOrderOfMeasure(List<Measure> measures) {
-        List<Integer> measureIdList = measures.stream().map(Measure::getId).collect(Collectors.toList());
-        Preconditions.checkState(Ordering.natural().isOrdered(measureIdList),
-                "Unsorted measures exception in process of proposing model.");
-    }
-
-    public static void checkIdOrderOfColumn(List<NamedColumn> columns) {
-        List<Integer> columnIdList = columns.stream().map(NamedColumn::getId).collect(Collectors.toList());
-        Preconditions.checkState(Ordering.natural().isOrdered(columnIdList),
-                "Unsorted named columns exception in process of proposing model.");
     }
 
     public static void changeNameIfDup(List<NamedColumn> namedColumns) {

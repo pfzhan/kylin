@@ -272,7 +272,6 @@ public class QueryScopeProposer extends AbstractModelProposer {
             // 1. publish all measures
             List<Measure> measures = Lists.newArrayList(candidateMeasures.values());
             NDataModel.checkDuplicateMeasure(measures);
-            NDataModel.checkIdOrderOfMeasure(measures);
             dataModel.setAllMeasures(measures);
 
             // 2. publish all named columns
@@ -280,7 +279,6 @@ public class QueryScopeProposer extends AbstractModelProposer {
             NDataModel.changeNameIfDup(namedColumns);
 
             NDataModel.checkDuplicateColumn(namedColumns);
-            NDataModel.checkIdOrderOfColumn(namedColumns);
             dataModel.setAllNamedColumns(namedColumns);
         }
 

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.newten.semi;
 
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -58,6 +60,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -69,6 +72,7 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -301,6 +305,93 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(13, modelAfterApplyRecItems.getAllNamedColumns().size());
         Assert.assertEquals(2, modelAfterApplyRecItems.getAllMeasures().size());
         Assert.assertEquals(1, modelAfterApplyRecItems.getComputedColumnDescs().size());
+    }
+
+    @Test
+    public void testSuggestModelKeepColumnAndMeasureOrder() {
+        String project = "newten";
+
+        // prepare initial model
+        String sql = "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name";
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sql });
+        ProposerJob.propose(smartContext);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        NDataModel targetModel = modelContexts.get(0).getTargetModel();
+
+        // assert initial result
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
+        long dimensionCount = allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(1L, dimensionCount);
+        Assert.assertEquals(2, dataModel.getAllMeasures().size());
+        Assert.assertEquals(1, indexPlanManager.getIndexPlan(dataModel.getUuid()).getAllLayouts().size());
+
+        // transfer auto model to semi-auto
+        // make model online
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        dfManager.updateDataflow(targetModel.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+
+        // optimize with a batch of sql list
+        List<String> li = Lists.newArrayList();
+        li.add("select lstg_format_name, trans_id, count(item_count) from test_kylin_fact group by lstg_format_name, trans_id");
+        li.add("select leaf_categ_id, count(seller_id) from test_kylin_fact group by leaf_categ_id");
+        AbstractContext proposeContext = modelService.suggestModel(project, li, true, false);
+
+        List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
+        Assert.assertEquals(1, modelContextList.size());
+        ModelSuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResponse.getReusedModels();
+        List<ModelSuggestionResponse.NRecommendedModelResponse> newModels = suggestionResponse.getNewModels();
+        List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
+        List<ModelRequest> newModelRequests = mockModelRequest(newModels);
+        changeTheIndexRecOrder(reusedModelRequests);
+        modelService.batchCreateModel(getProject(), newModelRequests, reusedModelRequests);
+
+        // assert result after apply recommendations
+        NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(3L, dimensionCountRefreshed);
+        List<NDataModel.Measure> allMeasures = modelAfterSuggestModel.getAllMeasures();
+        Assert.assertEquals(4, allMeasures.size());
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelAfterSuggestModel.getUuid());
+        Assert.assertEquals(3, indexPlan.getAllLayouts().size());
+        List<Integer> measureIds = allMeasures.stream().map(NDataModel.Measure::getId).collect(Collectors.toList());
+        Assert.assertEquals("[100000, 100001, 100002, 100003]", measureIds.toString());
+
+        // suggest again and assert result again
+        List<String> sqlList = Lists.newArrayList();
+        sqlList.add("select order_id, count(seller_id) from test_kylin_fact group by order_id");
+        AbstractContext proposeContextSecond = modelService.suggestModel(project, sqlList, true, true);
+        List<AbstractContext.ModelContext> modelContextsTwice = proposeContextSecond.getModelContexts();
+        Assert.assertEquals(1, modelContextsTwice.size());
+        AbstractContext.ModelContext modelContextTwice = modelContextsTwice.get(0);
+        Map<String, LayoutRecItemV2> indexRexItemMapTwice = modelContextTwice.getIndexRexItemMap();
+        Assert.assertEquals(1, indexRexItemMapTwice.size());
+    }
+
+    /**
+     * https://olapio.atlassian.net/browse/KE-23783
+     * layout1 depends on m2, layout2 depends on m1, m2.id > m1.id, layout2.id > layout1.id
+     */
+    private void changeTheIndexRecOrder(List<ModelRequest> reusedModelRequests) {
+        ModelRequest modelRequest = reusedModelRequests.get(0);
+        List<LayoutRecDetailResponse> recItems = modelRequest.getRecItems();
+        recItems.sort((rec1, rec2) -> {
+            List<Integer> measureList1 = rec1.getMeasures().stream().map(recMeasure -> recMeasure.getMeasure().getId())
+                    .sorted().collect(Collectors.toList());
+            List<Integer> measureList2 = rec2.getMeasures().stream().map(recMeasure -> recMeasure.getMeasure().getId())
+                    .sorted().collect(Collectors.toList());
+
+            return measureList2.get(measureList2.size() - 1) - measureList1.get(measureList1.size() - 1);
+        });
+        modelRequest.setRecItems(recItems);
     }
 
     @Test

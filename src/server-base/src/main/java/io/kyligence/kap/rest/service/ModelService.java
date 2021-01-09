@@ -1524,6 +1524,9 @@ public class ModelService extends BasicService {
                     }
                 });
                 newMeasureMap.forEach((measureName, measure) -> copyForWrite.getAllMeasures().add(measure));
+                // keep order of all columns and measures
+                copyForWrite.keepColumnOrder();
+                copyForWrite.keepMeasureOrder();
             });
 
             // update IndexPlan

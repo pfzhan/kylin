@@ -314,6 +314,9 @@ public class RawRecService {
             Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
+            if (modelContext.getTargetModel() == null) {
+                continue;
+            }
             modelContext.getMeasureRecItemMap().forEach((uniqueFlag, measureItem) -> {
                 RawRecItem item;
                 if (uniqueRecItemMap.containsKey(uniqueFlag)) {
@@ -342,6 +345,9 @@ public class RawRecService {
             Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
+            if (modelContext.getTargetModel() == null) {
+                continue;
+            }
             modelContext.getDimensionRecItemMap().forEach((uniqueFlag, dimItem) -> {
                 RawRecItem item;
                 if (uniqueRecItemMap.containsKey(uniqueFlag)) {
@@ -369,6 +375,9 @@ public class RawRecService {
             Map<String, RawRecItem> uniqueRecItemMap) {
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
+            if (modelContext.getTargetModel() == null) {
+                continue;
+            }
             modelContext.getCcRecItemMap().forEach((uniqueFlag, ccItem) -> {
                 RawRecItem item;
                 if (uniqueRecItemMap.containsKey(uniqueFlag)) {

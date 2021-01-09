@@ -503,12 +503,17 @@ public class ProjectService extends BasicService {
             }, project);
 
             val accelerateRunner = scheduler.new QueryHistoryAccelerateRunner(true);
-            Future future = scheduler.scheduleImmediately(accelerateRunner);
             try {
+                Future<?> future = scheduler.scheduleImmediately(accelerateRunner);
                 future.get();
                 RawRecService.updateCostsAndTopNCandidates();
             } catch (Throwable e) {
                 logger.error("Accelerate failed", e);
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    asyncAcceleration.setAlreadyRunning(false);
+                    AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+                    return null;
+                }, project);
             }
         }
 

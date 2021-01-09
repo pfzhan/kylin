@@ -239,15 +239,15 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
                 // Protect the model from being damaged
                 log.info(copyForWrite.getUuid());
+                copyForWrite.keepColumnOrder();
+                copyForWrite.keepMeasureOrder();
                 List<NDataModel.NamedColumn> existedColumns = copyForWrite.getAllNamedColumns().stream()
                         .filter(NDataModel.NamedColumn::isExist).collect(Collectors.toList());
                 List<NDataModel.Measure> existedMeasure = copyForWrite.getAllMeasures().stream()
                         .filter(measure -> !measure.isTomb()).collect(Collectors.toList());
                 NDataModel.changeNameIfDup(existedColumns);
                 NDataModel.checkDuplicateColumn(existedColumns);
-                NDataModel.checkIdOrderOfColumn(existedColumns);
                 NDataModel.checkDuplicateMeasure(existedMeasure);
-                NDataModel.checkIdOrderOfMeasure(existedMeasure);
                 NDataModel.checkDuplicateCC(copyForWrite.getComputedColumnDescs());
             });
             logFinishRewrite("Model");
