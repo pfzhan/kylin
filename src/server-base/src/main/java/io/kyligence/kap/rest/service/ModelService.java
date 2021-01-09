@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
+
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
@@ -143,7 +144,6 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -283,10 +283,6 @@ public class ModelService extends BasicService {
 
     @Autowired
     private AccessService accessService;
-
-    @Autowired
-    @Qualifier("optRecService")
-    private OptRecService optRecService;
 
     @Setter
     @Autowired
@@ -603,7 +599,6 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
-        ProjectInstance prj = getProjectManager().getProject(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
         val dfManager = getDataflowManager(projectName);
@@ -630,12 +625,6 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                 nDataModelResponse.setInconsistentSegmentCount(inconsistentSegmentCount);
                 if (!modelDesc.isBroken()) {
-                    int recCount = 0;
-                    if (prj.isSemiAutoMode()) {
-                        recCount = optRecService.getOptRecLayoutsResponse(projectName, modelDesc.getId(),
-                                OptRecService.RecActionType.ALL.name()).getSize();
-                    }
-                    nDataModelResponse.setRecommendationsCount(recCount);
                     nDataModelResponse
                             .setAvailableIndexesCount(getAvailableIndexesCount(projectName, modelDesc.getId()));
                     nDataModelResponse.setTotalIndexes(

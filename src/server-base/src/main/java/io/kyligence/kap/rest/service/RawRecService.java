@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -46,6 +47,8 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
@@ -59,7 +62,6 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -71,9 +73,12 @@ public class RawRecService {
     @Autowired
     ProjectService projectService;
 
+    @Autowired
+    OptRecService optRecService;
+
     public void accelerate(String project) {
         projectService.accelerateImmediately(project);
-        updateCostsAndTopNCandidates();
+        updateCostsAndTopNCandidates(project);
     }
 
     public void transferAndSaveRecommendations(AbstractContext proposeContext) {
@@ -173,27 +178,44 @@ public class RawRecService {
         RDBMSQueryHistoryDAO.getInstance().batchUpdateQueryHistoriesInfo(idToQHInfoList);
     }
 
-    public static void updateCostsAndTopNCandidates() {
+    public void updateCostsAndTopNCandidates(String projectName) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
-        List<ProjectInstance> projectInstances = NProjectManager.getInstance(kylinConfig) //
-                .listAllProjects().stream() //
-                .filter(projectInstance -> !projectInstance.isExpertMode()) //
-                .collect(Collectors.toList());
-        for (ProjectInstance projectInstance : projectInstances) {
+
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        List<ProjectInstance> projectList = Lists.newArrayList();
+        if (StringUtils.isEmpty(projectName)) {
+            List<ProjectInstance> instances = projectManager.listAllProjects().stream() //
+                    .filter(projectInstance -> !projectInstance.isExpertMode()) //
+                    .collect(Collectors.toList());
+            projectList.addAll(instances);
+        } else {
+            ProjectInstance instance = projectManager.getProject(projectName);
+            projectList.add(instance);
+        }
+
+        for (ProjectInstance projectInstance : projectList) {
             String project = projectInstance.getName();
             if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
                 continue;
             }
             try {
                 log.info("Running update cost for project<{}>", project);
-                val rawRecManager = RawRecManager.getInstance(project);
+                RawRecManager rawRecManager = RawRecManager.getInstance(project);
+                NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
                 rawRecManager.updateAllCost(project);
                 int topN = recommendationSize(project);
                 for (String model : projectInstance.getModels()) {
                     long current = System.currentTimeMillis();
+                    NDataModel dataModel = modelManager.getDataModelDesc(model);
+                    if (dataModel.isBroken()) {
+                        log.warn("Broken model({}/{}) cannot update recommendations.", project, model);
+                        continue;
+                    }
+
                     log.info("Running update topN raw recommendation for model({}/{}).", project, model);
                     rawRecManager.updateRecommendedTopN(project, model, topN);
+                    updateRecommendationCount(project, model);
                     log.info("Update topN raw recommendations for model({}/{}) takes {} ms", //
                             project, model, System.currentTimeMillis() - current);
                 }
@@ -201,6 +223,16 @@ public class RawRecService {
                 log.error("Update cost and update topN failed for project({})", project, e);
             }
         }
+    }
+
+    private void updateRecommendationCount(String project, String model) {
+        String recActionType = OptRecService.RecActionType.ALL.name();
+        int recCount = optRecService.getOptRecLayoutsResponse(project, model, recActionType).getSize();
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            mgr.updateDataModel(model, copyForWrite -> copyForWrite.setRecommendationsCount(recCount));
+            return null;
+        }, project);
     }
 
     public static int recommendationSize(String project) {

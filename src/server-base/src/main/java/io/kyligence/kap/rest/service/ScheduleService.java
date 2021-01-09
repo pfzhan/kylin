@@ -52,6 +52,9 @@ public class ScheduleService {
     @Autowired
     ProjectService projectService;
 
+    @Autowired
+    RawRecService rawRecService;
+
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
 
@@ -93,7 +96,7 @@ public class ScheduleService {
             Thread.currentThread().setName("UpdateTopNRecommendationsWorker");
             log.info("Routine task to update cost and topN recommendations");
 
-            RawRecService.updateCostsAndTopNCandidates();
+            rawRecService.updateCostsAndTopNCandidates(null);
 
             log.info("Updating cost and topN recommendations finished.");
         } finally {

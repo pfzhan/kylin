@@ -83,9 +83,6 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("segments")
     private List<NDataSegmentResponse> segments = new ArrayList<>();
 
-    @JsonProperty("recommendations_count")
-    private int recommendationsCount;
-
     @JsonProperty("available_indexes_count")
     private long availableIndexesCount;
 

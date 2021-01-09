@@ -226,6 +226,9 @@ public class NDataModel extends RootPersistentEntity {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Measure> allMeasures = new ArrayList<>(); // including deleted ones
 
+    @JsonProperty("recommendations_count")
+    private int recommendationsCount;
+
     @EqualsAndHashCode.Include
     @JsonProperty("computed_columns")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
@@ -412,6 +415,7 @@ public class NDataModel extends RootPersistentEntity {
         this.semanticVersion = other.semanticVersion;
         this.multiPartitionDesc = other.multiPartitionDesc;
         this.multiPartitionKeyMapping = other.multiPartitionKeyMapping;
+        this.recommendationsCount = other.recommendationsCount;
     }
 
     public KylinConfig getConfig() {

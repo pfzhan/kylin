@@ -892,7 +892,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // update and select top 2 candidate
         FavoriteRuleManager.getInstance(kylinConfig, getProject()).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition(null, "2")), true, FavoriteRule.REC_SELECT_RULE_NAME);
-        RawRecService.updateCostsAndTopNCandidates();
+        rawRecService.updateCostsAndTopNCandidates(null);
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();

@@ -644,11 +644,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             });
             healthyList.add(recItemId);
         });
-        if (isAdd) {
-            detailResponse.getDimensionItems().addAll(dimensionRefResponse);
-            detailResponse.getMeasureItems().addAll(measureRefResponse);
-            detailResponse.getCcItems().addAll(ccRefResponse);
-        }
+
+        detailResponse.getDimensionItems().addAll(dimensionRefResponse);
+        detailResponse.getMeasureItems().addAll(measureRefResponse);
+        detailResponse.getCcItems().addAll(ccRefResponse);
         return healthyList;
     }
 

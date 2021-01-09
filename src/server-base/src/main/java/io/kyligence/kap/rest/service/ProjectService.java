@@ -150,6 +150,9 @@ public class ProjectService extends BasicService {
     @Autowired
     AsyncQueryService asyncQueryService;
 
+    @Autowired
+    RawRecService rawRecService;
+
     private static final String DEFAULT_VAL = "default";
 
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
@@ -506,7 +509,7 @@ public class ProjectService extends BasicService {
             try {
                 Future<?> future = scheduler.scheduleImmediately(accelerateRunner);
                 future.get();
-                RawRecService.updateCostsAndTopNCandidates();
+                rawRecService.updateCostsAndTopNCandidates(project);
             } catch (Throwable e) {
                 logger.error("Accelerate failed", e);
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

@@ -171,7 +171,7 @@ public class NRecommendationController extends NBasicController {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         projectService.accelerateImmediately(project);
-        RawRecService.updateCostsAndTopNCandidates();
+        rawRecService.updateCostsAndTopNCandidates(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

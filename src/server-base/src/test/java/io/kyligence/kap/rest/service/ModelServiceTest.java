@@ -269,9 +269,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Mock
     private final AccessService accessService = Mockito.spy(AccessService.class);
 
-    @Mock
-    private final OptRecService optRecService = Mockito.spy(OptRecService.class);
-
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
 
@@ -289,9 +286,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
-        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);

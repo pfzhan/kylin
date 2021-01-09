@@ -146,6 +146,8 @@ public class SemiV2CITest extends SemiAutoTestBase {
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(projectService, "rawRecService", rawRecService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
