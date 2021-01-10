@@ -590,9 +590,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         request.setAction("PAUSE");
         jobService.checkJobStatusAndAction(request);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "ERROR",
-                "RESUME, DISCARD, RESTART"));
-        jobService.checkJobStatusAndAction("ERROR", "PAUSE");
+        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "RUNNING",
+                "DISCARD, PAUSE, RESTART"));
+        jobService.checkJobStatusAndAction("RUNNING", "RESUME");
     }
 
 }

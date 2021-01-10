@@ -65,7 +65,7 @@ public enum JobStatusEnum {
         @Override
         public boolean checkAction(JobActionEnum actionEnum) {
             return actionEnum == JobActionEnum.PAUSE || actionEnum == JobActionEnum.DISCARD
-                    || actionEnum == JobActionEnum.RESUME;
+                    || actionEnum == JobActionEnum.RESTART;
         }
     },
     FINISHED(4) {
