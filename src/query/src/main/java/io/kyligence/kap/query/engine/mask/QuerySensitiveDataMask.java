@@ -139,29 +139,32 @@ public class QuerySensitiveDataMask implements QueryResultMask {
     }
 
     private String defaultMaskResultToString(int columnIdx) {
-        RelDataType type = getResultColumnDataType(columnIdx);
+        return defaultMaskResultToString(getResultColumnDataType(columnIdx));
+    }
+
+    // for testing
+    String defaultMaskResultToString(RelDataType type) {
         switch (type.getSqlTypeName()) {
-        case CHAR:
-            return "****";
-        case VARCHAR:
-            return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision())
-                    : "****";
-        case INTEGER:
-        case BIGINT:
-        case TINYINT:
-        case SMALLINT:
-            return "0";
-        case DOUBLE:
-        case FLOAT:
-        case DECIMAL:
-        case REAL:
-            return "0.0";
-        case DATE:
-            return "1970-01-01";
-        case TIMESTAMP:
-            return "1970-01-01 00:00:00";
-        default:
-            return null;
+            case CHAR:
+            case VARCHAR:
+                return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision())
+                        : "****";
+            case INTEGER:
+            case BIGINT:
+            case TINYINT:
+            case SMALLINT:
+                return "0";
+            case DOUBLE:
+            case FLOAT:
+            case DECIMAL:
+            case REAL:
+                return "0.0";
+            case DATE:
+                return "1970-01-01";
+            case TIMESTAMP:
+                return "1970-01-01 00:00:00";
+            default:
+                return null;
         }
     }
 

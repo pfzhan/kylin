@@ -30,8 +30,12 @@ import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -170,4 +174,33 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
                 null, null, null };
         Assert.assertArrayEquals(expected, mask.getResultMasks().toArray());
     }
+
+    @Test
+    public void testMaskTypeResult() {
+        Assert.assertEquals("*", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.CHAR, 1)));
+        Assert.assertEquals("**", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.CHAR, 2)));
+        Assert.assertEquals("****", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.CHAR, 5)));
+        Assert.assertEquals("*", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.VARCHAR, 1)));
+        Assert.assertEquals("****", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.VARCHAR, 5)));
+        Assert.assertEquals("0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.INTEGER)));
+        Assert.assertEquals("0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.BIGINT)));
+        Assert.assertEquals("0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.TINYINT)));
+        Assert.assertEquals("0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.SMALLINT)));
+        Assert.assertEquals("0.0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.FLOAT)));
+        Assert.assertEquals("0.0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.DOUBLE)));
+        Assert.assertEquals("0.0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.DECIMAL)));
+        Assert.assertEquals("0.0", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.REAL)));
+        Assert.assertEquals("1970-01-01", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.DATE)));
+        Assert.assertEquals("1970-01-01 00:00:00", mask.defaultMaskResultToString(makeDatatype(SqlTypeName.TIMESTAMP)));
+        Assert.assertEquals(null, mask.defaultMaskResultToString(makeDatatype(SqlTypeName.TIME)));
+    }
+
+    private RelDataType makeDatatype(SqlTypeName typeName) {
+        return new BasicSqlType(new KylinRelDataTypeSystem(), typeName);
+    }
+
+    private RelDataType makeDatatype(SqlTypeName typeName, int precision) {
+        return new BasicSqlType(new KylinRelDataTypeSystem(), typeName, precision);
+    }
+
 }
