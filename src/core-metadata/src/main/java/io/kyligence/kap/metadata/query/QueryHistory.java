@@ -190,10 +190,9 @@ public class QueryHistory implements IKeep {
 
         for (QueryMetrics.RealizationMetrics metrics : realizationMetrics) {
             realizations.add(new NativeQueryRealization(metrics.modelId,
-                    metrics.layoutId == null ? null : Long.parseLong(metrics.layoutId),
-                    metrics.indexType == null ? null : metrics.indexType,
+                    metrics.layoutId == null || metrics.layoutId.equals("null") ? null : Long.parseLong(metrics.layoutId),
+                    metrics.indexType == null || metrics.indexType.equals("null") ? null : metrics.indexType,
                     metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots));
-
         }
         return realizations;
     }

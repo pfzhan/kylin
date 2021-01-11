@@ -481,9 +481,11 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
                 "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
         QueryMetrics.RealizationMetrics metrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] { "snapshot1", "snapshot2" }));
+        QueryMetrics.RealizationMetrics metrics3 = new QueryMetrics.RealizationMetrics("null", "null",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList(new String[] { "snapshot1", "snapshot2" }));
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
         queryHistoryInfo.setRealizationMetrics(
-                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { metrics1, metrics2 }));
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[] { metrics1, metrics2, metrics3}));
         snapshotQuery.setQueryHistoryInfo(queryHistoryInfo);
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
@@ -499,6 +501,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1L, (long) queryHistories.get(0).getNativeQueryRealizations().get(1).getLayoutId());
         Assert.assertEquals(true, queryHistories.get(0).getNativeQueryRealizations().get(0).getSnapshots().isEmpty());
         Assert.assertEquals(2, queryHistories.get(0).getNativeQueryRealizations().get(1).getSnapshots().size());
+        Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(2).getLayoutId());
+        Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(2).getIndexType());
     }
 
     @Test
