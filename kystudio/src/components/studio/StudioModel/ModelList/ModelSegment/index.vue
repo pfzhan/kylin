@@ -81,7 +81,7 @@
           :render-header="renderSubPartitionAmountHeader">
           <template slot-scope="scope">
             <el-tooltip :content="$t('disabledSubPartitionEnter', {status: scope.row.status_to_display})" :disabled="scope.row.status_to_display !== 'LOCKED'" effect="dark" placement="top">
-              <span :class="['ky-a-like', {'is-disabled': scope.row.status_to_display === 'LOCKED' || !model.multi_partition_desc}]" @click="showSubParSegments(scope.row)">{{scope.row.multi_partition_count}} / {{scope.row.multi_partition_count_total}}</span>
+              <span :class="['ky-a-like', {'is-disabled': scope.row.status_to_display === 'LOCKED' || !model.multi_partition_desc}]" @click="showSubParSegments(scope.row)">{{['LOADING', 'REFRESHING', 'MERGING'].indexOf(scope.row.status_to_display) !== -1 ? `-/${scope.row.multi_partition_count_total}` : `${scope.row.multi_partition_count}/${scope.row.multi_partition_count_total}`}}</span>
             </el-tooltip>
           </template>
         </el-table-column>
