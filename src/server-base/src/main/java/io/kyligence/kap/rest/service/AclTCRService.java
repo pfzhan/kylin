@@ -548,6 +548,7 @@ public class AclTCRService extends BasicService {
     }
 
     private AclTCR mergeRequests(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
+        checkAclRequestParam(project, requests);
         AclTCRManager aclTCRManager = getAclTCRManager(project);
         AclTCR aclTCR = aclTCRManager.getAclTCR(sid, principal);
         if (aclTCR == null) {

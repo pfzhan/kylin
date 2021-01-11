@@ -1082,4 +1082,44 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
         aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
     }
+
+    @Test
+    public void testMergeACLTCRWithUnsupportedMaskDatatype() throws IOException {
+        // Boolean, Map, and Array data types do not support data masking.
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
+        Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+
+        //  column
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table tableRequest = new AclTCRRequest.Table();
+        tableRequest.setTableName("TEST_MEASURE");
+        tableRequest.setAuthorized(true);
+
+        AclTCRRequest.Column columnRequest = new AclTCRRequest.Column();
+        columnRequest.setColumnName("flag");
+        columnRequest.setAuthorized(true);
+        columnRequest.setDataMaskType(SensitiveDataMask.MaskType.AS_NULL);
+        tableRequest.setColumns(Collections.singletonList(columnRequest));
+        request.setTables(Collections.singletonList(tableRequest));
+
+        thrown.expectCause(new BaseMatcher<Throwable>() {
+            @Override
+            public boolean matches(Object item) {
+                if (item instanceof KylinException) {
+                    return ((KylinException) item).getMessage()
+                            .contains("Boolean, Map, and Array data types do not support data masking.");
+                }
+                return false;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+
+            }
+        });
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
+    }
 }
