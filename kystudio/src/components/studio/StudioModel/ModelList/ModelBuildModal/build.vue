@@ -374,7 +374,7 @@
     }
 
     get displaySubPartition () {
-      return this.source !== 'addSegment' && this.$store.state.project.multi_partition_enabled && this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns.length
+      return this.source !== 'addSegment' && this.$store.state.project.multi_partition_enabled && this.partitionMeta.multiPartition
     }
 
     refreshPartitionValues (val) {
