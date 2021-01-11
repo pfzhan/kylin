@@ -74,7 +74,7 @@
               style="width:100%">
                 <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
                 <el-option :label="$t('noPartition')" value=""></el-option>
-                <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                <el-option :label="t.name" :value="t.name" v-for="t in subPartitionColumnOtions" :key="t.name">
                   <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
                 </el-option>
@@ -100,7 +100,7 @@ import locales from './locales'
 import store, { types } from './store'
 import { timeDataType, dateFormats } from 'config'
 import NModel from '../../ModelEdit/model.js'
-import { isDatePartitionType, kapConfirm } from 'util'
+import { isDatePartitionType, isSubPartitionType, kapConfirm } from 'util'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartition'], store)
 
@@ -209,6 +209,21 @@ export default class ModelPartition extends Vue {
     //   }
     //   result.push(cc)
     // })
+    return result
+  }
+  get subPartitionColumnOtions () {
+    if (!this.isShow || this.partitionMeta.table === '') {
+      return []
+    }
+    let result = []
+    let factTable = this.modelInstance.getFactTable()
+    if (factTable) {
+      factTable.columns.forEach((x) => {
+        if (isSubPartitionType(x.datatype)) {
+          result.push(x)
+        }
+      })
+    }
     return result
   }
   partitionTableChange () {

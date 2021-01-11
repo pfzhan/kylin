@@ -1,5 +1,5 @@
 import { utcToConfigTimeZone, getQueryString } from './index'
-import { permissionsMaps, NamedRegex, DatePartitionRule, TimePartitionRule } from 'config/index'
+import { permissionsMaps, NamedRegex, DatePartitionRule, TimePartitionRule, SubPartitionRule } from 'config/index'
 import { MessageBox, Message } from 'kyligence-ui'
 import moment from 'moment-timezone'
 
@@ -367,6 +367,10 @@ export function isDatePartitionType (type) {
 
 export function isTimePartitionType (type) {
   return TimePartitionRule.some(rule => rule.test(type))
+}
+
+export function isSubPartitionType (type) {
+  return SubPartitionRule.some(rule => rule.test(type))
 }
 
 export function getGmtDateFromUtcLike (value) {

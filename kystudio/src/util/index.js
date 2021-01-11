@@ -642,6 +642,6 @@ export function ArrayFlat (arr) {
   return flat
 }
 export { set, get, push } from './object'
-export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
+export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, isSubPartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }
 export { dataGenerator, autoLayout, dataHelper }

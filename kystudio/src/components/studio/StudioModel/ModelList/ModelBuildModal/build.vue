@@ -107,7 +107,7 @@
                 style="width:100%">
                   <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
                   <el-option :label="$t('noPartition')" value=""></el-option>
-                  <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                  <el-option :label="t.name" :value="t.name" v-for="t in subPartitionColumnsOptions" :key="t.name">
                     <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
                     <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
                   </el-option>
@@ -250,7 +250,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from 'store'
   import { handleError, transToUTCMs, getGmtDateFromUtcLike, kapMessage, postCloudUrlMessage } from 'util/business'
-  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, kapConfirm, split_array, getQueryString } from 'util/index'
+  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, isSubPartitionType, kapConfirm, split_array, getQueryString } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
@@ -475,6 +475,22 @@
       //   }
       //   result.push(cc)
       // })
+      return result
+    }
+
+    get subPartitionColumnsOptions () {
+      if (!this.isShow || this.partitionMeta.table === '') {
+        return []
+      }
+      let result = []
+      let factTable = this.modelInstance.getFactTable()
+      if (factTable) {
+        factTable.columns.forEach((x) => {
+          if (isSubPartitionType(x.datatype)) {
+            result.push(x)
+          }
+        })
+      }
       return result
     }
 

@@ -160,6 +160,7 @@ export const NamedRegex1 = /^[\u4e00-\u9fa5_\-（()%?）a-zA-Z0-9\s]+$/
 export const positiveNumberRegex = /^[1-9][0-9]*$/ // 的正整数
 export const DatePartitionRule = [/^date$/, /^timestamp$/, /^string$/, /^bigint$/, /^int$/, /^integer$/, /^varchar/]
 export const TimePartitionRule = [/^long$/, /^bigint$/, /^int$/, /^short$/, /^integer$/, /^tinyint$/, /^string$/, /^varchar/, /^char/]
+export const SubPartitionRule = [/^tinyint$/, /^smallint$/, /^int$/, /^integer$/, /^bigint$/, /^float$/, /^double$/, /^decimal/, /^timestamp$/, /^date$/, /^varchar/, /^char/, /^boolean$/]
 export const IntegerType = ['bigint', 'int', 'integer', 'tinyint', 'smallint', 'int4', 'long8']
 // query result 模块使用解析query 结果排序问题
 export const IntegerTypeForQueryResult = ['TINYINT', 'SMALLINT', 'INTEGER', 'BIGINT', 'FLOAT', 'DOUBLE', 'DECIMAL']
