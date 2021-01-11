@@ -174,6 +174,7 @@
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :visible.sync="isShowMergeConfirm"
+      @close="closeMergeDialog"
       width="480px">
       <p class="merge-notices"><i class="el-icon-ksd-alert"></i>{{$t('mergeSegmentDesc')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('showDetail')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></p>
       <div class="detail-content" v-if="showDetails">
@@ -200,7 +201,7 @@
         </el-table-column>
       </el-table>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain @click="isShowMergeConfirm = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button plain @click="closeMergeDialog">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" :loading="mergeLoading" @click="handleSubmitMerge()">{{$t('merge')}}</el-button>
     </div>
     </el-dialog>
@@ -493,6 +494,7 @@ export default class ModelSegment extends Vue {
   refreshSubPartitionLoading = false
   buildSubParValueLoading = false
   duplicateValueError = false
+  mergeError = false
 
   get getDetails () {
     let notices = [
@@ -914,7 +916,7 @@ export default class ModelSegment extends Vue {
     } catch (e) {
       handleError(e)
       this.mergeLoading = false
-      this.loadSegments()
+      this.mergeError = true
     }
   }
   async handleDeleteSegment () {
@@ -1004,6 +1006,14 @@ export default class ModelSegment extends Vue {
       postCloudUrlMessage(this.$route, { name: 'kapJob' })
     } else {
       this.$router.push('/monitor/job')
+    }
+  }
+
+  closeMergeDialog () {
+    this.isShowMergeConfirm = false
+    if (this.mergeError) {
+      this.loadSegments()
+      this.mergeError = false
     }
   }
 }
