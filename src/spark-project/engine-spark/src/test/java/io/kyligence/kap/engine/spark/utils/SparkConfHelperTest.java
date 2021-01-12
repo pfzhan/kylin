@@ -175,7 +175,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUserDefindedSparkConf() throws JsonProcessingException {
+    public void testUserDefinedSparkConf() throws JsonProcessingException {
         YarnClusterManager clusterManager = mock(YarnClusterManager.class);
         Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(10240, 100), new ResourceInfo(60480, 100)));
@@ -199,6 +199,37 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
                 new CompareTuple("2", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("10", SparkConfHelper.SHUFFLE_PARTITIONS));
+        compareConf(compareTuples, sparkConf);
+
+        // test spark.cores.max for Cloud
+        overwriteSystemProp("kylin.env.channel", "cloud");
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        compareTuples.add(new CompareTuple("6", SparkConfHelper.MAX_CORES));
+        compareConf(compareTuples, sparkConf);
+    }
+
+    @Test
+    public void testUserDefinedSparkConf_Cloud() throws JsonProcessingException {
+        overwriteSystemProp("kylin.env.channel", "cloud");
+        SparkConfHelper helper = new SparkConfHelper();
+        helper.setClusterManager(clusterManager);
+        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "4GB");
+        helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
+        helper.setConf(SparkConfHelper.EXECUTOR_CORES, "3");
+        helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, "10");
+        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, "5");
+        helper.setConf(SparkConfHelper.MAX_CORES, "15");
+        SparkConf sparkConf = new SparkConf();
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
+                new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("3", SparkConfHelper.EXECUTOR_CORES),
+                new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
+                new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("10", SparkConfHelper.SHUFFLE_PARTITIONS),
+                new CompareTuple("15", SparkConfHelper.MAX_CORES));
         compareConf(compareTuples, sparkConf);
     }
 

@@ -217,8 +217,12 @@ class ShufflePartitionsRule extends SparkConfRule {
 class StandaloneConfRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     if (KapConfig.getInstanceFromEnv.isCloud) {
+      val userDefinedMaxCores = helper.getConf(SparkConfHelper.MAX_CORES)
+      if (StringUtils.isNotBlank(userDefinedMaxCores)) {
+        return
+      }
       val executorInstance = helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES)
-      helper.setConf("spark.cores.max", (executorInstance.toInt * helper.getConf(SparkConfHelper.EXECUTOR_CORES).toInt).toString)
+      helper.setConf(SparkConfHelper.MAX_CORES, (executorInstance.toInt * helper.getConf(SparkConfHelper.EXECUTOR_CORES).toInt).toString)
     }
   }
 }

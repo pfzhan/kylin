@@ -261,22 +261,23 @@ public abstract class SparkApplication implements Application, IKeep {
             infos.recordJobStepId(System.getProperty("spark.driver.param.taskId", jobId));
             HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();
-            if (config.isAutoSetSparkConf() && isJobOnCluster(sparkConf)) {
-                logger.info("Set spark conf automatically.");
-                try {
-                    if (config.getSparkConfigOverride().size() > 0) {
-                        Map<String, String> sparkConfigOverride = getSparkConfigOverride(config);
-                        for (Map.Entry<String, String> entry : sparkConfigOverride.entrySet()) {
-                            sparkConf.set(entry.getKey(), entry.getValue());
-                        }
-                        logger.info("Override user-defined spark conf: {}",
-                                JsonUtil.writeValueAsString(sparkConfigOverride));
+            if (isJobOnCluster(sparkConf)) {
+                if (config.getSparkConfigOverride().size() > 0) {
+                    Map<String, String> sparkConfigOverride = getSparkConfigOverride(config);
+                    for (Map.Entry<String, String> entry : sparkConfigOverride.entrySet()) {
+                        sparkConf.set(entry.getKey(), entry.getValue());
                     }
-                    autoSetSparkConf(sparkConf);
-                } catch (Exception e) {
-                    logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
+                    logger.info("Override user-defined spark conf: {}",
+                            JsonUtil.writeValueAsString(sparkConfigOverride));
                 }
-
+                if (config.isAutoSetSparkConf()) {
+                    logger.info("Set spark conf automatically.");
+                    try {
+                        autoSetSparkConf(sparkConf);
+                    } catch (Exception e) {
+                        logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
+                    }
+                }
             }
 
             TimeZoneUtils.setDefaultTimeZone(config);
