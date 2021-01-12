@@ -33,7 +33,9 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryHistoryInfoResponse;
 import io.kyligence.kap.metadata.query.QueryHistoryResponse;
+import io.kyligence.kap.metadata.query.QueryRealization;
 
 public class QueryHisTransformStandardUtil {
     public static Map<String, Object> transformQueryHistory(Map<String, Object> queryHistories) {
@@ -71,11 +73,11 @@ public class QueryHisTransformStandardUtil {
         return data;
     }
 
-    public static List<QueryHistoryResponse.QueryRealization> transformQueryHistoryRealization(List<NativeQueryRealization> realizations) {
-        List<QueryHistoryResponse.QueryRealization> queryRealizations = Lists.newArrayList();
+    public static List<QueryRealization> transformQueryHistoryRealization(List<NativeQueryRealization> realizations) {
+        List<QueryRealization> queryRealizations = Lists.newArrayList();
         if (realizations != null) {
             for (NativeQueryRealization r : realizations) {
-                QueryHistoryResponse.QueryRealization qr = new QueryHistoryResponse.QueryRealization(
+                QueryRealization qr = new QueryRealization(
                         r.getModelId(), r.getModelAlias(), r.getLayoutId(), r.getIndexType(),
                         r.isPartialMatchModel(), r.isValid(), r.getSnapshots());
                 queryRealizations.add(qr);
@@ -84,11 +86,11 @@ public class QueryHisTransformStandardUtil {
         return queryRealizations;
     }
 
-    public static QueryHistoryResponse.QueryHistoryInfoResponse transformQueryHisInfo(QueryHistoryInfo qh) {
+    public static QueryHistoryInfoResponse transformQueryHisInfo(QueryHistoryInfo qh) {
         if (qh == null) {
             return null;
         }
-        QueryHistoryResponse.QueryHistoryInfoResponse queryHistoryInfoResponse = new QueryHistoryResponse.QueryHistoryInfoResponse(
+        QueryHistoryInfoResponse queryHistoryInfoResponse = new QueryHistoryInfoResponse(
                 qh.isExactlyMatch(), qh.getScanSegmentNum(), qh.getState(), qh.isExecutionError(), qh.getErrorMsg(),
                 qh.getQuerySnapshots(), qh.getRealizationMetrics(), qh.getTraces());
         return queryHistoryInfoResponse;

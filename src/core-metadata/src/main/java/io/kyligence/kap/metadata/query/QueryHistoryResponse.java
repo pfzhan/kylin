@@ -24,20 +24,19 @@
 
 package io.kyligence.kap.metadata.query;
 
-import java.util.ArrayList;
+
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.AllArgsConstructor;
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @SuppressWarnings("serial")
 @Getter
 @Setter
-public class QueryHistoryResponse {
+public class QueryHistoryResponse implements IKeep {
 
     public static final String QUERY_HISTORY_ID = "id";
     public static final String QUERY_HISTORY_INFO = "query_history_info";
@@ -114,41 +113,4 @@ public class QueryHistoryResponse {
     private boolean cacheHit;
 
     private String queryRealizations;
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class QueryRealization {
-        private String modelId;
-        private String modelAlias;
-        private Long layoutId;
-        private String indexType;
-        private boolean isPartialMatchModel;
-        private boolean isValid = true;
-        private List<String> snapshots;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class QueryHistoryInfoResponse {
-        @JsonProperty("exactly_match")
-        private boolean exactlyMatch;
-        @JsonProperty("scan_segment_num")
-        private int scanSegmentNum;
-        @JsonProperty("state")
-        private QueryHistoryInfo.HistoryState state;
-        @JsonProperty("execution_error")
-        private boolean executionError;
-        @JsonProperty("error_msg")
-        private String errorMsg;
-        @JsonProperty("query_snapshots")
-        private List<List<String>> querySnapshots = new ArrayList<>();
-        @JsonProperty("realization_metrics")
-        protected List<QueryMetrics.RealizationMetrics> realizationMetrics = new ArrayList<>();
-        @JsonProperty("traces")
-        private List<QueryHistoryInfo.QueryTraceSpan> traces = new ArrayList<>();
-    }
 }
