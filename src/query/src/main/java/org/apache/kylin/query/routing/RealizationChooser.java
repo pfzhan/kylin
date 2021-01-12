@@ -64,6 +64,7 @@ import com.alibaba.ttl.TtlRunnable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -142,13 +143,14 @@ public class RealizationChooser {
     }
 
     public static void multiThreadSelectLayoutCandidate(List<OLAPContext> contexts) {
+        ArrayList<Future> futureList = Lists.newArrayList();
         try {
             Map<SQLDigest, Candidate> candidateCache = new ConcurrentHashMap<>();
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             String project = QueryContext.current().getProject();
+            String queryId = QueryContext.current().getQueryId();
             // try different model for different context
             CountDownLatch latch = new CountDownLatch(contexts.size());
-            ArrayList<Future> futureList = Lists.newArrayList();
             for (OLAPContext ctx : contexts) {
                 Future<?> future = selectCandidateService.submit(Objects.requireNonNull(TtlRunnable.get(() -> {
                     try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
@@ -165,6 +167,8 @@ public class RealizationChooser {
                             attemptSelectCandidate(ctx, candidateCache);
                             Preconditions.checkNotNull(ctx.realization);
                         }
+                    } catch (KylinTimeoutException e) {
+                        logger.error("realization chooser thread task interrupted due to query [{}] timeout", queryId);
                     } finally {
                         NProjectLoader.removeCache();
                         latch.countDown();
@@ -181,8 +185,11 @@ public class RealizationChooser {
                 throw (NoRealizationFoundException) e.getCause();
             }
         } catch (InterruptedException e) {
-            logger.error("select layout candidate is interrupted.", e);
-            Thread.currentThread().interrupt();
+            for (Future future : futureList) {
+                future.cancel(true);
+            }
+            QueryContext.current().getQueryTagInfo().setTimeout(true);
+            throw new KylinTimeoutException("select layout candidate is timeout");
         }
     }
 

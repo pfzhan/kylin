@@ -38,6 +38,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -148,6 +149,10 @@ public class NQueryLayoutChooser {
             }
             candidates.add(candidate);
             candidateCapabilityResultMap.put(candidate, tempResult);
+        }
+
+        if (Thread.interrupted()) {
+            throw new KylinTimeoutException("layout chooser is timeout");
         }
 
         if (candidates.isEmpty()) {

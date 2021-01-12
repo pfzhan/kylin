@@ -68,12 +68,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import lombok.val;
 
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     private SlowQueryDetector slowQueryDetector = null;
 
     private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetectorTest.class);
+    private static final int TIMEOUT_MS = 5 * 1000;
 
     @Before
     public void setup() {
@@ -84,7 +87,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
-        slowQueryDetector = new SlowQueryDetector(100, 5 * 1000);
+        slowQueryDetector = new SlowQueryDetector(100, TIMEOUT_MS);
         slowQueryDetector.start();
     }
 
@@ -201,6 +204,26 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Assert.assertTrue(e instanceof KylinTimeoutException);
             Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("QueryUtil"));
             // reset query thread's interrupt state.
+            Thread.interrupted();
+        }
+        slowQueryDetector.queryEnd();
+    }
+
+    @Test
+    public void testRealizationChooserTimeout() {
+        slowQueryDetector.queryStart("");
+        try {
+            long t = System.currentTimeMillis();
+            Thread.sleep(TIMEOUT_MS - 10);
+            val queryExec = new QueryExec("default", getTestConfig());
+            queryExec.executeQuery("select cal_dt,sum(price) from test_kylin_fact group by "
+                    + "cal_dt union all select cal_dt,sum(price) from test_kylin_fact group by cal_dt");
+            Assert.fail("testRealizationChooserTimeout fail, query cost:" + (System.currentTimeMillis() - t) + " ms");
+        } catch (Exception e) {
+            Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
+            Assert.assertTrue(e.getCause() instanceof KylinTimeoutException);
+            Assert.assertEquals("KE-00000002", ((KylinTimeoutException) e.getCause()).getErrorCode().getCodeString());
+            Assert.assertEquals("select layout candidate is timeout", e.getCause().getMessage());
             Thread.interrupted();
         }
         slowQueryDetector.queryEnd();
