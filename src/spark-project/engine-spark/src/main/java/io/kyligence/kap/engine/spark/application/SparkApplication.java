@@ -148,8 +148,8 @@ public abstract class SparkApplication implements Application, IKeep {
      * @param json
      */
     public Boolean updateSparkJobInfo(String url, String json) {
-        String serverIp = Unsafe.setProperty("spark.driver.rest.server.ip", "127.0.0.1");
-        String port = Unsafe.setProperty("spark.driver.rest.server.port", "7070");
+        String serverIp = System.getProperty("spark.driver.rest.server.ip", "127.0.0.1");
+        String port = System.getProperty("spark.driver.rest.server.port", "7070");
         String requestApi = String.format(Locale.ROOT, "http://%s:%s" + url, serverIp, port);
 
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
