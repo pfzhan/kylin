@@ -139,6 +139,7 @@ import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
+import { postCloudUrlMessage } from '../../../util/business'
 import { pageRefTags } from 'config'
 import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
 
@@ -299,13 +300,20 @@ export default class Snapshot extends Vue {
         message: (
           <div>
             <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-            <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+            <a href="javascript:void(0)" onClick={() => this.gotoJob()}>{this.$t('kylinLang.common.toJoblist')}</a>
           </div>
         )
       })
       this.getSnapshotList()
     } catch (e) {
       handleError(e)
+    }
+  }
+  gotoJob () {
+    if (this.$store.state.config.plateform === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
     }
   }
   async deleteSnap () {

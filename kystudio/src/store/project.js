@@ -94,6 +94,9 @@ export default {
     },
     [types.UPDATE_SNAPSHOT_MANUAL_ENABLE] (state, type) {
       state.snapshot_manual_management_enabled = type
+      if (this.state.config.platform === 'iframe') {
+        window.parent.postMessage(`enableSnapshot:${type}`, '*')
+      }
     },
     [types.UPDATE_SCD2_ENABLE] (state, type) {
       state.scd2_enabled = type
