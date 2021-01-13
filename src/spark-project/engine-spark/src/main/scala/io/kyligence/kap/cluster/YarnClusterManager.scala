@@ -27,12 +27,12 @@ import java.util.{ArrayList, EnumSet, List, Set}
 
 import com.google.common.collect.Sets
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
+import io.kyligence.kap.engine.spark.utils.StorageUtils
 import org.apache.commons.collections.CollectionUtils
 import org.apache.hadoop.yarn.api.records.{ApplicationId, ApplicationReport, YarnApplicationState}
 import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
-import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 
@@ -165,7 +165,8 @@ object YarnClusterManager {
   }
 
   private def getSpecifiedConf: YarnConfiguration = {
-    val yarnConf = new YarnConfiguration(HadoopUtil.getHadoopConfFromSparkEngine)
+    // yarn cluster mode couldn't access local hadoop_conf_dir
+    val yarnConf = StorageUtils.getCurrentYarnConfiguration
     // https://issues.apache.org/jira/browse/SPARK-15343
     yarnConf.set("yarn.timeline-service.enabled", "false")
     yarnConf

@@ -29,10 +29,12 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
@@ -46,6 +48,7 @@ import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.Getter;
@@ -92,6 +95,10 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
         synchronized (fileSystemLock) {
             if (null == fileSystem) {
                 try {
+                    if (Objects.isNull(hdfsWorkingDir) || hdfsWorkingDir.isEmpty()) {
+                        hdfsWorkingDir = System.getProperty("kylin.hdfs.working.dir");
+                        LogLog.warn("hdfsWorkingDir -> " + getHdfsWorkingDir());
+                    }
                     fileSystem = new Path(hdfsWorkingDir).getFileSystem(conf);
                 } catch (IOException e) {
                     LogLog.error("Failed to create the file system, ", e);
@@ -123,7 +130,9 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
         init();
 
         logBufferQue = new LinkedBlockingDeque<>(getLogQueueCapacity());
-        appendHdfsService = Executors.newSingleThreadExecutor();
+        final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true) //
+                .setNameFormat("logger-thread-%d").build();
+        appendHdfsService = Executors.newSingleThreadExecutor(factory);
         appendHdfsService.execute(this::checkAndFlushLog);
         Runtime.getRuntime().addShutdownHook(new Thread(this::close));
 

@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
-import lombok.Getter;
-import lombok.Setter;
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
 
-import java.io.IOException;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
 
@@ -72,14 +72,9 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @Override
-    public void doWriteLog(int eventSize, List<LoggingEvent> transaction)
-            throws IOException, InterruptedException {
+    public void doWriteLog(int eventSize, List<LoggingEvent> transaction) throws IOException, InterruptedException {
         if (!isWriterInited()) {
             Configuration conf = new Configuration();
-            if (isKerberosEnable()) {
-                UserGroupInformation.setConfiguration(conf);
-                UserGroupInformation.loginUserFromKeytab(getKerberosPrincipal(), getKerberosKeytab());
-            }
             if (!initHdfsWriter(new Path(getLogPath()), conf)) {
                 LogLog.error("init the hdfs writer failed!");
             }

@@ -209,7 +209,7 @@ object KylinSession extends Logging {
         session
       }
     }
-    
+
     def getValue(name: String, builder: Builder): Any = {
       val currentMirror = scala.reflect.runtime.currentMirror
       val instanceMirror = currentMirror.reflect(builder)
@@ -245,6 +245,7 @@ object KylinSession extends Logging {
       if (UserGroupInformation.isSecurityEnabled) {
         sparkConf.set("hive.metastore.sasl.enabled", "true")
       }
+
       kapConfig.getSparkConf.asScala.foreach {
         case (k, v) =>
           sparkConf.set(k, v)
@@ -300,7 +301,6 @@ object KylinSession extends Logging {
         sparkConf.set("spark.yarn.am.extraJavaOptions",
           s"$yarnAMJavaOptions $amKerberosConf")
       }
-
 
       if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect > 0L) {
         sparkConf.set("spark.sql.driver.maxMemoryUsageDuringCollect", KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect + "m")

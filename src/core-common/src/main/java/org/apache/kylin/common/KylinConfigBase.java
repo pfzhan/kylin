@@ -47,6 +47,8 @@ import static java.lang.Math.toIntExact;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -111,6 +113,8 @@ public abstract class KylinConfigBase implements Serializable {
     public static final String PATH_DELIMITER = "/";
 
     public static final String DIAG_ID_PREFIX = "front_";
+
+    private static final String LOOPBACK = "127.0.0.1";
 
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
@@ -277,36 +281,12 @@ public abstract class KylinConfigBase implements Serializable {
         properties.setProperty(BCC.check(key), value);
     }
 
-    private void wrapKerberosInfo(String configName) {
-        StringBuilder sb = new StringBuilder();
-        if (properties.containsKey(configName)) {
-            String conf = (String) properties.get(configName);
-            if (StringUtils.contains(conf, "java.security.krb5.conf")) {
-                return;
-            }
-            sb.append(conf);
-        }
-
-        if (Boolean.parseBoolean(this.getOptional("kylin.kerberos.enabled", FALSE))) {
-            if (this.getOptional("kylin.kerberos.platform", "").equalsIgnoreCase(KapConfig.FI_PLATFORM)
-                    || Boolean.parseBoolean(this.getOptional("kylin.env.zk-kerberos-enabled", FALSE))) {
-                sb.append(String.format(Locale.ROOT, " -Djava.security.krb5.conf=%s",
-                        "./__spark_conf__/__hadoop_conf__/krb5.conf"));
-            }
-        }
-
-        setProperty(configName, sb.toString());
-    }
-
     final protected void reloadKylinConfig(Properties properties) {
         this.properties = BCC.check(properties);
         setProperty("kylin.metadata.url.identifier", getMetadataUrlPrefix());
         setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());
         setProperty("kylin.log.spark-driver-properties-file", getLogSparkDriverPropertiesFile());
         setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
-
-        wrapKerberosInfo("kylin.engine.spark-conf.spark.executor.extraJavaOptions");
-        wrapKerberosInfo("kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions");
 
         // https://github.com/kyligence/kap/issues/12654
         this.properties.put(WORKING_DIR_PROP,
@@ -566,6 +546,23 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metadata.check-copy-on-write", FALSE));
     }
 
+    public String getServerAddress() {
+        // Caution: config 'kylin.server.address' is essential in yarn cluster mode.
+        return getOptional("kylin.server.address", getDefaultServerAddress());
+    }
+
+    private String getDefaultServerAddress() {
+        String hostAddress = LOOPBACK;
+        try {
+            // eg. 10.1.30.100
+            hostAddress = InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            logger.warn("InetAddress get local host address failed!", e);
+        }
+        String serverPort = getServerPort();
+        return String.format(Locale.ROOT, "%s:%s", hostAddress, serverPort);
+    }
+
     public String getServerPort() {
         return getOptional("server.port", "7070");
     }
@@ -726,6 +723,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getJobTmpOutputStorePath(String project, String jobId) {
         return getJobTmpDir(project) + getNestedPath(jobId) + "/execute_output.json";
+    }
+
+    public String getJobTmpArgsDir(String project, String jobId) {
+        return getJobTmpDir(project) + getNestedPath(jobId) + "/spark_args.json";
     }
 
     public Path getJobTmpShareDir(String project, String jobId) {
@@ -1102,6 +1103,10 @@ public abstract class KylinConfigBase implements Serializable {
     public String getSnapshotBuildClassName() {
         return getOptional("kylin.engine.spark.snapshot-build-class-name",
                 "io.kyligence.kap.engine.spark.job.SnapshotBuildJob");
+    }
+
+    public String getSparkMaster() {
+        return getOptional("kylin.engine.spark-conf.spark.master", "yarn-client").toLowerCase(Locale.ROOT);
     }
 
     public String getSparkBuildClassName() {

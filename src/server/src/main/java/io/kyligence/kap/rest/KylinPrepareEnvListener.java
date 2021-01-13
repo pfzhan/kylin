@@ -102,7 +102,7 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         Unsafe.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
 
         Unsafe.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
-        Unsafe.setProperty("hdp.version", "version");
+        Unsafe.setProperty("hdp.version", "current");
 
     }
 
