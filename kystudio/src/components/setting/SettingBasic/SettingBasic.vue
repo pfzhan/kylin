@@ -709,21 +709,21 @@ export default class SettingBasic extends Vue {
   }
   // 保存优化建议规则
   saveAcclerationRule () {
-    this.$refs['rulesForm'].validate((valid) => {
-      if (valid) {
-        let submitData = objectClone(this.rulesObj)
-        submitData.min_duration = +submitData.min_duration
-        submitData.max_duration = +submitData.max_duration
-        // 换成次数字段了，不需要除于 100
-        // submitData.freqValue = submitData.freqValue / 100
-        this.updateFavoriteRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
-          handleSuccess(res, (data) => {
-            this.rulesAccerationDefault = {...this.rulesAccerationDefault, ...this.rulesObj}
-          })
-        }, (res) => {
-          handleError(res)
+    return new Promise((resolve, reject) => {
+      let submitData = objectClone(this.rulesObj)
+      submitData.min_duration = +submitData.min_duration
+      submitData.max_duration = +submitData.max_duration
+      // 换成次数字段了，不需要除于 100
+      // submitData.freqValue = submitData.freqValue / 100
+      this.updateFavoriteRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.rulesAccerationDefault = {...this.rulesAccerationDefault, ...this.rulesObj}
         })
-      }
+        resolve()
+      }, (res) => {
+        handleError(res)
+        reject()
+      })
     })
   }
 
