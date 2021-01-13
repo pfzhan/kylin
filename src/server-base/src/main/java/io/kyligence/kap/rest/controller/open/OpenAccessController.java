@@ -68,6 +68,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -125,11 +126,11 @@ public class OpenAccessController extends NBasicController {
         checkNames(permissionRequest.getNames());
         ExternalAclProvider.checkExternalPermission(permissionRequest.getPermission());
 
-        List<AccessRequest> accessRequests = convertBatchPermissionRequestToAccessRequests(permissionRequest);
-        accessService.checkAccessRequestList(accessRequests);
-
         String projectUuid = getProjectUuid(permissionRequest.getProject());
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectUuid);
+        List<AccessRequest> accessRequests = convertBatchPermissionRequestToAccessRequests(ae, permissionRequest);
+        accessService.checkAccessRequestList(accessRequests);
+
         accessService.batchGrant(accessRequests, ae);
         aclTCRService.updateAclTCR(projectUuid, accessRequests);
 
@@ -261,8 +262,9 @@ public class OpenAccessController extends NBasicController {
         return accessRequest;
     }
 
-    private List<AccessRequest> convertBatchPermissionRequestToAccessRequests(
-            BatchProjectPermissionRequest permissionRequest) {
+    @VisibleForTesting
+    public List<AccessRequest> convertBatchPermissionRequestToAccessRequests(
+            AclEntity ae, BatchProjectPermissionRequest permissionRequest) {
         List<AccessRequest> accessRequests = new ArrayList<>();
         String type = permissionRequest.getType();
         String externalPermission = permissionRequest.getPermission().toUpperCase(Locale.ROOT);
@@ -275,6 +277,16 @@ public class OpenAccessController extends NBasicController {
             accessRequest.setPrincipal(MetadataConstants.TYPE_USER.equalsIgnoreCase(type));
             accessRequest.setSid(name);
             accessRequests.add(accessRequest);
+        }
+        if (MetadataConstants.TYPE_USER.equalsIgnoreCase(type)) {
+            List<String> allAclSids = accessService.getAllAclSids(ae, type);
+            accessRequests.forEach(request -> {
+                for (String aclSid : allAclSids) {
+                    if (request.getSid().equalsIgnoreCase(aclSid)) {
+                        request.setSid(aclSid);
+                    }
+                }
+            });
         }
         return accessRequests;
     }
