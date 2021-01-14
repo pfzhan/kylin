@@ -65,7 +65,6 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.security.TransformWithAcl;
 import io.kyligence.kap.query.util.CommentParser;
 import io.kyligence.kap.query.util.RestoreFromComputedColumn;
 import lombok.extern.slf4j.Slf4j;
@@ -110,9 +109,6 @@ public class QueryUtil {
                 }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("SQL transformation is timeout");
-            }
-            if (t instanceof TransformWithAcl) {
-                ((TransformWithAcl) t).setAclInfo(queryParams.getAclInfo());
             }
             sql = t.transform(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
@@ -187,9 +183,6 @@ public class QueryUtil {
                 }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("Push-down SQL convert is timeout");
-            }
-            if (converter instanceof TransformWithAcl) {
-                ((TransformWithAcl) converter).setAclInfo(queryParams.getAclInfo());
             }
             sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }

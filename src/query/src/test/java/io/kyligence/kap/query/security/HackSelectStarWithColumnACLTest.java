@@ -67,7 +67,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
     public void testTransform() {
         prepareBasic();
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
-        transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
+        QueryContext.current().setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String sql = transformer.convert(
                 "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA);
         String expectSQL = "select \"T1\".\"PRICE\", \"T1\".\"ITEM_COUNT\", \"T1\".\"ORDER_ID\", "
@@ -101,7 +101,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         tableDesc.setColumns(columnDescs.toArray(new ColumnDesc[0]));
         tableMetadataManager.updateTableDesc(tableDesc);
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
-        transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
+        QueryContext.current().setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA);
         String expected = "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", " //
                 + "\"TEST_KYLIN_FACT\".\"PRICE\", " //
@@ -137,7 +137,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         tableDesc.setColumns(columnDescs.toArray(new ColumnDesc[0]));
         tableMetadataManager.updateTableDesc(tableDesc);
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
-        transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
+        QueryContext.current().setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA);
         String expected = "select `TEST_KYLIN_FACT`.`ORDER_ID`, " //
                 + "`TEST_KYLIN_FACT`.`PRICE`, " //

@@ -50,7 +50,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +61,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 
-public class RowFilter extends TransformWithAcl implements IKeep {
+public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
 
     @Override
@@ -69,11 +71,12 @@ public class RowFilter extends TransformWithAcl implements IKeep {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(aclInfo)) {
+        QueryContext.AclInfo aclLocal = QueryContext.current().getAclInfo();
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(aclLocal)) {
             return sql;
         }
 
-        Map<String, String> allWhereCondWithTbls = getAllWhereCondWithTbls(project, aclInfo);
+        Map<String, String> allWhereCondWithTbls = getAllWhereCondWithTbls(project, aclLocal);
         if (needEscape(sql, defaultSchema, allWhereCondWithTbls)) {
             return sql;
         }

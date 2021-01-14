@@ -46,6 +46,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 
 import com.google.common.base.Preconditions;
@@ -55,8 +56,9 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKeep {
+public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
 
     private static final String SELECT_STAR = "*";
 
@@ -67,7 +69,8 @@ public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKe
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(aclInfo)) {
+        QueryContext.AclInfo aclLocal = QueryContext.current().getAclInfo();
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(aclLocal)) {
             return sql;
         }
 
@@ -82,7 +85,7 @@ public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKe
             return sql;
         }
 
-        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema, aclInfo);
+        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema, aclLocal);
         int selectStarPos = getSelectStarPos(sql, sqlNode);
         StringBuilder result = new StringBuilder(sql);
         result.replace(selectStarPos, selectStarPos + 1, newSelectClause);

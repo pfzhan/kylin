@@ -109,7 +109,7 @@ public class RowFilterTest extends NLocalFileMetadataTestCase {
         manager.updateAclTCR(g1a1, "g1", false);
 
         final RowFilter rowFilter = new RowFilter();
-        rowFilter.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
+        QueryContext.current().setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         final String originSql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
         final String convertedSql = rowFilter.convert(originSql, PROJECT, SCHEMA);
         final String expectedSql = originSql
