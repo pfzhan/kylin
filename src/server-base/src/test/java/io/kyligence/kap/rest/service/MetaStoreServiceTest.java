@@ -69,6 +69,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.hamcrest.BaseMatcher;
@@ -104,6 +105,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
 import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.rest.request.ModelImportRequest;
@@ -686,7 +688,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testImportModelMetadataWithRec() throws Exception {
+    public void testImportModelMetadataWithRecInExpertModeProject() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/target_project_model_metadata_2020_11_21_16_40_43_61D23206229CEB0C078F24AAACADF5DB.zip");
         val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
@@ -702,7 +704,51 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertEquals(0, rawRecItems.size());
         metaStoreService.importModelMetadata("original_project", multipartFile, request);
 
-        rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(), 1, 10);
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject("original_project");
+
+        Assert.assertTrue(projectInstance.isExpertMode());
+
+        rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(), dataModel.getSemanticVersion(),
+                10);
+        Assert.assertEquals(0, rawRecItems.size());
+    }
+
+    @Test
+    public void testImportModelMetadataWithRec() throws Exception {
+        File file = new File(
+                "src/test/resources/ut_model_metadata/target_project_model_metadata_2020_11_21_16_40_43_61D23206229CEB0C078F24AAACADF5DB.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(new ModelImportRequest.ModelImport("model_index", "model_index",
+                ModelImportRequest.ImportType.OVERWRITE));
+
+        request.setModels(models);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "original_project");
+        NDataModel dataModel = dataModelManager.getDataModelDescByAlias("model_index");
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(), 1, 10);
+        Assert.assertEquals(0, rawRecItems.size());
+
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject("original_project");
+
+        Assert.assertTrue(projectInstance.isExpertMode());
+
+        projectManager.updateProject("original_project", copyForWrite -> {
+            copyForWrite.putOverrideKylinProps("kylin.metadata.semi-automatic-mode", String.valueOf(true));
+        });
+
+        getTestConfig().clearManagers();
+        projectManager = NProjectManager.getInstance(getTestConfig());
+        projectInstance = projectManager.getProject("original_project");
+
+        Assert.assertFalse(projectInstance.isExpertMode());
+        metaStoreService.importModelMetadata("original_project", multipartFile, request);
+        dataModel = dataModelManager.getDataModelDescByAlias("model_index");
+
+        rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(), dataModel.getSemanticVersion(),
+                10);
         Assert.assertEquals(3, rawRecItems.size());
     }
 

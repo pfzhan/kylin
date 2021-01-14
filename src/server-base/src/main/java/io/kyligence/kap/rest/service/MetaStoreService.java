@@ -39,7 +39,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -131,6 +133,9 @@ public class MetaStoreService extends BasicService {
     @Autowired
     public IndexPlanService indexPlanService;
 
+    @Autowired
+    public OptRecService optRecService;
+
     public List<ModelPreviewResponse> getPreviewModels(String project, List<String> ids) {
         aclEvaluate.checkProjectWritePermission(project);
         return modelService.getDataflowManager(project).listAllDataflows(true).stream()
@@ -142,10 +147,12 @@ public class MetaStoreService extends BasicService {
                     } else {
                         return df.getModel();
                     }
-                }).map(this::getSimplifiedModelResponse).collect(Collectors.toList());
+                }).map(modelDesc -> getSimplifiedModelResponse(project, modelDesc)).collect(Collectors.toList());
     }
 
-    private ModelPreviewResponse getSimplifiedModelResponse(NDataModel modelDesc) {
+    private ModelPreviewResponse getSimplifiedModelResponse(String project, NDataModel modelDesc) {
+        val projectManager = getProjectManager();
+        val projectInstance = projectManager.getProject(project);
         ModelPreviewResponse modelPreviewResponse = new ModelPreviewResponse();
         modelPreviewResponse.setName(modelDesc.getAlias());
         modelPreviewResponse.setUuid(modelDesc.getUuid());
@@ -160,10 +167,12 @@ public class MetaStoreService extends BasicService {
                     modelDesc.getProject(), inconsistentSegmentCount);
             modelPreviewResponse.setStatus(status);
 
-            RawRecManager rawRecManager = RawRecManager.getInstance(modelDesc.getProject());
-            val rawRecItems = rawRecManager.displayTopNRecItems(modelDesc.getProject(), modelDesc.getUuid(), 1);
-            if (!rawRecItems.isEmpty()) {
-                modelPreviewResponse.setHasRecommendation(true);
+            if (!projectInstance.isExpertMode()) {
+                val rawRecItems = optRecService.getRecLayout(modelDesc.getProject(), modelDesc.getUuid(),
+                        OptRecService.RecActionType.ALL);
+                if (!rawRecItems.isEmpty()) {
+                    modelPreviewResponse.setHasRecommendation(true);
+                }
             }
 
             NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
@@ -194,10 +203,6 @@ public class MetaStoreService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         NDataModelManager modelManager = modelService.getDataModelManager(project);
         NIndexPlanManager indexPlanManager = modelService.getIndexPlanManager(project);
-        JdbcRawRecStore jdbcRawRecStore = null;
-        if (exportRecommendations) {
-            jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
-        }
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
@@ -242,13 +247,7 @@ public class MetaStoreService extends BasicService {
                 tables.forEach(resourcePath -> oldResourceStore.copy(resourcePath, newResourceStore));
 
                 if (exportRecommendations) {
-                    List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll(modelDesc.getProject(), modelDesc.getUuid(),
-                            modelDesc.getSemanticVersion(), Integer.MAX_VALUE);
-
-                    newResourceStore.putResourceWithoutCheck(
-                            String.format(Locale.ROOT, MODEL_REC_PATH, project, modelId),
-                            ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)),
-                            System.currentTimeMillis(), -1);
+                    exportRecommendations(project, modelId, newResourceStore);
                 }
             }
             if (CollectionUtils.isEmpty(newResourceStore.listResourcesRecursively(META_ROOT_PATH))) {
@@ -265,6 +264,31 @@ public class MetaStoreService extends BasicService {
             writeMetadataToZipOutputStream(zipOutputStream, newResourceStore);
         }
         return byteArrayOutputStream;
+    }
+
+    private void exportRecommendations(String project, String modelId, ResourceStore resourceStore) throws Exception {
+        val projectManager = getProjectManager();
+        val projectInstance = projectManager.getProject(project);
+        if (projectInstance.isExpertMode()) {
+            logger.info("Skip export recommendations because project {} is expert mode.", project);
+            return;
+        }
+        JdbcRawRecStore jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+
+        List<RawRecItem> recLayouts = optRecService.getRecLayout(project, modelId, OptRecService.RecActionType.ALL);
+        Set<Integer> rawRecIds = recLayouts.stream().map(recLayout -> {
+            int[] dependIDs = recLayout.getDependIDs();
+            return Arrays.stream(dependIDs).filter(dependId -> dependId < 0).boxed().collect(Collectors.toSet());
+        }).flatMap(Collection::stream).collect(Collectors.toSet());
+
+        rawRecIds.addAll(recLayouts.stream().map(RawRecItem::getId).collect(Collectors.toSet()));
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.list(rawRecIds).stream()
+                .sorted(Comparator.comparingInt(RawRecItem::getId)).collect(Collectors.toList());
+
+        resourceStore.putResourceWithoutCheck(String.format(Locale.ROOT, MODEL_REC_PATH, project, modelId),
+                ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)), System.currentTimeMillis(),
+                -1);
     }
 
     private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore)
@@ -566,7 +590,7 @@ public class MetaStoreService extends BasicService {
             String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
 
             throw new KylinException(MODEL_IMPORT_ERROR,
-                    String.format(Locale.ROOT, "%s\n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
                     exceptions);
         }
     }
@@ -625,35 +649,19 @@ public class MetaStoreService extends BasicService {
      */
     private void importRecommendations(String project, String targetModelId, String srcModelId, KylinConfig kylinConfig)
             throws IOException {
-        val manager = RawRecManager.getInstance(project);
-        val baseId = manager.getMaxId() + 100;
+        val projectManager = getProjectManager();
+        val projectInstance = projectManager.getProject(project);
+        if (projectInstance.isExpertMode()) {
+            logger.info("Skip import recommendations because project {} is expert mode.", project);
+            return;
+        }
 
-        Map<Integer, Integer> idChangedMap = new HashMap<>();
+        val manager = RawRecManager.getInstance(project);
 
         List<RawRecItem> rawRecItems = ImportModelContext.parseRawRecItems(ResourceStore.getKylinMetaStore(kylinConfig),
                 project, srcModelId);
 
-        rawRecItems = rawRecItems.stream().peek(rawRecItem -> {
-            rawRecItem.setProject(project);
-            rawRecItem.setModelID(targetModelId);
-
-            String uniqueFlag = rawRecItem.getUniqueFlag();
-            RawRecItem originalRawRecItem = manager.getRawRecItemByUniqueFlag(rawRecItem.getProject(),
-                    rawRecItem.getModelID(), uniqueFlag, rawRecItem.getSemanticVersion());
-            int newId;
-            if (originalRawRecItem != null) {
-                newId = originalRawRecItem.getId();
-            } else {
-                newId = rawRecItem.getId() + baseId;
-            }
-            idChangedMap.put(-rawRecItem.getId(), -newId);
-
-            rawRecItem.setId(newId);
-        }).collect(Collectors.toList());
-
-        ImportModelContext.reorderRecommendations(rawRecItems, idChangedMap);
-
-        manager.batchUpdate(rawRecItems);
+        manager.importRecommendations(project, targetModelId, rawRecItems);
     }
 
     public void cleanupMeta(String project) {

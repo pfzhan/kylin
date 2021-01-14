@@ -200,7 +200,7 @@ public class RawRecManager {
         return jdbcRawRecStore.queryByUniqueFlag(project, modelId, uniqueFlag, semanticVersion);
     }
 
-    public void batchUpdate(List<RawRecItem> recItems) {
-        jdbcRawRecStore.batchUpdate(recItems);
+    public void importRecommendations(String project, String targetModelId, List<RawRecItem> recItems) {
+        jdbcRawRecStore.importRecommendations(project, targetModelId, recItems);
     }
 }

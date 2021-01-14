@@ -35,12 +35,18 @@ import static org.mybatis.dynamic.sql.SqlBuilder.max;
 import static org.mybatis.dynamic.sql.SqlBuilder.min;
 import static org.mybatis.dynamic.sql.SqlBuilder.select;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
+import io.kyligence.kap.metadata.model.schema.ImportModelContext;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -382,17 +388,46 @@ public class JdbcRawRecStore {
         }
     }
 
-    public void batchUpdate(List<RawRecItem> recItems) {
+    public void importRecommendations(String project, String modelId, List<RawRecItem> rawRecItems) {
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
-            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            val manager = RawRecManager.getInstance(project);
+            val baseId = manager.getMaxId() + 100;
+
+            Map<Integer, Integer> idChangedMap = new HashMap<>();
+
+            val index = new AtomicInteger(0);
+
+            rawRecItems = rawRecItems.stream().map(rawRecItem -> {
+                rawRecItem.setProject(project);
+                rawRecItem.setModelID(modelId);
+
+                String uniqueFlag = rawRecItem.getUniqueFlag();
+                RawRecItem originalRawRecItem = manager.getRawRecItemByUniqueFlag(rawRecItem.getProject(),
+                        rawRecItem.getModelID(), uniqueFlag, rawRecItem.getSemanticVersion());
+                int newId;
+                if (originalRawRecItem != null) {
+                    newId = originalRawRecItem.getId();
+                } else {
+                    newId = index.incrementAndGet() + baseId;
+                }
+                idChangedMap.put(-rawRecItem.getId(), -newId);
+
+                rawRecItem.setId(newId);
+
+                return rawRecItem;
+            }).collect(Collectors.toList());
+
+            ImportModelContext.reorderRecommendations(rawRecItems, idChangedMap);
+
+            val mapper = session.getMapper(RawRecItemMapper.class);
             List<UpdateStatementProvider> updaters = Lists.newArrayList();
             List<InsertStatementProvider<RawRecItem>> inserts = Lists.newArrayList();
-            recItems.forEach(item -> {
+            rawRecItems.forEach(item -> {
                 if (queryByUniqueFlag(item.getProject(), item.getModelID(), item.getUniqueFlag(),
                         item.getSemanticVersion()) != null) {
                     updaters.add(getUpdateProvider(item));
                 } else {
-                    inserts.add(getInsertProvider(item, false));
+                    inserts.add(getInsertProvider(item, true));
                 }
             });
             updaters.forEach(mapper::update);
@@ -524,6 +559,22 @@ public class JdbcRawRecStore {
             }
             log.info("Update the cost of all {} raw recommendation takes {} ms", totalUpdated,
                     System.currentTimeMillis() - currentTime);
+        }
+    }
+
+    public List<RawRecItem> list(Collection<Integer> rawRecIds) {
+        long startTime = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            var statement = select(getSelectFields(table)) //
+                    .from(table) //
+                    .where(table.id, isIn(rawRecIds));
+
+            List<RawRecItem> rawRecItems = mapper.selectMany(statement.build().render(RenderingStrategies.MYBATIS3));
+            log.info("List all raw recommendations id in {}) takes {} ms.", //
+                    rawRecIds.stream().map(String::valueOf).collect(Collectors.joining(", ")),
+                    System.currentTimeMillis() - startTime);
+            return rawRecItems;
         }
     }
 

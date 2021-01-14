@@ -468,7 +468,7 @@ public class AsyncQueryService extends BasicService {
         }
 
         //Apply column names
-        if (includeHeader) {
+        if (includeHeader && columnNames != null) {
             results.add(columnNames.split(SparderEnv.getSeparator()));
         }
         for (String row : rowResults) {

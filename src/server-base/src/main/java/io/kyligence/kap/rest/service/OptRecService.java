@@ -28,6 +28,8 @@ import static io.kyligence.kap.common.util.CollectionUtil.intersection;
 import static org.apache.kylin.common.exception.ServerErrorCode.REC_LIST_OUT_OF_DATE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_REC_OPERATION_TYPE;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -83,6 +85,8 @@ import io.kyligence.kap.rest.response.OptRecLayoutResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Getter;
+import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -723,21 +727,58 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         return layoutsResponse;
     }
 
+    /**
+     * get layout to be approved
+     * @param project
+     * @param modelId
+     * @return
+     */
+    public List<RawRecItem> getRecLayout(String project, String modelId, RecActionType recActionType) {
+        val optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+        if (optRecV2 == null) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, LayoutRef> layoutRefMap = new HashMap<>();
+        switch (recActionType) {
+        case ALL:
+            layoutRefMap.putAll(optRecV2.getAdditionalLayoutRefs());
+            layoutRefMap.putAll(optRecV2.getRemovalLayoutRefs());
+            break;
+        case ADD_INDEX:
+            layoutRefMap.putAll(optRecV2.getAdditionalLayoutRefs());
+            break;
+        case REMOVE_INDEX:
+            layoutRefMap.putAll(optRecV2.getRemovalLayoutRefs());
+            break;
+        default:
+            // do nothing
+        }
+
+        return layoutRefMap.entrySet().stream().filter(entry -> {
+            val recId = entry.getKey();
+            val layoutRef = entry.getValue();
+            return !layoutRef.isBroken() && !layoutRef.isExisted() && recId < 0;
+        }).map(entry -> {
+            val recId = entry.getKey();
+            return optRecV2.getRawRecItemMap().get(-recId);
+        }).collect(Collectors.toList());
+    }
+
     private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String recActionType) {
         aclEvaluate.checkProjectReadPermission(project);
-        List<OptRecLayoutResponse> recLayoutResponses = Lists.newArrayList();
-        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+        var rawRecItems = new ArrayList<RawRecItem>();
         if (recActionType.equalsIgnoreCase(RecActionType.ALL.name())) {
-            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, true));
-            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, false));
+            rawRecItems.addAll(getRecLayout(project, modelId, RecActionType.ALL));
         } else if (recActionType.equalsIgnoreCase(RecActionType.ADD_INDEX.name())) {
-            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, true));
+            rawRecItems.addAll(getRecLayout(project, modelId, RecActionType.ADD_INDEX));
         } else if (recActionType.equalsIgnoreCase(RecActionType.REMOVE_INDEX.name())) {
-            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, false));
+            rawRecItems.addAll(getRecLayout(project, modelId, RecActionType.REMOVE_INDEX));
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
-        return recLayoutResponses;
+
+        return convertToV2RecResponse(project, modelId, rawRecItems);
     }
 
     /**
@@ -745,39 +786,32 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      * if type=Layout, layout will be added to IndexPlan when user approves this RawRecItem
      * if type=REMOVAL_LAYOUT, layout will be removed from IndexPlan when user approves this RawRecItem
      */
-    private List<OptRecLayoutResponse> convertToV2RecResponse(OptRecV2 optRecV2, boolean isAdd) {
+    private List<OptRecLayoutResponse> convertToV2RecResponse(String project, String modelId,
+            List<RawRecItem> recItems) {
         List<OptRecLayoutResponse> layoutRecResponseList = Lists.newArrayList();
-        if (optRecV2 == null) {
-            return layoutRecResponseList;
-        }
 
-        NDataflowManager dfManager = NDataflowManager.getInstance(optRecV2.getConfig(), optRecV2.getProject());
-        NDataflow dataflow = dfManager.getDataflow(optRecV2.getUuid());
-        Map<Integer, LayoutRef> layoutRefs = isAdd //
-                ? optRecV2.getAdditionalLayoutRefs() //
-                : optRecV2.getRemovalLayoutRefs();
-        layoutRefs.forEach((recId, layoutRef) -> {
-            if (!layoutRef.isBroken() && !layoutRef.isExisted() && recId < 0) {
-                RawRecItem rawRecItem = optRecV2.getRawRecItemMap().get(-recId);
-                OptRecLayoutResponse response = new OptRecLayoutResponse();
-                response.setId(rawRecItem.getId());
-                response.setAdd(isAdd);
-                response.setAgg(rawRecItem.isAgg());
-                response.setDataSize(-1);
-                response.setUsage(rawRecItem.getHitCount());
-                response.setType(rawRecItem.getLayoutRecType());
-                response.setCreateTime(rawRecItem.getCreateTime());
-                response.setLastModified(rawRecItem.getUpdateTime());
-                HashMap<String, String> memoInfo = Maps.newHashMap();
-                memoInfo.put(OptRecService.RECOMMENDATION_SOURCE, rawRecItem.getRecSource());
-                response.setMemoInfo(memoInfo);
-                if (!isAdd) {
-                    long layoutId = RawRecUtil.getLayout(rawRecItem).getId();
-                    response.setIndexId(layoutId);
-                    response.setDataSize(dataflow.getByteSize(layoutId));
-                }
-                layoutRecResponseList.add(response);
+        NDataflowManager dfManager = getDataflowManager(project);
+        NDataflow dataflow = dfManager.getDataflow(modelId);
+        recItems.forEach(rawRecItem -> {
+            boolean isAdd = rawRecItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT;
+            OptRecLayoutResponse response = new OptRecLayoutResponse();
+            response.setId(rawRecItem.getId());
+            response.setAdd(isAdd);
+            response.setAgg(rawRecItem.isAgg());
+            response.setDataSize(-1);
+            response.setUsage(rawRecItem.getHitCount());
+            response.setType(rawRecItem.getLayoutRecType());
+            response.setCreateTime(rawRecItem.getCreateTime());
+            response.setLastModified(rawRecItem.getUpdateTime());
+            HashMap<String, String> memoInfo = Maps.newHashMap();
+            memoInfo.put(OptRecService.RECOMMENDATION_SOURCE, rawRecItem.getRecSource());
+            response.setMemoInfo(memoInfo);
+            if (!isAdd) {
+                long layoutId = RawRecUtil.getLayout(rawRecItem).getId();
+                response.setIndexId(layoutId);
+                response.setDataSize(dataflow.getByteSize(layoutId));
             }
+            layoutRecResponseList.add(response);
         });
         return layoutRecResponseList;
     }

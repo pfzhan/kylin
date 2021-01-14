@@ -189,6 +189,7 @@ public class RealizationChooser {
                 future.cancel(true);
             }
             QueryContext.current().getQueryTagInfo().setTimeout(true);
+            Thread.currentThread().interrupt();
             throw new KylinTimeoutException("select layout candidate is timeout");
         }
     }
