@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.util.InitResourceGroupUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -72,6 +73,12 @@ public class EpochChangedListener implements IKeep {
             if (NDefaultScheduler.getInstance(project).hasStarted()) {
                 return;
             }
+
+            if (!EpochManager.getInstance(kylinConfig).checkEpochValid(project)) {
+                log.warn("epoch:{} is invalid in project controlled", project);
+                return;
+            }
+
             log.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);

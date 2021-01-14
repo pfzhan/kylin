@@ -134,7 +134,7 @@ public class QueryHistoryTaskScheduler {
     }
 
     private void shutdown() {
-        log.info("Shutting down QueryHistoryAccelerateScheduler ....");
+        log.info("Shutting down QueryHistoryAccelerateScheduler for [{}] ....", project);
         if (taskScheduler != null) {
             ExecutorServiceUtil.forceShutdown(taskScheduler);
         }

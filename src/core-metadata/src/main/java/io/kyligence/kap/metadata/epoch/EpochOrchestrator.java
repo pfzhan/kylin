@@ -127,7 +127,7 @@ public class EpochOrchestrator implements IKeep {
                 if (!isCheckerRunning) {
                     return;
                 }
-                epochMgr.getEpochUpdateManager().tryUpdateAllEpochs(false);
+                epochMgr.getEpochUpdateManager().tryUpdateAllEpochs();
             } catch (Exception e) {
                 logger.error("Failed to update epochs");
             }
