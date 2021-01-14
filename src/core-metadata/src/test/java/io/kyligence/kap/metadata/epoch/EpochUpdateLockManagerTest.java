@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
@@ -39,34 +40,40 @@ public class EpochUpdateLockManagerTest extends AbstractJdbcMetadataTestCase {
     private String project = "test";
 
     @Test
-    public void testGetLock() throws InterruptedException {
+    public void testGetLock() {
         val executorService = Executors.newFixedThreadPool(5);
 
-        getTestConfig().setProperty("kylin.server.leader-race.heart-beat-timeout", "3");
+        try {
+            getTestConfig().setProperty("kylin.server.leader-race.heart-beat-timeout", "3");
 
-        val lockList = Lists.newCopyOnWriteArrayList();
+            val lockList = Lists.newCopyOnWriteArrayList();
 
-        for (int i = 0; i < 10; i++) {
-            executorService.submit(() -> {
-                lockList.add(EpochUpdateLockManager.getLock(project));
-            });
+            for (int i = 0; i < 10; i++) {
+                executorService.submit(() -> {
+                    lockList.add(EpochUpdateLockManager.getLock(project));
+                });
+            }
+
+            val lockCache = EpochUpdateLockManager.getLock(project);
+
+            Assert.assertTrue(lockList.stream().allMatch(x -> lockCache == x));
+
+            Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 1);
+
+            TimeUnit.SECONDS.sleep(3);
+
+            EpochUpdateLockManager.getLock("test2");
+
+            Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 2);
+
+            //clean up cache that is expired
+            EpochUpdateLockManager.cleanUp();
+
+            Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 1);
+        } catch (Exception e) {
+            Assert.fail("test error," + Throwables.getRootCause(e).getMessage());
+        } finally {
+            executorService.shutdownNow();
         }
-
-        val lockCache = EpochUpdateLockManager.getLock(project);
-
-        Assert.assertTrue(lockList.stream().allMatch(x -> lockCache == x));
-
-        Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 1);
-
-        TimeUnit.SECONDS.sleep(3);
-
-        EpochUpdateLockManager.getLock("test2");
-
-        Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 2);
-
-        //clean up cache that is expired
-        EpochUpdateLockManager.cleanUp();
-
-        Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 1);
     }
 }
