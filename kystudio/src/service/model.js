@@ -287,7 +287,7 @@ export default {
     return Vue.resource(apiUrl + `models/${para.model_id}/segment_holes`).save(para)
   },
   getMetadataStructure (para) {
-    return Vue.resource(apiUrl + `metastore/previews/models?project=${para.project}`).get()
+    return Vue.resource(apiUrl + `metastore/previews/models`).get(para)
   },
   downloadModelsMetadata (para) {
     return download.post(apiUrl + `metastore/backup/models?project=${para.project}`, para.form)

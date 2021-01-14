@@ -9,11 +9,11 @@
     @close="handleClose"
     @closed="handleClosed">
     <p class="modal-import-tip" v-if="step === 'first'"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('importModalTips')}}</p>
-    <p v-if="step === 'second'">{{getParseImportModal}}<span class="view-import-tips" @click="toggerDetailTips">{{$t('viewDetails')}}<i :class="['el-icon-arrow-up ksd-ml-2', {'reverse': showDetailTips}]"></i></span></p>
+    <p v-if="step === 'second'"><span v-html="getParseImportModal"></span><span class="view-import-tips" @click="toggerDetailTips">{{$t('viewDetails')}}<i :class="['el-icon-arrow-up ksd-ml-2', {'reverse': showDetailTips}]"></i></span></p>
     <div class="import-details" v-show="showDetailTips && step === 'second'">
-      <p>* {{$t('importTips1')}}</p>
-      <p>* {{$t('importTips2')}}</p>
-      <p>* {{$t('importTips3')}}</p>
+      <p>* <span v-html="$t('importTips1')" /></p>
+      <p>* <span v-html="$t('importTips2')" /></p>
+      <p>* <span v-html="$t('importTips3')" /></p>
     </div>
     <!-- 上传元数据zip包界面 -->
     <el-form ref="form" :model="form" :rules="rules" v-loading="isSubmiting" v-if="isBodyShow && step === 'first'">
@@ -31,13 +31,16 @@
     <div class="modal-parse-contain" v-loading="isSubmiting" v-else-if="isBodyShow && step === 'second'">
       <div class="modal-tables">
         <el-table class="model-list" border :data="models" size="small" :row-class-name="tableRowClassName" @row-click="activeModal">
-          <el-table-column prop="target_name" show-overflow-tooltip :label="$t('modelName')">
+          <el-table-column prop="target_name" class-name="model-name-item" :label="$t('modelName')">
             <template slot-scope="scope">
+              <span :class="[importModelStatus(scope.row)]"></span>
               <template v-if="scope.row.action === 'new'">
                 <el-input :class="{'error-tip': scope.row.isNameError}" v-model="scope.row.target_name" size="mini" @change="handleRenameReset(scope.row)"/>
                 <div class="rename-error" v-if="scope.row.isNameError">{{$t(scope.row.nameErrorMsg)}}</div>
               </template>
-              <span v-else>{{scope.row.original_name}}</span>
+              <template v-else>
+                <span v-custom-tooltip="{text: scope.row.original_name, w: 0}">{{scope.row.original_name}}</span>
+              </template>
             </template>
           </el-table-column>
           <el-table-column :label="$t('actions')" width="150px">
@@ -56,14 +59,44 @@
         </el-table>
       </div>
       <div class="single-modal-detail">
+        <div :class="['model-detail-tips', getCurrentModelDetails().key]" v-if="getCurrentModelDetails && activeModalObj && activeModalObj.differences > 0">
+          <p class="title">{{$t(activeModalObj.has_same_name ? `${getCurrentModelDetails().title}SameName` : `${getCurrentModelDetails().title}DiffName`)}}<span v-if="!(getCurrentModelDetails().key === 'new' && !activeModalObj.has_same_name)" class="detail-btn" @click="showModelDetails = !showModelDetails">{{$t('detailBtn')}}<i :class="['el-icon-ksd-more_01', 'ksd-ml-5', {'open': showModelDetails}]"></i></span></p>
+          <div class="detail-content" v-if="showModelDetails">
+            <p>{{$t(activeModalObj.has_same_name ? `${getCurrentModelDetails().details}SameName` : `${getCurrentModelDetails().details}DiffName`)}}</p>
+            <div class="ksd-pl-10" v-if="getCurrentDefaultStatus() === 'noImport'">
+              <p v-if="noImportReason.filter(it => it === 'tablesDiff' || it === 'columnsDiff').length">* {{$t('noFoundItems', {items: noImportReason.filter(it => it === 'tablesDiff' || it === 'columnsDiff').map(item => $t(item)).join($t('or'))})}}</p>
+              <p v-if="noImportReason.filter(it => it === 'columnsDataTypeDiff').length">* {{$t('columnsDataTypeConflict')}}</p>
+              <p v-if="noImportReason.filter(it => it === 'computedColumnsDiff').length">* {{$t('computedColumnsDiff')}}</p>
+            </div>
+            <div class="ksd-pl-10" v-else-if="getCurrentDefaultStatus() === 'new'">
+              <p v-for="(item, index) in noOverWriteReason" :key="index">* {{$t(item)}}</p>
+            </div>
+          </div>
+          <p>{{$t(activeModalObj.has_same_name ? `${getCurrentModelDetails().msg}SameName` : `${getCurrentModelDetails().msg}DiffName`)}}</p>
+        </div>
         <el-tabs v-model="activeTabName" @tab-click="handleClick" v-if="activeModalObj && activeModalObj.differences > 0">
-          <el-tab-pane :name="item.name" v-for="(item, index) in tabPaneList" :key="index">
-            <span slot="label"><i :class="item.icon"></i> {{item.label}}</span>
-            <div class="tab-collapse-details" v-if="activeModalObj && displayNoDataContain(item) > 0">
+          <el-tab-pane :name="it.name" v-for="(it, index) in tabPaneList" :key="index">
+            <span slot="label"><i :class="it.icon"></i> {{it.label}}</span>
+            <div class="tab-collapse-details" v-if="activeModalObj && displayNoDataContain(it) > 0">
               <template v-if="activeModalObj[activeTabName]">
                 <el-collapse v-model="activeCollapse" v-if="activeTabName !== 'modified'">
                   <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="`${activeTabName}_${index}`">
-                    <el-collapse-item :title="$t(item, {num: activeTabLength(item)})" v-if="activeTabLength(item)" :name="item">
+                    <el-collapse-item v-if="activeTabLength(item)" :name="item">
+                      <template slot="title">
+                        <span v-if="it.name === 'nofound' && getCurrentDefaultStatus() === 'noImport'">
+                          <el-tooltip :content="$t('notFoundTablesOrColumnsTip')" effect="dark" placement="top">
+                            <i class="el-icon-ksd-error_01 is-error ksd-mr-5" v-show="item === 'tables' || item === 'columns'"></i>
+                          </el-tooltip>
+                          {{$t(item, {num: activeTabLength(item)})}}
+                        </span>
+                        <span v-else-if="it.name !== 'nofound' && getCurrentDefaultStatus() === 'new' && activeModalObj.has_same_name">
+                          <el-tooltip :content="$t('cannotOverwriteTips')" effect="dark" placement="top">
+                            <i class="el-icon-ksd-alert is-warning ksd-mr-5" v-show="['tables', 'modelFilter', 'modelJoin', 'partitionColumns'].includes(item)"></i>
+                          </el-tooltip>
+                          {{$t(item, {num: activeTabLength(item)})}}
+                        </span>
+                        <span v-else>{{$t(item, {num: activeTabLength(item)})}}</span>
+                      </template>
                       <template v-if="item === 'partitionColumns'">
                         <div class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
                           <template v-if="it.type === 'MODEL_PARTITION'">
@@ -71,14 +104,14 @@
                           </template>
                            <template v-else-if="it.type === 'MODEL_MULTIPLE_PARTITION'">
                             <p class="detail-text break-word">{{$t('subPartition')}} <span class="ellipsis-layout">{{it.attributes.columns.join(',')}}</span></p>
-                            <p class="detail-text break-word">{{$t('subPartitionValues')}} <span class="ellipsis-layout">{{ArrayFlat(it.attributes.partitions).join(',')}}</span></p>
+                            <p class="detail-text break-word" v-if="ArrayFlat(it.attributes.partitions).length">{{$t('subPartitionValues')}} <span class="ellipsis-layout">{{ArrayFlat(it.attributes.partitions).join(',')}}</span></p>
                           </template>
                         </div>
                       </template>
                       <template v-else-if="item === 'computedColumns'">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
-                          <el-tooltip :content="it.reason === 'SAME_CC_NAME_HAS_DIFFERENT_EXPR' ? $t('sameCCNameTips') : it.reason === 'DIFFERENT_CC_NAME_HAS_SAME_EXPR' ? $t('sameCCExpressionTips') : ''" effect="dark" placement="top">
-                            <i class="el-icon-ksd-alert_1" v-if="['SAME_CC_NAME_HAS_DIFFERENT_EXPR', 'DIFFERENT_CC_NAME_HAS_SAME_EXPR'].includes(it.reason)"></i>
+                          <el-tooltip v-if="['SAME_CC_NAME_HAS_DIFFERENT_EXPR', 'DIFFERENT_CC_NAME_HAS_SAME_EXPR'].includes(it.reason)" :content="it.reason === 'SAME_CC_NAME_HAS_DIFFERENT_EXPR' ? $t('sameCCNameTips') : it.reason === 'DIFFERENT_CC_NAME_HAS_SAME_EXPR' ? $t('sameCCExpressionTips', {sameCCName: it.conflict_item || ''}) : ''" effect="dark" placement="top">
+                            <i class="el-icon-ksd-error_01 is-error ksd-mr-5"></i>
                           </el-tooltip>
                           <span class="break-word">{{it.detail}}：{{it.attributes.expression}}</span>
                         </p>
@@ -114,7 +147,15 @@
                 </el-collapse>
                 <el-collapse v-model="activeCollapse" v-else>
                   <div v-for="(item, index) in Object.keys(activeModalObj[activeTabName])" :key="`${activeTabName}_${index}`">
-                    <el-collapse-item :title="$t(item === 'columns' ? `${item}DataType` : item, {num: activeTabLength(item)})" v-if="activeTabLength(item)" :name="item">
+                    <el-collapse-item v-if="activeTabLength(item)" :name="item">
+                      <template slot="title">
+                        <span>
+                          <el-tooltip :content="$t('changeColumnsDataTypeTip')" effect="dark" placement="top">
+                            <i v-if="item === 'columns' && getCurrentDefaultStatus() === 'noImport'" class="el-icon-ksd-error_01 is-error ksd-mr-5"></i>
+                          </el-tooltip>
+                          {{$t(item === 'columns' ? `${item}DataType` : item, {num: activeTabLength(item)})}}
+                        </span>
+                      </template>
                       <template v-if="item === 'columns'">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">{{it.first_detail}}：{{it.second_attributes.datatype}} <span class="modify-item">{{it.first_attributes.datatype}}</span></p>
                       </template>
@@ -145,8 +186,8 @@
                       </template>
                       <template v-else-if="item === 'computedColumns'">
                         <p class="detail-text" v-for="(it, index) in activeModalObj[activeTabName][item].list" :key="index">
-                          <el-tooltip :content="it.reason === 'SAME_CC_NAME_HAS_DIFFERENT_EXPR' ? $t('sameCCNameTips') : it.reason === 'DIFFERENT_CC_NAME_HAS_SAME_EXPR' ? $t('sameCCExpressionTips') : ''" effect="dark" placement="top">
-                            <i class="el-icon-ksd-alert_1" v-if="['SAME_CC_NAME_HAS_DIFFERENT_EXPR', 'DIFFERENT_CC_NAME_HAS_SAME_EXPR'].includes(it.reason)"></i>
+                          <el-tooltip v-if="['SAME_CC_NAME_HAS_DIFFERENT_EXPR', 'DIFFERENT_CC_NAME_HAS_SAME_EXPR'].includes(it.reason)" :content="it.reason === 'SAME_CC_NAME_HAS_DIFFERENT_EXPR' ? $t('sameCCNameTips') : it.reason === 'DIFFERENT_CC_NAME_HAS_SAME_EXPR' ? $t('sameCCExpressionTips') : ''" effect="dark" placement="top">
+                            <i class="el-icon-ksd-error_01 is-error ksd-mr-5"></i>
                           </el-tooltip>
                           <span class="break-word">{{it.first_detail}}：{{it.second_attributes.expression}}</span> <span class="modify-item break-word">{{it.first_attributes.expression}}</span>
                         </p>
@@ -222,8 +263,10 @@
           </el-tab-pane>
         </el-tabs>
         <div class="no-data" v-else>
-          <i class="el-icon-ksd-empty-box"></i>
-          <p>{{$t('noDifferences')}}</p>
+          <div class="contain">
+            <i class="el-icon-ksd-empty-box"></i>
+            <p>{{$t('noDifferences')}}</p>
+          </div>
         </div>
       </div>
       <!-- {{JSON.stringify(activeModalObj[activeTabName]['computedColumns'])}} -->
@@ -266,7 +309,7 @@ import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import store, { getDefaultAction } from './store'
 import locales from './locales'
 import { NamedRegex } from 'config'
-import { validator } from './handler'
+import { validator, diffOverWriteModel } from './handler'
 import vuex, { actionTypes } from '../../../store'
 import { handleSuccessAsync, handleError, ArrayFlat } from '../../../util'
 import RenderModelConflicts from './RenderModelConflicts'
@@ -322,7 +365,6 @@ export default class ModelsImportModal extends Vue {
   setTableMapping = false
   showError = false
   tableMapContent = ''
-  activePannels = ['NO_CONFLICT_MODELS']
   showDetailTips = false
   activeTabName = 'nofound'
   activeModalObj = null
@@ -332,6 +374,14 @@ export default class ModelsImportModal extends Vue {
   getDefaultAction = getDefaultAction
   ArrayFlat = ArrayFlat
   activeCollapse = ['tables', 'columns', 'partitionColumns', 'measures', 'dimensions', 'indexes', 'computedColumns', 'modelJoin', 'modelFilter']
+  modelDetails = {
+    noImport: {title: 'noImportTitle', details: 'noImportDetails', msg: 'noImportMsg', key: 'noImport'},
+    new: {title: 'newModelTitle', details: 'newModelDetails', msg: 'newModelMsg', key: 'new'},
+    replace: {title: 'replaceModelTitle', details: 'replaceModelDetails', msg: 'replaceModelMsg', key: 'replace'}
+  }
+  showModelDetails = false
+  noImportReason = []
+  noOverWriteReason = []
 
   get rules () {
     return {
@@ -341,7 +391,7 @@ export default class ModelsImportModal extends Vue {
 
   get getParseImportModal () {
     const noImportNum = this.models.filter(item => !item.importable).length
-    return `${this.$t('parseModalsTips', { modelNum: this.models.length })} ${noImportNum ? this.$t('parseModalsTips1', { noImportNum }) : this.$t('kylinLang.common.dot')}`
+    return `${this.$t('parseModalsTips', { modelNum: this.models.length })}${noImportNum ? this.$t('parseModalsTips1', { noImportNum }) : this.$t('kylinLang.common.dot')}`
   }
 
   get getActionOptions () {
@@ -353,13 +403,22 @@ export default class ModelsImportModal extends Vue {
   }
 
   get tabPaneList () {
-    const { missing_items, new_items, reduce_items, update_items } = this.activeModalObj
-    return [
-      { label: this.$t('nofound', {num: missing_items.length}), name: 'nofound', icon: 'el-icon-ksd-error_01' },
-      { label: this.$t('add', {num: new_items.length}), name: 'add', icon: 'el-icon-ksd-add_bg' },
-      { label: this.$t('reduce', {num: reduce_items.length}), name: 'reduce', icon: 'el-icon-ksd-minus_bg' },
-      { label: this.$t('modified', {num: update_items.length}), name: 'modified', icon: 'el-icon-ksd-edit_bg' }
-    ]
+    const { missing_items, new_items, reduce_items, update_items, has_same_name } = this.activeModalObj
+    const defaultValue = this.getCurrentDefaultStatus(this.activeModalObj)
+    if (defaultValue === 'noImport' && !has_same_name) {
+      return [
+        { label: this.$t('nofound', {num: missing_items.length}), name: 'nofound', icon: 'el-icon-ksd-error_01' },
+        { label: this.$t('add', {num: new_items.length}), name: 'add', icon: 'el-icon-ksd-add_bg' },
+        { label: this.$t('modified', {num: update_items.length}), name: 'modified', icon: 'el-icon-ksd-edit_bg' }
+      ]
+    } else {
+      return [
+        { label: this.$t('nofound', {num: missing_items.length}), name: 'nofound', icon: 'el-icon-ksd-error_01' },
+        { label: this.$t('add', {num: new_items.length}), name: 'add', icon: 'el-icon-ksd-add_bg' },
+        { label: this.$t('reduce', {num: reduce_items.length}), name: 'reduce', icon: 'el-icon-ksd-minus_bg' },
+        { label: this.$t('modified', {num: update_items.length}), name: 'modified', icon: 'el-icon-ksd-edit_bg' }
+      ]
+    }
   }
 
   // 获取模型名称校验不通过 list
@@ -391,6 +450,56 @@ export default class ModelsImportModal extends Vue {
 
   get checkSameName () {
     return this.models.filter(it => it.isNameError && it.action === 'new').length > 0 || this.showError
+  }
+
+  // 获取不一致项
+  getDiffs () {
+    const {nofound, modified, add, has_same_name} = this.activeModalObj
+    let defaultValue = this.getCurrentDefaultStatus(this.activeModalObj)
+    if (defaultValue === 'noImport') {
+      if (nofound) {
+        this.noImportReason = this.noImportReason.concat(Object.keys(nofound).map(it => `${it}Diff`))
+      }
+      if (modified) {
+        if (modified.columns && modified.columns.list.length) {
+          this.noImportReason.push('columnsDataTypeDiff')
+        }
+        if (modified.computedColumns && this.judgeColumnByCC(modified.computedColumns.list).length) {
+          this.noImportReason.push('computedColumnsDiff')
+        }
+      }
+      if (add && add.computedColumns && this.judgeColumnByCC(add.computedColumns.list).length) {
+        this.noImportReason.push('computedColumnsDiff')
+      }
+    } else if (defaultValue === 'new' && has_same_name) {
+      this.noOverWriteReason = diffOverWriteModel(this.activeModalObj)
+    }
+  }
+
+  // 判断cc是否同名或同表达式
+  judgeColumnByCC (list) {
+    return list.length ? list.filter(it => ['SAME_CC_NAME_HAS_DIFFERENT_EXPR', 'DIFFERENT_CC_NAME_HAS_SAME_EXPR'].includes(it.reason)) : []
+  }
+
+  getCurrentDefaultStatus (obj) {
+    let content = obj || this.activeModalObj
+    return this.getDefaultAction(content).defaultValue
+  }
+
+  getCurrentModelDetails () {
+    return this.modelDetails[this.getCurrentDefaultStatus(this.activeModalObj) || '']
+  }
+
+  // 导入模型状态标志
+  importModelStatus (row) {
+    const defaultValue = this.getCurrentDefaultStatus(row)
+    if (defaultValue === 'noImport') {
+      return 'el-icon-ksd-error_01 is-error'
+    } else if (defaultValue === 'new') {
+      return 'el-icon-ksd-alert is-warning'
+    } else {
+      return 'el-icon-ksd-good_health is-success'
+    }
   }
 
   getJoinRaletionType (raletionType) {
@@ -505,8 +614,14 @@ export default class ModelsImportModal extends Vue {
   }
 
   activeModal (obj) {
+    let labels = [{key: 'missing_items', label: 'nofound'}, {key: 'new_items', label: 'add'}, {key: 'reduce_items', label: 'reduce'}, {key: 'update_items', label: 'modified'}]
+    this.noImportReason = []
+    this.showModelDetails = false
     this.activeModalObj = obj
-    this.activeTabName = 'nofound'
+    this.activeTabName = labels.filter(it => obj[it.key] && obj[it.key].length).length ? labels.filter(it => obj[it.key] && obj[it.key].length)[0].label : 'nofound'
+    if (['new', 'noImport'].includes(this.getCurrentDefaultStatus(obj))) {
+      this.getDiffs()
+    }
   }
 
   tableRowClassName ({row, rowIndex}) {
@@ -553,6 +668,7 @@ export default class ModelsImportModal extends Vue {
     this.step = 'first'
     this.activeTabName = 'nofound'
     this.showError = false
+    this.noImportReason = []
     this.callback && this.callback(isSubmit)
   }
 
@@ -594,7 +710,8 @@ export default class ModelsImportModal extends Vue {
           await this.uploadMetadataFile({ project, form })
           this.step = 'second'
           this.showError = false
-          this.activeModalObj = this.models[0]
+          this.activeModalObj = this.models[0];
+          ['new', 'noImport'].includes(this.getCurrentDefaultStatus(this.models[0])) && this.getDiffs()
         } catch (e) {
           const { code } = e.body
           this.isSubmiting = false
@@ -688,14 +805,56 @@ export default class ModelsImportModal extends Vue {
         background-color: @base-color-9;
       }
     }
+    .is-error {
+      color: @error-color-1;
+    }
+    .is-warning {
+      color: @warning-color-1;
+    }
+    .is-success {
+      color: @color-success;
+    }
     .single-modal-detail {
       margin-left: 1.4%;
-      border: 1px solid #DDDDDD;
-      padding: 5px 20px;
       box-sizing: border-box;
       width: 55%;
       height: 360px;
       position: relative;
+      margin-bottom: 10px;
+      overflow: auto;
+      .el-tabs {
+        border: 1px solid @line-border-color3;
+        padding: 5px 20px;
+        margin-top: 10px;
+        box-sizing: border-box;
+      }
+      .model-detail-tips {
+        font-size: 12px;
+        padding: 10px;
+        color: @text-title-color;
+        .detail-btn {
+          color: @base-color;
+          cursor: pointer;
+          i {
+            font-size: 10px;
+          }
+          .open {
+            transform: rotate(180deg);
+          }
+        }
+        &.replace {
+          background-color: @normal-color-2;
+        }
+        &.new {
+          background-color: @warning-color-2;
+        }
+        &.noImport {
+          background-color: @error-color-2;
+        }
+        .detail-content {
+          color: @text-normal-color;
+        }
+      }
       .el-tabs__nav-wrap {
         .el-tabs__item {
           font-size: 12px;
@@ -711,13 +870,13 @@ export default class ModelsImportModal extends Vue {
         }
       }
       .el-tabs--top {
-        height: 100%;
+        // height: 100%;
         .el-tabs__header {
           margin: 0;
         }
         .el-tabs__content {
-          height: calc(~'100% - 50px');
-          overflow: auto;
+          min-height: 250px;
+          overflow: hidden;
         }
       }
       .el-collapse-item {
@@ -793,18 +952,21 @@ export default class ModelsImportModal extends Vue {
         }
       }
       .no-data {
-        color: @color-text-placeholder;
-        text-align: center;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 12px;
-        i {
-          font-size: 40px;
+        border: 1px solid @line-border-color3;
+        .contain {
           color: @color-text-placeholder;
-          cursor: default;
-          margin-bottom: 5px;
+          text-align: center;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 12px;
+          i {
+            font-size: 40px;
+            color: @color-text-placeholder;
+            cursor: default;
+            margin-bottom: 5px;
+          }
         }
         .nofound-icon {
           font-size: 30px;
@@ -911,9 +1073,17 @@ export default class ModelsImportModal extends Vue {
   .el-collapse-item__content {
     padding: 0 0 0 20px;
   }
-  // .model-list {
-  //   border-top: 1px solid @line-split-color;
-  // }
+  .model-list {
+    .model-name-item {
+      .el-input {
+        width: calc(~'100% - 20px');
+      }
+      .tip_box {
+        vertical-align: top;
+        line-height: 20px;
+      }
+    }
+  }
   .model-type-header {
     padding: 0 10px;
     background-color: @background-disabled-color;

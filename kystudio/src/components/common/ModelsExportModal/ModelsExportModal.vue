@@ -162,8 +162,10 @@ export default class ModelsExportModal extends Vue {
   async handleOpen () {
     try {
       const { project } = this
+      let data = {}
       this.isLoading = true
-      await this.getModelsMetadataStructure({ project })
+      this.type !== 'all' && (data.model_ids = this.form.ids.join(','))
+      await this.getModelsMetadataStructure({ project, ...data })
       this.isLoading = false
       this.isBodyShow = true
       if (this.type !== 'all') {
