@@ -77,7 +77,8 @@ export default {
     varcharSumMeasureTip: 'Can\'t save model. The following measures can\'t reference column(s) in Varchar type, as the selected function is SUM or PERCENTILE_APPROX.',
     measureRuleErrorTip: 'This measure\'s function ({type}) is incompatible with the referenced column, which is Varchar.',
     pleaseModify: 'Please modify.',
-    iKnow: 'Got It'
+    iKnow: 'Got It',
+    disabledConstantMeasureTip: 'Can\'t modify the default measure.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -157,6 +158,7 @@ export default {
     varcharSumMeasureTip: '无法保存模型。以下度量的函数类型 SUM 或 PERCENTILE_APPROX 不支持引用 Varchar 类型的列：',
     measureRuleErrorTip: '该度量的函数类型 {type} 不支持引用 Varchar 类型的列',
     pleaseModify: '请修改。',
-    iKnow: '知道了'
+    iKnow: '知道了',
+    disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。'
   }
 }

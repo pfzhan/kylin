@@ -237,7 +237,7 @@ export default class AddMeasure extends Vue {
     {label: 'MAX', value: 'MAX'},
     {label: 'TOP_N', value: 'TOP_N'},
     {label: 'COUNT (column)', value: 'COUNT(column)'},
-    {label: 'COUNT (constant)', value: 'COUNT(constant)'},
+    // {label: 'COUNT (constant)', value: 'COUNT(constant)'}, 去除 count(constant) 函数，默认添加 count_all 度量
     {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
     // {label: 'CORR (Beta)', value: 'CORR'},
     {label: 'PERCENTILE_APPROX', value: 'PERCENTILE_APPROX'},
