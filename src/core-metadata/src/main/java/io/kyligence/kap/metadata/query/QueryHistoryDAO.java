@@ -54,5 +54,9 @@ public interface QueryHistoryDAO {
 
     long getQueryHistoriesSize(QueryHistoryRequest request, String project);
 
+    List<QueryHistory> getQueryHistoriesSubmitters(QueryHistoryRequest request, int size);
+
+    List<QueryStatistics> getQueryHistoriesModelIds(QueryHistoryRequest request, int size);
+
     String getRealizationMetricMeasurement();
 }

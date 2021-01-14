@@ -536,4 +536,125 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, queryHistories.get(0).getNativeQueryRealizations().get(0).getSnapshots().isEmpty());
         Assert.assertEquals(2, queryHistories.get(0).getNativeQueryRealizations().get(1).getSnapshots().size());
     }
+
+    @Test
+    public void testGetQueryHistoryFilter() {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
+        request.setRealizations(Lists.newArrayList("HIVE", "CONSTANTS", "nmodel_basic_inner", "nmodel_basic"));
+
+        // mock query histories
+        QueryHistory queryHistory = new QueryHistory();
+        queryHistory.setSql("select * from test_table_1");
+        queryHistory.setEngineType("NATIVE");
+        queryHistory.setQuerySubmitter("TEST");
+        QueryMetrics.RealizationMetrics noSnapshotMetrics1 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
+                "741ca86a-1f13-46da-a59f-95fb68615e3a", Lists.newArrayList(new String[] {}));
+        QueryMetrics.RealizationMetrics noSnapshotMetrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Lists.newArrayList("test_snapshot"));
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
+        queryHistoryInfo.setRealizationMetrics(
+                Lists.newArrayList(noSnapshotMetrics1, noSnapshotMetrics2));
+        queryHistory.setQueryHistoryInfo(queryHistoryInfo);
+
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select * from test_table_3");
+        queryHistory1.setEngineType("HIVE");
+        queryHistory1.setQuerySubmitter("TEST");
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSql("select * from test_table_3");
+        queryHistory2.setEngineType("CONSTANTS");
+        queryHistory2.setQuerySubmitter("TEST");
+
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(queryHistory, queryHistory1, queryHistory2)).when(queryHistoryDAO)
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+
+        Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+        Assert.assertEquals(3, queryHistories.size());
+        Assert.assertEquals("nmodel_basic", queryHistories.get(0).getNativeQueryRealizations().get(1).getModelAlias());
+        Assert.assertEquals("HIVE", queryHistories.get(1).getEngineType());
+        Assert.assertEquals("CONSTANTS", queryHistories.get(2).getEngineType());
+        Assert.assertEquals("TEST", queryHistories.get(0).getQuerySubmitter());
+        Assert.assertEquals("TEST", queryHistories.get(1).getQuerySubmitter());
+        Assert.assertEquals("TEST", queryHistories.get(2).getQuerySubmitter());
+    }
+
+    @Test
+    public void testGetQueryHistorySubmitters() {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
+        request.setRealizations(Lists.newArrayList("HIVE", "CONSTANTS", "nmodel_basic_inner", "nmodel_basic"));
+
+        // mock query histories
+        QueryHistory queryHistory = new QueryHistory();
+        queryHistory.setQuerySubmitter("ADMIN");
+
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setQuerySubmitter("TEST");
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setQuerySubmitter("TEST2");
+
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(queryHistory, queryHistory1, queryHistory2)).when(queryHistoryDAO)
+                .getQueryHistoriesSubmitters(Mockito.any(), Mockito.anyInt());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+
+        List<String> queryHistories = queryHistoryService.getQueryHistoryUsernames(request, 10);
+        Assert.assertEquals(3, queryHistories.size());
+        Assert.assertEquals("ADMIN", queryHistories.get(0));
+        Assert.assertEquals("TEST", queryHistories.get(1));
+        Assert.assertEquals("TEST2", queryHistories.get(2));
+    }
+
+    @Test
+    public void testGetQueryHistoryModels() {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
+        request.setRealizations(Lists.newArrayList("HIVE", "CONSTANTS", "nmodel_basic_inner", "nmodel_basic"));
+
+        // mock query query statistics
+
+        QueryStatistics queryStatistics = new QueryStatistics();
+        queryStatistics.setEngineType("HIVE");
+        QueryStatistics queryStatistics1 = new QueryStatistics();
+        queryStatistics1.setEngineType("CONSTANTS");
+        QueryStatistics queryStatistics2 = new QueryStatistics();
+        queryStatistics2.setModel("82fa7671-a935-45f5-8779-85703601f49a");
+
+        QueryStatistics queryStatistics3 = new QueryStatistics();
+        queryStatistics3.setModel("82fa7671-a935-45f5-8779-85703601f49b");
+
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(queryStatistics, queryStatistics1, queryStatistics2, queryStatistics3))
+                .when(queryHistoryDAO).getQueryHistoriesModelIds(Mockito.any(), Mockito.anyInt());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+
+        List<String> models = queryHistoryService.getQueryHistoryModels(request, 10);
+        Assert.assertEquals(3, models.size());
+        Assert.assertEquals("HIVE", models.get(0));
+        Assert.assertEquals("CONSTANTS", models.get(1));
+        Assert.assertEquals("ut_inner_join_cube_partial", models.get(2));
+
+    }
 }

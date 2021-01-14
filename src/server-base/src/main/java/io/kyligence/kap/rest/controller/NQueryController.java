@@ -204,10 +204,11 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "realization", required = false) List<String> realizations,
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "submitter", required = false) String submitter) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, server, queryStatus, realizations, false, null);
+                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
@@ -227,6 +228,36 @@ public class NQueryController extends NBasicController {
         Map<String, Object> queryHistories = QueryHisTransformStandardUtil.transformQueryHistory(
                 queryHistoryService.getQueryHistories(request, size, offset));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistories, "");
+    }
+
+
+    @ApiOperation(value = "getQueryHistoryUsernames", tags = { "QE" }, notes = "Update Param: project, user_name")
+    @GetMapping(value = "/query_history_submitters")
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getQueryHistorySubmitters(@RequestParam(value = "project") String project,
+                                                                    @RequestParam(value = "submitter", required = false) String submitter,
+                                                                    @RequestParam(value = "page_size", required = false, defaultValue = "100") Integer size) {
+        checkProjectName(project);
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(project);
+        request.setFilterSubmitter(submitter);
+        request.setSubmitterExactlyMatch(false);
+        checkGetQueryHistoriesParam(request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryUsernames(request, size), "");
+    }
+
+    @ApiOperation(value = "getQueryHistoryModels", tags = { "QE" }, notes = "Update Param: project, model_name")
+    @GetMapping(value = "/query_history_models")
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getQueryHistoryModels(@RequestParam(value = "project") String project,
+                                                                @RequestParam(value = "model_name", required = false) String modelName,
+                                                                @RequestParam(value = "page_size", required = false, defaultValue = "100") Integer size) {
+        checkProjectName(project);
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(project);
+        request.setFilterModelName(modelName);
+        List<String> modelNames = queryHistoryService.getQueryHistoryModels(request, size);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelNames, "");
     }
 
     @ApiOperation(value = "getServers", tags = { "QE" })

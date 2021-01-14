@@ -49,6 +49,12 @@ public class QueryHistoryRequest {
     private String latencyTo;
     private String sql;
     private String server;
+    // Userd to filter results with submitter name
+    private String filterSubmitter;
+    // Userd to filter results with model name
+    private String filterModelName;
+    // Userd to filter results with models
+    private List<String> filterModelIds;
     private List<String> queryStatus;
 
     List<String> realizations;
@@ -63,4 +69,5 @@ public class QueryHistoryRequest {
     private boolean isAdmin;
     @JsonIgnore
     private String username;
+    private boolean isSubmitterExactlyMatch;
 }

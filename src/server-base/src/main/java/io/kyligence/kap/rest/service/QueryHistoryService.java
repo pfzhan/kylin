@@ -41,7 +41,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -49,6 +48,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.sql.catalyst.util.DateTimeUtils;
@@ -63,6 +63,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
@@ -127,6 +128,8 @@ public class QueryHistoryService extends BasicService {
             request.setAdmin(true);
         }
 
+        splitModels(request, modelAliasMap);
+
         queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).forEach(query -> {
             QueryHistoryInfo queryHistoryInfo = query.getQueryHistoryInfo();
             if ((queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
@@ -167,6 +170,59 @@ public class QueryHistoryService extends BasicService {
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request, request.getProject()));
 
         return data;
+    }
+
+    private void splitModels(QueryHistoryRequest request, Map<String, String> modelAliasMap) {
+        List<String> realizations = request.getRealizations();
+        if (realizations != null && !realizations.isEmpty() && !realizations.contains("modelName")) {
+            List<String> modelNames = Lists.newArrayList(realizations);
+            modelNames.remove(QueryHistory.EngineType.HIVE.name());
+            modelNames.remove(QueryHistory.EngineType.CONSTANTS.name());
+            modelNames.remove(QueryHistory.EngineType.RDBMS.name());
+
+            request.setFilterModelIds(modelNames.stream().filter(modelAliasMap::containsKey)
+                    .map(modelAliasMap::get).collect(Collectors.toList()));
+        }
+    }
+
+    public List<String> getQueryHistoryUsernames(QueryHistoryRequest request, int size) {
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        request.setUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        if (aclEvaluate.hasProjectAdminPermission(
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
+            request.setAdmin(true);
+        } else {
+            throw new ForbiddenException(MsgPicker.getMsg().getEXPORT_RESULT_NOT_ALLOWED());
+        }
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesSubmitters(request, size);
+        return queryHistories.stream().map(QueryHistory::getQuerySubmitter).collect(Collectors.toList());
+    }
+
+    public List<String> getQueryHistoryModels(QueryHistoryRequest request, int size) {
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        request.setUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        if (aclEvaluate.hasProjectAdminPermission(
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
+            request.setAdmin(true);
+        }
+        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryHistoriesModelIds(request, size);
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
+                .collect(Collectors.toMap(RootPersistentEntity::getUuid, NDataModel::getAlias));
+
+        return queryStatistics.stream().map(query -> {
+            // engineType && modelId are both saved into queryStatistics
+            if (!StringUtils.isEmpty(query.getEngineType())) {
+                return query.getEngineType();
+            } else if (!StringUtils.isEmpty(query.getModel()) && modelAliasMap.containsKey(query.getModel())) {
+                return modelAliasMap.get(query.getModel());
+            } else {
+                return null;
+            }
+        }).filter(alias -> !StringUtils.isEmpty(alias) && (StringUtils.isEmpty(request.getFilterModelName())
+                || alias.toLowerCase(Locale.ROOT).contains(request.getFilterModelName().toLowerCase(Locale.ROOT))))
+                .limit(size).collect(Collectors.toList());
     }
 
     private boolean haveSpaces(String text) {

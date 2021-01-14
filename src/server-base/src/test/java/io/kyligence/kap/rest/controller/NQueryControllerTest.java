@@ -45,11 +45,12 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.hamcrest.CoreMatchers.containsString;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
@@ -329,6 +330,16 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         return queries;
     }
 
+    private List<String> mockQueryHistorySubmitters() {
+        final List<String> submitters = Lists.newArrayList();
+        submitters.add("ADMIN");
+        submitters.add("USER1");
+        submitters.add("USER2");
+        submitters.add("USER3");
+        submitters.add("USER4");
+        return submitters;
+    }
+
     @Test
     public void testGetQueryHistories() throws Exception {
         QueryHistoryRequest request = new QueryHistoryRequest();
@@ -337,6 +348,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         request.setStartTimeTo("1000");
         request.setLatencyFrom("0");
         request.setLatencyTo("10");
+        request.setSubmitterExactlyMatch(true);
         request.setQueryStatus(Arrays.asList("FAILED"));
         HashMap<String, Object> data = Maps.newHashMap();
         data.put("query_histories", mockedQueryHistories());
@@ -355,7 +367,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(),
                 request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(), request.getQueryStatus(),
-                null, null, null, 2, 3);
+                null, null, null, 2, 3, null);
 
         // check args
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
@@ -403,5 +415,47 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .param("page_offset", "2").param("page_size", "6").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6));
+    }
+
+    @Test
+    public void testGetQueryHistorySubmitters() throws Exception {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        request.setFilterSubmitter("USER");
+        final List<String> submitters = Lists.newArrayList();
+        submitters.add("USER1");
+        submitters.add("USER2");
+        submitters.add("USER3");
+
+        Mockito.when(queryHistoryService.getQueryHistoryUsernames(request, 3)).thenReturn(submitters);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_history_submitters").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("submitter", "USER").param("page_size", "3")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[0]").value("USER1"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[1]").value("USER2"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[2]").value("USER3"));
+        Mockito.verify(nQueryController).getQueryHistorySubmitters(PROJECT, request.getFilterSubmitter(), 3);
+    }
+
+    @Test
+    public void testGetQueryHistoryModels() throws Exception {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        request.setFilterModelName("MODEL");
+        final List<String> models = Lists.newArrayList();
+        models.add("MODEL1");
+        models.add("MODEL2");
+
+        Mockito.when(queryHistoryService.getQueryHistoryModels(request, 3)).thenReturn(models);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_history_models").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("model_name", "MODEL").param("page_size", "3")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.length()").value(2))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[0]").value("MODEL1"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[1]").value("MODEL2"));
+        Mockito.verify(nQueryController).getQueryHistoryModels(PROJECT, request.getFilterModelName(), 3);
     }
 }

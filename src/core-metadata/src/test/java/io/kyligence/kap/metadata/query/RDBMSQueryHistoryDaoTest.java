@@ -557,6 +557,111 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testQueryHistoryFilter() throws Exception {
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics1.setSubmitter(ADMIN);
+        queryMetrics1.setEngineType("RDBMS");
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        queryMetrics2.setSubmitter(NORMAL_USER);
+        queryMetrics2.setEngineType("HIVE");
+
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, true, PROJECT);
+        queryMetrics3.setSubmitter(NORMAL_USER);
+
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        queryMetrics4.setSubmitter(NORMAL_USER);
+        queryHistoryDAO.insert(queryMetrics1);
+        queryHistoryDAO.insert(queryMetrics2);
+        queryHistoryDAO.insert(queryMetrics3);
+        queryHistoryDAO.insert(queryMetrics4);
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+
+        // system-admin and project-admin can get all query history on current project
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+        queryHistoryRequest.setProject(PROJECT);
+        queryHistoryRequest.setFilterSubmitter(NORMAL_USER);
+        queryHistoryRequest.setRealizations(Lists.newArrayList("RDBMS", "HIVE", "ut_inner_join_cube_partial"));
+        queryHistoryRequest.setFilterModelIds(Lists.newArrayList("82fa7671-a935-45f5-8779-85703601f49a.json"));
+        List<QueryHistory> queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
+        Assert.assertEquals(2, queryHistoryList.size());
+
+        queryHistoryRequest.setRealizations(Lists.newArrayList("pushdown", "modelName"));
+        try {
+            queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalArgumentException);
+        }
+
+        queryHistoryRequest.setRealizations(Lists.newArrayList("HIVE", "modelName"));
+        queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
+        Assert.assertEquals(2, queryHistoryList.size());
+
+        queryHistoryRequest.setRealizations(Lists.newArrayList("HIVE", "pushdown"));
+        queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
+        Assert.assertEquals(2, queryHistoryList.size());
+    }
+
+    @Test
+    public void testGetQueryHistorySubmitters() throws Exception {
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics1.setSubmitter(ADMIN);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        queryMetrics2.setSubmitter(ADMIN);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT);
+        queryMetrics3.setSubmitter(NORMAL_USER);
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        queryMetrics4.setSubmitter(NORMAL_USER);
+        queryHistoryDAO.insert(queryMetrics1);
+        queryHistoryDAO.insert(queryMetrics2);
+        queryHistoryDAO.insert(queryMetrics3);
+        queryHistoryDAO.insert(queryMetrics4);
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+
+        // system-admin and project-admin can get all query history on current project
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+        queryHistoryRequest.setProject(PROJECT);
+        List<QueryHistory> queryHistoryList = queryHistoryDAO.getQueryHistoriesSubmitters(queryHistoryRequest, 3);
+        Assert.assertEquals(2, queryHistoryList.size());
+    }
+
+    @Test
+    public void testGetQueryHistoryModelNames() throws Exception {
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics1.setSubmitter(ADMIN);
+        queryMetrics1.setEngineType("RDBMS");
+        queryMetrics1.setQueryHistoryInfo(new QueryHistoryInfo());
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        queryMetrics2.setSubmitter(ADMIN);
+        queryMetrics2.setEngineType("HIVE");
+        queryMetrics2.setQueryHistoryInfo(new QueryHistoryInfo());
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT);
+        queryMetrics3.setSubmitter(NORMAL_USER);
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        queryMetrics4.setSubmitter(NORMAL_USER);
+        queryMetrics4.setEngineType("CONSTANTS");
+        queryMetrics4.setQueryHistoryInfo(new QueryHistoryInfo());
+        queryHistoryDAO.insert(queryMetrics1);
+        queryHistoryDAO.insert(queryMetrics2);
+        queryHistoryDAO.insert(queryMetrics3);
+        queryHistoryDAO.insert(queryMetrics4);
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+
+        // system-admin and project-admin can get all query history on current project
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+        queryHistoryRequest.setProject(PROJECT);
+        List<QueryStatistics> modelList = queryHistoryDAO.getQueryHistoriesModelIds(queryHistoryRequest, 5);
+        Assert.assertEquals(3, modelList.size());
+        Assert.assertEquals("RDBMS", modelList.get(0).getEngineType());
+        Assert.assertEquals("HIVE", modelList.get(1).getEngineType());
+        Assert.assertEquals("82fa7671-a935-45f5-8779-85703601f49a.json", modelList.get(2).getModel());
+    }
+    @Test
     public void testReadWriteJsonForQueryHistory() throws Exception {
         // write
         QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
@@ -635,6 +740,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         realizationMetrics.setDuration(4591L);
         realizationMetrics.setQueryTime(1586405449387L);
         realizationMetrics.setProjectName(project);
+        realizationMetrics.setModelId("82fa7671-a935-45f5-8779-85703601f49a.json");
 
         realizationMetrics.setSnapshots(
                 Lists.newArrayList(new String[] { "DEFAULT.TEST_KYLIN_ACCOUNT", "DEFAULT.TEST_COUNTRY" }));

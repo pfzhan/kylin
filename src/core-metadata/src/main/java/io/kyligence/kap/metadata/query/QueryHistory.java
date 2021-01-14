@@ -238,6 +238,6 @@ public class QueryHistory implements IKeep {
     }
 
     public enum EngineType {
-        NATIVE, CONSTANTS
+        NATIVE, CONSTANTS, RDBMS, HIVE
     }
 }
