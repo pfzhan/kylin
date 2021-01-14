@@ -25,12 +25,12 @@
 package io.kyligence.kap.metadata.model.schema.strategy;
 
 import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.DIFFERENT_CC_NAME_HAS_SAME_EXPR;
-import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.NONE;
 import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.SAME_CC_NAME_HAS_DIFFERENT_EXPR;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +41,7 @@ import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
 import io.kyligence.kap.metadata.model.schema.SchemaNode;
 import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
+import lombok.val;
 
 public class ComputedColumnStrategy implements SchemaChangeStrategy {
 
@@ -62,15 +63,16 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
         // same cc name with different expression
         if (hasComputedColumnNameWithDifferentExpression(entry.getValue(), allComputedColumns)) {
             return Collections.singletonList(SchemaChangeCheckResult.ChangedItem.createUnImportableSchemaNode(
-                    entry.getKey().getType(), entry.getValue(), SAME_CC_NAME_HAS_DIFFERENT_EXPR,
+                    entry.getKey().getType(), entry.getValue(), SAME_CC_NAME_HAS_DIFFERENT_EXPR, null,
                     hasSameName(modelAlias, originalModels)));
         }
 
         // different cc name with same expression
-        if (hasExpressionWithDifferentComputedColumn(entry.getValue(), allComputedColumns)) {
+        val optional = hasExpressionWithDifferentComputedColumn(entry.getValue(), allComputedColumns);
+        if (optional.isPresent()) {
             return Collections.singletonList(SchemaChangeCheckResult.ChangedItem.createUnImportableSchemaNode(
                     entry.getKey().getType(), entry.getValue(), DIFFERENT_CC_NAME_HAS_SAME_EXPR,
-                    hasSameName(modelAlias, originalModels)));
+                    optional.get().getDetail(), hasSameName(modelAlias, originalModels)));
         }
 
         if (overwritable(importModels, originalModels, modelAlias)) {
@@ -94,21 +96,21 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
         // same cc name with different expression
         if (hasComputedColumnNameWithDifferentExpression(schemaNode, allComputedColumns)) {
             return Collections.singletonList(SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(),
-                    diff.rightValue(), modelAlias, SAME_CC_NAME_HAS_DIFFERENT_EXPR,
+                    diff.rightValue(), modelAlias, SAME_CC_NAME_HAS_DIFFERENT_EXPR, null,
                     hasSameName(modelAlias, originalModels), false, false, false));
         }
 
         // different cc name with same expression
-        if (hasExpressionWithDifferentComputedColumn(schemaNode, allComputedColumns)) {
+        val optional = hasExpressionWithDifferentComputedColumn(schemaNode, allComputedColumns);
+        if (optional.isPresent()) {
             return Collections.singletonList(SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(),
-                    diff.rightValue(), modelAlias, DIFFERENT_CC_NAME_HAS_SAME_EXPR,
+                    diff.rightValue(), modelAlias, DIFFERENT_CC_NAME_HAS_SAME_EXPR, optional.get().getDetail(),
                     hasSameName(modelAlias, originalModels), false, false, false));
         }
 
         boolean overwritable = overwritable(importModels, originalModels, modelAlias);
-        return Collections
-                .singletonList(SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(), diff.rightValue(),
-                        modelAlias, NONE, hasSameName(modelAlias, originalModels), true, true, overwritable));
+        return Collections.singletonList(SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(),
+                diff.rightValue(), modelAlias, hasSameName(modelAlias, originalModels), true, true, overwritable));
     }
 
     @Override
@@ -148,14 +150,16 @@ public class ComputedColumnStrategy implements SchemaChangeStrategy {
      * @param allComputedColumns
      * @return
      */
-    private boolean hasExpressionWithDifferentComputedColumn(SchemaNode node, List<SchemaNode> allComputedColumns) {
+    private Optional<SchemaNode> hasExpressionWithDifferentComputedColumn(SchemaNode node,
+            List<SchemaNode> allComputedColumns) {
         String ccName = node.getDetail();
         String expression = (String) node.getAttributes().get("expression");
 
         return allComputedColumns.stream()
-                .anyMatch(schemaNode -> Objects.equal(node.getAttributes().get("fact_table"),
+                .filter(schemaNode -> Objects.equal(node.getAttributes().get("fact_table"),
                         schemaNode.getAttributes().get("fact_table")) && !schemaNode.getDetail().equals(ccName)
-                        && schemaNode.getAttributes().get("expression").equals(expression));
+                        && schemaNode.getAttributes().get("expression").equals(expression))
+                .findAny();
     }
 
 }

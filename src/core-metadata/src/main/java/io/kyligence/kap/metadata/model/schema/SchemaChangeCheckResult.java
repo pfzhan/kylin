@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
@@ -107,8 +108,8 @@ public class SchemaChangeCheckResult implements IKeep {
         @JsonProperty("model_alias")
         String modelAlias;
 
-        @JsonProperty("reason")
-        UN_IMPORT_REASON reason;
+        @JsonUnwrapped
+        ConflictReason conflictReason;
 
         @JsonProperty("has_same_name")
         boolean hasSameName;
@@ -142,34 +143,36 @@ public class SchemaChangeCheckResult implements IKeep {
         private SchemaNode schemaNode;
 
         public ChangedItem(SchemaNodeType type, SchemaNode schemaNode, String modelAlias, UN_IMPORT_REASON reason,
-                boolean hasSameName, boolean importable, boolean creatable, boolean overwritable) {
-            super(type, modelAlias, reason, hasSameName, importable, creatable, overwritable);
+                String conflictItem, boolean hasSameName, boolean importable, boolean creatable, boolean overwritable) {
+            super(type, modelAlias, new ConflictReason(reason, conflictItem), hasSameName, importable, creatable,
+                    overwritable);
             this.schemaNode = schemaNode;
         }
 
         public static ChangedItem createUnImportableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
-                UN_IMPORT_REASON reason, boolean hasSameName) {
-            return new ChangedItem(type, schemaNode, null, reason, hasSameName, false, false, false);
+                UN_IMPORT_REASON reason, String conflictItem, boolean hasSameName) {
+            return new ChangedItem(type, schemaNode, null, reason, conflictItem, hasSameName, false, false, false);
         }
 
         public static ChangedItem createUnImportableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
-                String modelAlias, UN_IMPORT_REASON reason, boolean hasSameName) {
-            return new ChangedItem(type, schemaNode, modelAlias, reason, hasSameName, false, false, false);
+                String modelAlias, UN_IMPORT_REASON reason, String conflictItem, boolean hasSameName) {
+            return new ChangedItem(type, schemaNode, modelAlias, reason, conflictItem, hasSameName, false, false,
+                    false);
         }
 
         public static ChangedItem createOverwritableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
                 boolean hasSameName) {
-            return new ChangedItem(type, schemaNode, null, null, hasSameName, true, true, true);
+            return new ChangedItem(type, schemaNode, null, null, null, hasSameName, true, true, true);
         }
 
         public static ChangedItem createOverwritableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
                 String modelAlias, boolean hasSameName) {
-            return new ChangedItem(type, schemaNode, modelAlias, null, hasSameName, true, true, true);
+            return new ChangedItem(type, schemaNode, modelAlias, null, null, hasSameName, true, true, true);
         }
 
         public static ChangedItem createCreatableSchemaNode(SchemaNodeType type, SchemaNode schemaNode,
                 boolean hasSameName) {
-            return new ChangedItem(type, schemaNode, null, null, hasSameName, true, true, false);
+            return new ChangedItem(type, schemaNode, null, null, null, hasSameName, true, true, false);
         }
 
         public String getModelAlias() {
@@ -214,23 +217,25 @@ public class SchemaChangeCheckResult implements IKeep {
         }
 
         public UpdatedItem(SchemaNode firstSchemaNode, SchemaNode secondSchemaNode, String modelAlias,
-                UN_IMPORT_REASON reason, boolean hasSameName, boolean importable, boolean creatable,
-                boolean overwritable) {
-            super(secondSchemaNode.getType(), modelAlias, reason, hasSameName, importable, creatable, overwritable);
+                UN_IMPORT_REASON reason, String conflictItem, boolean hasSameName, boolean importable,
+                boolean creatable, boolean overwritable) {
+            super(secondSchemaNode.getType(), modelAlias, new ConflictReason(reason, conflictItem), hasSameName,
+                    importable, creatable, overwritable);
             this.firstSchemaNode = firstSchemaNode;
             this.secondSchemaNode = secondSchemaNode;
         }
 
         public static UpdatedItem getSchemaUpdate(SchemaNode first, SchemaNode second, String modelAlias,
-                UN_IMPORT_REASON reason, boolean hasSameName, boolean importable, boolean creatable,
-                boolean overwritable) {
-            return new UpdatedItem(first, second, modelAlias, reason, hasSameName, importable, creatable, overwritable);
+                UN_IMPORT_REASON reason, String conflictItem, boolean hasSameName, boolean importable,
+                boolean creatable, boolean overwritable) {
+            return new UpdatedItem(first, second, modelAlias, reason, conflictItem, hasSameName, importable, creatable,
+                    overwritable);
         }
 
         public static UpdatedItem getSchemaUpdate(SchemaNode first, SchemaNode second, String modelAlias,
                 boolean hasSameName, boolean importable, boolean creatable, boolean overwritable) {
-            return getSchemaUpdate(first, second, modelAlias, UN_IMPORT_REASON.NONE, hasSameName, importable, creatable,
-                    overwritable);
+            return getSchemaUpdate(first, second, modelAlias, UN_IMPORT_REASON.NONE, null, hasSameName, importable,
+                    creatable, overwritable);
         }
     }
 
@@ -274,6 +279,17 @@ public class SchemaChangeCheckResult implements IKeep {
         modelAlias.forEach(model -> models.putIfAbsent(model, new ModelSchemaChange()));
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConflictReason implements IKeep {
+        @JsonProperty("reason")
+        UN_IMPORT_REASON reason;
+
+        @JsonProperty("conflict_item")
+        String conflictItem;
+    }
+
     public enum UN_IMPORT_REASON {
         SAME_CC_NAME_HAS_DIFFERENT_EXPR, //
         DIFFERENT_CC_NAME_HAS_SAME_EXPR, //
@@ -281,7 +297,6 @@ public class SchemaChangeCheckResult implements IKeep {
         TABLE_COLUMN_DATATYPE_CHANGED, //
         MISSING_TABLE_COLUMN, //
         MISSING_TABLE, //
-        MULTIPLE_PARTITION_COLUMN_CHANGED, //
         NONE;
     }
 }

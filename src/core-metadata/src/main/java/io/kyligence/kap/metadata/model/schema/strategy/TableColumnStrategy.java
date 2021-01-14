@@ -64,7 +64,7 @@ public class TableColumnStrategy implements SchemaChangeStrategy {
         return reachableModel(difference.getTargetGraph(), entry.getValue()).stream()
                 .map(modelAlias -> SchemaChangeCheckResult.ChangedItem.createUnImportableSchemaNode(
                         entry.getKey().getType(), entry.getValue(), modelAlias, USED_UNLOADED_TABLE,
-                        hasSameName(modelAlias, originalModels)))
+                        entry.getValue().getDetail(), hasSameName(modelAlias, originalModels)))
                 .collect(Collectors.toList());
     }
 
@@ -74,7 +74,7 @@ public class TableColumnStrategy implements SchemaChangeStrategy {
         return Graphs.reachableNodes(difference.getTargetGraph(), diff.rightValue()).stream()
                 .filter(SchemaNode::isModelNode).map(SchemaNode::getSubject).distinct()
                 .map(modelAlias -> SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(),
-                        diff.rightValue(), modelAlias, TABLE_COLUMN_DATATYPE_CHANGED,
+                        diff.rightValue(), modelAlias, TABLE_COLUMN_DATATYPE_CHANGED, diff.rightValue().getDetail(),
                         hasSameName(modelAlias, originalModels), false, false, false))
                 .collect(Collectors.toList());
     }

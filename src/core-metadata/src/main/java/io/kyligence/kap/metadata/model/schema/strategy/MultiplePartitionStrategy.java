@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.metadata.model.schema.strategy;
 
-import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.MULTIPLE_PARTITION_COLUMN_CHANGED;
-import static io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult.UN_IMPORT_REASON.NONE;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -70,14 +67,8 @@ public class MultiplePartitionStrategy extends UnOverWritableStrategy {
             }
         }
 
-        SchemaChangeCheckResult.UN_IMPORT_REASON reason = NONE;
-        if (!overwritable) {
-            reason = MULTIPLE_PARTITION_COLUMN_CHANGED;
-        }
-
-        return Collections
-                .singletonList(SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(), diff.rightValue(),
-                        modelAlias, reason, hasSameName(modelAlias, originalModels), true, true, overwritable));
+        return Collections.singletonList(SchemaChangeCheckResult.UpdatedItem.getSchemaUpdate(diff.leftValue(),
+                diff.rightValue(), modelAlias, hasSameName(modelAlias, originalModels), true, true, overwritable));
     }
 
     /**

@@ -46,7 +46,7 @@ public class TableStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> missingItems(SchemaUtil.SchemaDifference difference,
-                                                                  Set<String> importModels, Set<String> originalModels) {
+            Set<String> importModels, Set<String> originalModels) {
         return difference.getNodeDiff().entriesOnlyOnRight().entrySet().stream()
                 .filter(pair -> supportedSchemaNodeTypes().contains(pair.getKey().getType()))
                 .map(pair -> missingItemFunction(difference, pair, importModels, originalModels))
@@ -56,12 +56,12 @@ public class TableStrategy implements SchemaChangeStrategy {
 
     @Override
     public List<SchemaChangeCheckResult.ChangedItem> missingItemFunction(SchemaUtil.SchemaDifference difference,
-                                                                         Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
-                                                                         Set<String> originalModels) {
+            Map.Entry<SchemaNode.SchemaNodeIdentifier, SchemaNode> entry, Set<String> importModels,
+            Set<String> originalModels) {
         return reachableModel(difference.getTargetGraph(), entry.getValue()).stream()
                 .map(modelAlias -> SchemaChangeCheckResult.ChangedItem.createUnImportableSchemaNode(
                         entry.getKey().getType(), entry.getValue(), modelAlias, MISSING_TABLE,
-                        hasSameName(modelAlias, originalModels)))
+                        entry.getValue().getDetail(), hasSameName(modelAlias, originalModels)))
                 .collect(Collectors.toList());
     }
 }

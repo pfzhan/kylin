@@ -322,6 +322,30 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testConflictWithSameExpressionAndDifferentNameUpdate() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/model_cc_update/model_cc_same_expression_different_name_update_model_metadata_2020_11_14_17_15_29_850F781B4B5B5C7A480F5834C6644FCB.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
+        val difference = SchemaUtil.diff(getTargetProject(), KylinConfig.getInstanceFromEnv(),
+                importModelContext.getTargetKylinConfig());
+
+        val schemaChangeResponse = ModelImportChecker.check(difference, importModelContext);
+        Assert.assertFalse(schemaChangeResponse.getModels().isEmpty());
+
+        val modelSchemaChange = schemaChangeResponse.getModels().get(getTargetModel());
+
+        Assert.assertEquals(2, modelSchemaChange.getDifferences());
+
+        Assert.assertTrue(modelSchemaChange.getNewItems().stream().anyMatch(pair -> pair
+                .getType() == SchemaNodeType.MODEL_CC && pair.getDetail().equals("CC2")
+                && pair.getAttributes().get("expression").equals("P_LINEORDER.LO_CUSTKEY + 1") && !pair.isImportable()
+                && pair.getConflictReason().getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.DIFFERENT_CC_NAME_HAS_SAME_EXPR
+                && pair.getConflictReason().getConflictItem().equals("CC1")));
+    }
+
+    @Test
     public void testModelCCInDifferentFactTableUpdate() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_cc_in_different_fact_table/target_project_model_metadata_2020_12_07_15_37_19_1C3C399B52A4E4E4F07C017C9692A7CB.zip");
@@ -458,7 +482,9 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                 .anyMatch(pair -> pair.getType() == SchemaNodeType.TABLE_COLUMN && !pair.isImportable()
                         && pair.getFirstDetail().equals("SSB.CUSTOMER.C_CUSTKEY")
                         && pair.getFirstSchemaNode().getAttributes().get("datatype").equals("integer")
-                        && pair.getSecondSchemaNode().getAttributes().get("datatype").equals("varchar(4096)")));
+                        && pair.getSecondSchemaNode().getAttributes().get("datatype").equals("varchar(4096)")
+                        && pair.getConflictReason().getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.TABLE_COLUMN_DATATYPE_CHANGED
+                        && pair.getConflictReason().getConflictItem().equals("C_CUSTKEY")));
     }
 
     @Test
@@ -479,7 +505,9 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(9, modelSchemaChange.getDifferences());
         Assert.assertTrue(modelSchemaChange.getMissingItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_TABLE
-                        && !schemaChange.isImportable() && schemaChange.getDetail().equals("SSB.CUSTOMER_NEW")));
+                        && !schemaChange.isImportable() && schemaChange.getDetail().equals("SSB.CUSTOMER_NEW")
+                        && schemaChange.getConflictReason().getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.MISSING_TABLE
+                        && schemaChange.getConflictReason().getConflictItem().equals("SSB.CUSTOMER_NEW")));
     }
 
     @Test
