@@ -38,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.apache.kylin.query.routing.RealizationChooser;
@@ -323,7 +324,11 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             for (TblColRef col : usedCols) {
                 // if create totally new model, it won't reuse CC. So it need to be create its own new ComputedCols.
                 if (col.getColumnDesc().isComputedColumn()) {
-                    candidates.add(col.getExpressionInSourceDB());
+                    try {
+                        candidates.add(CalciteParser.transformDoubleQuote(col.getExpressionInSourceDB()));
+                    } catch (Exception e) {
+                        log.warn("fail to acquire formatted cc from expr %s", col.getExpressionInSourceDB());
+                    }
                 }
             }
             return candidates;

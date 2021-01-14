@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -72,7 +71,7 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
-       this.createTestMetadata();
+        this.createTestMetadata();
     }
 
     @After
@@ -166,13 +165,10 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
         Preconditions.checkArgument(substring.endsWith("'%berg'"));
     }
 
-
     @Test
     public void testPosWithBrackets() throws SqlParseException {
-        String[] sqls = new String[] {
-                "select (   a + b) * (c+ d     ) from t", "select (a+b) * (c+d) from t",
-                "select (a + b) * (c+ d) from t", "select (a+b) * (c+d) from t",
-        };
+        String[] sqls = new String[] { "select (   a + b) * (c+ d     ) from t", "select (a+b) * (c+d) from t",
+                "select (a + b) * (c+ d) from t", "select (a+b) * (c+d) from t", };
 
         for (String sql : sqls) {
             SqlNode parse = ((SqlSelect) CalciteParser.parse(sql)).getSelectList().get(0);
@@ -181,5 +177,11 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
             Preconditions.checkArgument(substring.startsWith("("));
             Preconditions.checkArgument(substring.endsWith(")"));
         }
+    }
+
+    @Test
+    public void testTransformDoubleQuote() throws SqlParseException {
+        String expr = "`ABC`.`CBA` + 1";
+        Assert.assertEquals(expr.replace("`", "\""), CalciteParser.transformDoubleQuote(expr));
     }
 }

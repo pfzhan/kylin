@@ -49,6 +49,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -64,6 +66,8 @@ import org.apache.kylin.common.util.Pair;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import static org.apache.calcite.sql.SqlDialect.EMPTY_CONTEXT;
 
 public class CalciteParser {
 
@@ -264,4 +268,14 @@ public class CalciteParser {
 
         return sql.substring(SQL_PREFIX.length(), sql.length() - SQL_SUFFIX.length());
     }
+
+    public static String transformDoubleQuote(String expr) throws SqlParseException {
+        SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder().setQuoting(Quoting.BACK_TICK);
+        SqlParser sqlParser = SqlParser.create("select " + expr, parserBuilder.build());
+        SqlSelect select = (SqlSelect) sqlParser.parseQuery();
+        return select.getSelectList().getList().get(0)
+                .toSqlString(new SqlDialect(EMPTY_CONTEXT.withIdentifierQuoteString("\""))).toString();
+
+    }
+
 }

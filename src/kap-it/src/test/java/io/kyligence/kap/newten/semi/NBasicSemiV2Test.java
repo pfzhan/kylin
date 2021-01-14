@@ -831,6 +831,24 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
     }
 
     @Test
+    public void testExplictUseCC() {
+        String project = "cc_test";
+
+        String[] sqls = new String[] {
+                "SELECT min(CC_LTAX) FROM SSB.LINEORDER LINEORDER INNER JOIN SSB.CUSTOMER as CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY" };
+        AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
+        val smartMaster = new SmartMaster(proposeContext);
+        smartMaster.executePropose();
+
+        // two layout will merge to one layout rec
+        Assert.assertEquals(1, proposeContext.getModelContexts().get(0).getIndexRexItemMap().size());
+        for (LayoutRecItemV2 layoutRecItem : proposeContext.getModelContexts().get(0).getIndexRexItemMap().values()) {
+            Assert.assertEquals(2, layoutRecItem.getLayout().getMeasureIds().size());
+        }
+        Assert.assertEquals(0, proposeContext.getModelContexts().get(0).getCcRecItemMap().size());
+    }
+
+    @Test
     public void testUpdateCostsAndTopNCandidates() {
         long yesterday = System.currentTimeMillis() - MILLIS_PER_DAY;
 
