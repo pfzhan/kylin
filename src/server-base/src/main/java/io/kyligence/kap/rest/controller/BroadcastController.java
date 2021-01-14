@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -74,6 +75,8 @@ public class BroadcastController extends NBasicController {
             licenseInfoService.refreshLicenseVolume();
         } else if (notifier instanceof EpochCheckBroadcastNotifier) {
             EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).updateAllEpochs();
+        } else if (notifier instanceof SourceUsageUpdateNotifier) {
+            licenseInfoService.updateSourceUsage();
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

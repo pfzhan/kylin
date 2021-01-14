@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.tool.routine.RoutineTool;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,7 +34,10 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
+import io.kyligence.kap.tool.routine.RoutineTool;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -99,5 +101,21 @@ public class ScheduleService {
         }
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
+    }
+
+    @Scheduled(cron = "${kylin.metadata.history-source-usage-cron:0 0 0 * * *}")
+    public void updateHistorySourceUsage() {
+        if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {
+            log.info("Start to update history source usage.");
+            val sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+            val sourceUsageRecord = sourceUsageManager.refreshLatestSourceUsageRecord();
+
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                log.debug("Start to update source usage...");
+                SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage(sourceUsageRecord);
+                return 0;
+            }, EpochManager.GLOBAL);
+            log.info("Update history source usage finished.");
+        }
     }
 }

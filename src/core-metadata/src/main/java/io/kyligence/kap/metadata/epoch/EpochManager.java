@@ -487,7 +487,8 @@ public class EpochManager implements IKeep {
      *
      * @param epoch
      */
-    private void insertOrUpdateEpoch(Epoch epoch) {
+    // public for test
+    public void insertOrUpdateEpoch(Epoch epoch) {
         if (Objects.isNull(epoch)) {
             return;
         }

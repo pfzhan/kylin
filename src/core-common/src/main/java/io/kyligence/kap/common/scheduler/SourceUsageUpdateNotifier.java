@@ -23,5 +23,7 @@
  */
 package io.kyligence.kap.common.scheduler;
 
-public class SourceUsageUpdateNotifier extends SchedulerEventNotifier {
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
+
+public class SourceUsageUpdateNotifier extends BroadcastEventReadyNotifier {
 }

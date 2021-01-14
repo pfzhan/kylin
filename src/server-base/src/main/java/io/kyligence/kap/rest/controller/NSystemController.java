@@ -81,6 +81,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
 import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
@@ -93,6 +94,7 @@ import io.kyligence.kap.rest.request.SourceUsageFilter;
 import io.kyligence.kap.rest.response.CapacityDetailsResponse;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
 import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
 import io.kyligence.kap.rest.response.MaintenanceModeResponse;
 import io.kyligence.kap.rest.response.ProjectCapacityResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
@@ -347,16 +349,16 @@ public class NSystemController extends NBasicController {
     @ApiOperation(value = "refresh license monitor info in a project", tags = { "MID" })
     @PutMapping(value = "/capacity/refresh")
     @ResponseBody
-    public EnvelopeResponse refresh(@RequestParam("project") String project) {
+    public EnvelopeResponse<String> refresh(@RequestParam("project") String project) {
         aclEvaluate.checkIsGlobalAdmin();
-        licenseInfoService.refreshTableExtDesc(project);
+        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "refresh license monitor info in all projects", tags = { "MID" })
     @PutMapping(value = "/capacity/refresh_all")
     @ResponseBody
-    public EnvelopeResponse refreshAll() {
+    public EnvelopeResponse<LicenseMonitorInfoResponse> refreshAll(HttpServletRequest request) {
         aclEvaluate.checkIsGlobalAdmin();
         licenseInfoService.updateSourceUsage();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");

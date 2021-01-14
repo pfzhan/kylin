@@ -27,7 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +76,15 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
 
     public String getResourcePath() {
         return resPath;
+    }
+
+    @Override
+    public String resourceName() {
+        if (resPath != null) {
+            return resPath.substring(ResourceStore.HISTORY_SOURCE_USAGE.length() + 1,
+                    resPath.length() - MetadataConstants.FILE_SURFIX.length());
+        }
+        return null;
     }
 
     public SourceUsageRecord() {

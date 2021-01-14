@@ -28,9 +28,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
-import org.apache.kylin.common.KylinConfig;
 
 public class SourceUsageCleaner {
 
@@ -45,22 +46,14 @@ public class SourceUsageCleaner {
         int totalSize = allRecords.size();
         if (totalSize <= 1)
             return;
-        List<SourceUsageRecord> collect = allRecords.stream().filter(sourceUsageRecord -> {
-            if ((System.currentTimeMillis() - sourceUsageRecord.getCreateTime()) < expirationTime) {
-                return false;
-            }
-            return true;
-        }).sorted(new Comparator<SourceUsageRecord>() {
-            @Override
-            public int compare(SourceUsageRecord o1, SourceUsageRecord o2) {
-                return o1.getCreateTime() < o2.getCreateTime() ? -1 : 1;
-            }
-        }).collect(Collectors.toList());
+        List<SourceUsageRecord> collect = allRecords.stream().filter(
+                sourceUsageRecord -> (System.currentTimeMillis() - sourceUsageRecord.getCreateTime()) >= expirationTime)
+                .sorted(Comparator.comparingLong(SourceUsageRecord::getCreateTime)).collect(Collectors.toList());
         if (collect.size() == totalSize) {
             collect.remove(totalSize - 1);
         }
         for (SourceUsageRecord record : collect) {
-            sourceUsageManager.delSourceUsage(record.getResourcePath());
+            sourceUsageManager.delSourceUsage(record.resourceName());
         }
     }
 }

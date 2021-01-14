@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -230,5 +231,41 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/system/host").contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController, Mockito.times(1)).getHostname();
+    }
+
+    @Test
+    public void testRefreshAll() throws Exception {
+        AclEvaluate sourceValue = nSystemController.getAclEvaluate();
+        try {
+            AclEvaluate mockAclEvaluate = mock(AclEvaluate.class);
+            nSystemController.setAclEvaluate(mockAclEvaluate);
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh_all")
+                    .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isOk());
+
+            Mockito.verify(mockAclEvaluate, Mockito.times(1)).checkIsGlobalAdmin();
+            Mockito.verify(nSystemController, Mockito.times(1)).refreshAll(Mockito.any());
+
+
+
+        } finally {
+            nSystemController.setAclEvaluate(sourceValue);
+        }
+    }
+
+    @Test
+    public void testRefresh() throws Exception {
+        AclEvaluate sourceValue = nSystemController.getAclEvaluate();
+        try {
+            AclEvaluate mockAclEvaluate = mock(AclEvaluate.class);
+            nSystemController.setAclEvaluate(mockAclEvaluate);
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/system/capacity/refresh")
+                    .param("project", "default")
+                    .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isOk());
+            Mockito.verify(nSystemController, Mockito.times(1)).refresh(Mockito.any());
+        } finally {
+            nSystemController.setAclEvaluate(sourceValue);
+        }
     }
 }

@@ -32,7 +32,9 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -46,9 +48,15 @@ public class SourceUsageUpdateListener {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(kylinConfig);
         if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
-            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
             log.debug("Start to update source usage...");
-            sourceUsageManager.updateSourceUsage();
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+            SourceUsageRecord sourceUsageRecord = sourceUsageManager.refreshLatestSourceUsageRecord();
+
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage(sourceUsageRecord);
+                return 0;
+            }, EpochManager.GLOBAL);
+            log.info("Update source usage done: {}", sourceUsageRecord);
         } else {
             try {
                 String owner = epochManager.getEpochOwner(EpochManager.GLOBAL).split("\\|")[0];
@@ -57,7 +65,7 @@ public class SourceUsageUpdateListener {
                     clientMap.put(owner, new RestClient(owner));
                 }
                 log.debug("Start to notify {} to update source usage", owner);
-                clientMap.get(owner).updateSourceUsage();
+                clientMap.get(owner).notify(notifier);
             } catch (Exception e) {
                 log.error("Failed to update source usage using rest client", e);
             }

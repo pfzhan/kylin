@@ -25,8 +25,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.rest.util.InitResourceGroupUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -44,10 +42,11 @@ import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.util.CreateAdminUserUtils;
+import io.kyligence.kap.rest.util.InitResourceGroupUtils;
 import io.kyligence.kap.rest.util.InitUserGroupUtils;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -87,8 +86,7 @@ public class EpochChangedListener implements IKeep {
                     throw new RuntimeException("Scheduler for " + project + " has not been started");
                 }
 
-                QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler
-                        .getInstance(project);
+                QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler.getInstance(project);
                 qhAccelerateScheduler.init();
 
                 if (!qhAccelerateScheduler.hasStarted()) {
@@ -101,7 +99,6 @@ public class EpochChangedListener implements IKeep {
             //TODO need global leader
             CreateAdminUserUtils.createAllAdmins(userService, env);
             InitUserGroupUtils.initUserGroups(env);
-            SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
             UnitOfWork.doInTransactionWithRetry(() -> {
                 ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();
                 return null;

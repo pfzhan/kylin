@@ -31,9 +31,10 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 
 public class GarbageCleaner {
@@ -79,8 +80,8 @@ public class GarbageCleaner {
             doCleanupMetadataManually(project, snapshotCleaner);
             return 0;
         }, project);
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        sourceUsageManager.updateSourceUsage();
+
+        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
     }
@@ -119,8 +120,9 @@ public class GarbageCleaner {
             snapshotCleaner.cleanup(project);
             return 0;
         }, project);
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        sourceUsageManager.updateSourceUsage();
+
+        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
+
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
     }
 }

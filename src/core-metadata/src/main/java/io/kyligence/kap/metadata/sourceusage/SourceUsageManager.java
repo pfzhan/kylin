@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -43,11 +44,11 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.MailHelper;
+import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -67,7 +68,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
@@ -78,11 +78,6 @@ import lombok.val;
 public class SourceUsageManager {
 
     private static final Logger logger = LoggerFactory.getLogger(SourceUsageManager.class);
-
-    private static final Serializer<SourceUsageRecord> SOURCE_USAGE_SERIALIZER = new JsonSerializer<>(
-            SourceUsageRecord.class);
-    public static final String GLOBAL = "_global";
-    private static final String PATH_DELIMITER = "/";
 
     public static SourceUsageManager getInstance(KylinConfig config) {
         return config.getManager(SourceUsageManager.class);
@@ -97,8 +92,51 @@ public class SourceUsageManager {
 
     final KylinConfig config;
 
-    public SourceUsageManager(KylinConfig config) {
+    private final CachedCrudAssist<SourceUsageRecord> crud;
+
+    private SourceUsageManager(KylinConfig config) {
         this.config = config;
+        this.crud = new CachedCrudAssist<SourceUsageRecord>(getStore(), ResourceStore.HISTORY_SOURCE_USAGE,
+                SourceUsageRecord.class) {
+            @Override
+            protected SourceUsageRecord initEntityAfterReload(SourceUsageRecord entity, String resourceName) {
+                entity.setResPath(concatResourcePath(resourceName));
+                return entity;
+            }
+        };
+    }
+
+    public SourceUsageRecord getSourceUsageRecord(String resourceName) {
+        return this.crud.listAll().stream()
+                .filter(usage -> usage.getResourcePath().equalsIgnoreCase(concatResourcePath(resourceName))).findAny()
+                .orElse(null);
+    }
+
+    public interface SourceUsageRecordUpdater {
+        void modify(SourceUsageRecord record);
+    }
+
+    public SourceUsageRecord copy(SourceUsageRecord df) {
+        return crud.copyBySerialization(df);
+    }
+
+    public SourceUsageRecord createSourceUsageRecord(String resourceName, SourceUsageRecord record) {
+        record.setResPath(concatResourcePath(resourceName));
+        return crud.save(record);
+    }
+
+    public SourceUsageRecord updateSourceUsageRecord(String resourceName, SourceUsageRecordUpdater updater) {
+        SourceUsageRecord record = getSourceUsageRecord(resourceName);
+        if (record == null) {
+            record = new SourceUsageRecord();
+        }
+        SourceUsageRecord copy = copy(record);
+        updater.modify(copy);
+        return crud.save(copy);
+    }
+
+    public static String concatResourcePath(String resourceName) {
+        return ResourceStore.HISTORY_SOURCE_USAGE + "/" + resourceName + MetadataConstants.FILE_SURFIX;
     }
 
     public Map<String, Long> calcAvgColumnSourceBytes(NDataSegment segment) {
@@ -340,7 +378,8 @@ public class SourceUsageManager {
 
         logger.info("Updating source usage..");
         try {
-            return updateSourceUsageInner();
+            SourceUsageRecord sourceUsageRecord = refreshLatestSourceUsageRecord();
+            return updateSourceUsage(sourceUsageRecord);
         } catch (Exception ex) {
             // swallow exception, source usage problem is not as critical as daily operations
             logger.error("Failed to update source usage", ex);
@@ -348,16 +387,13 @@ public class SourceUsageManager {
         }
     }
 
-    // For UT only
     public SourceUsageRecord updateSourceUsage(SourceUsageRecord sourceUsageRecord) {
         createOrUpdate(sourceUsageRecord);
         return sourceUsageRecord;
     }
 
-    private SourceUsageRecord updateSourceUsageInner() {
+    public SourceUsageRecord refreshLatestSourceUsageRecord() {
         SourceUsageRecord usage = new SourceUsageRecord();
-        logger.info("Start to calculate source usage...");
-
         // for each project, collect source usage
         for (ProjectInstance project : NProjectManager.getInstance(config).listAllProjects()) {
             String projectName = project.getName();
@@ -410,8 +446,6 @@ public class SourceUsageManager {
                         e);
             }
         }
-        createOrUpdate(usage);
-        logger.info("Update source usage done: {}", usage);
         return usage;
     }
 
@@ -434,56 +468,44 @@ public class SourceUsageManager {
     }
 
     private void createOrUpdate(SourceUsageRecord usageRecord) {
-        long now = System.currentTimeMillis();
-        String currentDate = DateFormat.formatToCompactDateStr(now);
-        String resPath = StringUtils.isEmpty(usageRecord.getResPath())
-                ? ResourceStore.HISTORY_SOURCE_USAGE + PATH_DELIMITER + currentDate + ".json"
-                : usageRecord.getResPath();
-        usageRecord.setResPath(resPath);
         try {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                ResourceStore resourceStore = getStore();
-                SourceUsageRecord record = resourceStore.getResource(resPath, SOURCE_USAGE_SERIALIZER);
-                if (record == null) {
-                    resourceStore.checkAndPutResource(resPath, usageRecord, SOURCE_USAGE_SERIALIZER);
-                } else {
-                    record.setLicenseCapacity(usageRecord.getLicenseCapacity());
-                    record.setCapacityDetails(usageRecord.getCapacityDetails());
-                    record.setCapacityStatus(usageRecord.getCapacityStatus());
-                    record.setCheckTime(usageRecord.getCheckTime());
-                    record.setCurrentCapacity(usageRecord.getCurrentCapacity());
-                    if (!isOverCapacityThreshold(record) && !record.isCapacityNotification()) {
-                        record.setCapacityNotification(true);
+            String resourceName = usageRecord.resourceName();
+            if (resourceName == null) {
+                resourceName = DateFormat.formatToCompactDateStr(System.currentTimeMillis());
+            }
+            SourceUsageRecord record = getSourceUsageRecord(resourceName);
+            if (record == null) {
+                record = createSourceUsageRecord(resourceName, usageRecord);
+            } else {
+                record = updateSourceUsageRecord(resourceName, copyForWrite -> {
+                    copyForWrite.setLicenseCapacity(usageRecord.getLicenseCapacity());
+                    copyForWrite.setCapacityDetails(usageRecord.getCapacityDetails());
+                    copyForWrite.setCapacityStatus(usageRecord.getCapacityStatus());
+                    copyForWrite.setCheckTime(usageRecord.getCheckTime());
+                    copyForWrite.setCurrentCapacity(usageRecord.getCurrentCapacity());
+                    if (!isOverCapacityThreshold(copyForWrite) && !copyForWrite.isCapacityNotification()) {
+                        copyForWrite.setCapacityNotification(true);
                         logger.info("Capacity usage is less than threshold, enable notification");
-                    } else if (record.isCapacityNotification() && config.isOverCapacityNotificationEnabled()
-                            && isOverCapacityThreshold(record)) {
-                        if (MailHelper.notifyUserForOverCapacity(record.getLicenseCapacity(),
-                                record.getCurrentCapacity())) {
-                            record.setCapacityNotification(false);
+                    } else if (copyForWrite.isCapacityNotification() && config.isOverCapacityNotificationEnabled()
+                            && isOverCapacityThreshold(copyForWrite)) {
+                        if (MailHelper.notifyUserForOverCapacity(copyForWrite.getLicenseCapacity(),
+                                copyForWrite.getCurrentCapacity())) {
+                            copyForWrite.setCapacityNotification(false);
                             logger.info("Capacity usage is more than threshold, disable notification");
                         } else {
                             logger.info("Send mail for Over Capacity failed.");
                         }
                     }
-                    resourceStore.checkAndPutResource(resPath, record, SOURCE_USAGE_SERIALIZER);
-                    usageRecord.setCapacityNotification(record.isCapacityNotification());
-                }
-                return 0;
-            }, GLOBAL, 1);
+                });
+            }
+            usageRecord.setCapacityNotification(record.isCapacityNotification());
         } catch (Exception e) {
             logger.error("Failed to update source usage record.", e);
         }
     }
 
-    public ResourceStore getStore() {
-        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-    }
-
-    public void tryReconstructSourceUsageHistory() {
-        SourceUsageRecord usage = getLatestRecord();
-        if (usage == null) {
-            updateSourceUsage();
-        }
+    private ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     /**
@@ -525,17 +547,15 @@ public class SourceUsageManager {
 
     public List<SourceUsageRecord> getLatestRecordByMs(long msAgo) {
         long from = System.currentTimeMillis() - msAgo;
-        return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, from,
-                Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
+        return this.crud.listAll().stream().filter(usage -> usage.getCreateTime() >= from).collect(Collectors.toList());
     }
 
     public List<SourceUsageRecord> getAllRecords() {
-        return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, 0,
-                Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
+        return this.crud.listAll();
     }
 
-    public void delSourceUsage(String path) {
-        ResourceStore.getKylinMetaStore(config).deleteResource(path);
+    public void delSourceUsage(String resourceName) {
+        this.crud.delete(resourceName);
     }
 
     public List<SourceUsageRecord> getLatestRecordByHours(int hoursAgo) {
