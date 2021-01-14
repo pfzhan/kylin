@@ -93,6 +93,7 @@ export default class QueryHistory extends Vue {
     latencyFrom: null,
     latencyTo: null,
     realization: [],
+    submitter: [],
     accelerateStatus: [],
     sql: '',
     query_status: []
@@ -125,6 +126,7 @@ export default class QueryHistory extends Vue {
       latency_from: this.filterData.latencyFrom,
       latency_to: this.filterData.latencyTo,
       realization: this.filterData.realization,
+      submitter: this.filterData.submitter,
       server: this.filterData.server,
       sql: this.filterData.sql,
       query_status: this.filterData.query_status

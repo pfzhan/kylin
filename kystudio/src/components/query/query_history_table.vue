@@ -148,19 +148,42 @@
             popper-class="col-sql-popover">
             <div class="sql-column" slot="reference" @click="handleExpandType(props)">{{props.row.sql_limit}}</div>
             <template>
-              <span>{{props.row.sql_limit}}</span>
+              <pre style="white-space: pre-wrap;">{{props.row.sql_limit}}</pre>
               <div class="sql-tip" v-if="sqlOverLimit(props.row.sql_limit)">{{$t('sqlDetailTip')}}</div>
             </template>
           </el-popover>
         </template>
       </el-table-column>
       <el-table-column
-        :filters="realFilteArr.map(item => ({text: $t(item), value: item}))"
+        :filters="realFilteArr.map(item => ({text: item, value: item}))"
+        :filters2="allHitModels"
+        :show-search-input="true"
         :filtered-value="filterData.realization"
         :label="$t('kylinLang.query.realization_th')"
         filter-icon="el-icon-ksd-filter"
+        :placeholder="$t('searchAnsweredBy')"
+        :emptyFilterText="$t('kylinLang.common.noData')"
         :show-multiple-footer="false"
         :filter-change="(v) => filterContent(v, 'realization')"
+        :filter-filters-change="(v) => fiterList('loadFilterHitModelsList', v)"
+        v-if="queryHistoryFilter.includes('filterActions')"
+        prop="realizations"
+        width="250">
+        <template slot-scope="props">
+          <div class="tag-ellipsis" :class="{'hasMore': checkIsShowMore(props.row.realizations)}">
+            <template v-if="props.row.realizations && props.row.realizations.length">
+              <el-tag v-for="(item, index) in props.row.realizations" :class="{'disabled': 'visible' in item && !item.visible}" v-if="index < checkShowCount(props.row.realizations)" :type="'visible' in item && !item.visible ? 'info' : item.valid ? 'success' : 'info'" size="small" :key="item.modelId"><i class="el-icon-ksd-lock" v-if="'visible' in item && !item.visible"></i>{{item.modelAlias}}</el-tag>
+              <a v-if="checkIsShowMore(props.row.realizations)" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: props.row.realizations.length - checkShowCount(props.row.realizations)})}}</a>
+            </template>
+            <template v-else>
+              <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
+            </template>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('kylinLang.query.realization_th')"
+        v-if="!queryHistoryFilter.includes('filterActions')"
         prop="realizations"
         width="250">
         <template slot-scope="props">
@@ -182,28 +205,52 @@
       </el-table-column>
       <el-table-column :filterMultiple="false" :show-all-select-option="false" :filters="queryNodes.map(item => ({text: item, value: item}))" :filtered-value="filterData.server" :label="$t('kylinLang.query.queryNode')" filter-icon="el-icon-ksd-filter" :filter-change="(v) => filterContent(v, 'server')"  show-overflow-tooltip prop="server" width="145">
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" show-overflow-tooltip width="90">
+      <el-table-column
+        :label="$t('kylinLang.query.submitter')"
+        :filters="submitterFilter.map(item => ({text: item, value: item}))"
+        :show-search-input="true"
+        :filtered-value="filterData.submitter"
+        filter-icon="el-icon-ksd-filter"
+        :show-multiple-footer="false"
+        :placeholder="$t('searchSubmitter')"
+        :emptyFilterText="$t('kylinLang.common.noData')"
+        :filter-change="(v) => filterContent(v, 'submitter')"
+        :filter-filters-change="(v) => fiterList('loadFilterSubmitterList', v)"
+        prop="submitter"
+        v-if="queryHistoryFilter.includes('filterActions')"
+        show-overflow-tooltip
+        width="110">
+      </el-table-column>
+      <el-table-column
+        :label="$t('kylinLang.query.submitter')"
+        prop="submitter"
+        v-if="!queryHistoryFilter.includes('filterActions')"
+        show-overflow-tooltip
+        width="110">
       </el-table-column>
     </el-table>
   </div>
 </template>
 
 <script>
-import { transToGmtTime, getStringLength } from '../../util/business'
+import { transToGmtTime, getStringLength, handleError } from '../../util/business'
+import { handleSuccessAsync } from 'util'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
 // import $ from 'jquery'
 import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
-// import sqlFormatter from 'sql-formatter'
+import sqlFormatter from 'sql-formatter'
 @Component({
   name: 'QueryHistoryTable',
   props: ['queryHistoryData', 'queryNodes', 'filterDirectData'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      markFav: 'MARK_FAV'
+      markFav: 'MARK_FAV',
+      fetchHitModelsList: 'FETCH_HIT_MODELS_LIST',
+      fetchSubmitterList: 'FETCH_SUBMITTER_LIST'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -212,7 +259,8 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'briefMenuGet'
+      'briefMenuGet',
+      'queryHistoryFilter'
     ])
   },
   locales: {
@@ -243,7 +291,10 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       FETCH_RESULT: 'Receiving result',
       SQL_PUSHDOWN_TRANSFORMATION: 'SQL pushdown transformation',
       CONSTANT_QUERY: 'Constant query',
-      HIT_CACHE: 'Cache hit'
+      HIT_CACHE: 'Cache hit',
+      allModels: 'All Models',
+      searchAnsweredBy: 'Search by answered by',
+      searchSubmitter: 'Search by submitter'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -272,7 +323,10 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       FETCH_RESULT: '返回结果',
       SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
       CONSTANT_QUERY: '常数查询',
-      HIT_CACHE: '击中缓存'
+      HIT_CACHE: '击中缓存',
+      allModels: '所有模型',
+      searchAnsweredBy: '请搜索查询对象',
+      searchSubmitter: '请搜索用户名'
     }
   },
   filters: {
@@ -287,13 +341,16 @@ export default class QueryHistoryTable extends Vue {
   endSec = 10
   latencyFilterPopoverVisible = false
   statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED', status: 'fullyAcce'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED', status: 'partlyAcce'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED', status: 'unAcce1'}]
-  realFilteArr = ['pushdown', 'modelName']
+  realFilteArr = []
+  allHitModels = [{text: this.$t('allModels'), value: 'modelName'}]
+  submitterFilter = []
   filterData = {
     startTimeFrom: null,
     startTimeTo: null,
     latencyFrom: null,
     latencyTo: null,
     realization: [],
+    submitter: [],
     server: [],
     sql: null,
     query_status: []
@@ -302,7 +359,7 @@ export default class QueryHistoryTable extends Vue {
   showCopyStatus = false
   currentExpandId = ''
   toggleExpandId = []
-  sqlLimitRows = 40 * 10
+  sqlLimitRows = 20 * 10
   statusList = ['SUCCEEDED', 'FAILED']
   filterTags = []
   isShowDetail = false // 展开查询步骤详情
@@ -326,7 +383,9 @@ export default class QueryHistoryTable extends Vue {
   onQueryHistoryDataChange (val) {
     val.forEach(element => {
       const sql = element.sql_text
-      element['sql_limit'] = this.sqlOverLimit(sql) ? `${sql.slice(0, this.sqlLimitRows)}...` : sql
+      const sql_limit = this.sqlOverLimit(sql) ? `${sql.slice(0, this.sqlLimitRows)}...` : sql
+      const sqlTextArr = sql.split('\n') // 换行符超过一个，说明用户查询行自定义过format格式，则保留
+      element['sql_limit'] = sqlTextArr.length > 1 ? sql_limit : sqlFormatter.format(sql_limit)
       element['server'] = [element['server']]
       element['flexHeight'] = 0
       element['editorH'] = 0
@@ -359,6 +418,37 @@ export default class QueryHistoryTable extends Vue {
     this.datetimerange = [startTimeFrom, startTimeTo]
     this.dateRangeChange()
     this.filterList()
+  }
+
+  fiterList (type, filterValue) {
+    this.timer = setTimeout(() => {
+      this[type](filterValue)
+    }, 200)
+  }
+
+  async loadFilterHitModelsList (filterValue) {
+    try {
+      const res = await this.fetchHitModelsList({ project: this.currentSelectedProject, model_name: filterValue, page_size: 100 })
+      this.realFilteArr = await handleSuccessAsync(res)
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  async loadFilterSubmitterList (filterValue) {
+    try {
+      const res = await this.fetchSubmitterList({ project: this.currentSelectedProject, submitter: filterValue, page_size: 100 })
+      this.submitterFilter = await handleSuccessAsync(res)
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  created () {
+    if (this.queryHistoryFilter.includes('filterActions')) {
+      this.loadFilterHitModelsList()
+      this.loadFilterSubmitterList()
+    }
   }
 
   // 清除查询开始事件筛选项
@@ -416,7 +506,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   get isHasFilterValue () {
-    return this.filterData.sql || this.filterData.startTimeFrom || this.filterData.startTimeTo || this.filterData.latencyFrom || this.filterData.latencyTo || this.filterData.realization.length || this.filterData.query_status.length || this.filterData.server.length
+    return this.filterData.sql || this.filterData.startTimeFrom || this.filterData.startTimeTo || this.filterData.latencyFrom || this.filterData.latencyTo || this.filterData.realization.length || this.filterData.query_status.length || this.filterData.server.length || this.filterData.submitter.length
   }
 
   get emptyText () {
@@ -812,7 +902,8 @@ export default class QueryHistoryTable extends Vue {
     const maps = {
       realization: 'kylinLang.query.answered_by',
       query_status: 'taskStatus',
-      server: 'kylinLang.query.queryNode'
+      server: 'kylinLang.query.queryNode',
+      submitter: 'kylinLang.query.submitter'
     }
 
     this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
@@ -850,6 +941,7 @@ export default class QueryHistoryTable extends Vue {
     this.filterData.query_status.splice(0, this.filterData.query_status.length)
     this.filterData.realization.splice(0, this.filterData.realization.length)
     this.filterData.server.splice(0, this.filterData.server.length)
+    this.filterData.submitter.splice(0, this.filterData.submitter.length)
     this.filterData.latencyFrom = null
     this.filterData.latencyTo = null
     this.datetimerange = ''

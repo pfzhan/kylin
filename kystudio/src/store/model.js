@@ -405,6 +405,12 @@ export default {
     },
     [types.VALIDATE_RECOMMEND] (_, params) {
       return api.model.validateRecommend(params)
+    },
+    [types.FETCH_HIT_MODELS_LIST] (_, params) {
+      return api.model.fetchHitModelsList(params)
+    },
+    [types.FETCH_SUBMITTER_LIST] (_, params) {
+      return api.model.fetchSubmitterList(params)
     }
   },
   getters: {

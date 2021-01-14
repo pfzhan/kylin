@@ -328,5 +328,11 @@ export default {
   },
   validateRecommend (para) {
     return window.kapVm.$http.post(apiUrl + `recommendations/${para.modelId}/validation`, para)
+  },
+  fetchHitModelsList (para) {
+    return Vue.resource(apiUrl + 'query/query_history_models').get(para)
+  },
+  fetchSubmitterList (para) {
+    return Vue.resource(apiUrl + 'query/query_history_submitters').get(para)
   }
 }

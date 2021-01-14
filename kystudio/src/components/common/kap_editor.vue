@@ -141,7 +141,7 @@ export default {
     // 截取前100行sql
     abridgeData () {
       // 需要截断的默认都是已经格式化后的，如果传入需要格式化，就再手动格式化，且格式化方式是通过字符串长度判断
-      if (this.needFormater && this.editorData.split('\n').length === 0) {
+      if (this.needFormater && this.editorData.split('\n').length === 1) {
         const data = this.editorData.length > sqlStrLenLimit ? `${this.editorData.slice(0, sqlStrLenLimit)}...` : this.editorData
         // 是否显示 tips 取决于填入的 sql 字符数是否超过全局配置的
         this.showLimitTip = this.editorData.length > sqlStrLenLimit
