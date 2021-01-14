@@ -68,6 +68,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -121,6 +123,8 @@ import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.Unsafe;
@@ -379,6 +383,25 @@ public class NBasicController {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
             throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
+    }
+
+    public <T extends Enum> List<String> formatStatus(List<String> status, Class<T> enumClass) {
+        if (status == null) {
+            return Lists.newArrayList();
+        }
+        Set<String> enumStrSet = Arrays.stream(enumClass.getEnumConstants()).map(Objects::toString)
+                .collect(Collectors.toSet());
+        List<String> formattedStatus = status.stream().filter(Objects::nonNull)
+                .map(item -> item.toUpperCase(Locale.ROOT)).collect(Collectors.toList());
+
+        List<String> illegalStatus = formattedStatus.stream().filter(item -> !enumStrSet.contains(item))
+                .collect(Collectors.toList());
+
+        if (!illegalStatus.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getNot_IN_EFFECTIVE_COLLECTION(), illegalStatus, enumStrSet));
+        }
+        return formattedStatus;
     }
 
     public void checkId(String uuid) {

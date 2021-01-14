@@ -1773,4 +1773,8 @@ public class Message {
     public String getMODEL_ID_NOT_EXIST() {
         return "Data model with id '%s' not found.";
     }
+
+    public String getNot_IN_EFFECTIVE_COLLECTION() {
+        return "%s not in effective collection : %s.";
+    }
 }

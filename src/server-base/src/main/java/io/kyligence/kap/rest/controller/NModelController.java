@@ -148,7 +148,8 @@ public class NModelController extends NBasicController {
     @Autowired
     private IndexPlanService indexPlanService;
 
-    @ApiOperation(value = "getModels{Red}", tags = { "AI" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getModels{Red}", tags = {
+            "AI" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(
@@ -166,6 +167,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
             @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
         checkProjectName(project);
+        status = formatStatus(status, ModelStatusToDisplayEnum.class);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
             models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse,
@@ -179,7 +181,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(models, offset, limit), "");
     }
 
-    @ApiOperation(value = "offlineAllModelsInProject", tags = { "AI" }, notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "offlineAllModelsInProject", tags = {
+            "AI" }, notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/disable_all_models")
     @ResponseBody
     public EnvelopeResponse<String> offlineAllModelsInProject(@RequestParam("project") String project) {
@@ -188,7 +191,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "offlineAllModelsInProject", tags = { "AI" }, notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "offlineAllModelsInProject", tags = {
+            "AI" }, notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/enable_all_models")
     @ResponseBody
     public EnvelopeResponse<String> onlineAllModelsInProject(@RequestParam("project") String project) {
@@ -353,7 +357,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "getAggIndices", tags = { "AI" }, notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getAggIndices", tags = {
+            "AI" }, notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "/{model:.+}/agg_indices")
     @ResponseBody
     public EnvelopeResponse<IndicesResponse> getAggIndices(@PathVariable(value = "model") String modelId,
@@ -372,7 +377,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "updateAggIndicesShardColumns", tags = { "AI" }, notes = "Update URL: model;Update Param: model_id")
+    @ApiOperation(value = "updateAggIndicesShardColumns", tags = {
+            "AI" }, notes = "Update URL: model;Update Param: model_id")
     @PostMapping(value = "/{model:.+}/agg_indices/shard_columns")
     @ResponseBody
     public EnvelopeResponse<String> updateAggIndicesShardColumns(@PathVariable("model") String modelId,
@@ -384,7 +390,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getAggIndicesShardColumns", tags = { "AI" }, notes = "Update URL: model; Update Response: model_id")
+    @ApiOperation(value = "getAggIndicesShardColumns", tags = {
+            "AI" }, notes = "Update URL: model; Update Response: model_id")
     @GetMapping(value = "/{model:.+}/agg_indices/shard_columns")
     @ResponseBody
     public EnvelopeResponse<AggShardByColumnsResponse> getAggIndicesShardColumns(
@@ -609,7 +616,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "checkComputedColumns", tags = { "AI" }, notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
+    @ApiOperation(value = "checkComputedColumns", tags = {
+            "AI" }, notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
     @PostMapping(value = "/computed_columns/check")
     @ResponseBody
     public EnvelopeResponse<ComputedColumnCheckResponse> checkComputedColumns(
@@ -700,7 +708,8 @@ public class NModelController extends NBasicController {
     }
 
     /* Segments */
-    @ApiOperation(value = "getSegments", tags = { "DW" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getSegments", tags = {
+            "DW" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(

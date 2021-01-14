@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +36,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,7 +49,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.controller.fixture.FixtureController;
 
 public class NBasicControllerTest extends NLocalFileMetadataTestCase {
@@ -192,6 +197,18 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("The end time must be greater than the start time");
         nBasicController.validateDataRange(start, end, "yyyy-MM-dd");
+    }
+
+    @Test
+    public void testFormatStatus() {
+        List<String> status = Lists.newArrayList("OFFLINE", null, "broken");
+        Assert.assertEquals(nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class),
+                Lists.newArrayList("OFFLINE", "BROKEN"));
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("not in effective collection");
+        status = Lists.newArrayList("OFF", null, "broken");
+        nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
     }
 
 }

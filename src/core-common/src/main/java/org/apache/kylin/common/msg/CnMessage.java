@@ -2020,4 +2020,9 @@ public class CnMessage extends Message {
     public String getMODEL_ID_NOT_EXIST() {
         return "模型ID '%s' 不存在。";
     }
+
+    @Override
+    public String getNot_IN_EFFECTIVE_COLLECTION() {
+        return "%s 不在有效的集合中 : %s。";
+    }
 }

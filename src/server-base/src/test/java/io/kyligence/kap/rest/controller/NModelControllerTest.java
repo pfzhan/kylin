@@ -247,17 +247,16 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
 
-        Mockito.when(
-                modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", false))
-                .thenReturn(mockModels());
+        Mockito.when(modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify",
+                false)).thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
-                .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "NEW")
+                .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "ONLINE")
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 0, 10,
-                "last_modify", true, null, null, null);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"), "", 0,
+                10, "last_modify", true, null, null, null);
     }
 
     @Test
@@ -267,25 +266,25 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .thenReturn(mockRelatedModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
-                .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
+                .param("exact", "true").param("owner", "ADMIN").param("status", "ONLINE").param("sortBy", "last_modify")
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"),
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null);
     }
 
     @Test
     public void testGetModelsWithOutModelName() throws Exception {
-        Mockito.when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", true))
+        Mockito.when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify", true))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "").param("limit", "10")
-                .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
+                .param("exact", "true").param("owner", "ADMIN").param("status", "ONLINE").param("sortBy", "last_modify")
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("NEW"),
+        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null);
     }
 
