@@ -565,11 +565,11 @@ public class Message {
     }
 
     public String getPROJECT_NAME_IS_ILLEGAL() {
-        return "The project name cannot exceed 50 characters, please re-enter";
+        return "The project name can’t exceed 50 characters. Please re-enter.";
     }
 
     public String getPROJECT_ALREADY_EXIST() {
-        return "The project named '%s' already exists.";
+        return "The project name \"%s\" already exists. Please rename it.";
     }
 
     public String sourceTYPE_NOT_ALLOWED() {
@@ -577,11 +577,11 @@ public class Message {
     }
 
     public String getPROJECT_NOT_FOUND() {
-        return "Cannot find project '%s'.";
+        return "Can‘t find project \"%s\".";
     }
 
     public String getPROJECT_UNMODIFIABLE_REASON() {
-        return "Model recommendation is not supported in current project, please enable recommendation mode and try again.";
+        return "Model recommendation is not supported for this project at the moment. Please turn on the recommendation mode in project setting, and try again.";
     }
 
     public String getPROJECT_ONGOING_OPTIMIZATION() {
@@ -601,11 +601,11 @@ public class Message {
     }
 
     public String getPROJECT_CHANGE_PERMISSION() {
-        return "Only the system administrator can change the owner of the project.";
+        return "Don’t have permission. The owner of project could only be changed by system admin.";
     }
 
     public String getPROJECT_OWNER_CHANGE_INVALID_USER() {
-        return "Illegal users! Only the system administrator and the project administrator role of this project can be set as the project owner.";
+        return "This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.";
     }
 
     public String getPROJECT_DISABLE_MLP() {
@@ -833,7 +833,7 @@ public class Message {
     }
 
     public String getDIAG_FAILED() {
-        return "Failed to generate diagnostic package, the reason for the failure is unknown, please try to regenerate it.";
+        return "Can’t generate diagnostic package. Please try regenerating it.";
     }
 
     // ExternalFilter
@@ -1011,7 +1011,7 @@ public class Message {
     }
 
     public String getINVALID_ID() {
-        return "id {%s} is not exist";
+        return "Can’t find ID \"%s\". Please check and try again.";
     }
 
     public String getSEGMENT_LOCKED() {

@@ -304,7 +304,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_UNMODIFIABLE_REASON() {
-        return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
+        return "当前项目暂不支持模型推荐及优化。请在设置中启用智能推荐后重试。";
     }
 
     @Override
@@ -508,17 +508,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_NAME_IS_ILLEGAL() {
-        return "项目名称不得超过50个字符，请重新输入";
+        return "项目名称不得超过50个字符。请重新输入。";
     }
 
     @Override
     public String getPROJECT_ALREADY_EXIST() {
-        return "项目 '%s' 已存在";
+        return "该项目名 \"%s\" 已存在。请重新命名。";
     }
 
     @Override
     public String getPROJECT_NOT_FOUND() {
-        return "找不到项目 '%s'";
+        return "无法找到项目 \"%s\"。";
     }
 
     @Override
@@ -532,12 +532,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_CHANGE_PERMISSION() {
-        return "仅系统管理员可以更改项目的所有者。";
+        return "没有权限操作。仅系统管理员可以更改项目的所有者。";
     }
 
     @Override
     public String getPROJECT_OWNER_CHANGE_INVALID_USER() {
-        return "非法用户！仅系统管理员和该项目的管理员可以被设置成项目的所有者。";
+        return "该用户无法被设置成项目所有者。请选择系统管理员，或该项目的管理员。";
     }
 
     @Override
@@ -918,7 +918,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDIAG_FAILED() {
-        return "生成诊断包失败，失败原因未知，请尝试重新生成。";
+        return "生成诊断包失败。请尝试重新生成。";
     }
 
     // ExternalFilter
@@ -1116,7 +1116,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_ID() {
-        return "id {%s} 不存在";
+        return "无法找到 ID \"%s\"。请检查后重试。";
     }
 
     @Override
@@ -1539,7 +1539,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDEFAULT_REASON() {
-        return "出现错误。%s。";
+        return "遇到了一些问题。%s";
     }
 
     @Override

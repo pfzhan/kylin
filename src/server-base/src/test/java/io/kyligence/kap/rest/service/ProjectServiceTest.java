@@ -205,7 +205,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(PROJECT);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The project named 'default' already exists.");
+        thrown.expectMessage("The project name \"default\" already exists. Please rename it.");
         projectService.createProject(projectInstance.getName(), projectInstance);
 
     }
@@ -814,8 +814,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         // user not exists
         ownerChangeRequest1.setOwner("nonUser");
-        thrown.expectMessage("Illegal users!"
-                + " Only the system administrator and the project administrator role of this project can be set as the project owner.");
+        thrown.expectMessage("This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.");
         projectService.updateProjectOwner(project, ownerChangeRequest1);
 
         // empty admin users, throw exception
@@ -825,8 +824,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         OwnerChangeRequest ownerChangeRequest2 = new OwnerChangeRequest();
         ownerChangeRequest2.setOwner(owner);
 
-        thrown.expectMessage("Illegal users!"
-                + " Only the system administrator and the project administrator role of this project can be set as the project owner.");
+        thrown.expectMessage("This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.");
         projectService.updateProjectOwner(project, ownerChangeRequest2);
     }
 

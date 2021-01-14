@@ -46,6 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Locale;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -83,8 +84,8 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
-        Assert.assertTrue(
-                result.getResponse().getContentAsString().contains("The project named 'test_PROJECT' already exists."));
+        Assert.assertTrue(StringUtils.contains(result.getResponse().getContentAsString(),
+                "The project name \\\"test_PROJECT\\\" already exists. Please rename it."));
     }
 
     @Test
