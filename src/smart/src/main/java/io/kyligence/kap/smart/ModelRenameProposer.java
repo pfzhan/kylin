@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -46,8 +47,9 @@ public class ModelRenameProposer extends AbstractProposer {
 
     @Override
     public void execute() {
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        Set<String> usedNames = dataModelManager.listAllModelAlias();
+
+        Set<String> usedNames = getAllModelNames();
+
         List<AbstractContext.ModelContext> modelContexts = proposeContext.getModelContexts();
         for (AbstractContext.ModelContext modelCtx : modelContexts) {
             if (modelCtx.isTargetModelMissing()) {
@@ -60,6 +62,14 @@ public class ModelRenameProposer extends AbstractProposer {
                     : modelCtx.getOriginModel().getAlias();
             targetModel.setAlias(alias);
         }
+    }
+
+    private Set<String> getAllModelNames() {
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Set<String> modelNames = Sets.newHashSet();
+        modelNames.addAll(dataModelManager.listAllModelAlias());
+        modelNames.addAll(getProposeContext().getExtraMeta().getAllModels());
+        return modelNames;
     }
 
     private String proposeModelAlias(NDataModel model, Set<String> usedModelNames) {

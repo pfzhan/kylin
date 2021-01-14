@@ -31,7 +31,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -47,12 +49,14 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -90,6 +94,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
                     resources.add(model.getResourcePath());
                     resources.add(IndexPlan.concatResourcePath(model.getId(), project));
                 });
+        Set<String> allModelNames = NDataflowManager.getInstance(config, project).listUnderliningDataModels().stream()
+                .map(NDataModel::getAlias).collect(Collectors.toSet());
 
         Function<Collection<String>, Boolean> orElse = a -> a != null ? resources.addAll(a) : null;
         orElse.apply(resourceStore.listResources(ResourceStore.PROJECT_ROOT));
@@ -109,7 +115,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
 
             val contextParamsFile = jobTmpDir + "/context_params.json";
             JsonUtil.writeValue(new File(contextParamsFile),
-                    new ContextParams(project, context.isCanCreateNewModel(), Lists.newArrayList(sqls)));
+                    new ContextParams(project, context.isCanCreateNewModel(), Lists.newArrayList(sqls), allModelNames));
             params.put("contextParams", contextParamsFile);
 
             val contextOutputFile = jobTmpDir + "/context_output.json";
@@ -182,6 +188,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
                     String[].class);
             val context = (AbstractContext) contextConstructor.newInstance(KylinConfig.getInstanceFromEnv(), project,
                     sqls.toArray(new String[0]));
+            context.setGlobalInfo(contextParams.getAllModels());
             context.setCanCreateNewModel(contextParams.isCanCreateNewModel());
             new SmartMaster(context).runWithContext(null);
             val output = ContextOutput.from(context);
@@ -199,6 +206,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         private boolean canCreateNewModel;
 
         private List<String> sqls = Lists.newArrayList();
+
+        private Set<String> allModels = Sets.newHashSet();
     }
 
     public static void main(String[] args) {

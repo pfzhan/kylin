@@ -26,6 +26,7 @@ package io.kyligence.kap.smart;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -34,6 +35,7 @@ import org.apache.kylin.common.KylinConfig;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -60,6 +62,8 @@ public abstract class AbstractContext implements IKeep {
     private final String[] sqlArray;
     private final ChainedProposer preProcessProposers;
     private final ChainedProposer processProposers;
+    private final ExtraMetaInfo extraMeta = new ExtraMetaInfo();
+
     @Setter
     protected boolean canCreateNewModel;
 
@@ -133,6 +137,10 @@ public abstract class AbstractContext implements IKeep {
         }
 
         return models;
+    }
+
+    public void setGlobalInfo(Set<String> allModels) {
+        extraMeta.addModels(allModels);
     }
 
     @Getter
@@ -215,6 +223,18 @@ public abstract class AbstractContext implements IKeep {
             item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
             item.setUuid(UUID.randomUUID().toString());
             getIndexRexItemMap().put(layout.genUniqueFlag(), item);
+        }
+    }
+
+    public static class ExtraMetaInfo {
+        private Set<String> allModel = Sets.newHashSet();
+
+        public void addModels(Set<String> models) {
+            allModel.addAll(models);
+        }
+
+        public Set<String> getAllModels() {
+            return allModel;
         }
     }
 }
