@@ -207,7 +207,8 @@ export const dateFormats = [
   {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
   {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'},
   {label: 'yyyy-MM', value: 'yyyy-MM'},
-  {label: 'yyyyMM', value: 'yyyyMM'}
+  {label: 'yyyyMM', value: 'yyyyMM'},
+  {label: 'yyyy-MM-ddTHH:mm:ss.SSSZ', value: 'yyyy-MM-ddTHH:mm:ss.SSSZ'}
 ]
 
 // 根据服务端提供在 issue 的列表，做下数组处理，且进行了去重，最后放到这边的 keywordArr 这个变量中
