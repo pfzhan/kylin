@@ -53,6 +53,7 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -595,7 +596,7 @@ public class IndexPlanService extends BasicService {
         val dataflow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
                 .getDataflow(indexPlan.getId());
         // include all segs (except refreshing, merging) for data range count
-        val readySegments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging().stream()
+        val readySegments = SegmentUtil.getSegmentsExcludeRefreshingAndMerging(dataflow.getSegments()).stream()
                 .collect(Collectors.toCollection(Segments::new));
         long startTime = 0;
         long endTime = 0;

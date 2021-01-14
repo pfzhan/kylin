@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -100,7 +101,7 @@ public class IndicesResponse {
         this.indexPlan = indexPlan;
         this.dataFlow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
                 .getDataflow(indexPlan.getId());
-        this.nonNewSegments = this.dataFlow.getSegments().getSegmentsExcludeRefreshingAndMerging().stream()
+        this.nonNewSegments = SegmentUtil.getSegmentsExcludeRefreshingAndMerging(this.dataFlow.getSegments()).stream()
                 .filter(seg -> SegmentStatusEnum.NEW != seg.getStatus())
                 .collect(Collectors.toCollection(Segments::new));
 

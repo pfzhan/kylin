@@ -81,7 +81,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -457,18 +456,6 @@ public class NModelController extends NBasicController {
         } catch (Exception e) {
             throw new RuntimeException("can not get model sql, " + e);
         }
-    }
-
-    @Deprecated
-    @ApiOperation(value = "getModelRelations", tags = { "AI" }, notes = "Update URL: {model}")
-    @GetMapping(value = "{model:.+}/relations")
-    @ResponseBody
-    public EnvelopeResponse<List<NSpanningTreeForWeb>> getModelRelations(@PathVariable(value = "model") String modelId,
-            @RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        checkRequiredArg(MODEL_ID, modelId);
-        List<NSpanningTreeForWeb> modelRelations = modelService.getModelRelations(modelId, project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
 
     @ApiOperation(value = "getAffectedModels", tags = { "AI" })

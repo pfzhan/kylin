@@ -49,7 +49,9 @@ import org.apache.kylin.common.KylinConfig;
 public interface ISegment extends Comparable<ISegment> {
 
     public KylinConfig getConfig();
-    
+
+    public String getId();
+
     public String getName();
 
     public boolean isOffsetCube();

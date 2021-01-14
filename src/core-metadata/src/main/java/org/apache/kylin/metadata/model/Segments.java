@@ -50,11 +50,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
@@ -65,8 +63,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
@@ -280,18 +276,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             }
         }
         return buildingSegments;
-    }
-
-    public Segments<T> getSegmentsExcludeRefreshingAndMerging() {
-        Segments<T> result = new Segments<T>();
-        for (val seg : this) {
-            val status = this.getSegmentStatusToDisplay(seg);
-            if (!(Objects.equals(SegmentStatusEnumToDisplay.REFRESHING, status)
-                    || Objects.equals(SegmentStatusEnumToDisplay.MERGING, status))) {
-                result.add(seg);
-            }
-        }
-        return result;
     }
 
     public Segments<T> getMergingSegments(T mergedSegment) {
@@ -813,64 +797,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             }
         }
         return result;
-    }
-
-    public SegmentStatusEnumToDisplay getSegmentStatusToDisplay(T segment) {
-        Segments<T> overlapSegs = getSegmentsByRange(segment.getSegRange());
-        overlapSegs.remove(segment);
-        if (SegmentStatusEnum.NEW == segment.getStatus()) {
-            if (CollectionUtils.isEmpty(overlapSegs)) {
-                return SegmentStatusEnumToDisplay.LOADING;
-            }
-
-            if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
-                return SegmentStatusEnumToDisplay.REFRESHING;
-            }
-
-            return SegmentStatusEnumToDisplay.MERGING;
-        }
-
-        if (isAnyPartitionLoading(segment)) {
-            return SegmentStatusEnumToDisplay.LOADING;
-        }
-
-        if (isAnyPartitionRefreshing(segment)) {
-            return SegmentStatusEnumToDisplay.REFRESHING;
-        }
-
-        if (SegmentStatusEnum.WARNING == segment.getStatus()) {
-            return SegmentStatusEnumToDisplay.WARNING;
-        }
-
-        if (CollectionUtils.isNotEmpty(overlapSegs)) {
-            Preconditions.checkState(CollectionUtils.isNotEmpty(overlapSegs.getSegments(SegmentStatusEnum.NEW)));
-            return SegmentStatusEnumToDisplay.LOCKED;
-        }
-
-        return SegmentStatusEnumToDisplay.ONLINE;
-    }
-
-    private boolean isAnyPartitionLoading(T segment) {
-        Preconditions.checkArgument(segment instanceof NDataSegment);
-        val partitions = ((NDataSegment) segment).getMultiPartitions();
-
-        if (CollectionUtils.isEmpty(partitions))
-            return false;
-        val loadingPartition = partitions.stream() //
-                .filter(partition -> PartitionStatusEnum.NEW == partition.getStatus()) //
-                .findAny().orElse(null);
-        return loadingPartition != null;
-    }
-
-    private boolean isAnyPartitionRefreshing(T segment) {
-        Preconditions.checkArgument(segment instanceof NDataSegment);
-        val partitions = ((NDataSegment) segment).getMultiPartitions();
-
-        if (CollectionUtils.isEmpty(partitions))
-            return false;
-        val refreshPartition = partitions.stream()
-                .filter(partition -> PartitionStatusEnum.REFRESH == partition.getStatus()).findAny().orElse(null);
-        return refreshPartition != null;
     }
 
     public Segments<T> getFlatSegments() {

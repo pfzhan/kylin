@@ -28,6 +28,7 @@ import static org.apache.kylin.metadata.realization.RealizationStatusEnum.LAG_BE
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -124,8 +125,7 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         Preconditions.checkState(dataLoadingRange != null);
         val querableSegmentRange = dataLoadingRangeManager.getQuerableSegmentRange(dataLoadingRange);
         Preconditions.checkState(querableSegmentRange != null);
-        val segments = df.getSegments().getSegmentsByRange(querableSegmentRange)
-                .getSegmentsExcludeRefreshingAndMerging();
+        val segments = SegmentUtil.getSegmentsExcludeRefreshingAndMerging(df.getSegments().getSegmentsByRange(querableSegmentRange));
         for (NDataSegment segment : segments) {
             if (SegmentStatusEnum.NEW == segment.getStatus()) {
                 return false;

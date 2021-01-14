@@ -57,11 +57,6 @@ public class NSpanningTreeFactory {
         return fromIndexes(descLayouts, cacheKey);
     }
 
-    public static NSpanningTreeForWeb forWebDisplay(Collection<LayoutEntity> layoutEntities, IndexPlan indexPlan) {
-        Map<IndexEntity, Collection<LayoutEntity>> descLayouts = getIndexEntity2Layouts(layoutEntities);
-        return new NSpanningTreeForWeb(descLayouts, indexPlan);
-    }
-
     private static Map<IndexEntity, Collection<LayoutEntity>> getIndexEntity2Layouts(Collection<LayoutEntity> layoutEntities) {
         Map<IndexEntity, Collection<LayoutEntity>> descLayouts = Maps.newHashMap();
         for (LayoutEntity layout : layoutEntities) {

@@ -41,6 +41,8 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -196,12 +198,14 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         updateMeasureRequest();
         waitForJobFinished(0);
 
-        val result = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
-                        .param("project", getProject()).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.status").value("AVAILABLE"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.storage_size").value(246))
-                .andReturn();
+        Segments<NDataSegment> segments = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .getDataflow(MODEL_ID).getSegments();
+        long storageSize = 0;
+        for (NDataSegment seg : segments) {
+            Assert.assertEquals(SegmentStatusEnum.READY, seg.getStatus());
+            storageSize += seg.getLayout(30001).getByteSize();
+        }
+        Assert.assertEquals(246, storageSize);
     }
 
     @Test

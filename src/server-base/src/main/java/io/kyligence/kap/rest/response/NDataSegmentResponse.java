@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.response;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -100,7 +101,7 @@ public class NDataSegmentResponse extends NDataSegment {
         setBytesSize(segment.getStorageBytesSize());
         getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
         getAdditionalInfo().put(FILE_COUNT, segment.getStorageFileCount() + "");
-        setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
+        setStatusToDisplay(SegmentUtil.getSegmentStatusToDisplay(dataflow.getSegments(), segment));
         setSourceBytesSize(segment.getSourceBytesSize());
         setLastBuildTime(segment.getLastBuildTime());
         setSegDetails(segment.getSegDetails());

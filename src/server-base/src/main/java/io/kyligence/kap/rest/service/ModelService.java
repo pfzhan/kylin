@@ -104,6 +104,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -165,8 +166,6 @@ import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -818,7 +817,7 @@ public class ModelService extends BasicService {
 
         segmentResponseList = indexFiltered.stream()
                 .filter(segment -> !StringUtils.isNotEmpty(status)
-                        || status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString()))
+                        || status.equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment).toString()))
                 .map(segment -> new NDataSegmentResponse(dataflow, segment)).collect(Collectors.toList());
         Comparator<NDataSegmentResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
@@ -942,23 +941,6 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         return JoinedFlatTable.generateSelectDataStatement(modelDesc, false);
-    }
-
-    public List<NSpanningTreeForWeb> getModelRelations(String modelId, String project) {
-        aclEvaluate.checkProjectReadPermission(project);
-        val indexPlan = getIndexPlan(modelId, project);
-        List<NSpanningTreeForWeb> result = new ArrayList<>();
-        val allLayouts = Lists.<LayoutEntity> newArrayList();
-        if (indexPlan.getRuleBasedIndex() != null) {
-            val rule = indexPlan.getRuleBasedIndex();
-            allLayouts.addAll(rule.genCuboidLayouts());
-        }
-        val autoLayouts = indexPlan.getWhitelistLayouts().stream()
-                .filter(layout -> layout.getId() < IndexEntity.TABLE_INDEX_START_ID).collect(Collectors.toList());
-        allLayouts.addAll(autoLayouts);
-        val tree = NSpanningTreeFactory.forWebDisplay(allLayouts, indexPlan);
-        result.add(tree);
-        return result;
     }
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
@@ -1328,7 +1310,7 @@ public class ModelService extends BasicService {
 
     private void checkSegRefreshingInLagBehindModel(Segments<NDataSegment> segments) {
         for (val seg : segments) {
-            if (SegmentStatusEnumToDisplay.REFRESHING == segments.getSegmentStatusToDisplay(seg)) {
+            if (SegmentStatusEnumToDisplay.REFRESHING == SegmentUtil.getSegmentStatusToDisplay(segments, seg)) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
             }
         }
@@ -2817,7 +2799,7 @@ public class ModelService extends BasicService {
                 : MsgPicker.getMsg().getSEGMENT_STATUS(status.name());
         for (String id : ids) {
             val segment = dataflow.getSegment(id);
-            if (segments.getSegmentStatusToDisplay(segment) == status) {
+            if (SegmentUtil.getSegmentStatusToDisplay(segments, segment) == status) {
                 throw new KylinException(PERMISSION_DENIED,
                         String.format(Locale.ROOT, message, segment.displayIdName()));
             }

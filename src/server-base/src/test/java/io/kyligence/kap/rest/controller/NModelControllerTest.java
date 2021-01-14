@@ -78,13 +78,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -148,18 +145,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
-    }
-
-    @Test
-    public void testGetModelRelations() throws Exception {
-        Mockito.when(modelService.getModelRelations("model1", "default")).thenReturn(mockRelations());
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", "model1")
-                        .contentType(MediaType.APPLICATION_JSON).param("model", "model1").param("project", "default")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
-        Mockito.verify(nModelController).getModelRelations("model1", "default");
     }
 
     @Test
@@ -785,13 +770,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).checkSegment(eq("e0e90065-e7c3-49a0-a801-20465ca64799"), eq(request));
 
-    }
-
-    private List<NSpanningTreeForWeb> mockRelations() {
-        final List<NSpanningTreeForWeb> nSpanningTrees = new ArrayList<>();
-        NSpanningTreeForWeb nSpanningTree = new NSpanningTreeForWeb(Maps.newHashMap(), new IndexPlan());
-        nSpanningTrees.add(nSpanningTree);
-        return nSpanningTrees;
     }
 
     private IndicesResponse mockIndicesResponse() {

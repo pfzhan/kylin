@@ -158,8 +158,6 @@ import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -906,66 +904,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getUuid()
                 .equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-    }
-
-    @Test
-    public void testGetModelRelations() {
-        List<NSpanningTreeForWeb> relations = modelService.getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default");
-        Assert.assertEquals(1, relations.size());
-        NSpanningTreeForWeb st = relations.get(0);
-        IndexEntity root = st.getIndexEntity(1000000L);
-
-        Assert.assertEquals(5, st.getCuboidCount());
-        Assert.assertEquals(5, st.getAllIndexEntities().size());
-        Assert.assertEquals(1, st.getRootIndexEntities().size());
-        Assert.assertEquals(1, st.getLayouts(root).size());
-        Assert.assertEquals(1, st.getChildrenByIndexPlan(root).size());
-        Assert.assertEquals(st.getNodesMap().get(30000L).getParent().getIndexEntity(), root);
-        Assert.assertTrue(st.isValid(0L));
-
-        relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
-        Assert.assertEquals(1, relations.size());
-
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
-        indePlanManager.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", copyForWrite -> {
-            val rule = new RuleBasedIndex();
-            rule.setDimensions(Lists.newArrayList(1, 2, 3, 4));
-            rule.setMeasures(Lists.newArrayList(100001, 100002));
-            try {
-                val aggGroup = JsonUtil.readValue("{\n" + "        \"includes\": [1, 2, 3],\n"
-                        + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [],\n"
-                        + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [],\n"
-                        + "          \"dim_cap\": 1\n" + "        }\n" + "      }", NAggregationGroup.class);
-                rule.setAggregationGroups(Lists.newArrayList(aggGroup));
-                copyForWrite.setRuleBasedIndex(rule);
-            } catch (IOException ignore) {
-            }
-        });
-        relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
-        Assert.assertEquals(1, relations.size());
-    }
-
-    @Test
-    public void testGetSimplifiedModelRelations() {
-        List<NSpanningTreeForWeb> relations = modelService.getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default");
-        Assert.assertEquals(1, relations.size());
-        Assert.assertEquals(1, relations.get(0).getRoots().size());
-        Assert.assertEquals(5, relations.get(0).getNodesMap().size());
-    }
-
-    @Test
-    public void testGetSimplifiedModelRelations_NoReadySegment() {
-        val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID),
-                new SegmentRange.TimePartitionedSegmentRange(10L, 200L));
-        List<NSpanningTreeForWeb> relations = modelService.getModelRelations(MODEL_UT_INNER_JOIN_ID, "default");
-        Assert.assertEquals(1, relations.size());
-        Assert.assertEquals(1, relations.get(0).getRoots().size());
-        Assert.assertEquals(CuboidStatus.EMPTY, relations.get(0).getRoots().get(0).getCuboid().getStatus());
-        Assert.assertEquals(0L, relations.get(0).getRoots().get(0).getCuboid().getStorageSize());
-
     }
 
     @Test
