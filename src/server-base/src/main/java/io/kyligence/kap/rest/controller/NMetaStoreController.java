@@ -41,7 +41,6 @@ import java.util.Objects;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
@@ -69,6 +68,7 @@ import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.service.MetaStoreService;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ZipFileUtil;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/metastore", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -81,9 +81,10 @@ public class NMetaStoreController extends NBasicController {
     @ApiOperation(value = "previewModels", tags = { "MID" })
     @GetMapping(value = "/previews/models")
     @ResponseBody
-    public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project) {
+    public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model_ids", required = false, defaultValue = "") List<String> modeIds) {
         checkProjectName(project);
-        List<ModelPreviewResponse> simplifiedModels = metaStoreService.getPreviewModels(project);
+        List<ModelPreviewResponse> simplifiedModels = metaStoreService.getPreviewModels(project, modeIds);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, simplifiedModels, "");
     }
 

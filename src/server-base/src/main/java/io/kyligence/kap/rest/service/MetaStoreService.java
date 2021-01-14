@@ -131,17 +131,18 @@ public class MetaStoreService extends BasicService {
     @Autowired
     public IndexPlanService indexPlanService;
 
-    public List<ModelPreviewResponse> getPreviewModels(String project) {
+    public List<ModelPreviewResponse> getPreviewModels(String project, List<String> ids) {
         aclEvaluate.checkProjectWritePermission(project);
-        return modelService.getDataflowManager(project).listAllDataflows(true).stream().map(df -> {
-            if (df.checkBrokenWithRelatedInfo()) {
-                NDataModel dataModel = getDataModelManager(project).getDataModelDescWithoutInit(df.getUuid());
-                dataModel.setBroken(true);
-                return dataModel;
-            } else {
-                return df.getModel();
-            }
-        }).map(this::getSimplifiedModelResponse).collect(Collectors.toList());
+        return modelService.getDataflowManager(project).listAllDataflows(true).stream()
+                .filter(df -> ids.isEmpty() || ids.contains(df.getUuid())).map(df -> {
+                    if (df.checkBrokenWithRelatedInfo()) {
+                        NDataModel dataModel = getDataModelManager(project).getDataModelDescWithoutInit(df.getUuid());
+                        dataModel.setBroken(true);
+                        return dataModel;
+                    } else {
+                        return df.getModel();
+                    }
+                }).map(this::getSimplifiedModelResponse).collect(Collectors.toList());
     }
 
     private ModelPreviewResponse getSimplifiedModelResponse(NDataModel modelDesc) {

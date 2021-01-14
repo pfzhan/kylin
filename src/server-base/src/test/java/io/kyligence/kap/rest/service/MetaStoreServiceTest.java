@@ -152,8 +152,13 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetSimplifiedModel() {
-        List<ModelPreviewResponse> modelPreviewResponseList = metaStoreService.getPreviewModels("default");
+        List<ModelPreviewResponse> modelPreviewResponseList = metaStoreService.getPreviewModels("default",
+                Collections.emptyList());
         Assert.assertEquals(9, modelPreviewResponseList.size());
+
+        modelPreviewResponseList = metaStoreService.getPreviewModels("default",
+                Lists.newArrayList("8b5a2d39-304f-4a20-a9da-942f461534d8", "7212bf0c-0716-4cef-b623-69c161981262"));
+        Assert.assertEquals(2, modelPreviewResponseList.size());
     }
 
     @Test

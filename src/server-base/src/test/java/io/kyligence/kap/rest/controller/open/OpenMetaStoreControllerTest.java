@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -111,7 +112,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openMetaStoreController).previewModels(defaultProjectName);
+        Mockito.verify(openMetaStoreController).previewModels(defaultProjectName, Collections.emptyList());
     }
 
     @Test

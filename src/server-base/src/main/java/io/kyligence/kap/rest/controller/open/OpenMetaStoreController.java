@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_NAME
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -76,9 +78,20 @@ public class OpenMetaStoreController extends NBasicController {
     @ApiOperation(value = "previewModels", tags = { "MID" })
     @GetMapping(value = "/previews/models")
     @ResponseBody
-    public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project) {
+    public EnvelopeResponse<List<ModelPreviewResponse>> previewModels(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model_names", required = false, defaultValue = "") List<String> modelNames) {
         String projectName = checkProjectName(project);
-        return metaStoreController.previewModels(projectName);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<String> modelIds = new ArrayList<>();
+        for (String modelName : modelNames) {
+            val modelDesc = modelManager.getDataModelDescByAlias(modelName);
+            if (Objects.isNull(modelDesc)) {
+                throw new KylinException(MODEL_NOT_EXIST,
+                        String.format(Locale.ROOT, "The model is not exist. Model name: [%s].", modelName));
+            }
+            modelIds.add(modelDesc.getId());
+        }
+        return metaStoreController.previewModels(projectName, modelIds);
     }
 
     @ApiOperation(value = "exportModelMetadata", tags = { "MID" })
