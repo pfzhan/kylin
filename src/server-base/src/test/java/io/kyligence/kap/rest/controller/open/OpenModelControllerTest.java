@@ -580,6 +580,17 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCheckSqlListNotEmpty() {
+        List<String> sqls = null;
+        try {
+            OpenModelController.checkNotEmpty(sqls);
+        } catch (KylinException e) {
+            Assert.assertEquals("999", e.getCode());
+            Assert.assertEquals(MsgPicker.getMsg().getNULL_EMPTY_SQL(), e.getMessage());
+        }
+    }
+
+    @Test
     public void testUpdatePartition() throws Exception {
         String modelName = "multi_level_partition";
         String project = "multi_level_partition";

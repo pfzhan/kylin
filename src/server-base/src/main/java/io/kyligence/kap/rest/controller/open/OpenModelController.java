@@ -442,9 +442,7 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         request.setProject(projectName);
         aclEvaluate.checkProjectWritePermission(request.getProject());
-        if (CollectionUtils.isEmpty(request.getSqls())) {
-            throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());
-        }
+        checkNotEmpty(request.getSqls());
         OpenModelValidationResponse response = batchSqlValidate(request.getProject(), request.getSqls());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -523,6 +521,7 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
+        checkNotEmpty(request.getSqls());
         request.setForce2CreateNewModel(false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
     }
@@ -645,6 +644,11 @@ public class OpenModelController extends NBasicController {
         if (!projectInstance.getConfig().isMultiPartitionEnabled()) {
             throw new KylinException(ServerErrorCode.MULTI_PARTITION_DISABLE,
                     MsgPicker.getMsg().getPROJECT_DISABLE_MLP());
+        }
+    }
+    static void checkNotEmpty(List<String> sqls) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());
         }
     }
 }
