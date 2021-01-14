@@ -1777,4 +1777,8 @@ public class Message {
     public String getNot_IN_EFFECTIVE_COLLECTION() {
         return "%s not in effective collection : %s.";
     }
+
+    public String getDEFAULT_MODEL_REASON() {
+        return "model have something wrong.";
+    }
 }

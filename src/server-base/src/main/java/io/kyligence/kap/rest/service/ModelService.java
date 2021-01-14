@@ -1363,14 +1363,12 @@ public class ModelService extends BasicService {
             if (matcher.find()) {
                 String column = matcher.group(1);
                 String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-                String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(),
+                String error = String.format(
+                        Locale.ROOT, MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(),
                         column, table);
                 throw new KylinException(TABLE_NOT_EXIST, error);
             } else {
-                String errorMsg = String.format(Locale.ROOT, "model [%s], %s", dataModel.getAlias(),
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_REASON(),
-                                null != e.getMessage() ? e.getMessage() : "null"));
-                throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
+                throw new KylinException(FAILED_EXECUTE_MODEL_SQL, String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_MODEL_REASON()), e);
             }
         }
     }

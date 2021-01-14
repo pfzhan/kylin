@@ -2025,4 +2025,9 @@ public class CnMessage extends Message {
     public String getNot_IN_EFFECTIVE_COLLECTION() {
         return "%s 不在有效的集合中 : %s。";
     }
+
+    @Override
+    public String getDEFAULT_MODEL_REASON() {
+        return "模型出现错误。";
+    }
 }

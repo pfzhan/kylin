@@ -51,7 +51,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
@@ -501,11 +500,8 @@ public class NModelController extends NBasicController {
                 modelService.updateDataModelSemantic(request.getProject(), request);
             }
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-        } catch (LookupTableException e) {
-            throw new KylinException(FAILED_UPDATE_MODEL, e);
         } catch (Exception e) {
-            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            throw new KylinException(FAILED_UPDATE_MODEL, root.getMessage());
+            throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getDEFAULT_MODEL_REASON(), e);
         }
     }
 
@@ -918,14 +914,14 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
 
         String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
-        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1
-                ? null : KylinConfig.getInstanceFromEnv().getModelExportPort();
+        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
+                : KylinConfig.getInstanceFromEnv().getModelExportPort();
 
         host = host == null ? serverHost : host;
         port = port == null ? serverPort : port;
 
-        host = host == null ? request.getServerName(): host;
-        port = port == null ? request.getServerPort(): port;
+        host = host == null ? request.getServerName() : host;
+        port = port == null ? request.getServerPort() : port;
 
         BISyncModel syncModel = modelService.exportModel(project, modelId, exportAs, element, host, port);
 
