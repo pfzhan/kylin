@@ -208,6 +208,23 @@ public class KapQueryUtil {
         return SumExpressionUtil.hasSumCaseWhen(aggregateCall, expression);
     }
 
+    public static boolean isApplicableWithSumCaseRule(AggregateCall aggregateCall) {
+        SqlKind aggFunction = aggregateCall.getAggregation().getKind();
+
+        if (aggFunction == SqlKind.COUNT && !aggregateCall.isDistinct()) {
+            return true;
+        }
+
+        if (aggFunction == SqlKind.SUM
+                || aggFunction == SqlKind.SUM0
+                || aggFunction == SqlKind.MAX
+                || aggFunction == SqlKind.MIN) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static boolean containCast(RexNode rexNode) {
         if (!(rexNode instanceof RexCall)) {
             return false;

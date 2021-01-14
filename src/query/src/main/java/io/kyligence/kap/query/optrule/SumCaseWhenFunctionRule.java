@@ -27,6 +27,7 @@ package io.kyligence.kap.query.optrule;
 import static io.kyligence.kap.query.util.KapQueryUtil.isCast;
 import static io.kyligence.kap.query.util.KapQueryUtil.isNotNullLiteral;
 import static io.kyligence.kap.query.util.KapQueryUtil.isSumCaseExpr;
+import static io.kyligence.kap.query.util.KapQueryUtil.isApplicableWithSumCaseRule;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -119,27 +120,27 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             Aggregate originalAgg = ruleCall.rel(0);
             Project originalProject = ruleCall.rel(1);
 
-            List<AggregateCall> sumCaseAggCalls = originalAgg.getAggCallList().stream()
-                    .filter(aggCall -> isSumCaseExpr(aggCall, originalProject)).collect(Collectors.toList());
-            List<AggregateCall> nonSumCaseAggCalls = new LinkedList<>(originalAgg.getAggCallList());
-            nonSumCaseAggCalls.removeAll(sumCaseAggCalls);
+            List<AggregateCall> applicableAggCalls = originalAgg.getAggCallList().stream()
+                    .filter(aggCall -> isApplicableWithSumCaseRule(aggCall)).collect(Collectors.toList());
+            List<AggregateCall> nonApplicableAggCalls = new LinkedList<>(originalAgg.getAggCallList());
+            nonApplicableAggCalls.removeAll(applicableAggCalls);
 
             // extract the sum case when agg part from original agg rel
             // and do the sum case when expr transformation
             Aggregate sumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject,
-                    sumCaseAggCalls);
+                    applicableAggCalls);
             RelNode transformedSumCaseAgg = transformSumExprAggregate(relBuilder, sumCaseAgg,
                     (Project) sumCaseAgg.getInput(0));
 
             // in case there is no other no sum case when agg calls, do transform and return
-            if (nonSumCaseAggCalls.isEmpty()) {
+            if (nonApplicableAggCalls.isEmpty()) {
                 ruleCall.transformTo(transformedSumCaseAgg);
                 return;
             }
 
             // otherwise we are going to extract out the non sum case when agg part
             Aggregate nonSumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject,
-                    nonSumCaseAggCalls);
+                    nonApplicableAggCalls);
             // and join with the sum case when agg part by the group keys
             RelNode joined = joinSumCaseAggAndNonSumCaseAggRel(relBuilder, transformedSumCaseAgg, nonSumCaseAgg,
                     originalAgg);
