@@ -617,6 +617,14 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.calcite.extras-props.quoting", "DOUBLE_QUOTE");
     }
 
+    public String getModelExportHost() {
+        return getOptional("kylin.model.export.host");
+    }
+
+    public int getModelExportPort() {
+        return Integer.parseInt(getOptional("kylin.model.export.port", "-1"));
+    }
+
     // ============================================================================
     // DICTIONARY & SNAPSHOT
     // ============================================================================

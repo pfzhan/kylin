@@ -52,6 +52,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -915,16 +916,20 @@ public class NModelController extends NBasicController {
     public void exportModel(@PathVariable("model") String modelId, @RequestParam(value = "project") String project,
             @RequestParam(value = "export_as") SyncContext.BI exportAs,
             @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-            @RequestParam(value = "server_host", required = false) String host,
-            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+            @RequestParam(value = "server_host", required = false) String serverHost,
+            @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         checkProjectName(project);
-        if (host == null) {
-            host = request.getServerName();
-        }
-        if (port == null) {
-            port = request.getServerPort();
-        }
+
+        String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
+        Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1
+                ? null : KylinConfig.getInstanceFromEnv().getModelExportPort();
+
+        host = host == null ? serverHost : host;
+        port = port == null ? serverPort : port;
+
+        host = host == null ? request.getServerName(): host;
+        port = port == null ? request.getServerPort(): port;
 
         BISyncModel syncModel = modelService.exportModel(project, modelId, exportAs, element, host, port);
 
