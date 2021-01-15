@@ -103,11 +103,22 @@
             <constructor-arg index="2" ref="ldapSource"/>
         </bean>
 
+        <bean id="searchControls"
+              class="javax.naming.directory.SearchControls">
+            <property name="searchScope" value="2"/>
+        </bean>
+
+        <bean id="searchControlsForLdapServicePopulator"
+              class="javax.naming.directory.SearchControls">
+            <property name="searchScope" value="2"/>
+        </bean>
+
         <bean id="ldapUserPopulator" class="io.kyligence.kap.rest.security.LdapAuthoritiesPopulator">
             <constructor-arg index="0" ref="ldapSource"/>
             <constructor-arg index="1"
                              value="${kylin.security.ldap.user-group-search-base}"/>
             <constructor-arg index="2" value="${kylin.security.acl.admin-role}"/>
+            <constructor-arg index="3" ref="searchControls"/>
             <property name="groupSearchFilter" value="${kylin.security.ldap.user-group-search-filter}"/>
         </bean>
 
@@ -146,6 +157,7 @@
             <constructor-arg index="1"
                              value="${kylin.security.ldap.service-group-search-base}"/>
             <constructor-arg index="2" value="${kylin.security.acl.admin-role}"/>
+            <constructor-arg index="3" ref="searchControlsForLdapServicePopulator"/>
             <property name="groupSearchFilter"
                       value="${kylin.security.ldap.group-search-filter}"/>
         </bean>
@@ -453,11 +465,16 @@
             </constructor-arg>
         </bean>
 
-        <bean id="ldapUserPopulator"
-              class="io.kyligence.kap.rest.security.LdapAuthoritiesPopulator">
+        <bean id="searchControls"
+              class="javax.naming.directory.SearchControls">
+            <property name="searchScope" value="2"/>
+        </bean>
+
+        <bean id="ldapUserPopulator" class="io.kyligence.kap.rest.security.LdapAuthoritiesPopulator">
             <constructor-arg index="0" ref="ldapSource"/>
             <constructor-arg index="1" value="${kylin.security.ldap.user-group-search-base}"/>
             <constructor-arg index="2" value="${kylin.security.acl.admin-role}"/>
+            <constructor-arg index="3" ref="searchControls"/>
             <property name="groupSearchFilter" value="${kylin.security.ldap.user-group-search-filter}"/>
         </bean>
 

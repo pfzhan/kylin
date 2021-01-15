@@ -52,15 +52,19 @@ import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopul
 
 import com.google.common.collect.Sets;
 
+import javax.naming.directory.SearchControls;
+
 public class LdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
 
     private SimpleGrantedAuthority adminRoleAsAuthority;
 
-    public LdapAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase, String adminRole) {
+    public LdapAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase, String adminRole,
+                                    SearchControls searchControls) {
         super(contextSource, groupSearchBase);
         setConvertToUpperCase(false);
         setRolePrefix("");
         this.adminRoleAsAuthority = new SimpleGrantedAuthority(adminRole);
+        this.getLdapTemplate().setSearchControls(searchControls);
     }
 
     @Override
