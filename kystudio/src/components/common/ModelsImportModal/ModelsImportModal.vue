@@ -58,7 +58,7 @@
           </el-table-column>
         </el-table>
       </div>
-      <div class="single-modal-detail">
+      <div :class="['single-modal-detail', {'no-conflict': !(activeModalObj && activeModalObj.differences > 0)}]">
         <div :class="['model-detail-tips', getCurrentModelDetails().key]" v-if="getCurrentModelDetails && activeModalObj && activeModalObj.differences > 0">
           <p class="title">{{$t(activeModalObj.has_same_name ? `${getCurrentModelDetails().title}SameName` : `${getCurrentModelDetails().title}DiffName`)}}<span v-if="!(getCurrentModelDetails().key === 'new' && !activeModalObj.has_same_name)" class="detail-btn" @click="showModelDetails = !showModelDetails">{{$t('detailBtn')}}<i :class="['el-icon-ksd-more_01', 'ksd-ml-5', {'open': showModelDetails}]"></i></span></p>
           <div class="detail-content" v-if="showModelDetails">
@@ -263,10 +263,8 @@
           </el-tab-pane>
         </el-tabs>
         <div class="no-data" v-else>
-          <div class="contain">
-            <i class="el-icon-ksd-empty-box"></i>
-            <p>{{$t('noDifferences')}}</p>
-          </div>
+          <i class="el-icon-ksd-empty-box"></i>
+          <p>{{$t('noDifferences')}}</p>
         </div>
       </div>
       <!-- {{JSON.stringify(activeModalObj[activeTabName]['computedColumns'])}} -->
@@ -290,12 +288,12 @@
       <!-- 确认/取消: 解析zip元数据包界面 -->
       <template v-else-if="step === 'second'">
         <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('first')">{{$t('kylinLang.common.prev')}}</el-button>
-        <el-button type="primary" size="medium" @click="nextConfirmImport" :disabled="checkSameName" :loading="isCheckName">{{$t('kylinLang.common.next')}}</el-button>
+        <el-button type="primary" size="medium" @click="nextConfirmImport" :loading="isCheckName">{{$t('kylinLang.common.next')}}</el-button>
       </template>
       <!-- 确认导入模型 -->
       <template v-else>
         <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('second')">{{$t('kylinLang.common.prev')}}</el-button>
-         <el-button type="primary" size="medium" :loading="isSubmiting" @click="handleSubmit">{{getImportBtnText}}</el-button>
+        <el-button type="primary" size="medium" :loading="isSubmiting" @click="handleSubmit">{{getImportBtnText}}</el-button>
       </template>
     </div>
   </el-dialog>
@@ -668,6 +666,7 @@ export default class ModelsImportModal extends Vue {
     this.step = 'first'
     this.activeTabName = 'nofound'
     this.showError = false
+    this.showModelDetails = false
     this.noImportReason = []
     this.callback && this.callback(isSubmit)
   }
@@ -822,6 +821,9 @@ export default class ModelsImportModal extends Vue {
       position: relative;
       margin-bottom: 10px;
       overflow: auto;
+      &.no-conflict {
+        border: 1px solid @line-border-color3;
+      }
       .el-tabs {
         border: 1px solid @line-border-color3;
         padding: 5px 20px;
@@ -952,21 +954,18 @@ export default class ModelsImportModal extends Vue {
         }
       }
       .no-data {
-        border: 1px solid @line-border-color3;
-        .contain {
+        color: @color-text-placeholder;
+        text-align: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        i {
+          font-size: 40px;
           color: @color-text-placeholder;
-          text-align: center;
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 12px;
-          i {
-            font-size: 40px;
-            color: @color-text-placeholder;
-            cursor: default;
-            margin-bottom: 5px;
-          }
+          cursor: default;
+          margin-bottom: 5px;
         }
         .nofound-icon {
           font-size: 30px;
