@@ -1321,7 +1321,7 @@ class NModel {
       let isUseAlias = false
       if (item.parameter_value && item.parameter_value.length > 0) {
         for (let i = 0; i < item.parameter_value.length; i++) {
-          if (item.parameter_value[i].value.split('.')[0] === alias && (!column || column && item.parameter_value[i].value.split('.')[1] === column)) {
+          if (`${item.parameter_value[i].value}`.split('.')[0] === alias && (!column || column && `${item.parameter_value[i].value}`.split('.')[1] === column)) {
             isUseAlias = true
             break
           }
