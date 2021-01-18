@@ -47,13 +47,16 @@ import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.FAILED
 import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.MISS;
 import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.RUNNING;
 import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.SUCCESS;
+import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -89,6 +92,9 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private AsyncQueryService asyncQueryService;
 
+    @Mock
+    private AclEvaluate aclEvaluate;
+
     @InjectMocks
     private NAsyncQueryController nAsyncQueryController = Mockito.spy(new NAsyncQueryController());
 
@@ -121,6 +127,19 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         asyncQuerySQLRequest.setSql("select PART_DT from KYLIN_SALES limit 500");
         asyncQuerySQLRequest.setSeparator(",");
         return asyncQuerySQLRequest;
+    }
+
+    @Test
+    public void testQueryHasNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/async_query").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).query(Mockito.any());
     }
 
     @Test

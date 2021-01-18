@@ -45,6 +45,7 @@ import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +88,9 @@ public class NAsyncQueryController extends NBasicController {
     @Qualifier("asyncQueryService")
     private AsyncQueryService asyncQueryService;
 
+    @Autowired
+    protected AclEvaluate aclEvaluate;
+
     ExecutorService executorService = Executors.newCachedThreadPool();
 
     @ApiOperation(value = "query", tags = {
@@ -95,6 +99,7 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException, IOException {
+        aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         checkProjectName(sqlRequest.getProject());
         if (!FILE_ENCODING.contains(sqlRequest.getEncode().toLowerCase(Locale.ROOT))) {
             return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
