@@ -173,10 +173,12 @@ public class QueryExec {
         if (kylinConfig.isConvertSumExpressionEnabled()) {
             node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
         }
-        node = HepUtils.runRuleCollection(node,
-                ImmutableList.of(KapProjectJoinTransposeRule.INSTANCE, KapProjectMergeRule.INSTANCE,
-                        KapProjectRule.INSTANCE, KapFilterRule.INSTANCE, new ProjectFilterTransposeRule(Project.class,
-                                Filter.class, RelFactories.LOGICAL_BUILDER, PushProjector.ExprCondition.FALSE)));
+        if (kylinConfig.isKapProjectJoinTransposeRuleOnHepPlanner()) {
+            node = HepUtils.runRuleCollection(node,
+                    ImmutableList.of(KapProjectJoinTransposeRule.INSTANCE, KapProjectMergeRule.INSTANCE,
+                            KapProjectRule.INSTANCE, KapFilterRule.INSTANCE, new ProjectFilterTransposeRule(Project.class,
+                                    Filter.class, RelFactories.LOGICAL_BUILDER, PushProjector.ExprCondition.FALSE)));
+        }
         return node;
     }
 

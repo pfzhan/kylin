@@ -1554,6 +1554,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.realization.chooser.cache-enabled", FALSE));
     }
 
+    public boolean isKapProjectJoinTransposeRuleOnHepPlanner() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.hep-planner.project-join-transpose", TRUE));
+    }
+
     /**
      * Extras calcite properties to config Calcite connection
      */

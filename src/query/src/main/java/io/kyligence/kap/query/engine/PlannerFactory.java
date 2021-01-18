@@ -28,6 +28,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -271,6 +272,9 @@ public class PlannerFactory {
         // see KAP#16036
         planner.removeRule(UnionMergeRule.INSTANCE);
 
+        if (!kylinConfig.isKapProjectJoinTransposeRuleOnHepPlanner()) {
+            planner.addRule(KapProjectJoinTransposeRule.INSTANCE);
+        }
         planner.removeRule(ProjectRemoveRule.INSTANCE);
 
         //KE-15015
