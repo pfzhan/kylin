@@ -232,17 +232,19 @@
               <div class="content-scroll-layout" v-if="allMeasure.length" v-scroll.observe>
                 <ul class="measure-list">
                   <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1, 'error-measure': ['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type && m.return_type.indexOf('varchar') > -1}">
-                    <el-tooltip :content="m.name ==='COUNT_ALL' ? $t('disabledConstantMeasureTip') : $t('measureRuleErrorTip', {type: m.expression})" effect="dark" placement="top" :disabled="!(['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type && m.return_type.indexOf('varchar') > -1) && m.name !== 'COUNT_ALL'">
-                      <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
-                        <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name === 'COUNT_ALL'" :label="m.name" class="text">{{m.name}}</el-checkbox>
-                        <span v-else class="text">{{m.name}}</span>
-                        <span class="icon-group">
-                          <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
-                          <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
-                          <span class="li-type ky-option-sub-info">{{m.return_type && m.return_type.toLocaleLowerCase()}}</span>
+                    <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
+                      <el-tooltip :offset="isShowMeaCheckbox ? 50 : 60" :content="m.name ==='COUNT_ALL' ? $t('disabledConstantMeasureTip') : $t('measureRuleErrorTip', {type: m.expression})" effect="dark" placement="bottom" :disabled="!(['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type && m.return_type.indexOf('varchar') > -1) && m.name !== 'COUNT_ALL'">
+                        <span>
+                          <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name === 'COUNT_ALL'" :label="m.name" class="text">{{m.name}}</el-checkbox>
+                          <span v-else class="text">{{m.name}}</span>
                         </span>
+                      </el-tooltip>
+                      <span class="icon-group">
+                        <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
+                        <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
+                        <span class="li-type ky-option-sub-info">{{m.return_type && m.return_type.toLocaleLowerCase()}}</span>
                       </span>
-                    </el-tooltip>
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -2121,6 +2123,7 @@ export default class ModelEdit extends Vue {
           color:@text-title-color;
           &.checkbox-text-overflow {
             width: calc(~'100% - 90px');
+            height: 100%;
             .el-checkbox {
               width: 100%;
               overflow: hidden;
@@ -2129,6 +2132,10 @@ export default class ModelEdit extends Vue {
               .el-checkbox__label {
                 display: initial;
               }
+            }
+            .el-tooltip {
+              display: inline-grid;
+              height: 100%;
             }
           }
           .text {

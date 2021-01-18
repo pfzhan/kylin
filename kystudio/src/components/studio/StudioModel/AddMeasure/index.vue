@@ -419,6 +419,7 @@ export default class AddMeasure extends Vue {
       this.ccVisible = false
       this.isEdit = false
     }
+    this.measure.expression === 'SUM(column)' && (this.measure.return_type = '')
   }
 
   changeConColParamValue (value, index) {
