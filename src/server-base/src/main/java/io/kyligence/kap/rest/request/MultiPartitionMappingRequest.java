@@ -24,13 +24,18 @@
 
 package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingImpl;
-import lombok.Data;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.util.Pair;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingImpl;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 public class MultiPartitionMappingRequest implements ProjectInsensitiveRequest {
@@ -44,9 +49,23 @@ public class MultiPartitionMappingRequest implements ProjectInsensitiveRequest {
     private List<String> partitionCols;
 
     @JsonProperty("value_mapping")
-    private List<Pair<List<String>, List<String>>> valueMapping;
+    private List<MappingRequest<List<String>, List<String>>> valueMapping;
 
     public MultiPartitionKeyMappingImpl convertToMultiPartitionMapping() {
-        return new MultiPartitionKeyMappingImpl(partitionCols, aliasCols, valueMapping);
+        return new MultiPartitionKeyMappingImpl(partitionCols, aliasCols, mappingsToPairs());
     }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MappingRequest<T1, T2> {
+        T1 origin;
+        T2 target;
+    }
+
+    public List<Pair<List<String>, List<String>>> mappingsToPairs() {
+        return this.valueMapping != null ? this.valueMapping.stream()
+                .map(mapping -> Pair.newPair(mapping.origin, mapping.target)).collect(Collectors.toList()) : null;
+    }
+
 }

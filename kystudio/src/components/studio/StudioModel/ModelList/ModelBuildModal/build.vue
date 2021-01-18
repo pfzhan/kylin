@@ -694,7 +694,7 @@
           end: end,
           build_all_indexes: isBuild,
           partition_desc: partition_desc,
-          multi_partition_values: partitionValuesArr,
+          sub_partition_values: partitionValuesArr,
           segment_holes: segment_holes || [],
           // parallel_build_by_segment: this.isMultipleBuild,
           multi_partition_desc,

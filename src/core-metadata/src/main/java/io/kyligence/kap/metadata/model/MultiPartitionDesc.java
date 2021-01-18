@@ -119,15 +119,15 @@ public class MultiPartitionDesc implements Serializable, IKeep {
         return null;
     }
 
-    public Set<Long> getPartitionIdsByValues(List<String[]> values) {
+    public Set<Long> getPartitionIdsByValues(List<String[]> subPartitionValues) {
         Set<Long> partitionIds = Sets.newHashSet();
-        if (values == null) {
+        if (subPartitionValues == null) {
             return partitionIds;
         }
-        values.forEach(partition -> {
-            PartitionInfo partionInfo = getPartitionByValue(partition);
-            if (partionInfo != null) {
-                partitionIds.add(partionInfo.getId());
+        subPartitionValues.forEach(partition -> {
+            PartitionInfo partitionInfo = getPartitionByValue(partition);
+            if (partitionInfo != null) {
+                partitionIds.add(partitionInfo.getId());
             }
         });
         return partitionIds;

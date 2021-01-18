@@ -841,7 +841,7 @@ public class NModelController extends NBasicController {
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
-                buildSegmentsRequest.getMultiPartitionValues(), buildSegmentsRequest.getPriority());
+                buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -859,7 +859,7 @@ public class NModelController extends NBasicController {
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getMultiPartitionDesc(),
                 buildSegmentsRequest.getSegmentHoles(), buildSegmentsRequest.isBuildAllIndexes(),
-                buildSegmentsRequest.getMultiPartitionValues())
+                buildSegmentsRequest.getSubPartitionValues())
                         .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables())
                         .withPriority(buildSegmentsRequest.getPriority());
 
@@ -950,9 +950,9 @@ public class NModelController extends NBasicController {
             @RequestBody PartitionsBuildRequest param) {
         checkProjectName(param.getProject());
         checkRequiredArg("segment_id", param.getSegmentId());
-        checkRequiredArg("partition_values", param.getPartitionValues());
+        checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
         val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
-                param.getPartitionValues(), param.isParallelBuildBySegment());
+                param.getSubPartitionValues(), param.isParallelBuildBySegment());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -1008,7 +1008,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getMultiPartitionValues", tags = { "DW" }, notes = "Add URL: {model}")
-    @GetMapping(value = "/{model:.+}/multi_partition/values")
+    @GetMapping(value = "/{model:.+}/multi_partition/sub_partition_values")
     @ResponseBody
     public EnvelopeResponse<List<MultiPartitionValueResponse>> getMultiPartitionValues(
             @PathVariable("model") String modelId, @RequestParam("project") String project) {
@@ -1018,17 +1018,17 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "addMultiPartitionValues", tags = { "DW" }, notes = "Add URL: {model}")
-    @PostMapping(value = "/{model:.+}/multi_partition/values")
+    @PostMapping(value = "/{model:.+}/multi_partition/sub_partition_values")
     @ResponseBody
     public EnvelopeResponse<String> addMultiPartitionValues(@PathVariable("model") String modelId,
             @RequestBody UpdateMultiPartitionValueRequest request) {
         checkProjectName(request.getProject());
-        modelService.addMultiPartitionValues(request.getProject(), modelId, request.getValues());
+        modelService.addMultiPartitionValues(request.getProject(), modelId, request.getSubPartitionValues());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "deleteMultiPartitionValues", tags = { "DW" }, notes = "Add URL: {model}")
-    @DeleteMapping(value = "/{model:.+}/multi_partition/values")
+    @DeleteMapping(value = "/{model:.+}/multi_partition/sub_partition_values")
     @ResponseBody
     public EnvelopeResponse<String> deleteMultiPartitionValues(@PathVariable("model") String modelId,
             @RequestParam("project") String project, @RequestParam(value = "ids") Long[] ids) {

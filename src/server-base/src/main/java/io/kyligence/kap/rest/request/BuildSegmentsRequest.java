@@ -48,8 +48,8 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
 
-    @JsonProperty("multi_partition_values")
-    private List<String[]> multiPartitionValues;
+    @JsonProperty("sub_partition_values")
+    private List<String[]> subPartitionValues;
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

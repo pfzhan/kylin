@@ -861,10 +861,10 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         PartitionsBuildRequest param = new PartitionsBuildRequest();
         param.setProject("default");
         param.setSegmentId("73570f31-05a5-448f-973c-44209830dd01");
-        param.setPartitionValues(Lists.newArrayList());
+        param.setSubPartitionValues(Lists.newArrayList());
         Mockito.doReturn(new ModelSaveCheckResponse()).when(modelService).checkBeforeModelSave(Mockito.any());
         Mockito.doReturn(new JobInfoResponse()).when(modelService).buildSegmentPartitionByValue(param.getProject(), "",
-                param.getSegmentId(), param.getPartitionValues(), param.isParallelBuildBySegment());
+                param.getSegmentId(), param.getSubPartitionValues(), param.isParallelBuildBySegment());
         Mockito.doNothing().when(modelService).validateCCType(Mockito.any(), Mockito.any());
         mockMvc.perform(MockMvcRequestBuilders
                 .post("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -953,20 +953,20 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         UpdateMultiPartitionValueRequest request = new UpdateMultiPartitionValueRequest();
         request.setProject("default");
         Mockito.doNothing().when(modelService).addMultiPartitionValues(request.getProject(),
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getValues());
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getSubPartitionValues());
         mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/models/{model}/multi_partition/values", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .post("/api/models/{model}/multi_partition/sub_partition_values", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
-    public void testDeleteMultiPartitionValuess() throws Exception {
+    public void testDeleteMultiPartitionValues() throws Exception {
         Mockito.doNothing().when(modelService).deletePartitions("default", null, "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 Sets.newHashSet(1L, 2L));
         mockMvc.perform(MockMvcRequestBuilders
-                .delete("/api/models/{model}/multi_partition/values", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .delete("/api/models/{model}/multi_partition/sub_partition_values", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .param("project", "default").param("ids", new String[] { "1", "2" })
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());

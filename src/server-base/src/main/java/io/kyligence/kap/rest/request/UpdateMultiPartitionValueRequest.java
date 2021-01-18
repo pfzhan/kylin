@@ -24,13 +24,17 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 public class UpdateMultiPartitionValueRequest implements ProjectInsensitiveRequest {
+    @JsonProperty("project")
     private String project;
-    private List<String[]> values;
+    @JsonProperty("sub_partition_values")
+    private List<String[]> subPartitionValues;
 }

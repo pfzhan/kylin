@@ -549,7 +549,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 anyList());
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/multi_partition").param("model", modelName)
-                .param("project", project).param("segment_id", segmentId).param("values", "1")
+                .param("project", project).param("segment_id", segmentId).param("sub_partition_values", "1")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -565,7 +565,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.doReturn(null).when(nModelController).addMultiPartitionValues(modelId, request);
         mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/values", modelName)
+                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -573,7 +573,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         // test exception
         request.setProject("default");
         mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/values", modelName)
+                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is4xxClientError());

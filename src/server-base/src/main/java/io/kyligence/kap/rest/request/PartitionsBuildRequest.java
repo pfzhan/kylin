@@ -39,8 +39,8 @@ public class PartitionsBuildRequest implements ProjectInsensitiveRequest {
     @JsonProperty("segment_id")
     private String segmentId;
 
-    @JsonProperty("partition_values")
-    private List<String[]> partitionValues;
+    @JsonProperty("sub_partition_values")
+    private List<String[]> subPartitionValues;
 
     @JsonProperty("parallel_build_by_segment")
     private boolean parallelBuildBySegment = false;

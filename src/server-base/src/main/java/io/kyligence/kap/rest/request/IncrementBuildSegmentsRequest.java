@@ -57,8 +57,8 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
 
-    @JsonProperty("multi_partition_values")
-    private List<String[]> multiPartitionValues;
+    @JsonProperty("sub_partition_values")
+    private List<String[]> subPartitionValues;
 
     @JsonProperty("multi_partition_desc")
     private MultiPartitionDesc multiPartitionDesc;

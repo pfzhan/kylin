@@ -2447,11 +2447,11 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void addMultiPartitionValues(String project, String modelId, List<String[]> values) {
+    public void addMultiPartitionValues(String project, String modelId, List<String[]> subPartitionValues) {
         aclEvaluate.checkProjectOperationPermission(project);
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val model = modelManager.getDataModelDesc(modelId);
-        modelManager.addPartitionsIfAbsent(model, values);
+        modelManager.addPartitionsIfAbsent(model, subPartitionValues);
     }
 
     private void checkModelAndIndexManually(String project, String modelId) {
@@ -3538,7 +3538,7 @@ public class ModelService extends BasicService {
                 }
             }
 
-            val partitionValues = request.getValueMapping().stream().map(pair -> pair.getFirst().toArray(new String[0]))
+            val partitionValues = request.getValueMapping().stream().map(pair -> pair.getOrigin().toArray(new String[0]))
                     .collect(Collectors.toList());
             for (MultiPartitionDesc.PartitionInfo partitionInfo : multiPartitionDesc.getPartitions()) {
                 if (partitionValues.stream().noneMatch(value -> Arrays.equals(value, partitionInfo.getValues()))) {
@@ -3861,8 +3861,8 @@ public class ModelService extends BasicService {
 
         if (CollectionUtils.isEmpty(param.getPartitionIds())) {
             partitions = getModelById(modelId, project).getMultiPartitionDesc()
-                    .getPartitionIdsByValues(param.getPartitionValues());
-            if (partitions.isEmpty() || partitions.size() != param.getPartitionValues().size()) {
+                    .getPartitionIdsByValues(param.getSubPartitionValues());
+            if (partitions.isEmpty() || partitions.size() != param.getSubPartitionValues().size()) {
                 throw new KylinException(FAILED_CREATE_JOB,
                         MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_ABANDON());
             }
@@ -3882,9 +3882,9 @@ public class ModelService extends BasicService {
     }
 
     public void deletePartitionsByValues(String project, String segmentId, String modelId,
-            List<String[]> partitionValues) {
+            List<String[]> subPartitionValues) {
         NDataModel model = checkModelIsMLP(modelId, project);
-        Set<Long> ids = model.getMultiPartitionDesc().getPartitionIdsByValues(partitionValues);
+        Set<Long> ids = model.getMultiPartitionDesc().getPartitionIdsByValues(subPartitionValues);
         deletePartitions(project, segmentId, model.getId(), ids);
     }
 

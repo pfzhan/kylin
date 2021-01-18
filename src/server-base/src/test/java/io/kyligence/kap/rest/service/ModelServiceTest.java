@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 import static org.awaitility.Awaitility.await;
 
@@ -91,7 +92,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -670,11 +670,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // update mapping
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_site_id"));
         mappingRequest.setAliasCols(Lists.newArrayList("test_kylin_fact.leaf_categ_id"));
-        val valueMappings = Lists.<Pair<List<String>, List<String>>> newArrayList();
-        valueMappings.add(Pair.newPair(Lists.newArrayList("0"), Lists.newArrayList("10")));
-        valueMappings.add(Pair.newPair(Lists.newArrayList("1"), Lists.newArrayList("10")));
-        valueMappings.add(Pair.newPair(Lists.newArrayList("2"), Lists.newArrayList("11")));
-        valueMappings.add(Pair.newPair(Lists.newArrayList("3"), Lists.newArrayList("11")));
+        val valueMappings = Lists.<MappingRequest<List<String>, List<String>>> newArrayList();
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("0"), Lists.newArrayList("10")));
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("1"), Lists.newArrayList("10")));
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("2"), Lists.newArrayList("11")));
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("3"), Lists.newArrayList("11")));
         mappingRequest.setValueMapping(valueMappings);
         modelService.updateMultiPartitionMapping(project, modelId, mappingRequest);
         model = modelManager.getDataModelDesc(modelId);
@@ -717,9 +717,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // wrong value mapping, missing partition3
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_site_id"));
         valueMappings.clear();
-        valueMappings.add(Pair.newPair(Lists.newArrayList("0"), Lists.newArrayList("10")));
-        valueMappings.add(Pair.newPair(Lists.newArrayList("1"), Lists.newArrayList("10")));
-        valueMappings.add(Pair.newPair(Lists.newArrayList("2"), Lists.newArrayList("11")));
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("0"), Lists.newArrayList("10")));
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("1"), Lists.newArrayList("10")));
+        valueMappings.add(new MappingRequest<>(Lists.newArrayList("2"), Lists.newArrayList("11")));
         mappingRequest.setValueMapping(valueMappings);
         try {
             modelService.updateMultiPartitionMapping(project, modelId, mappingRequest);

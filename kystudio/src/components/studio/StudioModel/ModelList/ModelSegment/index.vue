@@ -529,7 +529,7 @@ export default class ModelSegment extends Vue {
     this.buildSubParValueLoading = true
     try {
       const partitionValuesArr = split_array(this.partition_values, 1)
-      await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, partition_values: partitionValuesArr, parallel_build_by_segment: this.isMultipleBuild })
+      await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, sub_partition_values: partitionValuesArr, parallel_build_by_segment: this.isMultipleBuild })
       this.buildSubParValueLoading = false
       this.buildSubParValueVisible = false
       this.$message({

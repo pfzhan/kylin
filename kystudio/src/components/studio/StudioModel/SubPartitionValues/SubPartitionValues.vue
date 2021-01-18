@@ -210,7 +210,7 @@ export default class subPartitionValues extends Vue {
     this.submitLoading = true
     try {
       const partitionValuesArr = split_array(this.partitionValues, 1)
-      await this.addPartitionValues({ project: this.currentSelectedProject, model_id: this.$route.params.modelId, values: partitionValuesArr })
+      await this.addPartitionValues({ project: this.currentSelectedProject, model_id: this.$route.params.modelId, sub_partition_values: partitionValuesArr })
       this.submitLoading = false
       this.addSubParValueVisible = false
       this.addedPartitionValues = []

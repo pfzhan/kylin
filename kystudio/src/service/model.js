@@ -139,13 +139,13 @@ export default {
     return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'REFRESH', refresh_all_indexes })
   },
   fetchSubPartitionValues: (para) => {
-    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/values`).get(para)
+    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/sub_partition_values`).get(para)
   },
   addPartitionValues: (para) => {
-    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/values`).save(para)
+    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/sub_partition_values`).save(para)
   },
   deletePartitionValues: (para) => {
-    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/values`).delete(para)
+    return Vue.resource(apiUrl + `models/${para.model_id}/multi_partition/sub_partition_values`).delete(para)
   },
   buildSubPartitions: (para) => {
     return Vue.resource(apiUrl + `models/${para.model_id}/model_segments/multi_partition`).save(para)

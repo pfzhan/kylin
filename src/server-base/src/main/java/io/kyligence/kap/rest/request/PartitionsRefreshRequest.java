@@ -51,8 +51,8 @@ public class PartitionsRefreshRequest implements ProjectInsensitiveRequest, Tran
     @JsonProperty("partition_ids")
     private Set<Long> partitionIds = Sets.newHashSet();
 
-    @JsonProperty("partition_values")
-    private List<String[]> partitionValues = Lists.newArrayList();
+    @JsonProperty("sub_partition_values")
+    private List<String[]> subPartitionValues = Lists.newArrayList();
 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
