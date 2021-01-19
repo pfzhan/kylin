@@ -207,7 +207,7 @@ public class NAsyncQueryController extends NBasicController {
     @DeleteMapping(value = "/async_query/{query_id:.+}")
     @ResponseBody
     public EnvelopeResponse<Boolean> deleteByQueryId(@PathVariable("query_id") String queryId,
-            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
+            @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             project = sqlRequest.getProject();
@@ -228,7 +228,7 @@ public class NAsyncQueryController extends NBasicController {
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Response: query_id")
     @GetMapping(value = "/async_query/{query_id:.+}/status")
     @ResponseBody
-    public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
+    public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @PathVariable("query_id") String queryId, @RequestParam(value = "project", required = false) String project)
             throws IOException {
         if (project == null) {
@@ -266,7 +266,7 @@ public class NAsyncQueryController extends NBasicController {
     @GetMapping(value = "/async_query/{query_id:.+}/file_status")
     @ResponseBody
     public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId,
-            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
+            @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             project = sqlRequest.getProject();
@@ -283,7 +283,7 @@ public class NAsyncQueryController extends NBasicController {
     @ApiOperation(value = "async query status", tags = { "QE" })
     @GetMapping(value = "/async_query/{query_id:.+}/metadata")
     @ResponseBody
-    public EnvelopeResponse<List<List<String>>> metadata(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
+    public EnvelopeResponse<List<List<String>>> metadata(@Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @PathVariable("query_id") String queryId, @RequestParam(value = "project", required = false) String project)
             throws IOException {
         if (project == null) {
@@ -303,7 +303,7 @@ public class NAsyncQueryController extends NBasicController {
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
             @RequestParam(value = "include_header", required = false, defaultValue = "false") boolean include_header,
             @RequestParam(value = "includeHeader", required = false, defaultValue = "false") boolean includeHeader,
-            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
+            @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             project = sqlRequest.getProject();
@@ -338,7 +338,7 @@ public class NAsyncQueryController extends NBasicController {
     @GetMapping(value = "/async_query/{query_id:.+}/result_path")
     @ResponseBody
     public EnvelopeResponse<String> queryPath(@PathVariable("query_id") String queryId,
-            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
+            @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
             project = sqlRequest.getProject();
