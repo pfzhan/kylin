@@ -479,7 +479,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can‘t find project \"213\".");
+        thrown.expectMessage("Can't find project \"213\".");
         resourceGroupController.updateResourceGroup(request);
     }
 
