@@ -21,25 +21,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool;
+package io.kyligence.kap.tool.util;
 
-import io.kyligence.kap.tool.util.ToolMainWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-import io.kyligence.kap.common.util.Unsafe;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
 
-public class DiagClientCLI {
-    private static final Logger logger = LoggerFactory.getLogger("diag");
+@Slf4j
+public class ToolMainWrapper {
 
-    public static void main(String[] args) {
-        logger.info("Start to collect full diagnosis info.");
-        ToolMainWrapper.wrap(args, () -> {
-            DiagClientTool diagClientTool = new DiagClientTool();
-            diagClientTool.execute(args);
-        });
-
-        logger.info("Collect full diagnosis info completely.");
-        Unsafe.systemExit(0);
+    private ToolMainWrapper() {
+        // only for tool main function, wrapper main code.
     }
+
+    public interface Wrapper {
+        void run() throws Exception;
+    }
+
+    public static void wrap(String[] args, Wrapper wrapper) {
+        wrap(1, args, wrapper);
+    }
+
+    public static void wrap(int errorExitCode, String[] args, Wrapper wrapper) {
+        try {
+            wrapper.run();
+        } catch (Exception e) {
+            log.error("Failed to run tool: {} {}", Thread.currentThread().getStackTrace()[2].getClassName(),
+                    org.apache.commons.lang3.StringUtils.join(args, org.apache.commons.lang3.StringUtils.SPACE), e);
+            systemExitWhenMainThread(errorExitCode);
+        }
+    }
+
 }

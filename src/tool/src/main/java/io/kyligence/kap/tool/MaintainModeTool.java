@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.tool.util.ToolMainWrapper;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -261,8 +262,11 @@ public class MaintainModeTool extends ExecutableApplication {
     }
 
     public static void main(String[] args) {
-        MaintainModeTool tool = new MaintainModeTool();
-        tool.execute(args);
+        ToolMainWrapper.wrap(args, () -> {
+            MaintainModeTool tool = new MaintainModeTool();
+            tool.execute(args);
+        });
+
         Unsafe.systemExit(0);
     }
 }

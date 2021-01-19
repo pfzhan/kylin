@@ -21,25 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool;
+package io.kyligence.kap.tool.util;
 
-import io.kyligence.kap.tool.util.ToolMainWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.Test;
 
-import io.kyligence.kap.common.util.Unsafe;
+public class ToolMainWrapperTest {
 
-public class DiagClientCLI {
-    private static final Logger logger = LoggerFactory.getLogger("diag");
-
-    public static void main(String[] args) {
-        logger.info("Start to collect full diagnosis info.");
+    @Test
+    public void test() {
+        String[] args = new String[] {};
         ToolMainWrapper.wrap(args, () -> {
-            DiagClientTool diagClientTool = new DiagClientTool();
-            diagClientTool.execute(args);
+            System.out.println("test");
         });
 
-        logger.info("Collect full diagnosis info completely.");
-        Unsafe.systemExit(0);
+        Thread.currentThread().setName("is-not-main");
+        ToolMainWrapper.wrap(args, () -> {
+            throw new RuntimeException("test");
+        });
+
+        Thread.currentThread().setName("main");
     }
+
 }

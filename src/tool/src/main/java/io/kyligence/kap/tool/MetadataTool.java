@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.tool.util.ToolMainWrapper;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -170,21 +171,23 @@ public class MetadataTool extends ExecutableApplication {
         tool.execute(new String[] { "-restore", "-dir", folder, "--after-truncate" });
     }
 
-    public static void main(String[] args) throws Exception {
-        val config = KylinConfig.getInstanceFromEnv();
-        val tool = new MetadataTool(config);
-        val optionsHelper = new OptionsHelper();
-        optionsHelper.parseOptions(tool.getOptions(), args);
-        boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
-        if (isBackup && ScreenPrintUtil.isMainThread()) {
-            config.setProperty("kylin.env.metadata.only-for-read", "true");
-        }
-        val resourceStore = ResourceStore.getKylinMetaStore(config);
-        resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
-        tool.execute(args);
-        if (isBackup && StringUtils.isNotEmpty(tool.getBackupPath())) {
-            System.out.printf(Locale.ROOT, "The metadata backup path is %s.%n", tool.getBackupPath());
-        }
+    public static void main(String[] args) {
+        ToolMainWrapper.wrap(args, () -> {
+            val config = KylinConfig.getInstanceFromEnv();
+            val tool = new MetadataTool(config);
+            val optionsHelper = new OptionsHelper();
+            optionsHelper.parseOptions(tool.getOptions(), args);
+            boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
+            if (isBackup && ScreenPrintUtil.isMainThread()) {
+                config.setProperty("kylin.env.metadata.only-for-read", "true");
+            }
+            val resourceStore = ResourceStore.getKylinMetaStore(config);
+            resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
+            tool.execute(args);
+            if (isBackup && StringUtils.isNotEmpty(tool.getBackupPath())) {
+                System.out.printf(Locale.ROOT, "The metadata backup path is %s.%n", tool.getBackupPath());
+            }
+        });
         Unsafe.systemExit(0);
     }
 
