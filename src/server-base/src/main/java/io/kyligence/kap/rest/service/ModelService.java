@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
-
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
@@ -63,6 +62,8 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OV
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
+import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_BUILD;
+import static org.apache.kylin.job.execution.JobTypeEnum.SUB_PARTITION_BUILD;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -108,8 +109,10 @@ import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -323,7 +326,8 @@ public class ModelService extends BasicService {
      * @param modelList
      * @return
      */
-    public List<NDataModel> addOldParams(List<NDataModel> modelList) {
+    public List<NDataModel> addOldParams(String project, List<NDataModel> modelList) {
+        val executables = getAllRunningExecutable(project);
         modelList.forEach(model -> {
             NDataModelOldParams oldParams = new NDataModelOldParams();
             oldParams.setName(model.getAlias());
@@ -334,7 +338,7 @@ public class ModelService extends BasicService {
 
             if (!model.isBroken()) {
                 List<NDataSegmentResponse> segments = getSegmentsResponse(model.getId(), model.getProject(), "1",
-                        String.valueOf(Long.MAX_VALUE - 1), null, LAST_MODIFY, true);
+                        String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
                 for (NDataSegmentResponse segment : segments) {
                     long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
                             .max(Long::compareTo).orElse(0L);
@@ -774,8 +778,28 @@ public class ModelService extends BasicService {
     }
 
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
+            String status, List<AbstractExecutable> executables, String sortBy, boolean reverse) {
+        return getSegmentsResponse(modelId, project, start, end, status, null, null, executables, false, sortBy,
+                reverse);
+    }
+
+    private List<AbstractExecutable> getAllRunningExecutable(String project) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NExecutableManager execManager = NExecutableManager.getInstance(kylinConfig, project);
+        return execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, INDEX_BUILD, SUB_PARTITION_BUILD);
+    }
+
+    public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
             String sortBy, boolean reverse) {
+        val executables = getAllRunningExecutable(project);
+        return getSegmentsResponse(modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, executables,
+                allToComplement, sortBy, reverse);
+    }
+
+    public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
+            String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes,
+            List<AbstractExecutable> executables, boolean allToComplement, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         List<NDataSegmentResponse> segmentResponseList;
@@ -803,11 +827,10 @@ public class ModelService extends BasicService {
         List<NDataSegment> indexFiltered = new LinkedList<>();
         segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement, allIndexes, indexFiltered,
                 segment));
-
         segmentResponseList = indexFiltered.stream()
-                .filter(segment -> !StringUtils.isNotEmpty(status)
-                        || status.equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment).toString()))
-                .map(segment -> new NDataSegmentResponse(dataflow, segment)).collect(Collectors.toList());
+                .filter(segment -> !StringUtils.isNotEmpty(status) || status
+                        .equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment, executables).toString()))
+                .map(segment -> new NDataSegmentResponse(dataflow, segment, executables)).collect(Collectors.toList());
         Comparator<NDataSegmentResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
         segmentResponseList.sort(comparator);
@@ -1299,7 +1322,7 @@ public class ModelService extends BasicService {
 
     private void checkSegRefreshingInLagBehindModel(Segments<NDataSegment> segments) {
         for (val seg : segments) {
-            if (SegmentStatusEnumToDisplay.REFRESHING == SegmentUtil.getSegmentStatusToDisplay(segments, seg)) {
+            if (SegmentStatusEnumToDisplay.REFRESHING == SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
             }
         }
@@ -1352,12 +1375,12 @@ public class ModelService extends BasicService {
             if (matcher.find()) {
                 String column = matcher.group(1);
                 String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-                String error = String.format(
-                        Locale.ROOT, MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(),
+                String error = String.format(Locale.ROOT, MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(),
                         column, table);
                 throw new KylinException(TABLE_NOT_EXIST, error);
             } else {
-                throw new KylinException(FAILED_EXECUTE_MODEL_SQL, String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_MODEL_REASON()), e);
+                throw new KylinException(FAILED_EXECUTE_MODEL_SQL,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_MODEL_REASON()), e);
             }
         }
     }
@@ -2790,7 +2813,7 @@ public class ModelService extends BasicService {
                 : MsgPicker.getMsg().getSEGMENT_STATUS(status.name());
         for (String id : ids) {
             val segment = dataflow.getSegment(id);
-            if (SegmentUtil.getSegmentStatusToDisplay(segments, segment) == status) {
+            if (SegmentUtil.getSegmentStatusToDisplay(segments, segment, null) == status) {
                 throw new KylinException(PERMISSION_DENIED,
                         String.format(Locale.ROOT, message, segment.displayIdName()));
             }
@@ -3542,8 +3565,8 @@ public class ModelService extends BasicService {
                 }
             }
 
-            val partitionValues = request.getValueMapping().stream().map(pair -> pair.getOrigin().toArray(new String[0]))
-                    .collect(Collectors.toList());
+            val partitionValues = request.getValueMapping().stream()
+                    .map(pair -> pair.getOrigin().toArray(new String[0])).collect(Collectors.toList());
             for (MultiPartitionDesc.PartitionInfo partitionInfo : multiPartitionDesc.getPartitions()) {
                 if (partitionValues.stream().noneMatch(value -> Arrays.equals(value, partitionInfo.getValues()))) {
                     throw new KylinException(INVALID_MULTI_PARTITION_MAPPING_REQUEST,

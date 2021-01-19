@@ -69,7 +69,7 @@ public class NModelControllerV2 extends NBasicController {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>(
                 modelService.getModels(modelAlias, project, exactMatch, null, Lists.newArrayList(), sortBy, reverse));
-        models = modelService.addOldParams(models);
+        models = modelService.addOldParams(project, models);
 
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");

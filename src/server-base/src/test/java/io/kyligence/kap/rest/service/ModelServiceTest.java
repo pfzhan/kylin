@@ -4066,7 +4066,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(Objects.isNull(modelResponseList.get(0).getOldParams()));
 
         List<NDataModel> models = new ArrayList<>(modelResponseList);
-        modelService.addOldParams(models);
+        modelService.addOldParams("default", models);
         NDataModelResponse model = modelResponseList.get(0);
         Assert.assertTrue(Objects.nonNull(model.getOldParams()));
         Assert.assertEquals(100, model.getOldParams().getInputRecordSizeBytes());
@@ -4083,7 +4083,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(Objects.isNull(brokenModelResponse.getOldParams()));
 
         List<NDataModelResponse> brokenModelResponseList = Lists.newArrayList(brokenModelResponse);
-        List<NDataModel> brokenModels = modelService.addOldParams(new ArrayList<>(brokenModelResponseList));
+        List<NDataModel> brokenModels = modelService.addOldParams("default", new ArrayList<>(brokenModelResponseList));
         Assert.assertEquals(1, brokenModels.size());
         Assert.assertTrue(Objects.nonNull(brokenModelResponse.getOldParams()));
         Assert.assertEquals(0, brokenModelResponse.getOldParams().getInputRecordSizeBytes());

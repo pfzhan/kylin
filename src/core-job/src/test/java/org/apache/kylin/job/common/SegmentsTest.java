@@ -55,12 +55,12 @@ public class SegmentsTest {
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.NEW);
         segments.add(seg);
-        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg);
+        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.LOADING);
 
         seg.setStatus(SegmentStatusEnum.READY);
         PowerMockito.mockStatic(SegmentUtil.class);
-        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg)).thenCallRealMethod();
+        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
         PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(true);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.LOADING);
     }
@@ -74,9 +74,9 @@ public class SegmentsTest {
         seg.setStatus(SegmentStatusEnum.READY);
         segments.add(seg);
         PowerMockito.mockStatic(SegmentUtil.class);
-        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg)).thenCallRealMethod();
+        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
         PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(false);
-        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg);
+        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.ONLINE);
     }
 
@@ -94,10 +94,10 @@ public class SegmentsTest {
         newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         newSeg.setStatus(SegmentStatusEnum.NEW);
         segments.add(newSeg);
-        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, newSeg);
+        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, newSeg, null);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.REFRESHING);
 
-        SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg);
+        SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(status2, SegmentStatusEnumToDisplay.LOCKED);
     }
 
@@ -122,13 +122,13 @@ public class SegmentsTest {
         newSeg.setStatus(SegmentStatusEnum.NEW);
         segments.add(newSeg);
 
-        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, newSeg);
+        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, newSeg, null);
         Assert.assertEquals(status, SegmentStatusEnumToDisplay.MERGING);
 
-        SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg);
+        SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
         Assert.assertEquals(status2, SegmentStatusEnumToDisplay.LOCKED);
 
-        SegmentStatusEnumToDisplay status3 = SegmentUtil.getSegmentStatusToDisplay(segments, seg2);
+        SegmentStatusEnumToDisplay status3 = SegmentUtil.getSegmentStatusToDisplay(segments, seg2, null);
         Assert.assertEquals(status3, SegmentStatusEnumToDisplay.LOCKED);
 
     }

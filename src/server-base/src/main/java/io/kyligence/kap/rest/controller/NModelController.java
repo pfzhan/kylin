@@ -174,9 +174,10 @@ public class NModelController extends NBasicController {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }
 
-        models = modelService.addOldParams(models);
-        models = modelService.updateReponseAcl(models, project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(models, offset, limit), "");
+        DataResult<List<NDataModel>> filterModels = DataResult.get(models, offset, limit);
+        filterModels.setValue(modelService.addOldParams(project, filterModels.getValue()));
+        filterModels.setValue(modelService.updateReponseAcl(filterModels.getValue(), project));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, filterModels, "");
     }
 
     @ApiOperation(value = "offlineAllModelsInProject", tags = {

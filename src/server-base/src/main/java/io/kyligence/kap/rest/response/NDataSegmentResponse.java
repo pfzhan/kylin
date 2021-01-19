@@ -24,19 +24,21 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
+import java.io.Serializable;
+import java.util.List;
+
 import org.apache.kylin.job.common.SegmentUtil;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.io.Serializable;
 
 @Getter
 @Setter
@@ -86,6 +88,10 @@ public class NDataSegmentResponse extends NDataSegment {
     }
 
     public NDataSegmentResponse(NDataflow dataflow, NDataSegment segment) {
+        this(dataflow, segment, null);
+    }
+
+    public NDataSegmentResponse(NDataflow dataflow, NDataSegment segment, List<AbstractExecutable> executables) {
         super(segment);
         createTime = getCreateTimeUTC();
         startTime = Long.parseLong(getSegRange().getStart().toString());
@@ -101,7 +107,7 @@ public class NDataSegmentResponse extends NDataSegment {
         setBytesSize(segment.getStorageBytesSize());
         getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
         getAdditionalInfo().put(FILE_COUNT, segment.getStorageFileCount() + "");
-        setStatusToDisplay(SegmentUtil.getSegmentStatusToDisplay(dataflow.getSegments(), segment));
+        setStatusToDisplay(SegmentUtil.getSegmentStatusToDisplay(dataflow.getSegments(), segment, executables));
         setSourceBytesSize(segment.getSourceBytesSize());
         setLastBuildTime(segment.getLastBuildTime());
         setSegDetails(segment.getSegDetails());

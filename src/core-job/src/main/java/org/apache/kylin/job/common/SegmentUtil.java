@@ -26,10 +26,12 @@ package org.apache.kylin.job.common;
 import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SUB_PARTITION_BUILD;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ISegment;
@@ -48,7 +50,7 @@ public class SegmentUtil {
     public static Segments<NDataSegment> getSegmentsExcludeRefreshingAndMerging(Segments<NDataSegment> segments) {
         Segments<NDataSegment> result = new Segments<>();
         for (val seg : segments) {
-            val status = getSegmentStatusToDisplay(segments, seg);
+            val status = getSegmentStatusToDisplay(segments, seg, null);
             if (!(Objects.equals(SegmentStatusEnumToDisplay.REFRESHING, status)
                     || Objects.equals(SegmentStatusEnumToDisplay.MERGING, status))) {
                 result.add(seg);
@@ -58,7 +60,7 @@ public class SegmentUtil {
     }
 
     public static <T extends ISegment> SegmentStatusEnumToDisplay getSegmentStatusToDisplay(Segments segments,
-            T segment) {
+            T segment, List<AbstractExecutable> executables) {
         Segments<T> overlapSegs = segments.getSegmentsByRange(segment.getSegRange());
         overlapSegs.remove(segment);
         if (SegmentStatusEnum.NEW == segment.getStatus()) {
@@ -90,7 +92,7 @@ public class SegmentUtil {
             return SegmentStatusEnumToDisplay.LOCKED;
         }
 
-        if (anyIndexJobRunning(segment)) {
+        if (anyIndexJobRunning(segment, executables)) {
             return SegmentStatusEnumToDisplay.LOADING;
         }
         return SegmentStatusEnumToDisplay.ONLINE;
@@ -102,6 +104,14 @@ public class SegmentUtil {
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, INDEX_BUILD,
                 SUB_PARTITION_BUILD);
         return executables.stream().anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+    }
+
+    protected static <T extends ISegment> boolean anyIndexJobRunning(T segment, List<AbstractExecutable> executables) {
+        if (Objects.isNull(executables)) {
+            return anyIndexJobRunning(segment);
+        } else {
+            return executables.stream().anyMatch(task -> task.getSegmentIds().contains(segment.getId()));
+        }
     }
 
     private static <T extends ISegment> boolean isAnyPartitionLoading(T segment) {
