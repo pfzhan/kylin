@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
-import io.kyligence.kap.metadata.model.schema.ImportModelContext;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -68,6 +67,7 @@ import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.schema.ImportModelContext;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import lombok.Getter;
 import lombok.val;
@@ -440,16 +440,22 @@ public class JdbcRawRecStore {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            val from = SqlBuilder.deleteFrom(table);
             DeleteModel deleteStatement;
             if (project != null) {
-                deleteStatement = from.where(table.project, isEqualTo(project)).build();
+                deleteStatement = SqlBuilder.deleteFrom(table).where(table.project, isEqualTo(project)).build();
             } else {
-                deleteStatement = from.build();
+                deleteStatement = SqlBuilder.deleteFrom(table).build();
             }
             int rows = mapper.delete(deleteStatement.render(RenderingStrategies.MYBATIS3));
             session.commit();
             log.info("Delete {} row(s) raw recommendation takes {} ms.", rows, System.currentTimeMillis() - startTime);
+        } catch (Exception e) {
+            if (project != null) {
+                log.error("Fail to delete raw recommendations for deleted project({}).", project, e);
+            } else {
+                log.error("Fail to delete raw recommendations.", e);
+            }
+
         }
     }
 
@@ -473,7 +479,7 @@ public class JdbcRawRecStore {
             log.info("Delete {} row(s) residual raw recommendation takes {} ms", rows,
                     System.currentTimeMillis() - startTime);
         } catch (Exception e) {
-            log.error("Fail to clean raw rec for deleted project ", e);
+            log.error("Fail to clean raw recommendations for deleted projects({})", projectList.toString(), e);
         }
     }
 

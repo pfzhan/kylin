@@ -201,7 +201,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 return;
             }
 
-            String uniqueContent = RawRecUtil.dimUniqueFlag(tblColRef, ccMap);
+            String uniqueContent = RawRecUtil.dimensionUniqueContent(tblColRef, ccMap);
             if (modelContext.getUniqueContentToFlag().containsKey(uniqueContent)) {
                 return;
             }
@@ -254,7 +254,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 return;
             }
 
-            String uniqueContent = RawRecUtil.meaUniqueFlag(measure, ccMap);
+            String uniqueContent = RawRecUtil.measureUniqueContent(measure, ccMap);
             if (modelContext.getUniqueContentToFlag().containsKey(uniqueContent)) {
                 return;
             }

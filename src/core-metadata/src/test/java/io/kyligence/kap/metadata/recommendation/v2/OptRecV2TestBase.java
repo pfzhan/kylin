@@ -62,11 +62,14 @@ import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
 import io.kyligence.kap.metadata.recommendation.ref.ModelColumnRef;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.metadata.recommendation.ref.RecommendationRef;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
 
+    @Getter
+    private final String basePath;
     private final String modelPathPattern;
     private final String indexPathPattern;
     private final String recDirectory;
@@ -82,7 +85,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
     private final String[] modelUUIDs;
 
     public OptRecV2TestBase(String basePath, String[] modelUUIDs) {
-
+        this.basePath = basePath;
         modelPathPattern = basePath + "/model_desc/%s.json";
         indexPathPattern = basePath + "/index_plan/%s.json";
         recDirectory = basePath + "/rec_items/";
@@ -146,7 +149,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         rawRecItems.forEach(rawRecItem -> map.put(rawRecItem.getId(), rawRecItem));
         for (Integer id : recommendItemIds) {
-            log.debug("set RawRecItem({}) to recommended", id);
+            log.trace("set RawRecItem({}) to recommended", id);
             Assert.assertTrue(map.containsKey(id));
             RawRecItem recItem = map.get(id);
             if (recItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT) {

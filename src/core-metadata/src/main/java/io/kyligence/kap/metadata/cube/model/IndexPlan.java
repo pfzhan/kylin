@@ -825,6 +825,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         AtomicLong nextTableIndexId;
         int approvedAdditionalRecs;
         int approvedRemovalRecs;
+        @Getter
+        private Set<Long> addedLayouts = Sets.newHashSet();
 
         private IndexPlanUpdateHandler() {
             indexPlan = IndexPlan.this.isCachedAndShared ? JsonUtil.deepCopyQuietly(IndexPlan.this, IndexPlan.class)
@@ -857,7 +859,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                 index.setLayouts(Lists.newArrayList(layout));
                 index.setNextLayoutOffset(index.getNextLayoutOffset() + 1);
                 whiteIndexesMap.put(identifier, index);
-
+                addedLayouts.add(layout.getId());
             } else {
                 val indexEntity = whiteIndexesMap.get(identifier);
                 if (indexEntity.getLayouts().contains(layout)) {
@@ -867,6 +869,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                 layout.setIndex(indexEntity);
                 indexEntity.setNextLayoutOffset(indexEntity.getNextLayoutOffset() + 1);
                 indexEntity.getLayouts().add(layout);
+                addedLayouts.add(layout.getId());
             }
             approvedAdditionalRecs += 1;
             return true;

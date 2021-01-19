@@ -128,7 +128,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(2, measureRecItemMap.size());
         Assert.assertEquals(1, indexRexItemMap.size());
 
-        String key = "SUM__TEST_KYLIN_FACT$8";
+        String key = "SUM__TEST_KYLIN_FACT$PRICE";
         measureRecItemMap.forEach((k, item) -> {
             if (item.getUniqueContent().equalsIgnoreCase(key)) {
                 Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE", item.getMeasure().getName());
@@ -536,7 +536,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(1, dimensionRecItemMap.size());
         Map.Entry<String, DimensionRecItemV2> dimensionEntry = dimensionRecItemMap.entrySet().iterator().next();
         DimensionRecItemV2 dimensionRecItemV2 = dimensionEntry.getValue();
-        Assert.assertEquals("TEST_KYLIN_FACT$2", dimensionRecItemV2.getUniqueContent());
+        Assert.assertEquals("TEST_KYLIN_FACT$CAL_DT", dimensionRecItemV2.getUniqueContent());
         Assert.assertEquals("date", dimensionRecItemV2.getDataType());
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", dimensionRecItemV2.getColumn().getAliasDotColumn());
 
@@ -544,7 +544,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(1, measureRecItemMap.size());
         Map.Entry<String, MeasureRecItemV2> measureEntry = measureRecItemMap.entrySet().iterator().next();
         MeasureRecItemV2 measureRecItemV2 = measureEntry.getValue();
-        Assert.assertEquals("SUM__TEST_KYLIN_FACT$8", measureRecItemV2.getUniqueContent());
+        Assert.assertEquals("SUM__TEST_KYLIN_FACT$PRICE", measureRecItemV2.getUniqueContent());
         Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE", measureRecItemV2.getMeasure().getName());
 
         Assert.assertEquals(1, modelContext1.getIndexRexItemMap().size());
@@ -632,7 +632,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(0, rawRecItems.get(0).getDependIDs()[0]);
         Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, rawRecItems.get(0).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
-        Assert.assertEquals("TEST_KYLIN_FACT$2", rawRecItems.get(0).getRecEntity().getUniqueContent());
+        Assert.assertEquals("TEST_KYLIN_FACT$CAL_DT", rawRecItems.get(0).getRecEntity().getUniqueContent());
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT",
                 ((DimensionRecItemV2) rawRecItems.get(0).getRecEntity()).getColumn().getAliasDotColumn());
 
@@ -666,28 +666,28 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         });
         Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(0).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
-        Assert.assertEquals("COUNT__TEST_KYLIN_FACT$8", rawRecItems.get(0).getRecEntity().getUniqueContent());
+        Assert.assertEquals("COUNT__TEST_KYLIN_FACT$PRICE", rawRecItems.get(0).getRecEntity().getUniqueContent());
         Assert.assertEquals(7, rawRecItems.get(0).getDependIDs()[0]);
         Assert.assertEquals("COUNT_TEST_KYLIN_FACT_PRICE",
                 ((MeasureRecItemV2) rawRecItems.get(0).getRecEntity()).getMeasure().getName());
 
         Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(1).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(1).getState());
-        Assert.assertEquals("MAX__TEST_KYLIN_FACT$1", rawRecItems.get(1).getRecEntity().getUniqueContent());
+        Assert.assertEquals("MAX__TEST_KYLIN_FACT$ORDER_ID", rawRecItems.get(1).getRecEntity().getUniqueContent());
         Assert.assertEquals(6, rawRecItems.get(1).getDependIDs()[0]);
         Assert.assertEquals("MAX_TEST_KYLIN_FACT_ORDER_ID",
                 ((MeasureRecItemV2) rawRecItems.get(1).getRecEntity()).getMeasure().getName());
 
         Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(2).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(2).getState());
-        Assert.assertEquals("MIN__TEST_KYLIN_FACT$1", rawRecItems.get(2).getRecEntity().getUniqueContent());
+        Assert.assertEquals("MIN__TEST_KYLIN_FACT$ORDER_ID", rawRecItems.get(2).getRecEntity().getUniqueContent());
         Assert.assertEquals(6, rawRecItems.get(2).getDependIDs()[0]);
         Assert.assertEquals("MIN_TEST_KYLIN_FACT_ORDER_ID",
                 ((MeasureRecItemV2) rawRecItems.get(2).getRecEntity()).getMeasure().getName());
 
         Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(3).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(3).getState());
-        Assert.assertEquals("SUM__TEST_KYLIN_FACT$8", rawRecItems.get(3).getRecEntity().getUniqueContent());
+        Assert.assertEquals("SUM__TEST_KYLIN_FACT$PRICE", rawRecItems.get(3).getRecEntity().getUniqueContent());
         Assert.assertEquals(7, rawRecItems.get(3).getDependIDs()[0]);
         Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE",
                 ((MeasureRecItemV2) rawRecItems.get(3).getRecEntity()).getMeasure().getName());
@@ -723,14 +723,14 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
 
         Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(0).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
-        Assert.assertEquals("COUNT__TEST_KYLIN_FACT$8", rawRecItems.get(0).getRecEntity().getUniqueContent());
+        Assert.assertEquals("COUNT__TEST_KYLIN_FACT$PRICE", rawRecItems.get(0).getRecEntity().getUniqueContent());
         Assert.assertEquals(7, rawRecItems.get(0).getDependIDs()[0]);
         Assert.assertEquals("COUNT_TEST_KYLIN_FACT_PRICE",
                 ((MeasureRecItemV2) rawRecItems.get(0).getRecEntity()).getMeasure().getName());
 
         Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(1).getType());
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(1).getState());
-        Assert.assertEquals("SUM__TEST_KYLIN_FACT$8", rawRecItems.get(1).getRecEntity().getUniqueContent());
+        Assert.assertEquals("SUM__TEST_KYLIN_FACT$PRICE", rawRecItems.get(1).getRecEntity().getUniqueContent());
         Assert.assertEquals(7, rawRecItems.get(1).getDependIDs()[0]);
         Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE",
                 ((MeasureRecItemV2) rawRecItems.get(1).getRecEntity()).getMeasure().getName());

@@ -86,11 +86,11 @@ public class RawRecService {
             return;
         }
         ModelReuseContextOfSemiV2 semiContextV2 = (ModelReuseContextOfSemiV2) proposeContext;
-        Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
-        transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
+        Map<String, RawRecItem> nonLayoutUniqueFlagRecMap = semiContextV2.getExistingNonLayoutRecItemMap();
+        transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutUniqueFlagRecMap);
 
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, ArrayListMultimap.create(),
-                nonLayoutRecItemMap);
+                nonLayoutUniqueFlagRecMap);
         if (QueryHistoryTaskScheduler.getInstance(semiContextV2.getProject()).isInterruptByUser()) {
             throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
         }
@@ -114,7 +114,7 @@ public class RawRecService {
         AbstractContext semiContextV2 = ProposerJob.genOptRec(KylinConfig.getInstanceFromEnv(), project,
                 sqlList.toArray(new String[0]));
 
-        Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
+        Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getExistingNonLayoutRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
 
         ArrayListMultimap<String, QueryHistory> layoutToQHMap = ArrayListMultimap.create();
@@ -139,16 +139,16 @@ public class RawRecService {
     }
 
     private void transferAndSaveModelRelatedRecItems(AbstractContext semiContext,
-            Map<String, RawRecItem> nonLayoutRecItemMap) {
-        List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContext, nonLayoutRecItemMap);
+            Map<String, RawRecItem> nonLayoutUniqueFlagRecMap) {
+        List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContext, nonLayoutUniqueFlagRecMap);
         saveCCRawRecItems(ccRawRecItems, semiContext.getProject());
-        ccRawRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+        ccRawRecItems.forEach(recItem -> nonLayoutUniqueFlagRecMap.put(recItem.getUniqueFlag(), recItem));
 
-        List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContext, nonLayoutRecItemMap);
-        List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContext, nonLayoutRecItemMap);
+        List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContext, nonLayoutUniqueFlagRecMap);
+        List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContext, nonLayoutUniqueFlagRecMap);
         saveDimensionAndMeasure(dimensionRecItems, measureRecItems, semiContext.getProject());
-        dimensionRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
-        measureRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+        dimensionRecItems.forEach(recItem -> nonLayoutUniqueFlagRecMap.put(recItem.getUniqueFlag(), recItem));
+        measureRecItems.forEach(recItem -> nonLayoutUniqueFlagRecMap.put(recItem.getUniqueFlag(), recItem));
     }
 
     public void markFailAccelerateMessageToQueryHistory(ListMultimap<String, QueryHistory> queryHistoryMap,
@@ -244,7 +244,7 @@ public class RawRecService {
     }
 
     List<RawRecItem> transferToLayoutRecItems(AbstractContext semiContextV2,
-            ListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> recItemMap) {
+            ArrayListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> nonLayoutUniqueFlagRecMap) {
         RawRecManager recManager = RawRecManager.getInstance(semiContextV2.getProject());
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         String recSource = layoutToQHMap.isEmpty() ? RawRecItem.IMPORTED : RawRecItem.QUERY_HISTORY;
@@ -257,21 +257,22 @@ public class RawRecService {
             /* For unique string of layout may too long, so it is designed by a uuid,
              * therefore, we need a HashMap to avoid one LayoutRecItemV2 maps to different RawRecItems.
              */
-            Map<String, RawRecItem> layoutRecItems = recManager.queryNonAppliedLayoutRawRecItems(targetModel.getUuid(),
-                    true);
-            Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
-            layoutRecItems.forEach((k, v) -> {
-                LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
-                uniqueFlagToUuid.put(recEntity.getLayout().genUniqueFlag(), k);
+            Map<String, RawRecItem> layoutUniqueFlagRecMap = recManager
+                    .queryNonAppliedLayoutRawRecItems(targetModel.getUuid(), true);
+            Map<String, String> uniqueContentToUniqueFlagMap = Maps.newHashMap();
+            layoutUniqueFlagRecMap.forEach((uniqueFlag, layoutRecItem) -> {
+                LayoutRecItemV2 recEntity = (LayoutRecItemV2) layoutRecItem.getRecEntity();
+                uniqueContentToUniqueFlagMap.put(recEntity.getLayout().genUniqueContent(), uniqueFlag);
             });
 
             modelContext.getIndexRexItemMap().forEach((itemUUID, layoutItem) -> {
-                layoutItem.updateLayoutContent(targetModel, recItemMap);
-                String uniqueString = layoutItem.getLayout().genUniqueFlag();
-                String uuid = uniqueFlagToUuid.get(uniqueString);
+                // update layout content first
+                layoutItem.updateLayoutContent(targetModel, nonLayoutUniqueFlagRecMap);
                 RawRecItem recItem;
-                if (uniqueFlagToUuid.containsKey(uniqueString)) {
-                    recItem = layoutRecItems.get(uuid);
+                String uniqueContent = layoutItem.getLayout().genUniqueContent();
+                String uniqueFlag = uniqueContentToUniqueFlagMap.get(uniqueContent);
+                if (uniqueContentToUniqueFlagMap.containsKey(uniqueContent)) {
+                    recItem = layoutUniqueFlagRecMap.get(uniqueFlag);
                     recItem.setUpdateTime(System.currentTimeMillis());
                     recItem.restoreIfNeed();
                 } else {
@@ -343,7 +344,7 @@ public class RawRecService {
     }
 
     private List<RawRecItem> transferToMeasureRecItems(AbstractContext semiContextV2,
-            Map<String, RawRecItem> uniqueRecItemMap) {
+            Map<String, RawRecItem> nonLayoutUniqueFlagRecMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.ModelContext modelContext : semiContextV2.getModelContexts()) {
             if (modelContext.getTargetModel() == null) {
@@ -351,8 +352,8 @@ public class RawRecService {
             }
             modelContext.getMeasureRecItemMap().forEach((uniqueFlag, measureItem) -> {
                 RawRecItem item;
-                if (uniqueRecItemMap.containsKey(uniqueFlag)) {
-                    item = uniqueRecItemMap.get(uniqueFlag);
+                if (nonLayoutUniqueFlagRecMap.containsKey(uniqueFlag)) {
+                    item = nonLayoutUniqueFlagRecMap.get(uniqueFlag);
                     item.setUpdateTime(System.currentTimeMillis());
                 } else {
                     item = new RawRecItem(semiContextV2.getProject(), //
@@ -365,7 +366,7 @@ public class RawRecService {
                     item.setUpdateTime(measureItem.getCreateTime());
                     item.setRecEntity(measureItem);
                 }
-                item.setDependIDs(measureItem.genDependIds(uniqueRecItemMap, measureItem.getUniqueContent(),
+                item.setDependIDs(measureItem.genDependIds(nonLayoutUniqueFlagRecMap, measureItem.getUniqueContent(),
                         modelContext.getOriginModel()));
                 rawRecItems.add(item);
             });
@@ -396,7 +397,8 @@ public class RawRecService {
                     item.setState(RawRecItem.RawRecState.INITIAL);
                     item.setRecEntity(dimItem);
                 }
-                item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, dimItem.getUniqueContent()));
+                item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, dimItem.getUniqueContent(),
+                        modelContext.getOriginModel()));
                 rawRecItems.add(item);
             });
         }
@@ -426,8 +428,7 @@ public class RawRecService {
                     item.setRecEntity(ccItem);
                     item.setState(RawRecItem.RawRecState.INITIAL);
                 }
-                item.setDependIDs(ccItem.genDependIds(modelContext.getTargetModel()));
-
+                item.setDependIDs(ccItem.genDependIds(modelContext.getOriginModel()));
                 rawRecItems.add(item);
             });
         }

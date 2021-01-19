@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.rest.interceptor;
 
-import static java.lang.String.format;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -134,7 +133,7 @@ public class ProjectInfoParserTest {
 
     @Test
     public void testRequest_PROJECT_URL() {
-        final val projectApiList = Arrays.asList("backup", "default_database", "query_accelerate_threshold",
+        val projectApiList = Arrays.asList("backup", "default_database", "query_accelerate_threshold",
                 "storage_volume_info", "storage", "storage_quota", "favorite_rules", "statistics", "acceleration",
                 "shard_num_config", "garbage_cleanup_config", "job_notification_config", "push_down_config",
                 "scd2_config", "push_down_project_config", "snapshot_config", "computed_column_config",
@@ -142,14 +141,13 @@ public class ProjectInfoParserTest {
                 "project_kerberos_info", "owner", "config", "jdbc_config");
 
         projectApiList.forEach(projectApi -> {
-            checkProjectInfoParser(format("/kylin/api/projects/%s/%s", project, projectApi), project);
+            checkProjectInfoParser(String.format(Locale.ROOT, "/kylin/api/projects/%s/%s", project, projectApi),
+                    project);
         });
 
-        checkProjectInfoParser(format("/kylin/api/projects/%s", project), project);
-
-        checkProjectInfoParser(format("/kylin/api/models/%s/m1/model_desc", project), project);
-        checkProjectInfoParser(format("/kylin/api/models/%s/m1/partition_desc", project), project);
-        checkProjectInfoParser(format("/api/access/t1/%s", project), project);
-
+        checkProjectInfoParser(String.format(Locale.ROOT, "/kylin/api/projects/%s", project), project);
+        checkProjectInfoParser(String.format(Locale.ROOT, "/kylin/api/models/%s/m1/model_desc", project), project);
+        checkProjectInfoParser(String.format(Locale.ROOT, "/kylin/api/models/%s/m1/partition_desc", project), project);
+        checkProjectInfoParser(String.format(Locale.ROOT, "/api/access/t1/%s", project), project);
     }
 }

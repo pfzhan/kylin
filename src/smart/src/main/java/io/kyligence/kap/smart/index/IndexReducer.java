@@ -103,7 +103,7 @@ class IndexReducer extends AbstractIndexProposer {
             return;
         }
         redundantToReserveMap.forEach((redundant, reserved) -> {
-            context.getIndexRexItemMap().remove(redundant.genUniqueFlag());
+            context.getIndexRexItemMap().remove(redundant.genUniqueContent());
         });
     }
 

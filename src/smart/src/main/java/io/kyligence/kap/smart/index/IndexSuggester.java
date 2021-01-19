@@ -85,7 +85,7 @@ class IndexSuggester {
 
     private final Map<FunctionDesc, Integer> aggFuncIdMap;
     private final Map<IndexIdentifier, IndexEntity> collector;
-    private final SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
+    private final SortedSet<Long> layoutIds = Sets.newTreeSet();
 
     IndexSuggester(AbstractContext.ModelContext modelContext, IndexPlan indexPlan,
             Map<IndexIdentifier, IndexEntity> collector) {
@@ -99,11 +99,13 @@ class IndexSuggester {
                 .getProject(this.proposeContext.getProject());
 
         aggFuncIdMap = Maps.newHashMap();
-        model.getEffectiveMeasures()
-                .forEach((measureId, measure) -> aggFuncIdMap.put(measure.getFunction(), measureId));
+        model.getEffectiveMeasures().forEach((measureId, measure) -> {
+            FunctionDesc function = measure.getFunction();
+            aggFuncIdMap.put(function, measureId);
+        });
 
-        collector.forEach((cuboidIdentifier, indexEntity) -> indexEntity.getLayouts()
-                .forEach(layout -> cuboidLayoutIds.add(layout.getId())));
+        collector.forEach((indexIdentifier, indexEntity) -> indexEntity.getLayouts()
+                .forEach(layout -> layoutIds.add(layout.getId())));
     }
 
     void suggestIndexes(ModelTree modelTree) {
@@ -208,7 +210,7 @@ class IndexSuggester {
         }
 
         indexEntity.getLayouts().add(layout);
-        cuboidLayoutIds.add(layout.getId());
+        layoutIds.add(layout.getId());
         modelContext.gatherLayoutRecItem(layout);
 
         return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
@@ -362,7 +364,7 @@ class IndexSuggester {
 
     private long suggestLayoutId(IndexEntity indexEntity) {
         long s = indexEntity.getId() + indexEntity.getNextLayoutOffset();
-        while (cuboidLayoutIds.contains(s)) {
+        while (layoutIds.contains(s)) {
             s++;
         }
         return s;

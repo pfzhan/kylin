@@ -377,7 +377,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     layout.setSortByColumns(nSortBy);
                     layout.setPartitionByColumns(nPartitionBy);
                     updateHandler.add(layout, rawRecItem.isAgg());
-                    layoutIds.add(layout.getId());
 
                     log.info("RawRecItem({}) rewrite colOrder({}) to ({})", rawRecItem.getId(), colOrder, nColOrder);
                     log.info("RawRecItem({}) rewrite shardBy({}) to ({})", rawRecItem.getId(), shardBy, nShardBy);
@@ -386,6 +385,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                             nPartitionBy);
                 }
                 updateHandler.complete();
+                layoutIds.addAll(updateHandler.getAddedLayouts());
             });
             logFinishRewrite("augment IndexPlan");
             return layoutIds;

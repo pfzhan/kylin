@@ -64,13 +64,13 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         return arr;
     }
 
-    public void updateLayoutContent(NDataModel dataModel, Map<String, RawRecItem> recItemMap) {
+    public void updateLayoutContent(NDataModel dataModel, Map<String, RawRecItem> nonLayoutUniqueFlagRecMap) {
         LayoutEntity layout = this.getLayout();
         Map<String, ComputedColumnDesc> ccMap = getCcNameMapOnModel(dataModel);
-        Map<String, RawRecItem> uniqueContentMap = Maps.newHashMap();
-        recItemMap.forEach((key, value) -> {
-            if (value.getModelID().equalsIgnoreCase(dataModel.getUuid())) {
-                uniqueContentMap.put(value.getRecEntity().getUniqueContent(), value);
+        Map<String, RawRecItem> uniqueContentRecMap = Maps.newHashMap();
+        nonLayoutUniqueFlagRecMap.forEach((uniqueFlag, recItem) -> {
+            if (recItem.getModelID().equalsIgnoreCase(dataModel.getUuid())) {
+                uniqueContentRecMap.put(recItem.getRecEntity().getUniqueContent(), recItem);
             }
         });
 
@@ -78,10 +78,10 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         List<Integer> originShardCols = layout.getShardByColumns();
         List<Integer> originSortCols = layout.getSortByColumns();
         List<Integer> originPartitionCols = layout.getPartitionByColumns();
-        List<Integer> colOrderInDB = getColIDInDB(ccMap, dataModel, originColOrder, uniqueContentMap);
-        List<Integer> shardColsInDB = getColIDInDB(ccMap, dataModel, originShardCols, uniqueContentMap);
-        List<Integer> sortColsInDB = getColIDInDB(ccMap, dataModel, originSortCols, uniqueContentMap);
-        List<Integer> partitionColsInDB = getColIDInDB(ccMap, dataModel, originPartitionCols, uniqueContentMap);
+        List<Integer> colOrderInDB = getColIDInDB(ccMap, dataModel, originColOrder, uniqueContentRecMap);
+        List<Integer> shardColsInDB = getColIDInDB(ccMap, dataModel, originShardCols, uniqueContentRecMap);
+        List<Integer> sortColsInDB = getColIDInDB(ccMap, dataModel, originSortCols, uniqueContentRecMap);
+        List<Integer> partitionColsInDB = getColIDInDB(ccMap, dataModel, originPartitionCols, uniqueContentRecMap);
         layout.setColOrder(colOrderInDB);
         layout.setShardByColumns(shardColsInDB);
         layout.setSortByColumns(sortColsInDB);
@@ -96,16 +96,16 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
             List<Integer> columnIDs, Map<String, RawRecItem> uniqueContentToRecItemMap) {
         List<Integer> colOrderInDB = Lists.newArrayListWithCapacity(columnIDs.size());
         columnIDs.forEach(colId -> {
-            String key;
+            String uniqueContent;
             if (colId < NDataModel.MEASURE_ID_BASE) {
                 TblColRef tblColRef = model.getEffectiveCols().get(colId);
-                key = RawRecUtil.dimUniqueFlag(tblColRef, ccNameMap);
+                uniqueContent = RawRecUtil.dimensionUniqueContent(tblColRef, ccNameMap);
             } else {
                 NDataModel.Measure measure = model.getEffectiveMeasures().get(colId);
-                key = RawRecUtil.meaUniqueFlag(measure, ccNameMap);
+                uniqueContent = RawRecUtil.measureUniqueContent(measure, ccNameMap);
             }
-            if (uniqueContentToRecItemMap.containsKey(key)) {
-                colOrderInDB.add(-uniqueContentToRecItemMap.get(key).getId());
+            if (uniqueContentToRecItemMap.containsKey(uniqueContent)) {
+                colOrderInDB.add(-uniqueContentToRecItemMap.get(uniqueContent).getId());
             } else {
                 colOrderInDB.add(colId);
             }

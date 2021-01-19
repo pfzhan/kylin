@@ -177,12 +177,12 @@ public class OptRecManagerV2 {
         Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
         layoutRecommendations.forEach((k, v) -> {
             LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
-            uniqueFlagToUuid.put(recEntity.getLayout().genUniqueFlag(), k);
+            uniqueFlagToUuid.put(recEntity.getLayout().genUniqueContent(), k);
         });
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         garbageLayouts.forEach((layoutId, type) -> {
             LayoutEntity layout = allLayoutsMap.get(layoutId);
-            String uniqueString = layout.genUniqueFlag();
+            String uniqueString = layout.genUniqueContent();
             String uuid = uniqueFlagToUuid.get(uniqueString);
             FrequencyMap frequencyMap = hitFrequencyMap.getOrDefault(layoutId, new FrequencyMap());
             RawRecItem recItem;

@@ -72,7 +72,7 @@ public abstract class AbstractContext implements IKeep {
     @Setter
     private Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
     @Getter(lazy = true)
-    private final Map<String, RawRecItem> recItemMap = Maps.newHashMap();
+    private final Map<String, RawRecItem> existingNonLayoutRecItemMap = Maps.newHashMap();
 
     @Setter
     private boolean skipEvaluateCC;
@@ -184,7 +184,7 @@ public abstract class AbstractContext implements IKeep {
             }
 
             String modelId = getTargetModel().getUuid();
-            getProposeContext().getRecItemMap().forEach((uniqueFlag, item) -> {
+            getProposeContext().getExistingNonLayoutRecItemMap().forEach((uniqueFlag, item) -> {
                 if (item.getModelID().equalsIgnoreCase(modelId)) {
                     result.put(item.getRecEntity().getUniqueContent(), uniqueFlag);
                 }
@@ -222,7 +222,7 @@ public abstract class AbstractContext implements IKeep {
             item.setCreateTime(System.currentTimeMillis());
             item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
             item.setUuid(UUID.randomUUID().toString());
-            getIndexRexItemMap().put(layout.genUniqueFlag(), item);
+            getIndexRexItemMap().put(layout.genUniqueContent(), item);
         }
     }
 

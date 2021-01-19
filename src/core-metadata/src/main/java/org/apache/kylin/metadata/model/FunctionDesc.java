@@ -466,8 +466,7 @@ public class FunctionDesc implements Serializable {
         if (isCountDistinct()) {
             // for count distinct func, param's order doesn't matter
             if (CollectionUtils.isEmpty(parameters)) {
-                if (CollectionUtils.isNotEmpty(other.getParameters()))
-                    return false;
+                return !CollectionUtils.isNotEmpty(other.getParameters());
             } else {
                 return parametersEqualInArbitraryOrder(this.parameters, other.getParameters());
             }
@@ -475,15 +474,12 @@ public class FunctionDesc implements Serializable {
             return true;
         } else {
             if (CollectionUtils.isEmpty(parameters)) {
-                if (CollectionUtils.isNotEmpty(other.getParameters()))
-                    return false;
+                return !CollectionUtils.isNotEmpty(other.getParameters());
             } else {
-                if (!Objects.equals(this.parameters, other.getParameters()))
-                    return false;
+                return Objects.equals(this.parameters, other.getParameters());
             }
         }
         // NOTE: don't compare returnType, FunctionDesc created at query engine does not have a returnType
-        return true;
     }
 
     @Override

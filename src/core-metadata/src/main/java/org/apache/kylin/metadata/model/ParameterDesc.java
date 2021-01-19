@@ -44,6 +44,7 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Set;
 
@@ -90,7 +91,7 @@ public class ParameterDesc implements Serializable {
     private TblColRef colRef = null;
 
     public byte[] getBytes() throws UnsupportedEncodingException {
-        return value.getBytes("UTF-8");
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 
     public void setColRef(TblColRef colRef) {
@@ -121,13 +122,12 @@ public class ParameterDesc implements Serializable {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        ParameterDesc that = (ParameterDesc) o;
-
-        if (type != null ? !type.equals(that.type) : that.type != null)
-            return false;
-
         ParameterDesc p = this;
-        ParameterDesc q = that;
+        ParameterDesc q = (ParameterDesc) o;
+
+        if (!Objects.equals(type, q.type)) {
+            return false;
+        }
 
         if (p.isColumnType() != q.isColumnType()) {
             return false;
@@ -137,11 +137,7 @@ public class ParameterDesc implements Serializable {
             return false;
         }
 
-        if (!p.isColumnType() && !p.value.equals(q.value)) {
-            return false;
-        }
-
-        return true;
+        return p.isColumnType() || p.value.equals(q.value);
     }
 
     @Override

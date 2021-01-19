@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -39,6 +40,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -51,30 +53,29 @@ public class MeasureRecItemV2 extends RecItemV2 implements Serializable {
     @JsonProperty("param_order")
     private long[] paramOrder;
 
-    public int[] genDependIds(Map<String, RawRecItem> uniqueRecItemMap, String name, NDataModel dataModel) {
+    public int[] genDependIds(Map<String, RawRecItem> nonLayoutUniqueFlagRecMap, String content, NDataModel dataModel) {
         Set<TableRef> allTables = dataModel.getAllTableRefs();
         Map<String, TableRef> tableMap = Maps.newHashMap();
         allTables.forEach(tableRef -> tableMap.putIfAbsent(tableRef.getAlias(), tableRef));
-        Map<String, NDataModel.NamedColumn> namedColumnMap = Maps.newHashMap();
-        dataModel.getAllNamedColumns()
-                .forEach(namedColumn -> namedColumnMap.putIfAbsent(namedColumn.getAliasDotColumn(), namedColumn));
-
-        String[] params = name.split("__");
+        Map<String, NDataModel.NamedColumn> namedColumnMap = getNamedColumnMap(dataModel);
+        String[] params = content.split("__");
         int[] dependIDs = new int[params.length - 1];
         for (int i = 1; i < params.length; i++) {
-            if (uniqueRecItemMap.containsKey(params[i])) {
-                dependIDs[i - 1] = -1 * uniqueRecItemMap.get(params[i]).getId();
+            if (nonLayoutUniqueFlagRecMap.containsKey(params[i])) {
+                // means it's a cc
+                dependIDs[i - 1] = -1 * nonLayoutUniqueFlagRecMap.get(params[i]).getId();
             } else {
-                String[] splits = params[i].split("\\$");
+
+                String[] splits = params[i].split(RawRecUtil.TABLE_COLUMN_SEPARATOR);
                 if (splits.length == 2) {
                     try {
                         String alias = splits[0];
                         Preconditions.checkArgument(tableMap.containsKey(alias));
-                        ColumnDesc[] columns = tableMap.get(alias).getTableDesc().getColumns();
-                        ColumnDesc dependColumn = columns[Integer.parseInt(splits[1])];
+                        TableDesc tableDesc = tableMap.get(alias).getTableDesc();
+                        ColumnDesc dependColumn = RawRecUtil.findColumn(splits[1], tableDesc);
                         String aliasDotName = String.format(Locale.ROOT, "%s.%s", alias, dependColumn.getName());
                         dependIDs[i - 1] = namedColumnMap.get(aliasDotName).getId();
-                    } catch (NumberFormatException e) {
+                    } catch (IllegalArgumentException e) {
                         dependIDs[i - 1] = Integer.MAX_VALUE;
                     }
                 } else {
@@ -83,5 +84,14 @@ public class MeasureRecItemV2 extends RecItemV2 implements Serializable {
             }
         }
         return dependIDs;
+    }
+
+    public static Map<String, NDataModel.NamedColumn> getNamedColumnMap(NDataModel dataModel) {
+        Map<String, NDataModel.NamedColumn> namedColumnMap = Maps.newHashMap();
+        dataModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist).forEach(namedColumn -> {
+            String aliasDotColumn = namedColumn.getAliasDotColumn();
+            namedColumnMap.putIfAbsent(aliasDotColumn, namedColumn);
+        });
+        return namedColumnMap;
     }
 }

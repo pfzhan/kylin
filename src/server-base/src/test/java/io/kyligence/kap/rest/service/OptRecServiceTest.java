@@ -311,8 +311,9 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         }
         Assert.assertEquals(Lists.newArrayList(4, 16, 14, 100000, -1, -1), dependIds);
 
-        List<NDataModelResponse> modelResponses = modelService.getModels(modelBeforeApprove.getAlias().toLowerCase(),
-                getProject(), true, null, null, "last_modify", true);
+        List<NDataModelResponse> modelResponses = modelService.getModels(
+                modelBeforeApprove.getAlias().toLowerCase(Locale.ROOT), getProject(), true, null, null, "last_modify",
+                true);
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);

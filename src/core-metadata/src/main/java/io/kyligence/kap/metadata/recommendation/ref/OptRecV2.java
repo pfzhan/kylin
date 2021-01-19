@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.recommendation.ref;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,9 @@ import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -428,6 +432,15 @@ public class OptRecV2 {
                 return;
             }
         }
+
+        CCRecItemV2 recEntity = (CCRecItemV2) rawRecItem.getRecEntity();
+        int[] newDependIds = recEntity.genDependIds(dataModel);
+        if (!Arrays.equals(newDependIds, rawRecItem.getDependIDs())) {
+            logIllegalRawRecItem(rawRecItem, rawRecItem.getDependIDs(), newDependIds);
+            measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
+            return;
+        }
+
         ccRefs.put(negRecItemId, ccRef);
         checkCCExist(rawRecItem);
     }
@@ -478,6 +491,20 @@ public class OptRecV2 {
             dimensionRefs.put(negRecItemId, BrokenRefProxy.getProxy(DimensionRef.class, negRecItemId));
             return;
         }
+
+        DimensionRecItemV2 recEntity = (DimensionRecItemV2) rawRecItem.getRecEntity();
+        if (recEntity.getUniqueContent() == null) {
+            logIncompatibleRawRecItem(rawRecItem);
+            measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
+            return;
+        }
+        int[] newDependIds = recEntity.genDependIds(uniqueFlagToRecItemMap, recEntity.getUniqueContent(), dataModel);
+        if (!Arrays.equals(newDependIds, rawRecItem.getDependIDs())) {
+            logIllegalRawRecItem(rawRecItem, rawRecItem.getDependIDs(), newDependIds);
+            measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
+            return;
+        }
+
         dimensionRef.init();
         if (dependID < 0) {
             String dimRefName = dimensionRef.getName();
@@ -538,6 +565,20 @@ public class OptRecV2 {
                 return;
             }
         }
+
+        MeasureRecItemV2 recEntity = (MeasureRecItemV2) rawRecItem.getRecEntity();
+        if (recEntity.getUniqueContent() == null) {
+            logIncompatibleRawRecItem(rawRecItem);
+            measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
+            return;
+        }
+        int[] newDependIds = recEntity.genDependIds(uniqueFlagToRecItemMap, recEntity.getUniqueContent(), dataModel);
+        if (!Arrays.equals(newDependIds, rawRecItem.getDependIDs())) {
+            logIllegalRawRecItem(rawRecItem, rawRecItem.getDependIDs(), newDependIds);
+            measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
+            return;
+        }
+
         measureRefs.put(negRecItemId, ref);
         checkMeasureExist(rawRecItem);
     }
@@ -695,6 +736,15 @@ public class OptRecV2 {
     private void logDuplicateRawRecItem(RawRecItem recItem, int anotherRecItemId) {
         log.info("RawRecItem({}) duplicates with another RawRecItem({}) in recommendation({}/{})", //
                 recItem.getId(), anotherRecItemId, getProject(), getUuid());
+    }
+
+    private void logIllegalRawRecItem(RawRecItem recItem, int[] oldDependIds, int[] newDependIds) {
+        log.error("RawRecItem({}) illegal now for dependIds changed, old dependIds({}), new dependIds({})",
+                recItem.getId(), Arrays.toString(oldDependIds), Arrays.toString(newDependIds));
+    }
+
+    private void logIncompatibleRawRecItem(RawRecItem recItem) {
+        log.info("RawRecItem({}) incompatible now for uniqueContent missing", recItem.getId());
     }
 
     private enum TranslatedState {

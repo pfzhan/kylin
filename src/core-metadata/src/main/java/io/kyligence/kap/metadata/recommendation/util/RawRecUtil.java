@@ -29,8 +29,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
@@ -46,11 +49,23 @@ import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 
 public class RawRecUtil {
 
-    public static String dimUniqueFlag(TblColRef tblColRef, Map<String, ComputedColumnDesc> ccMap) {
+    public static final String TABLE_COLUMN_SEPARATOR = "\\$";
+
+    public static ColumnDesc findColumn(String idOrColumnName, @Nonnull TableDesc tableDesc) {
+        ColumnDesc[] columns = tableDesc.getColumns();
+        ColumnDesc dependColumn = tableDesc.findColumnByName(idOrColumnName);
+        if (dependColumn == null) {
+            // compatible to old version
+            dependColumn = columns[Integer.parseInt(idOrColumnName)];
+        }
+        return dependColumn;
+    }
+
+    public static String dimensionUniqueContent(TblColRef tblColRef, Map<String, ComputedColumnDesc> ccMap) {
         return colUniqueName(tblColRef, ccMap);
     }
 
-    public static String meaUniqueFlag(NDataModel.Measure measure, Map<String, ComputedColumnDesc> ccMap) {
+    public static String measureUniqueContent(NDataModel.Measure measure, Map<String, ComputedColumnDesc> ccMap) {
         Set<String> paramNames = Sets.newHashSet();
         List<ParameterDesc> parameters = measure.getFunction().getParameters();
         parameters.forEach(param -> {
@@ -76,10 +91,10 @@ public class RawRecUtil {
             if (cc.getUuid() != null) {
                 uniqueName = cc.getUuid();
             } else {
-                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
+                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getName();
             }
         } else {
-            uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
+            uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getName();
         }
         return uniqueName;
     }

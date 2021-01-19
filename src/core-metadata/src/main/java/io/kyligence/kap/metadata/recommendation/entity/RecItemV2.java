@@ -33,8 +33,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RecItemV2 implements IKeep {
-    @JsonProperty("id")
-    private long id;
     @JsonProperty("create_time")
     private long createTime;
     @JsonProperty("unique_content")

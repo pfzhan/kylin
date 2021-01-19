@@ -39,7 +39,7 @@ public abstract class AbstractSemiContextV2 extends AbstractContext {
 
     protected AbstractSemiContextV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
-        getRecItemMap().putAll(RawRecManager.getInstance(project).queryNonLayoutRecItems(null));
+        getExistingNonLayoutRecItemMap().putAll(RawRecManager.getInstance(project).queryNonLayoutRecItems(null));
     }
 
     @Override
