@@ -54,12 +54,13 @@
       </div>
       <div class="export-other">
         <p class="title">{{$t('exportOther')}}</p>
+        <p class="export-tips">{{$t('exportOtherTips')}}</p>
         <p class="mrgb15">
-          <el-tooltip :content="$t('disabledRecommendationTip')" effect="dark" placement="top" :disabled="changeCheckboxType('rec') !== selectedModals.length">
+          <el-tooltip :content="$t('disabledRecommendationTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('rec') !== selectedModals.length">
             <el-checkbox v-model="form.exportRecommendations" :disabled="changeCheckboxType('rec') === selectedModals.length">{{$t('recommendations')}}</el-checkbox>
           </el-tooltip>
         </p>
-        <el-tooltip :content="$t('disabledOverrideTip')" effect="dark" placement="top" :disabled="changeCheckboxType('ops') !== selectedModals.length">
+        <el-tooltip :content="$t('disabledOverrideTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('ops') !== selectedModals.length">
           <el-checkbox v-model="form.exportOverProps" :disabled="changeCheckboxType('ops') === selectedModals.length">{{$t('override')}}</el-checkbox>
         </el-tooltip>
       </div>

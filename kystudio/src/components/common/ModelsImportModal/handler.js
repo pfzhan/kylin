@@ -52,19 +52,19 @@ export function diffOverWriteModel (obj) {
   let arr = [];
   ['add', 'reduce', 'modified'].forEach(item => {
     if (obj[item]) {
-      if (obj[item].tables.list.length && obj[item].tables.list.filter(it => it.type === 'MODEL_FACT').length && item !== 'modified') {
+      if (obj[item].tables && obj[item].tables.list.length && obj[item].tables.list.filter(it => it.type === 'MODEL_FACT').length && item !== 'modified') {
         arr.push('modelFactDiff')
       }
-      if (obj[item].tables.list.length && obj[item].tables.list.filter(it => it.type !== 'MODEL_FACT').length && item !== 'modified') {
+      if (obj[item].tables && obj[item].tables.list.length && obj[item].tables.list.filter(it => it.type !== 'MODEL_FACT').length && item !== 'modified') {
         arr.push('modelLockupDiff')
       }
-      if (obj[item].modelFilter.list.length) {
+      if (obj[item].modelFilter && obj[item].modelFilter.list.length) {
         arr.push('modelFilterDiff')
       }
-      if (obj[item].modelJoin.list.length) {
+      if (obj[item].modelJoin && obj[item].modelJoin.list.length) {
         arr.push('modelJoinDiff')
       }
-      if (obj[item].partitionColumns.list.length) {
+      if (obj[item].partitionColumns && obj[item].partitionColumns.list.length) {
         arr.push('partitionColumnsDiff')
       }
     }
