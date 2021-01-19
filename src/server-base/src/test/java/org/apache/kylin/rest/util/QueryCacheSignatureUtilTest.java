@@ -47,6 +47,7 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
 import org.junit.Assert;
@@ -61,7 +62,9 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 
 public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     private String project = "cache";
@@ -154,5 +157,60 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
         update.setToAddOrUpdateLayouts(layout);
         dataflowManager.updateDataflow(update);
         Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
+    }
+
+    @Test
+    public void testCacheSignatureWhenHitSnapshotBasic() {
+        String project = "default";
+        SQLResponse sqlResponse = new SQLResponse();
+        List<NativeQueryRealization> nativeRealizations = Lists.newArrayList(new NativeQueryRealization(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", -1L, QueryMetricsContext.TABLE_SNAPSHOT,
+                Lists.newArrayList("DEFAULT.TEST_ORDER")));
+        sqlResponse.setNativeRealizations(nativeRealizations);
+        sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
+        Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
+
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        TableDesc table = tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER");
+        table.setLastModified(System.currentTimeMillis());
+        Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
+    }
+
+    @Test
+    public void testCacheSignatureWhenHitMultiSnapshot() {
+        String project = "default";
+        SQLResponse sqlResponse = new SQLResponse();
+        List<NativeQueryRealization> nativeRealizations = Lists.newArrayList(new NativeQueryRealization(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", -1L, QueryMetricsContext.TABLE_SNAPSHOT,
+                Lists.newArrayList("DEFAULT.TEST_ORDER", "DEFAULT.TEST_ACCOUNT")));
+        sqlResponse.setNativeRealizations(nativeRealizations);
+        sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
+        Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
+
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        TableDesc table = tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER");
+        table.setLastModified(System.currentTimeMillis());
+        Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
+    }
+
+    @Test
+    public void testCacheSignatureWhenHitSnapshotMultiModel() {
+        String project = "default";
+        SQLResponse sqlResponse = new SQLResponse();
+        List<NativeQueryRealization> nativeRealizations = Lists.newArrayList(new NativeQueryRealization(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", -1L, QueryMetricsContext.TABLE_SNAPSHOT,
+                Lists.newArrayList("DEFAULT.TEST_ORDER")), new NativeQueryRealization(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 1000001L, QueryMetricsContext.AGG_INDEX));
+        sqlResponse.setNativeRealizations(nativeRealizations);
+        sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
+        Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
+
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        TableDesc table = tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER");
+        table.setLastModified(System.currentTimeMillis());
+        Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
     }
 }

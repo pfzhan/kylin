@@ -59,6 +59,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import lombok.val;
 
@@ -89,21 +90,35 @@ public class QueryCacheSignatureUtil {
     }
 
     private static String generateSignature(NativeQueryRealization realization, String project, long sqlDuration) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val modelId = realization.getModelId();
-        val layoutId = realization.getLayoutId();
+        Long layoutId = realization.getLayoutId();
         try {
-            val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
+            val dataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(modelId);
             if (dataflow.getStatus().toString().equals("OFFLINE")) {
                 return "";
             }
             List<Long> allLayoutTimes = Lists.newLinkedList();
-            for (NDataSegment seg : dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
-                long now = System.currentTimeMillis();
-                long latestTime = seg.getSegDetails().getLastModified();
-                if (latestTime <= now && latestTime >= (now - sqlDuration)) {
-                    return "";
+            List<Long> allSnapshotTimes = Lists.newLinkedList();
+            if (layoutId == -1) {
+                NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig, project);
+                for (String snapshot : realization.getSnapshots()) {
+                    long snapshotModificationTime = tableMetadataManager.getTableDesc(snapshot).getLastModified();
+                    if (snapshotModificationTime == 0) {
+                        return "";
+                    } else {
+                        allSnapshotTimes.add(snapshotModificationTime);
+                    }
                 }
-                allLayoutTimes.add(seg.getLayout(layoutId).getCreateTime());
+            } else {
+                for (NDataSegment seg : dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
+                    long now = System.currentTimeMillis();
+                    long latestTime = seg.getSegDetails().getLastModified();
+                    if (latestTime <= now && latestTime >= (now - sqlDuration)) {
+                        return "";
+                    }
+                    allLayoutTimes.add(seg.getLayout(layoutId).getCreateTime());
+                }
             }
             Set<TableRef> allTableRefs = dataflow.getModel().getAllTableRefs();
             List<Long> allTableTimes = Lists.newLinkedList();
@@ -112,7 +127,8 @@ public class QueryCacheSignatureUtil {
             }
             String allLayoutTimesSignature = Joiner.on("_").join(allLayoutTimes);
             String allTableTimesSignature = Joiner.on("_").join(allTableTimes);
-            return Joiner.on(";").join(allLayoutTimesSignature, allTableTimesSignature);
+            String allSnapshotTimesSignature = Joiner.on("_").join(allSnapshotTimes);
+            return Joiner.on(";").join(allLayoutTimesSignature, allTableTimesSignature, allSnapshotTimesSignature);
         } catch (NullPointerException e) {
             logger.warn("NPE occurred because metadata changed during query.", e);
             return "";
