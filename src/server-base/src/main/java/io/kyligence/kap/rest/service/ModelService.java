@@ -1524,7 +1524,8 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void saveRecResult(ModelSuggestionResponse modelSuggestionResponse, String project) {
+    @VisibleForTesting
+    void saveRecResult(ModelSuggestionResponse modelSuggestionResponse, String project) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             for (NRecommendedModelResponse response : modelSuggestionResponse.getReusedModels()) {
 
@@ -1535,7 +1536,10 @@ public class ModelService extends BasicService {
                     copyForWrite.setAllMeasures(response.getAllMeasures());
                 });
                 NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                indexMgr.updateIndexPlan(response.getIndexPlan());
+                val targetIndexPlan = response.getIndexPlan();
+                indexMgr.updateIndexPlan(response.getId(), copyForWrite -> {
+                    copyForWrite.setIndexes(targetIndexPlan.getIndexes());
+                });
             }
             return null;
         }, project);

@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -91,7 +92,7 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
 
     @Override
     public void validateOrder() {
-        val newSortingResult = ((OrderedSet) allCuboidIds).getSortedList();
+        List<CuboidBigInteger> newSortingResult = ((OrderedSet) allCuboidIds).getSortedList();
         val data = indexPlan.getOverrideProps().get(INDEX_SCHEDULER_KEY);
         List<BigInteger> oldSortingResult;
         if (StringUtils.isEmpty(data)) {
@@ -106,7 +107,8 @@ public class KECuboidSchedulerV1 extends CuboidScheduler {
             oldSortingResult = Stream.of(StringUtils.split(data, ",")).map(BigInteger::new)
                     .collect(Collectors.toList());
         }
-        if (!newSortingResult.equals(oldSortingResult)) {
+        if (!Objects.equals(newSortingResult.stream().map(CuboidBigInteger::getDimMeas).collect(Collectors.toList()),
+                oldSortingResult)) {
             log.error(
                     "Index metadata might be inconsistent. Please try refreshing all segments in the following model: Project [{}], Model [{}]",
                     indexPlan.getProject(), indexPlan.getModelAlias(),

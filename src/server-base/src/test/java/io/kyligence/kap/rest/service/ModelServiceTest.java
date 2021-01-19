@@ -77,6 +77,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -218,6 +219,7 @@ import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -1976,6 +1978,38 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testOptimizeModel_Twice() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        val indexMgr = NIndexPlanManager.getInstance(getTestConfig(), project);
+        projectMgr.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        });
+
+        Function<OpenSqlAccelerateRequest, OpenSqlAccelerateRequest> rewriteReq = req -> {
+            req.setForce2CreateNewModel(false);
+            return req;
+        };
+
+        String normSql = "select test_order.order_id,buyer_id from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id";
+        OpenModelSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+
+        normSql = "select test_order.order_id,sum(price) from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id";
+        normalResponse = modelService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
+
+        normSql = "select test_order.order_id,buyer_id,max(price) from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
+        normalResponse = modelService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
+
+        Assert.assertEquals(3, indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
+    }
+
+    @Test
     public void testCreateModelNonEquiJoin() throws Exception {
 
         val newModel = createNonEquiJoinModel("default", "non_equi_join");
@@ -2040,10 +2074,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
     }
 
-    private OpenSqlAccelerateRequest smartRequest(String project, String scd2Sql) {
+    private OpenSqlAccelerateRequest smartRequest(String project, String sql) {
         OpenSqlAccelerateRequest scd2Request = new OpenSqlAccelerateRequest();
         scd2Request.setProject(project);
-        scd2Request.setSqls(Lists.newArrayList(scd2Sql));
+        scd2Request.setSqls(Lists.newArrayList(sql));
         scd2Request.setAcceptRecommendation(true);
         scd2Request.setForce2CreateNewModel(true);
         scd2Request.setWithEmptySegment(true);
