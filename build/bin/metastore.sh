@@ -61,6 +61,12 @@ function printRestoreResult() {
     fi
 }
 
+function check_path_empty() {
+    if [ -z "$1" ]; then
+          exit 1
+    fi
+}
+
 function turn_on_maintain_mode() {
   ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool' -hidden-output true
   ret=$?
@@ -76,6 +82,7 @@ function turn_off_maintain_mode() {
 
 function restore_all() {
         local path=`cd $1 && pwd -P`
+        check_path_empty ${path}
         turn_on_maintain_mode
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} ${2}
         printRestoreResult $?
@@ -84,6 +91,7 @@ function restore_all() {
 
 function restore_project() {
         local path=`cd $1 && pwd -P`
+        check_path_empty ${path}
         turn_on_maintain_mode
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project ${2} ${3}
         printRestoreResult $?
@@ -96,6 +104,7 @@ then
     BACKUP_OPTS="-backup"
     if [ $# -eq 2 ]; then
         path=`cd $2 && pwd -P`
+        check_path_empty ${path}
         BACKUP_OPTS="${BACKUP_OPTS} -dir ${path}"
     elif [ $# -ne 1 ]; then
         help
@@ -119,6 +128,7 @@ then
     BACKUP_OPTS="-backup"
     if [ $# -eq 3 ]; then
         path=`cd $3 && pwd -P`
+        check_path_empty ${path}
         BACKUP_OPTS="${BACKUP_OPTS} -dir ${path}"
     elif [ $# -ne 2 ]; then
         help
