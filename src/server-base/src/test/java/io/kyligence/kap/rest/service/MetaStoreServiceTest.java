@@ -51,6 +51,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -68,6 +69,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -101,6 +103,8 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingImpl;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
@@ -161,6 +165,11 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         modelPreviewResponseList = metaStoreService.getPreviewModels("default",
                 Lists.newArrayList("8b5a2d39-304f-4a20-a9da-942f461534d8", "7212bf0c-0716-4cef-b623-69c161981262"));
         Assert.assertEquals(2, modelPreviewResponseList.size());
+
+        modelPreviewResponseList = metaStoreService.getPreviewModels("original_project", Collections.emptyList());
+        Assert.assertEquals(12, modelPreviewResponseList.size());
+
+        Assert.assertTrue(modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartition));
     }
 
     @Test
@@ -170,21 +179,23 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 .map(NDataflow::getModel).collect(Collectors.toList());
         List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
         ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
-                modelIdList, false, false);
+                modelIdList, false, false, false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
         Assert.assertEquals(31, rawResourceMap.size());
 
         // export recommendations
-        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, true, false);
+        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, true, false,
+                false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
         Assert.assertTrue(
                 rawResourceMap.keySet().stream().anyMatch(path -> path.startsWith("/" + getProject() + "/rec")));
 
         // export over props
-        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, true);
+        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, true,
+                false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
 
@@ -206,13 +217,63 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testGetCompressedModelMetadataWithMultiplePartition() throws Exception {
+        // export multiple partition
+        var byteArrayOutputStream = metaStoreService.getCompressedModelMetadata("original_project",
+                Collections.singletonList("ff810fb9-55c4-4c45-9f8e-4235122a63d3"), false, false, true);
+        var rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+
+        KylinConfig kylinConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
+
+        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        rawResourceMap.values().forEach(rs -> {
+            long mvcc = -1;
+            RawResource originalResource = resourceStore.getResource(rs.getResPath());
+            if (originalResource != null) {
+                mvcc = originalResource.getMvcc();
+            }
+            resourceStore.checkAndPutResource(rs.getResPath(), rs.getByteSource(), mvcc);
+        });
+
+        var dataModelManager = NDataModelManager.getInstance(kylinConfig, "original_project");
+        var modelDesc = dataModelManager.getDataModelDesc("ff810fb9-55c4-4c45-9f8e-4235122a63d3");
+        Assert.assertNotNull(modelDesc);
+        Assert.assertTrue(modelDesc.isMultiPartitionModel());
+        Assert.assertEquals(3, modelDesc.getMultiPartitionDesc().getPartitions().size());
+
+        // don't export multiple partition
+        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata("original_project",
+                Collections.singletonList("ff810fb9-55c4-4c45-9f8e-4235122a63d3"), false, false, false);
+        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
+        rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+
+        kylinConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
+
+        val resourceStore2 = ResourceStore.getKylinMetaStore(kylinConfig);
+        rawResourceMap.values().forEach(rs -> {
+            long mvcc = -1;
+            RawResource originalResource = resourceStore2.getResource(rs.getResPath());
+            if (originalResource != null) {
+                mvcc = originalResource.getMvcc();
+            }
+            resourceStore2.checkAndPutResource(rs.getResPath(), rs.getByteSource(), mvcc);
+        });
+
+        dataModelManager = NDataModelManager.getInstance(kylinConfig, "original_project");
+        modelDesc = dataModelManager.getDataModelDesc("ff810fb9-55c4-4c45-9f8e-4235122a63d3");
+        Assert.assertNotNull(modelDesc);
+        Assert.assertTrue(modelDesc.isMultiPartitionModel());
+        Assert.assertEquals(0, modelDesc.getMultiPartitionDesc().getPartitions().size());
+    }
+
+    @Test
     public void testGetCompressedModelMetadataWithVersionFile() throws Exception {
         List<NDataflow> dataflowList = modelService.getDataflowManager(getProject()).listAllDataflows();
         List<NDataModel> dataModelList = dataflowList.stream().filter(df -> !df.checkBrokenWithRelatedInfo())
                 .map(NDataflow::getModel).collect(Collectors.toList());
         List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
         ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
-                modelIdList, false, false);
+                modelIdList, false, false, false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
@@ -225,7 +286,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
         overwriteSystemProp(KE_VERSION, "4.3.x");
 
-        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, false);
+        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, false,
+                false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
         Assert.assertEquals(31, rawResourceMap.size());
@@ -241,7 +303,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         String notExistsUuid = UUID.randomUUID().toString();
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT, "Data Model with name '%s' not found.", notExistsUuid));
-        metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(notExistsUuid), false, false);
+        metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(notExistsUuid), false, false,
+                false);
     }
 
     @Test
@@ -250,7 +313,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         String brokenModelId = "8b5a2d39-304f-4a20-a9da-942f461534d8";
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT, "Model [%s] is broken, can not export.", brokenModelId));
-        metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(brokenModelId), false, false);
+        metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(brokenModelId), false, false,
+                false);
 
     }
 
@@ -259,7 +323,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         // empty model list
         thrown.expect(KylinException.class);
         thrown.expectMessage("You should export one model at least.");
-        metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(), false, false);
+        metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(), false, false, false);
     }
 
     private Map<String, RawResource> getRawResourceFromZipFile(InputStream inputStream) throws IOException {
@@ -499,9 +563,51 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 .get("conflict_multiple_partition_col_model");
         Assert.assertNotNull(modelSchemaChange);
 
-        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream().anyMatch(
-                pair -> pair.getType() == SchemaNodeType.MODEL_MULTIPLE_PARTITION && pair.isOverwritable() && Objects
-                        .equal(pair.getFirstAttributes().get("columns"), pair.getSecondAttributes().get("columns"))));
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(pair -> pair.getType() == SchemaNodeType.MODEL_MULTIPLE_PARTITION && pair.isOverwritable()
+                        && Objects.equal(pair.getFirstAttributes().get("columns"),
+                                pair.getSecondAttributes().get("columns"))
+                        && pair.getFirstAttributes().get("partitions")
+                                .equals(Arrays.asList(Collections.singletonList("p1"), Collections.singletonList("p2"),
+                                        Collections.singletonList("p3")))
+                        && pair.getSecondAttributes().get("partitions")
+                                .equals(Arrays.asList(Collections.singletonList("p2"), Collections.singletonList("p1"),
+                                        Collections.singletonList("p5")))));
+    }
+
+    @Test
+    public void testCheckModelMetadataModelEmptyMultiplePartitionValues() throws IOException {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_empty_multiple_partition_value/model_empty_multiple_partition_value_2021_01_18_11_10_11_1F1482816A2619C63F686F14FB88477B.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("conflict_multiple_partition_col_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().isEmpty());
+    }
+
+    @Test
+    public void testCheckModelMetadataModelDifferentMultiplePartitionColumnWithEmptyValue() throws IOException {
+        val file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_different_multiple_column_with_empty_partition_value/model_different_multiple_column_with_empty_partition_value_2021_01_18_11_30_10_E70AE88EBB2371A8F3FE3979B9DCBB06.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
+
+        SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
+                .get("conflict_multiple_partition_col_model");
+        Assert.assertNotNull(modelSchemaChange);
+
+        Assert.assertTrue(modelSchemaChange.getUpdateItems().stream()
+                .anyMatch(pair -> pair.getType() == SchemaNodeType.MODEL_MULTIPLE_PARTITION && pair.isCreatable()
+                        && !Objects.equal(pair.getFirstAttributes().get("columns"),
+                                pair.getSecondAttributes().get("columns"))
+                        && pair.getFirstAttributes().get("partitions")
+                                .equals(Arrays.asList(Collections.singletonList("p1"), Collections.singletonList("p2"),
+                                        Collections.singletonList("p3")))
+                        && ((List) pair.getSecondAttributes().get("partitions")).isEmpty()));
     }
 
     @Test
@@ -816,6 +922,100 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         indexPlan = indexPlanManager.getIndexPlanByModelAlias("ssb_model");
         Assert.assertEquals(1, indexPlan.getOverrideProps().size());
         Assert.assertEquals("2", indexPlan.getOverrideProps().get("kylin.engine.spark-conf.spark.executor.cores"));
+    }
+
+    @Test
+    public void testImportModelMetadataWithMultiplePartitionValue() throws Exception {
+        KylinConfig testConfig = getTestConfig();
+        File file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_with_partition_value_reduce_project/target_project_model_metadata_2020_12_02_20_50_10_DAEEA810EA44E80BD3FA70CFE6AB1CAA.zip");
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(testConfig, "original_project");
+        NDataModel dataModel = dataModelManager.getDataModelDescByAlias("conflict_multiple_partition_col_model");
+
+        MultiPartitionKeyMappingImpl originalMultiPartitionKeyMapping = dataModel.getMultiPartitionKeyMapping();
+        MultiPartitionDesc originalMultiPartitionDesc = dataModel.getMultiPartitionDesc();
+
+        Assert.assertEquals(Collections.singletonList("SSB.CUSTOMER.C_CUSTKEY"),
+                originalMultiPartitionKeyMapping.getAliasCols());
+        Assert.assertEquals(Collections.singletonList("SSB.P_LINEORDER.LO_CUSTKEY"),
+                originalMultiPartitionKeyMapping.getMultiPartitionCols());
+        Assert.assertEquals(
+                Arrays.asList(Pair.newPair(Collections.singletonList("p1"), Collections.singletonList("p11")),
+                        Pair.newPair(Collections.singletonList("p2"), Collections.singletonList("p12")),
+                        Pair.newPair(Collections.singletonList("p3"), Collections.singletonList("p13"))),
+                originalMultiPartitionKeyMapping.getValueMapping());
+
+        Assert.assertEquals(Collections.singletonList("P_LINEORDER.LO_CUSTKEY"),
+                originalMultiPartitionDesc.getColumns());
+        Assert.assertEquals(
+                Arrays.asList(new MultiPartitionDesc.PartitionInfo(0, new String[] { "p1" }),
+                        new MultiPartitionDesc.PartitionInfo(1, new String[] { "p2" }),
+                        new MultiPartitionDesc.PartitionInfo(3, new String[] { "p3" })),
+                originalMultiPartitionDesc.getPartitions());
+
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(new ModelImportRequest.ModelImport("conflict_multiple_partition_col_model",
+                "conflict_multiple_partition_col_model", ModelImportRequest.ImportType.OVERWRITE));
+
+        request.setModels(models);
+
+        metaStoreService.importModelMetadata("original_project", multipartFile, request);
+
+        KylinConfig kylinConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
+        dataModelManager = NDataModelManager.getInstance(kylinConfig, "original_project");
+        dataModel = dataModelManager.getDataModelDescByAlias("conflict_multiple_partition_col_model");
+
+        val targetMultiPartitionKeyMapping = dataModel.getMultiPartitionKeyMapping();
+        val targetMultiPartitionDesc = dataModel.getMultiPartitionDesc();
+
+        Assert.assertNull(targetMultiPartitionKeyMapping);
+
+        Assert.assertEquals(Collections.singletonList("P_LINEORDER.LO_CUSTKEY"), targetMultiPartitionDesc.getColumns());
+        Assert.assertEquals(
+                Arrays.asList(new MultiPartitionDesc.PartitionInfo(1, new String[] { "p2" }),
+                        new MultiPartitionDesc.PartitionInfo(3, new String[] { "p3" })),
+                targetMultiPartitionDesc.getPartitions());
+    }
+
+    @Test
+    public void testImportModelMetadataWithoutMultiplePartitionValue() throws Exception {
+        KylinConfig testConfig = getTestConfig();
+        File file = new File(
+                "../core-metadata/src/test/resources/ut_meta/schema_utils/model_empty_multiple_partition_value/model_empty_multiple_partition_value_2021_01_18_11_10_11_1F1482816A2619C63F686F14FB88477B.zip");
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(testConfig, "original_project");
+        NDataModel dataModel = dataModelManager.getDataModelDescByAlias("conflict_multiple_partition_col_model");
+
+        MultiPartitionKeyMappingImpl originalMultiPartitionKeyMapping = dataModel.getMultiPartitionKeyMapping();
+        MultiPartitionDesc originalMultiPartitionDesc = dataModel.getMultiPartitionDesc();
+
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(new ModelImportRequest.ModelImport("conflict_multiple_partition_col_model",
+                "conflict_multiple_partition_col_model", ModelImportRequest.ImportType.OVERWRITE));
+
+        request.setModels(models);
+
+        metaStoreService.importModelMetadata("original_project", multipartFile, request);
+
+        KylinConfig kylinConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
+        dataModelManager = NDataModelManager.getInstance(kylinConfig, "original_project");
+        dataModel = dataModelManager.getDataModelDescByAlias("conflict_multiple_partition_col_model");
+
+        val targetMultiPartitionKeyMapping = dataModel.getMultiPartitionKeyMapping();
+        val targetMultiPartitionDesc = dataModel.getMultiPartitionDesc();
+
+        // keep multiple values and mapping
+        Assert.assertEquals(originalMultiPartitionKeyMapping.getAliasCols(),
+                targetMultiPartitionKeyMapping.getAliasCols());
+        Assert.assertEquals(originalMultiPartitionKeyMapping.getMultiPartitionCols(),
+                targetMultiPartitionKeyMapping.getMultiPartitionCols());
+        Assert.assertEquals(originalMultiPartitionKeyMapping.getValueMapping(),
+                targetMultiPartitionKeyMapping.getValueMapping());
+        Assert.assertEquals(originalMultiPartitionDesc.getColumns(), targetMultiPartitionDesc.getColumns());
+        Assert.assertEquals(originalMultiPartitionDesc.getPartitions(), targetMultiPartitionDesc.getPartitions());
     }
 
     @Test

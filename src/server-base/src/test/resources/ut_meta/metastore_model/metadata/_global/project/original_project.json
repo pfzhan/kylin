@@ -15,7 +15,8 @@
   "override_kylin_properties" : {
     "kylin.metadata.semi-automatic-mode" : "false",
     "kylin.query.metadata.expose-computed-column" : "true",
-    "kylin.source.default" : "9"
+    "kylin.source.default" : "9",
+    "kylin.model.multi-partition-enabled": true
   },
   "segment_config" : {
     "auto_merge_enabled" : false,

@@ -244,5 +244,38 @@
     ],
     "max_partition_id": 3
   },
-  "multi_partition_key_mapping": null
+  "multi_partition_key_mapping": {
+    "alias_columns": [
+      "SSB.CUSTOMER.C_CUSTKEY"
+    ],
+    "multi_partition_columns": [
+      "SSB.P_LINEORDER.LO_CUSTKEY"
+    ],
+    "value_mapping": [
+      {
+        "first": [
+          "p1"
+        ],
+        "second": [
+          "p11"
+        ]
+      },
+      {
+        "first": [
+          "p2"
+        ],
+        "second": [
+          "p12"
+        ]
+      },
+      {
+        "first": [
+          "p3"
+        ],
+        "second": [
+          "p13"
+        ]
+      }
+    ]
+  }
 }

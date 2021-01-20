@@ -175,6 +175,10 @@ public class MetaStoreService extends BasicService {
                 }
             }
 
+            if (projectInstance.getConfig().isMultiPartitionEnabled()) {
+                modelPreviewResponse.setHasMultiplePartition(modelDesc.isMultiPartitionModel());
+            }
+
             NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
             IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
             if (!indexPlan.getOverrideProps().isEmpty() || (modelDesc.getSegmentConfig() != null
@@ -199,7 +203,7 @@ public class MetaStoreService extends BasicService {
     }
 
     public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList,
-            boolean exportRecommendations, boolean exportOverProps) throws Exception {
+            boolean exportRecommendations, boolean exportOverProps, boolean exportMultiplePartition) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         NDataModelManager modelManager = modelService.getDataModelManager(project);
         NIndexPlanManager indexPlanManager = modelService.getIndexPlanManager(project);
@@ -229,6 +233,11 @@ public class MetaStoreService extends BasicService {
                 if (!exportOverProps) {
                     copyIndexPlan.setOverrideProps(Maps.newLinkedHashMap());
                     modelDesc.setSegmentConfig(new SegmentConfig());
+                }
+
+                if (!exportMultiplePartition && modelDesc.isMultiPartitionModel()) {
+                    modelDesc.setMultiPartitionDesc(
+                            new MultiPartitionDesc(modelDesc.getMultiPartitionDesc().getColumns()));
                 }
 
                 newResourceStore.putResourceWithoutCheck(modelDesc.getResourcePath(),
@@ -439,10 +448,14 @@ public class MetaStoreService extends BasicService {
 
         // multiple partition column
         if (nDataModel.isMultiPartitionModel()) {
-            originalDataModel = modelService.batchUpdateMultiPartition(project, nDataModel.getUuid(),
-                    nDataModel.getMultiPartitionDesc().getPartitions().stream()
-                            .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList()));
-
+            if (!nDataModel.getMultiPartitionDesc().getPartitions().isEmpty()) {
+                originalDataModel = modelService.batchUpdateMultiPartition(project, nDataModel.getUuid(),
+                        nDataModel.getMultiPartitionDesc().getPartitions().stream()
+                                .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList()));
+            } else {
+                // keep original mapping
+                nDataModel.setMultiPartitionKeyMapping(originalDataModel.getMultiPartitionKeyMapping());
+            }
             nDataModel.setMultiPartitionDesc(originalDataModel.getMultiPartitionDesc());
         }
 

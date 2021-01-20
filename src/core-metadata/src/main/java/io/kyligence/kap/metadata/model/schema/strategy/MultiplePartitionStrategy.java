@@ -52,8 +52,12 @@ public class MultiplePartitionStrategy extends UnOverWritableStrategy {
 
         // columns equals
         if (overwritable) {
+            List<List<String>> rightPartitions = (List<List<String>>) diff.rightValue().getAttributes()
+                    .get("partitions");
+            if (rightPartitions.isEmpty()) {
+                return Collections.emptyList();
+            }
             List<List<String>> leftPartitions = (List<List<String>>) diff.leftValue().getAttributes().get("partitions");
-            List<List<String>> rightPartitions = (List<List<String>>) diff.rightValue().getAttributes().get("partitions");
 
             if (leftPartitions.size() == rightPartitions.size()) {
                 // ignore orders

@@ -98,7 +98,8 @@ public class NMetaStoreController extends NBasicController {
             throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to export!");
         }
         ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(project,
-                request.getIds(), request.isExportRecommendations(), request.isExportOverProps());
+                request.getIds(), request.isExportRecommendations(), request.isExportOverProps(),
+                request.isExportMultiplePartition());
         String filename;
 
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
