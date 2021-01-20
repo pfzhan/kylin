@@ -164,7 +164,7 @@ public class InMemResourceStore extends ResourceStore {
     @Override
     public void putResourceWithoutCheck(String resPath, ByteSource bs, long timeStamp, long newMvcc) {
         synchronized (data) {
-            if (data.containsKey(resPath) && data.get(resPath) != TombVersionedRawResource.getINSTANCE()) {
+            if (kylinConfig.isJobNode() && data.containsKey(resPath) && data.get(resPath) != TombVersionedRawResource.getINSTANCE()) {
                 throw new IllegalStateException(
                         "resource " + resPath + " already exists, use check and put api instead");
             }

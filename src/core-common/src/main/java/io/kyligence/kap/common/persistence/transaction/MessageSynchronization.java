@@ -94,7 +94,6 @@ public class MessageSynchronization {
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
         if (!config.isJobNode()) {
-            resourceStore.deleteResource(raw.getResPath());
             resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
                     raw.getMvcc());
             return;

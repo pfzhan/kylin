@@ -25,6 +25,8 @@ package io.kyligence.kap.common.persistence.transaction;
 
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.RawResource;
@@ -42,6 +44,7 @@ import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.SneakyThrows;
 import lombok.val;
 
 public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
@@ -68,6 +71,54 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, raw.getMvcc());
         val empty = resourceStore.getResource("/default/abc3.json");
         Assert.assertNull(empty);
+    }
+
+    @Test
+    public void testKE19979() throws InterruptedException {
+        overwriteSystemProp("kylin.server.mode", "query");
+        AtomicInteger mvcc = new AtomicInteger(0);
+        val initEvent = new ResourceCreateOrUpdateEvent(new RawResource("/default/abc.json",
+                ByteStreams.asByteSource("version1".getBytes(charset)), 0L, mvcc.get()));
+        val synchronize = MessageSynchronization.getInstance(getTestConfig());
+        synchronize.replayInTransaction(new UnitMessages(Lists.newArrayList(initEvent)));
+        val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        val loopTime = 1000;
+        val starter = new CountDownLatch(1);
+        val latch1 = new CountDownLatch(loopTime);
+        val latch2 = new CountDownLatch(loopTime);
+        AtomicInteger nullCount = new AtomicInteger(0);
+        Thread t1 = new Thread(new Runnable() {
+            @SneakyThrows
+            @Override
+            public void run() {
+                starter.await();
+                while (latch1.getCount() > 0) {
+                    val updateEvent = new ResourceCreateOrUpdateEvent(new RawResource("/default/abc.json",
+                            ByteStreams.asByteSource("version2".getBytes(charset)), 0L, mvcc.incrementAndGet()));
+                    synchronize.replayInTransaction(new UnitMessages(Lists.newArrayList(updateEvent)));
+                    latch1.countDown();
+                }
+            }
+        });
+        Thread t2 = new Thread(new Runnable() {
+            @SneakyThrows
+            @Override
+            public void run() {
+                starter.await();
+                while (latch2.getCount() > 0) {
+                    if (null == resourceStore.getResource("/default/abc.json")) {
+                        nullCount.incrementAndGet();
+                    }
+                    latch2.countDown();
+                }
+            }
+        });
+        t1.start();
+        t2.start();
+        starter.countDown();
+        latch1.await();
+        latch2.await();
+        Assert.assertEquals(0, nullCount.get());
     }
 
     private List<Event> createEvents() {
