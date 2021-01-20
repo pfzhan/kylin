@@ -28,7 +28,6 @@ import static io.kyligence.kap.common.util.CollectionUtil.intersection;
 import static org.apache.kylin.common.exception.ServerErrorCode.REC_LIST_OUT_OF_DATE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_REC_OPERATION_TYPE;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -86,7 +85,6 @@ import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Getter;
 import lombok.val;
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -96,6 +94,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public static final int V2 = 2;
     public static final String RECOMMENDATION_SOURCE = "recommendation_source";
     public static final String OPERATION_ERROR_MSG = "The operation types of recommendation includes: add_index, removal_index and all(by default)";
+    public static final String ALL = OptRecService.RecActionType.ALL.name();
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -468,6 +467,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         RecApproveContext approveContext = new RecApproveContext(project, modelId, userDefinedRecNameMap);
         approveRecItemsToRemoveLayout(request, approveContext);
         approveRecItemsToAddLayout(request, approveContext);
+        updateRecommendationCount(project, modelId);
     }
 
     /**
@@ -541,6 +541,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
         approveRecItemsToRemoveLayout(request, approveContext);
         approveRecItemsToAddLayout(request, approveContext);
+        updateRecommendationCount(project, modelId);
 
         RecToIndexResponse response = new RecToIndexResponse();
         response.setModelId(modelId);
@@ -587,6 +588,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             allToHandle.addAll(request.getRecItemsToRemoveLayout());
             rawManager.discardByIds(intersection(optRecV2.getRawIds(), Lists.newArrayList(allToHandle)));
         });
+        updateRecommendationCount(project, request.getModelId());
     }
 
     @Transaction(project = 0)
@@ -594,6 +596,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         aclEvaluate.checkProjectOperationPermission(project);
         OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
         managerV2.discardAll(modelId);
+        updateRecommendationCount(project, modelId);
     }
 
     private static OptRecDepResponse convert(RecommendationRef ref) {
@@ -697,18 +700,18 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             }
         });
 
-        List<OptRecLayoutResponse> allRecRespList = getRecLayoutResponses(project, modelId, RecActionType.ALL.name());
-        List<OptRecLayoutResponse> filterOutRecList = recTypeList.isEmpty()
-                || userDefinedTypes.size() == RawRecItem.IndexRecType.values().length //
-                        ? allRecRespList
-                        : allRecRespList.stream().filter(resp -> userDefinedTypes.contains(resp.getType()))
-                                .collect(Collectors.toList());
+        Set<Integer> brokenRecs = Sets.newHashSet();
+        List<OptRecLayoutResponse> recList = getRecLayoutResponses(project, modelId, OptRecService.ALL, brokenRecs);
+        if (userDefinedTypes.size() != RawRecItem.IndexRecType.values().length) {
+            recList.removeIf(resp -> !userDefinedTypes.contains(resp.getType()));
+        }
         if (StringUtils.isNotEmpty(orderBy)) {
-            filterOutRecList.sort(propertyComparator(orderBy, !desc));
+            recList.sort(propertyComparator(orderBy, !desc));
         }
         OptRecLayoutsResponse response = new OptRecLayoutsResponse();
-        response.setLayouts(PagingUtil.cutPage(filterOutRecList, offset, limit));
-        response.setSize(filterOutRecList.size());
+        response.setLayouts(PagingUtil.cutPage(recList, offset, limit));
+        response.setSize(recList.size());
+        response.setBrokenRecs(brokenRecs);
         return response;
     }
 
@@ -721,19 +724,17 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId, String recActionType) {
         aclEvaluate.checkProjectReadPermission(project);
         OptRecLayoutsResponse layoutsResponse = new OptRecLayoutsResponse();
-        layoutsResponse.getLayouts().addAll(getRecLayoutResponses(project, modelId, recActionType));
+        List<OptRecLayoutResponse> responses = getRecLayoutResponses(project, modelId, recActionType,
+                layoutsResponse.getBrokenRecs());
+        layoutsResponse.getLayouts().addAll(responses);
         layoutsResponse.setSize(layoutsResponse.getLayouts().size());
         return layoutsResponse;
     }
 
     /**
      * get layout to be approved
-     * @param project
-     * @param modelId
-     * @return
      */
-    public List<RawRecItem> getRecLayout(String project, String modelId, RecActionType recActionType) {
-        val optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+    public List<RawRecItem> getRecLayout(OptRecV2 optRecV2, RecActionType recActionType) {
         if (optRecV2 == null) {
             return Collections.emptyList();
         }
@@ -764,19 +765,22 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }).collect(Collectors.toList());
     }
 
-    private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String recActionType) {
+    private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String recActionType,
+            Set<Integer> brokenRecCollector) {
         aclEvaluate.checkProjectReadPermission(project);
-        var rawRecItems = new ArrayList<RawRecItem>();
+        List<RawRecItem> rawRecItems = Lists.newArrayList();
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
         if (recActionType.equalsIgnoreCase(RecActionType.ALL.name())) {
-            rawRecItems.addAll(getRecLayout(project, modelId, RecActionType.ALL));
+            rawRecItems.addAll(getRecLayout(optRecV2, RecActionType.ALL));
         } else if (recActionType.equalsIgnoreCase(RecActionType.ADD_INDEX.name())) {
-            rawRecItems.addAll(getRecLayout(project, modelId, RecActionType.ADD_INDEX));
+            rawRecItems.addAll(getRecLayout(optRecV2, RecActionType.ADD_INDEX));
         } else if (recActionType.equalsIgnoreCase(RecActionType.REMOVE_INDEX.name())) {
-            rawRecItems.addAll(getRecLayout(project, modelId, RecActionType.REMOVE_INDEX));
+            rawRecItems.addAll(getRecLayout(optRecV2, RecActionType.REMOVE_INDEX));
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
 
+        brokenRecCollector.addAll(optRecV2.getBrokenLayoutRefIds());
         return convertToV2RecResponse(project, modelId, rawRecItems);
     }
 
@@ -813,6 +817,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             layoutRecResponseList.add(response);
         });
         return layoutRecResponseList;
+    }
+
+    public void updateRecommendationCount(String project, String modelId) {
+        int size = getOptRecLayoutsResponse(project, modelId, OptRecService.ALL).getSize();
+        NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
     }
 
     @Override

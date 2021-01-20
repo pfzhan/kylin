@@ -107,6 +107,8 @@ import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
@@ -168,8 +170,8 @@ public class MetaStoreService extends BasicService {
             modelPreviewResponse.setStatus(status);
 
             if (!projectInstance.isExpertMode()) {
-                val rawRecItems = optRecService.getRecLayout(modelDesc.getProject(), modelDesc.getUuid(),
-                        OptRecService.RecActionType.ALL);
+                OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelDesc.getUuid());
+                List<RawRecItem> rawRecItems = optRecService.getRecLayout(optRecV2, OptRecService.RecActionType.ALL);
                 if (!rawRecItems.isEmpty()) {
                     modelPreviewResponse.setHasRecommendation(true);
                 }
@@ -283,8 +285,8 @@ public class MetaStoreService extends BasicService {
             return;
         }
         JdbcRawRecStore jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
-
-        List<RawRecItem> recLayouts = optRecService.getRecLayout(project, modelId, OptRecService.RecActionType.ALL);
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+        List<RawRecItem> recLayouts = optRecService.getRecLayout(optRecV2, OptRecService.RecActionType.ALL);
         Set<Integer> rawRecIds = recLayouts.stream().map(recLayout -> {
             int[] dependIDs = recLayout.getDependIDs();
             return Arrays.stream(dependIDs).filter(dependId -> dependId < 0).boxed().collect(Collectors.toSet());

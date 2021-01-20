@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -48,7 +49,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
@@ -95,6 +95,8 @@ public class RawRecService {
             throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
         }
         saveLayoutRawRecItems(layoutRecItems, semiContextV2.getProject());
+        Set<String> modelIds = layoutRecItems.stream().map(RawRecItem::getModelID).collect(Collectors.toSet());
+        modelIds.forEach(modelId -> optRecService.updateRecommendationCount(semiContextV2.getProject(), modelId));
     }
 
     public void generateRawRecommendations(String project, List<QueryHistory> queryHistories, boolean isManual) {
@@ -215,7 +217,7 @@ public class RawRecService {
 
                     log.info("Running update topN raw recommendation for model({}/{}).", project, model);
                     rawRecManager.updateRecommendedTopN(project, model, topN);
-                    updateRecommendationCount(project, model);
+                    optRecService.updateRecommendationCount(project, model);
                     log.info("Update topN raw recommendations for model({}/{}) takes {} ms", //
                             project, model, System.currentTimeMillis() - current);
                 }
@@ -223,16 +225,6 @@ public class RawRecService {
                 log.error("Update cost and update topN failed for project({})", project, e);
             }
         }
-    }
-
-    private void updateRecommendationCount(String project, String model) {
-        String recActionType = OptRecService.RecActionType.ALL.name();
-        int recCount = optRecService.getOptRecLayoutsResponse(project, model, recActionType).getSize();
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            mgr.updateDataModel(model, copyForWrite -> copyForWrite.setRecommendationsCount(recCount));
-            return null;
-        }, project);
     }
 
     public static int recommendationSize(String project) {

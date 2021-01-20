@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import java.util.List;
 
 import org.apache.kylin.common.response.ResponseCode;
@@ -44,6 +45,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.rest.request.OptRecRequest;
+import io.kyligence.kap.rest.request.RecCountUpdateRequest;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.OptRecService;
@@ -57,6 +59,7 @@ import lombok.val;
 public class NRecommendationController extends NBasicController {
 
     private static final String MODEL_ID = "modelId";
+    private static final String REC_COUNT_ACTION = "action";
 
     @Autowired
     @Qualifier("optRecService")
@@ -162,6 +165,24 @@ public class NRecommendationController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 optRecService.getSingleOptRecDetail(project, modelId, itemId, isAdd), "");
+    }
+
+    @ApiOperation(value = "refreshRecommendationCount", tags = { "AI" }, notes = "Add URL: {model}")
+    @PutMapping(value = "/count")
+    @ResponseBody
+    public EnvelopeResponse<String> refreshRecommendationCount(@RequestBody RecCountUpdateRequest request) {
+        String project = request.getProject();
+        String modelId = request.getModelId();
+        String action = request.getAction();
+        checkProjectName(project);
+        checkProjectNotSemiAuto(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        checkRequiredArg(REC_COUNT_ACTION, action);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            optRecService.updateRecommendationCount(project, modelId);
+            return null;
+        }, project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "accelerate query history and select topn", tags = { "AI" }, notes = "Add URL: {model}")

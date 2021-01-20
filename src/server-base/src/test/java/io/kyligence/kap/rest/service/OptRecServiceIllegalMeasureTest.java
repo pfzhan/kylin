@@ -55,6 +55,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
@@ -131,9 +132,21 @@ public class OptRecServiceIllegalMeasureTest extends OptRecV2TestBase {
         Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
         Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(3, modelBeforeApprove.getRecommendationsCount());
         Assert.assertEquals(0, getIndexPlan().getAllLayouts().size());
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
         Assert.assertEquals(8, response.getLayouts().size());
+        Set<Integer> brokenRecs = response.getBrokenRecs();
+        Assert.assertEquals(6, brokenRecs.size());
+        List<Integer> collect = brokenRecs.stream().sorted().collect(Collectors.toList());
+        Assert.assertEquals(Lists.newArrayList(15, 16, 18, 19, 20, 21), collect);
+
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            optRecService.updateRecommendationCount(getProject(), getDefaultUUID());
+            return null;
+        }, getProject());
+        Assert.assertEquals(8, getModel().getRecommendationsCount());
+
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll().stream() //
                 .filter(RawRecItem::isLayoutRec).collect(Collectors.toList());
         Set<Integer> normalRecIdSet = Sets.newHashSet(33, 34, 35, 36, 37, 38, 39, 17);

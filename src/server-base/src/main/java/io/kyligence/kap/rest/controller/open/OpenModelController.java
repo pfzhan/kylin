@@ -647,6 +647,7 @@ public class OpenModelController extends NBasicController {
                     MsgPicker.getMsg().getPROJECT_DISABLE_MLP());
         }
     }
+
     static void checkNotEmpty(List<String> sqls) {
         if (CollectionUtils.isEmpty(sqls)) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());

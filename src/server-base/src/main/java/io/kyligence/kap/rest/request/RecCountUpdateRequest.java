@@ -22,26 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
-
-import java.util.List;
-import java.util.Set;
+package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class OptRecLayoutsResponse {
+public class RecCountUpdateRequest implements ProjectInsensitiveRequest {
 
-    @JsonProperty("layouts")
-    private List<OptRecLayoutResponse> layouts = Lists.newArrayList();
+    @JsonProperty("project")
+    private String project;
 
-    @JsonProperty("size")
-    private int size;
+    @JsonProperty("model_id")
+    private String modelId;
 
-    @JsonProperty("broken_recs")
-    private Set<Integer> brokenRecs = Sets.newHashSet();
+    @JsonProperty("action")
+    private String action;
 }

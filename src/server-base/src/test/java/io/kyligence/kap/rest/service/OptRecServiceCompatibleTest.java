@@ -125,6 +125,7 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         Assert.assertEquals(17, modelBeforeApprove.getAllNamedColumns().size());
         Assert.assertEquals(1, modelBeforeApprove.getEffectiveMeasures().size());
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(3, modelBeforeApprove.getRecommendationsCount());
         Assert.assertEquals(0, getIndexPlan().getAllLayouts().size());
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
         Assert.assertEquals(14, response.getLayouts().size());
@@ -148,6 +149,7 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         Assert.assertEquals(18, modelAfterApprove.getAllNamedColumns().size());
         Assert.assertEquals(6, modelAfterApprove.getEffectiveMeasures().size());
         Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
+        Assert.assertEquals(0, modelAfterApprove.getRecommendationsCount());
         Assert.assertEquals(7, getIndexPlan().getAllLayoutsMap().size());
     }
 
