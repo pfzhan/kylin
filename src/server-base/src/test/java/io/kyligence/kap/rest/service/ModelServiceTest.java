@@ -1995,7 +1995,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenModelSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenModelSuggestionResponse normalResponse = modelService
+                .suggestOrOptimizeModels(smartRequest(project, normSql));
 
         normSql = "select test_order.order_id,sum(price) from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
@@ -2007,7 +2008,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
         normalResponse = modelService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
 
-        Assert.assertEquals(3, indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
+        Assert.assertEquals(3,
+                indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
     }
 
     @Test
@@ -5120,6 +5122,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // just remove partitions in layouts and segment
         modelService.deletePartitions(project, segmentId, modelId, Sets.newHashSet(7L));
+        Assert.assertEquals(20128L, dfm.getDataflow(modelId).getSegment(segmentId).getStorageBytesSize());
+        Assert.assertEquals(27L, dfm.getDataflow(modelId).getSegment(segmentId).getSegDetails().getTotalRowCount());
+
         val model2 = modelManager.getDataModelDesc(modelId);
         val segment2 = dfm.getDataflow(modelId).getSegment(segmentId);
         Assert.assertEquals(3, model2.getMultiPartitionDesc().getPartitions().size());

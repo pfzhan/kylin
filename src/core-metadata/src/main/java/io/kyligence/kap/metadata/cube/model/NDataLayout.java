@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfigExt;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -143,7 +144,10 @@ public class NDataLayout implements Serializable {
     }
 
     public long getRows() {
-        return rows;
+        if (CollectionUtils.isEmpty(multiPartition)) {
+            return rows;
+        }
+        return multiPartition.stream().mapToLong(LayoutPartition::getRows).sum();
     }
 
     public void setRows(long rows) {
@@ -152,7 +156,10 @@ public class NDataLayout implements Serializable {
     }
 
     public long getByteSize() {
-        return byteSize;
+        if (CollectionUtils.isEmpty(multiPartition)) {
+            return byteSize;
+        }
+        return multiPartition.stream().mapToLong(LayoutPartition::getByteSize).sum();
     }
 
     public void setByteSize(long byteSize) {
