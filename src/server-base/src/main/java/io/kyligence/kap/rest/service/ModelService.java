@@ -3908,6 +3908,7 @@ public class ModelService extends BasicService {
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());
     }
 
+    @Transaction(project = 0)
     public void deletePartitionsByValues(String project, String segmentId, String modelId,
             List<String[]> subPartitionValues) {
         NDataModel model = checkModelIsMLP(modelId, project);
