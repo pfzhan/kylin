@@ -96,12 +96,12 @@
                 <el-row>
                   <el-col :span="isEdit?21:24">
                     <span>{{row.column_name}}</span>
-                    <span>=</span>
-                    <span>{{row.items.toString()}}</span>
+                    <span v-if="row.items.length">={{row.items.toString()}}</span>
+                    <span v-if="row.likeItems.length">&nbsp;like {{row.likeItems.toString()}}</span>
                   </el-col>
                   <el-col :span="3" class="ky-no-br-space btn-icons" v-if="isEdit">
                     <i class="el-icon-ksd-table_edit ksd-fs-16" @click="editRowAccess(key, row)"></i>
-                    <i class="el-icon-ksd-table_delete ksd-fs-16 ksd-ml-10" @click="deleteRowAccess(key)"></i>
+                    <i class="el-icon-ksd-table_delete ksd-fs-16 ksd-ml-10" @click="deleteRowAccess(key, row)"></i>
                   </el-col>
                 </el-row>
               </li>
@@ -119,13 +119,31 @@
     </div>
 
     <el-dialog :title="rowAuthorTitle" width="720px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
+      <div class="like-tips-block ksd-mb-10">
+        <div class="ksd-mb-5">{{$t('tipsTitle')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('viewDetail')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></div>
+        <div class="detail-content" v-if="showDetails">
+          <p>{{$t('rules1')}}</p>
+          <p>{{$t('rules2')}}</p>
+          <p>{{$t('rules3')}}</p>
+        </div>
+      </div>
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
-        <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit">
+        <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit" @change="isUnCharColumn(row.column_name)">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!row.column_name"></i>
-          <el-option v-for="c in columns" :key="c.name" :label="c.name" :value="c.name">
+          <el-option v-for="c in getColumns(row.joinType)" :key="c.name" :label="c.name" :value="c.name">
+            <el-tooltip :content="c.name" effect="dark" placement="top"><span>{{c.name | omit(30, '...')}}</span></el-tooltip>
+            <span class="ky-option-sub-info">{{c.datatype.toLocaleLowerCase()}}</span>
           </el-option>
         </el-select>
-        <span>=</span>
+        <el-select
+          :placeholder="$t('kylinLang.common.pleaseSelect')"
+          style="width:65px;"
+          class="link-type"
+          popper-class="js_like-type"
+          :disabled="isRowAuthorEdit"
+          v-model="row.joinType">
+          <el-option :disabled="isNeedDisableLike && key === 'like'" :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
+        </el-select>
         <el-select
           v-model="row.items"
           multiple
@@ -134,7 +152,7 @@
           remote
           allow-create
           default-first-option
-          :style="{width: isRowAuthorEdit? '470px' : '400px'}"
+          :style="{width: isRowAuthorEdit? '415px' : '345px'}"
           @change="setRowValues(row.items, key)"
           :placeholder="$t('pleaseInput')">
         </el-select>
@@ -181,7 +199,12 @@ import { pageSizeMapping } from '../../config'
       addRowAccess1: 'Add Row ACL - {tableName}',
       editRowAccess: 'Edit Row ACL - {tableName}',
       pleaseInput: 'Please hit enter to confirm each value. Multiple values are supported, please use comma to split.',
-      loadMore: 'Load More ...'
+      loadMore: 'Load More ...',
+      tipsTitle: 'A like operator is always followed by a like pattern.',
+      viewDetail: 'View rules',
+      rules1: '_ (underscore) wildcard characters, matches any single character.',
+      rules2: '% (percent) wildcard characters, matches with zero or more characters.',
+      rules3: '\\ (backslash) escape character. The characters following “\\“ won\'t be regarded as any special characters.'
     },
     'zh-cn': {
       accessTables: '表级访问列表',
@@ -196,7 +219,12 @@ import { pageSizeMapping } from '../../config'
       addRowAccess1: '添加行级权限 - {tableName}',
       editRowAccess: '编辑行级权限 - {tableName}',
       pleaseInput: '请输入后按回车确认。支持输入多个值，请用逗号分隔。',
-      loadMore: '加载更多 ...'
+      loadMore: '加载更多 ...',
+      tipsTitle: 'like 操作符需要配合通配符使用。',
+      viewDetail: '查看规则',
+      rules1: '_（下划线）通配符，匹配任意单个字符。',
+      rules2: '%（百分号）通配符，匹配空白字符或任意多个字符。',
+      rules3: '\\（反斜杠）转义符，转义符后的通配符或转义符将不被识别为特殊字符。'
     }
   }
 })
@@ -217,7 +245,8 @@ export default class UserAccess extends Vue {
   columns = []
   filterCols = []
   rows = []
-  rowLists = [{column_name: '', items: []}]
+  rowLists = [{column_name: '', joinType: '=', items: []}]
+  linkKind = ['=', 'like']
   isSelectTable = false
   tableAuthorizedNum = 0
   totalNum = 0
@@ -241,6 +270,8 @@ export default class UserAccess extends Vue {
   columnPageSize = 100
   columnCurrentPage = 1
   isAuthority = false
+  showDetails = false
+  isNeedDisableLike = false
   get emptyText () {
     return this.tableFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
@@ -281,7 +312,7 @@ export default class UserAccess extends Vue {
       const indexs = data.id.split('_')
       this.databaseIndex = indexs[0]
       this.tableIndex = indexs[1]
-      this.initColsAndRows(data.columns, data.rows, data.totalColNum)
+      this.initColsAndRows(data.columns, data.rows, data.like_rows, data.totalColNum)
     } else if (!data.children && data.isMore) {
       node.parent.data.currentIndex++
       const index = data.id.split('_')[0]
@@ -295,18 +326,49 @@ export default class UserAccess extends Vue {
       this.reRenderTree(true)
     }
   }
-  initColsAndRows (columns, rows, totalColNum) {
+  initColsAndRows (columns, rows, like_rows, totalColNum) {
     this.columnCurrentPage = 1
     this.colAuthorizedNum = 0
     this.columns = columns.map((col) => {
       if (col.authorized) {
         this.colAuthorizedNum++
       }
-      return {name: col.column_name, authorized: col.authorized}
+      return {name: col.column_name, authorized: col.authorized, datatype: col.datatype}
     })
     this.isAllColAccess = this.colAuthorizedNum === totalColNum
     this.selectAllColumns = this.isAllColAccess
-    this.rows = objectClone(rows)
+    this.rows = rows.map((r) => {
+      return { column_name: r.column_name, items: r.items, likeItems: [] }
+    })
+    like_rows && like_rows.forEach((l) => {
+      const index = indexOfObjWithSomeKey(this.rows, 'column_name', l.column_name)
+      if (index === -1) {
+        this.rows.push({ column_name: l.column_name, items: [], likeItems: l.items })
+      } else {
+        this.rows[index].likeItems = l.items
+      }
+    })
+  }
+  getColumns (type) {
+    let columns = this.columns
+    if (type === 'like') {
+      columns = columns.filter((c) => {
+        return c.datatype.indexOf('char') !== -1 || c.datatype.indexOf('varchar') !== -1
+      })
+    }
+    return columns
+  }
+  isUnCharColumn (columnName) {
+    if (columnName) {
+      const index = indexOfObjWithSomeKey(this.columns, 'name', columnName)
+      let datatype = ''
+      if (index !== -1) {
+        datatype = this.columns[index].datatype
+      }
+      this.isNeedDisableLike = datatype.indexOf('char') === -1 && datatype.indexOf('varchar') === -1
+    } else {
+      this.isNeedDisableLike = false
+    }
   }
   get pagedFilterColumns () {
     const filterCols = objectClone(this.columns)
@@ -494,6 +556,12 @@ export default class UserAccess extends Vue {
         break
       }
     }
+    for (let k = 0; k < row.likeItems.length; k++) {
+      if (row.likeItems[k].toLowerCase().indexOf(this.rowFilter.trim().toLowerCase()) !== -1) {
+        isShow = true
+        break
+      }
+    }
     return isShow
   }
   editAccess () {
@@ -549,13 +617,28 @@ export default class UserAccess extends Vue {
   editRowAccess (index, row) {
     this.isRowAuthorEdit = true
     this.editRowIndex = index
-    this.rowLists = [objectClone(row)]
+    this.rowLists = []
+    if (row.items.length > 0) {
+      this.rowLists.push({column_name: row.column_name, joinType: '=', items: row.items})
+    }
+    if (row.likeItems.length > 0) {
+      this.rowLists.push({column_name: row.column_name, joinType: 'like', items: row.likeItems})
+    }
     this.rowAccessVisible = true
   }
-  deleteRowAccess (index) {
-    this.rows.splice(index, 1)
-    this.allTables[this.databaseIndex].tables[this.tableIndex].rows.splice(index, 1)
-    this.tables[this.databaseIndex].originTables[this.tableIndex].rows.splice(index, 1)
+  deleteRowAccess (index, row) {
+    let idx = index
+    this.rows.splice(idx, 1)
+    if (row.likeItems && row.likeItems.length) {
+      idx = this.allTables[this.databaseIndex].tables[this.tableIndex].like_rows.findIndex(it => it.items.join(',') === row.likeItems.join(','))
+      this.allTables[this.databaseIndex].tables[this.tableIndex].like_rows.splice(idx, 1)
+      this.tables[this.databaseIndex].originTables[this.tableIndex].like_rows.splice(idx, 1)
+    }
+    if (row.items.length) {
+      idx = this.allTables[this.databaseIndex].tables[this.tableIndex].rows.findIndex(it => it.items.join(',') === row.items.join(','))
+      this.allTables[this.databaseIndex].tables[this.tableIndex].rows.splice(idx, 1)
+      this.tables[this.databaseIndex].originTables[this.tableIndex].rows.splice(idx, 1)
+    }
   }
   cancelRowAccess () {
     this.rowAccessVisible = false
@@ -566,31 +649,59 @@ export default class UserAccess extends Vue {
         if (row.column_name && row.items.length) {
           const index = indexOfObjWithSomeKey(this.rows, 'column_name', row.column_name)
           if (index === -1) {
-            this.rows.push(row)
+            const rowObj = {column_name: row.column_name, items: row.joinType === '=' ? row.items : [], likeItems: row.joinType === 'like' ? row.items : []}
+            this.rows.push(rowObj)
           } else {
-            this.rows[index].items = [...this.rows[index].items, ...row.items]
+            if (row.joinType === '=') {
+              this.rows[index].items = [...this.rows[index].items, ...row.items]
+            } else if (row.joinType === 'like') {
+              this.rows[index].likeItems = [...this.rows[index].likeItems, ...row.items]
+            }
           }
         }
       })
     } else {
-      if (this.rowLists[0].items.length > 0) {
-        this.rows[this.editRowIndex].items = this.rowLists[0].items
-      } else {
+      this.rowLists.forEach((r) => {
+        if (r.joinType === '=') {
+          this.rows[this.editRowIndex].items = r.items
+        } else if (r.joinType === 'like') {
+          this.rows[this.editRowIndex].likeItems = r.items
+        }
+      })
+      if (this.rows[this.editRowIndex].items.length === 0 && this.rows[this.editRowIndex].likeItems.length === 0) {
         this.rows.splice(this.editRowIndex, 1)
       }
     }
-    this.allTables[this.databaseIndex].tables[this.tableIndex].rows = objectClone(this.rows)
-    this.tables[this.databaseIndex].originTables[this.tableIndex].rows = objectClone(this.rows)
+    this.allTables[this.databaseIndex].tables[this.tableIndex].rows = this.rows.map((row) => {
+      return { column_name: row.column_name, items: row.items }
+    }).filter((row) => {
+      return row.items.length > 0
+    })
+    this.allTables[this.databaseIndex].tables[this.tableIndex].like_rows = this.rows.map((row) => {
+      return { column_name: row.column_name, items: row.likeItems }
+    }).filter((row) => {
+      return row.items.length > 0
+    })
+    this.tables[this.databaseIndex].originTables[this.tableIndex].rows = this.rows.map((row) => {
+      return { column_name: row.column_name, items: row.items }
+    }).filter((row) => {
+      return row.items.length > 0
+    })
+    this.tables[this.databaseIndex].originTables[this.tableIndex].like_rows = this.rows.map((row) => {
+      return { column_name: row.column_name, items: row.likeItems }
+    }).filter((row) => {
+      return row.items.length > 0
+    })
     this.rowAccessVisible = false
   }
   addRow () {
-    this.rowLists.unshift({column_name: '', items: []})
+    this.rowLists.unshift({column_name: '', joinType: '=', items: []})
   }
   removeRow (index) {
     this.rowLists.splice(index, 1)
   }
   resetRowAccess () {
-    this.rowLists = [{column_name: '', items: []}]
+    this.rowLists = [{column_name: '', joinType: '=', items: []}]
   }
   async loadAccessDetails (authorizedOnly) {
     this.defaultCheckedKeys = []
@@ -618,7 +729,7 @@ export default class UserAccess extends Vue {
           if (database.database_name + '.' + t.table_name === this.currentTable) {
             this.currentTableId = id
           }
-          return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, rows: t.rows, totalColNum: t.total_column_num}
+          return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, rows: t.rows, like_rows: t.like_rows, totalColNum: t.total_column_num}
         })
         const pegedTableDatas = originTableDatas.slice(0, pageSizeMapping.TABLE_TREE)
         if (pageSizeMapping.TABLE_TREE < originTableDatas.length) {
@@ -678,5 +789,31 @@ export default class UserAccess extends Vue {
   @import '../../assets/styles/variables.less';
   .row-column {
     width: 190px;
+  }
+  .like-tips-block {
+    color: @text-normal-color;
+    .review-details {
+      color: @base-color;
+      cursor: pointer;
+      position: relative;
+    }
+    .el-icon-ksd-more_01-copy {
+      transform: scale(0.8);
+    }
+    .arrow {
+      transform: rotate(90deg) scale(0.8);
+      margin-left: 3px;
+      font-size: 7px;
+      color: @base-color;
+      position: absolute;
+      top: 4px;
+    }
+    .detail-content {
+      background-color: @base-background-color-1;
+      padding: 10px 15px;
+      box-sizing: border-box;
+      font-size: 12px;
+      color: @text-normal-color;
+    }
   }
 </style>
