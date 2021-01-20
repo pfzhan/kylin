@@ -46,6 +46,7 @@ import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.Mapping
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 import static org.awaitility.Awaitility.await;
 
+import io.kyligence.kap.metadata.model.BadModelException.CauseType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -2995,7 +2996,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return BadModelException.CauseType.SELF_CONFLICT == ccException.getCauseType()
+                return CauseType.SELF_CONFLICT_WITH_SAME_NAME == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT") && ccException.getMessage()
                                 .equals("This name has already been used by other computed columns in this model.");
@@ -3034,7 +3035,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return BadModelException.CauseType.SELF_CONFLICT == ccException.getCauseType()
+                return CauseType.SELF_CONFLICT_WITH_SAME_EXPRESSION == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
@@ -3075,7 +3076,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 BadModelException ccException = (BadModelException) item;
-                return BadModelException.CauseType.SELF_CONFLICT == ccException.getCauseType()
+                return CauseType.SELF_CONFLICT_WITH_SAME_EXPRESSION == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(

@@ -60,6 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ComputedColumnEvalUtil {
+    private static final int MAX_RENAME_CC_TIME = 99;
 
     private static final Pattern PATTERN_COLUMN = Pattern
             .compile("cannot resolve '(.*?)' given input columns: \\[(.*?),(.*?)];");
@@ -156,10 +157,10 @@ public class ComputedColumnEvalUtil {
     }
 
     public static boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel dataModel, List<NDataModel> otherModels) {
-        // Resolve CC name, Limit 99 retries to avoid infinite loop
-        // TODO: what if the dataModel has more than 99 computed columns?
+        // Resolve CC name, Limit MAX_RENAME_CC_TIME retries to avoid infinite loop
+        // TODO: what if the dataModel has more than MAX_RENAME_CC_TIME computed columns?
         int retryCount = 0;
-        while (retryCount < 99) {
+        while (retryCount < MAX_RENAME_CC_TIME) {
             retryCount++;
             try {
                 // Init ComputedColumn to check CC availability
@@ -170,7 +171,7 @@ public class ComputedColumnEvalUtil {
                 switch (e.getCauseType()) {
                 case SAME_NAME_DIFF_EXPR:
                 case WRONG_POSITION_DUE_TO_NAME:
-                case SELF_CONFLICT:
+                case SELF_CONFLICT_WITH_SAME_NAME:
                     // updating CC auto index to resolve name conflict
                     String ccName = ccDesc.getColumnName();
                     ccDesc.setColumnName(incrementIndex(ccName));
@@ -180,8 +181,9 @@ public class ComputedColumnEvalUtil {
                     break;
                 case WRONG_POSITION_DUE_TO_EXPR:
                 case LOOKUP_CC_NOT_REFERENCING_ITSELF:
+                case SELF_CONFLICT_WITH_SAME_EXPRESSION:
                     log.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
-                    retryCount = 99; // fail directly
+                    retryCount = MAX_RENAME_CC_TIME; // fail directly
                     break;
                 default:
                     break;

@@ -60,6 +60,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.BadModelException;
+import io.kyligence.kap.metadata.model.BadModelException.CauseType;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.AliasDeduce;
@@ -520,7 +521,7 @@ public class ComputedColumnUtil {
         public void handleOnSingleModelSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
             String msg = MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL();
-            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg, BadModelException.CauseType.SELF_CONFLICT,
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg, CauseType.SELF_CONFLICT_WITH_SAME_NAME,
                     null, null, newCC.getFullName());
         }
 
@@ -532,7 +533,7 @@ public class ComputedColumnUtil {
                             existingModel.getAlias(), existingCC.getFullName(), newCC.getFullName()));
             String msg = MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL();
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
-                    BadModelException.CauseType.SELF_CONFLICT, null, null, newCC.getFullName());
+                    BadModelException.CauseType.SELF_CONFLICT_WITH_SAME_EXPRESSION, null, null, newCC.getFullName());
         }
     }
 

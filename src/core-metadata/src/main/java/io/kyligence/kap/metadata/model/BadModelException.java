@@ -23,11 +23,12 @@
  */
 package io.kyligence.kap.metadata.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+
 import org.apache.kylin.common.exception.ErrorCodeSupplier;
 import org.apache.kylin.common.exception.KylinException;
 
-import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BadModelException extends KylinException {
 
@@ -36,7 +37,8 @@ public class BadModelException extends KylinException {
         WRONG_POSITION_DUE_TO_EXPR, // another model is using this cc's expression on a different alias table
         SAME_NAME_DIFF_EXPR, // another model already has defined same cc name but different expr
         SAME_EXPR_DIFF_NAME, // another model already has defined same expr but different cc name
-        SELF_CONFLICT, // cc conflicts with self's other cc
+        SELF_CONFLICT_WITH_SAME_NAME, // cc conflicts with self's other cc
+        SELF_CONFLICT_WITH_SAME_EXPRESSION, // cc conflicts with self's other cc
         LOOKUP_CC_NOT_REFERENCING_ITSELF // see io.kyligence.kap.metadata.model.KapModel.initComputedColumns()
     }
 

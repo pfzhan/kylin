@@ -188,6 +188,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
                     String[].class);
             val context = (AbstractContext) contextConstructor.newInstance(KylinConfig.getInstanceFromEnv(), project,
                     sqls.toArray(new String[0]));
+            Unsafe.setProperty("needCheckCC", "true");
             context.setGlobalInfo(contextParams.getAllModels());
             context.setCanCreateNewModel(contextParams.isCanCreateNewModel());
             new SmartMaster(context).runWithContext(null);
