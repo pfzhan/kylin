@@ -28,6 +28,7 @@ import static org.awaitility.Awaitility.await;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -301,7 +302,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     + "      }\n"//
                     + "    } ],\n" //
                     + "    \"scheduler_version\" : 2\n"//
-                    + "  }").getBytes(), RuleBasedIndex.class));
+                    + "  }").getBytes(StandardCharsets.UTF_8), RuleBasedIndex.class));
             copyForWrite.setIndexes(Lists.newArrayList());
         });
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
