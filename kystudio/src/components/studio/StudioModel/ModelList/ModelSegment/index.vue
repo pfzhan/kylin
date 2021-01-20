@@ -117,9 +117,14 @@
         </el-table-column>
         <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
-            <common-tip :content="$t('showDetail')">
-              <i class="el-icon-ksd-desc" @click="handleShowDetail(scope.row)"></i>
-            </common-tip>
+            <div class="ksd-fs-0">
+              <common-tip :content="scope.row.status_to_display !== 'LOCKED' ? $t('viewSubPartitionTip') : $t('disabledSubPartitionEnter', {status: scope.row.status_to_display})" v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc">
+                <i class="el-icon-ksd-go" @click="showSubParSegments(scope.row)"></i>
+              </common-tip>
+              <common-tip :content="$t('showDetail')">
+                <i class="el-icon-ksd-desc" @click="handleShowDetail(scope.row)"></i>
+              </common-tip>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -278,7 +283,7 @@
       <div class="ksd-fleft ksd-mt-10 ky-no-br-space" v-if="isShowSegmentActions">
         <el-button-group>
           <el-tooltip :content="$t('noIndexTipByBuild')" :disabled="!!model.total_indexes" effect="dark" placement="top">
-            <el-button size="small" icon="el-icon-ksd-add_2" :class="['ksd-mr-10', {'disabled-build': controlBuildSubSegment}]" type="default" @click="!controlBuildSubSegment && buildSubSegment()">{{$t('buildSubSegment')}}</el-button>
+            <el-button size="small" :class="['ksd-mr-10', {'disabled-build': controlBuildSubSegment}]" type="default" @click="!controlBuildSubSegment && buildSubSegment()">{{$t('buildSubSegment')}}</el-button>
           </el-tooltip>
         </el-button-group>
         <el-button-group class="ksd-mr-10">

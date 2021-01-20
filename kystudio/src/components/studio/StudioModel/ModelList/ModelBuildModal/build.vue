@@ -186,7 +186,7 @@
           <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
           <div v-if="isShowErrorSegments" class="error_segments">
             <el-alert type="error" :show-background="false" :closable="false" show-icon>
-              <span>{{$t('overlapsTips')}}</span>
+              <span class="overlaps-tips">{{$t('overlapsTips')}}</span>
               <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}
                 <i class="el-icon-arrow-down" v-show="!showDetail"></i>
                 <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -1022,6 +1022,14 @@
       font-size: 12px;
       margin-top: 5px;
     }
+    .error_segments {
+      .el-alert__icon {
+        padding-left: 2px;
+      }
+      .overlaps-tips {
+        color: @error-color-1;
+      }
+    }
     .error_segments a:hover {
       text-decoration: none;
     }
@@ -1069,6 +1077,10 @@
       .el-input__inner {
         border-color: @error-color-1;
       }
+    }
+    .el-icon-info {
+      font-size: 14px;
+      padding-left: 1px;
     }
   }
   .build-full-load-success {

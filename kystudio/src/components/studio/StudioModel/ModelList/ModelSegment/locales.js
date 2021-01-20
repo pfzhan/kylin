@@ -83,7 +83,8 @@ export default {
     duplicatePartitionValueTip: 'Some values are duplicated.',
     removeDuplicateValue: 'Clear invalid values',
     disabledSubPartitionEnter: 'The segment is in {status} status. Subpartitions can’t be operated at the moment.',
-    noIndexTipByBuild: 'You should add indexes first before building.'
+    noIndexTipByBuild: 'You should add indexes first before building.',
+    viewSubPartitionTip: 'View Subpartition'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -169,6 +170,7 @@ export default {
     duplicatePartitionValueTip: '输入值不可重复。',
     removeDuplicateValue: '清空无效的值',
     disabledSubPartitionEnter: '所属 Segment 处于 {status} 状态中，不可操作子分区',
-    noIndexTipByBuild: '您需要先添加索引，才可以进行构建。'
+    noIndexTipByBuild: '您需要先添加索引，才可以进行构建。',
+    viewSubPartitionTip: '查看子分区'
   }
 }

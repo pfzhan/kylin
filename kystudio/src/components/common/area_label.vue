@@ -218,6 +218,32 @@ export default {
       this.selectedL = [...new Set(this.selectedL)]
       this.$emit('refreshData', this.selectedL, this.refreshInfo)
       this.signSameTags()
+    },
+    manualInputEvent () {
+      // 处理单独录入的情况 start
+      if (this.allowcreate && this.query) {
+        let query = this.isNeedNotUpperCase ? this.query : this.query.toLocaleUpperCase()
+        var result = this.filterCreateTag(query)
+        if (result && result.length > 0) {
+          this.selectedL = this.selectedL.concat(result)
+          // 都转为大写
+          let temp = this.selectedL.map((item) => {
+            return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
+          })
+          // 去重返回
+          this.duplicateremove && (this.selectedL = [...new Set(temp)])
+          this.isSignSameValue && (this.selectedL = this.selectedL.filter(it => it), this.signSameTags())
+          this.$emit('refreshData', this.selectedL, this.refreshInfo)
+        }
+        if (this.$refs.select.$refs.input) {
+          this.$refs.select.$refs.input.value = ''
+          this.$refs.select.$refs.input.click()
+          setTimeout(() => {
+            this.$refs.select.$refs.input.focus()
+          }, 0)
+        }
+      }
+      // 处理单独录入的情况end
     }
   },
   mounted () {
@@ -227,32 +253,10 @@ export default {
         if (ev.keyCode !== 13) {
           return
         }
-        // 处理单独录入的情况 start
-        if (this.allowcreate && this.query) {
-          let query = this.isNeedNotUpperCase ? this.query : this.query.toLocaleUpperCase()
-          var result = this.filterCreateTag(query)
-          if (result && result.length > 0) {
-            this.selectedL = this.selectedL.concat(result)
-            // 都转为大写
-            let temp = this.selectedL.map((item) => {
-              return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
-            })
-            // 去重返回
-            this.duplicateremove && (this.selectedL = [...new Set(temp)])
-            this.isSignSameValue && (this.selectedL = this.selectedL.filter(it => it), this.signSameTags())
-            this.$emit('refreshData', this.selectedL, this.refreshInfo)
-          }
-          if (this.$refs.select.$refs.input) {
-            this.$refs.select.$refs.input.value = ''
-            this.$refs.select.$refs.input.click()
-            setTimeout(() => {
-              this.$refs.select.$refs.input.focus()
-            }, 0)
-          }
-        }
-        // 处理单独录入的情况end
+        this.manualInputEvent()
       }
       this.$refs.select.$refs.input.onblur = () => {
+        this.manualInputEvent()
         this.isSignSameValue && this.signSameTags()
       }
     }
