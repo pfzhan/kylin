@@ -915,7 +915,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String modelId = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94";
         String project = "default";
         JobManager jobManager = JobManager.getInstance(getTestConfig(), project);
-        val jobId = jobManager.addFullIndexJob(new JobParam(modelId, "admin"));
+        val jobId = jobManager.addIndexJob(new JobParam(modelId, "admin"));
         Assert.assertNull(jobId);
         AtomicBoolean clean = new AtomicBoolean(false);
 

@@ -27,6 +27,7 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.HashSet;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -59,9 +60,9 @@ public class AddIndexHandler extends AbstractJobHandler {
 
         var readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         val targetSegments = new HashSet<>(jobParam.getTargetSegments());
-        final Segments toDealSeg = new Segments<>();
+        final Segments<NDataSegment> toDealSeg = new Segments<>();
         readySegs.stream().filter(segment -> targetSegments.contains(segment.getId() + ""))
-                .forEach(segment -> toDealSeg.add(segment));
+                .forEach(toDealSeg::add);
         readySegs = toDealSeg;
 
         if (CollectionUtils.isEmpty(jobParam.getProcessLayouts())

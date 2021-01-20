@@ -830,7 +830,7 @@ public class ModelSemanticHelper extends BasicService {
         if (saveOnly)
             return;
 
-        JobManager.getInstance(config, project).addFullIndexJob(new JobParam(modelId, getUsername()));
+        JobManager.getInstance(config, project).addIndexJob(new JobParam(modelId, getUsername()));
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, RuleBasedIndex oldRule,
@@ -851,7 +851,7 @@ public class ModelSemanticHelper extends BasicService {
 
         // new cuboid
         if (difference.size() > 0 || forceFireEvent) {
-            String jobId = jobManager.addFullIndexJob(new JobParam(model, getUsername()));
+            String jobId = jobManager.addIndexJob(new JobParam(model, getUsername()));
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
 

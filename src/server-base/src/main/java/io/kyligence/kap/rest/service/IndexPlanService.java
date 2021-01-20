@@ -269,7 +269,7 @@ public class IndexPlanService extends BasicService {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
                 getSourceUsageManager().licenseCheckWrap(project,
-                        () -> jobManager.addFullIndexJob(new JobParam(indexPlan.getUuid(), getUsername())));
+                        () -> jobManager.addIndexJob(new JobParam(indexPlan.getUuid(), getUsername())));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -487,7 +487,7 @@ public class IndexPlanService extends BasicService {
         if (request.isLoadData()) {
             val jobManager = getJobManager(project);
             getSourceUsageManager().licenseCheckWrap(project,
-                    () -> jobManager.addFullIndexJob(new JobParam(modelId, getUsername())));
+                    () -> jobManager.addIndexJob(new JobParam(modelId, getUsername())));
         }
     }
 

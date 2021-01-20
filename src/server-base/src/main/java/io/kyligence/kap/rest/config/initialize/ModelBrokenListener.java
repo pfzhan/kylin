@@ -171,7 +171,7 @@ public class ModelBrokenListener {
                 val jobManager = JobManager.getInstance(config, project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
                 sourceUsageManager.licenseCheckWrap(project,
-                        () -> jobManager.checkAndAddIndexJob(new JobParam(model.getId(), "ADMIN")));
+                        () -> jobManager.addIndexJob(new JobParam(model.getId(), "ADMIN")));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

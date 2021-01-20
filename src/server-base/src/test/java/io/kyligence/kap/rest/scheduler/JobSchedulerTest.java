@@ -106,7 +106,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, getProcessLayout(executables.get(0)));
 
         // auto select valid segment
-        val jobId2 = jobManager.checkAndAddIndexJob(new JobParam(MODEL_ID, "ADMIN"));
+        val jobId2 = jobManager.addIndexJob(new JobParam(MODEL_ID, "ADMIN"));
         Assert.assertNull(jobId2);
     }
 
@@ -125,7 +125,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
                 NDataLayout.newDataLayout(df, seg.getId(), 10001L), NDataLayout.newDataLayout(df, seg.getId(), 10002L));
         dfm.updateDataflow(update);
 
-        jobManager.checkAndAddIndexJob(new JobParam(MODEL_ID, "ADMIN"));
+        jobManager.addIndexJob(new JobParam(MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);

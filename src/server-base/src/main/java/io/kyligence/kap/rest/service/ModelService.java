@@ -3325,7 +3325,7 @@ public class ModelService extends BasicService {
         }
 
         String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> getJobManager(project)
-                .addFullIndexJob(new JobParam(modelId, getUsername()).withPriority(priority)));
+                .addIndexJob(new JobParam(modelId, getUsername()).withPriority(priority)));
 
         return new BuildIndexResponse(StringUtils.isBlank(jobId) //
                 ? BuildIndexResponse.BuildIndexType.NO_LAYOUT //

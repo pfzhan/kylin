@@ -22,29 +22,30 @@
 package io.kyligence.kap.engine.spark.streaming.app
 
 import java.io.File
+import java.util
 
 import com.codahale.metrics.Gauge
 import com.google.common.base.Preconditions
+import com.google.common.collect.Sets
 import io.kyligence.kap.common.metrics.{MetricsCategory, MetricsGroup, MetricsName}
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.job.{NSparkCubingUtil, UdfManager}
-import io.kyligence.kap.engine.spark.streaming.job.StreamingSegmentManager
+import io.kyligence.kap.engine.spark.streaming.common.BuildJobEntry
+import io.kyligence.kap.engine.spark.streaming.job.{StreamingDFBuildJob, StreamingSegmentManager}
+import io.kyligence.kap.engine.spark.streaming.util.MetricsManager
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
-import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.project.NProjectManager
 import org.apache.commons.collections.CollectionUtils
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.job.common.SegmentUtil
+import org.apache.kylin.metadata.model.{SegmentStatusEnum, Segments}
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.kafka010.OffsetRangeManager
 import org.apache.spark.sql.streaming.Trigger
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession, functions => F}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, functions => F}
 import org.apache.spark.storage.StorageLevel
-import io.kyligence.kap.engine.spark.streaming.common.BuildJobEntry
-import io.kyligence.kap.engine.spark.streaming.job.StreamingDFBuildJob
-import org.apache.spark.sql.Row
-import io.kyligence.kap.engine.spark.streaming.util.MetricsManager
-import io.kyligence.kap.metadata.cube.utils.SegmentUtils
 
 import scala.collection.JavaConverters._
 
@@ -103,7 +104,7 @@ object StreamingEntry
 
     val dfMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
     var df: NDataflow = dfMgr.getDataflow(dataflowId)
-    val cuboids = SegmentUtils.getToBuildLayouts(df)
+    val cuboids = getToBuildLayouts(df)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId)
     val model = df.getModel
 
@@ -160,6 +161,23 @@ object StreamingEntry
   }
 
 
+  def getToBuildLayouts(df: NDataflow): util.Set[LayoutEntity] = {
+    val layouts: util.Set[LayoutEntity] = Sets.newHashSet[LayoutEntity]
+    val readySegments: Segments[NDataSegment] = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)
+    if (CollectionUtils.isEmpty(readySegments)) {
+      if (CollectionUtils.isNotEmpty(df.getIndexPlan.getAllIndexes)) layouts.addAll(df.getIndexPlan.getAllLayouts)
+      log.trace("added {} layouts according to model {}'s index plan", layouts.size, df.getIndexPlan.getModel.getAlias)
+    }
+    else {
+      val latestReadySegment: NDataSegment = readySegments.getLatestReadySegment
+      for (cuboid <- latestReadySegment.getLayoutsMap.entrySet.asScala) {
+        layouts.add(cuboid.getValue.getLayout)
+      }
+    }
+    layouts
+  }
+
+
   def generateStreamQueryForOneModel(ss: SparkSession, project: String, dataflowId: String): (Dataset[Row], String, CreateFlatTable) = {
     val config = KylinConfig.getInstanceFromEnv
     val dfMgr: NDataflowManager = NDataflowManager.getInstance(config, project)
@@ -167,7 +185,7 @@ object StreamingEntry
 
 
     val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan)
-    val cuboids = SegmentUtils.getToBuildLayouts(df)
+    val cuboids = getToBuildLayouts(df)
     Preconditions.checkState(CollectionUtils.isNotEmpty(cuboids), "cuboid is empty", cuboids)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId)
 

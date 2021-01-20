@@ -27,7 +27,6 @@ package org.apache.kylin.job.manager;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
-import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -35,21 +34,16 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.common.ExecutableUtil;
-import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.handler.AbstractJobHandler;
 import org.apache.kylin.job.handler.AddIndexHandler;
 import org.apache.kylin.job.handler.AddSegmentHandler;
 import org.apache.kylin.job.handler.MergeSegmentHandler;
 import org.apache.kylin.job.handler.RefreshSegmentHandler;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -76,36 +70,21 @@ public class JobManager {
         return new JobManager(conf, project);
     }
 
-    public String addSnapshotJob(JobParam jobParam) {
-        jobParam.setJobTypeEnum(JobTypeEnum.SNAPSHOT_BUILD);
-        return addJob(jobParam);
-    }
-
     public String addSegmentJob(JobParam jobParam) {
         jobParam.setJobTypeEnum(JobTypeEnum.INC_BUILD);
         return addJob(jobParam);
     }
 
-    /**
-     * Recommend to use checkAndAddCuboidJob
-     */
-    public String addFullIndexJob(JobParam jobParam) {
-        return checkAndAddIndexJob(jobParam);
-    }
-
-    /**
-     * This is recommended because one cubboid cannot be built at the same time
-     */
-    public String checkAndAddIndexJob(JobParam jobParam) {
-        val relatedSegments = getValidSegments(jobParam.getModel(), project).stream().map(NDataSegment::getId)
-                .collect(Collectors.toList());
-        jobParam.setTargetSegments(new HashSet<>(relatedSegments));
+    public String addIndexJob(JobParam jobParam) {
+        val relatedSegments = SegmentUtil.getValidSegments(jobParam.getModel(), project).stream()
+                .map(NDataSegment::getId).collect(Collectors.toSet());
+        jobParam.setTargetSegments(relatedSegments);
         return addRelatedIndexJob(jobParam);
     }
 
     public String addRelatedIndexJob(JobParam jobParam) {
         boolean noNeed = (jobParam.getTargetSegments() == null
-                && getValidSegments(jobParam.getModel(), project).isEmpty())
+                && SegmentUtil.getValidSegments(jobParam.getModel(), project).isEmpty())
                 || (jobParam.getTargetSegments() != null && jobParam.getTargetSegments().isEmpty());
         if (noNeed) {
             log.debug("No need to add index build job due to there is no valid segment in {}.", jobParam.getModel());
@@ -149,23 +128,23 @@ public class JobManager {
         ExecutableUtil.computeParams(jobParam);
         AbstractJobHandler handler;
         switch (jobParam.getJobTypeEnum()) {
-            case INC_BUILD:
-                handler = new AddSegmentHandler();
-                break;
-            case INDEX_MERGE:
-                handler = new MergeSegmentHandler();
-                break;
-            case INDEX_BUILD:
-            case SUB_PARTITION_BUILD:
-                handler = new AddIndexHandler();
-                break;
-            case INDEX_REFRESH:
-            case SUB_PARTITION_REFRESH:
-                handler = new RefreshSegmentHandler();
-                break;
-            default:
-                log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
-                return null;
+        case INC_BUILD:
+            handler = new AddSegmentHandler();
+            break;
+        case INDEX_MERGE:
+            handler = new MergeSegmentHandler();
+            break;
+        case INDEX_BUILD:
+        case SUB_PARTITION_BUILD:
+            handler = new AddIndexHandler();
+            break;
+        case INDEX_REFRESH:
+        case SUB_PARTITION_REFRESH:
+            handler = new RefreshSegmentHandler();
+            break;
+        default:
+            log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
+            return null;
         }
         handler.handle(jobParam);
         return jobParam.getJobId();
@@ -174,23 +153,6 @@ public class JobManager {
     public JobManager(KylinConfig config, String project) {
         this.config = config;
         this.project = project;
-    }
-
-    /**
-     * Valid segment：
-     * 1. SegmentStatusEnum is READY.
-     * 2. Time doesn't overlap with running segments.
-     */
-    public static Segments<NDataSegment> getValidSegments(String modelId, String project) {
-        val df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
-        val executables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
-        val runningSegs = new Segments<NDataSegment>();
-        executables.stream().filter(e -> e.getTargetSegments() != null).flatMap(e -> e.getTargetSegments().stream())
-                .distinct().filter(segId -> df.getSegment(segId) != null)
-                .forEach(segId -> runningSegs.add(df.getSegment(segId)));
-        return SegmentUtils.filterSegmentsByTime(df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING),
-                runningSegs);
     }
 
 }

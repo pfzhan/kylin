@@ -58,11 +58,9 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -81,13 +79,13 @@ public class IndexBuildJobUtil extends ExecutableUtil {
         final HashSet<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
         final HashSet<LayoutEntity> toBeDeletedLayouts = Sets.newLinkedHashSet();
 
-        var readySegs = new Segments<NDataSegment>(df.getSegments(jobParam.getTargetSegments()));
+        var readySegs = new Segments<>(df.getSegments(jobParam.getTargetSegments()));
         if (readySegs.isEmpty()) {
             log.warn("JobParam {} is no longer valid because no ready segment exists in target index_plan {}", jobParam,
                     jobParam.getModel());
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
         }
-        val mixLayouts = SegmentUtils.mixLayouts(readySegs);
+        val mixLayouts = SegmentUtil.intersectionLayouts(readySegs);
         var allLayouts = indexPlan.getAllLayouts();
         val targetLayouts = jobParam.getTargetLayouts();
 

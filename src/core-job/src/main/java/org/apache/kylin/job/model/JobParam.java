@@ -24,7 +24,6 @@
 
 package org.apache.kylin.job.model;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -32,7 +31,6 @@ import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.job.dao.ExecutablePO;
-
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import com.google.common.collect.Maps;
@@ -88,9 +86,9 @@ public class JobParam {
     /**
      * compute result
      */
-    private HashSet<LayoutEntity> processLayouts;
+    private Set<LayoutEntity> processLayouts;
 
-    private HashSet<LayoutEntity> deleteLayouts;
+    private Set<LayoutEntity> deleteLayouts;
 
     public static class ConditionConstant {
         public static final String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";

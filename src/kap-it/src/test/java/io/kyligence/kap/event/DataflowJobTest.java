@@ -173,7 +173,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
             }
         });
 
-        val jobId = jobManager.addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
+        val jobId = jobManager.addIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
 
         waitJobFinish(jobId, 240 * 1000, DEFAULT_PROJECT);
 
@@ -282,7 +282,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val df = dfManager.getDataflow(model.getId());
         dfManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         val jobId = JobManager.getInstance(getTestConfig(), project)
-                .addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
+                .addIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
         waitJobFinish(jobId, 240 * 1000, project);
         Assert.assertEquals(dfManager.getDataflow(model.getId()).getStatus(), OFFLINE);
         scheduler.shutdown();

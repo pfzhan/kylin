@@ -99,7 +99,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
     private void generateJob(String modelId, String project) {
         val jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        jobManager.addFullIndexJob(new JobParam(modelId, "ADMIN"));
+        jobManager.addIndexJob(new JobParam(modelId, "ADMIN"));
 
     }
 

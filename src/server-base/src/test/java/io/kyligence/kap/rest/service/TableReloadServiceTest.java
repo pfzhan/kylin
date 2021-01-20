@@ -49,6 +49,8 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -74,6 +76,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -256,13 +259,81 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testReload_RemoveMeasureAffectedAggGroup() throws Exception {
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(PROJECT, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        });
+        val MODEL_ID = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        modelManager.listAllModels().forEach(model -> {
+            if (!model.getId().equals(MODEL_ID)) {
+                modelService.dropModel(model.getId(), PROJECT);
+            }
+        });
+        modelManager.updateDataModel(MODEL_ID, copyForWrite -> {
+            copyForWrite.setPartitionDesc(null);
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+            for (NDataModel.NamedColumn column : copyForWrite.getAllNamedColumns()) {
+                if (column.getId() == 11) {
+                    column.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                }
+            }
+        });
+        val df = dfManager.updateDataflow(MODEL_ID, copyForWrite -> {
+            copyForWrite.setSegments(new Segments<>());
+        });
+        dfManager.fillDfManually(df, Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        indexManager.updateIndexPlan(MODEL_ID, copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(JsonUtil.readValueQuietly(("{\n"//
+                    + "    \"dimensions\" : [ 9, 3, 11 ],\n" //
+                    + "    \"measures\" : [ 100012, 100008, 100001 ],\n"//
+                    + "    \"global_dim_cap\" : null,\n" //
+                    + "    \"aggregation_groups\" : [ {\n"//
+                    + "      \"includes\" : [ 9, 3, 11 ],\n" //
+                    + "      \"measures\" : [  100012, 100008, 100001 ],\n"//
+                    + "      \"select_rule\" : {\n" //
+                    + "        \"hierarchy_dims\" : [ ],\n"//
+                    + "        \"mandatory_dims\" : [ ],\n" //
+                    + "        \"joint_dims\" : [ ]\n"//
+                    + "      }\n"//
+                    + "    } ],\n" //
+                    + "    \"scheduler_version\" : 2\n"//
+                    + "  }").getBytes(), RuleBasedIndex.class));
+            copyForWrite.setIndexes(Lists.newArrayList());
+        });
+        removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("LSTG_FORMAT_NAME", "int");
+            }
+        }, false);
+
+        val jobs = tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        val execManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
+        val executables = execManager.getRunningExecutables(PROJECT, MODEL_ID);
+        val indexPlan = indexManager.getIndexPlan(MODEL_ID);
+        Assert.assertEquals(
+                Joiner.on(",")
+                        .join(indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList())),
+                ((NSparkCubingJob) executables.get(0)).getTasks().get(0).getParam("layoutIds"));
+    }
+
+    @Test
     public void testReload_AddIndexCount() throws Exception {
 
         val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16));
-        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
-                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
-                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        val group1 = JsonUtil.readValue("{\n" //
+                + "        \"includes\": [14,15,16],\n" //
+                + "        \"select_rule\": {\n" //
+                + "          \"hierarchy_dims\": [],\n" //
+                + "          \"mandatory_dims\": [],\n" //
+                + "          \"joint_dims\": []\n" //
+                + "        }\n" //
+                + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
@@ -280,9 +351,14 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val newRule = new RuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16));
-        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
-                + "          \"hierarchy_dims\": [[14,15,16]],\n" + "          \"mandatory_dims\": [],\n"
-                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        val group1 = JsonUtil.readValue("{\n"//
+                + "        \"includes\": [14,15,16],\n"//
+                + "        \"select_rule\": {\n" //
+                + "          \"hierarchy_dims\": [[14,15,16]],\n"//
+                + "          \"mandatory_dims\": [],\n" //
+                + "          \"joint_dims\": []\n"//
+                + "        }\n"//
+                + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
@@ -723,9 +799,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
 
         var executables = getRunningExecutables(PROJECT, model2.getId());
-        Assert.assertEquals(0, executables.size());
+        Assert.assertEquals(1, executables.size());
+        deleteJobByForce(executables.get(0));
         executables = getRunningExecutables(PROJECT, model.getId());
         Assert.assertEquals(1, executables.size());
+        deleteJobByForce(executables.get(0));
 
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
@@ -742,7 +820,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(model.getAllNamedColumns().get(11).isExist());
         Assert.assertTrue(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
-        deleteJobByForce(executables.get(0));
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
         Assert.assertFalse(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
     }

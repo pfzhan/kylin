@@ -65,6 +65,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -162,7 +163,6 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
@@ -1213,11 +1213,17 @@ public class TableService extends BasicService {
         Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         List<String> jobs = Lists.newArrayList();
         for (val model : affectedModels) {
-            jobs.addAll(updateBrokenModel(project, model, context, needBuild));
+            val jobId = updateBrokenModel(project, model, context, needBuild);
+            if (Strings.isNotEmpty(jobId)) {
+                jobs.add(jobId);
+            }
         }
         mergeTable(projectName, context, true);
         for (val model : affectedModels) {
-            jobs.addAll(updateModelByReloadTable(project, model, context, needBuild));
+            val jobId = updateModelByReloadTable(project, model, context, needBuild);
+            if (Strings.isNotEmpty(jobId)) {
+                jobs.add(jobId);
+            }
         }
 
         val loadingManager = getDataLoadingRangeManager(projectName);
@@ -1246,50 +1252,53 @@ public class TableService extends BasicService {
                 .map(TableRef::getTableIdentity).anyMatch(tableIdentity::equalsIgnoreCase)).collect(Collectors.toSet());
     }
 
-    List<String> updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context,
+    private String updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context,
             boolean needBuild) throws Exception {
         val removeAffectedModel = context.getRemoveAffectedModel(project.getName(), model.getId());
         val changeTypeAffectedModel = context.getChangeTypeAffectedModel(project.getName(), model.getId());
 
         if (!removeAffectedModel.isBroken()) {
-            return Lists.newArrayList();
+            return null;
         }
         val projectName = project.getName();
         if (project.getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN) {
-            return Lists.newArrayList();
+            return null;
         }
 
-        List<String> jobs = cleanIndexPlan(projectName, model,
-                Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel), needBuild);
+        cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel));
 
         getOptRecManagerV2(projectName).discardAll(model.getId());
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
         modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumns());
 
-        return jobs;
+        val jobManager = getJobManager(projectName);
+        val updatedModel = getDataModelManager(projectName).getDataModelDesc(model.getId());
+        if (needBuild && !updatedModel.isBroken()) {
+            return getSourceUsageManager().licenseCheckWrap(projectName,
+                    () -> jobManager.addIndexJob(new JobParam(model.getId(), getUsername())));
+        }
+        return null;
     }
 
-    private List<String> updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
+    private String updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
             boolean needBuild) throws Exception {
         val projectName = project.getName();
 
-        val removeAffectedModel = context.getRemoveAffectedModel(project.getName(), model.getId());
-        val changeTypeAffectedModel = context.getChangeTypeAffectedModel(project.getName(), model.getId());
-        if (removeAffectedModel.isBroken()) {
-            return Lists.newArrayList();
+        val removeAffected = context.getRemoveAffectedModel(project.getName(), model.getId());
+        val changeTypeAffected = context.getChangeTypeAffectedModel(project.getName(), model.getId());
+        if (removeAffected.isBroken()) {
+            return null;
         }
 
-        List<String> jobs = Lists.newArrayList();
         if (!(context.getRemoveColumns().isEmpty() && context.getChangeTypeColumns().isEmpty())) {
-            jobs.addAll(cleanIndexPlan(projectName, model,
-                    Lists.newArrayList(removeAffectedModel, changeTypeAffectedModel), needBuild));
+            cleanIndexPlan(projectName, model, Lists.newArrayList(removeAffected, changeTypeAffected));
         }
 
         getOptRecManagerV2(projectName).discardAll(model.getId());
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
-        setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
+        setRequest(request, model, removeAffected, changeTypeAffected, projectName);
         request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
                 tableRef.getIdentity().equals(context.getTableDesc().getIdentity()) ? context.getTableDesc() : tableRef,
                 isFilterCC));
@@ -1310,19 +1319,19 @@ public class TableService extends BasicService {
             throw e;
         }
 
-        if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getUpdatedLayouts())) {
-            indexPlanService.reloadLayouts(projectName, changeTypeAffectedModel.getModelId(),
-                    changeTypeAffectedModel.getUpdatedLayouts());
+        if (CollectionUtils.isNotEmpty(changeTypeAffected.getUpdatedLayouts())) {
+            indexPlanService.reloadLayouts(projectName, changeTypeAffected.getModelId(),
+                    changeTypeAffected.getUpdatedLayouts());
+        }
+        if (CollectionUtils.isNotEmpty(removeAffected.getUpdatedLayouts())
+                || CollectionUtils.isNotEmpty(changeTypeAffected.getUpdatedLayouts())) {
             val jobManager = getJobManager(projectName);
             if (needBuild) {
-                String job = getSourceUsageManager().licenseCheckWrap(projectName,
-                        () -> jobManager.checkAndAddIndexJob(new JobParam(model.getId(), getUsername())));
-                if (StringUtils.isNotBlank(job)) {
-                    jobs.add(job);
-                }
+                return getSourceUsageManager().licenseCheckWrap(projectName,
+                        () -> jobManager.addIndexJob(new JobParam(model.getId(), getUsername())));
             }
         }
-        return jobs;
+        return null;
     }
 
     private void setRequest(ModelRequest request, NDataModel model, AffectedModelContext removeAffectedModel,
@@ -1350,46 +1359,28 @@ public class TableService extends BasicService {
         request.setProject(projectName);
     }
 
-    List<String> cleanIndexPlan(String projectName, NDataModel model, List<AffectedModelContext> affectedModels,
-            boolean needBuild) {
-        List<String> buildIndexResponseList = Lists.newArrayList();
-        for (AffectedModelContext context : affectedModels) {
-            BuildIndexResponse buildIndexResponse = cleanIndexPlan(projectName, model, context, needBuild);
-            if (Objects.nonNull(buildIndexResponse) && StringUtils.isNotBlank(buildIndexResponse.getJobId())) {
-                buildIndexResponseList.add(buildIndexResponse.getJobId());
-            }
-        }
-        return buildIndexResponseList;
-    }
-
-    private BuildIndexResponse cleanIndexPlan(String projectName, NDataModel model, AffectedModelContext affectedModel,
-            boolean needBuild) {
+    void cleanIndexPlan(String projectName, NDataModel model, List<AffectedModelContext> affectedModels) {
         val indexManager = getIndexPlanManager(projectName);
-        val indexPlan = indexManager.getIndexPlan(model.getId());
-
-        if (!affectedModel.getUpdateMeasureMap().isEmpty()) {
-            getDataModelManager(projectName).updateDataModel(model.getId(), modelDesc -> {
-                affectedModel.getUpdateMeasureMap().forEach((originalMeasureId, newMeasure) -> {
-                    int maxMeasureId = modelDesc.getAllMeasures().stream().map(NDataModel.Measure::getId)
-                            .mapToInt(i -> i).max().orElse(NDataModel.MEASURE_ID_BASE - 1);
-                    Optional<NDataModel.Measure> originalMeasureOptional = modelDesc.getAllMeasures().stream()
-                            .filter(measure -> measure.getId() == originalMeasureId).findAny();
-                    if (originalMeasureOptional.isPresent()) {
-                        NDataModel.Measure originalMeasure = originalMeasureOptional.get();
-                        originalMeasure.setTomb(true);
-                        maxMeasureId++;
-                        newMeasure.setId(maxMeasureId);
-                        modelDesc.getAllMeasures().add(newMeasure);
-                    }
+        for (AffectedModelContext affectedContext : affectedModels) {
+            if (!affectedContext.getUpdateMeasureMap().isEmpty()) {
+                getDataModelManager(projectName).updateDataModel(model.getId(), modelDesc -> {
+                    affectedContext.getUpdateMeasureMap().forEach((originalMeasureId, newMeasure) -> {
+                        int maxMeasureId = modelDesc.getAllMeasures().stream().map(NDataModel.Measure::getId)
+                                .mapToInt(i -> i).max().orElse(NDataModel.MEASURE_ID_BASE - 1);
+                        Optional<NDataModel.Measure> originalMeasureOptional = modelDesc.getAllMeasures().stream()
+                                .filter(measure -> measure.getId() == originalMeasureId).findAny();
+                        if (originalMeasureOptional.isPresent()) {
+                            NDataModel.Measure originalMeasure = originalMeasureOptional.get();
+                            originalMeasure.setTomb(true);
+                            maxMeasureId++;
+                            newMeasure.setId(maxMeasureId);
+                            modelDesc.getAllMeasures().add(newMeasure);
+                        }
+                    });
                 });
-            });
+            }
+            indexManager.updateIndexPlan(model.getId(), affectedContext::shrinkIndexPlan);
         }
-        val newIndexPlan = indexManager.updateIndexPlan(model.getId(), affectedModel::shrinkIndexPlan);
-        if (needBuild && indexPlan.getRuleBasedIndex() != null) {
-            return semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
-                    newIndexPlan.getRuleBasedIndex(), false);
-        }
-        return null;
     }
 
     void mergeTable(String projectName, ReloadTableContext context, boolean keepTomb) {
