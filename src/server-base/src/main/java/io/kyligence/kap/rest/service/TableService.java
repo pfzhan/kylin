@@ -88,6 +88,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.filter.function.LikeMatchers;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -476,10 +477,10 @@ public class TableService extends BasicService {
         }
         List<String[]> result = Lists.newArrayList();
         final String dbTblName = rtableDesc.getIdentity();
-        Map<Integer, Optional<Set<String>>> columnRows = Arrays.stream(rtableDesc.getExtColumns()).map(cdr -> {
+        Map columnRows = Arrays.stream(rtableDesc.getExtColumns()).map(cdr -> {
             int id = Integer.parseInt(cdr.getId());
-            Optional<Set<String>> rows = getAclTCRManager(project).getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
-            return new AbstractMap.SimpleEntry<>(id, rows);
+            val columnRealRows = getAclTCRManager(project).getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
+            return new AbstractMap.SimpleEntry<>(id, columnRealRows);
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         for (String[] row : rtableDesc.getSamplingRows()) {
             if (Objects.isNull(row)) {
@@ -492,8 +493,15 @@ public class TableService extends BasicService {
                 if (!columnRows.containsKey(i)) {
                     continue;
                 }
-                Set<String> rows = columnRows.get(i).orElse(null);
-                if (Objects.nonNull(rows) && !rows.contains(row[i - 1])) {
+                val columnRealRows = (AclTCR.ColumnRealRows)columnRows.get(i);
+                if (Objects.isNull(columnRealRows)) {
+                    jumpThisSample = true;
+                    break;
+                }
+                Set<String> equalRows = columnRealRows.getRealRow();
+                Set<String> likeRows = columnRealRows.getRealLikeRow();
+                if ((CollectionUtils.isNotEmpty(equalRows) && !equalRows.contains(row[i - 1]))
+                        || (CollectionUtils.isNotEmpty(likeRows) && noMatchedLikeCondition(row[i - 1], likeRows))) {
                     jumpThisSample = true;
                     break;
                 }
@@ -507,6 +515,16 @@ public class TableService extends BasicService {
             }
         }
         rtableDesc.setSamplingRows(result);
+    }
+
+    private static boolean noMatchedLikeCondition(String target, Set<String> likePatterns) {
+        for (String likePattern : likePatterns) {
+            val matcher = new LikeMatchers.DefaultLikeMatcher(likePattern, "\\");
+            if (matcher.matches(target)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @VisibleForTesting

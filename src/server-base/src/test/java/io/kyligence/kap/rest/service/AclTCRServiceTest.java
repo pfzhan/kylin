@@ -1149,4 +1149,23 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         accessRequests = accessController.convertBatchPermissionRequestToAccessRequests(ae, request);
         Assert.assertEquals("newGroup", accessRequests.get(0).getSid());
     }
+
+    @Test
+    public void testACLTCRInvalidDataTypeLikeCondition() throws IOException {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("The like operator could only be used for char or varchar data type. Please reset.");
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        u1t1.setColumns(new ArrayList<>());
+        u1t1.setRows(new ArrayList<>());
+        AclTCRRequest.Row u1r1 = new AclTCRRequest.Row();
+        u1r1.setColumnName("ORDER_ID");
+        u1r1.setItems(Arrays.asList("1%"));
+        u1t1.setLikeRows(Lists.newArrayList(u1r1));
+        request.setTables(Arrays.asList(u1t1));
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Lists.newArrayList(request));
+    }
 }

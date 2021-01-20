@@ -30,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,8 +38,10 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.CaseInsensitiveStringMap;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -60,11 +63,14 @@ import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 //all row conditions in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
 public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.Cond>> implements Serializable, IKeep {
 
+    private static final Logger logger = LoggerFactory.getLogger(ColumnToConds.class);
     private static final String COMMA = ",";
 
     public ColumnToConds() {
@@ -98,56 +104,65 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
         return columnWithType;
     }
 
-    static String concatConds(ColumnToConds condsWithCol, Map<String, String> columnWithType) {
+    private static boolean isValidLikeColumnType(String type) {
+        return type.startsWith("varchar") || type.equals("string") || type.startsWith("char");
+    }
+
+    static String concatConds(ColumnToConds condsWithCol, ColumnToConds likeCondsWithCol, Map<String, String> columnWithType) {
         StrBuilder result = new StrBuilder();
-        if (condsWithCol.keySet().size() > 1) {
+        Set<String> conditionCols = new HashSet<>();
+        conditionCols.addAll(condsWithCol.keySet());
+        conditionCols.addAll(likeCondsWithCol.keySet());
+        if (conditionCols.size() > 1) {
             result.append("(");
         }
-        int j = 0;
-        for (String col : condsWithCol.keySet()) {
+        for (String col : conditionCols) {
             String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type not found");
-            List<Cond> conds = condsWithCol.getCondsByColumn(col);
-            if (conds.stream().allMatch(cond -> cond.type == IntervalType.CLOSED)) {
-                result.append("(").append(col).append(" in ").append("(")
-                        .append(Joiner.on(COMMA).join(conds.stream()
-                                .map(cond -> Cond.trimWithoutCheck(cond.leftExpr, type)).collect(Collectors.toList())))
-                        .append(")").append(")");
-                if (j != condsWithCol.size() - 1) {
-                    result.append(" AND ");
+            List<Cond> intervalConditions = condsWithCol.getCondsByColumn(col);
+            List<Cond> likeConditions = likeCondsWithCol.getCondsByColumn(col);
+            result.append("(");
+            if (CollectionUtils.isNotEmpty(intervalConditions)) {
+                if (intervalConditions.stream().allMatch(cond -> cond.type == IntervalType.CLOSED)) {
+                    result.append(col).append(" in ").append("(")
+                            .append(Joiner.on(COMMA).join(intervalConditions.stream()
+                                    .map(cond -> Cond.trimWithoutCheck(cond.leftExpr, type))
+                                    .collect(Collectors.toList())))
+                            .append(")");
+                } else {
+                    result.append(Joiner.on(" or ").join(intervalConditions.stream()
+                            .map(cond -> cond.toString(col, type)).collect(Collectors.toList())));
                 }
-                j++;
-                continue;
             }
-            for (int i = 0; i < conds.size(); i++) {
-                String parsedCond = conds.get(i).toString(col, type);
-                if (conds.size() == 1) {
-                    result.append(parsedCond);
-                    continue;
+            if (CollectionUtils.isNotEmpty(likeConditions)) {
+                if (!isValidLikeColumnType(type)) {
+                    logger.error(MsgPicker.getMsg().getROW_ACL_NOT_STRING_TYPE());
+                } else {
+                    if (CollectionUtils.isNotEmpty(intervalConditions)) {
+                        result.append(" or ");
+                    }
+                    result.append(Joiner.on(" or ").join(likeConditions.stream()
+                            .map(cond -> col + " like " + Cond.trimWithoutCheck(cond.leftExpr, type))
+                            .collect(Collectors.toList())));
                 }
-                if (i == 0) {
-                    result.append("(").append(parsedCond).append(" OR ");
-                    continue;
-                }
-                if (i == conds.size() - 1) {
-                    result.append(parsedCond).append(")");
-                    continue;
-                }
-                result.append(parsedCond).append(" OR ");
             }
-            if (j != condsWithCol.size() - 1) {
-                result.append(" AND ");
-            }
-            j++;
+            result.append(")");
+            result.append(" AND ");
         }
-        if (j > 1) {
+
+        if (!conditionCols.isEmpty()) {
+            result.setLength(result.size() - 5);
+        }
+
+        if (conditionCols.size() > 1) {
             result.append(")");
         }
         return result.toString();
     }
 
-    public static String preview(String project, String table, ColumnToConds condsWithColumn) throws IOException {
+    public static String preview(String project, String table, ColumnToConds condsWithColumn,
+                                 ColumnToConds likeCondsWithColumn) throws IOException {
         Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        return concatConds(condsWithColumn, columnWithType);
+        return concatConds(condsWithColumn, likeCondsWithColumn, columnWithType);
     }
 
     @JsonSerialize(using = Cond.RowACLCondSerializer.class)
@@ -158,6 +173,7 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
             CLOSED, //[a,b] = {x | a <= x <= b}
             LEFT_INCLUSIVE, //[a,b) = {x | a <= x < b}
             RIGHT_INCLUSIVE, //(a,b] = {x | a < x <= b}
+            LIKE, // a LIKE 'abc%'
         }
 
         private IntervalType type;
@@ -174,8 +190,8 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
             this.rightExpr = rightExpr;
         }
 
-        public Cond(String value) {
-            this.type = IntervalType.CLOSED;
+        public Cond(String value, IntervalType type) {
+            this.type = type;
             this.leftExpr = this.rightExpr = value;
         }
 
@@ -220,7 +236,7 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
             if (expr == null) {
                 return null;
             }
-            if (type.startsWith("varchar") || type.equals("string") || type.equals("char")) {
+            if (isValidLikeColumnType(type)) {
                 expr = expr.replaceAll("'", "''");
                 expr = "'" + expr + "'";
             }

@@ -52,6 +52,9 @@ public class AclTCRRequest {
 
         @JsonProperty
         private List<Row> rows;
+
+        @JsonProperty("like_rows")
+        private List<Row> likeRows;
     }
 
     @Data

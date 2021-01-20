@@ -21,19 +21,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.metadata;
 
-package io.kyligence.kap.metadata.acl;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.val;
+import org.apache.kylin.metadata.filter.function.LikeMatchers;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-import com.google.common.collect.Lists;
-import lombok.Getter;
 
-import java.util.List;
+public class MetaUtilsTest extends NLocalFileMetadataTestCase {
 
-public class PrincipalRowSet {
+    @Before
+    public void setup() throws Exception {
+        createTestMetadata();
+    }
 
-    @Getter
-    private List<RowSet> rowSets = Lists.newArrayList();
+    @After
+    public void cleanup() {
+        cleanupTestMetadata();
+    }
 
-    @Getter
-    private List<RowSet> likeRowSets = Lists.newArrayList();
+    @Test
+    public void LikeMatchersTest() {
+        String likePattern = "abc\\_\\%%";
+        String target = "abc_%abc";
+        val matcher = new LikeMatchers.DefaultLikeMatcher(likePattern, "\\");
+        Assert.assertTrue(matcher.matches(target));
+    }
 }

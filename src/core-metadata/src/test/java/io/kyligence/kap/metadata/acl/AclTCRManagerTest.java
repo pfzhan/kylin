@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -259,6 +260,13 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         g2r1.put("NAME", g2rr3);
         g2r1.put("LONGITUDE", null);
         g2cr1.setRow(g2r1);
+
+        AclTCR.Row likeRow = new AclTCR.Row();
+        AclTCR.RealRow likeRealRow = new AclTCR.RealRow();
+        likeRealRow.add("name\\_%");
+        likeRow.put("NAME", likeRealRow);
+        g2cr1.setLikeRow(likeRow);
+
         g2t1.put("DEFAULT.TEST_COUNTRY", g2cr1);
         //TEST_ACCOUNT
         g2t1.put("DEFAULT.TEST_ACCOUNT", null);
@@ -270,7 +278,9 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("((ORDER_ID in (1001001)) AND (TEST_DATE_ENC in (DATE '2001-01-01',DATE '2010-10-10')))",
                 whereConds.get("DEFAULT.TEST_ORDER"));
         Assert.assertEquals(
-                "(((COUNTRY in ('country_a')) AND (LATITUDE in (22.22,11.11)) AND (NAME in ('name_b','name_a'))) OR ((COUNTRY in ('country_b')) AND (LATITUDE in (33.33,44.44)) AND (NAME in ('name_c'))))",
+                "(((COUNTRY in ('country_a')) AND (LATITUDE in (22.22,11.11)) AND "
+                        + "(NAME in ('name_b','name_a'))) OR ((COUNTRY in ('country_b')) AND "
+                        + "(LATITUDE in (33.33,44.44)) AND (NAME in ('name_c') or NAME like 'name\\_%')))",
                 whereConds.get("DEFAULT.TEST_COUNTRY"));
 
         manager.updateAclTCR(new AclTCR(), allAuthorizedUser1, true);
@@ -286,10 +296,12 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         prepareBasic(manager);
 
         List<AclTCR> aclTCRs = manager.getAclTCRs(user1, Sets.newHashSet(group1));
-        Assert.assertTrue(manager.getAuthorizedRows(user1 + ".t1", "c1", aclTCRs).orElse(null).contains("r1"));
-        Assert.assertNull(manager.getAuthorizedRows(user1 + ".t1", "c3", aclTCRs).orElse(null));
-        Assert.assertNull(manager.getAuthorizedRows(user1 + ".t2", "c1", aclTCRs).orElse(null));
-        Assert.assertEquals(0, manager.getAuthorizedRows(user1 + ".t1", "c4", aclTCRs).orElse(null).size());
+        Assert.assertTrue(manager.getAuthorizedRows(user1 + ".t1", "c1", aclTCRs).getRealRow().contains("r1"));
+        Assert.assertTrue(CollectionUtils.isEmpty(manager.getAuthorizedRows(user1 + ".t1", "c3", aclTCRs).getRealRow()));
+        Assert.assertTrue(CollectionUtils.isEmpty(manager.getAuthorizedRows(user1 + ".t1", "c3", aclTCRs).getRealLikeRow()));
+        Assert.assertTrue(CollectionUtils.isEmpty(manager.getAuthorizedRows(user1 + ".t2", "c1", aclTCRs).getRealRow()));
+        Assert.assertTrue(CollectionUtils.isEmpty(manager.getAuthorizedRows(user1 + ".t2", "c1", aclTCRs).getRealLikeRow()));
+        Assert.assertTrue(CollectionUtils.isEmpty(manager.getAuthorizedRows(user1 + ".t1", "c4", aclTCRs).getRealRow()));
     }
 
     private void prepareBasic(AclTCRManager manager) {

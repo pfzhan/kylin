@@ -1781,4 +1781,8 @@ public class Message {
     public String getDEFAULT_MODEL_REASON() {
         return "model have something wrong.";
     }
+
+    public String getROW_ACL_NOT_STRING_TYPE() {
+        return "The like operator could only be used for char or varchar data type. Please reset.";
+    }
 }

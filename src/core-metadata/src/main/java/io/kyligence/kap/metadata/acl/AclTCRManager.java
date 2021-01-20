@@ -361,12 +361,19 @@ public class AclTCRManager {
                     .map(columnDesc -> new AbstractMap.SimpleEntry<>(columnDesc.getName(), columnDesc.getTypeName()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            result.put(dbTblName, concatPrincipalConditions(principals.stream().map(p -> {
+            List<String> conditions = principals.stream().map(p -> {
                 final ColumnToConds columnConditions = new ColumnToConds();
                 p.getRowSets().forEach(r -> columnConditions.put(r.getColumnName(),
-                        r.getValues().stream().map(ColumnToConds.Cond::new).collect(Collectors.toList())));
-                return ColumnToConds.concatConds(columnConditions, columnType);
-            }).collect(Collectors.toList())));
+                        r.getValues().stream().map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.CLOSED))
+                                .collect(Collectors.toList())));
+                final ColumnToConds columnLikeConditions = new ColumnToConds();
+                p.getLikeRowSets().forEach(r -> columnLikeConditions.put(r.getColumnName(),
+                        r.getValues().stream().map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.LIKE))
+                                .collect(Collectors.toList())));
+                return ColumnToConds.concatConds(columnConditions, columnLikeConditions, columnType);
+            }).collect(Collectors.toList());
+
+            result.put(dbTblName, concatPrincipalConditions(conditions));
         });
 
         return result;
@@ -383,11 +390,12 @@ public class AclTCRManager {
         return joint;
     }
 
-    public Optional<Set<String>> getAuthorizedRows(String dbTblName, String colName, List<AclTCR> aclTCRS) {
-        Set<String> rows = Sets.newHashSet();
+    public AclTCR.ColumnRealRows getAuthorizedRows(String dbTblName, String colName, List<AclTCR> aclTCRS) {
+        AclTCR.RealRow authEqualRows = new AclTCR.RealRow();
+        AclTCR.RealRow authLikeRows = new AclTCR.RealRow();
         for (AclTCR aclTCR : aclTCRS) {
             if (Objects.isNull(aclTCR.getTable())) {
-                return Optional.empty();
+                return new AclTCR.ColumnRealRows();
             }
 
             if (!aclTCR.getTable().containsKey(dbTblName)) {
@@ -395,47 +403,67 @@ public class AclTCRManager {
             }
 
             AclTCR.ColumnRow columnRow = aclTCR.getTable().get(dbTblName);
-            if (Objects.isNull(columnRow) || Objects.isNull(columnRow.getRow())) {
-                return Optional.empty();
+
+            if (Objects.isNull(columnRow)) {
+                return new AclTCR.ColumnRealRows();
             }
 
-            AclTCR.Row row = columnRow.getRow();
-            if (!row.containsKey(colName) || Objects.isNull(row.get(colName))) {
-                return Optional.empty();
+            AclTCR.Row equalRow = columnRow.getRow();
+            AclTCR.Row likeRow = columnRow.getLikeRow();
+
+            if ((equalRow == null || equalRow.get(colName) == null)
+                    && (likeRow == null || likeRow.get(colName) == null)) {
+                return new AclTCR.ColumnRealRows();
             }
-            rows.addAll(row.get(colName));
+
+            if (equalRow != null && equalRow.get(colName) != null) {
+                authEqualRows.addAll(equalRow.get(colName));
+            }
+
+            if (likeRow != null && likeRow.get(colName) != null) {
+                authLikeRows.addAll(likeRow.get(colName));
+            }
         }
-        return Optional.of(rows);
+        String dbTblColName = dbTblName + "." + colName;
+        return new AclTCR.ColumnRealRows(dbTblColName, authEqualRows, authLikeRows);
     }
 
     private boolean isRowAuthorized(String dbTblName, String colName, final AclTCR e) {
         if (!e.getTable().containsKey(dbTblName)) {
             return false;
         }
-        if (Objects.isNull(e.getTable().get(dbTblName)) || Objects.isNull(e.getTable().get(dbTblName).getRow())) {
+        AclTCR.ColumnRow columnRow = e.getTable().get(dbTblName);
+        if (Objects.isNull(columnRow)) {
             return true;
         }
-        if (!e.getTable().get(dbTblName).getRow().containsKey(colName)) {
-            return false;
+
+        if (Objects.isNull(columnRow.getRow()) && Objects.isNull(columnRow.getLikeRow())) {
+            return true;
         }
-        return Objects.isNull(e.getTable().get(dbTblName).getRow().get(colName));
+
+        AclTCR.Row row = columnRow.getRow();
+        AclTCR.Row likeRow = columnRow.getLikeRow();
+
+        return (Objects.isNull(row) || Objects.isNull(row.get(colName)))
+                && (Objects.isNull(likeRow) || Objects.isNull(likeRow.get(colName)));
     }
 
     private Map<String, List<PrincipalRowSet>> getTblPrincipalSet(final List<AclTCR> acls) {
         final Map<String, List<PrincipalRowSet>> dbTblPrincipals = Maps.newHashMap();
         acls.forEach(tcr -> tcr.getTable().forEach((dbTblName, columnRow) -> {
-            if (Objects.isNull(columnRow) || Objects.isNull(columnRow.getRow())) {
+            if (Objects.isNull(columnRow)
+                    || (Objects.isNull(columnRow.getRow()) && Objects.isNull(columnRow.getLikeRow()))) {
                 return;
             }
             final PrincipalRowSet principal = new PrincipalRowSet();
-            columnRow.getRow().forEach((colName, realRow) -> {
-                if (Objects.isNull(realRow) || acls.stream().filter(e -> !e.equals(tcr))
-                        .anyMatch(e -> isRowAuthorized(dbTblName, colName, e))) {
-                    return;
-                }
-                principal.getRowSets().add(new RowSet(colName, realRow));
-            });
-            if (CollectionUtils.isEmpty(principal.getRowSets())) {
+            if (columnRow.getRow() != null) {
+                updatePrincipalRowSet(columnRow.getRow(), principal.getRowSets(), acls, tcr, dbTblName);
+            }
+            if (columnRow.getLikeRow() != null) {
+                updatePrincipalRowSet(columnRow.getLikeRow(), principal.getLikeRowSets(), acls, tcr, dbTblName);
+            }
+            if (CollectionUtils.isEmpty(principal.getRowSets())
+                    && CollectionUtils.isEmpty(principal.getLikeRowSets())) {
                 return;
             }
             if (!dbTblPrincipals.containsKey(dbTblName)) {
@@ -444,6 +472,17 @@ public class AclTCRManager {
             dbTblPrincipals.get(dbTblName).add(principal);
         }));
         return dbTblPrincipals;
+    }
+
+    private void updatePrincipalRowSet(AclTCR.Row sourceRow, List<RowSet> destRowSet,
+                                       final List<AclTCR> acls, final AclTCR currentAcl, final String dbTblName) {
+        sourceRow.forEach((colName, realRow) -> {
+            if (Objects.isNull(realRow) || acls.stream().filter(e -> !e.equals(currentAcl))
+                    .anyMatch(e -> isRowAuthorized(dbTblName, colName, e))) {
+                return;
+            }
+            destRowSet.add(new RowSet(colName, realRow));
+        });
     }
 
     private boolean isTablesAuthorized(List<AclTCR> all) {
@@ -515,6 +554,7 @@ public class AclTCRManager {
                 columnRow.setColumn(aclColumn);
                 if (Objects.nonNull(cr)) {
                     columnRow.setRow(cr.getRow());
+                    columnRow.setLikeRow(cr.getLikeRow());
                 }
                 db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), columnRow);
             } else {

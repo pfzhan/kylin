@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -64,10 +65,13 @@ public class AclTCRResponse {
         private int totalColumnNum;
 
         @JsonProperty
-        private List<Column> columns;
+        private List<Column> columns = new ArrayList<>();
 
         @JsonProperty
-        private List<Row> rows;
+        private List<Row> rows = new ArrayList<>();
+
+        @JsonProperty("like_rows")
+        private List<Row> likeRows = new ArrayList<>();
     }
 
     @Data

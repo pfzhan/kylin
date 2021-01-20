@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.acl;
 import static io.kyligence.kap.metadata.acl.ColumnToConds.concatConds;
 import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.CLOSED;
 import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.LEFT_INCLUSIVE;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.LIKE;
 import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.OPEN;
 import static io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType.RIGHT_INCLUSIVE;
 
@@ -82,8 +83,10 @@ public class ColumnToCondsTest extends NLocalFileMetadataTestCase {
         columnWithType.put("COL1", "varchar(256)");
         columnWithType.put("COL2", "timestamp");
         columnWithType.put("COL3", "int");
-        List<ColumnToConds.Cond> cond1 = Lists.newArrayList(new ColumnToConds.Cond("a"), new ColumnToConds.Cond("b"),
-                new ColumnToConds.Cond("a'b"));
+        List<ColumnToConds.Cond> cond1 = Lists.newArrayList(
+                new ColumnToConds.Cond("a", ColumnToConds.Cond.IntervalType.CLOSED),
+                new ColumnToConds.Cond("b", ColumnToConds.Cond.IntervalType.CLOSED),
+                new ColumnToConds.Cond("a'b", ColumnToConds.Cond.IntervalType.CLOSED));
         List<ColumnToConds.Cond> cond6 = Lists
                 .newArrayList(new ColumnToConds.Cond(LEFT_INCLUSIVE, "2017-09-13 04:12:12", "2017-09-25 06:32:35")); //timestamp
         List<ColumnToConds.Cond> cond7 = Lists.newArrayList(new ColumnToConds.Cond(RIGHT_INCLUSIVE, "7", "100")); //normal type
@@ -91,9 +94,19 @@ public class ColumnToCondsTest extends NLocalFileMetadataTestCase {
         condsWithCol.put("COL2", cond6);
         condsWithCol.put("COL3", cond7);
         ColumnToConds columnToConds = new ColumnToConds(condsWithCol);
+
+        Map<String, List<ColumnToConds.Cond>> likeCondsWithCol = new HashMap<>();
+        List<ColumnToConds.Cond> condLike = Lists.newArrayList(
+                new ColumnToConds.Cond("like abc%", LIKE),
+                new ColumnToConds.Cond("like cba%", LIKE));
+        likeCondsWithCol.put("COL1", condLike);
+        ColumnToConds columnToLikeConds = new ColumnToConds(likeCondsWithCol);
+
         Assert.assertEquals(
-                "((COL1 in ('a','b','a''b')) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND (COL3>7 AND COL3<=100))",
-                concatConds(columnToConds, columnWithType));
+                "(((COL3>7 AND COL3<=100)) AND ((COL2>=TIMESTAMP '2017-09-13 04:12:12' AND "
+                        + "COL2<TIMESTAMP '2017-09-25 06:32:35')) AND (COL1 in ('a','b','a''b') or "
+                        + "COL1 like 'like abc%' or COL1 like 'like cba%'))",
+                concatConds(columnToConds, columnToLikeConds, columnWithType));
     }
 
     @Test

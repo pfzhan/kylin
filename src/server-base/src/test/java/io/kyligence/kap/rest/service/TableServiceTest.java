@@ -354,11 +354,19 @@ public class TableServiceTest extends CSVSourceTestCase {
         column.add("LONGITUDE");
         column.add("NAME");
         columnRow.setColumn(column);
+        // Equal Condition Row
         AclTCR.Row row = new AclTCR.Row();
         AclTCR.RealRow realRow = new AclTCR.RealRow();
         realRow.add("country_a");
         row.put("COUNTRY", realRow);
         columnRow.setRow(row);
+        // Like Condition Row
+        AclTCR.Row likeRow = new AclTCR.Row();
+        AclTCR.RealRow likeRealRow = new AclTCR.RealRow();
+        likeRealRow.add("name\\_\\%%");
+        likeRow.put("NAME", likeRealRow);
+        columnRow.setLikeRow(likeRow);
+
         table.put("DEFAULT.TEST_COUNTRY", columnRow);
         aclTCR.setTable(table);
         List<AclTCR> aclTCRs = Lists.newArrayList(aclTCR);
@@ -366,16 +374,16 @@ public class TableServiceTest extends CSVSourceTestCase {
         TableDescResponse tableDescResponse = new TableDescResponse(tableDesc);
 
         List<String[]> sampleRows = Lists.newArrayList();
-        sampleRows.add(new String[] { "country_a", "10.10", "11.11", "name_a" });
-        sampleRows.add(new String[] { "country_b", "20.20", "22.22", "name_b" });
-        sampleRows.add(new String[] { "country_c", "30.30", "33.33", "name_c" });
-        sampleRows.add(new String[] { "country_d", "40.40", "44.44", "name_d" });
+        sampleRows.add(new String[] { "country_a", "10.10", "11.11", "name_%a" });
+        sampleRows.add(new String[] { "country_b", "20.20", "22.22", "name_%b" });
+        sampleRows.add(new String[] { "country_c", "30.30", "33.33", "name_%c" });
+        sampleRows.add(new String[] { "country_d", "40.40", "44.44", "name_%d" });
         tableDescResponse.setSamplingRows(sampleRows);
 
         tableService.filterSamplingRows("newten", tableDescResponse, false, aclTCRs);
 
         Assert.assertEquals(tableDescResponse.getSamplingRows().size(), 1);
-        Assert.assertEquals("country_a,11.11,name_a", String.join(",", tableDescResponse.getSamplingRows().get(0)));
+        Assert.assertEquals("country_a,11.11,name_%a", String.join(",", tableDescResponse.getSamplingRows().get(0)));
     }
 
     @Test

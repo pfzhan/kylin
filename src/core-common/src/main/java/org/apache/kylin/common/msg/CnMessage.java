@@ -2030,4 +2030,9 @@ public class CnMessage extends Message {
     public String getDEFAULT_MODEL_REASON() {
         return "模型出现错误。";
     }
+
+    @Override
+    public String getROW_ACL_NOT_STRING_TYPE() {
+        return "like 行级权限仅支持 char 或 varchar 类型维度，请重新设置。";
+    }
 }

@@ -61,10 +61,14 @@ public class LikeMatchers {
     public static class DefaultLikeMatcher implements LikeMatcher {
         private Pattern p;
 
-        private DefaultLikeMatcher(String patternStr) {
+        public DefaultLikeMatcher(String patternStr, String escapeStr) {
             patternStr = patternStr.toLowerCase(Locale.ROOT);
-            final String regex = Like.sqlToRegexLike(patternStr, null);
+            final String regex = Like.sqlToRegexLike(patternStr, escapeStr);
             p = Pattern.compile(regex);
+        }
+
+        private DefaultLikeMatcher(String patternStr) {
+            this(patternStr, null);
         }
 
         @Override

@@ -232,18 +232,19 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     // 10031XXX query result
     FAILED_OBTAIN_QUERY_RESULT("KE-10031001"),
 
-    // 10032xxx add job result
+    // 10032XXX add job result
     FAILED_CREATE_JOB("KE-10032001"), //
     FAILED_CREATE_JOB_SAVE_INDEX_SUCCESS("KE-10032002"),
 
-    // 10033xx snapshot
+    // 10033XXX snapshot
     SNAPSHOT_NOT_EXIST("KE-10033001"), //
     SNAPSHOT_MANAGEMENT_NOT_ENABLED("KE-10033002"),
 
-    // 10034xx acl
+    // 10034XXX acl
     ACL_DEPENDENT_COLUMN_PARSE_ERROR("KE-10034001"),
+    ACL_INVALID_COLUMN_DATA_TYPE("KE-10034002"),
 
-    // 10034xxx multi partition column
+    // 10035XXX multi partition column
     INVALID_MULTI_PARTITION_MAPPING_REQUEST("KE-10035001");
 
     private final ErrorCode errorCode;

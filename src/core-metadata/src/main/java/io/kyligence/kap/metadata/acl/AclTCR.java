@@ -129,6 +129,17 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         @JsonProperty("dependent_columns")
         private List<DependentColumn> dependentColumns = null;
 
+        @JsonProperty("like_row")
+        private Row likeRow = null;
+
+        public void setLikeRow(Row likeRow) {
+            this.likeRow = likeRow;
+        }
+
+        public Row getLikeRow() {
+            return likeRow;
+        }
+
         public Column getColumn() {
             return column;
         }
@@ -216,6 +227,42 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         // ["A", "B", "C"]
         public RealRow() {
             super(String.CASE_INSENSITIVE_ORDER);
+        }
+    }
+
+    /**
+     *  One column can have both equal condition row acl and like condition row acl.
+     *  E.g. where COUNTRY_NAME in ('China', 'America') or COUNTRY_NAME like 'China%'.
+     */
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
+            getterVisibility = JsonAutoDetect.Visibility.NONE, //
+            isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
+            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    public static class ColumnRealRows implements IKeep {
+
+        @JsonProperty
+        private String dbTblColName = null;
+
+        @JsonProperty
+        private RealRow realRow = null;
+
+        @JsonProperty
+        private RealRow realLikeRow = null;
+
+        public ColumnRealRows() {}
+
+        public ColumnRealRows(String dbTblColName, RealRow realRow, RealRow realLikeRow) {
+            this.dbTblColName = dbTblColName;
+            this.realRow = realRow;
+            this.realLikeRow = realLikeRow;
+        }
+
+        public RealRow getRealRow() {
+            return realRow;
+        }
+
+        public RealRow getRealLikeRow() {
+            return realLikeRow;
         }
     }
 }
