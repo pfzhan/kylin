@@ -84,7 +84,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -117,9 +116,6 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ProjectService projectService;
-
-    @Mock
-    private ClusterManager clusterManager;
 
     @InjectMocks
     private NProjectController nProjectController = Mockito.spy(new NProjectController());

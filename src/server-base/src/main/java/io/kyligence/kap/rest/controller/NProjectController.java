@@ -36,17 +36,15 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILL
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -78,11 +76,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import io.kyligence.kap.common.util.FileUtils;
-import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -107,8 +103,8 @@ import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.service.EpochService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
@@ -139,7 +135,8 @@ public class NProjectController extends NBasicController {
     private QueryHistoryService qhService;
 
     @Autowired
-    ClusterManager clusterManager;
+    @Qualifier("epochService")
+    private EpochService epochService;
 
     @ApiOperation(value = "getProjects", tags = { "SM" }, notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
@@ -194,15 +191,11 @@ public class NProjectController extends NBasicController {
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
-        List<String> list = clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost)
-                .collect(Collectors.toList());
-        if (CollectionUtils.isNotEmpty(list)) {
-            String leader = list.get(new Random().nextInt(list.size()));
-            try {
-                EpochRestClientTool.transferUpdateEpochRequest(leader, projectDesc.getName());
-            } catch (Exception e) {
-                logger.info("Transfer update epoch request failed, wait for schedule worker to update epoch.");
-            }
+        try {
+            epochService.updateEpoch(Collections.singletonList(projectDesc.getName()), false, false);
+        } catch (Exception e) {
+            logger.warn("Transfer update epoch {} request failed, wait for schedule worker to update epoch.",
+                    projectDesc.getName(), e);
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createdProj, "");
     }
