@@ -56,7 +56,6 @@ import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -94,8 +93,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
                     resources.add(model.getResourcePath());
                     resources.add(IndexPlan.concatResourcePath(model.getId(), project));
                 });
-        Set<String> allModelNames = NDataflowManager.getInstance(config, project).listUnderliningDataModels().stream()
-                .map(NDataModel::getAlias).collect(Collectors.toSet());
+        Set<String> allModelNames = NDataflowManager.getInstance(config, project).listUnderliningDataModels(true)
+                .stream().map(model -> model.getAlias().toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
 
         Function<Collection<String>, Boolean> orElse = a -> a != null ? resources.addAll(a) : null;
         orElse.apply(resourceStore.listResources(ResourceStore.PROJECT_ROOT));

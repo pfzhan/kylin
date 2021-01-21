@@ -27,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ProposerJob;
@@ -41,29 +42,37 @@ public class ModelRenameProposerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testAutoRename() {
-        String sql = "select price from test_kylin_fact";
+    public void testAutoRenameWithOfflineModel() {
+        String[] accSql1 = {"select count(*)  FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID"};
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
         // prepare initial model
-        val smartContext = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
+        val smartContext = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), accSql1);
         SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(null);
         smartContext.saveMetadata();
 
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
-        // test
-        String[] sqls = { sql };
+        // offline model
         AbstractContext context = ProposerJob
-                .propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), sqls));
+                .propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), accSql1));
         AbstractContext.ModelContext modelContext = context.getModelContexts().get(0);
-        Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_KYLIN_FACT_2");
+        Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_ORDER_2");
 
+        //online model
         AccelerationContextUtil.onlineModel(smartContext);
-        context = ProposerJob.propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), sqls));
+        context = ProposerJob.propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), accSql1));
         modelContext = context.getModelContexts().get(0);
-        Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_KYLIN_FACT_2");
+        Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_ORDER_2");
+
+        // broken model
+        NTableMetadataManager.getInstance(getTestConfig(), getProject()).removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
+       String[] accSql2 = { "select count(*)  FROM TEST_ORDER" };
+
+        context = ProposerJob.propose(new ModelCreateContextOfSemiV2(getTestConfig(), getProject(), accSql2));
+        modelContext = context.getModelContexts().get(0);
+        Assert.assertEquals(modelContext.getTargetModel().getAlias(), "AUTO_MODEL_TEST_ORDER_2");
 
     }
 
