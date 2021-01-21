@@ -28,9 +28,9 @@ import java.util.UUID
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil}
 import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, LogEx, Metrics, QueryExecutionCache}
 import io.kyligence.kap.metadata.cube.model.NDataSegment
-import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.lock.curator.CuratorDistributedLock
 import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
 import org.apache.spark.dict.NGlobalDictionaryV2
@@ -54,9 +54,26 @@ class DFDictionaryBuilder(
     colRefSet.asScala.foreach(col => safeBuild(col))
   }
 
+  private val YARN_CLUSTER: String = "yarn-cluster"
+
+  private def tryZKJaasConfiguration(): Unit = {
+    val config = KylinConfig.getInstanceFromEnv
+    if (YARN_CLUSTER.equals(config.getSparkMaster)) {
+      val kapConfig = KapConfig.wrap(config)
+      if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform)) {
+        val sparkConf = ss.sparkContext.getConf
+        val principal = sparkConf.get("spark.yarn.principal")
+        val keytab = sparkConf.get("spark.yarn.keytab")
+        logInfo(s"ZKJaasConfiguration principal: $principal, keyTab: $keytab")
+        javax.security.auth.login.Configuration.setConfiguration(new ZKJaasConfiguration(principal, keytab))
+      }
+    }
+  }
+
   @throws[IOException]
   private[builder] def safeBuild(ref: TblColRef): Unit = {
     val sourceColumn = ref.getIdentity
+    tryZKJaasConfiguration()
     val lock: CuratorDistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory
       .lockForCurrentThread(getLockPath(sourceColumn))
     lock.lock()
