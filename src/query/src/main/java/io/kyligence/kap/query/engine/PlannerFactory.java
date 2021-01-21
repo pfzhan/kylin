@@ -273,9 +273,7 @@ public class PlannerFactory {
         // see KAP#16036
         planner.removeRule(UnionMergeRule.INSTANCE);
 
-        if (!kylinConfig.isKapProjectJoinTransposeRuleOnHepPlanner()) {
-            planner.addRule(KapProjectJoinTransposeRule.INSTANCE);
-        }
+        planner.addRule(KapProjectJoinTransposeRule.INSTANCE);
         planner.removeRule(ProjectRemoveRule.INSTANCE);
 
         //KE-15015
