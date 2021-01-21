@@ -94,7 +94,7 @@
             <ul v-if="rows.length">
               <li v-for="(row, key) in rows" :key="key" class="row-list" v-show="isShowRow(row)">
                 <el-row>
-                  <el-col :span="isEdit?21:24">
+                  <el-col :span="isEdit ? 21 : 24">
                     <span>{{row.column_name}}</span>
                     <span v-if="row.items.length">={{row.items.toString()}}</span>
                     <span v-if="row.likeItems.length">&nbsp;like {{row.likeItems.toString()}}</span>
@@ -118,7 +118,7 @@
       <el-button type="primary" :disabled="disabledSubmitBtn" plain size="small" class="ksd-ml-10" :loading="submitLoading" @click="submitAccess">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
 
-    <el-dialog :title="rowAuthorTitle" width="720px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
+    <el-dialog :title="rowAuthorTitle" width="750px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
       <div class="like-tips-block ksd-mb-10">
         <div class="ksd-mb-5">{{$t('tipsTitle')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('viewDetail')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></div>
         <div class="detail-content" v-if="showDetails">
@@ -152,7 +152,7 @@
           remote
           allow-create
           default-first-option
-          :style="{width: isRowAuthorEdit? '415px' : '345px'}"
+          :style="{width: isRowAuthorEdit? '415px' : '342px'}"
           @change="setRowValues(row.items, key)"
           :placeholder="$t('pleaseInput')">
         </el-select>
@@ -198,13 +198,13 @@ import { pageSizeMapping } from '../../config'
       addRowAccess: 'Add Row ACL',
       addRowAccess1: 'Add Row ACL - {tableName}',
       editRowAccess: 'Edit Row ACL - {tableName}',
-      pleaseInput: 'Please hit enter to confirm each value. Multiple values are supported, please use comma to split.',
+      pleaseInput: 'Please enter values. Use "," to separate multiple values.',
       loadMore: 'Load More ...',
-      tipsTitle: 'A like operator is always followed by a like pattern.',
-      viewDetail: 'View rules',
-      rules1: '_ (underscore) wildcard characters, matches any single character.',
+      tipsTitle: 'The like operator needs to be used with wildcards. ',
+      viewDetail: 'View Rules',
+      rules1: '_ (underscore) wildcard characters, matches any single character. ',
       rules2: '% (percent) wildcard characters, matches with zero or more characters.',
-      rules3: '\\ (backslash) escape character. The characters following “\\“ won\'t be regarded as any special characters.'
+      rules3: '\\ (backslash) escape character. The characters following "\\" won’t be regarded as any special characters.'
     },
     'zh-cn': {
       accessTables: '表级访问列表',
@@ -218,7 +218,7 @@ import { pageSizeMapping } from '../../config'
       addRowAccess: '添加行级权限',
       addRowAccess1: '添加行级权限 - {tableName}',
       editRowAccess: '编辑行级权限 - {tableName}',
-      pleaseInput: '请输入后按回车确认。支持输入多个值，请用逗号分隔。',
+      pleaseInput: '请输入值。多个值请用 “,” 分隔。',
       loadMore: '加载更多 ...',
       tipsTitle: 'like 操作符需要配合通配符使用。',
       viewDetail: '查看规则',
@@ -308,7 +308,7 @@ export default class UserAccess extends Vue {
       this.currentTable = data.database + '.' + data.label
       this.isCurrentTableChecked = data.authorized
       this.currentTableId = data.id
-      this.$refs.tableTree.setCurrentKey(this.currentTableId)
+      this.$refs.tableTree && this.$refs.tableTree.setCurrentKey(this.currentTableId)
       const indexs = data.id.split('_')
       this.databaseIndex = indexs[0]
       this.tableIndex = indexs[1]
@@ -456,7 +456,8 @@ export default class UserAccess extends Vue {
       col.authorized = isChecked
     })
     this.allTables[indexs[0]].tables[indexs[1]].rows = []
-    this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, data.totalColNum)
+    this.allTables[indexs[0]].tables[indexs[1]].like_rows = []
+    this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, this.allTables[indexs[0]].tables[indexs[1]].like_rows, data.totalColNum)
   }
   checkChange (data, checkNode, node) {
     this.showLoading()
@@ -608,7 +609,7 @@ export default class UserAccess extends Vue {
       const val = v.trim().split(/[,，]/g)
       formatValues = [...formatValues, ...val]
     })
-    this.rowLists[key].items = formatValues
+    this.rowLists[key].items = formatValues.filter(it => !!it)
   }
   addRowAccess () {
     this.isRowAuthorEdit = false
@@ -642,6 +643,7 @@ export default class UserAccess extends Vue {
   }
   cancelRowAccess () {
     this.rowAccessVisible = false
+    this.isNeedDisableLike = false
   }
   submitRowAccess () {
     if (!this.isRowAuthorEdit) {
@@ -702,6 +704,7 @@ export default class UserAccess extends Vue {
   }
   resetRowAccess () {
     this.rowLists = [{column_name: '', joinType: '=', items: []}]
+    this.isNeedDisableLike = false
   }
   async loadAccessDetails (authorizedOnly) {
     this.defaultCheckedKeys = []
@@ -787,8 +790,16 @@ export default class UserAccess extends Vue {
 
 <style lang="less">
   @import '../../assets/styles/variables.less';
+  .access-content {
+    .row-list {
+      .el-col {
+        display: block;
+        word-break: break-all;
+      }
+    }
+  }
   .row-column {
-    width: 190px;
+    width: 210px;
   }
   .like-tips-block {
     color: @text-normal-color;
