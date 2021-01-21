@@ -1379,8 +1379,10 @@ public class ModelService extends BasicService {
                         column, table);
                 throw new KylinException(TABLE_NOT_EXIST, error);
             } else {
-                throw new KylinException(FAILED_EXECUTE_MODEL_SQL,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_MODEL_REASON()), e);
+                String errorMsg = String.format(Locale.ROOT, "model [%s], %s", dataModel.getAlias(),
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDEFAULT_REASON(),
+                                null != e.getMessage() ? e.getMessage() : "null"));
+                throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
             }
         }
     }
@@ -3324,8 +3326,8 @@ public class ModelService extends BasicService {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
 
-        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> getJobManager(project)
-                .addIndexJob(new JobParam(modelId, getUsername()).withPriority(priority)));
+        String jobId = getSourceUsageManager().licenseCheckWrap(project,
+                () -> getJobManager(project).addIndexJob(new JobParam(modelId, getUsername()).withPriority(priority)));
 
         return new BuildIndexResponse(StringUtils.isBlank(jobId) //
                 ? BuildIndexResponse.BuildIndexType.NO_LAYOUT //

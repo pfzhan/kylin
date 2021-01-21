@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
@@ -501,8 +502,11 @@ public class NModelController extends NBasicController {
                 modelService.updateDataModelSemantic(request.getProject(), request);
             }
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        } catch (LookupTableException e) {
+            throw new KylinException(FAILED_UPDATE_MODEL, e);
         } catch (Exception e) {
-            throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getDEFAULT_MODEL_REASON(), e);
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            throw new KylinException(FAILED_UPDATE_MODEL, root.getMessage());
         }
     }
 
