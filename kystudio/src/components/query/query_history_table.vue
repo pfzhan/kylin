@@ -148,7 +148,7 @@
             popper-class="col-sql-popover">
             <div class="sql-column" slot="reference" @click="handleExpandType(props)">{{props.row.sql_limit}}</div>
             <template>
-              <pre style="white-space: pre-wrap;">{{props.row.sql_limit}}</pre>
+              <p class="popover-sql-content">{{props.row.sql_limit}}</p>
               <div class="sql-tip" v-if="sqlOverLimit(props.row.sql_limit)">{{$t('sqlDetailTip')}}</div>
             </template>
           </el-popover>
@@ -166,6 +166,7 @@
         :show-multiple-footer="false"
         :filter-change="(v) => filterContent(v, 'realization')"
         :filter-filters-change="(v) => fiterList('loadFilterHitModelsList', v)"
+        customFilterClass="filter-realization"
         v-if="queryHistoryFilter.includes('filterActions')"
         prop="realizations"
         width="250">
@@ -293,7 +294,7 @@ import sqlFormatter from 'sql-formatter'
       CONSTANT_QUERY: 'Constant query',
       HIT_CACHE: 'Cache hit',
       allModels: 'All Models',
-      searchAnsweredBy: 'Search by answered by',
+      searchAnsweredBy: 'Search by model name',
       searchSubmitter: 'Search by submitter'
     },
     'zh-cn': {
@@ -324,7 +325,7 @@ import sqlFormatter from 'sql-formatter'
       SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
       CONSTANT_QUERY: '常数查询',
       HIT_CACHE: '击中缓存',
-      allModels: '所有模型',
+      allModels: '全部模型',
       searchAnsweredBy: '请搜索查询对象',
       searchSubmitter: '请搜索用户名'
     }
@@ -342,7 +343,6 @@ export default class QueryHistoryTable extends Vue {
   latencyFilterPopoverVisible = false
   statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED', status: 'fullyAcce'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED', status: 'partlyAcce'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED', status: 'unAcce1'}]
   realFilteArr = []
-  allHitModels = [{text: this.$t('allModels'), value: 'modelName'}]
   submitterFilter = []
   filterData = {
     startTimeFrom: null,
@@ -364,21 +364,6 @@ export default class QueryHistoryTable extends Vue {
   filterTags = []
   isShowDetail = false // 展开查询步骤详情
 
-  // @Watch('datetimerange')
-  // onDateRangeChange (val) {
-  //   if (val) {
-  //     this.filterData.startTimeFrom = new Date(val[0]).getTime()
-  //     this.filterData.startTimeTo = new Date(val[1]).getTime()
-  //     this.clearDatetimeRange()
-  //     this.filterTags.push({label: `${this.transToGmtTime(this.filterData.startTimeFrom)} To ${this.transToGmtTime(this.filterData.startTimeTo)}`, source: 'kylinLang.query.startTime_th', key: 'datetimerange'})
-  //   } else {
-  //     this.filterData.startTimeFrom = null
-  //     this.filterData.startTimeTo = null
-  //     this.clearDatetimeRange()
-  //   }
-  //   this.filterList()
-  // }
-
   @Watch('queryHistoryData')
   onQueryHistoryDataChange (val) {
     val.forEach(element => {
@@ -397,6 +382,10 @@ export default class QueryHistoryTable extends Vue {
   @Watch('filterDirectData.startTimeFrom')
   onInitFilterData (v) {
     this.initFilterData()
+  }
+
+  get allHitModels () {
+    return [{text: this.$t('allModels'), value: 'modelName'}]
   }
 
   dateRangeChange () {
@@ -839,64 +828,7 @@ export default class QueryHistoryTable extends Vue {
       </span>)
     }
   }
-  // renderColumn3 (h) {
-  //   let items = []
-  //   for (let i = 0; i < this.realFilteArr.length; i++) {
-  //     items.push(<el-checkbox label={this.realFilteArr[i].value} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
-  //   }
-  //   return (<span>
-  //     <span>{this.$t('kylinLang.query.realization_th')}</span>
-  //     <el-popover
-  //       ref="realFilterPopover"
-  //       placement="bottom"
-  //       popperClass="history-filter">
-  //       <el-checkbox-group class="filter-groups" value={this.filterData.realization} onInput={val => (this.filterData.realization = val)} onChange={this.filterList}>
-  //         {items}
-  //       </el-checkbox-group>
-  //       <i class={this.filterData.realization.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-  //     </el-popover>
-  //   </span>)
-  // }
-  // renderColumnStatus (h) {
-  //   let statusList = ['SUCCEEDED', 'FAILED']
-  //   let items = []
-  //   for (let i = 0; i < statusList.length; i++) {
-  //     items.push(<el-checkbox label={statusList[i]} key={statusList[i]}>{this.$t('kylinLang.query.' + statusList[i])}</el-checkbox>)
-  //   }
-  //   return (<span>
-  //     <span>{this.$t('kylinLang.query.query_status')}</span>
-  //     <el-popover
-  //       ref="statusFilterPopover"
-  //       placement="bottom"
-  //       popperClass="history-filter">
-  //       <el-checkbox-group class="filter-groups" value={this.filterData.query_status} onInput={val => (this.filterData.query_status = val)} onChange={this.filterList}>
-  //         {items}
-  //       </el-checkbox-group>
-  //       <i class={this.filterData.query_status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-  //     </el-popover>
-  //   </span>)
-  // }
-  // renderColumn4 (h) {
-  //   let items = []
-  //   for (let i = 0; i < this.queryNodes.length; i++) {
-  //     items.push(
-  //       <div onClick={() => { this.filterServer(this.queryNodes[i]) }}>
-  //         <el-dropdown-item class={this.queryNodes[i] === this.filterData.server ? 'active' : ''} key={i}>{this.queryNodes[i]}</el-dropdown-item>
-  //       </div>
-  //     )
-  //   }
-  //   return (<span>
-  //     <span>{this.$t('kylinLang.query.queryNode')}</span>
-  //     <el-dropdown hide-on-click={false} trigger="click">
-  //       <i class={this.filterData.server ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
-  //       <template slot="dropdown">
-  //         <el-dropdown-menu class="jobs-dropdown">
-  //           {items}
-  //         </el-dropdown-menu>
-  //       </template>
-  //     </el-dropdown>
-  //   </span>)
-  // }
+
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {
@@ -910,7 +842,7 @@ export default class QueryHistoryTable extends Vue {
     const list = this.filterTags.filter(it => it.key === type).map(it => it.label)
     val.length && val.forEach(item => {
       if (!list.includes(item)) {
-        this.filterTags.push({label: item, source: maps[type], key: type})
+        this.filterTags.push({label: item === 'modelName' ? 'allModels' : item, source: maps[type], key: type})
       }
     })
     this.filterData[type] = val
@@ -1225,7 +1157,11 @@ export default class QueryHistoryTable extends Vue {
   }
   .col-sql-popover {
     max-width: 400px;
-    box-sizing: border-box
+    box-sizing: border-box;
+    .popover-sql-content {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   }
   .sql-tip {
     text-align: center;
@@ -1304,6 +1240,12 @@ export default class QueryHistoryTable extends Vue {
       font-size: 14px;
       color: @base-color;
       cursor: pointer;
+    }
+  }
+  .filter-realization {
+    .el-checkbox-group {
+      max-height: 205px;
+      overflow: auto;
     }
   }
 </style>
