@@ -46,16 +46,9 @@ public class SCD2CondChecker {
 
     /**
      * SCD2 must have  equi condition
-     * @return
      */
     public boolean checkSCD2EquiJoinCond(String[] fks, String[] pks) {
-
-        if (fks.length > 0 && fks.length == pks.length) {
-            return true;
-
-        }
-        return false;
-
+        return fks.length > 0 && fks.length == pks.length;
     }
 
     public boolean isScd2Model(NDataModel nDataModel) {

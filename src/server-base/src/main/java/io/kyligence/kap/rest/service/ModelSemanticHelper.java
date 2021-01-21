@@ -47,6 +47,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -246,6 +247,7 @@ public class ModelSemanticHelper extends BasicService {
         String nonEquiSql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(modelJoinDesc,
                 requestJoinDesc.getSimplifiedNonEquiJoinConditions());
 
+        BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
         AbstractContext context = new ModelCreateContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 new String[] { nonEquiSql });
         SmartMaster smartMaster = new SmartMaster(context);

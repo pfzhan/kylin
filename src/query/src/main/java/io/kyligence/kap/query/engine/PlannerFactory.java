@@ -71,6 +71,7 @@ import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
 import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -289,7 +290,10 @@ public class PlannerFactory {
     }
 
     private ConverterRule selectJoinRuleByConfig() {
-        return kylinConfig.isQueryNonEquiJoinModelEnabled() ? KapJoinRule.NON_EQUI_INSTANCE : KapJoinRule.INSTANCE;
+        return kylinConfig.isQueryNonEquiJoinModelEnabled() && (!BackdoorToggles.getIsQueryFromAutoModeling()
+                || BackdoorToggles.getIsQueryNonEquiJoinModelEnabled() || KylinConfig.getInstanceFromEnv().isUTEnv())
+                        ? KapJoinRule.NON_EQUI_INSTANCE
+                        : KapJoinRule.INSTANCE;
     }
 
     protected void removeRules(final RelOptPlanner planner, List<String> rules) {

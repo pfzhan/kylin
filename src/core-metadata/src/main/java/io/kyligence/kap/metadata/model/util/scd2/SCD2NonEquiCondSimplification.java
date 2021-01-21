@@ -80,8 +80,8 @@ public class SCD2NonEquiCondSimplification {
 
         NonEquiJoinCondition[] nonEquiJoinConditions = nonEquiJoinCondition.getOperands();
 
-        for (int i = 0; i < nonEquiJoinConditions.length; i++) {
-            SimplifiedNonEquiJoinCondition scd2Cond = simplifySCD2ChildCond(nonEquiJoinConditions[i]);
+        for (NonEquiJoinCondition nonEquivCond : nonEquiJoinConditions) {
+            SimplifiedNonEquiJoinCondition scd2Cond = simplifySCD2ChildCond(nonEquivCond);
 
             //any child is illegal, return null
             if (Objects.isNull(scd2Cond)) {
