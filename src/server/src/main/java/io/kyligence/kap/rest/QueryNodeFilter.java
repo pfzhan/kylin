@@ -197,8 +197,10 @@ public class QueryNodeFilter implements Filter {
                 }
 
                 if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
-                    throw new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
-                            MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE());
+                    servletRequest.setAttribute(ERROR, new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
+                            MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE()));
+                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
                 }
             } catch (CannotCreateTransactionException e) {
                 writeConnectionErrorResponse(servletRequest, servletResponse);
