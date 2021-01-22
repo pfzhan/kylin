@@ -158,6 +158,7 @@ public class NExecAndComp {
         final String[] toDoList = new String[] {
                 // array
                 "query/sql_array/query00.sql",
+                "query/sql_array/query01.sql",
                 // TODO ifnull()
                 "query/sql_function/sql_function_nullHandling/query00.sql",
                 "query/sql_function/sql_function_nullHandling/query01.sql",

@@ -26,7 +26,9 @@ package io.kyligence.kap.query.optrule;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -89,6 +91,11 @@ public class KapProjectMergeRule extends RelOptRule {
         final Project topProject = call.rel(0);
         final Project bottomProject = call.rel(1);
         final RelBuilder relBuilder = call.builder();
+
+        // skip non mergeable exprs
+        if (containsNonMergeableExprs(bottomProject) || containsNonMergeableExprs(topProject)) {
+            return;
+        }
 
         // If one or both projects are permutations, short-circuit the complex logic
         // of building a RexProgram.
@@ -164,5 +171,30 @@ public class KapProjectMergeRule extends RelOptRule {
                 return super.visitCall(call);
             }
         };
+    }
+
+    private static Set<String> NON_MERGEABLE_FUNCTION = Sets.newHashSet("EXPLODE");
+
+    private boolean containsNonMergeableExprs(Project project) {
+        for (RexNode expr : project.getProjects()) {
+            if (containsNonMergeableExprs(expr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsNonMergeableExprs(RexNode rexNode) {
+        if (rexNode instanceof RexCall) {
+            if (NON_MERGEABLE_FUNCTION.contains(((RexCall) rexNode).getOperator().getName())) {
+                return true;
+            }
+            for (RexNode operand : ((RexCall) rexNode).getOperands()) {
+                if (containsNonMergeableExprs(operand)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
