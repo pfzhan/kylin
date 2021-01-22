@@ -217,6 +217,7 @@
         :emptyFilterText="$t('kylinLang.common.noData')"
         :filter-change="(v) => filterContent(v, 'submitter')"
         :filter-filters-change="(v) => fiterList('loadFilterSubmitterList', v)"
+        customFilterClass="filter-submitter"
         prop="submitter"
         v-if="queryHistoryFilter.includes('filterActions')"
         show-overflow-tooltip
@@ -1242,7 +1243,7 @@ export default class QueryHistoryTable extends Vue {
       cursor: pointer;
     }
   }
-  .filter-realization {
+  .filter-realization, .filter-submitter {
     .el-checkbox-group {
       max-height: 205px;
       overflow: auto;
