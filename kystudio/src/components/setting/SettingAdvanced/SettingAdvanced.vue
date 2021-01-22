@@ -467,11 +467,11 @@ export default class SettingAdvanced extends Vue {
           submitData.expose_computed_column = value
           try {
             await this.updateExposeCCConfig(submitData)
+            this.$emit('reload-setting')
+            this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
           } catch (e) {
             handleError(e)
           }
-          this.$emit('reload-setting')
-          this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
         } catch (e) {
           this.form.expose_computed_column = !value
         }
