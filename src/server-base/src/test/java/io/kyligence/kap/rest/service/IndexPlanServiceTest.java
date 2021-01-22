@@ -998,6 +998,18 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetIndex_WithIndexId() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        List<Long> ids = Arrays.asList(20000020001L, 20000030001L);
+        var response = indexPlanService.getIndexes(getProject(), modelId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, ids);
+        var actual_ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(ids.size(), response.size());
+        Assert.assertTrue(actual_ids.contains(20000020001L));
+        Assert.assertTrue(actual_ids.contains(20000030001L));
+    }
+
+    @Test
     public void testGetIndexGraph_EmptyFullLoad() {
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());

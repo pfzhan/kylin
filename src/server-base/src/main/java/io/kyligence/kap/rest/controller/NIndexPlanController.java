@@ -157,7 +157,8 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "getTableIndex", tags = { "AI" }, notes = "Update Param: page_offset, page_size; Update response: total_size")
+    @ApiOperation(value = "getTableIndex", tags = {
+            "AI" }, notes = "Update Param: page_offset, page_size; Update response: total_size")
     @GetMapping(value = "/table_index")
     public EnvelopeResponse<DataResult<List<TableIndexResponse>>> getTableIndex(
             @RequestParam(value = "project") String project, // 
@@ -179,11 +180,12 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexEntity.Source> sources,
             @RequestParam(value = "key", required = false, defaultValue = "") String key,
             @RequestParam(value = "status", required = false, defaultValue = "") List<IndexEntity.Status> status,
+            @RequestParam(value = "ids", required = false, defaultValue = "") List<Long> ids,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val indexes = indexPlanService.getIndexes(project, modelId, key, status, order, desc, sources);
+        val indexes = indexPlanService.getIndexes(project, modelId, key, status, order, desc, sources, ids);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 

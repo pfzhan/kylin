@@ -518,6 +518,15 @@ public class IndexPlanService extends BasicService {
     }
 
     public List<IndexResponse> getIndexes(String project, String modelId, String key, List<IndexEntity.Status> status,
+            String orderBy, Boolean desc, List<IndexEntity.Source> sources, List<Long> ids) {
+        List<IndexResponse> indexes = getIndexes(project, modelId, key, status, orderBy, desc, sources);
+        if (CollectionUtils.isEmpty(ids)) {
+            return indexes;
+        }
+        return indexes.stream().filter(index -> ids.contains(index.getId())).collect(Collectors.toList());
+    }
+
+    public List<IndexResponse> getIndexes(String project, String modelId, String key, List<IndexEntity.Status> status,
             String orderBy, Boolean desc, List<IndexEntity.Source> sources) {
         aclEvaluate.checkProjectReadPermission(project);
         Set<IndexEntity.Status> statusSet = Sets.newHashSet(status);
