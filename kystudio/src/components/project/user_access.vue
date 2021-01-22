@@ -95,9 +95,7 @@
               <li v-for="(row, key) in rows" :key="key" class="row-list" v-show="isShowRow(row)">
                 <el-row>
                   <el-col :span="isEdit ? 21 : 24">
-                    <span>{{row.column_name}}</span>
-                    <span v-if="row.items.length">={{row.items.toString()}}</span>
-                    <span v-if="row.likeItems.length">&nbsp;like {{row.likeItems.toString()}}</span>
+                    <span>{{row.column_name}}</span><span v-if="row.items.length">={{row.items.toString()}}</span><span v-if="row.likeItems.length">&nbsp;like {{row.likeItems.toString()}}</span>
                   </el-col>
                   <el-col :span="3" class="ky-no-br-space btn-icons" v-if="isEdit">
                     <i class="el-icon-ksd-table_edit ksd-fs-16" @click="editRowAccess(key, row)"></i>
@@ -204,7 +202,7 @@ import { pageSizeMapping } from '../../config'
       viewDetail: 'View Rules',
       rules1: '_ (underscore) wildcard characters, matches any single character. ',
       rules2: '% (percent) wildcard characters, matches with zero or more characters.',
-      rules3: '\\ (backslash) escape character. The characters following "\\" won’t be regarded as any special characters.'
+      rules3: '\\ (backslash) escape character. The characters following "\\" won\'t be regarded as any special characters.'
     },
     'zh-cn': {
       accessTables: '表级访问列表',
@@ -793,7 +791,7 @@ export default class UserAccess extends Vue {
   .access-content {
     .row-list {
       .el-col {
-        display: block;
+        display: block !important;
         word-break: break-all;
       }
     }

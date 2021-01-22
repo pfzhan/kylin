@@ -631,7 +631,7 @@ export default class ProjectAuthority extends Vue {
       display: flex;
       flex-direction: column;
       .el-dialog__header {
-        min-height: initial;
+        min-height: 47px;
       }
       .el-dialog__body {
         // height: calc(~'100% - 200px');
@@ -815,6 +815,8 @@ export default class ProjectAuthority extends Vue {
             .el-col-21 {
               width: calc(~'100% - 42px');
               display: flex;
+              line-height: 1.5;
+              padding: 5px 0;
             }
             .el-col-3 {
               width: 42px;
