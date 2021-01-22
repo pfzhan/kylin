@@ -314,6 +314,10 @@ export default {
   getRecommendations (para) {
     return Vue.resource(apiUrl + `recommendations/${para.modelId}`).get(para)
   },
+  // 刷新优化建议
+  recommendationCountRefresh (para) {
+    return Vue.http.put(apiUrl + `recommendations/count`, para)
+  },
   // 删除优化建议
   deleteRecommendations (para) {
     return Vue.resource(apiUrl + `recommendations/${para.modelId}`).delete(para)

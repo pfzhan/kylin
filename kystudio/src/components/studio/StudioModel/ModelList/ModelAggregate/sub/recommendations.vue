@@ -259,7 +259,8 @@ import filterElements from '../../../../../../filter/index'
       deleteRecommendations: 'DELETE_RECOMMENDATIONS',
       accessRecommendations: 'ACCESS_RECOMMENDATIONS',
       getRecommendDetails: 'GET_RECOMMEND_DETAILS',
-      validateRecommend: 'VALIDATE_RECOMMEND'
+      validateRecommend: 'VALIDATE_RECOMMEND',
+      refreshRecommendationCount: 'RECOMMENDATION_COUNT_REFRESH'
     }),
     ...mapActions('ConfirmSegment', {
       callConfirmSegmentModal: 'CALL_MODAL'
@@ -579,6 +580,9 @@ export default class IndexList extends Vue {
       this.recommendationsList.totalSize = data.size
       this.modelDesc.recommendations_count = data.size
       this.loadingRecommends = false
+      if (data.broken_recs && data.broken_recs.length > 0) {
+        this.refreshRecommendationCount({model_id: this.modelDesc.uuid, project: this.currentProject, action: 'refresh'})
+      }
     }).catch(e => {
       handleError(e)
       this.loadingRecommends = false

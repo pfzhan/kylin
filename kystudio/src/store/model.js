@@ -394,6 +394,9 @@ export default {
     [types.GET_ALL_RECOMMENDATIONS] (_, params) {
       return api.model.getRecommendations(params)
     },
+    [types.RECOMMENDATION_COUNT_REFRESH] (_, params) {
+      return api.model.recommendationCountRefresh(params)
+    },
     [types.DELETE_RECOMMENDATIONS] (_, params) {
       return api.model.deleteRecommendations(params)
     },
