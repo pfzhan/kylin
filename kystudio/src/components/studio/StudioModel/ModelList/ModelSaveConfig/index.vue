@@ -171,7 +171,7 @@ import store, { types } from './store'
 import { timeDataType, dateFormats } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { isDatePartitionType, objectClone } from '../../../../../util'
+import { objectClone, isSubPartitionType } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelSaveConfig'], store)
@@ -377,7 +377,7 @@ export default class ModelPartitionModal extends Vue {
     let factTable = this.modelInstance.getFactTable()
     if (factTable) {
       factTable.columns.forEach((x) => {
-        if (isDatePartitionType(x.datatype)) {
+        if (isSubPartitionType(x.datatype)) {
           result.push(x)
         }
       })
