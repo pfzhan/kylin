@@ -46,7 +46,6 @@ import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.Mapping
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 import static org.awaitility.Awaitility.await;
 
-import io.kyligence.kap.metadata.model.BadModelException.CauseType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -180,6 +179,7 @@ import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.BadModelException;
+import io.kyligence.kap.metadata.model.BadModelException.CauseType;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -1027,14 +1027,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCloneModel() {
+        String modelId = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94";
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelManager.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(10));
+        Assert.assertEquals(10, modelManager.getDataModelDesc(modelId).getRecommendationsCount());
         final String randomUser = RandomStringUtils.randomAlphabetic(5);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken(randomUser, "123456", Constant.ROLE_ADMIN));
-        modelService.cloneModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "test_encoding_new", "default");
+        modelService.cloneModel(modelId, "test_encoding_new", "default");
         List<NDataModelResponse> models = modelService.getModels("test_encoding_new", "default", true, "", null,
                 "last_modify", true);
         Assert.assertEquals(1, models.size());
         Assert.assertEquals(randomUser, models.get(0).getOwner());
+        Assert.assertEquals(0, models.get(0).getRecommendationsCount());
 
         // test clone model without locked layout
         String indexPlanId = "741ca86a-1f13-46da-a59f-95fb68615e3a";

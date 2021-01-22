@@ -703,7 +703,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         Set<Integer> brokenRecs = Sets.newHashSet();
         List<OptRecLayoutResponse> recList = getRecLayoutResponses(project, modelId, OptRecService.ALL, brokenRecs);
         if (userDefinedTypes.size() != RawRecItem.IndexRecType.values().length) {
-            recList.removeIf(resp -> !userDefinedTypes.contains(resp.getType()));
+            recList.removeIf(resp -> !userDefinedTypes.isEmpty() && !userDefinedTypes.contains(resp.getType()));
         }
         if (StringUtils.isNotEmpty(orderBy)) {
             recList.sort(propertyComparator(orderBy, !desc));

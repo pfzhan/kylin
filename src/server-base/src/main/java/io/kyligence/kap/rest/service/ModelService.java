@@ -1077,6 +1077,7 @@ public class ModelService extends BasicService {
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setAlias(newModelName);
         nDataModel.setLastModified(System.currentTimeMillis());
+        nDataModel.setRecommendationsCount(0);
         nDataModel.setMvcc(-1);
         changeModelOwner(nDataModel);
         val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());

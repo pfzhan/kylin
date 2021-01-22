@@ -113,6 +113,11 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         OptRecLayoutsResponse recResp2 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "ALL");
         Assert.assertEquals(35, recResp2.getLayouts().size());
 
+        // test empty recTypeList
+        OptRecLayoutsResponse recResp = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
+                Lists.newArrayList(), null, false, "", 0, 10);
+        Assert.assertEquals(10, recResp.getLayouts().size());
+
         // only get add_table_index
         OptRecLayoutsResponse recResp3 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_TABLE_INDEX"), null, false, "", 0, 10);
