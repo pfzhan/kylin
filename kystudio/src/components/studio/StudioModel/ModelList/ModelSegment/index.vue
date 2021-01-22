@@ -343,6 +343,7 @@
         <el-input style="width:210px;" class="ksd-ml-5" :disabled="true" :value="currentSegment.endTime | toServerGMTDate"></el-input>
       </div>
       <div class="ksd-mb-5 ksd-title-label-small">{{$t('selectSubPartitionValues')}}</div>
+      <p class="sub-partition-alert"><i class="icon el-icon-ksd-alert ksd-mr-5"></i>{{$t('subPartitionAlert')}}</p>
       <div class="arealabel-block">
         <arealabel
           :class="['select-sub-partition', {'error-border': duplicateValueError}]"
@@ -1182,6 +1183,14 @@ export default class ModelSegment extends Vue {
   .select-sub-partition.error-border {
     .el-input__inner {
       border-color: @error-color-1;
+    }
+  }
+  .sub-partition-alert {
+    font-size: 12px;
+    color: @text-title-color;
+    margin: 10px 0;
+    .icon {
+      color: @text-disabled-color;
     }
   }
 }

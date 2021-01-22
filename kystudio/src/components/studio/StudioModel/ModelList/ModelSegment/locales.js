@@ -62,7 +62,7 @@ export default {
     buildSubSegment: 'Build Subpartition',
     searchPlaceholder: 'Search by subpartition value',
     buildSubParDesc: 'The indexes in this subpartition would be the same as the current segment ',
-    multiPartitionPlaceholder: 'Use comma (,) to separate multiple values',
+    multiPartitionPlaceholder: 'Please select or import, use comma (,) to separate multiple values',
     build: 'Build',
     selectSubPartitionValues: 'Select Subpartition Values',
     multipleBuild: 'Build multiple subpartitions in parallel',
@@ -84,7 +84,8 @@ export default {
     removeDuplicateValue: 'Clear invalid values',
     disabledSubPartitionEnter: 'The segment is in {status} status. Subpartitions can’t be operated at the moment.',
     noIndexTipByBuild: 'You should add indexes first before building.',
-    viewSubPartitionTip: 'View Subpartition'
+    viewSubPartitionTip: 'View Subpartition',
+    subPartitionAlert: 'Please ensure that the subpartition value is consistent with what it is in the source table (case-sensitive). Otherwise, the built data will be empty. The new values added here would be saved to the subpartition value list of this model.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -149,7 +150,7 @@ export default {
     buildSubSegment: '构建子分区',
     searchPlaceholder: '搜索子分区值',
     buildSubParDesc: '本次构建子分区的索引与当前时间范围 (Segment) 包含的索引数一致',
-    multiPartitionPlaceholder: '多个值请用逗号（,）进行分隔',
+    multiPartitionPlaceholder: '请选择或者输入，多个值请用逗号（,）分隔',
     build: '构建',
     selectSubPartitionValues: '选择子分区列值',
     multipleBuild: '拆分多个任务并发构建',
@@ -171,6 +172,7 @@ export default {
     removeDuplicateValue: '清空无效的值',
     disabledSubPartitionEnter: '所属 Segment 处于 {status} 状态中，不可操作子分区',
     noIndexTipByBuild: '您需要先添加索引，才可以进行构建。',
-    viewSubPartitionTip: '查看子分区'
+    viewSubPartitionTip: '查看子分区',
+    subPartitionAlert: '请确保子分区值与源表中一致（大小写敏感），否则构建数据将为空。新添加的子分区值将被保存到该模型的子分区值列表中。'
   }
 }

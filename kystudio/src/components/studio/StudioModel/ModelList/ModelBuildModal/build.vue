@@ -2,14 +2,15 @@
   <!-- 模型构建 -->
     <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal(false)">
       <div>
-        <el-alert
+        <!-- <el-alert
           :title="$t('changeBuildTypeTips')"
-          type="info"
+          type="warning"
           :show-background="false"
           :closable="false"
           class="ksd-mb-10 ksd-pl-2"
           show-icon>
-        </el-alert>
+        </el-alert> -->
+        <p class="segment-tips ksd-fs-12"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('changeBuildTypeTips')}}</p>
         <div class="ksd-title-label-small ksd-mb-10">{{$t('chooseBuildType')}}</div>
         <!-- <div>
           <el-radio-group v-model="buildOrComplete" class="ksd-mb-10">
@@ -30,7 +31,7 @@
         <el-alert
           class="ksd-pt-0 ksd-mt-15"
           :title="$t('segmentTips')"
-          type="info"
+          type="warning"
           :show-background="false"
           :closable="false"
           show-icon>
@@ -136,14 +137,15 @@
                 {{$t('customLoadRange')}}
               </el-radio>
               <br/> -->
-              <el-alert
+              <!-- <el-alert
                 class="ksd-pt-0"
                 :title="$t('segmentTips')"
-                type="info"
+                type="warning"
                 :show-background="false"
                 :closable="false"
                 show-icon>
-              </el-alert>
+              </el-alert> -->
+              <p class="ksd-pt-0 ksd-fs-12 segment-tips"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('segmentTips')}}</p>
               <div class="ky-no-br-space" style="height:32px;">
                 <el-date-picker
                   type="datetime"
@@ -201,7 +203,7 @@
           </div>
           <div v-if="displaySubPartition">
             <div class="ksd-title-label-small ksd-mt-10">{{$t('multiPartitionValue')}}</div>
-            <p class="sub-partition-alert"><i class="icon el-icon-info ksd-mr-5"></i>{{$t('subPartitionAlert')}}</p>
+            <p class="sub-partition-alert"><i class="icon el-icon-ksd-alert ksd-mr-5"></i>{{$t('subPartitionAlert')}}</p>
             <arealabel
               ref="selectSubPartition"
               :class="['select-sub-partition', {'error-border': duplicateValueError}, 'ksd-mt-5']"
@@ -1081,6 +1083,13 @@
     .el-icon-info {
       font-size: 14px;
       padding-left: 1px;
+    }
+    .segment-tips {
+      line-height: 18px;
+      margin-bottom: 10px;
+    }
+    .alert-icon {
+      color: @text-disabled-color;
     }
   }
   .build-full-load-success {
