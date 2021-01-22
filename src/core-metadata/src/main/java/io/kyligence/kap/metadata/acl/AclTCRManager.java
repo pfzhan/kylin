@@ -428,7 +428,7 @@ public class AclTCRManager {
         return new AclTCR.ColumnRealRows(dbTblColName, authEqualRows, authLikeRows);
     }
 
-    private boolean isRowAuthorized(String dbTblName, String colName, final AclTCR e) {
+    private boolean isColumnWithoutRowLimit(String dbTblName, String colName, final AclTCR e) {
         if (!e.getTable().containsKey(dbTblName)) {
             return false;
         }
@@ -443,6 +443,11 @@ public class AclTCRManager {
 
         AclTCR.Row row = columnRow.getRow();
         AclTCR.Row likeRow = columnRow.getLikeRow();
+
+        if ((Objects.isNull(row) || row.containsKey(colName))
+                || (Objects.isNull(likeRow) || likeRow.containsKey(colName))) {
+            return false;
+        }
 
         return (Objects.isNull(row) || Objects.isNull(row.get(colName)))
                 && (Objects.isNull(likeRow) || Objects.isNull(likeRow.get(colName)));
@@ -478,7 +483,7 @@ public class AclTCRManager {
                                        final List<AclTCR> acls, final AclTCR currentAcl, final String dbTblName) {
         sourceRow.forEach((colName, realRow) -> {
             if (Objects.isNull(realRow) || acls.stream().filter(e -> !e.equals(currentAcl))
-                    .anyMatch(e -> isRowAuthorized(dbTblName, colName, e))) {
+                    .anyMatch(e -> isColumnWithoutRowLimit(dbTblName, colName, e))) {
                 return;
             }
             destRowSet.add(new RowSet(colName, realRow));

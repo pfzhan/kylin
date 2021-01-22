@@ -291,6 +291,43 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRowAclOnDiffCol() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
+
+        // user1
+        AclTCR u1a1 = new AclTCR();
+        AclTCR.Table u1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow u1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Row u1r1 = new AclTCR.Row();
+        AclTCR.RealRow u1rr2 = new AclTCR.RealRow();
+        u1rr2.add("2001-01-01");
+        u1rr2.add("2010-10-10");
+        u1r1.put("TEST_DATE_ENC", u1rr2);
+        u1cr1.setRow(u1r1);
+        u1t1.put("DEFAULT.TEST_ORDER", u1cr1);
+        u1a1.setTable(u1t1);
+        manager.updateAclTCR(u1a1, user1, true);
+
+        // group1
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Row g1r1 = new AclTCR.Row();
+        AclTCR.RealRow g1rr1 = new AclTCR.RealRow();
+        g1rr1.add("TEST560");
+        g1r1.put("TEST_EXTENDED_COLUMN", g1rr1);
+        g1cr1.setLikeRow(g1r1);
+        g1t1.put("DEFAULT.TEST_ORDER", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, group1, false);
+
+        Map<String, String> whereConds = manager.getTableColumnConcatWhereCondition(user1, Sets.newHashSet(group1));
+        Assert.assertEquals(
+                "((TEST_DATE_ENC in (DATE '2001-01-01',DATE '2010-10-10')) OR (TEST_EXTENDED_COLUMN like 'TEST560'))",
+                whereConds.get("DEFAULT.TEST_ORDER"));
+    }
+
+    @Test
     public void testGetAuthorizedRows() {
         AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
         prepareBasic(manager);
