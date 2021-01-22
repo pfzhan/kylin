@@ -159,7 +159,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :filters="realFilteArr.map(item => ({text: item, value: item}))"
+        :filters="realFilteArr"
         :filters2="allHitModels"
         :show-search-input="true"
         :filtered-value="filterData.realization"
@@ -404,7 +404,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   get allHitModels () {
-    return [{text: this.$t('allModels'), value: 'modelName'}]
+    return [{text: this.$t('allModels'), value: 'modelName', icon: 'el-icon-ksd-cube'}]
   }
 
   dateRangeChange () {
@@ -437,7 +437,16 @@ export default class QueryHistoryTable extends Vue {
   async loadFilterHitModelsList (filterValue) {
     try {
       const res = await this.fetchHitModelsList({ project: this.currentSelectedProject, model_name: filterValue, page_size: 100 })
-      this.realFilteArr = await handleSuccessAsync(res)
+      const data = await handleSuccessAsync(res)
+      this.realFilteArr = data.map((d) => {
+        if (d === 'HIVE') {
+          return { text: d, value: d, icon: 'el-icon-ksd-hive' }
+        } else if (d === 'CONSTANTS') {
+          return { text: d, value: d, icon: 'el-icon-ksd-contants' }
+        } else {
+          return { text: d, value: d, icon: 'el-icon-ksd-model' }
+        }
+      })
     } catch (e) {
       handleError(e)
     }
@@ -1279,6 +1288,10 @@ export default class QueryHistoryTable extends Vue {
     .el-checkbox-group {
       max-height: 205px;
       overflow: auto;
+    }
+    i {
+      margin-right: 5px;
+      color: @text-normal-color;
     }
   }
 </style>
