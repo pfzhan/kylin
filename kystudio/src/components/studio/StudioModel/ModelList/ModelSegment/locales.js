@@ -56,7 +56,7 @@ export default {
     buildAllIndexes: 'Build all indexes',
     buildAllIndexesTips: 'To ONLY build all indexes to the selected segments, it\'s recommended to build index on \'Index Overview\' tab. It would save cost for refreshing data.',
     viewSubParValuesBtn: 'View model subpartition Values',
-    subPratitionAmount: 'Subpartition Amount',
+    subPratitionAmount: 'Subpartition',
     subPratitionAmountTip: 'Amount of the built ones / Total amount',
     subParValuesTitle: 'Subpartition',
     buildSubSegment: 'Build Subpartition',

@@ -212,7 +212,7 @@ exports.default = {
     systemUpgradeTips: 'System is currently undergoing maintenance. Edits might not be able to be submitted or saved. Do you want to continue?',
     fullLoad: 'Full Load',
     complementedIndex: 'Complemented Index',
-    indexAmount: 'Index Amount',
+    indexAmount: 'Index',
     indexAmountTip: 'Indexes in this segment / Total indexes',
     buildSuccess: 'Submitted successfully. You may go to the job page to ',
     toJoblist: 'check details'

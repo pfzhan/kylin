@@ -88,7 +88,7 @@
                             <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
                           </template>
                           <template v-else>
-                            <span @click="openIndexDialog(item)" :class="{'model-tag': item.valid, 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                            <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid && item.indexType !== 'Table Snapshot', 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
                           </template>
                         </span>
                       </div>
@@ -97,7 +97,11 @@
                   </tr>
                   <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length && getLayoutIds(props.row.realizations)">
                     <th class="label">{{$t('kylinLang.query.index_id')}}</th>
-                    <td>{{getLayoutIds(props.row.realizations)}}</td>
+                    <td>
+                      <p>
+                        <span class="realizations-layout-id" v-for="(item, index) in props.row.realizations" :key="item.layoutId" @click="openLayoutDetails(item)">{{`${item.layoutId}${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                      </p>
+                    </td>
                   </tr>
                   <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
                     <th class="label">{{$t('kylinLang.query.snapshot')}}</th>
@@ -231,6 +235,7 @@
         width="110">
       </el-table-column>
     </el-table>
+    <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
   </div>
 </template>
 
@@ -244,6 +249,7 @@ import '../../util/fly.js'
 // import $ from 'jquery'
 import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
 import sqlFormatter from 'sql-formatter'
+import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDetails'
 @Component({
   name: 'QueryHistoryTable',
   props: ['queryHistoryData', 'queryNodes', 'filterDirectData'],
@@ -252,7 +258,8 @@ import sqlFormatter from 'sql-formatter'
     ...mapActions({
       markFav: 'MARK_FAV',
       fetchHitModelsList: 'FETCH_HIT_MODELS_LIST',
-      fetchSubmitterList: 'FETCH_SUBMITTER_LIST'
+      fetchSubmitterList: 'FETCH_SUBMITTER_LIST',
+      loadAllIndex: 'LOAD_ALL_INDEX'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -264,6 +271,9 @@ import sqlFormatter from 'sql-formatter'
       'briefMenuGet',
       'queryHistoryFilter'
     ])
+  },
+  components: {
+    IndexDetails
   },
   locales: {
     'en': {
@@ -296,7 +306,9 @@ import sqlFormatter from 'sql-formatter'
       HIT_CACHE: 'Cache hit',
       allModels: 'All Models',
       searchAnsweredBy: 'Search by model name',
-      searchSubmitter: 'Search by submitter'
+      searchSubmitter: 'Search by submitter',
+      aggDetailTitle: 'Aggregate Detail',
+      tabelDetailTitle: 'Table Index Detail'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -328,7 +340,9 @@ import sqlFormatter from 'sql-formatter'
       HIT_CACHE: '击中缓存',
       allModels: '全部模型',
       searchAnsweredBy: '请搜索查询对象',
-      searchSubmitter: '请搜索用户名'
+      searchSubmitter: '请搜索用户名',
+      aggDetailTitle: '聚合索引详情',
+      tabelDetailTitle: '明细索引详情'
     }
   },
   filters: {
@@ -364,6 +378,10 @@ export default class QueryHistoryTable extends Vue {
   statusList = ['SUCCEEDED', 'FAILED']
   filterTags = []
   isShowDetail = false // 展开查询步骤详情
+  cuboidData = {}
+  indexDetailTitle = ''
+  indexDetailShow = false
+  detailType = ''
 
   @Watch('queryHistoryData')
   onQueryHistoryDataChange (val) {
@@ -652,19 +670,6 @@ export default class QueryHistoryTable extends Vue {
     }
   }
 
-  // toAcce (event, row) {
-  //   this.markFav({project: this.currentSelectedProject, sql: row.sql_text, sqlPattern: row.sql_pattern, queryTime: row.query_time, queryStatus: row.query_status}).then((res) => {
-  //     handleSuccess(res, () => {
-  //       if (this._isDestroyed) {
-  //         return
-  //       }
-  //       // this.flyEvent(event)
-  //     })
-  //   }, (res) => {
-  //     handleError(res)
-  //   })
-  // }
-
   onSqlFilterChange () {
     if (this.filterData.sql.trim().match(/\s/)) {
       this.$message({
@@ -677,22 +682,14 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
 
-  // filterServer (server) {
-  //   this.filterData.server = this.filterData.server === server ? '' : server
-  //   this.filterList()
-  // }
   filterList () {
     this.toggleExpandId = []
     this.$emit('loadFilterList', {...this.filterData, server: this.filterData.server.join('')})
   }
 
-  openIndexDialog (realization) {
-    if (!realization.valid) return
-    if (realization.indexType === 'Agg Index') {
-      this.$emit('openIndexDialog', realization.modelId)
-    } else if (realization.indexType === 'Table Index') {
-      this.$emit('openIndexDialog', realization.modelId, realization.layoutId)
-    }
+  openIndexDialog (realization, rows) {
+    if (!realization.valid || realization.indexType === 'Table Snapshot') return
+    this.$emit('openIndexDialog', realization, rows)
   }
   renderColumn (h) {
     if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {
@@ -829,7 +826,6 @@ export default class QueryHistoryTable extends Vue {
       </span>)
     }
   }
-
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {
@@ -904,6 +900,38 @@ export default class QueryHistoryTable extends Vue {
       customClass: 'no-acl-model',
       showCopyTextLeftBtn: true
     })
+  }
+  // 展示 layout 详情
+  async openLayoutDetails (item) {
+    const {modelId, layoutId} = item
+    try {
+      const res = await this.loadAllIndex({
+        project: this.currentSelectedProject,
+        model: modelId,
+        key: layoutId,
+        page_offset: 0,
+        page_size: 10,
+        sort_by: '',
+        reverse: '',
+        sources: [],
+        status: []
+      })
+      const data = await handleSuccessAsync(res)
+      let row = data.value[0]
+      this.cuboidData = row
+      let idStr = (row.id !== undefined) && (row.id !== null) && (row.id !== '') ? ' [' + row.id + ']' : ''
+      this.detailType = row.source.indexOf('AGG') >= 0 ? 'aggDetail' : 'tabelIndexDetail'
+      this.indexDetailTitle = row.source.indexOf('AGG') >= 0 ? this.$t('aggDetailTitle') + idStr : this.$t('tabelDetailTitle') + idStr
+      this.indexDetailShow = true
+      // this.indexLoading = false
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  // 关闭 layout 详情
+  closeDetailDialog () {
+    this.indexDetailShow = false
   }
 }
 </script>
@@ -1084,6 +1112,10 @@ export default class QueryHistoryTable extends Vue {
             margin-right: 3px;
           }
         }
+      }
+      .realizations-layout-id {
+        color: @base-color;
+        cursor: pointer;
       }
       .el-date-editor {
         line-height: 1;

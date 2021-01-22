@@ -15,6 +15,7 @@
         v-if="aggDetailVisible"
         :model="model"
         :project-name="currentSelectedProject"
+        :layout-id="aggIndexLayoutId"
         :is-show-aggregate-action="false"
         :isShowEditAgg="datasourceActions.includes('editAggGroup')"
         :isShowBulidIndex="datasourceActions.includes('buildIndex')"
@@ -85,6 +86,7 @@ export default class QueryHistory extends Vue {
   aggDetailVisible = false
   tabelIndexVisible = false
   tabelIndexLayoutId = ''
+  aggIndexLayoutId = ''
   queryCurrentPage = 1
   queryHistoryData = {}
   filterData = {
@@ -107,14 +109,11 @@ export default class QueryHistory extends Vue {
   }
   queryNodes = []
   pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || 20
-  async openIndexDialog (modelId, layoutId) {
+  async openIndexDialog ({indexType, modelId, modelAlias, layoutId}, totalList) {
     this.model.uuid = modelId
-    if (layoutId) {
-      this.tabelIndexLayoutId = layoutId
-      this.tabelIndexVisible = true
-    } else {
-      this.aggDetailVisible = true
-    }
+    let aggLayoutId = totalList.filter(it => it.modelAlias === modelAlias).map(item => item.layoutId).join(',')
+    this.aggIndexLayoutId = aggLayoutId
+    this.aggDetailVisible = true
   }
   async loadHistoryList (pageIndex) {
     const resData = {

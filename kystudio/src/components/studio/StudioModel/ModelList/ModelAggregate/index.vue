@@ -75,6 +75,12 @@
                 </el-tooltip>
               </div>
             </div>
+            <div class="actions-header clearfix ksd-mb-10" v-if="!isShowAggregateAction">
+              <el-checkbox v-model="indexesByQueryHistory" @change="changeAggList">{{$t('indexesByQueryHistoryTip')}}</el-checkbox>
+              <div class="right fix">
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+              </div>
+            </div>
             <div class="clearfix" v-if="isShowAggregateAction">
               <el-button icon="el-icon-ksd-icon_build-index" :disabled="!checkedList.length" v-if="datasourceActions.includes('buildIndex')" class="ksd-mb-10 ksd-fleft" size="small" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
               <el-dropdown
@@ -125,7 +131,7 @@
               @selection-change="handleSelectionChange"
               :row-class-name="tableRowClassName"
             >
-              <el-table-column type="selection" width="44"></el-table-column>
+              <el-table-column type="selection" width="44" v-if="isShowAggregateAction"></el-table-column>
               <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
               <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
                 <template slot-scope="scope">
@@ -138,12 +144,28 @@
                   <span>{{$t(scope.row.source)}}</span>
                 </template>
               </el-table-column>
+              <el-table-column align="left" :label="$t('indexContent')">
+                <template slot-scope="scope">
+                  <el-popover
+                    ref="index-content-popover"
+                    placement="top"
+                    trigger="hover"
+                    popper-class="col-index-content-popover">
+                    <div class="index-content" slot="reference">{{scope.row.col_order.map(it => it.key).slice(0, 20).join(', ')}}</div>
+                    <template>
+                      <p class="popover-header"><b>{{$t('indexesContent')}}</b><el-button v-if="scope.row.col_order.length > 20" type="primary" text class="view-more-btn ksd-fs-12" @click="showDetail(scope.row)">{{$t('viewIndexDetails')}}<i class="el-icon-ksd-more_02 ksd-fs-12"></i></el-button></p>
+                      <p style="white-space: pre-wrap;">{{scope.row.col_order.map(it => it.key).slice(0, 20).join('\n')}}</p>
+                      <el-button v-if="scope.row.col_order.length > 20" class="ksd-fs-12" type="primary" text @click="showDetail(scope.row)">{{$t('viewAll')}}</el-button>
+                    </template>
+                  </el-popover>
+                </template>
+              </el-table-column>
               <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
                 <template slot-scope="scope">
                   <span>{{$t(scope.row.status)}}</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('kylinLang.common.action')" fixed="right" width="83">
+              <el-table-column :label="$t('kylinLang.common.action')" fixed="right" width="83" v-if="isShowAggregateAction">
                 <template slot-scope="scope">
                   <common-tip :content="$t('viewDetail')">
                     <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
@@ -177,70 +199,8 @@
         <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 1"/>
       </div>
     </div>
-
-    <el-dialog class="lincense-result-box"
-      :title="indexDetailTitle"
-      width="480px"
-      :limited-area="true"
-      :append-to-body="true"
-      :close-on-press-escape="false"
-      :close-on-click-modal="false"
-      @close="resetDetail"
-      :visible.sync="indexDetailShow">
-      <div class="ksd-mb-10 ksd-fs-12">{{$t('modifiedTime')}}: {{cuboidDetail.modifiedTime || showTableIndexDetail.modifiedTime}}</div>
-      <el-table class="cuboid-content" :data="cuboidDetail.cuboidContent" size="small" border v-if="detailType === 'aggDetail'">
-        <el-table-column type="index" :label="$t('order')" width="64">
-        </el-table-column>
-        <el-table-column prop="content" show-overflow-tooltip :label="$t('content')">
-          <template slot-scope="scope">
-            <span>{{scope.row.content}}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="type" :label="$t('kylinLang.query.type')" width="90">
-          <template slot-scope="scope">
-            <span>{{$t('kylinLang.cube.' + scope.row.type)}}</span>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div v-else>
-          <el-table
-          size="small"
-          :data="showTableIndexDetail.renderData"
-          border class="table-index-detail">
-          <el-table-column
-            :label="$t('ID')"
-            prop="id"
-            width="64">
-          </el-table-column>
-          <el-table-column
-            show-overflow-tooltip
-            :label="$t('column')"
-            prop="column">
-          </el-table-column>
-          <el-table-column
-          :label="$t('sort')"
-          prop="sort"
-          width="70"
-          align="center">
-          <template slot-scope="scope">
-            <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
-          </template>
-            </el-table-column>
-          <el-table-column
-          label="Shard"
-          align="center"
-          width="70">
-            <template slot-scope="scope">
-                <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.shared"></i>
-            </template>
-            </el-table-column>
-          </el-table>
-          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.IndexDetailPager" :perpage_size="currentCount" :curPage="currentPage+1" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
-        </div>
-      <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="indexDetailShow=false">{{$t('kylinLang.common.close')}}</el-button>
-      </div>
-    </el-dialog>
+    <index-details :indexDetailTitle="indexDetailTitle" :detailType="detailType" :cuboidData="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
+    
 
     <!-- <ConfirmSegment/> -->
     <!-- <TableIndexEdit/> -->
@@ -257,7 +217,7 @@ import locales from './locales'
 import FlowerChart from '../../../../common/FlowerChart'
 import TreemapChart from '../../../../common/TreemapChart'
 import { handleSuccessAsync } from '../../../../../util'
-import { handleError, transToGmtTime, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
+import { handleError, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
 import { speedProjectTypes, pageRefTags } from 'config'
 import { BuildIndexStatus } from '../../../../../config/model'
 // import ConfirmSegment from '../ConfirmSegment/ConfirmSegment.vue'
@@ -267,6 +227,7 @@ import { BuildIndexStatus } from '../../../../../config/model'
 import { formatGraphData } from './handler'
 import NModel from '../../ModelEdit/model.js'
 import Recommendations from './sub/recommendations'
+import IndexDetails from './indexDetails'
 
 @Component({
   props: {
@@ -295,6 +256,10 @@ import Recommendations from './sub/recommendations'
     isHideEdit: {
       type: Boolean,
       default: false
+    },
+    layoutId: {
+      type: [String, Number],
+      default: ''
     }
   },
   computed: {
@@ -337,7 +302,8 @@ import Recommendations from './sub/recommendations'
   components: {
     FlowerChart,
     TreemapChart,
-    Recommendations
+    Recommendations,
+    IndexDetails
     // ConfirmSegment
     // AggregateModal
     // AggAdvancedModal,
@@ -390,6 +356,7 @@ export default class ModelAggregate extends Vue {
   }
   switchIndexValue = 0
   isHaveComplementSegs = false
+  indexesByQueryHistory = true  // 是否获取查询相关的索引
   // 打开高级设置
   // openAggAdvancedModal () {
   //   this.callAggAdvancedModal({
@@ -433,6 +400,14 @@ export default class ModelAggregate extends Vue {
       model: this.model
     })
     this.refreshIndexGraphAfterSubmitSetting()
+  }
+
+  changeAggList () {
+    if (this.indexesByQueryHistory) {
+      this.loadAggIndices(this.layoutId)
+    } else {
+      this.loadAggIndices()
+    }
   }
 
   // handleCommand (command, row) {
@@ -624,11 +599,6 @@ export default class ModelAggregate extends Vue {
       this.buildIndexLoading = false
     }
   }
-  resetDetail () {
-    this.currentPage = 0
-    this.currentCount = 10
-    this.totalTableIndexColumnSize = 0
-  }
   currentChange (size, count) {
     this.currentPage = size
     this.currentCount = count
@@ -675,34 +645,8 @@ export default class ModelAggregate extends Vue {
     await this.loadAggIndices()
     this.indexLoading = false
   }
-  get showTableIndexDetail () {
-    if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'aggDetail') {
-      return []
-    }
-    let tableIndexList = this.cuboidData.col_order.slice(this.currentCount * this.currentPage, this.currentCount * (this.currentPage + 1))
-    this.totalTableIndexColumnSize = this.cuboidData.col_order.length
-    let renderData = tableIndexList.map((item, i) => {
-      let newitem = {
-        id: this.currentCount * this.currentPage + i + 1,
-        column: item.key,
-        sort: this.cuboidData.sort_by_columns.indexOf(item.key) + 1 || '',
-        shared: this.cuboidData.shard_by_columns.includes(item.key)
-      }
-      return newitem
-    })
-    const modifiedTime = transToGmtTime(this.cuboidData.last_modified)
-    return { renderData, modifiedTime }
-  }
   get isSpeedProject () {
     return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
-  }
-  get cuboidDetail () {
-    if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'tabelIndexDetail') {
-      return []
-    }
-    const modifiedTime = transToGmtTime(this.cuboidData.last_modified)
-    const cuboidContent = this.cuboidData.col_order.map(col => ({ content: col.key, type: col.value === 'measure' ? 'measure' : 'dimension' }))
-    return { modifiedTime, cuboidContent }
   }
   async handleClickNode (id) {
     this.switchIndexValue = 0
@@ -749,12 +693,13 @@ export default class ModelAggregate extends Vue {
     })
     return nodeNum
   }
-  async loadAggIndices () {
+  async loadAggIndices (ids) {
     try {
       // this.indexLoading = true
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
-        model: this.model.uuid
+        model: this.model.uuid,
+        ids: ids || this.indexesByQueryHistory ? this.layoutId : ''
       }, this.filterArgs))
       const data = await handleSuccessAsync(res)
       this.indexDatas = data.value
@@ -859,6 +804,11 @@ export default class ModelAggregate extends Vue {
   async acceptRecommend () {
     await this.loadAggIndices()
     this.model.total_indexes = this.totalSize
+  }
+
+  // 关闭索引详情弹窗
+  closeDetailDialog () {
+    this.indexDetailShow = false
   }
 }
 </script>
@@ -1028,6 +978,11 @@ export default class ModelAggregate extends Vue {
             }
           }
         }
+        .actions-header {
+          .el-checkbox {
+            margin-top: 4px;
+          }
+        }
       }
     }
     .left {
@@ -1098,6 +1053,46 @@ export default class ModelAggregate extends Vue {
     &.filter-open {
       color: @base-color;
     }
+  }
+  .index-content {
+    cursor: pointer;
+    width: calc(100%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    /*! autoprefixer: off */
+    -webkit-box-orient: vertical;
+    /* autoprefixer: on */
+    white-space: nowrap\0;
+    // &:hover {
+    //   color: @base-color;
+    // }
+  }
+}
+.col-index-content-popover {
+  .popover-header {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .view-more-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 0;
+    i {
+      font-size: 12px;
+    }
+  }
+}
+.indexes-result-box {
+  .no-data_placeholder {
+    color: @text-placeholder-color;
+    font-size: 12px;
+  }
+  .indexes-content-details {
+    display: flex;
+    justify-content: space-between;
   }
 }
 </style>

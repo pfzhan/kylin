@@ -26,6 +26,10 @@ export default {
     RECOMMENDED_AGG_INDEX: 'Recommended(Aggregate Group)',
     CUSTOM_TABLE_INDEX: 'Custom(Table Index)',
     RECOMMENDED_TABLE_INDEX: 'Recommended(Table Index)',
+    customAggIndex: 'Custom(Aggregate Group): ',
+    customTableIndex: 'Custom(Table Index): ',
+    indexContentTips: '{dimensionNum} dimension(s), {measureNum} measure(s)',
+    tableIndexContentTip: '{num} column(s)',
     viewDetail: 'View Index Details',
     tableIndex: 'Table Index',
     delIndex: 'Delete Index',
@@ -59,7 +63,14 @@ export default {
     deleteIndex: 'Delete Index',
     deleteTips: 'Do you want to delete the selected {number} index(es) from the following segment(s)? The query performance might be affected once indexes are deleted.',
     deletePart: 'Delete from Selected Segment',
-    indexSubTitle: 'The data range of this model to serve queries. You could selectively build indexes to desired data ranges based on query requirements.'
+    indexSubTitle: 'The data range of this model to serve queries. You could selectively build indexes to desired data ranges based on query requirements.',
+    indexesByQueryHistoryTip: '',
+    indexContent: 'Content',
+    indexesContent: 'Index Content',
+    viewIndexDetails: 'More details',
+    viewAll: 'View all',
+    cardinality: 'Cardinality',
+    cardinalityColumnTips: 'Total amount of unique data in this column. Could be gathered from sampling.'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -88,6 +99,10 @@ export default {
     RECOMMENDED_AGG_INDEX: '系统推荐聚合索引',
     CUSTOM_TABLE_INDEX: '自定义明细索引',
     RECOMMENDED_TABLE_INDEX: '系统推荐明细索引',
+    customAggIndex: '自定义聚合索引：',
+    customTableIndex: '自定义明细索引：',
+    indexContentTips: '{dimensionNum} 个维度，{measureNum} 个度量',
+    tableIndexContentTip: '{num} 个列',
     viewDetail: '查看索引详情',
     tableIndex: '明细索引',
     delIndex: '删除索引',
@@ -121,6 +136,13 @@ export default {
     deleteIndex: '删除索引',
     deleteTips: '确定从以下的 Segment 中删除 {number} 个已选择的索引吗？删除后可能会影响相关索引的查询效率。',
     deletePart: '从部分 Segment 中删除',
-    indexSubTitle: '模型可服务查询的数据范围。您可视需求将所需的索引构建至相应的数据范围。'
+    indexSubTitle: '模型可服务查询的数据范围。您可视需求将所需的索引构建至相应的数据范围。',
+    indexesByQueryHistoryTip: '仅显示查询相关索引',
+    indexContent: '内容',
+    indexesContent: '索引内容',
+    viewIndexDetails: '更多详情',
+    viewAll: '查看全部',
+    cardinality: '基数',
+    cardinalityColumnTips: '该列不重复的数据量。该数据可通过采样获得。'
   }
 }

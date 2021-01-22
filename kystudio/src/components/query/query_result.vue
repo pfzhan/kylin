@@ -80,7 +80,7 @@
       </div>
     </div>
     <div v-if="!isStop">
-      <el-button-group class="result-layout-btns ksd-mt-15">
+      <el-button-group class="result-layout-btns">
         <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
       </el-button-group>
       <div class="ksd-fright ksd-mt-15" v-if="activeResultType === 'data'">
@@ -692,6 +692,7 @@ export default class queryResult extends Vue {
       }
     }
     .result-layout-btns {
+      margin-top: 17px;
       .el-button.active {
         color: #5c5c5c;
         background: #f4f4f4;
