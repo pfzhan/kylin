@@ -75,7 +75,7 @@ public class JdbcUtil implements IKeep {
     }
 
     public static boolean isTableExists(Connection conn, String table) throws SQLException {
-        return isAnyTableExists(conn, table, table.toUpperCase(Locale.ROOT));
+        return isAnyTableExists(conn, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
     }
 
     private static boolean isAnyTableExists(Connection conn, String... tables) throws SQLException {
