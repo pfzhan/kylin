@@ -36,13 +36,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -66,16 +64,12 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(3);
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(8), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableMap.of(100000, "COUNT_ALL", 100001, "MEASURE_AUTO_1"),
-                extractIdtoName(dataModel.getEffectiveMeasures()));
+                extractIdToName(dataModel.getEffectiveMeasures()));
 
         List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
                 .add(ImmutableList.of(8, 100000, 100001)).build();
@@ -85,14 +79,9 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
     @Test
     public void testApproveProposeCC() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(7);
-
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
@@ -111,14 +100,9 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
     @Test
     public void testApproveReuseCrossModelCC() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(11);
-
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(9), dataModel.getEffectiveDimensions().keySet());
@@ -139,10 +123,7 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(7);
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, ImmutableMap.of(-4, "CC3", -6, "MEASURE_1"));
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
@@ -158,14 +139,9 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
     @Test
     public void testApproveBatch() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(3, 7);
-
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0, 8), dataModel.getEffectiveDimensions().keySet());
@@ -179,14 +155,9 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
     @Test
     public void testApproveBatchWithRename() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(3, 7);
-
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, ImmutableMap.of(-2, "KE_TEST_1", -6, "KE_TEST_2"));
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0, 8), dataModel.getEffectiveDimensions().keySet());
@@ -203,12 +174,8 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
     public void testApproveWithTwiceRequest() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(3, 7, 11);
         prepare(addLayoutId);
-
         OptRecRequest recRequest1 = buildOptRecRequest(Lists.newArrayList(3));
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest1);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest1);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(8), dataModel.getEffectiveDimensions().keySet());
@@ -218,10 +185,7 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
 
         addLayoutId = Lists.newArrayList(7, 11);
         OptRecRequest recRequest2 = buildOptRecRequest(addLayoutId);
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest2);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest2);
 
         dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0, 8, 9), dataModel.getEffectiveDimensions().keySet());
@@ -243,12 +207,8 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
     public void testApproveWithInverseTwiceRequest() throws Exception {
         List<Integer> addLayoutId = Lists.newArrayList(3, 7, 11);
         prepare(addLayoutId);
-
         OptRecRequest recRequest1 = buildOptRecRequest(Lists.newArrayList(7, 11));
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest1);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest1);
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0, 9), dataModel.getEffectiveDimensions().keySet());
@@ -260,10 +220,7 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
 
         addLayoutId = Lists.newArrayList(3);
         OptRecRequest recRequest2 = buildOptRecRequest(addLayoutId);
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest2);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest2);
 
         dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0, 8, 9), dataModel.getEffectiveDimensions().keySet());
@@ -279,12 +236,6 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
                 extractInnerExpression(dataModel.getComputedColumnDescs()));
         checkIndexPlan(layoutColOrder, getIndexPlan());
 
-    }
-
-    private <K, V> ImmutableMap<K, V> extractIdtoName(ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures) {
-        ImmutableMap.Builder builder = ImmutableMap.<Integer, String> builder();
-        effectiveMeasures.entrySet().stream().forEach(entry -> builder.put(entry.getKey(), entry.getValue().getName()));
-        return builder.build();
     }
 
     private Map<String, String> extractInnerExpression(List<ComputedColumnDesc> computedColumnDescs) {

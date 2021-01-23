@@ -43,6 +43,7 @@ import org.junit.Before;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -347,6 +348,13 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
             }
         });
 
+    }
+
+    protected ImmutableMap<Integer, String> extractIdToName(
+            ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures) {
+        ImmutableMap.Builder<Integer, String> builder = ImmutableMap.builder();
+        effectiveMeasures.forEach((id, measure) -> builder.put(id, measure.getName()));
+        return builder.build();
     }
 
     protected static class Dependency {

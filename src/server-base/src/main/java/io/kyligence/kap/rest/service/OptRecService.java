@@ -54,7 +54,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -65,6 +64,7 @@ import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.ref.CCRef;
@@ -82,7 +82,6 @@ import io.kyligence.kap.rest.response.OptRecDepResponse;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
-import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -116,8 +115,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         private final NDataModelManager modelManager;
         private final NIndexPlanManager indexPlanManager;
         private final OptRecManagerV2 recManagerV2;
+        private final String project;
 
         private RecApproveContext(String project, String modelId, Map<Integer, String> userDefinedRecNameMap) {
+            this.project = project;
             this.userDefinedRecNameMap = userDefinedRecNameMap;
             this.recManagerV2 = OptRecManagerV2.getInstance(project);
             this.recommendation = recManagerV2.loadOptRecV2(modelId);
@@ -128,15 +129,18 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         public List<RawRecItem> approveRawRecItems(List<Integer> recItemIds, boolean isAdd) {
             recItemIds.forEach(id -> checkRecItemIsValidAndReturn(recommendation, id, isAdd));
             List<RawRecItem> rawRecItems = getAllRelatedRecItems(recItemIds, isAdd);
-            if (isAdd) {
-                rewriteModel(rawRecItems);
-                List<Long> addedLayouts = rewriteIndexPlan(rawRecItems);
-                addedLayoutIdList.addAll(addedLayouts);
-            } else {
-                shiftLayoutHitCount(recommendation.getProject(), recommendation.getUuid(), rawRecItems);
-                List<Long> removedLayouts = reduceIndexPlan(rawRecItems);
-                removedLayoutIdList.addAll(removedLayouts);
-            }
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                if (isAdd) {
+                    rewriteModel(rawRecItems);
+                    List<Long> addedLayouts = rewriteIndexPlan(rawRecItems);
+                    addedLayoutIdList.addAll(addedLayouts);
+                } else {
+                    shiftLayoutHitCount(recommendation.getProject(), recommendation.getUuid(), rawRecItems);
+                    List<Long> removedLayouts = reduceIndexPlan(rawRecItems);
+                    removedLayoutIdList.addAll(removedLayouts);
+                }
+                return null;
+            }, project);
             return rawRecItems;
         }
 
@@ -459,7 +463,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
     }
 
-    @Transaction(project = 0)
     public void approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
@@ -473,7 +476,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     /**
      * approve all recommendations in specified models
      */
-    @Transaction(project = 0)
     public List<RecToIndexResponse> batchApprove(String project, List<String> modelIds, String recActionType) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(modelIds)) {
@@ -499,7 +501,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     /**
      * approve by project & approveType
      */
-    @Transaction(project = 0)
     public List<RecToIndexResponse> batchApprove(String project, String recActionType) {
         aclEvaluate.checkProjectWritePermission(project);
         List<RecToIndexResponse> responseList = Lists.newArrayList();
@@ -564,34 +565,28 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     }
 
     private void updateStatesOfApprovedRecItems(String project, List<RawRecItem> recItems) {
-        UnitOfWork.get().doAfterUpdate(() -> {
-            List<Integer> nonAppliedItemIds = Lists.newArrayList();
-            recItems.forEach(recItem -> {
-                if (recItem.getState() == RawRecItem.RawRecState.APPLIED) {
-                    return;
-                }
-                nonAppliedItemIds.add(recItem.getId());
-            });
-            RawRecManager rawManager = RawRecManager.getInstance(project);
-            rawManager.applyByIds(nonAppliedItemIds);
+        List<Integer> nonAppliedItemIds = Lists.newArrayList();
+        recItems.forEach(recItem -> {
+            if (recItem.getState() == RawRecItem.RawRecState.APPLIED) {
+                return;
+            }
+            nonAppliedItemIds.add(recItem.getId());
         });
+        RawRecManager rawManager = RawRecManager.getInstance(project);
+        rawManager.applyByIds(nonAppliedItemIds);
     }
 
-    @Transaction(project = 0)
     public void discard(String project, OptRecRequest request) {
         aclEvaluate.checkProjectOperationPermission(project);
         OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(request.getModelId());
-        UnitOfWork.get().doAfterUpdate(() -> {
-            RawRecManager rawManager = RawRecManager.getInstance(project);
-            Set<Integer> allToHandle = Sets.newHashSet();
-            allToHandle.addAll(request.getRecItemsToAddLayout());
-            allToHandle.addAll(request.getRecItemsToRemoveLayout());
-            rawManager.discardByIds(intersection(optRecV2.getRawIds(), Lists.newArrayList(allToHandle)));
-        });
+        RawRecManager rawManager = RawRecManager.getInstance(project);
+        Set<Integer> allToHandle = Sets.newHashSet();
+        allToHandle.addAll(request.getRecItemsToAddLayout());
+        allToHandle.addAll(request.getRecItemsToRemoveLayout());
+        rawManager.discardByIds(intersection(optRecV2.getRawIds(), Lists.newArrayList(allToHandle)));
         updateRecommendationCount(project, request.getModelId());
     }
 
-    @Transaction(project = 0)
     public void clean(String project, String modelId) {
         aclEvaluate.checkProjectOperationPermission(project);
         OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
@@ -820,9 +815,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     }
 
     public void updateRecommendationCount(String project, String modelId) {
-        int size = getOptRecLayoutsResponse(project, modelId, OptRecService.ALL).getSize();
-        NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            int size = getOptRecLayoutsResponse(project, modelId, OptRecService.ALL).getSize();
+            NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
+            return null;
+        }, project);
     }
 
     @Override

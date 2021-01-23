@@ -55,7 +55,6 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
@@ -141,10 +140,7 @@ public class OptRecServiceIllegalMeasureTest extends OptRecV2TestBase {
         List<Integer> collect = brokenRecs.stream().sorted().collect(Collectors.toList());
         Assert.assertEquals(Lists.newArrayList(15, 16, 18, 19, 20, 21), collect);
 
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            optRecService.updateRecommendationCount(getProject(), getDefaultUUID());
-            return null;
-        }, getProject());
+        optRecService.updateRecommendationCount(getProject(), getDefaultUUID());
         Assert.assertEquals(8, getModel().getRecommendationsCount());
 
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll().stream() //

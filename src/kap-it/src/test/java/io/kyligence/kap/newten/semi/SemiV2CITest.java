@@ -58,7 +58,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -297,10 +296,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
 
         // mock optRecRequest() and apply recommendations
         OptRecRequest recRequest = mockOptRecRequest(modelID, optRecDetailResponse);
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         // assert after apply recommendations
         NDataModel modelAfterApplyRecItems = modelManager.getDataModelDesc(modelID);

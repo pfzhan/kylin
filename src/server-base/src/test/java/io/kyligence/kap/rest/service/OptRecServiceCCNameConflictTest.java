@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -45,10 +44,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
@@ -74,10 +70,7 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                optRecService.approve(getProject(), recRequest);
-                return 0;
-            }, "");
+            optRecService.approve(getProject(), recRequest);
             Assert.fail();
         } catch (Exception e) {
             KylinException rootCause = (KylinException) Throwables.getRootCause(e);
@@ -104,10 +97,7 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                optRecService.approve(getProject(), recRequest);
-                return 0;
-            }, "");
+            optRecService.approve(getProject(), recRequest);
             Assert.fail();
         } catch (Exception e) {
             KylinException rootCause = (KylinException) Throwables.getRootCause(e);
@@ -138,10 +128,7 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                optRecService.approve(getProject(), recRequest);
-                return 0;
-            }, "");
+            optRecService.approve(getProject(), recRequest);
             Assert.fail();
         } catch (Exception e) {
             KylinException rootCause = (KylinException) Throwables.getRootCause(e);
@@ -172,10 +159,7 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                optRecService.approve(getProject(), recRequest);
-                return 0;
-            }, "");
+            optRecService.approve(getProject(), recRequest);
             Assert.fail();
         } catch (Exception e) {
             KylinException rootCause = (KylinException) Throwables.getRootCause(e);
@@ -193,11 +177,7 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
 
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.approve(getProject(), recRequest);
-            return 0;
-        }, "");
+        optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
         List<Integer> dimensionList = Lists.newArrayList(dataModel.getEffectiveDimensions().keySet());
@@ -212,21 +192,10 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
         Assert.assertEquals(4, allLayouts.size());
     }
 
-    private Map<String, String> extractInnerExpression(List<ComputedColumnDesc> computedColumnDescs) {
-        return computedColumnDescs.stream()
-                .collect(Collectors.toMap(ComputedColumnDesc::getColumnName, ComputedColumnDesc::getInnerExpression));
-    }
-
     private void prepare(List<Integer> addLayoutId) throws IOException {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         prepareEnv(addLayoutId);
-    }
-
-    private void checkIndexPlan(List<List<Integer>> layoutColOrder, IndexPlan actualPlan) {
-        Assert.assertEquals(layoutColOrder.size(), actualPlan.getAllLayouts().size());
-        Assert.assertEquals(layoutColOrder,
-                actualPlan.getAllLayouts().stream().map(LayoutEntity::getColOrder).collect(Collectors.toList()));
     }
 
     private OptRecRequest buildOptRecRequest(List<Integer> addLayoutId) {

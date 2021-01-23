@@ -46,7 +46,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -163,10 +162,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
         Assert.assertEquals(9, getIndexPlan().getAllLayouts().size());
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.batchApprove(getProject(), "all");
-            return 0;
-        }, "");
+        optRecService.batchApprove(getProject(), "all");
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -186,10 +182,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
         Assert.assertEquals(9, getIndexPlan().getAllLayouts().size());
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.batchApprove(getProject(), "REMOVE_INDEX");
-            return 0;
-        }, "");
+        optRecService.batchApprove(getProject(), "REMOVE_INDEX");
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(7, modelAfterApprove.getEffectiveDimensions().size());
@@ -210,10 +203,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(9, getIndexPlan().getAllLayouts().size());
 
         changeRecTopN(50);
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            optRecService.batchApprove(getProject(), "ADD_INDEX");
-            return 0;
-        }, "");
+        optRecService.batchApprove(getProject(), "ADD_INDEX");
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -238,12 +228,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
-        List<RecToIndexResponse> allResponses = Lists.newArrayList();
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
-            allResponses.addAll(responses);
-            return 0;
-        }, "");
+        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -251,8 +236,8 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(58, modelAfterApprove.getEffectiveMeasures().size());
         Assert.assertEquals(2, modelAfterApprove.getComputedColumnDescs().size());
 
-        Assert.assertEquals(1, allResponses.size());
-        RecToIndexResponse recToIndexResponse = allResponses.get(0);
+        Assert.assertEquals(1, responses.size());
+        RecToIndexResponse recToIndexResponse = responses.get(0);
         Assert.assertEquals("db89adb4-3aad-4f2a-ac2e-72ea0a30420b", recToIndexResponse.getModelId());
         Assert.assertEquals("m0", recToIndexResponse.getModelAlias());
         Assert.assertEquals(27, recToIndexResponse.getAddedIndexes().size());
@@ -274,12 +259,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
-        List<RecToIndexResponse> allResponses = Lists.newArrayList();
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
-            allResponses.addAll(responses);
-            return 0;
-        }, "");
+        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -287,8 +267,8 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(58, modelAfterApprove.getEffectiveMeasures().size());
         Assert.assertEquals(2, modelAfterApprove.getComputedColumnDescs().size());
 
-        Assert.assertEquals(1, allResponses.size());
-        RecToIndexResponse recToIndexResponse = allResponses.get(0);
+        Assert.assertEquals(1, responses.size());
+        RecToIndexResponse recToIndexResponse = responses.get(0);
         Assert.assertEquals("db89adb4-3aad-4f2a-ac2e-72ea0a30420b", recToIndexResponse.getModelId());
         Assert.assertEquals("m0", recToIndexResponse.getModelAlias());
         Assert.assertEquals(27, recToIndexResponse.getAddedIndexes().size());
@@ -322,12 +302,7 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         List<String> modelIds = modelResponses.stream().map(NDataModelResponse::getUuid).collect(Collectors.toList());
 
         changeRecTopN(50);
-        List<RecToIndexResponse> allResponses = Lists.newArrayList();
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
-            allResponses.addAll(responses);
-            return 0;
-        }, "");
+        List<RecToIndexResponse> responses = optRecService.batchApprove(getProject(), modelIds, "all");
 
         NDataModel modelAfterApprove = getModel();
         Assert.assertEquals(17, modelAfterApprove.getEffectiveDimensions().size());
@@ -335,8 +310,8 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         Assert.assertEquals(57, modelAfterApprove.getEffectiveMeasures().size());
         Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
 
-        Assert.assertEquals(1, allResponses.size());
-        RecToIndexResponse recToIndexResponse = allResponses.get(0);
+        Assert.assertEquals(1, responses.size());
+        RecToIndexResponse recToIndexResponse = responses.get(0);
         Assert.assertEquals("db89adb4-3aad-4f2a-ac2e-72ea0a30420b", recToIndexResponse.getModelId());
         Assert.assertEquals("m0", recToIndexResponse.getModelAlias());
         Assert.assertEquals(26, recToIndexResponse.getAddedIndexes().size());

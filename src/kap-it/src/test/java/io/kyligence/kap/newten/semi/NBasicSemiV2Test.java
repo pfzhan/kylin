@@ -30,13 +30,23 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -54,6 +64,9 @@ import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.NUserGroupService;
+import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
@@ -73,23 +86,49 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
 
     private static final long QUERY_TIME = 1595520000000L;
 
+    @Mock
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    @Mock
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
+    @Mock
+    private final IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
+    OptRecService optRecService = Mockito.spy(new OptRecService());
+    ModelService modelService = Mockito.spy(new ModelService());
+
     private JdbcRawRecStore jdbcRawRecStore;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
-    private RawRecService rawRecService;
-    private ProjectService projectService;
+    private final RawRecService rawRecService = new RawRecService();
+    private final ProjectService projectService = new ProjectService();
+    private TimeZone defaultTimeZone;
 
     @Before
     public void setup() throws Exception {
         super.setup();
+        defaultTimeZone = TimeZone.getDefault();
+        TimeZone timeZone = TimeZone.getTimeZone("Asia/Shanghai");
+        TimeZone.setDefault(timeZone);
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
-        rawRecService = new RawRecService();
-        projectService = new ProjectService();
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
+        prepareACL();
+    }
+
+    private void prepareACL() {
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(optRecService, "modelService", modelService);
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
+        TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @After
     public void teardown() throws Exception {
         super.tearDown();
+        TimeZone.setDefault(defaultTimeZone);
     }
 
     @Override
@@ -608,7 +647,6 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // prepare origin model
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
-        SmartMaster smartMaster = new SmartMaster(smartContext);
         ProposerJob.propose(smartContext);
         smartContext.saveMetadata();
         AccelerationContextUtil.onlineModel(smartContext);
@@ -885,6 +923,8 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         queryHistory5.setQueryTime(yesterday);
         queryHistory5.setDuration(70L);
         queryHistory5.setId(5);
+
+        jdbcRawRecStore.queryAll().forEach(item -> Assert.assertEquals(item.getCreateTime(), item.getUpdateTime()));
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
         rawRecService.generateRawRecommendations(getProject(),
                 Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4, queryHistory5), false);
@@ -892,7 +932,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         // update and select top 2 candidate
         FavoriteRuleManager.getInstance(kylinConfig, getProject()).updateRule(
                 Lists.newArrayList(new FavoriteRule.Condition(null, "2")), true, FavoriteRule.REC_SELECT_RULE_NAME);
-        rawRecService.updateCostsAndTopNCandidates(null);
+        rawRecService.updateCostsAndTopNCandidates(getProject());
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -906,12 +946,16 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(9, rawRecItems.size());
         Assert.assertEquals(18.39, rawRecItems.get(5).getCost(), 0.01);
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(5).getState());
+        Assert.assertNotEquals(rawRecItems.get(5).getCreateTime(), rawRecItems.get(5).getUpdateTime());
         Assert.assertEquals(22.07, rawRecItems.get(6).getCost(), 0.01);
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(6).getState());
+        Assert.assertNotEquals(rawRecItems.get(6).getCreateTime(), rawRecItems.get(6).getUpdateTime());
         Assert.assertEquals(25.75, rawRecItems.get(7).getCost(), 0.01);
         Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(7).getState());
+        Assert.assertNotEquals(rawRecItems.get(7).getCreateTime(), rawRecItems.get(7).getUpdateTime());
         Assert.assertEquals(25.75, rawRecItems.get(8).getCost(), 0.01);
         Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, rawRecItems.get(8).getState());
+        Assert.assertNotEquals(rawRecItems.get(8).getCreateTime(), rawRecItems.get(8).getUpdateTime());
 
         // change to old version RawRecItem with recSource is null then updateCost and validate
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();

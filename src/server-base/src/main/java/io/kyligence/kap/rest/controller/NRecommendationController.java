@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import java.util.List;
 
 import org.apache.kylin.common.response.ResponseCode;
@@ -178,10 +177,7 @@ public class NRecommendationController extends NBasicController {
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(REC_COUNT_ACTION, action);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            optRecService.updateRecommendationCount(project, modelId);
-            return null;
-        }, project);
+        optRecService.updateRecommendationCount(project, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
