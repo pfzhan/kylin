@@ -57,7 +57,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -92,7 +91,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.constant.Constants;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
@@ -108,6 +112,7 @@ import io.kyligence.kap.rest.response.NodeMonitorInfoResponse;
 import io.kyligence.kap.rest.response.ProjectCapacityResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -487,7 +492,7 @@ public class LicenseInfoService extends BasicService {
         FileUtils.deleteQuietly(tmpLicense);
         FileUtils.writeByteArrayToFile(backupAndDeleteLicense("backup"), bytes);
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
-        SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
+        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }
 
     public void updateLicense(String string) throws IOException {
@@ -684,6 +689,7 @@ public class LicenseInfoService extends BasicService {
         return recordList;
     }
 
+    @Transaction(project = 0)
     public void refreshTableExtDesc(String project) {
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
@@ -694,9 +700,9 @@ public class LicenseInfoService extends BasicService {
             TableExtDesc.RowCountStatus rowCountStatus = tableExt.getRowCountStatus();
             if (rowCountStatus == null || TableExtDesc.RowCountStatus.TENTATIVE == rowCountStatus) {
                 sourceUsageManager.refreshLookupTableRowCount(tableDesc, project);
-                sourceUsageManager.updateSourceUsage();
             }
         }
+        EventBusFactory.getInstance().postSync(new SourceUsageUpdateNotifier());
         logger.info("Refresh table capacity in project: {} finished", project);
     }
 
@@ -787,8 +793,14 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateSourceUsage() {
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        sourceUsageManager.updateSourceUsage();
+        if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+            SourceUsageRecord sourceUsageRecord = sourceUsageManager.refreshLatestSourceUsageRecord();
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage(sourceUsageRecord);
+                return 0;
+            }, EpochManager.GLOBAL);
+        }
     }
 
     public void refreshLicenseVolume() {
