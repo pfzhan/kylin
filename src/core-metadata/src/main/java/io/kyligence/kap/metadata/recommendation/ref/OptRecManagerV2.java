@@ -25,7 +25,9 @@
 package io.kyligence.kap.metadata.recommendation.ref;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,10 +38,12 @@ import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.model.ColumnDesc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -90,11 +94,43 @@ public class OptRecManagerV2 {
                 ComputedColumnUtil.singleCCConflictCheck(otherModel, model, existCC, cc, new CCConflictHandlerV2());
             }
         }
-        val contains = model.getComputedColumnDescs().stream()
-                .anyMatch(c -> c.getColumnName().equals(cc.getColumnName()));
-        if (contains) {
+        Set<String> measureNameSet = Sets.newHashSet();
+        Set<String> columnNameSet = Sets.newHashSet();
+        Set<String> dimensionSet = Sets.newHashSet();
+        Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
+        for (ComputedColumnDesc computedColumn : model.getComputedColumnDescs()) {
+            ccMap.putIfAbsent(computedColumn.getColumnName().toUpperCase(Locale.ROOT), computedColumn);
+        }
+        for (NDataModel.NamedColumn column : model.getAllNamedColumns()) {
+            ColumnDesc columnDesc = model.getEffectiveCols().get(column.getId()).getColumnDesc();
+            if (!column.isExist() || columnDesc.isComputedColumn()) {
+                continue;
+            }
+
+            if (column.isDimension()) {
+                dimensionSet.add(column.getName().toUpperCase(Locale.ROOT));
+            } else {
+                columnNameSet.add(column.getName().toUpperCase(Locale.ROOT));
+            }
+        }
+        for (NDataModel.Measure modelAllMeasure : model.getAllMeasures()) {
+            if (!modelAllMeasure.isTomb()) {
+                measureNameSet.add(modelAllMeasure.getName().toUpperCase(Locale.ROOT));
+            }
+        }
+
+        if (ccMap.containsKey(cc.getColumnName().toUpperCase(Locale.ROOT))) {
             throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
                     MsgPicker.getMsg().getCC_NAME_CONFLICT(cc.getColumnName()));
+        } else if (dimensionSet.contains(cc.getColumnName().toUpperCase(Locale.ROOT))) {
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getCC_DIMENSION_NAME_CONFLICT(cc.getColumnName()));
+        } else if (columnNameSet.contains(cc.getColumnName().toUpperCase(Locale.ROOT))) {
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getCC_COLUMN_NAME_CONFLICT(cc.getColumnName()));
+        } else if (measureNameSet.contains(cc.getColumnName().toUpperCase(Locale.ROOT))) {
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getCC_MEASURE_NAME_CONFLICT(cc.getColumnName()));
         }
     }
 
