@@ -468,7 +468,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "recActionType", required = false, defaultValue = "all") String recActionType) {
         String projectName = checkProjectName(project);
         checkProjectNotSemiAuto(projectName);
-        aclEvaluate.checkProjectOperationPermission(projectName);
+        aclEvaluate.checkProjectWritePermission(projectName);
         String modelId = getModel(modelAlias, projectName).getId();
         checkRequiredArg(NModelController.MODEL_ID, modelId);
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(projectName, modelId, recActionType);

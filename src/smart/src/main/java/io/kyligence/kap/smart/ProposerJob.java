@@ -45,15 +45,16 @@ import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.JobRunnerFactory;
+import org.apache.kylin.job.JobRunnerFactory.AbstractJobRunner;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -66,22 +67,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProposerJob extends ExecutableApplication implements IKeep {
 
+    @VisibleForTesting
     public static AbstractContext proposeForAutoMode(KylinConfig config, String project, String[] sqls) {
         AbstractContext context = new SmartContext(config, project, sqls);
         return propose(context);
     }
 
+    @VisibleForTesting
     public static AbstractContext genOptRec(KylinConfig config, String project, String[] sqls) {
         val context = new ModelReuseContextOfSemiV2(config, project, sqls);
         return propose(context);
     }
 
-    public static AbstractContext selectExistedModel(KylinConfig config, String project, String[] sqls) {
-        AbstractContext context = new ModelSelectContextOfSemiV2(config, project, sqls);
-        return propose(context);
+    public static AbstractContext propose(AbstractContext context) {
+        return propose(context, JobRunnerFactory::createRunner);
     }
 
-    public static AbstractContext propose(AbstractContext context) {
+    public static AbstractContext propose(AbstractContext context, RunnerFactoryBuilder factoryBuilder) {
         val config = context.getSmartConfig().getKylinConfig();
         val project = context.getProject();
         val sqls = context.getSqlArray();
@@ -100,8 +102,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         orElse.apply(resourceStore.listResources(ResourceStore.PROJECT_ROOT));
         orElse.apply(resourceStore.listResources("/" + project + ResourceStore.TABLE_RESOURCE_ROOT));
         orElse.apply(resourceStore.listResources("/" + project + ResourceStore.TABLE_EXD_RESOURCE_ROOT));
-        val runner = JobRunnerFactory.createRunner(config, context.getSmartConfig().getProposeRunnerImpl(), project,
-                resources);
+        val runner = factoryBuilder.build(config, context.getSmartConfig().getProposeRunnerImpl(), project, resources);
         runner.setConfigUpdater(
                 props -> props.setProperty("kylin.query.queryhistory.url", config.getMetadataUrl().toString()));
         val params = Maps.<String, String> newHashMap();
@@ -208,6 +209,10 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         private List<String> sqls = Lists.newArrayList();
 
         private Set<String> allModels = Sets.newHashSet();
+    }
+
+    public interface RunnerFactoryBuilder {
+        AbstractJobRunner build(KylinConfig config, String runnerType, String project, List<String> resources);
     }
 
     public static void main(String[] args) {

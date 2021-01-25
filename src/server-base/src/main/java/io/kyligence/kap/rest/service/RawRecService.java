@@ -113,8 +113,8 @@ public class RawRecService {
             queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
 
-        AbstractContext semiContextV2 = ProposerJob.genOptRec(KylinConfig.getInstanceFromEnv(), project,
-                sqlList.toArray(new String[0]));
+        AbstractContext semiContextV2 = ProposerJob.propose(new ModelReuseContextOfSemiV2(
+                KylinConfig.getInstanceFromEnv(), project, sqlList.toArray(new String[0])));
 
         Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getExistingNonLayoutRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);

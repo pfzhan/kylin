@@ -26,10 +26,12 @@ package org.apache.kylin.job;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -50,6 +52,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.SimpleTimeLimiter;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -99,7 +102,16 @@ public class JobRunnerFactory {
             args.put("meta", metaDumpUrl);
             args.put("metaOutput", metaDumpUrl + "_output");
             doExecute(app, args);
-            uploadJobLog();
+
+            val jobContentZip = getJobTmpDir() + ".zip";
+            try {
+                SimpleTimeLimiter.create(ForkJoinPool.commonPool()).callWithTimeout(() -> uploadJobLog(jobContentZip),
+                        Duration.ofSeconds(10));
+            } catch (Exception e) {
+                log.warn("Upload Job Evidence failed {}", jobId, e);
+            } finally {
+                FileUtils.deleteQuietly(new File(jobContentZip));
+            }
         }
 
         public void cleanupEnv() {
@@ -121,24 +133,16 @@ public class JobRunnerFactory {
             this.configUpdater = consumer;
         }
 
-        protected boolean uploadJobLog() {
-            val jobContentZip = getJobTmpDir() + ".zip";
-            try {
-                ZipFileUtils.compressZipFile(getJobTmpDir(), jobContentZip);
-                val jobDir = kylinConfig.getJobTmpDir(project, true);
-                val fs = HadoopUtil.getFileSystem(jobDir);
+        protected boolean uploadJobLog(String jobContentZip) throws IOException {
+            ZipFileUtils.compressZipFile(getJobTmpDir(), jobContentZip);
+            val jobDir = kylinConfig.getJobTmpDir(project, true);
+            val fs = HadoopUtil.getFileSystem(jobDir);
 
-                try (val in = new FileInputStream(new File(jobContentZip));
-                        val out = fs.create(new Path(jobDir + jobId + ".zip"), true)) {
-                    IOUtils.copy(in, out);
-                }
-                return true;
-            } catch (IOException e) {
-                log.warn("Upload Job Evidence failed {}", jobId, e);
-            } finally {
-                FileUtils.deleteQuietly(new File(jobContentZip));
+            try (val in = new FileInputStream(new File(jobContentZip));
+                    val out = fs.create(new Path(jobDir + jobId + ".zip"), true)) {
+                IOUtils.copy(in, out);
             }
-            return false;
+            return true;
         }
 
         protected void attachMetadataAndKylinProps(boolean kylinPropsOnly) throws IOException {

@@ -105,6 +105,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.job.InMemoryJobRunner;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -1656,7 +1657,7 @@ public class ModelService extends BasicService {
 
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
-        ProposerJob.propose(proposeContext);
+        ProposerJob.propose(proposeContext, (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
         return proposeContext.getProposedModels();
     }
 
@@ -1690,7 +1691,7 @@ public class ModelService extends BasicService {
         AbstractContext proposeContext = reuseExistedModel
                 ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), createNewModel)
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
-        return ProposerJob.propose(proposeContext);
+        return ProposerJob.propose(proposeContext, (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
     }
 
     public ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
