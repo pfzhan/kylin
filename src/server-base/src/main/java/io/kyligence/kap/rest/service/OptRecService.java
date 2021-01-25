@@ -112,8 +112,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         @Getter
         private final OptRecV2 recommendation;
         private final Map<Integer, String> userDefinedRecNameMap;
-        private final NDataModelManager modelManager;
-        private final NIndexPlanManager indexPlanManager;
         private final OptRecManagerV2 recManagerV2;
         private final String project;
 
@@ -122,8 +120,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             this.userDefinedRecNameMap = userDefinedRecNameMap;
             this.recManagerV2 = OptRecManagerV2.getInstance(project);
             this.recommendation = recManagerV2.loadOptRecV2(modelId);
-            this.modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            this.indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         }
 
         public List<RawRecItem> approveRawRecItems(List<Integer> recItemIds, boolean isAdd) {
@@ -204,6 +200,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 return;
             }
             logBeginRewrite("Model");
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             modelManager.updateDataModel(recommendation.getUuid(), copyForWrite -> {
                 copyForWrite.getAllNamedColumns().forEach(column -> {
                     if (column.isExist()) {
@@ -353,7 +350,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             }
             List<Long> layoutIds = Lists.newArrayList();
             logBeginRewrite("augment IndexPlan");
-            indexPlanManager.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
+            NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            indexMgr.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
                 for (RawRecItem rawRecItem : recItems) {
                     if (!rawRecItem.isAddLayoutRec()) {
@@ -424,7 +422,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             }
             logBeginRewrite("reduce IndexPlan");
             List<Long> removedLayoutIds = Lists.newArrayList();
-            indexPlanManager.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
+            NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            indexMgr.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
                 for (RawRecItem rawRecItem : recItems) {
                     if (!rawRecItem.isRemoveLayoutRec()) {
