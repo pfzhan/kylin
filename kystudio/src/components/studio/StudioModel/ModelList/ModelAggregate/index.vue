@@ -696,6 +696,11 @@ export default class ModelAggregate extends Vue {
   async loadAggIndices (ids) {
     try {
       // this.indexLoading = true
+      if (this.indexesByQueryHistory && !this.layoutId && !this.isShowAggregateAction) {
+        this.indexDatas = []
+        this.totalSize = 0
+        return
+      }
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
         model: this.model.uuid,
@@ -709,6 +714,9 @@ export default class ModelAggregate extends Vue {
       handleError(e)
       // this.indexLoading = false
     }
+  }
+  created () {
+    !this.layoutId && (this.indexesByQueryHistory = false)
   }
   async mounted () {
     this.isLoading = true

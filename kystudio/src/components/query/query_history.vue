@@ -3,7 +3,7 @@
     <query_history_table :queryHistoryData="queryHistoryData.query_histories" :filterDirectData="filterDirectData" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
     <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
-      :title="$t('kylinLang.model.aggregateGroupIndex')"
+      :title="$t('indexOverview')"
       top="5vh"
       limited-area
       :visible.sync="aggDetailVisible"
@@ -79,6 +79,14 @@ import { pageRefTags } from 'config'
     'query_history_table': queryHistoryTable,
     ModelAggregate,
     TableIndex
+  },
+  locales: {
+    'en': {
+      indexOverview: 'Index Overview'
+    },
+    'zh-cn': {
+      indexOverview: '索引总览'
+    }
   }
 })
 export default class QueryHistory extends Vue {
@@ -111,7 +119,7 @@ export default class QueryHistory extends Vue {
   pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || 20
   async openIndexDialog ({indexType, modelId, modelAlias, layoutId}, totalList) {
     this.model.uuid = modelId
-    let aggLayoutId = totalList.filter(it => it.modelAlias === modelAlias).map(item => item.layoutId).join(',')
+    let aggLayoutId = totalList.filter(it => it.modelAlias === modelAlias && it.layoutId).map(item => item.layoutId).join(',')
     this.aggIndexLayoutId = aggLayoutId
     this.aggDetailVisible = true
   }
