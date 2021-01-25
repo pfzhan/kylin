@@ -69,7 +69,7 @@ do
         then
             echo "md5 check failed"
             rm build/$file_name
-            wget --directory-prefix=build/postgresql/ $url || echo "Download $file_name failed."
+            wget --directory-prefix=build/postgresql/ $url || { echo "Download $file_name failed." && exit 1; }
         fi
     fi
 done
