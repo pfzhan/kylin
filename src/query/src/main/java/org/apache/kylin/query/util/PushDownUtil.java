@@ -62,6 +62,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -151,6 +152,7 @@ public class PushDownUtil {
             return Pair.newPair(returnRows, returnColumnMeta);
         }
 
+        QueryContext.currentTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
         if (queryParams.isSelect()) {
             runner.executeQuery(sql, returnRows, returnColumnMeta, project);
         }

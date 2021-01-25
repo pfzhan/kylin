@@ -818,6 +818,7 @@ public class QueryService extends BasicService {
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
             String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
+        QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String sqlString = sqlRequest.getSql();
         if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
                 && isPrepareStatementWithParams(sqlRequest)
@@ -829,10 +830,8 @@ public class QueryService extends BasicService {
             sqlString = QueryUtil.addLimit(sqlString);
         }
 
-        QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
                 sqlRequest.getLimit(), sqlRequest.getOffset());
-        QueryContext.currentTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
         QueryParams queryParams = new QueryParams(sqlRequest.getProject(), massagedSql, defaultSchema, isPrepare,
                 sqlException, sqlRequest.isForcedToPushDown(), true, sqlRequest.getLimit(), sqlRequest.getOffset());
         queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
