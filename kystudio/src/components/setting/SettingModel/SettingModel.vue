@@ -47,9 +47,9 @@
               <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'retention_range')"></i>
             </common-tip>
           </div>
-          <div v-if="scope.row.override_props">
+          <div v-if="Object.keys(scope.row.override_props).length">
             <div v-for="(propValue, key) in scope.row.override_props" :key="key">
-              <template v-if="key.includes('kylin.engine.spark-conf')">
+              <template v-if="key.includes('kylin.engine.spark-conf') && defaultConfigs.includes(key.replace(/^kylin.engine.spark-conf./, ''))">
                 <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
                   <!-- 去掉前缀kylin.engine.spark-conf. -->
                   {{key}}:<span>{{propValue}}</span>
@@ -250,6 +250,8 @@ export default class SettingStorage extends Vue {
     'is-base-cuboid-always-valid': 'is-base-cuboid-always-valid',
     'customSettings': 'customSettings'
   }
+  defaultConfigs = ['spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
+
   get emptyText () {
     return this.filter.model_name ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
