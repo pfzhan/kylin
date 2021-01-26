@@ -30,16 +30,18 @@
     <!-- 解析zip元数据包界面 -->
     <div class="modal-parse-contain" v-loading="isSubmiting" v-else-if="isBodyShow && step === 'second'">
       <div class="modal-tables">
-        <el-table class="model-list" border :data="models" size="small" :row-class-name="tableRowClassName" @row-click="activeModal">
+        <el-table class="model-list" border :data="models" size="small" refs="parseModelList" :row-class-name="tableRowClassName" @row-click="activeModal">
           <el-table-column prop="target_name" class-name="model-name-item" :label="$t('modelName')">
             <template slot-scope="scope">
-              <span :class="[importModelStatus(scope.row)]"></span>
-              <template v-if="scope.row.action === 'new'">
-                <el-input :class="{'error-tip': scope.row.isNameError}" v-model="scope.row.target_name" size="mini" @change="handleRenameReset(scope.row)"/>
-                <div class="rename-error" v-if="scope.row.isNameError">{{$t(scope.row.nameErrorMsg)}}</div>
-              </template>
-              <template v-else>
-                <span v-custom-tooltip="{text: scope.row.original_name, w: 0}">{{scope.row.original_name}}</span>
+              <template v-if="showParseTable">
+                <span :class="[importModelStatus(scope.row)]"></span>
+                <span v-if="scope.row.action === 'new'">
+                  <el-input :class="{'error-tip': scope.row.isNameError}" v-model="scope.row.target_name" size="mini" @change="handleRenameReset(scope.row)"/>
+                  <div class="rename-error" v-if="scope.row.isNameError">{{$t(scope.row.nameErrorMsg)}}</div>
+                </span>
+                <span class="model-name-layout" v-else>
+                  <span class="model-name-elip" v-custom-tooltip="{text: scope.row.original_name, w: 0, tableClassName: 'model-list'}">{{scope.row.original_name}}</span>
+                </span>
               </template>
             </template>
           </el-table-column>
@@ -274,9 +276,17 @@
       <p class="title">{{$t('confirmImportTips')}}</p>
       <div class="contain" v-for="(item, index) in importModalView" :key="index">
         <p class="contain-item">{{$t(item.title, {num: item.value.length})}}</p>
-        <div class="confirm-box">
-          <p v-for="(it, index) in item.value" :key="index">{{it}}</p>
-        </div>
+        <template v-if="item.key !== 'replace'">
+          <div class="confirm-box">
+            <p v-for="(it, index) in item.value" :key="index">{{it.name}}</p>
+          </div>
+        </template>
+        <template v-else>
+          <el-alert class="ksd-mb-10" :title="$t('changeSubPartitionTip')" type="warning" show-icon :closable="false" v-if="item.value.filter(it => it.change_subpartition_value).length > 0" />
+          <div class="confirm-box">
+            <p v-for="(it, index) in item.value" :key="index"><i class="el-icon-ksd-info is-warning ksd-mr-5" v-show="it.change_subpartition_value"></i>{{it.name}}</p>
+          </div>
+        </template>
       </div>
     </div>
     <div slot="footer" class="dialog-footer ky-no-br-space">
@@ -344,7 +354,8 @@ vuex.registerModule(['modals', 'ModelsImportModal'], store)
       setModalForm: actionTypes.SET_MODAL_FORM,
       setModal: actionTypes.SET_MODAL,
       hideModal: actionTypes.HIDE_MODAL,
-      initModal: actionTypes.INIT_MODAL
+      initModal: actionTypes.INIT_MODAL,
+      changeModalData: actionTypes.CHANGE_MODAL_DATA
     }),
     ...mapActions('ModelsImportModal', {
       uploadMetadataFile: actionTypes.UPLOAD_MODEL_METADATA_FILE,
@@ -380,6 +391,7 @@ export default class ModelsImportModal extends Vue {
   showModelDetails = false
   noImportReason = []
   noOverWriteReason = []
+  showParseTable = true
 
   get rules () {
     return {
@@ -435,10 +447,16 @@ export default class ModelsImportModal extends Vue {
       replace: [],
       noImport: []
     }
+    let changeSubPartitionValuelist = []
     this.models.forEach(element => {
       modalTypes[element.action].push(element.target_name)
+      if (element.modified && element.modified.partitionColumns && element.modified.partitionColumns.list.length) {
+        let list = element.modified.partitionColumns.list.filter(it => it.type === 'MODEL_MULTIPLE_PARTITION' && ArrayFlat(it.second_attributes.partitions).join(',') !== ArrayFlat(it.first_attributes.partitions).join(','))
+        changeSubPartitionValuelist = list.map(it => it.model_alias)
+      }
     })
-    return Object.entries(modalTypes).map(([title, value]) => ({title: `${title}ConfirmTips`, value})).filter(it => it.value.length)
+
+    return Object.entries(modalTypes).map(([title, v]) => ({title: `${title}ConfirmTips`, key: title, value: v.map((item) => ({name: item, change_subpartition_value: changeSubPartitionValuelist.includes(item)}))})).filter(it => it.value.length)
   }
 
   get getImportBtnText () {
@@ -534,6 +552,10 @@ export default class ModelsImportModal extends Vue {
     }
     row.isNameError = false
     row.nameErrorMsg = ''
+    this.showParseTable = false
+    this.$nextTick(() => {
+      this.showParseTable = true
+    })
   }
 
   // 重置重名校验
@@ -986,6 +1008,9 @@ export default class ModelsImportModal extends Vue {
       box-sizing: border-box;
       height: auto;
       overflow: auto;
+      .is-warning {
+        color: @warning-color-1;
+      }
     }
     .contain {
       margin-top: 10px;
@@ -1081,6 +1106,27 @@ export default class ModelsImportModal extends Vue {
         vertical-align: top;
         line-height: 20px;
       }
+    }
+    .model-name-layout {
+      width: calc(~'100% - 20px');
+      height: 20px;
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: top;
+      .tip_box {
+        height: 100%;
+      }
+    }
+    .model-name-elip {
+      display: -webkit-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal;
+      -webkit-line-clamp: 1;
+      /*! autoprefixer: off */
+      -webkit-box-orient: vertical;
+      /* autoprefixer: on */
+      white-space: nowrap\0 !important;
     }
   }
   .model-type-header {

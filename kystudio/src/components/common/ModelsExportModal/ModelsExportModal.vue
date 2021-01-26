@@ -60,8 +60,13 @@
             <el-checkbox v-model="form.exportRecommendations" :disabled="changeCheckboxType('rec') === selectedModals.length">{{$t('recommendations')}}</el-checkbox>
           </el-tooltip>
         </p>
-        <el-tooltip :content="$t('disabledOverrideTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('ops') !== selectedModals.length">
-          <el-checkbox v-model="form.exportOverProps" :disabled="changeCheckboxType('ops') === selectedModals.length">{{$t('override')}}</el-checkbox>
+        <p class="mrgb15">
+          <el-tooltip :content="$t('disabledOverrideTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('ops') !== selectedModals.length">
+            <el-checkbox v-model="form.exportOverProps" :disabled="changeCheckboxType('ops') === selectedModals.length">{{$t('override')}}</el-checkbox>
+          </el-tooltip>
+        </p>
+        <el-tooltip :content="$t('disabledMultPartitionTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('mult-partition') !== selectedModals.length">
+          <el-checkbox v-model="form.exportMultiplePartitionValues" :disabled="changeCheckboxType('mult-partition') === selectedModals.length">{{$t('subPartitionValues')}}</el-checkbox>
         </el-tooltip>
       </div>
     </div>
@@ -155,8 +160,10 @@ export default class ModelsExportModal extends Vue {
   changeCheckboxType (type) {
     if (type === 'rec') {
       return this.models.filter(it => this.selectedModals.includes(it.id) && !it.has_recommendations).length
-    } else {
+    } else if (type === 'ops') {
       return this.models.filter(it => this.selectedModals.includes(it.id) && !it.has_override_props).length
+    } else if (type === 'mult-partition') {
+      return this.models.filter(it => this.selectedModals.includes(it.id) && !it.has_multiple_partition_values).length
     }
   }
 
@@ -208,16 +215,13 @@ export default class ModelsExportModal extends Vue {
   handleSelectModels (data) {
     const hasRecommendationList = this.models.filter(it => data.includes(it.id) && it.has_recommendations)
     const hasOverrideProps = this.models.filter(it => data.includes(it.id) && it.has_override_props)
-    this.setModalForm({ ids: data, exportRecommendations: !hasRecommendationList.length && this.form.exportRecommendations ? false : this.form.exportRecommendations, exportOverProps: !hasOverrideProps.length && this.form.exportOverProps ? false : this.form.exportOverProps })
-    // if (!hasRecommendationList.length) {
-    //   this.setModalForm({ ids: data, exportRecommendations: false })
-    // } else if (!hasOverrideProps.length) {
-    //   this.setModalForm({ ids: data, exportOverProps: false })
-    // } else if (!hasRecommendationList.length && !hasOverrideProps.length) {
-    //   this.setModalForm({ ids: data, exportRecommendations: false, exportOverProps: false })
-    // } else {
-    //   this.setModalForm({ ids: data })
-    // }
+    const hasMultPartitions = this.models.filter(it => data.includes(it.id) && it.has_multiple_partition_values)
+    this.setModalForm({
+      ids: data,
+      exportRecommendations: !hasRecommendationList.length && this.form.exportRecommendations ? false : this.form.exportRecommendations,
+      exportOverProps: !hasOverrideProps.length && this.form.exportOverProps ? false : this.form.exportOverProps,
+      exportMultiplePartitionValues: !hasMultPartitions.length && this.form.exportMultiplePartitionValues ? false : this.form.exportMultiplePartitionValues
+    })
   }
 
   handleCancel () {

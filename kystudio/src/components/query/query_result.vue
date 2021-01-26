@@ -122,7 +122,7 @@
     </template>
     <!-- 可视化 tab -->
     <template v-if="activeResultType === 'visualization'">
-      <div class="chart-headers">
+      <div class="chart-headers" v-if="charts.dimension && charts.measure">
         <el-row class="ksd-mt-10" :gutter="5">
           <el-col :span="4" class="title">{{$t('chartType')}}</el-col>
           <el-col :span="10" class="title">{{$t('chartDimension')}}</el-col>
@@ -130,17 +130,17 @@
         </el-row>
         <el-row :gutter="5">
           <el-col :span="4" class="content">
-            <el-select v-model="charts.type" @change="changeChartType">
+            <el-select v-model="charts.type" :placeholder="$t('pleaseSelect')" @change="changeChartType">
               <el-option v-for="item in chartTypeOptions" :label="$t(item.text)" :disabled="item.isDisabled" :key="item.value" :value="item.value"></el-option>
             </el-select>
           </el-col>
           <el-col :span="10" class="content">
-            <el-select v-model="charts.dimension" @change="changeChartDimension">
+            <el-select v-model="charts.dimension" :placeholder="$t('pleaseSelect')" @change="changeChartDimension">
               <el-option v-for="item in chartDimensionOptions.map(it => ({text: it, value: it}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
             </el-select>
           </el-col>
           <el-col :span="10" class="content">
-            <el-select v-model="charts.measure" @change="changeChartMeasure">
+            <el-select v-model="charts.measure" :placeholder="$t('pleaseSelect')" @change="changeChartMeasure">
               <el-option v-for="item in chartMeasureList.map(v => ({text: v, value: v}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
             </el-select>
           </el-col>
@@ -220,7 +220,8 @@ import echarts from 'echarts'
       FETCH_RESULT: 'Receiving result',
       SQL_PUSHDOWN_TRANSFORMATION: 'SQL pushdown transformation',
       CONSTANT_QUERY: 'Constant query',
-      HIT_CACHE: 'Cache hit'
+      HIT_CACHE: 'Cache hit',
+      pleaseSelect: 'Please select'
     },
     'zh-cn': {
       username: '用户名',
@@ -260,7 +261,8 @@ import echarts from 'echarts'
       FETCH_RESULT: '返回结果',
       SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
       CONSTANT_QUERY: '常数查询',
-      HIT_CACHE: '击中缓存'
+      HIT_CACHE: '击中缓存',
+      pleaseSelect: '请选择'
     }
   },
   filters: {

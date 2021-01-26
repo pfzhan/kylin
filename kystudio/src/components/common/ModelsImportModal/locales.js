@@ -107,7 +107,8 @@ export default {
     noFoundItems: 'Can\'t find {items} used in the model in the current project',
     columnsDataTypeConflict: 'The columns\'s data types is inconsistent. ',
     cannotOverwriteTips: 'This causes the model can\'t replace the existing one in the project.',
-    or: ' or '
+    or: ' or ',
+    changeSubPartitionTip: 'Once imported, the query performance might be affected. The existing built data for the current subpartitions would be deleted.'
   },
   'zh-cn': {
     importModelsMetadata: '导入模型',
@@ -183,12 +184,12 @@ export default {
     measureName: '度量名称：',
     measureFunction: '函数：',
     measureFunctionParams: '返回类型：',
-    confirmImportTips: '在导入前，请再次确认对导入模型的操作。',
+    confirmImportTips: '在导入前，请再次确认对模型的操作。',
     newConfirmTips: '新建 ({num})',
     replaceConfirmTips: '覆盖 ({num})',
     noImportConfirmTips: '不导入 ({num})',
     confirmNoImportBtn: '确定不导入',
-    confirmImportBtn: '确定导入',
+    confirmImportBtn: '确定',
     sameCCNameTips: '当前项目中模型已存在同名可计算列，但表达式不一致。请重新命名。',
     sameCCExpressionTips: '当前项目模型已存在相同表达式的可计算列，但名称为 "{sameCCName}"。请重新命名。',
     validateErrorTips: '解析失败，请检查模型数据包是否完整。',
@@ -217,6 +218,7 @@ export default {
     noFoundItems: '当前项目数据源中找不到导入模型中引用的{items}。',
     columnsDataTypeConflict: '列的数据类型不一致。',
     cannotOverwriteTips: '该变动导致无法覆盖同名模型。',
-    or: '或'
+    or: '或',
+    changeSubPartitionTip: '覆盖后可能会影响部分模型的查询性能，因为现有子分区值的构建数据将被删除。'
   }
 }

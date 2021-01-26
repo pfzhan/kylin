@@ -18,7 +18,9 @@ export default {
     loading: 'Loading...',
     disabledRecommendationTip: 'No recommendations for the selected model(s)',
     disabledOverrideTip: 'No overrides for the selected model(s)',
-    exportBrokenModelCheckboxTip: 'Can\'t export model file at the moment as the model is BROKEN'
+    exportBrokenModelCheckboxTip: 'Can\'t export model file at the moment as the model is BROKEN',
+    subPartitionValues: 'Sub partition values',
+    disabledMultPartitionTip: 'No subpartitions included in the selected model(s)'
   },
   'zh-cn': {
     exportModel: '导出模型',
@@ -39,6 +41,8 @@ export default {
     loading: '加载中...',
     disabledRecommendationTip: '所选模型无优化建议',
     disabledOverrideTip: '所选模型无重写设置',
-    exportBrokenModelCheckboxTip: '该模型状态为 BROKEN，无法导出'
+    exportBrokenModelCheckboxTip: '该模型状态为 BROKEN，无法导出',
+    subPartitionValues: '子分区值',
+    disabledMultPartitionTip: '所选模型均无子分区值'
   }
 }

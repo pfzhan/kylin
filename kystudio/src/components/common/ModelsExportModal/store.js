@@ -12,7 +12,8 @@ export function getInitialState () {
     form: {
       ids: [],
       exportRecommendations: false,
-      exportOverProps: false
+      exportOverProps: false,
+      exportMultiplePartitionValues: false
     }
   }
 }
@@ -52,7 +53,7 @@ export default {
       }
     },
     [actionTypes.RESET_MODAL_STATE] (state) {
-      state.form = {ids: [], exportRecommendations: false, exportOverProps: false}
+      state.form = {ids: [], exportRecommendations: false, exportOverProps: false, exportMultiplePartitionValues: false}
     }
   },
   actions: {

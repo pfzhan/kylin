@@ -2,14 +2,6 @@
   <!-- 模型构建 -->
     <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal(false)">
       <div>
-        <!-- <el-alert
-          :title="$t('changeBuildTypeTips')"
-          type="warning"
-          :show-background="false"
-          :closable="false"
-          class="ksd-mb-10 ksd-pl-2"
-          show-icon>
-        </el-alert> -->
         <p class="segment-tips ksd-fs-12"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('changeBuildTypeTips')}}</p>
         <div class="ksd-title-label-small ksd-mb-10">{{$t('chooseBuildType')}}</div>
         <!-- <div>
@@ -137,14 +129,6 @@
                 {{$t('customLoadRange')}}
               </el-radio>
               <br/> -->
-              <!-- <el-alert
-                class="ksd-pt-0"
-                :title="$t('segmentTips')"
-                type="warning"
-                :show-background="false"
-                :closable="false"
-                show-icon>
-              </el-alert> -->
               <p class="ksd-pt-0 ksd-fs-12 segment-tips"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('segmentTips')}}</p>
               <div class="ky-no-br-space" style="height:32px;">
                 <el-date-picker
