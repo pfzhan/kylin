@@ -34,6 +34,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +48,7 @@ import lombok.val;
 public class LicenseFilter implements Filter {
 
     private static final String PREFIX = "/kylin/api/";
-    private static String[] apiWhiteList = { "config", "system", "error", "health", "prometheus"};
+    private static String[] apiWhiteList = {"config", "system", "error", "health", "prometheus"};
 
     @Autowired
     private LicenseInfoService licenseInfoService;
@@ -70,7 +71,11 @@ public class LicenseFilter implements Filter {
                         val info = licenseInfoService.extractLicenseInfo();
                         licenseInfoService.verifyLicense(info);
                     } catch (Exception e) {
-                        servletRequest.setAttribute("error", new UnauthorizedException(e.getMessage()));
+                        if (e instanceof KylinException) {
+                            servletRequest.setAttribute("error", e);
+                        } else {
+                            servletRequest.setAttribute("error", new UnauthorizedException(e.getMessage()));
+                        }
                         servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
                         return;
                     }
