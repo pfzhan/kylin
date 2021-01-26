@@ -1225,6 +1225,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.engine.executor-instance-strategy", "100,2,500,3,1000,4");
     }
 
+    public Double getSparkEngineResourceRequestOverLimitProportion() {
+        return Double.parseDouble(getOptional("kylin.engine.resource-request-over-limit-proportion", "1.0"));
+    }
+
     // ============================================================================
     // ENGINE.SPARK
     // ============================================================================

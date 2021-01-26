@@ -25,7 +25,7 @@ package org.apache.spark.utils
 import java.util.{Map => JMap}
 
 import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
-import io.kyligence.kap.engine.spark.job.SparkJobConstants
+import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, SparkJobConstants}
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.application.NoRetryException
@@ -59,6 +59,8 @@ object ResourceUtils extends Logging {
 
   @throws(classOf[Exception])
   def checkResource(sparkConf: SparkConf, clusterManager: IClusterManager): Boolean = {
+    verifyClusterResource(clusterManager.fetchMaximumResourceAllocation, sparkConf)
+
     val queue = sparkConf.get("spark.yarn.queue", "default")
     val driverMemory = (Utils.byteStringAsMb(sparkConf.get(DRIVER_MEMORY)) + Utils.byteStringAsMb(sparkConf.get(DRIVER_OVERHEAD))).toInt
     val driverCores = sparkConf.get(DRIVER_CORES).toInt
@@ -92,5 +94,30 @@ object ResourceUtils extends Logging {
     val mm = queueAvailable.max.memory - memory
     val mv = queueAvailable.max.vCores - vCores
     AvailableResource(ResourceInfo(am, av), ResourceInfo(mm, mv))
+  }
+
+  private def verifyClusterResource(maxResource: ResourceInfo, sparkConf: SparkConf): Unit = {
+    val mp = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
+    val olp = KylinBuildEnv.get().kylinConfig.getSparkEngineResourceRequestOverLimitProportion
+    val maxMem = maxResource.memory * mp
+    val executorMem = (Utils.byteStringAsMb(sparkConf.get(EXECUTOR_MEMORY)) + Utils.byteStringAsMb(sparkConf.get(EXECUTOR_OVERHEAD))).toInt
+    logInfo(s"Verifying our application has not requested s($executorMem MB per executor) more than the maximum allocation " +
+      s"memory capability of the cluster ($maxMem MB per container)")
+    if (maxMem < executorMem) {
+      logInfo(s"Use kylin.engine.resource-request-over-limit-proportion $olp")
+      if (maxMem * olp > executorMem) {
+        logInfo(s"The maximum memory capability tolerate maximum requested ${maxMem * olp} MB per executor")
+        val rp = maxMem * 1.0 / executorMem
+        val executorOverhead = (Utils.byteStringAsMb(sparkConf.get(EXECUTOR_OVERHEAD)) * rp).toInt
+        val executorMemory = (Utils.byteStringAsMb(sparkConf.get(EXECUTOR_MEMORY)) * rp).toInt
+        sparkConf.set(EXECUTOR_OVERHEAD, s"${executorOverhead}MB")
+        sparkConf.set(EXECUTOR_MEMORY, s"${executorMemory}MB")
+        logInfo(s"Set spark.executor.memoryOverhead to ${executorOverhead}MB")
+        logInfo(s"Set spark.executor.memory to ${executorMemory}MB")
+      } else {
+        throw new NoRetryException(s"Our application has requested s($executorMem MB per executor) more than the maximum allocation " +
+          s"memory capability of the cluster $maxMem MB per container")
+      }
+    }
   }
 }
