@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.ServiceTestBase;
@@ -61,6 +62,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     private NProjectManager projectManager;
     @InjectMocks
     private final SparkSourceService sparkSourceService = Mockito.spy(new SparkSourceService());
+    private TestingServer zkTestServer;
 
     @Before
     public void setUp() throws Exception {
@@ -84,6 +86,10 @@ public class SparkSourceServiceTest extends ServiceTestBase {
                 + "with serdeproperties(\"separatorChar\" = \",\", \"quoteChar\" = \"\\\"\") location "
                 + "'../examples/test_case_data/localmeta/data'");
         sparkSourceService.executeSQL(ddlRequest);
+        zkTestServer = new TestingServer(true);
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kap.env.zookeeper-max-retries", "1");
+        overwriteSystemProp("kap.env.zookeeper-base-sleep-time", "1000");
     }
 
     @After
@@ -169,6 +175,14 @@ public class SparkSourceServiceTest extends ServiceTestBase {
     @Test
     public void testLoadSamples() throws IOException {
         Assert.assertEquals(9, sparkSourceService.loadSamples(ss, SaveMode.Overwrite).size());
+        // KC-6666, table not exists but table location exists
+        // re-create spark context and re-load samples
+        {
+            ss.stop();
+            ss = SparkSession.builder().appName("local").master("local[1]").enableHiveSupport().getOrCreate();
+            ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
+                    "jdbc:derby:memory:db;create=true");
+        }
         Assert.assertEquals(9, sparkSourceService.loadSamples(ss, SaveMode.Overwrite).size());
         FileUtils.deleteDirectory(new File("spark-warehouse"));
     }

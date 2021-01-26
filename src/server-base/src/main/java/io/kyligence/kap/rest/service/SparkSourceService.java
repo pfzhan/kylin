@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -36,6 +37,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.lock.curator.CuratorDistributedLock;
+import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.StringUtil;
@@ -244,47 +247,68 @@ public class SparkSourceService extends BasicService {
     }
 
     public List<String> loadSamples(SparkSession ss, SaveMode mode) throws IOException {
+        CuratorDistributedLock lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread("samples");
         //list samples and use file-name as table name
         List<File> fileList = listSampleFiles();
         List<String> createdTables = Lists.newArrayList();
-        for (File file : fileList) {
-            if (!file.isDirectory()) {
-                continue;
-            }
-            String fileName = file.getName(), tableName = fileName, db = "DEFAULT";
-            if (fileName.contains(".")) {
-                db = fileName.split("\\.")[0];
-                if (!ss.catalog().databaseExists(db)) {
-                    ss.sql("create database " + db);
+        lock.lock(60, TimeUnit.SECONDS);
+        try {
+            for (File file : fileList) {
+                if (!file.isDirectory()) {
+                    continue;
                 }
-            } else {
-                tableName = String.format(Locale.ROOT, "%s.%s", db, tableName);
-            }
-            String filePath = file.getAbsolutePath();
-            FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
-            String hdfsPath = String.format(Locale.ROOT, "/tmp/%s", fileName);
-            try {
-                log.debug("Copy from {} to {}", filePath, hdfsPath);
-                File[] parquetFiles = file.listFiles();
-                if (parquetFiles != null) {
-                    for (File parquetFile : parquetFiles) {
-                        fileSystem.copyFromLocalFile(new Path(parquetFile.getAbsolutePath()), new Path(hdfsPath));
+                String fileName = file.getName(), table = fileName, tableName = table, db = "DEFAULT";
+                if (fileName.contains(".")) {
+                    String[] splits = fileName.split("\\.");
+                    db = splits[0];
+                    tableName = splits[1];
+                    if (!ss.catalog().databaseExists(db)) {
+                        ss.sql("create database if not exists " + db);
+                    }
+                } else {
+                    table = String.format(Locale.ROOT, "%s.%s", db, table);
+                }
+                if (!ss.catalog().tableExists(table)) {
+                    String filePath = file.getAbsolutePath();
+                    FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();
+                    String hdfsPath = String.format(Locale.ROOT, "/tmp/%s", fileName);
+                    try {
+                        log.debug("Copy from {} to {}", filePath, hdfsPath);
+                        File[] parquetFiles = file.listFiles();
+                        if (parquetFiles != null) {
+                            for (File parquetFile : parquetFiles) {
+                                fileSystem.copyFromLocalFile(new Path(parquetFile.getAbsolutePath()),
+                                        new Path(hdfsPath));
+                            }
+                        }
+                        // KC-6666, check and delete location
+                        String tbLocation = String.format(Locale.ROOT, "%s/%s",
+                                ss.catalog().getDatabase(db).locationUri(), tableName);
+                        FileSystem fs = FileSystem.get(ss.sparkContext().hadoopConfiguration());
+                        Path path = new Path(tbLocation);
+                        if (fs.exists(path)) {
+                            log.debug("Delete existed table location {}", path.toString());
+                            fs.delete(path, true);
+                        }
+                        ss.read().parquet(hdfsPath).write().mode(mode).saveAsTable(table);
+                    } catch (Exception e) {
+                        log.error("Load sample {} failed.", fileName, e);
+                        throw new IllegalStateException(String.format(Locale.ROOT, "Load sample %s failed", fileName),
+                                e);
+                    } finally {
+                        fileSystem.delete(new Path(hdfsPath), false);
                     }
                 }
-                ss.read().parquet(hdfsPath).write().mode(mode).saveAsTable(tableName);
-            } catch (Exception e) {
-                log.error("Load sample {} failed.", fileName, e);
-                throw new IllegalStateException(String.format(Locale.ROOT, "Load sample %s failed", fileName), e);
-            } finally {
-                fileSystem.delete(new Path(hdfsPath), false);
+                createdTables.add(table);
             }
-            createdTables.add(tableName);
+            if (ss.catalog().tableExists(TABLE_LINEORDER)) {
+                ss.sql(CREATE_VIEW_P_LINEORDER);
+                createdTables.add(VIEW_P_LINEORDER);
+            }
+            log.info("Load samples {} successfully", StringUtil.join(createdTables, ","));
+        } finally {
+            lock.unlock();
         }
-        if (ss.catalog().tableExists(TABLE_LINEORDER)) {
-            ss.sql(CREATE_VIEW_P_LINEORDER);
-            createdTables.add(VIEW_P_LINEORDER);
-        }
-        log.info("Load samples {} successfully", StringUtil.join(createdTables, ","));
         return createdTables;
     }
 
