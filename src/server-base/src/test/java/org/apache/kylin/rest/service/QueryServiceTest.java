@@ -940,9 +940,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(response, project));
         //let model offline
-        dataflowManager.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
-        });
+        dataflowManager.updateDataflowStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE);
         Assert.assertTrue(QueryCacheSignatureUtil.checkCacheExpired(response, project));
     }
 

@@ -98,9 +98,8 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testEmptySegments() throws Exception {
-        NDataflowManager.getInstance(config, getProject()).updateDataflow(DF_NAME2, d -> {
-            d.setStatus(RealizationStatusEnum.OFFLINE);
-        });
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, getProject());
+        dataflowManager.updateDataflowStatus(DF_NAME2, RealizationStatusEnum.OFFLINE);
 
         cleanupSegments(DF_NAME1);
 
@@ -125,9 +124,7 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         testQuery(SQL);
         testQuery(SQL_DERIVED);
 
-        NDataflowManager.getInstance(config, getProject()).updateDataflow(DF_NAME2, d -> {
-            d.setStatus(RealizationStatusEnum.ONLINE);
-        });
+        dataflowManager.updateDataflowStatus(DF_NAME2, RealizationStatusEnum.ONLINE);
     }
 
     private void cleanupSegments(String dfName) {

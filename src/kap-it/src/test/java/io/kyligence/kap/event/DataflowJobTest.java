@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.event;
 
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.OFFLINE;
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
@@ -104,8 +101,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         KylinConfig testConfig = getTestConfig();
         val dataflowManager = NDataflowManager.getInstance(testConfig, DEFAULT_PROJECT);
         // model status changes from offline to online automatically
-        dataflowManager.updateDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a",
-                copyForWrite -> copyForWrite.setStatus(OFFLINE));
+        dataflowManager.updateDataflowStatus("741ca86a-1f13-46da-a59f-95fb68615e3a", RealizationStatusEnum.OFFLINE);
         val cubeManager = NIndexPlanManager.getInstance(testConfig, DEFAULT_PROJECT);
         val df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         prepareFirstSegment(df.getUuid());
@@ -148,8 +144,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val modelManager = NDataModelManager.getInstance(testConfig, DEFAULT_PROJECT);
         val dataflowManager = NDataflowManager.getInstance(testConfig, DEFAULT_PROJECT);
         // model status changes from offline to online automatically
-        dataflowManager.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                copyForWrite -> copyForWrite.setStatus(OFFLINE));
+        dataflowManager.updateDataflowStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE);
         val df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         prepareFirstSegment(df.getUuid());
         modelManager.updateDataModel(df.getModel().getUuid(), copyForWrite -> {
@@ -199,8 +194,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val dataflowManager = NDataflowManager.getInstance(testConfig, DEFAULT_PROJECT);
         val cubeManager = NIndexPlanManager.getInstance(testConfig, DEFAULT_PROJECT);
         // model status changes from offline to online automatically
-        dataflowManager.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                copyForWrite -> copyForWrite.setStatus(OFFLINE));
+        dataflowManager.updateDataflowStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE);
         var df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         prepareSegment(df.getUuid(), "2012-01-01", "2012-06-01", true);
         prepareSegment(df.getUuid(), "2012-06-01", "2012-09-01", false);
@@ -244,10 +238,10 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         // offline model forcely
         indexManager.updateIndexPlan(modelId,
                 copyForWrite -> copyForWrite.getOverrideProps().put(KylinConfig.MODEL_OFFLINE_FLAG, "true"));
-        dataflowManager.updateDataflow(modelId, copyForWrite -> copyForWrite.setStatus(ONLINE));
+        dataflowManager.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
         prepareFirstSegment(modelId);
         val df2 = dataflowManager.getDataflow(modelId);
-        Assert.assertEquals(df2.getStatus(), OFFLINE);
+        Assert.assertEquals(df2.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
     @Test
@@ -284,7 +278,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val jobId = JobManager.getInstance(getTestConfig(), project)
                 .addIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
         waitJobFinish(jobId, 240 * 1000, project);
-        Assert.assertEquals(dfManager.getDataflow(model.getId()).getStatus(), OFFLINE);
+        Assert.assertEquals(dfManager.getDataflow(model.getId()).getStatus(), RealizationStatusEnum.OFFLINE);
         scheduler.shutdown();
     }
 

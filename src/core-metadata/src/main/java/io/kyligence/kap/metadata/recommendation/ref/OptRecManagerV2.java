@@ -39,6 +39,8 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -102,7 +104,11 @@ public class OptRecManagerV2 {
             ccMap.putIfAbsent(computedColumn.getColumnName().toUpperCase(Locale.ROOT), computedColumn);
         }
         for (NDataModel.NamedColumn column : model.getAllNamedColumns()) {
-            ColumnDesc columnDesc = model.getEffectiveCols().get(column.getId()).getColumnDesc();
+            TblColRef tblColRef = model.getEffectiveCols().get(column.getId());
+            if (tblColRef == null) {
+                continue;
+            }
+            ColumnDesc columnDesc = tblColRef.getColumnDesc();
             if (!column.isExist() || columnDesc.isComputedColumn()) {
                 continue;
             }
@@ -135,8 +141,10 @@ public class OptRecManagerV2 {
     }
 
     public void checkMeasureName(NDataModel model, NDataModel.Measure measure) {
-        val contains = model.getAllMeasures().stream().anyMatch(c -> c.getName().equals(measure.getName()));
-        if (contains) {
+        Set<String> measureSet = model.getAllMeasures().stream() //
+                .filter(measure1 -> !measure1.isTomb()) //
+                .map(MeasureDesc::getName).collect(Collectors.toSet());
+        if (measureSet.contains(measure.getName())) {
             throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
                     MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
         }

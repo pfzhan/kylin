@@ -52,14 +52,13 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     private NDataLoadingRangeManager dataLoadingRangeManager;
-    private String DEFAULT_PROJECT = "default";
+    private static final String DEFAULT_PROJECT = "default";
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
         dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
     }
-
 
     @After
     public void tearDown() {
@@ -305,9 +304,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         update.setStatus(RealizationStatusEnum.ONLINE);
         dataflowManager.updateDataflow(update);
 
-        dataflowManager.updateDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", d -> {
-            d.setStatus(RealizationStatusEnum.OFFLINE);
-        });
+        dataflowManager.updateDataflowStatus("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", RealizationStatusEnum.OFFLINE);
 
         val range = dataLoadingRangeManager.getQuerableSegmentRange(loadingRange);
         Assert.assertEquals("2010-12-24 20:33:39.000", DateFormat.formatToTimeStr(Long.parseLong(range.getStart().toString())));

@@ -77,8 +77,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         }
 
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        dfManager.updateDataflow(dataflow.getId(),
-                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND));
+        dfManager.updateDataflowStatus(dataflow.getId(), RealizationStatusEnum.LAG_BEHIND);
     }
 
     private NDataflow getDataflow(String jobId) {

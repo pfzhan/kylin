@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.LAG_BEHIND;
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
@@ -97,11 +94,11 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         super.markDFStatus();
         val df = dfManager.getDataflow(getModelId());
         RealizationStatusEnum status = df.getStatus();
-        if (LAG_BEHIND == status) {
+        if (RealizationStatusEnum.LAG_BEHIND == status) {
             val model = df.getModel();
             Preconditions.checkState(ManagementType.TABLE_ORIENTED == model.getManagementType());
             if (checkOnline(model) && !df.getIndexPlan().isOfflineManually()) {
-                dfManager.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+                dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
             }
         }
     }
@@ -125,7 +122,8 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         Preconditions.checkState(dataLoadingRange != null);
         val querableSegmentRange = dataLoadingRangeManager.getQuerableSegmentRange(dataLoadingRange);
         Preconditions.checkState(querableSegmentRange != null);
-        val segments = SegmentUtil.getSegmentsExcludeRefreshingAndMerging(df.getSegments().getSegmentsByRange(querableSegmentRange));
+        val segments = SegmentUtil
+                .getSegmentsExcludeRefreshingAndMerging(df.getSegments().getSegmentsByRange(querableSegmentRange));
         for (NDataSegment segment : segments) {
             if (SegmentStatusEnum.NEW == segment.getStatus()) {
                 return false;

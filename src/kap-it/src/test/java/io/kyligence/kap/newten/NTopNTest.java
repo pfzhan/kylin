@@ -128,10 +128,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testTopNCanNotAnswerNonTopNStyleQuery() throws Exception {
-        dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304",
-                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
-        dfMgr.updateDataflow("da101c43-6d22-48ce-88d2-bf0ce0594022",
-                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        dfMgr.updateDataflowStatus("fb6ce800-43ee-4ef9-b100-39d523f36304", RealizationStatusEnum.OFFLINE);
+        dfMgr.updateDataflowStatus("da101c43-6d22-48ce-88d2-bf0ce0594022", RealizationStatusEnum.OFFLINE);
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
                 Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100001L),
@@ -160,10 +158,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSingleDimLayoutCannotAnswerMultiTopnQuery() throws Exception {
-        dfMgr.updateDataflow("79547ec2-350e-4ba4-88f9-099048962ceb",
-                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
-        dfMgr.updateDataflow("da101c43-6d22-48ce-88d2-bf0ce0594022",
-                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        dfMgr.updateDataflowStatus("79547ec2-350e-4ba4-88f9-099048962ceb", RealizationStatusEnum.OFFLINE);
+        dfMgr.updateDataflowStatus("da101c43-6d22-48ce-88d2-bf0ce0594022", RealizationStatusEnum.OFFLINE);
         String dfID = "fb6ce800-43ee-4ef9-b100-39d523f36304";
         //  layout[ID, count(*), sum(price), Topn(price, SELLER_ID)]
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),

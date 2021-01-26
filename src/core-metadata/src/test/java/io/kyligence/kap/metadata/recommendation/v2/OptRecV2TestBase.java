@@ -178,7 +178,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
             modelManager.createDataModelDesc(dataModel, dataModel.getOwner());
             indexPlanManager.createIndexPlan(indexPlan);
             dataflowManager.createDataflow(indexPlan, dataModel.getOwner());
-            dataflowManager.updateDataflow(id, copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+            dataflowManager.updateDataflowStatus(id, RealizationStatusEnum.ONLINE);
         }
         ndataModel = modelManager.getDataModelDesc(getDefaultUUID());
     }

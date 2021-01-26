@@ -69,9 +69,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCanNotAnswer() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        dfMgr.updateDataflow("073198da-ce0e-4a0c-af38-cc27ae31cc0e", copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
-        });
+        dfMgr.updateDataflowStatus("073198da-ce0e-4a0c-af38-cc27ae31cc0e", RealizationStatusEnum.OFFLINE);
         fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
 
         try {

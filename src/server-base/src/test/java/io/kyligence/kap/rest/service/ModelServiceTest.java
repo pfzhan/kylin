@@ -43,7 +43,6 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 import static org.awaitility.Awaitility.await;
 
 import java.io.ByteArrayInputStream;
@@ -392,7 +391,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(20L, 30L));
-        dsMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+        dsMgr.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
 
         val models = modelService.getModels(df.getModelAlias(), getProject(), true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
@@ -1359,7 +1358,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // make model online
         transferProjectToSemiAutoMode(getTestConfig(), project);
         NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dfManager.updateDataflow(targetModel.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+        dfManager.updateDataflowStatus(targetModel.getId(), RealizationStatusEnum.ONLINE);
 
         // optimize with a batch of sql list
         List<String> sqlList = Lists.newArrayList();
@@ -1437,7 +1436,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         transferProjectToSemiAutoMode(getTestConfig(), project);
         NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dfManager.updateDataflow(targetModel.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+        dfManager.updateDataflowStatus(targetModel.getId(), RealizationStatusEnum.ONLINE);
 
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
@@ -1592,7 +1591,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
         val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        Assert.assertEquals(df1.getStatus(), ONLINE);
+        Assert.assertEquals(df1.getStatus(), RealizationStatusEnum.ONLINE);
         modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
                 false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
@@ -5176,9 +5175,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // Multi Partition column change
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
-        dfm.updateDataflow(modelId, copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
-        });
+        dfm.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
         val columns = Lists.<String> newLinkedList();
         columns.add("location");
 
@@ -5190,9 +5187,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // Multi Partition column change to none
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
-        dfm.updateDataflow(modelId, copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
-        });
+        dfm.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(), null);
         val df3 = dfm.getDataflow(modelId);
         Assert.assertEquals(df3.getSegments().size(), 0);
@@ -5200,9 +5195,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // Normal model change to multi partition model
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
-        dfm.updateDataflow(modelId, copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
-        });
+        dfm.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
                 new MultiPartitionDesc(columns));
         val df4 = dfm.getDataflow(modelId);

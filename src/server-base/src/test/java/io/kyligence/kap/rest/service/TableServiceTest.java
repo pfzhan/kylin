@@ -693,7 +693,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(df.getStatus(), RealizationStatusEnum.ONLINE);
-        dfMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND));
+        dfMgr.updateDataflowStatus(df.getId(), RealizationStatusEnum.LAG_BEHIND);
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         var loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNull(loadingRange);

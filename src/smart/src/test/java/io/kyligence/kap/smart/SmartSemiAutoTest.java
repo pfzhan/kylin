@@ -78,9 +78,7 @@ public class SmartSemiAutoTest extends NLocalFileMetadataTestCase {
         indexPlan.setProject(project);
         indexPlanManager.createIndexPlan(indexPlan);
         dataflowManager.createDataflow(indexPlan, "ADMIN");
-        dataflowManager.updateDataflow(baseModel.getUuid(), copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
-        });
+        dataflowManager.updateDataflowStatus(baseModel.getUuid(), RealizationStatusEnum.ONLINE);
 
         val sql1 = "select sum(TEST_KYLIN_FACT.ITEM_COUNT) from TEST_KYLIN_FACT group by TEST_KYLIN_FACT.CAL_DT;";
         val sql2 = "select LEAF_CATEG_ID from TEST_KYLIN_FACT;";

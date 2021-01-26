@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.newten.semi;
 
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -38,6 +36,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -333,7 +332,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         // make model online
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
         NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dfManager.updateDataflow(targetModel.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+        dfManager.updateDataflowStatus(targetModel.getId(), RealizationStatusEnum.ONLINE);
 
         // optimize with a batch of sql list
         List<String> li = Lists.newArrayList();

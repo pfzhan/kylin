@@ -24,25 +24,23 @@
 
 package org.apache.kylin.job.execution;
 
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.OFFLINE;
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @NoArgsConstructor
@@ -92,26 +90,14 @@ public abstract class ExecutableHandler implements IKeepNames {
     }
 
     public void markDFStatus() {
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject());
-        val df = dfManager.getDataflow(getModelId());
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfManager.getDataflow(getModelId());
         boolean isOffline = dfManager.isOfflineModel(df);
-        val status = df.getStatus();
-        switch (status) {
-            case ONLINE:
-                if (isOffline) {
-                    dfManager.updateDataflow(df.getId(),
-                            copyForWrite -> copyForWrite.setStatus(OFFLINE));
-                }
-                break;
-            case OFFLINE:
-                if (!isOffline) {
-                    dfManager.updateDataflow(df.getId(),
-                            copyForWrite -> copyForWrite.setStatus(ONLINE));
-                }
-                break;
-            default:
-                break;
+        RealizationStatusEnum status = df.getStatus();
+        if (RealizationStatusEnum.ONLINE == status && isOffline) {
+            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.OFFLINE);
+        } else if (RealizationStatusEnum.OFFLINE == status && !isOffline) {
+            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
         }
     }
 }

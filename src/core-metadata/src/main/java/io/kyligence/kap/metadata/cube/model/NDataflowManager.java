@@ -204,6 +204,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return onlineModels;
     }
 
+    public NDataflow updateDataflowStatus(String uuid, RealizationStatusEnum status) {
+        return updateDataflow(uuid, copyForWrite -> copyForWrite.setStatus(status));
+    }
+
     // get all models include broken ones
     public List<NDataModel> listUnderliningDataModels(boolean includeBroken) {
         val dataflows = listAllDataflows(includeBroken);

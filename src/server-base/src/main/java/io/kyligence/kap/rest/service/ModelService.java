@@ -296,6 +296,9 @@ public class ModelService extends BasicService {
     private RawRecService rawRecService;
 
     @Autowired
+    private OptRecService optRecService;
+
+    @Autowired
     private AclTCRService aclTCRService;
 
     @Setter
@@ -1451,8 +1454,7 @@ public class ModelService extends BasicService {
                         SegmentStatusEnum.READY);
             }
             if (modelRequest.isWithModelOnline()) {
-                dataflowManager.updateDataflow(df.getId(),
-                        copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+                dataflowManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
             }
 
             updateIndexPlan(project, indexPlan);
@@ -2760,9 +2762,9 @@ public class ModelService extends BasicService {
     }
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
-        val df = dfManager.getDataflow(modelId);
+        NDataflow df = dfManager.getDataflow(modelId);
         if (df.getSegments().isEmpty() && RealizationStatusEnum.ONLINE == df.getStatus()) {
-            dfManager.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+            dfManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.OFFLINE);
         }
     }
 
@@ -3105,14 +3107,17 @@ public class ModelService extends BasicService {
         broken.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
-        val format = probeDateFormatIfNotExist(project, broken);
+        String format = probeDateFormatIfNotExist(project, broken);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModelManager modelMgr = getDataModelManager(project);
             semanticUpdater.updateModelColumns(broken, modelRequest);
-            val model = getDataModelManager(project).updateDataModelDesc(broken);
-            saveDateFormatIfNotExist(project, model.getUuid(), format);
-            getDataflowManager(project).updateDataflow(broken.getId(),
-                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
-            return getDataModelManager(project).getDataModelDesc(model.getUuid());
+            NDataModel model = modelMgr.updateDataModelDesc(broken);
+            modelMgr.updateDataModel(model.getUuid(), copyForWrite -> {
+                optRecService.updateRecommendationCount(project, model.getUuid());
+                saveDateFormatIfNotExist(project, model.getUuid(), format);
+            });
+            getDataflowManager(project).updateDataflowStatus(broken.getId(), RealizationStatusEnum.ONLINE);
+            return modelMgr.getDataModelDesc(model.getUuid());
         }, project);
     }
 

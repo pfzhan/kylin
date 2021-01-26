@@ -815,9 +815,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     public void updateRecommendationCount(String project, String modelId) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            int size = getOptRecLayoutsResponse(project, modelId, OptRecService.ALL).getSize();
             NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
+            int size = getOptRecLayoutsResponse(project, modelId, OptRecService.ALL).getSize();
+            NDataModel dataModel = mgr.getDataModelDesc(modelId);
+            if (dataModel != null && dataModel.getRecommendationsCount() != size) {
+                mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
+            }
             return null;
         }, project);
     }
@@ -827,6 +830,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         ProjectInstance prjInstance = getProjectManager().getProject(project);
         if (prjInstance.isSemiAutoMode()) {
             getOptRecManagerV2(project).loadOptRecV2(modelId);
+            updateRecommendationCount(project, modelId);
         }
     }
 

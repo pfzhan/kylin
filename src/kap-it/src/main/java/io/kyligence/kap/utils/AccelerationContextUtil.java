@@ -25,9 +25,9 @@
 package io.kyligence.kap.utils;
 
 import static org.apache.kylin.common.util.AbstractKylinTestCase.getTestConfig;
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Maps;
 
@@ -96,7 +96,7 @@ public class AccelerationContextUtil {
             if (model == null || dfManager.getDataflow(model.getId()) == null) {
                 return;
             }
-            dfManager.updateDataflow(model.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
+            dfManager.updateDataflowStatus(model.getId(), RealizationStatusEnum.ONLINE);
         });
     }
 }

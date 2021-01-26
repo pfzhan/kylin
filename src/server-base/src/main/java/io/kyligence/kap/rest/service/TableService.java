@@ -493,7 +493,7 @@ public class TableService extends BasicService {
                 if (!columnRows.containsKey(i)) {
                     continue;
                 }
-                val columnRealRows = (AclTCR.ColumnRealRows)columnRows.get(i);
+                val columnRealRows = (AclTCR.ColumnRealRows) columnRows.get(i);
                 if (Objects.isNull(columnRealRows)) {
                     jumpThisSample = true;
                     break;
@@ -632,10 +632,7 @@ public class TableService extends BasicService {
         modelService.purgeModel(modelId, project);
         val dataflow = dfManager.getDataflow(modelId);
         if (RealizationStatusEnum.LAG_BEHIND == dataflow.getStatus()) {
-            dfManager.updateDataflow(dataflow.getId(), copyForWrite -> {
-                copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
-            });
-
+            dfManager.updateDataflowStatus(dataflow.getId(), RealizationStatusEnum.ONLINE);
         }
     }
 
