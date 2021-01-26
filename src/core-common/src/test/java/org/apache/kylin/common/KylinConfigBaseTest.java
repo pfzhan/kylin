@@ -378,9 +378,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getSparkEngineExuctorInstanceStrategy", new PropertiesEntity("kylin.engine.executor-instance-strategy",
                 "100,2,500,3,1000,4", "100,2,500,3,1000,4"));
 
-        map.put("getSparkEngineResourceOverAllocationProportion",
-                new PropertiesEntity("kylin.engine.resource-over-allocation-proportion", "1.0", 1.0));
-
         map.put("getHadoopConfDir", new PropertiesEntity("kylin.env.hadoop-conf-dir", "", ""));
 
         map.put("isUseTableIndexAnswerNonRawQuery",
@@ -823,7 +820,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(432, methodsCount);
+        Assert.assertEquals(431, methodsCount);
     }
 
     @Test

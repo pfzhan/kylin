@@ -23,39 +23,13 @@
 package org.apache.spark.utils
 
 import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, YarnClusterManager}
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
-import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.mockito.Mockito
-import org.scalatest.BeforeAndAfterEach
 
-class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
+class TestResourceUtils extends SparderBaseFunSuite {
   private val fetcher: YarnClusterManager = Mockito.mock(classOf[YarnClusterManager])
-
-  private val config: KylinConfig = Mockito.mock(classOf[KylinConfig])
-  KylinBuildEnv.getOrCreate(config)
-  Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(Integer.MAX_VALUE, Integer.MAX_VALUE))
-
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-  }
-
-  override def afterAll(): Unit = {
-    super.afterAll()
-  }
-
-
-  override protected def beforeEach(): Unit = {
-    super.beforeEach()
-    KylinBuildEnv.getOrCreate(config)
-  }
-
-  override def afterEach(): Unit = {
-    super.afterEach()
-    KylinBuildEnv.clean()
-  }
 
   // test case: available(10, 10)  executor(20, 10) driver(1, 1)
   test("checkResource return false when available memory does not meet acquirement") {
@@ -127,10 +101,8 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     assert(ResourceUtils.checkResource(conf, fetcher))
   }
 
-  // test case: max_capacity(100, 100) max(100, 100)  executor(100, 100) driver(1, 1)
+  // test case: max(100, 100)  executor(100, 100) driver(1, 1)
   test("checkResource throw Exception total resource is not sufficient") {
-    val config = Mockito.mock(classOf[KylinConfig])
-    KylinBuildEnv.getOrCreate(config)
     val conf = new SparkConf()
     conf.set(EXECUTOR_INSTANCES, "1")
     conf.set(EXECUTOR_MEMORY, "50MB")
@@ -139,7 +111,6 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     conf.set(DRIVER_MEMORY, "1MB")
     conf.set(DRIVER_OVERHEAD, "0MB")
     conf.set(DRIVER_CORES, "1")
-    Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(100, 100))
     Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
     try {
       ResourceUtils.checkResource(conf, fetcher)
@@ -148,81 +119,4 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     }
   }
 
-  // test case: max_capacity(1024, 5) executor(2048, 5)
-  test("test KE-24591 with default kylin.engine.resource-over-allocation-proportion") {
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "1")
-    conf.set(EXECUTOR_MEMORY, "1024MB")
-    conf.set(EXECUTOR_OVERHEAD, "1024MB")
-    conf.set(EXECUTOR_CORES, "5")
-    conf.set(DRIVER_MEMORY, "1MB")
-    conf.set(DRIVER_OVERHEAD, "0MB")
-    conf.set(DRIVER_CORES, "1")
-    Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(1024, 5))
-    Mockito.when(config.getSparkEngineResourceOverAllocationProportion).thenReturn(1.0)
-    try {
-      ResourceUtils.checkResource(conf, fetcher)
-    } catch {
-      case e: Exception => assert(e.getMessage.contains("more than the maximum memory capability"))
-    }
-  }
-
-  // test case: max_capacity(1280, 5) executor(2048, 5)
-  test("test KE-24591 with default kylin.engine.resource-over-allocation-proportion=2.0") {
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "1")
-    conf.set(EXECUTOR_MEMORY, "1024MB")
-    conf.set(EXECUTOR_OVERHEAD, "1024MB")
-    conf.set(EXECUTOR_CORES, "4")
-    conf.set(DRIVER_MEMORY, "1MB")
-    conf.set(DRIVER_OVERHEAD, "0MB")
-    conf.set(DRIVER_CORES, "1")
-    Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(1280, 5))
-    Mockito.when(fetcher.fetchQueueAvailableResource("default"))
-      .thenReturn(AvailableResource(ResourceInfo(2048, 5), ResourceInfo(2048, 5)))
-    Mockito.when(config.getSparkEngineResourceOverAllocationProportion).thenReturn(2.0)
-    ResourceUtils.checkResource(conf, fetcher)
-    assert("512MB".equals(conf.get(EXECUTOR_MEMORY)))
-    assert("512MB".equals(conf.get(EXECUTOR_OVERHEAD)))
-  }
-
-  // test case: max_capacity(1860, 5) executor(2048, 5)
-  test("test KE-24591 with default kylin.engine.resource-over-allocation-proportion=1.2") {
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "1")
-    conf.set(EXECUTOR_MEMORY, "1024MB")
-    conf.set(EXECUTOR_OVERHEAD, "1024MB")
-    conf.set(EXECUTOR_CORES, "4")
-    conf.set(DRIVER_MEMORY, "1MB")
-    conf.set(DRIVER_OVERHEAD, "0MB")
-    conf.set(DRIVER_CORES, "1")
-    Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(1860, 5))
-    Mockito.when(fetcher.fetchQueueAvailableResource("default"))
-      .thenReturn(AvailableResource(ResourceInfo(2048, 5), ResourceInfo(2048, 5)))
-    Mockito.when(config.getSparkEngineResourceOverAllocationProportion).thenReturn(1.2)
-    ResourceUtils.checkResource(conf, fetcher)
-    assert("853MB".equals(conf.get(EXECUTOR_MEMORY)))
-    assert("853MB".equals(conf.get(EXECUTOR_OVERHEAD)))
-  }
-
-  // test case: max_capacity(1280, 5) executor(2048, 5)
-  test("test KE-24591 with default kylin.engine.resource-over-allocation-proportion=0") {
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "1")
-    conf.set(EXECUTOR_MEMORY, "1024MB")
-    conf.set(EXECUTOR_OVERHEAD, "1024MB")
-    conf.set(EXECUTOR_CORES, "4")
-    conf.set(DRIVER_MEMORY, "1MB")
-    conf.set(DRIVER_OVERHEAD, "0MB")
-    conf.set(DRIVER_CORES, "1")
-    Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(1280, 5))
-    Mockito.when(fetcher.fetchQueueAvailableResource("default"))
-      .thenReturn(AvailableResource(ResourceInfo(2048, 5), ResourceInfo(2048, 5)))
-    Mockito.when(config.getSparkEngineResourceOverAllocationProportion).thenReturn(0)
-    try {
-      ResourceUtils.checkResource(conf, fetcher)
-    } catch {
-      case e: Exception => assert(e.getMessage.contains("more than the maximum memory capability"))
-    }
-  }
 }
