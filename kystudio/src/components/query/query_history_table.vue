@@ -443,6 +443,8 @@ export default class QueryHistoryTable extends Vue {
           return { text: d, value: d, icon: 'el-icon-ksd-hive' }
         } else if (d === 'CONSTANTS') {
           return { text: d, value: d, icon: 'el-icon-ksd-contants' }
+        } else if (d === 'OBJECT STORAGE') {
+          return { text: d, value: d, icon: 'el-icon-ksd-data_source' }
         } else {
           return { text: d, value: d, icon: 'el-icon-ksd-model' }
         }
@@ -1292,6 +1294,9 @@ export default class QueryHistoryTable extends Vue {
     i {
       margin-right: 5px;
       color: @text-normal-color;
+    }
+    .el-checkbox__input.is-checked+.el-checkbox__label i {
+      color: @base-color;
     }
   }
 </style>

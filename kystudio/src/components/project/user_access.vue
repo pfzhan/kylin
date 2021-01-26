@@ -128,7 +128,7 @@
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
         <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit" @change="isUnCharColumn(row.column_name)">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!row.column_name"></i>
-          <el-option v-for="c in getColumns(row.joinType)" :key="c.name" :label="c.name" :value="c.name">
+          <el-option v-for="c in columns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'like'" :key="c.name" :label="c.name" :value="c.name">
             <el-tooltip :content="c.name" effect="dark" placement="top"><span>{{c.name | omit(30, '...')}}</span></el-tooltip>
             <span class="ky-option-sub-info">{{c.datatype.toLocaleLowerCase()}}</span>
           </el-option>
@@ -150,7 +150,7 @@
           remote
           allow-create
           default-first-option
-          :style="{width: isRowAuthorEdit? '415px' : '342px'}"
+          :class="{'row-values-edit': isRowAuthorEdit, 'row-values-add': !isRowAuthorEdit}"
           @change="setRowValues(row.items, key)"
           :placeholder="$t('pleaseInput')">
         </el-select>
@@ -198,7 +198,7 @@ import { pageSizeMapping } from '../../config'
       editRowAccess: 'Edit Row ACL - {tableName}',
       pleaseInput: 'Please enter values. Use "," to separate multiple values.',
       loadMore: 'Load More ...',
-      tipsTitle: 'The like operator needs to be used with wildcards. ',
+      tipsTitle: 'The row ACL provides = and like operators. The like operator could only be used for char or varchar data type, and needs to be used with wildcards. ',
       viewDetail: 'View Rules',
       rules1: '_ (underscore) wildcard characters, matches any single character. ',
       rules2: '% (percent) wildcard characters, matches with zero or more characters.',
@@ -218,7 +218,7 @@ import { pageSizeMapping } from '../../config'
       editRowAccess: '编辑行级权限 - {tableName}',
       pleaseInput: '请输入值。多个值请用 “,” 分隔。',
       loadMore: '加载更多 ...',
-      tipsTitle: 'like 操作符需要配合通配符使用。',
+      tipsTitle: '行级权限支持 = 和 like 操作符。其中，like 仅支持 char 和 varchar 类型的列，需配合通配符使用。',
       viewDetail: '查看规则',
       rules1: '_（下划线）通配符，匹配任意单个字符。',
       rules2: '%（百分号）通配符，匹配空白字符或任意多个字符。',
@@ -798,6 +798,34 @@ export default class UserAccess extends Vue {
   }
   .row-column {
     width: 210px;
+  }
+  .row-values-edit {
+    width: calc(~'100% - 285px');
+  }
+  .row-values-add {
+    width: calc(~'100% - 355px');
+  }
+  .row-values-edit,
+  .row-values-add {
+    .el-select__tags > span {
+      max-width: 100%;
+      .el-tag {
+        max-width: 100%;
+        position: relative;
+        padding-right: 16px;
+        .el-select__tags-text {
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: inline-block;
+        }
+        .el-tag__close {
+          position: absolute;
+          right: 1px;
+          top: 5px;
+        }
+      }
+    }
   }
   .like-tips-block {
     color: @text-normal-color;

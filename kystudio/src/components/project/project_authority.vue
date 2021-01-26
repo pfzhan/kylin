@@ -823,7 +823,7 @@ export default class ProjectAuthority extends Vue {
               height: 18px;
               position: absolute;
               right: 0;
-              top: calc(~'50% - 9px');
+              top: 6px;
             }
             .btn-icons {
               text-align: right;
