@@ -199,7 +199,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     }
 
     public void forceShutdown() {
-        logger.info("Shutting down DefaultScheduler ....");
+        logger.info("Force to shut down DefaultScheduler for project {} ....", project);
         releaseResources();
         ExecutorServiceUtil.forceShutdown(fetcherPool);
         ExecutorServiceUtil.forceShutdown(jobPool);

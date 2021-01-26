@@ -52,13 +52,13 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
     @Override
     protected void doRun() {
         //only the first 8 chars of the job uuid
-        try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobid:%s)", project,
-                executable.getId().substring(0, 8))) {
+        val jobIdSimple = executable.getId().substring(0, 8);
+        try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobid:%s)", project, jobIdSimple)) {
             executable.execute(context);
             // trigger the next step asap
             fetcherRunner.scheduleNext();
         } catch (JobStoppedVoluntarilyException | JobStoppedNonVoluntarilyException e) {
-            logger.info("Job quits either voluntarily or non-voluntarily", e);
+            logger.info("Job quits either voluntarily or non-voluntarily,job: {}", jobIdSimple, e);
         } catch (ExecuteException e) {
             logger.error("ExecuteException occurred while job: " + executable.getId(), e);
         } catch (Exception e) {
@@ -70,9 +70,11 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
             if (!config.getSparkMaster().equals("yarn-cluster")) {
                 usingMemory = executable.computeStepDriverMemory();
             }
-            logger.info("Before global memory release {}", NDefaultScheduler.getMemoryRemaining().availablePermits());
+            logger.info("Before job:{} global memory release {}", jobIdSimple,
+                    NDefaultScheduler.getMemoryRemaining().availablePermits());
             NDefaultScheduler.getMemoryRemaining().release(usingMemory);
-            logger.info("After global memory release {}", NDefaultScheduler.getMemoryRemaining().availablePermits());
+            logger.info("After job:{} global memory release {}", jobIdSimple,
+                    NDefaultScheduler.getMemoryRemaining().availablePermits());
         }
     }
 }

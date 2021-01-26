@@ -178,6 +178,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             case PAUSED:
             case READY:
                 if (isStoppedNonVoluntarily()) {
+                    logger.info("Execute finished  {} which is stopped nonvoluntarily, state: {}",
+                            this.getDisplayName(), getOutput().getState());
                     return null;
                 }
                 Consumer<String> hook = null;

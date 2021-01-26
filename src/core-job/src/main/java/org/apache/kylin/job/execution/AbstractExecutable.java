@@ -252,6 +252,7 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     protected void onExecuteFinished(ExecuteResult result) throws ExecuteException {
+        logger.info("Execute finished {}, state:{}", this.getDisplayName(), result.state());
         MetricsGroup.hostTagCounterInc(MetricsName.JOB_STEP_ATTEMPTED, MetricsCategory.PROJECT, project, retry);
         if (result.succeed()) {
             wrapWithCheckQuit(() -> {
@@ -392,18 +393,24 @@ public abstract class AbstractExecutable implements Executable {
             //if a job is restarted(all steps' status changed to READY), the old thread may still be alive and attempt to update job output
             //in this case the old thread should fail itself by calling this
             if (applyChange) {
+
+                logger.debug("abort {} because parent job is {}", getId(), ExecutableState.READY);
                 updateJobOutput(project, getId(), ExecutableState.READY, null, null, null);
             }
             throw new JobStoppedNonVoluntarilyException();
         } else if (ExecutableState.PAUSED == parent.getStatus()) {
             //if a job is paused
             if (applyChange) {
+
+                logger.debug("abort {} because parent job is {}", getId(), ExecutableState.PAUSED);
                 updateJobOutput(project, getId(), ExecutableState.PAUSED, null, null, null);
             }
             throw new JobStoppedNonVoluntarilyException();
         } else if (ExecutableState.DISCARDED == parent.getStatus()) {
             //if a job is discarded
             if (applyChange) {
+
+                logger.debug("abort {} because parent job is {}", getId(), ExecutableState.DISCARDED);
                 updateJobOutput(project, getId(), ExecutableState.DISCARDED, null, null, null);
             }
             throw new JobStoppedNonVoluntarilyException();
