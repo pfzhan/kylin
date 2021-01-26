@@ -38,7 +38,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.rest.security;
 
@@ -71,6 +71,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
+ *
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
@@ -112,7 +113,7 @@ public class AclRecord extends RootPersistentEntity implements Acl, OwnershipAcl
     }
 
     public void init(Acl parentAcl, PermissionFactory aclPermissionFactory,
-            PermissionGrantingStrategy permissionGrantingStrategy) {
+                     PermissionGrantingStrategy permissionGrantingStrategy) {
         this.aclPermissionFactory = aclPermissionFactory;
         this.permissionGrantingStrategy = permissionGrantingStrategy;
         this.parentAcl = parentAcl;
@@ -224,11 +225,11 @@ public class AclRecord extends RootPersistentEntity implements Acl, OwnershipAcl
         List<Sid> sids = entries.stream().map(AceImpl::getSid).collect(Collectors.toList());
         for (Sid sid : sids) {
             if (principal && (sid instanceof PrincipalSid)
-                    && Objects.equals(name, ((PrincipalSid)sid).getPrincipal())) {
+                    && name.equalsIgnoreCase(((PrincipalSid) sid).getPrincipal())) {
                 return sid;
             }
             if (!principal && (sid instanceof GrantedAuthoritySid)
-                    && Objects.equals(name, ((GrantedAuthoritySid)sid).getGrantedAuthority())) {
+                    && Objects.equals(name, ((GrantedAuthoritySid) sid).getGrantedAuthority())) {
                 return sid;
             }
         }
