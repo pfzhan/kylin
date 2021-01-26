@@ -316,6 +316,14 @@ public class KapConfig {
         return config.getOptional("kylin.security.ldap.group-member-attr", "member");
     }
 
+    public Integer getLDAPMaxPageSize() {
+        return Integer.parseInt(config.getOptional("kylin.security.ldap.max-page-size", "1000"));
+    }
+
+    public Integer getLDAPMaxValRange() {
+        return Integer.parseInt(config.getOptional("kylin.security.ldap.max-val-range", "1500"));
+    }
+
     /**
      * Metastore
      */

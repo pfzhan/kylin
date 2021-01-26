@@ -73,3 +73,9 @@ cn: admin
 member: cn=jenny,ou=People,dc=example,dc=com
 objectClass: groupOfNames
 objectClass: top
+
+# empty, Groups, example.com
+dn: cn=empty,ou=Groups,dc=example,dc=com
+cn: empty
+objectClass: groupOfNames
+objectClass: top

@@ -140,6 +140,12 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("getLDAPGroupMemberSearchFilter", new PropertiesEntity("kylin.security.ldap.group-member-search-filter",
                 "(&(cn={0})(objectClass=groupOfNames))", "(&(cn={0})(objectClass=groupOfNames))"));
 
+        map.put("getLDAPMaxPageSize", new PropertiesEntity("kylin.security.ldap.max-page-size",
+                "1000", 1000));
+
+        map.put("getLDAPMaxValRange", new PropertiesEntity("kylin.security.ldap.max-val-range",
+                "1500", 1500));
+
         map.put("getLDAPUserIDAttr", new PropertiesEntity("kylin.security.ldap.user-identifier-attr", "cn", "cn"));
 
         map.put("getLDAPGroupIDAttr", new PropertiesEntity("kylin.security.ldap.group-identifier-attr", "cn", "cn"));
@@ -309,7 +315,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(119, methodsCount);
+        Assert.assertEquals(121, methodsCount);
     }
 
     @Test

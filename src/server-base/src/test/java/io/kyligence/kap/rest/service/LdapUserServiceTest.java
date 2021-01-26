@@ -55,6 +55,8 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -65,6 +67,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
@@ -76,6 +80,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -86,6 +91,7 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -108,6 +114,9 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
+    @Mock
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Autowired
     @Qualifier("userService")
     LdapUserService ldapUserService;
@@ -125,6 +134,7 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         Properties ldapConfig = new Properties();
         ldapConfig.load(new FileInputStream(new ClassPathResource(LDAP_CONFIG).getFile()));
         final KylinConfig kylinConfig = getTestConfig();
+        overwriteSystemPropBeforeClass("kylin.security.ldap.max-page-size", "1");
         ldapConfig.forEach((k, v) -> kylinConfig.setProperty(k.toString(), v.toString()));
 
         String dn = ldapConfig.getProperty("kylin.security.ldap.connection-username");
@@ -134,6 +144,7 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 8389));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);
+        config.setMaxSizeLimit(1);
         directoryServer = new InMemoryDirectoryServer(config);
         directoryServer.startListening();
         log.info("current directory server listen on {}", directoryServer.getListenPort());
@@ -277,6 +288,7 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         List<String> groups = userGroupService.getAllUserGroups();
         Assert.assertTrue(groups.contains("admin"));
         Assert.assertTrue(groups.contains("itpeople"));
+        Assert.assertTrue(groups.contains("empty"));
     }
 
     @Test
@@ -287,11 +299,12 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(groupUsers.get("admin").contains("jenny"));
         Assert.assertTrue(groupUsers.get("itpeople").contains("johnny"));
         Assert.assertTrue(groupUsers.get("itpeople").contains("oliver"));
+        Assert.assertTrue(groupUsers.get("empty").isEmpty());
     }
 
     @Test
-    public void testGetGroupMembersByName() throws Exception {
-        Set<String> users = userGroupService.getGroupMembersByName("itpeople").stream().map(x -> x.getUsername())
+    public void testGetGroupMembersByName() {
+        Set<String> users = userGroupService.getGroupMembersByName("itpeople").stream().map(ManagedUser::getUsername)
                 .collect(toSet());
         Assert.assertTrue(users.contains("johnny"));
         Assert.assertTrue(users.contains("oliver"));
@@ -299,5 +312,24 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         for (val user : managedUsers) {
             Assert.assertTrue(user.getAuthorities().contains(new SimpleGrantedAuthority("itpeople")));
         }
+
+        users = userGroupService.getGroupMembersByName("empty").stream().map(ManagedUser::getUsername).collect(toSet());
+        Assert.assertTrue(users.isEmpty());
+    }
+
+    @Test
+    public void testGetUserGroupsFilterByGroupName() {
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(userGroupService, "aclEvaluate", aclEvaluate);
+        List<UserGroup> groups = userGroupService.getUserGroupsFilterByGroupName(null);
+        Assert.assertEquals(3, groups.size());
+
+        groups = userGroupService.getUserGroupsFilterByGroupName("");
+        Assert.assertEquals(3, groups.size());
+
+        groups = userGroupService.getUserGroupsFilterByGroupName("i");
+        Assert.assertEquals(2, groups.size());
+        Assert.assertTrue(groups.stream().map(UserGroup::getGroupName).anyMatch(name -> name.contains("admin")));
+        Assert.assertTrue(groups.stream().map(UserGroup::getGroupName).anyMatch(name -> name.contains("itpeople")));
     }
 }

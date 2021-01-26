@@ -27,10 +27,13 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import javax.naming.directory.SearchControls;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -41,7 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.ldap.control.PagedResultsDirContextProcessor;
+import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
@@ -50,7 +54,6 @@ import org.springframework.security.ldap.userdetails.LdapUserDetailsService;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 
@@ -78,6 +81,9 @@ public class LdapUserService implements UserService {
     @Autowired
     @Qualifier("userGroupService")
     private LdapUserGroupService userGroupService;
+
+    @Autowired
+    private SearchControls searchControls;
 
     @Override
     public void createUser(UserDetails userDetails) {
@@ -123,13 +129,12 @@ public class LdapUserService implements UserService {
     @Override
     public List<ManagedUser> listUsers() {
         List<ManagedUser> allUsers = ldapUsersCache.getIfPresent(LDAP_USERS);
-        if (allUsers == null) {
+        if (allUsers == null || allUsers.isEmpty()) {
             logger.info("Failed to read users from cache, reload from ldap server.");
             allUsers = new ArrayList<>();
             Set<String> ldapUsers = getAllUsers();
             for (String user : ldapUsers) {
-                ManagedUser ldapUser = new ManagedUser(user, SKIPPED_LDAP, false,
-                        Lists.<GrantedAuthority> newArrayList());
+                ManagedUser ldapUser = new ManagedUser(user, SKIPPED_LDAP, false, Lists.newArrayList());
                 completeUserInfoInternal(ldapUser);
                 allUsers.add(ldapUser);
             }
@@ -173,9 +178,20 @@ public class LdapUserService implements UserService {
         String ldapUserSearchBase = KylinConfig.getInstanceFromEnv().getLDAPUserSearchBase();
         String ldapUserSearchFilter = KapConfig.getInstanceFromEnv().getLDAPUserSearchFilter();
         String ldapUserIDAttr = KapConfig.getInstanceFromEnv().getLDAPUserIDAttr();
-        logger.info("ldap user search config, base: {}, filter: {}, identifier attribute: {}", ldapUserSearchBase,
-                ldapUserSearchFilter, ldapUserIDAttr);
-        return Sets.newTreeSet(ldapTemplate.searchForSingleAttributeValues(ldapUserSearchBase, ldapUserSearchFilter,
-                new String[0], ldapUserIDAttr));
+        Integer maxPageSize = KapConfig.getInstanceFromEnv().getLDAPMaxPageSize();
+        logger.info("ldap user search config, base: {}, filter: {}, identifier attribute: {}, maxPageSize: {}",
+                ldapUserSearchBase, ldapUserSearchFilter, ldapUserIDAttr, maxPageSize);
+
+        final PagedResultsDirContextProcessor processor = new PagedResultsDirContextProcessor(maxPageSize);
+
+        AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapUserIDAttr).get().toString();
+
+        Set<String> result = new HashSet<>();
+        do {
+            result.addAll(ldapTemplate.search(ldapUserSearchBase, ldapUserSearchFilter, searchControls,
+                    attributesMapper, processor));
+        } while (processor.hasMore());
+
+        return result;
     }
 }
