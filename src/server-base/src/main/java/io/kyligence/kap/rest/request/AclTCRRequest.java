@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.request;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import lombok.Data;
@@ -48,13 +49,13 @@ public class AclTCRRequest {
         private boolean authorized;
 
         @JsonProperty
-        private List<Column> columns;
+        private List<Column> columns = Lists.newArrayList();
 
         @JsonProperty
-        private List<Row> rows;
+        private List<Row> rows = Lists.newArrayList();
 
         @JsonProperty("like_rows")
-        private List<Row> likeRows;
+        private List<Row> likeRows = Lists.newArrayList();
     }
 
     @Data

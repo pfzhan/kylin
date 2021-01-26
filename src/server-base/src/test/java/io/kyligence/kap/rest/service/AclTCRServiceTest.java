@@ -940,10 +940,19 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         row = new AclTCRRequest.Row();
         row.setColumnName("DIM_CRE_DATE");
         row.setItems(Arrays.asList("2020-01-01 00:00:00", "2020-01-02 00:00:00"));
-
         tableRequest.getRows().add(row);
-
         request.setTables(Collections.singletonList(tableRequest));
+
+        AclTCRRequest.Column column = new AclTCRRequest.Column();
+        column.setAuthorized(true);
+        column.setColumnName("NOT_EXIST_COLUMN");
+        tableRequest.setColumns(Lists.newArrayList(column));
+
+        assertKylinExeption(() ->
+                aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request)),
+                "Column:[EDW.TEST_SELLER_TYPE_DIM.NOT_EXIST_COLUMN] is not exist.");
+
+        column.setColumnName("DIM_CRE_DATE");
 
         aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request));
 
@@ -1106,7 +1115,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         tableRequest.setAuthorized(true);
 
         AclTCRRequest.Column columnRequest = new AclTCRRequest.Column();
-        columnRequest.setColumnName("flag");
+        columnRequest.setColumnName("FLAG");
         columnRequest.setAuthorized(true);
         columnRequest.setDataMaskType(SensitiveDataMask.MaskType.AS_NULL);
         tableRequest.setColumns(Collections.singletonList(columnRequest));

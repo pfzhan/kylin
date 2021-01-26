@@ -174,15 +174,16 @@ public class AclTCRService extends BasicService {
 
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
-        checkAclTCRRequest(project, requests, sid, principal);
+        checkAclTCRRequest(project, requests, sid, principal, true);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             updateAclTCR(project, sid, principal, transformRequests(project, requests));
             return null;
         }, project);
     }
 
-    public void mergeAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
+    public void mergeAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
+        checkAclTCRRequest(project, requests, sid, principal, false);
         NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         checkACLTCRRequestRowAuthValid(manager, requests);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -206,7 +207,7 @@ public class AclTCRService extends BasicService {
         }
     }
 
-    private void checkAclTCRRequestTableValid(AclTCRRequest db, AclTCRRequest.Table table, Set<String> requestTables) {
+    private void checkAclTCRRequestTableValid(AclTCRRequest db, AclTCRRequest.Table table, Set<String> requestTables, boolean isIncludeAll) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(table.getTableName())) {
             throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
@@ -217,6 +218,9 @@ public class AclTCRService extends BasicService {
                     String.format(Locale.ROOT, msg.getTABLE_PARAMETER_DUPLICATE(), tableName));
         }
         requestTables.add(tableName);
+        if (!isIncludeAll) {
+            return;
+        }
         if (table.getRows() == null) {
             throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ROW_LIST());
         }
@@ -234,7 +238,7 @@ public class AclTCRService extends BasicService {
     }
 
     private void checkAClTCRRequestParameterValid(Set<String> databases, Set<String> tables, Set<String> columns,
-            List<AclTCRRequest> requests) {
+            List<AclTCRRequest> requests, boolean isIncludeAll) {
         Message msg = MsgPicker.getMsg();
         Set<String> requestDatabases = Sets.newHashSet();
         Set<String> requestTables = Sets.newHashSet();
@@ -243,9 +247,12 @@ public class AclTCRService extends BasicService {
         requests.forEach(db -> {
             checkAclTCRRequestDataBaseValid(db, requestDatabases);
             db.getTables().forEach(table -> {
-                checkAclTCRRequestTableValid(db, table, requestTables);
+                checkAclTCRRequestTableValid(db, table, requestTables, isIncludeAll);
                 String tableName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, db.getDatabaseName(),
                         table.getTableName());
+                if(table.getColumns() == null) {
+                    return;
+                }
                 table.getColumns().forEach(column -> {
                     String columnName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, tableName,
                             column.getColumnName());
@@ -260,6 +267,10 @@ public class AclTCRService extends BasicService {
                 });
             });
         });
+
+        if(!isIncludeAll){
+            return;
+        }
 
         val notIncludeDatabase = CollectionUtils.removeAll(databases, requestDatabases);
         if (!notIncludeDatabase.isEmpty()) {
@@ -293,14 +304,14 @@ public class AclTCRService extends BasicService {
                     throw new KylinException(INVALID_PARAMETER,
                             String.format(Locale.ROOT, msg.getTABLE_NOT_FOUND(), tableName));
                 }
-                table.getRows().forEach(row -> {
+                Optional.ofNullable(table.getRows()).map(List::stream).orElseGet(Stream::empty).forEach(row -> {
                     String columnName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, tableName, row.getColumnName());
                     if (!columns.contains(columnName)) {
                         throw new KylinException(INVALID_PARAMETER,
                                 String.format(Locale.ROOT, msg.getCOLUMN_NOT_EXIST(), columnName));
                     }
                 });
-                table.getColumns().forEach(column -> {
+                Optional.ofNullable(table.getColumns()).map(List::stream).orElseGet(Stream::empty).forEach(column -> {
                     String columnName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, tableName,
                             column.getColumnName());
                     if (!columns.contains(columnName)) {
@@ -313,7 +324,7 @@ public class AclTCRService extends BasicService {
 
     }
 
-    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal) throws IOException {
+    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests, String sid, boolean principal, boolean isIncludeAll) throws IOException {
         Set<String> databases = Sets.newHashSet();
         Set<String> tables = Sets.newHashSet();
         Set<String> columns = Sets.newHashSet();
@@ -332,7 +343,7 @@ public class AclTCRService extends BasicService {
         if(hasAdminPermissionInProject(sid, principal, project)){
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
         }
-        checkAClTCRRequestParameterValid(databases, tables, columns, requests);
+        checkAClTCRRequestParameterValid(databases, tables, columns, requests, isIncludeAll);
         checkACLTCRRequestRowAuthValid(manager, requests);
         checkAClTCRExist(databases, tables, columns, requests);
     }
