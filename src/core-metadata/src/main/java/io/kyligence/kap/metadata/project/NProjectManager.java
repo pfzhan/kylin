@@ -101,6 +101,12 @@ public class NProjectManager implements IKeepNames {
                 .orElse(null);
     }
 
+    public ProjectInstance getProjectById(String projectId) {
+        return crud.listAll().stream()
+                .filter(projectInstance -> projectInstance.getId().equals(projectId)).findAny()
+                .orElse(null);
+    }
+
     public ProjectInstance createProject(String projectName, String owner, String description,
             LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) {
         logger.info("Creating project " + projectName);

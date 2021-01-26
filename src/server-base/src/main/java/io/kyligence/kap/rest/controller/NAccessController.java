@@ -235,7 +235,7 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.grant(ae, accessRequest.getSid(), accessRequest.isPrincipal(), accessRequest.getPermission());
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
-            aclTCRService.updateAclTCR(uuid, Lists.newArrayList(accessRequest));
+            aclTCRService.remoteGrantACL(uuid, Lists.newArrayList(accessRequest));
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -255,7 +255,7 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.batchGrant(requests, ae);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType) && initAcl) {
-            aclTCRService.updateAclTCR(uuid, requests);
+            aclTCRService.remoteGrantACL(uuid, requests);
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -302,7 +302,7 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.revoke(ae, accessEntryId);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
-            aclTCRService.revokeAclTCR(uuid, sid, principal);
+            aclTCRService.remoteRevokeACL(uuid, sid, principal);
         }
         boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
@@ -322,7 +322,7 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.batchRevoke(ae, requests);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
-            requests.forEach(r -> aclTCRService.revokeAclTCR(uuid, r.getSid(), r.isPrincipal()));
+            requests.forEach(r -> aclTCRService.remoteRevokeACL(uuid, r.getSid(), r.isPrincipal()));
         }
         boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");

@@ -72,6 +72,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -109,9 +110,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.AccessBatchGrantEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.AccessGrantEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.AccessRevokeEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
@@ -658,6 +665,43 @@ public class AccessService extends BasicService {
                         || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION)
                         || AclPermissionUtil.isSpecificPermissionInProject(user, project, AclPermission.MANAGEMENT))
                 .map(ManagedUser::getUsername).collect(Collectors.toSet());
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public boolean remoteGrantAccess(AclEntity ae, String identifier, Boolean isPrincipal, String permission) {
+        AccessGrantEventNotifier notifier = new AccessGrantEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), identifier, isPrincipal, permission);
+        return remoteRequest(notifier, null);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public boolean remoteBatchGrantAccess(List<AccessRequest> requests, AclEntity ae) throws JsonProcessingException {
+        AccessBatchGrantEventNotifier notifier = new AccessBatchGrantEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), JsonUtil.writeValueAsString(requests));
+        return remoteRequest(notifier, null);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public boolean remoteRevokeAccess(AclEntity ae, String name, boolean principal) {
+        AccessRevokeEventNotifier notifier = new AccessRevokeEventNotifier(UnitOfWork.GLOBAL_UNIT, ae.getId(), name, principal);
+        return remoteRequest(notifier, null);
+    }
+
+    @Transaction
+    public void updateAccessFromRemote(AccessGrantEventNotifier grantNotifier, AccessBatchGrantEventNotifier batchGrantNotifier,
+                                       AccessRevokeEventNotifier revokeNotifier) throws IOException {
+        if (grantNotifier != null) {
+            AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, grantNotifier.getEntityId());
+            grant(ae, grantNotifier.getIdentifier(), grantNotifier.getIsPrincipal(), grantNotifier.getPermission());
+        }
+        if (batchGrantNotifier != null) {
+            AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, batchGrantNotifier.getEntityId());
+            List<AccessRequest> accessRequest = JsonUtil.readValue(batchGrantNotifier.getRawAclTCRRequests(), new TypeReference<List<AccessRequest>>() {
+            });
+            batchGrant(accessRequest, ae);
+        }
+        if (revokeNotifier != null) {
+            AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, revokeNotifier.getEntityId());
+            revokeWithSid(ae, revokeNotifier.getName(), revokeNotifier.isPrincipal());
+        }
     }
 
     public List<String> getGroupsOfCurrentUser() {

@@ -56,6 +56,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -68,12 +69,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.AclGrantEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.AclRevokeEventNotifier;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.acl.DependentColumn;
@@ -952,5 +957,25 @@ public class AclTCRService extends BasicService {
         return getTableMetadataManager(project).listAllTables().stream()
                 .filter(tableDesc -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity())))
                 .collect(Collectors.toList());
+    }
+
+    public boolean remoteGrantACL(String projectId, List<AccessRequest> accessRequests) throws JsonProcessingException {
+        AclGrantEventNotifier notifier = new AclGrantEventNotifier(projectId, JsonUtil.writeValueAsString(accessRequests));
+        return remoteRequest(notifier, projectId);
+    }
+
+    public boolean remoteRevokeACL(String projectId, String sid, boolean principal) {
+        AclRevokeEventNotifier notifier = new AclRevokeEventNotifier(projectId, sid, principal);
+        return remoteRequest(notifier, projectId);
+    }
+
+    public void updateAclFromRemote(AclGrantEventNotifier grantEventNotifier, AclRevokeEventNotifier revokeEventNotifier) throws IOException {
+        if (grantEventNotifier != null) {
+            List<AccessRequest> accessRequest = JsonUtil.readValue(grantEventNotifier.getRawAclTCRRequests(), new TypeReference<List<AccessRequest>>() {
+            });
+            updateAclTCR(grantEventNotifier.getProjectId(), accessRequest);
+        } else if (revokeEventNotifier != null) {
+            revokeAclTCR(revokeEventNotifier.getProjectId(), revokeEventNotifier.getSid(), revokeEventNotifier.isPrincipal());
+        }
     }
 }

@@ -131,7 +131,7 @@ public class OpenAccessController extends NBasicController {
         List<AccessRequest> accessRequests = convertBatchPermissionRequestToAccessRequests(ae, permissionRequest);
         accessService.checkAccessRequestList(accessRequests);
 
-        accessService.batchGrant(accessRequests, ae);
+        accessService.remoteBatchGrantAccess(accessRequests, ae);
         aclTCRService.updateAclTCR(projectUuid, accessRequests);
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -154,7 +154,8 @@ public class OpenAccessController extends NBasicController {
 
         String projectUuid = getProjectUuid(permissionRequest.getProject());
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectUuid);
-        accessService.grant(ae, accessRequest.getSid(), accessRequest.isPrincipal(), accessRequest.getPermission());
+        accessService.remoteGrantAccess(ae, accessRequest.getSid(), accessRequest.isPrincipal(), accessRequest.getPermission());
+
         aclTCRService.updateAclTCR(projectUuid, Lists.newArrayList(accessRequest));
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -176,7 +177,7 @@ public class OpenAccessController extends NBasicController {
             accessService.checkGlobalAdmin(name);
         }
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, projectUuid);
-        accessService.revokeWithSid(ae, name, principal);
+        accessService.remoteRevokeAccess(ae, name, principal);
         aclTCRService.revokeAclTCR(projectUuid, name, principal);
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
