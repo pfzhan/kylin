@@ -45,8 +45,8 @@ public class ModelPreviewResponse {
     private boolean hasRecommendation;
     @JsonProperty("has_override_props")
     private boolean hasOverrideProps;
-    @JsonProperty("has_multiple_partition")
-    private boolean hasMultiplePartition;
+    @JsonProperty("has_multiple_partition_values")
+    private boolean hasMultiplePartitionValues;
     @JsonProperty("tables")
     private List<SimplifiedTablePreviewResponse> tables;
 }

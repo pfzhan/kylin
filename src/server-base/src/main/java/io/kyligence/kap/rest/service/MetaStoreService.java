@@ -39,7 +39,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -95,6 +94,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -111,6 +111,7 @@ import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelImportRequest;
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.response.SimplifiedTablePreviewResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -162,45 +163,46 @@ public class MetaStoreService extends BasicService {
                 modelDesc.getProject());
         if (modelDesc.isBroken()) {
             modelPreviewResponse.setStatus(ModelStatusToDisplayEnum.BROKEN);
-        } else {
-            long inconsistentSegmentCount = dfManager.getDataflow(modelDesc.getId())
-                    .getSegments(SegmentStatusEnum.WARNING).size();
-            ModelStatusToDisplayEnum status = modelService.convertModelStatusToDisplay(modelDesc,
-                    modelDesc.getProject(), inconsistentSegmentCount);
-            modelPreviewResponse.setStatus(status);
-
-            if (!projectInstance.isExpertMode()) {
-                OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelDesc.getUuid());
-                List<RawRecItem> rawRecItems = optRecService.getRecLayout(optRecV2, OptRecService.RecActionType.ALL);
-                if (!rawRecItems.isEmpty()) {
-                    modelPreviewResponse.setHasRecommendation(true);
-                }
-            }
-
-            if (projectInstance.getConfig().isMultiPartitionEnabled()) {
-                modelPreviewResponse.setHasMultiplePartition(modelDesc.isMultiPartitionModel());
-            }
-
-            NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
-            IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
-            if (!indexPlan.getOverrideProps().isEmpty() || (modelDesc.getSegmentConfig() != null
-                    && modelDesc.getSegmentConfig().getAutoMergeEnabled() != null
-                    && modelDesc.getSegmentConfig().getAutoMergeEnabled())) {
-                modelPreviewResponse.setHasOverrideProps(true);
-            }
-
-            List<SimplifiedTablePreviewResponse> tables = new ArrayList<>();
-            SimplifiedTablePreviewResponse factTable = new SimplifiedTablePreviewResponse(
-                    modelDesc.getRootFactTableName(), NDataModel.TableKind.FACT);
-            tables.add(factTable);
-            List<JoinTableDesc> joinTableDescs = modelDesc.getJoinTables();
-            for (JoinTableDesc joinTableDesc : joinTableDescs) {
-                SimplifiedTablePreviewResponse lookupTable = new SimplifiedTablePreviewResponse(
-                        joinTableDesc.getTable(), joinTableDesc.getKind());
-                tables.add(lookupTable);
-            }
-            modelPreviewResponse.setTables(tables);
+            return modelPreviewResponse;
         }
+        long inconsistentSegmentCount = dfManager.getDataflow(modelDesc.getId()).getSegments(SegmentStatusEnum.WARNING)
+                .size();
+        ModelStatusToDisplayEnum status = modelService.convertModelStatusToDisplay(modelDesc, modelDesc.getProject(),
+                inconsistentSegmentCount);
+        modelPreviewResponse.setStatus(status);
+
+        if (!projectInstance.isExpertMode()) {
+            OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelDesc.getUuid());
+            List<RawRecItem> rawRecItems = optRecService.getRecLayout(optRecV2, OptRecService.RecActionType.ALL);
+            if (!rawRecItems.isEmpty()) {
+                modelPreviewResponse.setHasRecommendation(true);
+            }
+        }
+
+        if (projectInstance.getConfig().isMultiPartitionEnabled() && modelDesc.isMultiPartitionModel()) {
+            modelPreviewResponse
+                    .setHasMultiplePartitionValues(!modelDesc.getMultiPartitionDesc().getPartitions().isEmpty());
+        }
+
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
+        if (!indexPlan.getOverrideProps().isEmpty()
+                || (modelDesc.getSegmentConfig() != null && modelDesc.getSegmentConfig().getAutoMergeEnabled() != null
+                        && modelDesc.getSegmentConfig().getAutoMergeEnabled())) {
+            modelPreviewResponse.setHasOverrideProps(true);
+        }
+
+        List<SimplifiedTablePreviewResponse> tables = new ArrayList<>();
+        SimplifiedTablePreviewResponse factTable = new SimplifiedTablePreviewResponse(modelDesc.getRootFactTableName(),
+                NDataModel.TableKind.FACT);
+        tables.add(factTable);
+        List<JoinTableDesc> joinTableDescs = modelDesc.getJoinTables();
+        for (JoinTableDesc joinTableDesc : joinTableDescs) {
+            SimplifiedTablePreviewResponse lookupTable = new SimplifiedTablePreviewResponse(joinTableDesc.getTable(),
+                    joinTableDesc.getKind());
+            tables.add(lookupTable);
+        }
+        modelPreviewResponse.setTables(tables);
         return modelPreviewResponse;
     }
 
@@ -285,14 +287,17 @@ public class MetaStoreService extends BasicService {
             return;
         }
         JdbcRawRecStore jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
-        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
-        List<RawRecItem> recLayouts = optRecService.getRecLayout(optRecV2, OptRecService.RecActionType.ALL);
-        Set<Integer> rawRecIds = recLayouts.stream().map(recLayout -> {
-            int[] dependIDs = recLayout.getDependIDs();
-            return Arrays.stream(dependIDs).filter(dependId -> dependId < 0).boxed().collect(Collectors.toSet());
-        }).flatMap(Collection::stream).collect(Collectors.toSet());
 
-        rawRecIds.addAll(recLayouts.stream().map(RawRecItem::getId).collect(Collectors.toSet()));
+        val optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+        val rawRecIds = Stream
+                .of(optRecV2.getCcRefs().keySet(), optRecV2.getMeasureRefs().keySet(),
+                        optRecV2.getDimensionRefs().keySet(), optRecV2.getAdditionalLayoutRefs().keySet(),
+                        optRecV2.getRemovalLayoutRefs().keySet()) //
+                .flatMap(Collection::stream) //
+                .filter(dependId -> dependId < 0) //
+                .filter(dependId -> !optRecV2.getBrokenLayoutRefIds().contains(dependId)) //
+                .map(dependId -> -dependId) //
+                .collect(Collectors.toSet());
 
         List<RawRecItem> rawRecItems = jdbcRawRecStore.list(rawRecIds).stream()
                 .sorted(Comparator.comparingInt(RawRecItem::getId)).collect(Collectors.toList());
@@ -479,10 +484,16 @@ public class MetaStoreService extends BasicService {
      */
     private void updateIndexPlan(String project, NDataModel nDataModel, IndexPlan targetIndexPlan,
             boolean hasModelOverrideProps) {
+        if (targetIndexPlan.getRuleBasedIndex() != null) {
+            indexPlanService.updateRuleBasedCuboid(project, UpdateRuleBasedCuboidRequest.convertToRequest(project,
+                    nDataModel.getUuid(), false, targetIndexPlan.getRuleBasedIndex()));
+        } else {
+            indexPlanService.updateRuleBasedCuboid(project, UpdateRuleBasedCuboidRequest.convertToRequest(project,
+                    nDataModel.getUuid(), false, new RuleBasedIndex()));
+        }
+
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
         indexPlanManager.updateIndexPlan(nDataModel.getUuid(), copyForWrite -> {
-            val newRuleBasedCuboid = targetIndexPlan.getRuleBasedIndex();
-            newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
             List<IndexEntity> toBeDeletedIndexes = copyForWrite.getToBeDeletedIndexes();
             toBeDeletedIndexes.clear();
             toBeDeletedIndexes.addAll(targetIndexPlan.getToBeDeletedIndexes());
@@ -494,8 +505,6 @@ public class MetaStoreService extends BasicService {
             if (targetIndexPlan.getAggShardByColumns() != null) {
                 copyForWrite.setAggShardByColumns(targetIndexPlan.getAggShardByColumns());
             }
-
-            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
         });
     }
 
@@ -528,7 +537,7 @@ public class MetaStoreService extends BasicService {
      * @param modelSchemaChange
      * @param targetIndexPlan
      */
-    private void createTableIndex(String project, SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange,
+    private void addWhiteListIndex(String project, SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange,
             IndexPlan targetIndexPlan) {
         if (modelSchemaChange != null) {
             val newIndexes = Stream
@@ -540,9 +549,13 @@ public class MetaStoreService extends BasicService {
                                     .map(SchemaChangeCheckResult.UpdatedItem::getSecondDetail))
                     .map(Long::parseLong).collect(Collectors.toList());
 
-            targetIndexPlan.getWhitelistLayouts().stream().filter(layout -> newIndexes.contains(layout.getId()))
-                    .forEach(layout -> indexPlanService.createTableIndex(project, targetIndexPlan.getUuid(), layout,
-                            false));
+            val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            indexPlanManager.updateIndexPlan(targetIndexPlan.getUuid(), copyForWrite -> {
+                IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
+                targetIndexPlan.getWhitelistLayouts().stream().filter(layout -> newIndexes.contains(layout.getId()))
+                        .forEach(layout -> updateHandler.add(layout, IndexEntity.isAggIndex(layout.getId())));
+                updateHandler.complete();
+            });
         }
     }
 
@@ -590,7 +603,7 @@ public class MetaStoreService extends BasicService {
                     removeIndexes(project, modelSchemaChange, targetIndexPlan);
                     updateModel(project, nDataModel, modelImport, hasModelOverrideProps);
                     updateIndexPlan(project, nDataModel, targetIndexPlan, hasModelOverrideProps);
-                    createTableIndex(project, modelSchemaChange, targetIndexPlan);
+                    addWhiteListIndex(project, modelSchemaChange, targetIndexPlan);
 
                     importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
                             importModelContext.getTargetKylinConfig());
@@ -677,6 +690,8 @@ public class MetaStoreService extends BasicService {
                 project, srcModelId);
 
         manager.importRecommendations(project, targetModelId, rawRecItems);
+
+        optRecService.updateRecommendationCount(project, targetModelId);
     }
 
     public void cleanupMeta(String project) {

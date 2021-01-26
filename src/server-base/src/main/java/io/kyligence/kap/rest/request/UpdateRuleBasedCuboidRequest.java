@@ -78,6 +78,16 @@ public class UpdateRuleBasedCuboidRequest implements ProjectInsensitiveRequest {
         return newRuleBasedCuboid;
     }
 
+    public static UpdateRuleBasedCuboidRequest convertToRequest(String project, String modelId, boolean isLoadData,
+            RuleBasedIndex ruleBasedIndex) {
+        UpdateRuleBasedCuboidRequest updateRuleBasedCuboidRequest = new UpdateRuleBasedCuboidRequest();
+        BeanUtils.copyProperties(ruleBasedIndex, updateRuleBasedCuboidRequest);
+        updateRuleBasedCuboidRequest.setLoadData(isLoadData);
+        updateRuleBasedCuboidRequest.setProject(project);
+        updateRuleBasedCuboidRequest.setModelId(modelId);
+        return updateRuleBasedCuboidRequest;
+    }
+
     /**
      * for example,
      * [1,2,3] [4,3] [2,4] [5,4]

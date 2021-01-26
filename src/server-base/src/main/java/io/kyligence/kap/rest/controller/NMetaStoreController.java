@@ -99,7 +99,7 @@ public class NMetaStoreController extends NBasicController {
         }
         ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(project,
                 request.getIds(), request.isExportRecommendations(), request.isExportOverProps(),
-                request.isExportMultiplePartition());
+                request.isExportMultiplePartitionValues());
         String filename;
 
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(

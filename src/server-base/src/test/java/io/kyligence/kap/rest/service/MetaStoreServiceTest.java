@@ -69,8 +69,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.ServiceTestBase;
@@ -91,6 +93,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -99,6 +103,7 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.MetadataChecker;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -160,7 +165,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testGetSimplifiedModel() {
         List<ModelPreviewResponse> modelPreviewResponseList = metaStoreService.getPreviewModels("default",
                 Collections.emptyList());
-        Assert.assertEquals(9, modelPreviewResponseList.size());
+        Assert.assertEquals(10, modelPreviewResponseList.size());
 
         modelPreviewResponseList = metaStoreService.getPreviewModels("default",
                 Lists.newArrayList("8b5a2d39-304f-4a20-a9da-942f461534d8", "7212bf0c-0716-4cef-b623-69c161981262"));
@@ -169,7 +174,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         modelPreviewResponseList = metaStoreService.getPreviewModels("original_project", Collections.emptyList());
         Assert.assertEquals(12, modelPreviewResponseList.size());
 
-        Assert.assertTrue(modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartition));
+        Assert.assertTrue(modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartitionValues));
     }
 
     @Test
@@ -183,7 +188,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertEquals(31, rawResourceMap.size());
+        Assert.assertEquals(35, rawResourceMap.size());
 
         // export recommendations
         byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, true, false,
@@ -214,6 +219,40 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, getProject());
         Assert.assertTrue(indexPlanManager.listAllIndexPlans().stream()
                 .anyMatch(indexPlan -> !indexPlan.getOverrideProps().isEmpty()));
+    }
+
+
+    @Test
+    public void testGetCompressedModelMetadataWithRec() throws Exception {
+        List<RawRecItem> rawRecItems = new ArrayList<>();
+        val rawRecItemsNode = JsonUtil.readValue(new File(
+                "src/test/resources/ut_meta/metastore_model/rec/1af229fb-bb2c-42c5-9663-2bd92b50a861.json"),
+                JsonNode.class);
+        Assert.assertNotNull(rawRecItemsNode);
+        for (JsonNode jsonNode : rawRecItemsNode) {
+            RawRecItem rawRecItem = JsonUtil.readValue(jsonNode.toString(), RawRecItem.class);
+            rawRecItem.setRecEntity(
+                    RawRecItem.toRecItem(jsonNode.get("recEntity").toString(), (byte) rawRecItem.getType().id()));
+            rawRecItems.add(rawRecItem);
+        }
+
+        Assert.assertEquals(4, rawRecItems.size());
+        jdbcRawRecStore.save(rawRecItems, true);
+
+        List<RawRecItem> rawRecItems1 = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(4, rawRecItems1.size());
+        // export recommendations
+        val byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
+                Collections.singletonList("1af229fb-bb2c-42c5-9663-2bd92b50a861"), true, false, false);
+        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
+        val rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+
+        String recPath = "/" + getProject() + "/rec/1af229fb-bb2c-42c5-9663-2bd92b50a861.json";
+        RawResource rawResource = rawResourceMap.get(recPath);
+        Assert.assertNotNull(rawResource);
+
+        val arrayNode = JsonUtil.readValue(rawResource.getByteSource().openStream(), ArrayNode.class);
+        Assert.assertEquals(4, arrayNode.size());
     }
 
     @Test
@@ -277,7 +316,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertEquals(31, rawResourceMap.size());
+        Assert.assertEquals(35, rawResourceMap.size());
 
         RawResource rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
         try (InputStream inputStream = rw.getByteSource().openStream()) {
@@ -290,7 +329,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertEquals(31, rawResourceMap.size());
+        Assert.assertEquals(35, rawResourceMap.size());
 
         rw = rawResourceMap.get(ResourceStore.VERSION_FILE);
         try (InputStream inputStream = rw.getByteSource().openStream()) {
@@ -754,11 +793,11 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
         IndexPlan indexPlan = indexPlanManager.getIndexPlanByModelAlias("model_index");
         Assert.assertEquals(2, indexPlan.getWhitelistLayouts().size());
-        LayoutEntity layout = indexPlan.getCuboidLayout(20000000001L);
+        LayoutEntity layout = indexPlan.getCuboidLayout(20000030001L);
         Assert.assertEquals("1,4,5,6,7,8,10,12",
                 layout.getColOrder().stream().map(String::valueOf).collect(Collectors.joining(",")));
 
-        layout = indexPlan.getCuboidLayout(20000010001L);
+        layout = indexPlan.getCuboidLayout(20000040001L);
         Assert.assertEquals("4,5", layout.getColOrder().stream().map(String::valueOf).collect(Collectors.joining(",")));
 
         NDataModel dataModel = dataModelManager.getDataModelDescByAlias("model_column_update");
@@ -856,6 +895,123 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(), dataModel.getSemanticVersion(),
                 10);
         Assert.assertEquals(3, rawRecItems.size());
+
+        val nDataModelManager = NDataModelManager.getInstance(getTestConfig(), "original_project");
+        val nDataModel = nDataModelManager.getDataModelDescByAlias("model_index");
+        Assert.assertEquals(2, nDataModel.getRecommendationsCount());
+    }
+
+    @Test
+    public void testImportModelMetadataWithMeasureDependsOnCCRec() throws Exception {
+        File file = new File(
+                "src/test/resources/ut_model_metadata/project_1_model_metadata_2021_01_20_14_56_44_39201D01EBE7665483E2044D6B5FD9D0.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(new ModelImportRequest.ModelImport("ssb_model_with_rec", "ssb_model_with_rec",
+                ModelImportRequest.ImportType.NEW));
+
+        request.setModels(models);
+
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+
+        projectManager.updateProject("original_project", copyForWrite -> {
+            copyForWrite.putOverrideKylinProps("kylin.metadata.semi-automatic-mode", String.valueOf(true));
+        });
+
+        getTestConfig().clearManagers();
+        projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject("original_project");
+
+        Assert.assertFalse(projectInstance.isExpertMode());
+        metaStoreService.importModelMetadata("original_project", multipartFile, request);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "original_project");
+        NDataModel dataModel = dataModelManager.getDataModelDescByAlias("ssb_model_with_rec");
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll("original_project", dataModel.getUuid(),
+                dataModel.getSemanticVersion(), 10);
+        Assert.assertEquals(4, rawRecItems.size());
+    }
+
+    @Test
+    public void testImportModelMetadataWithMixInIndexWithRec() throws Exception {
+        File file = new File(
+                "src/test/resources/ut_model_metadata/project_2_model_metadata_2021_01_21_15_45_16_9D3BCD19FF5AF9D3163128B9DEE237F4.zip");
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        models.add(new ModelImportRequest.ModelImport("ssb_model_index_mixin", "ssb_model_index_mixin",
+                ModelImportRequest.ImportType.OVERWRITE));
+
+        request.setModels(models);
+
+        var dataModelManager = NDataModelManager.getInstance(getTestConfig(), "model_index_mix");
+        var dataModel = dataModelManager.getDataModelDescByAlias("ssb_model_index_mixin");
+        // 0 cc
+        Assert.assertEquals(0, dataModel.getComputedColumnDescs().size());
+
+        // 1 measure
+        Assert.assertEquals(1, dataModel.getEffectiveMeasures().size());
+        NDataModel.Measure measure = dataModel.getEffectiveMeasures().values().iterator().next();
+        Assert.assertEquals("COUNT", measure.getFunction().getExpression());
+
+        // 3 dimension
+        Assert.assertEquals(3, dataModel.getEffectiveDimensions().size());
+        Assert.assertEquals("P_LINEORDER.LO_CUSTKEY, P_LINEORDER.LO_ORDERDATE, P_LINEORDER.LO_SUPPKEY",
+                dataModel.getEffectiveDimensions().values().stream().map(TblColRef::getAliasDotName).sorted()
+                        .collect(Collectors.joining(", ")));
+
+        var indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "model_index_mix");
+        var indexPlan = indexPlanManager.getIndexPlanByModelAlias("ssb_model_index_mixin");
+
+        // 9 layout
+        Assert.assertEquals(9, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(7, indexPlan.getRuleBaseLayouts().size());
+        Assert.assertEquals(2, indexPlan.getWhitelistLayouts().size());
+
+        // import
+        metaStoreService.importModelMetadata("model_index_mix", multipartFile, request);
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(13, rawRecItems.size());
+
+        dataModelManager = NDataModelManager.getInstance(getTestConfig(), "model_index_mix");
+        dataModel = dataModelManager.getDataModelDescByAlias("ssb_model_index_mixin");
+
+        // 1 cc
+        Assert.assertEquals(1, dataModel.getComputedColumnDescs().size());
+
+        // 3 measure
+        Assert.assertEquals(3, dataModel.getEffectiveMeasures().size());
+
+        // 7 dimension
+        Assert.assertEquals(7, dataModel.getEffectiveDimensions().size());
+        Assert.assertEquals(
+                "P_LINEORDER.LO_CUSTKEY, P_LINEORDER.LO_ORDERDATE, P_LINEORDER.LO_ORDERKEY, P_LINEORDER.LO_ORDERPRIOTITY, P_LINEORDER.LO_PARTKEY, P_LINEORDER.LO_SUPPKEY, P_LINEORDER.LO_SUPPLYCOST",
+                dataModel.getEffectiveDimensions().values().stream().map(TblColRef::getAliasDotName).sorted()
+                        .collect(Collectors.joining(", ")));
+
+        indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "model_index_mix");
+        indexPlan = indexPlanManager.getIndexPlanByModelAlias("ssb_model_index_mixin");
+
+        // 11 layout
+        Assert.assertEquals(12, indexPlan.getAllLayouts().size());
+        // should 6, rule based black layout should be deleted
+        Assert.assertEquals(7, indexPlan.getRuleBaseLayouts().size());
+
+        Assert.assertEquals(5, indexPlan.getWhitelistLayouts().size());
+
+        // 2 recommendation agg index
+        Assert.assertEquals(2, indexPlan.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
+                .filter(layoutEntity -> IndexEntity.isAggIndex(layoutEntity.getId())).count());
+
+        // 2 recommendation table index
+        Assert.assertEquals(2, indexPlan.getWhitelistLayouts().stream().filter(layoutEntity -> !layoutEntity.isManual())
+                .filter(layoutEntity -> IndexEntity.isTableIndex(layoutEntity.getId())).count());
+
+        // 1
+        Assert.assertEquals(1, indexPlan.getWhitelistLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(layoutEntity -> IndexEntity.isTableIndex(layoutEntity.getId())).count());
     }
 
     @Test

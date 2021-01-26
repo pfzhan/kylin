@@ -41,7 +41,7 @@ public class ModelPreviewRequest {
     @JsonProperty("export_over_props")
     private boolean exportOverProps;
 
-    @JsonProperty("export_multiple_partition")
-    private boolean exportMultiplePartition;
+    @JsonProperty("export_multiple_partition_values")
+    private boolean exportMultiplePartitionValues;
 
 }
