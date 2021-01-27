@@ -96,6 +96,7 @@ public class ResourceGroupManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testIsProjectBindToResourceGroup() {
         val manager = ResourceGroupManager.getInstance(getTestConfig());
+        Assert.assertTrue(manager.isProjectBindToResourceGroup("_global"));
         Assert.assertFalse(manager.isProjectBindToResourceGroup("default"));
     }
 

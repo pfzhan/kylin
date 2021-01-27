@@ -48,7 +48,6 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import lombok.val;
 
@@ -58,14 +57,10 @@ public class ResourceGroupCheckerFilter implements Filter {
     private static final String ERROR = "error";
     private static final String API_ERROR = "/api/error";
 
-    private static Set<String> notCheckGetApiSet = Sets.newHashSet();
     private static Set<String> notCheckSpecialApiSet = Sets.newHashSet();
 
     static {
         notCheckSpecialApiSet.add("/kylin/api/error");
-
-        // list projects
-        notCheckGetApiSet.add("/kylin/api/projects");
     }
 
     @Override
@@ -76,6 +71,12 @@ public class ResourceGroupCheckerFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+        val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+        if (!manager.isResourceGroupEnabled()) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         if (!(request instanceof HttpServletRequest)) {
             return;
         }
@@ -86,7 +87,10 @@ public class ResourceGroupCheckerFilter implements Filter {
         }
 
         // project is not bound to resource group
-        if (!checkProjectBindToResourceGroup((HttpServletRequest) request)) {
+        Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo((HttpServletRequest) request);
+        String project = projectInfo.getFirst();
+
+        if (!manager.isProjectBindToResourceGroup(project)) {
             Message msg = MsgPicker.getMsg();
             request.setAttribute(ERROR,
                     new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP()));
@@ -102,24 +106,11 @@ public class ResourceGroupCheckerFilter implements Filter {
         // just override it
     }
 
-    private boolean checkProjectBindToResourceGroup(HttpServletRequest request) {
-        Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
-        String project = projectInfo.getFirst();
-
-        val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
-        if (UnitOfWork.GLOBAL_UNIT.equals(project) || !manager.isResourceGroupEnabled()) {
-            return true;
-        }
-        return manager.isProjectBindToResourceGroup(project);
-    }
-
     private boolean checkRequestPass(HttpServletRequest request) {
         final String uri = StringUtils.stripEnd(request.getRequestURI(), "/");
         final String method = request.getMethod();
 
-        boolean whitelistOfGetApi = "GET".equals(method) && notCheckGetApiSet.contains(uri);
-
-        return notCheckSpecialApiSet.contains(uri) || whitelistOfGetApi;
+        return "GET".equals(method) || notCheckSpecialApiSet.contains(uri);
     }
 
 }

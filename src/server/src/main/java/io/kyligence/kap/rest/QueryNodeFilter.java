@@ -26,6 +26,7 @@ package io.kyligence.kap.rest;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_WITHOUT_RESOURCE_GROUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
 
@@ -43,6 +44,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -162,6 +164,7 @@ public class QueryNodeFilter implements Filter {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
             HttpServletResponse servletResponse = (HttpServletResponse) response;
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            String project;
             try {
                 // not start with /kylin/api
                 if (checkNeedToRoute(servletRequest)) {
@@ -180,7 +183,7 @@ public class QueryNodeFilter implements Filter {
 
                 String contentType = request.getContentType();
                 Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(servletRequest);
-                String project = projectInfo.getFirst();
+                project = projectInfo.getFirst();
                 if (!checkProjectExist(project)) {
                     servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
@@ -232,8 +235,14 @@ public class QueryNodeFilter implements Filter {
             } catch (IllegalStateException | ResourceAccessException e) {
                 responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
                 Message msg = MsgPicker.getMsg();
-                ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest),
-                        new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER()));
+                KylinException exception;
+                val manager = ResourceGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+                if (manager.isResourceGroupEnabled() && !manager.isProjectBindToResourceGroup(project)) {
+                    exception = new KylinException(PROJECT_WITHOUT_RESOURCE_GROUP, msg.getPROJECT_WITHOUT_RESOURCE_GROUP());
+                } else {
+                    exception = new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
+                }
+                ErrorResponse errorResponse = new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(servletRequest), exception);
                 responseBody = JsonUtil.writeValueAsBytes(errorResponse);
                 responseHeaders = new HttpHeaders();
                 responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);

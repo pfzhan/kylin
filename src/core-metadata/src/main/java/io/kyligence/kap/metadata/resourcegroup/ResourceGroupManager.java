@@ -81,12 +81,19 @@ public class ResourceGroupManager implements IKeepNames {
     }
 
     public boolean isProjectBindToResourceGroup(String project) {
+        if (UnitOfWork.GLOBAL_UNIT.equals(project)) {
+            return true;
+        }
         return getResourceGroup().getResourceGroupMappingInfoList()
                 .stream()
                 .anyMatch(mapping -> project.equals(mapping.getProject()));
     }
 
     public boolean isResourceGroupEnabled() {
+        // resource group metadata not exist
+        if (!resourceGroupInitialized()) {
+            return false;
+        }
         return getResourceGroup().isResourceGroupEnabled();
     }
 
@@ -108,7 +115,7 @@ public class ResourceGroupManager implements IKeepNames {
     }
 
     public boolean instanceHasPermissionToOwnEpochTarget(String epochTarget, String server) {
-        if (UnitOfWork.GLOBAL_UNIT.equals(epochTarget) || !resourceGroupInitialized() || !isResourceGroupEnabled()) {
+        if (UnitOfWork.GLOBAL_UNIT.equals(epochTarget) || !isResourceGroupEnabled()) {
             return true;
         }
         // when resource group enabled, project owner must be in the build resource group
