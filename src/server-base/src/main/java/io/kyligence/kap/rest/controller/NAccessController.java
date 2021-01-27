@@ -347,7 +347,11 @@ public class NAccessController extends NBasicController {
                     r.setAccessEntryId(b.getAccessEntryId());
                     r.setPermission(b.getPermission());
                     r.setPrincipal(b.isPrincipal());
-                    r.setSid(sid);
+                    if (b.isPrincipal()) {
+                        r.setSid(makeUserNameCaseInSentive(sid));
+                    } else {
+                        r.setSid(sid);
+                    }
                     return r;
                 }).collect(Collectors.toList())).flatMap(List::stream).collect(Collectors.toList());
         Set<String> sids = Sets.newHashSet();

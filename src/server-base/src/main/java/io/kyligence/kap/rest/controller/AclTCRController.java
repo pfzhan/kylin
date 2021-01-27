@@ -92,6 +92,7 @@ public class AclTCRController extends NBasicController {
         checkProjectName(project);
         List<AclTCRResponse> result;
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            sid = makeUserNameCaseInSentive(sid);
             result = getProjectSidTCR(project, sid, true, authorizedOnly);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             result = getProjectSidTCR(project, sid, false, authorizedOnly);
@@ -111,6 +112,7 @@ public class AclTCRController extends NBasicController {
         checkProjectName(project);
         AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            sid = makeUserNameCaseInSentive(sid);
             updateSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             updateSidAclTCR(project, sid, false, requests);

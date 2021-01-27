@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-
 import java.util.List;
+
+import com.clearspring.analytics.util.Lists;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Data;
 
 @Data
 public class BatchProjectPermissionRequest {
@@ -38,7 +40,7 @@ public class BatchProjectPermissionRequest {
     private String type;
 
     @JsonProperty("names")
-    private List<String> names;
+    private List<String> names = Lists.newArrayList();
 
     @JsonProperty("permission")
     private String permission;

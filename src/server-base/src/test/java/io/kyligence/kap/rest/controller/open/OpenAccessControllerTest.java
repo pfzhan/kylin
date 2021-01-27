@@ -35,6 +35,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,6 +73,9 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private AccessService accessService;
+
+    @Mock
+    private UserService userService;
 
     @Mock
     private AclTCRService aclTCRService;

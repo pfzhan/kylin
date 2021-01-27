@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static io.kyligence.kap.rest.insensitive.InsensitiveNameAspect.getCaseInsentiveType;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
@@ -124,6 +125,7 @@ public class OpenAccessController extends NBasicController {
 
         checkType(permissionRequest.getType());
         checkNames(permissionRequest.getNames());
+        updateRequestCaseInsentive(permissionRequest);
         ExternalAclProvider.checkExternalPermission(permissionRequest.getPermission());
 
         String projectUuid = getProjectUuid(permissionRequest.getProject());
@@ -147,6 +149,7 @@ public class OpenAccessController extends NBasicController {
 
         checkType(permissionRequest.getType());
         checkName(permissionRequest.getName());
+        updateRequestCaseInsentive(permissionRequest);
         ExternalAclProvider.checkExternalPermission(permissionRequest.getPermission());
 
         AccessRequest accessRequest = convertPermissionRequestToAccessRequest(permissionRequest);
@@ -208,6 +211,22 @@ public class OpenAccessController extends NBasicController {
         List<SidPermissionWithAclResponse> response = accessService.getUserOrGroupAclPermissions(projects, name,
                 principal);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    private void updateRequestCaseInsentive(BatchProjectPermissionRequest permissionRequest) {
+        permissionRequest.setType(getCaseInsentiveType(permissionRequest.getType()));
+        boolean principal = MetadataConstants.TYPE_USER.equalsIgnoreCase(permissionRequest.getType());
+        if (principal) {
+            permissionRequest.setNames(makeUserNameCaseInSentive(permissionRequest.getNames()));
+        }
+    }
+
+    private void updateRequestCaseInsentive(ProjectPermissionRequest permissionRequest) {
+        permissionRequest.setType(getCaseInsentiveType(permissionRequest.getType()));
+        boolean principal = MetadataConstants.TYPE_USER.equalsIgnoreCase(permissionRequest.getType());
+        if (principal) {
+            permissionRequest.setName(makeUserNameCaseInSentive(permissionRequest.getName()));
+        }
     }
 
     private void checkSidExists(String type, String name) throws IOException {

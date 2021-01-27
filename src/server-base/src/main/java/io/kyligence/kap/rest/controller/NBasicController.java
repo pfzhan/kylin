@@ -96,6 +96,7 @@ import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ErrorResponse;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,6 +113,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -144,6 +146,9 @@ public class NBasicController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    protected UserService userService;
 
     public ProjectInstance getProject(String project) {
         if (null != project) {
@@ -271,6 +276,25 @@ public class NBasicController {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "'%s' is required.", fieldName));
         }
+    }
+
+    public String makeUserNameCaseInSentive(String userName) {
+        UserDetails userDetails = userService.loadUserByUsername(userName);
+        if (userDetails == null) {
+            return userName;
+        }
+        return userDetails.getUsername();
+    }
+
+    public List<String> makeUserNameCaseInSentive(List<String> userNames) {
+        List<String> names = Lists.newArrayList();
+        if (CollectionUtils.isNotEmpty(userNames)) {
+            userNames.forEach(name -> {
+                names.add(makeUserNameCaseInSentive(name));
+            });
+            userNames = names;
+        }
+        return userNames;
     }
 
     protected void checkNonNegativeIntegerArg(String fieldName, Object fieldValue) {

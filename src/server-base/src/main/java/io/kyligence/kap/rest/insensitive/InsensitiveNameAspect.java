@@ -24,15 +24,20 @@
 package io.kyligence.kap.rest.insensitive;
 
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.security.AclEntityType;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.insensitive.InsensitiveRequest;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -90,6 +95,11 @@ public class InsensitiveNameAspect {
             case "modelAlias":
                 args[i] = getDataModelAlias(args, parameterNames, parameterTypes, (String) arg);
                 break;
+            case "type":
+            case "sidType":
+            case "entityType":
+                args[i] = getCaseInsentiveType((String) arg);
+                break;
             default:
                 break;
             }
@@ -132,5 +142,12 @@ public class InsensitiveNameAspect {
             return dataModel.getAlias();
         }
         return modelAlias;
+    }
+
+    public static String getCaseInsentiveType(String type) {
+        Set<String> originTypes = Sets.newHashSet(
+                MetadataConstants.TYPE_USER, MetadataConstants.TYPE_GROUP,
+                AclEntityType.N_DATA_MODEL, AclEntityType.PROJECT_INSTANCE);
+        return originTypes.stream().filter(originType -> originType.equalsIgnoreCase(type)).findFirst().orElse(type);
     }
 }
