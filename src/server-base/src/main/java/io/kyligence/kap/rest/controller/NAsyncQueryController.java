@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 
 import java.io.IOException;
 import java.util.List;
@@ -38,6 +39,7 @@ import javax.validation.Valid;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
@@ -193,8 +195,11 @@ public class NAsyncQueryController extends NBasicController {
     public EnvelopeResponse<Boolean> batchDelete(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "older_than", required = false) String time) throws Exception {
         if (!isAdmin()) {
-            return new EnvelopeResponse<Boolean>(ResponseCode.CODE_UNAUTHORIZED, false,
-                    "Access denied. Only admin users can delete the query results");
+            throw new KylinException(ACCESS_DENIED, "Access denied. Only admin users can delete the query results");
+        }
+        if (project != null) {
+            aclEvaluate.checkProjectReadPermission(project);
+            checkProjectName(project);
         }
         Message msg = MsgPicker.getMsg();
         if (asyncQueryService.batchDelete(project, time))
@@ -212,6 +217,7 @@ public class NAsyncQueryController extends NBasicController {
         if (project == null) {
             project = sqlRequest.getProject();
         }
+        aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, false,
@@ -234,6 +240,7 @@ public class NAsyncQueryController extends NBasicController {
         if (project == null) {
             project = sqlRequest.getProject();
         }
+        aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
@@ -271,6 +278,7 @@ public class NAsyncQueryController extends NBasicController {
         if (project == null) {
             project = sqlRequest.getProject();
         }
+        aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, 0L,
@@ -289,6 +297,7 @@ public class NAsyncQueryController extends NBasicController {
         if (project == null) {
             project = sqlRequest.getProject();
         }
+        aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
@@ -308,6 +317,7 @@ public class NAsyncQueryController extends NBasicController {
         if (project == null) {
             project = sqlRequest.getProject();
         }
+        aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
@@ -343,6 +353,7 @@ public class NAsyncQueryController extends NBasicController {
         if (project == null) {
             project = sqlRequest.getProject();
         }
+        aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",

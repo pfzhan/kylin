@@ -80,6 +80,8 @@ import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
 import io.kyligence.kap.rest.service.KapQueryService;
 
+import javax.servlet.http.HttpServletResponse;
+
 public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";
@@ -140,6 +142,118 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
         Mockito.verify(nAsyncQueryController).query(Mockito.any());
+    }
+
+    @Test
+    public void testBatchDeleteAllNoProjectPermission() throws Exception {
+        Authentication otherUser = new TestingAuthenticationToken("OTHER", "OTHER", Constant.IDENTITY_USER);
+        SecurityContextHolder.getContext().setAuthentication(otherUser);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).batchDelete(Mockito.any(), Mockito.any());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    @Test
+    public void testBatchDeleteOldResultNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query")
+                .param("project", PROJECT)
+                .param("older_than", "2011-11-11 11:11:11")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).batchDelete(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testDeleteByQueryIdNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query/{query_id}", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).deleteByQueryId(Mockito.anyString(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testQueryStatusNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/status", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).inqueryStatus(Mockito.any(), Mockito.anyString(), Mockito.any());
+    }
+
+    @Test
+    public void testFileStatusNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/file_status", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).fileStatus(Mockito.anyString(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testMetadataNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/metadata", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).metadata(Mockito.any(), Mockito.anyString(), Mockito.any());
+    }
+
+    @Test
+    public void testDownloadQueryResultNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
+                Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testResultPathNoProjectPermission() throws Exception {
+        Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
+                .checkProjectReadPermission(PROJECT);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id}/result_path", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).queryPath(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     @Test
