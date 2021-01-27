@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.metadata.epoch;
 
+import static org.awaitility.Awaitility.await;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -42,9 +44,10 @@ public class EpochUpdateLockManagerTest extends AbstractJdbcMetadataTestCase {
     @Test
     public void testGetLock() {
         val executorService = Executors.newFixedThreadPool(5);
+        val timeoutSecs = 3;
 
         try {
-            getTestConfig().setProperty("kylin.server.leader-race.heart-beat-timeout", "3");
+            getTestConfig().setProperty("kylin.server.leader-race.heart-beat-timeout", "2");
 
             val lockList = Lists.newCopyOnWriteArrayList();
 
@@ -58,18 +61,20 @@ public class EpochUpdateLockManagerTest extends AbstractJdbcMetadataTestCase {
 
             Assert.assertTrue(lockList.stream().allMatch(x -> lockCache == x));
 
-            Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 1);
+            Assert.assertEquals(1, EpochUpdateLockManager.getInstance().getLockCacheSize());
 
-            TimeUnit.SECONDS.sleep(3);
+            TimeUnit.SECONDS.sleep(timeoutSecs);
 
             EpochUpdateLockManager.getLock("test2");
-
-            Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 2);
+            Assert.assertEquals(2, EpochUpdateLockManager.getInstance().getLockCacheSize());
 
             //clean up cache that is expired
             EpochUpdateLockManager.cleanUp();
 
-            Assert.assertEquals(EpochUpdateLockManager.getInstance().getLockCacheSize(), 1);
+            await().atMost(timeoutSecs, TimeUnit.SECONDS).untilAsserted(() -> {
+                Assert.assertEquals(1, EpochUpdateLockManager.getInstance().getLockCacheSize());
+            });
+
         } catch (Exception e) {
             Assert.fail("test error," + Throwables.getRootCause(e).getMessage());
         } finally {
