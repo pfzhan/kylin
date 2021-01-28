@@ -446,7 +446,7 @@ import dayjs from 'dayjs'
 import { NamedRegex, apiUrl, pageRefTags } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
-import { handleError, kapConfirm, kapMessage, handleSuccess, downloadFileByXMLHttp } from 'util/business'
+import { handleError, kapConfirm, kapMessage, handleSuccess } from 'util/business'
 import { objectClone, handleSuccessAsync, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
@@ -1026,25 +1026,24 @@ export default class ModelList extends Vue {
       this.handleEnableModel(objectClone(modelDesc))
     } else if (command === 'exportMetadata') {
       if (scope.row.status === 'BROKEN') return
-      const project = this.currentSelectedProject
       const form = { ids: [modelDesc.uuid] }
-      if (this.$store.state.config.platform === 'iframe') {
-        this.downloadResouceData(project, form)
-        let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
-        downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
-          this.$message.success(this.$t('exportMetadataSuccess'))
-        })
-      } else {
-        const project = this.currentSelectedProject
-        const type = 'one'
-        await this.callModelsExportModal({ project, form, type })
+      // if (this.$store.state.config.platform === 'iframe') {
+      //   this.downloadResouceData(project, form)
+      //   let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
+      //   downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
+      //     this.$message.success(this.$t('exportMetadataSuccess'))
+      //   })
+      // } else {
+      const project = this.currentSelectedProject
+      const type = 'one'
+      await this.callModelsExportModal({ project, form, type })
         // try {
         //   await this.downloadModelsMetadata({ project, form })
         //   this.$message.success(this.$t('exportMetadataSuccess'))
         // } catch (e) {
         //   this.$message.error(this.$t('exportMetadataFailed'))
         // }
-      }
+      // }
     } else if (command === 'exportTDS') {
       if (scope.row.status === 'BROKEN') return
       if (scope.row.status === 'OFFLINE') {

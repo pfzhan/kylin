@@ -263,10 +263,12 @@ export default class ModelsExportModal extends Vue {
     if (this.$store.state.config.platform === 'iframe') {
       // this.downloadResouceData(project, form)
       let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
-      downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/json').then(() => {
+      downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
         this.isSubmiting = false
         this.handleClose(true)
         this.$message.success(this.$t('exportSuccess'))
+      }).catch(() => {
+        this.$message.error(this.$t('exportFailed'))
       })
     } else {
       try {
