@@ -59,6 +59,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.Sid;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -200,6 +201,13 @@ public class OpenAccessController extends NBasicController {
         checkSidExists(type, name);
 
         boolean principal = MetadataConstants.TYPE_USER.equalsIgnoreCase(type);
+
+        if (principal) {
+            UserDetails userDetails = userService.loadUserByUsername(name);
+            if (userDetails != null) {
+                name = userDetails.getUsername();
+            }
+        }
 
         List<String> projects = new ArrayList<>();
         if (StringUtils.isBlank(project)) {
