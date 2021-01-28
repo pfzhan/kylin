@@ -593,11 +593,11 @@ public class JdbcQueryHistoryStore {
             filterSql = filterSql.and(queryHistoryTable.querySubmitter, isEqualTo(request.getUsername()));
         }
 
-        if (!StringUtils.isEmpty(request.getFilterSubmitter())) {
+        if (request.getFilterSubmitter() != null && !request.getFilterSubmitter().isEmpty()) {
             if (request.isSubmitterExactlyMatch()) {
-                filterSql = filterSql.and(queryHistoryTable.querySubmitter, isEqualTo(request.getFilterSubmitter()));
-            } else {
-                filterSql = filterSql.and(queryHistoryTable.querySubmitter, isLikeCaseInsensitive("%" + request.getFilterSubmitter() + "%"));
+                filterSql = filterSql.and(queryHistoryTable.querySubmitter, isIn(request.getFilterSubmitter()));
+            } else if (request.getFilterSubmitter().size() == 1) {
+                filterSql = filterSql.and(queryHistoryTable.querySubmitter, isLikeCaseInsensitive("%" + request.getFilterSubmitter().get(0) + "%"));
             }
         }
 

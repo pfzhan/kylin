@@ -50,7 +50,7 @@ public class QueryHistoryRequest {
     private String sql;
     private String server;
     // Userd to filter results with submitter name
-    private String filterSubmitter;
+    private List<String> filterSubmitter;
     // Userd to filter results with model name
     private String filterModelName;
     // Userd to filter results with models

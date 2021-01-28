@@ -581,9 +581,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryHistoryRequest.setAdmin(true);
         queryHistoryRequest.setUsername(ADMIN);
         queryHistoryRequest.setProject(PROJECT);
-        queryHistoryRequest.setFilterSubmitter(NORMAL_USER);
+        queryHistoryRequest.setFilterSubmitter(Lists.newArrayList(NORMAL_USER));
         queryHistoryRequest.setRealizations(Lists.newArrayList("RDBMS", "HIVE", "ut_inner_join_cube_partial"));
         queryHistoryRequest.setFilterModelIds(Lists.newArrayList("82fa7671-a935-45f5-8779-85703601f49a.json"));
+        queryHistoryRequest.setSubmitterExactlyMatch(true);
         List<QueryHistory> queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
         Assert.assertEquals(2, queryHistoryList.size());
 
@@ -601,6 +602,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryHistoryRequest.setRealizations(Lists.newArrayList("HIVE", "pushdown"));
         queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
         Assert.assertEquals(2, queryHistoryList.size());
+
+        queryHistoryRequest.setFilterSubmitter(Lists.newArrayList(NORMAL_USER, ADMIN));
+        queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 3, 0);
+        Assert.assertEquals(3, queryHistoryList.size());
     }
 
     @Test

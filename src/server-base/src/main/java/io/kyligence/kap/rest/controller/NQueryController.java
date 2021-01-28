@@ -205,7 +205,7 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "submitter", required = false) String submitter) {
+            @RequestParam(value = "submitter", required = false) List<String> submitter) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
                 latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
@@ -235,7 +235,7 @@ public class NQueryController extends NBasicController {
     @GetMapping(value = "/query_history_submitters")
     @ResponseBody
     public EnvelopeResponse<List<String>> getQueryHistorySubmitters(@RequestParam(value = "project") String project,
-                                                                    @RequestParam(value = "submitter", required = false) String submitter,
+                                                                    @RequestParam(value = "submitter", required = false) List<String> submitter,
                                                                     @RequestParam(value = "page_size", required = false, defaultValue = "100") Integer size) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest();

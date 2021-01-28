@@ -547,6 +547,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         request.setLatencyFrom("0");
         request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
         request.setRealizations(Lists.newArrayList("HIVE", "CONSTANTS", "nmodel_basic_inner", "nmodel_basic"));
+        request.setSubmitterExactlyMatch(true);
 
         // mock query histories
         QueryHistory queryHistory = new QueryHistory();

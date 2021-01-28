@@ -421,7 +421,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     public void testGetQueryHistorySubmitters() throws Exception {
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(PROJECT);
-        request.setFilterSubmitter("USER");
+        request.setFilterSubmitter(Lists.newArrayList("USER"));
         final List<String> submitters = Lists.newArrayList();
         submitters.add("USER1");
         submitters.add("USER2");
