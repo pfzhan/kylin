@@ -325,6 +325,8 @@ public class NAsyncQueryController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
                     "Access denied. Only task submitters or admin users can download the query results");
         }
+        asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, project,
+                MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         if (((isAdmin() && !config.isAdminUserExportAllowed())
                 || (!isAdmin() && !config.isNoneAdminUserExportAllowed()))) {
             throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());

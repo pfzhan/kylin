@@ -49,9 +49,13 @@ import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.RUNNIN
 import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.SUCCESS;
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 
+import java.io.IOException;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -79,8 +83,6 @@ import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
 import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
 import io.kyligence.kap.rest.service.KapQueryService;
-
-import javax.servlet.http.HttpServletResponse;
 
 public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
 
@@ -237,6 +239,28 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
+                Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testDownloadQueryResultWhenQueryNotExist() throws Exception {
+        Mockito.doReturn(true).when(asyncQueryService).hasPermission(Mockito.anyString(), Mockito.anyString());
+        Mockito.doThrow(new IOException()).when(asyncQueryService).getFileInfo(Mockito.anyString(),
+                Mockito.anyString());
+        Mockito.doThrow(new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND()))
+                .when(asyncQueryService)
+                .checkStatus(Mockito.anyString(), Mockito.any(), Mockito.anyString(), Mockito.anyString());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))).andExpect(result -> {
+                    Assert.assertEquals(
+                            "The query corresponding to this query id in the current project cannot be found .",
+                            result.getResolvedException().getMessage());
+                });
 
         Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
                 Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
