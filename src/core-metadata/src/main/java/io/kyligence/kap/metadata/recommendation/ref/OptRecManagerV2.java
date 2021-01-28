@@ -29,7 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -59,6 +59,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
@@ -148,17 +149,32 @@ public class OptRecManagerV2 {
             throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
                     MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
         }
+
+        model.getAllNamedColumns().forEach(column -> {
+            if (column.isExist() && measure.getName().equalsIgnoreCase(column.getName())) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
+            }
+        });
     }
 
-    public void checkDimensionName(Map<Integer, NDataModel.NamedColumn> columns) {
-        columns.values().stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toMap(NDataModel.NamedColumn::getName, Function.identity(), (u, v) -> {
-                    if (u == v) {
-                        return u;
-                    }
-                    throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                            MsgPicker.getMsg().getDIMENSION_CONFLICT(v.getName()));
-                }));
+    public void checkDimensionName(NDataModel model, NDataModel.NamedColumn column) {
+        model.getAllNamedColumns().forEach(existingColumn -> {
+            if (!column.isExist() || column.getId() == existingColumn.getId()) {
+                return;
+            }
+            if (column.getName().equalsIgnoreCase(existingColumn.getName())) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().getDIMENSION_CONFLICT(column.getName()));
+            }
+        });
+
+        model.getAllMeasures().forEach(measure -> {
+            if (!measure.isTomb() && column.getName().equalsIgnoreCase(measure.getName())) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().getDIMENSION_CONFLICT(column.getName()));
+            }
+        });
     }
 
     public static OptRecManagerV2 getInstance(String project) {
@@ -223,6 +239,7 @@ public class OptRecManagerV2 {
             LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
             uniqueFlagToUuid.put(recEntity.getLayout().genUniqueContent(), k);
         });
+        AtomicInteger newRecCount = new AtomicInteger(0);
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         garbageLayouts.forEach((layoutId, type) -> {
             LayoutEntity layout = allLayoutsMap.get(layoutId);
@@ -260,6 +277,7 @@ public class OptRecManagerV2 {
                 recItem.setDependIDs(item.genDependIds());
                 recItem.setLayoutMetric(new LayoutMetric(frequencyMap, new LayoutMetric.LatencyMap()));
                 recItem.setRecSource(type.name());
+                newRecCount.getAndIncrement();
             }
 
             if (recItem.getLayoutMetric() != null) {
@@ -267,6 +285,18 @@ public class OptRecManagerV2 {
             }
         });
         RawRecManager.getInstance(project).saveOrUpdate(rawRecItems);
+
+        if (newRecCount.get() > 0) {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                modelMgr.updateDataModel(modelId, copyForWrite -> {
+                    int oldCount = copyForWrite.getRecommendationsCount();
+                    copyForWrite.setRecommendationsCount(oldCount + newRecCount.get());
+                });
+
+                return null;
+            }, project);
+        }
         log.info("Raw recommendations from index optimizer for model({}/{}) successfully generated.", project, modelId);
     }
 }

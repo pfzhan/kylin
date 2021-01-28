@@ -50,13 +50,13 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
 import io.kyligence.kap.rest.request.OptRecRequest;
 
-public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
+public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
-    public OptRecServiceCCNameConflictTest() {
+    public OptRecServiceAliasConflictTest() {
         super("../server-base/src/test/resources/ut_rec_v2/cc_name_conflict",
                 new String[] { "caa2c0a5-2957-4110-bf2e-d92a7eb7ea97" });
     }
@@ -168,7 +168,46 @@ public class OptRecServiceCCNameConflictTest extends OptRecV2TestBase {
                     "The computed column name \"CC_AUTO__1611234685746_1\" is duplicated with an existing column name in the current model. Please rename it.",
                     rootCause.getMessage());
         }
+    }
 
+    @Test
+    public void testDimensionAliasConflict() throws Exception {
+        List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16);
+        prepare(addLayoutId);
+
+        Map<Integer, String> nameMap = Maps.newHashMap();
+        nameMap.put(-3, "LO_REVENUE");
+        nameMap.put(-4, "LO_REVENUE");
+        OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
+
+        try {
+            optRecService.approve(getProject(), recRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            KylinException rootCause = (KylinException) Throwables.getRootCause(e);
+            Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
+            Assert.assertEquals("Dimension LO_REVENUE already exists.", rootCause.getMessage());
+        }
+    }
+
+    @Test
+    public void testDimensionAliasConflictWithMeasure() throws Exception {
+        List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16);
+        prepare(addLayoutId);
+
+        Map<Integer, String> nameMap = Maps.newHashMap();
+        nameMap.put(-3, "LO_REVENUE");
+        nameMap.put(-12, "LO_REVENUE");
+        OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
+
+        try {
+            optRecService.approve(getProject(), recRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            KylinException rootCause = (KylinException) Throwables.getRootCause(e);
+            Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
+            Assert.assertEquals("Measure LO_REVENUE already exists.", rootCause.getMessage());
+        }
     }
 
     @Test

@@ -113,7 +113,7 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
 
                     // test write
                     op = "Writing metadata (40 bytes)";
-                    logger.info(op);
+                    logger.trace(op);
                     start = System.currentTimeMillis();
                     try {
                         store.checkAndPutResource(resourcePath, new StringEntity(uuid), StringEntity.serializer);
@@ -124,7 +124,7 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
 
                     // test read
                     op = "Reading metadata (40 bytes)";
-                    logger.info(op);
+                    logger.trace(op);
                     start = System.currentTimeMillis();
                     try {
                         StringEntity value = store.getResource(resourcePath, StringEntity.serializer);
@@ -138,7 +138,7 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
 
                     // test delete
                     op = "Deleting metadata (40 bytes)";
-                    logger.info(op);
+                    logger.trace(op);
                     start = System.currentTimeMillis();
                     try {
                         store.deleteResource(resourcePath);
@@ -167,7 +167,7 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
 
                     // test read
                     op = "Reading metadata /UUID";
-                    logger.info(op);
+                    logger.trace(op);
                     start = System.currentTimeMillis();
                     try {
                         StringEntity value = store.getResource(UUID_PATH, StringEntity.serializer);

@@ -677,7 +677,9 @@ public class OptRecV2 {
     }
 
     private NDataModel initModel() {
-        return NDataModelManager.getInstance(Objects.requireNonNull(config), project).getDataModelDesc(getUuid());
+        NDataModelManager modelManager = NDataModelManager.getInstance(Objects.requireNonNull(config), project);
+        NDataModel model = modelManager.getDataModelDesc(getUuid());
+        return model.isBroken() ? model : modelManager.copyForWrite(model);
     }
 
     private List<LayoutEntity> getAllLayouts() {

@@ -226,7 +226,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 for (RawRecItem rawRecItem : recItems) {
                     switch (rawRecItem.getType()) {
                     case DIMENSION:
-                        writeDimensionToModel(rawRecItem);
+                        writeDimensionToModel(copyForWrite, rawRecItem);
                         break;
                     case COMPUTED_COLUMN:
                         writeCCToModel(copyForWrite, rawRecItem);
@@ -288,7 +288,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             logWriteProperty(rawRecItem, measure);
         }
 
-        private void writeDimensionToModel(RawRecItem rawRecItem) {
+        private void writeDimensionToModel(NDataModel model, RawRecItem rawRecItem) {
             Map<Integer, RecommendationRef> dimensionRefs = recommendation.getDimensionRefs();
             int negRecItemId = -rawRecItem.getId();
             RecommendationRef dimensionRef = dimensionRefs.get(negRecItemId);
@@ -310,7 +310,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 column.setName(userDefinedRecNameMap.get(negRecItemId));
             }
             column.setStatus(NDataModel.ColumnStatus.DIMENSION);
-            recManagerV2.checkDimensionName(columns);
+            recManagerV2.checkDimensionName(model, column);
+            model.getAllNamedColumns().get(column.getId()).setName(column.getName());
             dimensions.putIfAbsent(negRecItemId, column);
             columns.get(column.getId()).setStatus(column.getStatus());
             columns.get(column.getId()).setName(column.getName());
