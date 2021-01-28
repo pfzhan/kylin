@@ -83,9 +83,6 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private ProjectService projectService;
 
-    @Mock
-    private UserService userService;
-
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     @Before
