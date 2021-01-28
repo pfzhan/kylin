@@ -5128,6 +5128,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.deletePartitions(project, segmentId, modelId, Sets.newHashSet(7L));
         Assert.assertEquals(20128L, dfm.getDataflow(modelId).getSegment(segmentId).getStorageBytesSize());
         Assert.assertEquals(27L, dfm.getDataflow(modelId).getSegment(segmentId).getSegDetails().getTotalRowCount());
+        Assert.assertEquals(20L, dfm.getDataflow(modelId).getSegment(segmentId).getSourceCount());
 
         val model2 = modelManager.getDataModelDesc(modelId);
         val segment2 = dfm.getDataflow(modelId).getSegment(segmentId);

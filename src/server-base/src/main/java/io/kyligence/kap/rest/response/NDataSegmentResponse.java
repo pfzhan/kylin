@@ -72,6 +72,9 @@ public class NDataSegmentResponse extends NDataSegment {
     @JsonProperty("multi_partition_count_total")
     private long multiPartitionCountTotal;
 
+    @JsonProperty("source_count")
+    private long sourceCount;
+
     @JsonProperty("row_count")
     private long rowCount;
 
@@ -103,6 +106,7 @@ public class NDataSegmentResponse extends NDataSegment {
         if (dataflow.getModel().getMultiPartitionDesc() != null) {
             multiPartitionCountTotal = dataflow.getModel().getMultiPartitionDesc().getPartitions().size();
         }
+        sourceCount = segment.getSourceCount();
         rowCount = segment.getSegDetails().getTotalRowCount();
         setBytesSize(segment.getStorageBytesSize());
         getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));

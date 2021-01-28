@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -409,7 +410,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public long getSourceCount() {
-        return sourceCount;
+        if(CollectionUtils.isEmpty(multiPartitions)) {
+            return sourceCount;
+        }
+        return multiPartitions.stream().mapToLong(SegmentPartition::getSourceCount).sum();
     }
 
     public void setSourceCount(long sourceCount) {
