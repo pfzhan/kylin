@@ -223,6 +223,9 @@ public class NAsyncQueryController extends NBasicController {
             @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
+            if (sqlRequest == null) {
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+            }
             project = sqlRequest.getProject();
         }
         aclEvaluate.checkProjectReadPermission(project);
@@ -231,21 +234,24 @@ public class NAsyncQueryController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, false,
                     "Access denied. Only task submitters or admin users can delete the query results");
         }
-        Message msg = MsgPicker.getMsg();
         boolean result = asyncQueryService.deleteByQueryId(project, queryId);
         if (result)
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
         else
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, msg.getCLEAN_FOLDER_FAIL());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
     }
 
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Response: query_id")
     @GetMapping(value = "/async_query/{query_id:.+}/status")
     @ResponseBody
-    public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
+    public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(
+            @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @PathVariable("query_id") String queryId, @RequestParam(value = "project", required = false) String project)
             throws IOException {
         if (project == null) {
+            if (sqlRequest == null) {
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+            }
             project = sqlRequest.getProject();
         }
         aclEvaluate.checkProjectReadPermission(project);
@@ -284,6 +290,9 @@ public class NAsyncQueryController extends NBasicController {
             @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
+            if (sqlRequest == null) {
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+            }
             project = sqlRequest.getProject();
         }
         aclEvaluate.checkProjectReadPermission(project);
@@ -299,10 +308,14 @@ public class NAsyncQueryController extends NBasicController {
     @ApiOperation(value = "async query status", tags = { "QE" })
     @GetMapping(value = "/async_query/{query_id:.+}/metadata")
     @ResponseBody
-    public EnvelopeResponse<List<List<String>>> metadata(@Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
+    public EnvelopeResponse<List<List<String>>> metadata(
+            @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest,
             @PathVariable("query_id") String queryId, @RequestParam(value = "project", required = false) String project)
             throws IOException {
         if (project == null) {
+            if (sqlRequest == null) {
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+            }
             project = sqlRequest.getProject();
         }
         aclEvaluate.checkProjectReadPermission(project);
@@ -323,6 +336,9 @@ public class NAsyncQueryController extends NBasicController {
             @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
+            if (sqlRequest == null) {
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+            }
             project = sqlRequest.getProject();
         }
         aclEvaluate.checkProjectReadPermission(project);
@@ -361,6 +377,9 @@ public class NAsyncQueryController extends NBasicController {
             @Valid @RequestBody(required = false) final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response,
             @RequestParam(value = "project", required = false) String project) throws IOException {
         if (project == null) {
+            if (sqlRequest == null) {
+                throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY());
+            }
             project = sqlRequest.getProject();
         }
         aclEvaluate.checkProjectReadPermission(project);

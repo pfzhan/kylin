@@ -817,6 +817,10 @@ public class CnMessage extends Message {
         return "无效的时间格式。请按 yyyy-MM-dd HH:mm:ss 格式填写。";
     }
 
+    public String getASYNC_QUERY_PROJECT_NAME_EMPTY() {
+        return "项目名称不能为空。请检查后重试。";
+    }
+
     // Admin
     @Override
     public String getGET_ENV_CONFIG_FAIL() {

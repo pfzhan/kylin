@@ -165,8 +165,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doThrow(new KylinException(ACCESS_DENIED, "Access is denied")).when(aclEvaluate)
                 .checkProjectReadPermission(PROJECT);
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query")
-                .param("project", PROJECT)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query").param("project", PROJECT)
                 .param("older_than", "2011-11-11 11:11:11")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
@@ -435,11 +434,9 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     public void testBatchDeleteOldResultWhenTimeFormatError() throws Exception {
         Mockito.doThrow(new ParseException("", 0)).when(asyncQueryService).batchDelete(PROJECT, "2011-11/11 11:11:11");
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query")
-                .param("project", PROJECT)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query").param("project", PROJECT)
                 .param("older_than", "2011-11/11 11:11:11")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(result -> {
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))).andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
                     Assert.assertEquals("KE-20040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
@@ -643,7 +640,8 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nAsyncQueryController).queryPath(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(nAsyncQueryController).queryPath(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.any());
     }
 
     @Test
@@ -656,6 +654,91 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nAsyncQueryController).queryPath(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(nAsyncQueryController).queryPath(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.any());
+    }
+
+    @Test
+    public void testDeleteByQueryIdWhenProjectIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query/{query_id}", "123")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                            result.getResolvedException().getMessage());
+                });
+    }
+
+    @Test
+    public void testQueryStatusWhenProjectIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/status", "123")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                            result.getResolvedException().getMessage());
+                });
+    }
+
+    @Test
+    public void testFileStatusWhenProjectIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/file_status", "123")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                            result.getResolvedException().getMessage());
+                });
+    }
+
+    @Test
+    public void testMetadataWhenProjectIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/metadata", "123")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                            result.getResolvedException().getMessage());
+                });
+    }
+
+    @Test
+    public void testDownloadQueryResultWhenProjectIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                            result.getResolvedException().getMessage());
+                });
+    }
+
+    @Test
+    public void testQueryPathWhenProjectIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id}/result_path", "123")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
+                            result.getResolvedException().getMessage());
+                });
     }
 }

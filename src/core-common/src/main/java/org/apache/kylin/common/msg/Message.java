@@ -805,6 +805,10 @@ public class Message {
         return "The time format is invalid. Please enter enter the date in the format yyyy-MM-dd HH:mm:ss.";
     }
 
+    public String getASYNC_QUERY_PROJECT_NAME_EMPTY() {
+        return "The project name can’t be empty. Please check and try again.";
+    }
+
     // Admin
     public String getGET_ENV_CONFIG_FAIL() {
         return "Failed to get Kylin env Config.";
