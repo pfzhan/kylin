@@ -119,6 +119,9 @@ class MLPMergeExec(private val jobContext: SegmentMergeJob,
     mergeSegmentStatistics(copiedSegment)
     dataflowUpdate.setToUpdateSegs(copiedSegment)
     logInfo(s"Merge COLUMN-BYTES segment $segmentId")
+    // The afterward step would dump the meta to hdfs-store.
+    // We should only update the latest meta in mem-store.
+    // Make sure the copied dataflow here is the latest.
     jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
   }
 

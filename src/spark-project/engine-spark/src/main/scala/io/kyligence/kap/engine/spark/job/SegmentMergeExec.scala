@@ -67,6 +67,8 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
     checkpoint()
     mergeFlatTable()
     mergeIndices()
+    // Drain results immediately after merging.
+    drain()
     mergeColumnBytes()
     cleanup()
   }
@@ -231,6 +233,9 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
     copiedSegment.getColumnSourceBytes.putAll(evaluated)
     dataflowUpdate.setToUpdateSegs(copiedSegment)
     logInfo(s"Merge COLUMN-BYTES segment $segmentId")
+    // The afterward step would dump the meta to hdfs-store.
+    // We should only update the latest meta in mem-store.
+    // Make sure the copied dataflow here is the latest.
     jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
   }
 }

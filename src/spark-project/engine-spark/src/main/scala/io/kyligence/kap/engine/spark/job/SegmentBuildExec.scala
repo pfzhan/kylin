@@ -68,6 +68,8 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     checkpoint()
     // Build layers.
     buildByLayer()
+    // Drain results immediately after building.
+    drain()
     // Refresh column bytes.
     tryRefreshColumnBytes()
     // Drain results, shutdown pool, cleanup extra immediate outputs.
@@ -157,6 +159,9 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
     dataflowUpdate.setToUpdateSegs(copiedSegment)
     logInfo(s"Refresh COLUMN-BYTES segment $segmentId")
+    // The afterward step would dump the meta to hdfs-store.
+    // We should only update the latest meta in mem-store.
+    // Make sure the copied dataflow here is the latest.
     jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
   }
 
