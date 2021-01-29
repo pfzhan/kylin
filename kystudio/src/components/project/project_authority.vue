@@ -82,7 +82,7 @@
       </kap-pager>
     </div>
 
-    <el-dialog :title="authorTitle" width="960px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="authorizationVisible" @close="initAccessData">
+    <el-dialog :title="authorTitle" width="960px" class="user-access-dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="authorizationVisible" @close="initAccessData">
       <div class="author-tips">
         <div class="item-point">{{$t('authorTips')}}</div>
         <div class="item-point">{{$t('authorTips1')}}</div>
@@ -614,13 +614,7 @@ export default class ProjectAuthority extends Vue {
       white-space: pre-wrap;
     }
   }
-  .author_dialog {
-    .el-alert {
-      padding: 0;
-      .el-alert__title {
-        font-size: 14px;
-      }
-    }
+  .user-access-dialog {
     .el-dialog {
       position: absolute;
       left: 0;
@@ -630,11 +624,7 @@ export default class ProjectAuthority extends Vue {
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      .el-dialog__header {
-        min-height: 47px;
-      }
       .el-dialog__body {
-        // height: calc(~'100% - 200px');
         overflow: auto;
       }
     }

@@ -827,6 +827,24 @@ export default class UserAccess extends Vue {
       }
     }
   }
+  .author_dialog {
+    .el-dialog {
+      position: absolute;
+      left: 0;
+      right: 0;
+      margin: auto;
+      max-height: 70%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      .el-dialog__header {
+        min-height: 47px;
+      }
+      .el-dialog__body {
+        overflow: auto;
+      }
+    }
+  }
   .like-tips-block {
     color: @text-normal-color;
     .review-details {
