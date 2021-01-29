@@ -28,6 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +44,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -201,11 +203,17 @@ public class NAsyncQueryController extends NBasicController {
             aclEvaluate.checkProjectReadPermission(project);
             checkProjectName(project);
         }
-        Message msg = MsgPicker.getMsg();
-        if (asyncQueryService.batchDelete(project, time))
+        boolean isDeleteSuceess;
+        try {
+            isDeleteSuceess = asyncQueryService.batchDelete(project, time);
+        } catch (ParseException e) {
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR());
+        }
+        if (isDeleteSuceess) {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
-        else
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, msg.getCLEAN_FOLDER_FAIL());
+        } else {
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
+        }
     }
 
     @ApiOperation(value = "cancel async query", tags = { "QE" })

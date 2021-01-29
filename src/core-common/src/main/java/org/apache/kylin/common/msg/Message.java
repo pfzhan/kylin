@@ -801,6 +801,10 @@ public class Message {
         return "Failed to clean folder.";
     }
 
+    public String getASYNC_QUERY_TIME_FORMAT_ERROR() {
+        return "The time format is invalid. Please enter enter the date in the format yyyy-MM-dd HH:mm:ss.";
+    }
+
     // Admin
     public String getGET_ENV_CONFIG_FAIL() {
         return "Failed to get Kylin env Config.";

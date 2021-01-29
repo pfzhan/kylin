@@ -50,6 +50,7 @@ import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.SUCCES
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 
 import java.io.IOException;
+import java.text.ParseException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -428,6 +429,24 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         nAsyncQueryController.batchDelete(PROJECT, "2011-11-11 11:11:11");
+    }
+
+    @Test
+    public void testBatchDeleteOldResultWhenTimeFormatError() throws Exception {
+        Mockito.doThrow(new ParseException("", 0)).when(asyncQueryService).batchDelete(PROJECT, "2011-11/11 11:11:11");
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query")
+                .param("project", PROJECT)
+                .param("older_than", "2011-11/11 11:11:11")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(result -> {
+                    Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
+                    Assert.assertEquals("KE-20040001",
+                            ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
+                                    .getCodeString());
+                    Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR(),
+                            result.getResolvedException().getMessage());
+                });
     }
 
     @Test

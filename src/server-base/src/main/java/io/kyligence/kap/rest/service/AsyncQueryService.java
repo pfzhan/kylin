@@ -285,7 +285,7 @@ public class AsyncQueryService extends BasicService {
         }
     }
 
-    public boolean batchDelete(String project, String time) throws Exception {
+    public boolean batchDelete(String project, String time) throws IOException, ParseException {
         if (project == null && time == null) {
             return deleteAllFolder();
         } else {

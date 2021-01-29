@@ -812,6 +812,11 @@ public class CnMessage extends Message {
         return "清理文件夹失败";
     }
 
+    @Override
+    public String getASYNC_QUERY_TIME_FORMAT_ERROR() {
+        return "无效的时间格式。请按 yyyy-MM-dd HH:mm:ss 格式填写。";
+    }
+
     // Admin
     @Override
     public String getGET_ENV_CONFIG_FAIL() {
