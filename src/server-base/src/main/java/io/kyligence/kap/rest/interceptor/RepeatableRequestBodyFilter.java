@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.interceptor;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+
 import java.io.IOException;
 import java.util.Locale;
 
@@ -35,13 +37,18 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.directory.api.util.Strings;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.project.NProjectLoader;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @Component
 @Order(1)
@@ -60,6 +67,13 @@ public class RepeatableRequestBodyFilter implements Filter {
             String project = projectInfo.getFirst();
             if (!Strings.isEmpty(project) && !project.equalsIgnoreCase("_global")) {
                 MDC.put("request.project", String.format(Locale.ROOT, "[%s] ", project));
+                NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+                ProjectInstance prjInstance = projectManager.getProject(project);
+                if (prjInstance == null) {
+                    throw new KylinException(PROJECT_NOT_EXIST,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                }
+                project = prjInstance.getName();
             }
             request = projectInfo.getSecond();
             NProjectLoader.updateCache(project);
