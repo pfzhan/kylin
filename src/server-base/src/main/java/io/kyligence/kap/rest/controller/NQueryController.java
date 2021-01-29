@@ -250,12 +250,12 @@ public class NQueryController extends NBasicController {
     @GetMapping(value = "/query_history_models")
     @ResponseBody
     public EnvelopeResponse<List<String>> getQueryHistoryModels(@RequestParam(value = "project") String project,
-                                                                @RequestParam(value = "model_name", required = false) String modelName,
+                                                                @RequestParam(value = "model_name", required = false) String modelAlias,
                                                                 @RequestParam(value = "page_size", required = false, defaultValue = "100") Integer size) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest();
         request.setProject(project);
-        request.setFilterModelName(modelName);
+        request.setFilterModelName(modelAlias);
         List<String> modelNames = queryHistoryService.getQueryHistoryModels(request, size);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelNames, "");
     }
