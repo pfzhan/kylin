@@ -467,7 +467,7 @@ export default class SnapshotModel extends Vue {
         message: (
           <div>
             <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-            <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+            <a href="javascript:void(0)" onClick={() => this.gotoJob()}>{this.$t('kylinLang.common.toJoblist')}</a>
           </div>
         )
       })
@@ -475,6 +475,13 @@ export default class SnapshotModel extends Vue {
     } catch (e) {
       handleError(e)
       this.hideModal()
+    }
+  }
+  gotoJob () {
+    if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
     }
   }
 }

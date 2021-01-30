@@ -715,7 +715,7 @@ export default class JobsList extends Vue {
       this.setProject(item.project)
     }
     if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
-      postCloudUrlMessage(this.$route, { name: 'ModelList', params: { item } })
+      postCloudUrlMessage(this.$route, { name: 'ModelList', params: { modelAlias: item.target_subject } })
     } else {
       this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
     }
@@ -729,7 +729,7 @@ export default class JobsList extends Vue {
       this.setProject(item.project)
     }
     if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
-      postCloudUrlMessage(this.$route, { name: 'Snapshot', params: { item } })
+      postCloudUrlMessage(this.$route, { name: 'Snapshot', params: { table: item.target_subject } })
     } else {
       this.$router.push({name: 'Snapshot', params: { table: item.target_subject }})
     }

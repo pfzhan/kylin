@@ -310,7 +310,7 @@ export default class Snapshot extends Vue {
     }
   }
   gotoJob () {
-    if (this.$store.state.config.plateform === 'iframe') {
+    if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
       postCloudUrlMessage(this.$route, { name: 'kapJob' })
     } else {
       this.$router.push('/monitor/job')
