@@ -563,7 +563,7 @@ export default class IndexList extends Vue {
   }
 
   // 获取优化建议
-  getRecommendations () {
+  getRecommendations (type) {
     const { page_offset, page_size, reverse, sort_by } = this.recommendationsList
     this.loadingRecommends = true
     this.getAllRecommendations({
@@ -578,7 +578,9 @@ export default class IndexList extends Vue {
       const data = await handleSuccessAsync(res)
       this.recommendationsList.list = data.layouts
       this.recommendationsList.totalSize = data.size
-      this.modelDesc.recommendations_count = data.size
+      if (type && type === 'refreshCount') {
+        this.refreshModelRecCount()
+      }
       this.loadingRecommends = false
       if (data.broken_recs && data.broken_recs.length > 0) {
         this.refreshRecommendationCount({model_id: this.modelDesc.uuid, project: this.currentProject, action: 'refresh'})
@@ -627,7 +629,7 @@ export default class IndexList extends Vue {
         message: this.$t('deleteSuccess')
       })
       this.recommendationsList.page_offset = 0
-      this.getRecommendations()
+      this.getRecommendations('refreshCount')
     }).catch(e => {
       handleError(e)
     })
@@ -747,7 +749,7 @@ export default class IndexList extends Vue {
                 }</a></span>
             })
             this.recommendationsList.page_offset = 0
-            this.getRecommendations()
+            this.getRecommendations('refreshCount')
             this.$emit('accept')
             resolve()
           } catch (e) {
@@ -824,6 +826,23 @@ export default class IndexList extends Vue {
     } else {
       this.$router.push({path: '/setting', query: {moveTo: 'index-suggest-setting'}})
     }
+  }
+
+  // 刷新模型列表上的优化建议个数
+  refreshModelRecCount () {
+    const { page_offset, page_size, reverse, sort_by } = this.recommendationsList
+    this.getAllRecommendations({
+      project: this.currentProject,
+      modelId: this.modelDesc.uuid,
+      page_offset,
+      page_size,
+      type: '',
+      reverse,
+      sort_by
+    }).then(async (res) => {
+      const data = await handleSuccessAsync(res)
+      this.modelDesc.recommendations_count = data.size
+    })
   }
 }
 </script>
