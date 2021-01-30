@@ -26,6 +26,15 @@ export default {
   deleteSnapshot: (para) => {
     return Vue.resource(apiUrl + 'snapshots').delete(para)
   },
+  fetchPartitionConfig: (para) => {
+    return Vue.resource(apiUrl + 'snapshots/config').get(para)
+  },
+  reloadPartitionColumn: (para) => {
+    return Vue.http.post(apiUrl + 'snapshots/reload_partition_col', para)
+  },
+  savePartitionColumn: (para) => {
+    return Vue.http.post(apiUrl + 'snapshots/config', para)
+  },
   loadDataSourceOfModel: (data) => {
     return Vue.resource(apiUrl + 'tables/model_tables').get({ project: data.project, model_name: data.model_name })
   },

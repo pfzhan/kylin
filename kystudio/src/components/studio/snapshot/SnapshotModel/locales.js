@@ -15,7 +15,20 @@ export default {
     refreshTips: 'The system caches the source table metadata periodically. If you can\'t find what you\'re looking for, you can refresh immediately or wait for the system to finish refreshing.',
     selectAll: 'Select All',
     cleanAll: 'Clean All',
-    synced: 'Added'
+    synced: 'Added',
+    sourceTablePartitionSetting: 'Partition Setting for Source Table',
+    sourceTablePartitionTip: 'Snapshots could be built more efficiently with partitioning for the source table. Please note that the partition column needs to be identical to the first-level partition column of the source table.',
+    pleaseFilterDBOrTable: 'Search by table or database name',
+    table: 'Table Name',
+    partitionColumn: 'Partition Column',
+    selectPartitionPlaceholder: 'Please select partition column',
+    noPartition: 'No Partition',
+    detectPartition: 'Detect source table partition',
+    fetchPartitionErrorTip: 'Can\'t detect the partition column now. Please set it manually.',
+    viewAllPartition: 'View All',
+    preStep: 'Previous',
+    undefinedPartitionColErrorTip: 'This source table has no partition set yet.',
+    emptyPartitionSettingTip: 'The snapshots of the selected tables have already been added. Please select again.'
   },
   'zh-cn': {
     addSnapshotTitle: '添加快照',
@@ -33,6 +46,19 @@ export default {
     refreshTips: '系统会定时缓存源表元数据。如果未找到搜索结果，可以立即刷新，或等待系统刷新完毕。',
     selectAll: '选中所有',
     cleanAll: '清除所有',
-    synced: '已添加'
+    synced: '已添加',
+    sourceTablePartitionSetting: '源表分区设置',
+    sourceTablePartitionTip: '设置源表分区可以提高构建快照的效率。请注意，所设分区列需与源表中的一级分区一致。',
+    pleaseFilterDBOrTable: '搜索数据库名称或表名',
+    table: '表名',
+    partitionColumn: '分区列',
+    selectPartitionPlaceholder: '请选择分区列',
+    noPartition: '无分区',
+    detectPartition: '获取源表分区',
+    fetchPartitionErrorTip: '获取失败，请手动选择',
+    viewAllPartition: '查看全部',
+    preStep: '上一步',
+    undefinedPartitionColErrorTip: '该源表未定义分区。',
+    emptyPartitionSettingTip: '已选的表的快照均已添加，请重新选择。'
   }
 }

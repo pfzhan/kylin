@@ -8,9 +8,9 @@
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @close="handleClose"
-      :title="$t('addSnapshotTitle')"
+      :title="step === 'one' ? $t('addSnapshotTitle') : $t('sourceTablePartitionSetting')"
       class="add-snapshot-dialog ke-it-add_snapshot_dialog">
-      <div class="add-snapshot clearfix" :class="{'zh-lang': $store.state.system.lang !== 'en'}">
+      <div class="add-snapshot clearfix" :class="{'zh-lang': $store.state.system.lang !== 'en'}" v-if="step === 'one'">
         <div class="list clearfix">
           <div class="ksd-ml-20 ksd-mt-20">
             <el-input :placeholder="$t('filterTableName')"
@@ -46,7 +46,7 @@
           </div>
         </div>
         <div class="content">
-          <div class="content-body">
+          <div :class="['content-body', {'is-error': emptyPartitionSetting}]">
             <div class="category databases">
               <div class="header font-medium">
                 <span>{{$t('database')}}</span>
@@ -89,12 +89,72 @@
                 </arealabel>
               </div>
             </div>
+            <p class="error-tip ksd-mt-5" v-if="emptyPartitionSetting"><i class="el-icon-ksd-error_01 ksd-mr-5"></i>{{$t('emptyPartitionSettingTip')}}</p>
           </div>
         </div>
       </div>
+      <div class="partition-setting-layout" v-else>
+        <p class="ksd-mb-10">{{$t('sourceTablePartitionTip')}}</p>
+        <div class="search-partition-input"><el-input v-model="searchDBOrTableName" size="medium" v-global-key-event.enter.debounce="searchPartitionColumns" @clear="searchPartitionColumns" prefix-icon="el-icon-search" style="width:280px" :placeholder="$t('pleaseFilterDBOrTable')"></el-input></div>
+        <template v-if="partitionColumnData && partitionColumnData.list.length">
+          <el-row class="ksd-mb-10" :gutter="5">
+            <el-col :span="12">{{$t('table')}}</el-col>
+            <el-col :span="11">{{$t('partitionColumn')}}</el-col>
+          </el-row>
+          <el-row v-for="(item, index) in partitionColumnData.list" :key="index" :gutter="5" class="ksd-mt-5">
+            <el-col :span="12">
+              <el-input :value="`${item.database}.${item.table}`" :disabled="true" style="width: 100%;"></el-input>
+            </el-col>
+            <el-col :span="11">
+              <el-select v-model="item.partition_column" :placeholder="$t('selectPartitionPlaceholder')" @change="changePartitionColumns(item)" style="width: 100%;" :disabled="item.isLoadingPartition">
+                <el-option :label="$t('noPartition')" value=""></el-option>
+                <el-option :label="item.partition_col" :value="item.partition_col" v-if="item.partition_col">
+                  <el-tooltip :content="item.partition_col" effect="dark" placement="top"><span style="float: left">{{ item.partition_col | omit(30, '...') }}</span></el-tooltip>
+                  <span class="ky-option-sub-info">{{ item.partition_col_type.toLocaleLowerCase() }}</span>
+                </el-option>
+                <p class="more-partition" @click="showAllPartition(item)" v-if="!item.showMore">{{$t('viewAllPartition')}}</p>
+                <template v-if="item.showMore">
+                  <!-- <el-option :label="key" :value="key" v-for="(key, value) in item.other_column_and_type" :key="key"></el-option> -->
+                  <el-option :label="value" :value="value" v-for="(key, value) in item.other_column_and_type" :key="value" :disabled="item.undefinedPartitionColErrorTip">
+                    <el-tooltip :content="value" effect="dark" placement="top"><span style="float: left">{{ value | omit(30, '...') }}</span></el-tooltip>
+                    <span class="ky-option-sub-info">{{ key.toLocaleLowerCase() }}</span>
+                  </el-option>
+                </template>
+                <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+              </el-select>
+              <p class="error-msg" v-if="item.fetchError"><i class="el-icon-ksd-error_01 error-icon"></i>{{$t('fetchPartitionErrorTip')}}</p>
+              <p class="alert-msg" v-if="item.undefinedPartitionColErrorTip"><i class="el-icon-ksd-alert alert-icon"></i>{{$t('undefinedPartitionColErrorTip')}}</p>
+            </el-col>
+            <el-col :span="1">
+              <el-tooltip effect="dark" :content="$t('detectPartition')" placement="top">
+                <div style="display: inline-block;">
+                  <el-button
+                    size="medium"
+                    :loading="item.isLoadingPartition"
+                    icon="el-icon-ksd-data_range_search"
+                    @click="handleLoadPartitionColumn(item)">
+                  </el-button>
+                </div>
+              </el-tooltip>
+            </el-col>
+          </el-row>
+          <el-pagination
+            background
+            layout="prev, pager, next"
+            :total="partitionColumnData.total_size"
+            :currentPage='partitionColumnData.page_offset + 1'
+            :pageSize="partitionColumnData.page_size"
+            @current-change="pageCurrentChange"
+            class="ksd-center ksd-mt-10"
+            v-show="partitionColumnData.list.length">
+          </el-pagination>
+        </template>
+      </div>
       <span slot="footer" class="dialog-footer ky-no-br-space ke-it-btns">
-        <el-button plain size="medium" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="medium" :disabled="!selectedTables.length&&!selectedDatabases.length" :loading="submitLoading"  @click="submit">{{$t('kylinLang.common.add')}}</el-button>
+        <el-button plain size="medium" v-if="step === 'one'" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" :disabled="!selectedTables.length && !selectedDatabases.length" :loading="submitLoading" v-if="step === 'one'" @click="submit">{{$t('kylinLang.common.next')}}</el-button>
+        <el-button plain size="medium" v-if="step === 'two'" @click="handlerPrevStep">{{$t('preStep')}}</el-button>
+        <el-button type="primary" size="medium" :loading="submitLoading" v-if="step === 'two'" @click="submitPartition">{{$t('kylinLang.common.add')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -108,6 +168,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
+import { postCloudUrlMessage } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 import TreeList from '../../../common/TreeList'
 import arealabel from '../../../common/area_label.vue'
@@ -133,7 +194,9 @@ vuex.registerModule(['modals', 'SnapshotModel'], store)
     ...mapActions({
       fetchUnbuildSnapshotTables: 'FETCH_UNBUILD_SNAPSHOT_TABLES',
       fetchDatabaseMoreTables: 'FETCH_DATABASE_MORE_TABLES',
-      buildSnapshotTables: 'BUILD_SNAPSHOT_TABLES'
+      buildSnapshotTables: 'BUILD_SNAPSHOT_TABLES',
+      fetchPartitionConfig: 'FETCH_PARTITION_CONFIG',
+      reloadPartitionColumn: 'RELOAD_PARTITION_COLUMN'
     }),
     // Store方法注入
     ...mapMutations('SnapshotModel', {
@@ -150,6 +213,7 @@ vuex.registerModule(['modals', 'SnapshotModel'], store)
   locales
 })
 export default class SnapshotModel extends Vue {
+  step = 'one'
   loadHiveTableNameEnabled = false
   submitLoading = false
   filterData = false
@@ -176,6 +240,15 @@ export default class SnapshotModel extends Vue {
   tablesNum = 0
   selectedTables = []
   selectedDatabases = []
+  searchDBOrTableName = ''
+  partitionColumnData = {
+    list: [],
+    page_offset: 0,
+    page_size: 10,
+    total_size: 0
+  }
+  partitionOptions = {}
+  emptyPartitionSetting = false
   constructor () {
     super()
     this.getTableTree = getTableTree.bind(this)
@@ -412,6 +485,7 @@ export default class SnapshotModel extends Vue {
       return db
     })
     this.calcSelectTablesNum()
+    this.emptyPartitionSetting = false
   }
   calcSelectTablesNum () {
     let tablesLen = this.selectTablesNames.length
@@ -449,16 +523,77 @@ export default class SnapshotModel extends Vue {
     this.tablesNum = 0
     this.selectedTables = []
     this.selectedDatabases = []
+    this.partitionOptions = {}
+    this.partitionColumnData.page_offset = 0
+    this.partitionColumnData.list = []
+    this.step = 'one'
   }
   handleClose (isSubmit) {
     this.hideModal()
     this.resetData()
     this.callback && this.callback(isSubmit)
   }
+
+  // 更改表分区列
+  changePartitionColumns (item) {
+    item.fetchError = false
+    if (item in this.partitionOptions) {
+      this.partitionOptions[`${item.database}.${item.table}`].partition_column = item.partition_column
+    } else {
+      this.partitionOptions[`${item.database}.${item.table}`] = {
+        partition_col: item.partition_column,
+        incremental_build: false
+      }
+    }
+  }
+
+  // 是否展示全部分区
+  showAllPartition (item) {
+    item.showMore = true
+  }
+  // 分区列设置搜索表名或列名
+  searchPartitionColumns () {
+    this.getPartitionColumns()
+  }
   async submit () {
+    this.getPartitionColumns().then((res) => {
+      if (res.total_size > 0) {
+        this.step = 'two'
+      } else {
+        this.emptyPartitionSetting = true
+      }
+    })
+  }
+  async getPartitionColumns () {
+    return new Promise(async (resolve, reject) => {
+      const {page_offset, page_size} = this.partitionColumnData
+      try {
+        const res = await this.fetchPartitionConfig({project: this.currentSelectedProject, table_pattern: this.searchDBOrTableName, tables: this.selectedTables.join(','), databases: this.selectedDatabases.join(','), page_offset, page_size, include_exist: false})
+        const results = await handleSuccessAsync(res)
+        this.partitionColumnData.list = results.value.map(item => {
+          let partition_column = ''
+          if (`${item.database}.${item.table}` in this.partitionOptions) {
+            partition_column = this.partitionOptions[`${item.database}.${item.table}`].partition_col
+          }
+          return {...item, partition_column, isLoadingPartition: false, showMore: false, fetchError: false, undefinedPartitionColErrorTip: false}
+        })
+        this.partitionColumnData.total_size = results.total_size
+        resolve(results)
+      } catch (e) {
+        handleError(e)
+        reject(e)
+      }
+    })
+  }
+  // 设置分区列分页
+  pageCurrentChange (val) {
+    this.partitionColumnData.page_offset = val - 1
+    this.getPartitionColumns()
+  }
+  async submitPartition () {
     try {
       this.submitLoading = true
-      await this.buildSnapshotTables({project: this.currentSelectedProject, tables: this.selectedTables, databases: this.selectedDatabases})
+      await this.buildSnapshotTables({project: this.currentSelectedProject, options: this.partitionOptions, tables: this.selectedTables, databases: this.selectedDatabases})
       this.submitLoading = false
       this.$message({
         dangerouslyUseHTMLString: true,
@@ -477,12 +612,42 @@ export default class SnapshotModel extends Vue {
       this.hideModal()
     }
   }
+  // 跳转至job页面
   gotoJob () {
     if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
       postCloudUrlMessage(this.$route, { name: 'kapJob' })
     } else {
       this.$router.push('/monitor/job')
     }
+  }
+  // 单个获取分区列
+  handleLoadPartitionColumn (item) {
+    item.isLoadingPartition = true
+    this.reloadPartitionColumn({project: this.currentSelectedProject, table: `${item.database}.${item.table}`}).then(async (res) => {
+      item.isLoadingPartition = false
+      item.fetchError = false
+      try {
+        const results = await handleSuccessAsync(res)
+        if (!results.partition_col) {
+          item.undefinedPartitionColErrorTip = true
+        }
+        item.partition_column = results.partition_col || ''
+        if (results.partition_col) {
+          this.changePartitionColumns({...results, partition_column: results.partition_col})
+        }
+      } catch (e) {
+      }
+    }).catch((e) => {
+      item.isLoadingPartition = false
+      item.fetchError = true
+      handleError(e)
+    })
+  }
+  // 上一步
+  handlerPrevStep () {
+    this.step = 'one'
+    this.partitionOptions = {}
+    this.searchDBOrTableName = ''
   }
 }
 </script>
@@ -493,6 +658,42 @@ export default class SnapshotModel extends Vue {
   .el-dialog__body {
     padding: 0;
   }
+  .partition-setting-layout {
+    padding: 20px;
+    box-sizing: border-box;
+    .search-partition-input {
+      width: 100%;
+      text-align: right;
+    }
+    .error-msg {
+      color: @color-danger;
+      font-size: 12px;
+      margin-top: 2px;
+      .error-icon {
+        margin-right: 5px;
+        color: @color-danger;
+      }
+    }
+    .alert-msg {
+      font-size: 12px;
+      margin-top: 2px;
+      .alert-icon {
+        margin-right: 5px;
+        color: @color-warning;
+      }
+    }
+  }
+}
+.more-partition {
+  color: #989898;
+  font-size: 12px;
+  padding: 5px 10px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.error-tip {
+  color: @error-color-1;
+  font-size: 12px;
 }
 .add-snapshot {
   &.zh-lang{
@@ -606,11 +807,21 @@ export default class SnapshotModel extends Vue {
   .content-body {
     position: relative;
     height: 430px;
-    border: 1px solid @line-border-color;
+    // border: 1px solid @line-border-color;
     transition: height .2s .2s;
     overflow: auto;
     &.has-error-msg {
       height: 328px;
+    }
+  }
+  .content-body:not(.is-error) {
+    .category.tables {
+      min-height: 247px;
+    }
+  }
+  .content-body.is-error {
+    .category.tables {
+      min-height: 225px;
     }
   }
   &.zh-lang .content-body.has-tips {
@@ -667,11 +878,11 @@ export default class SnapshotModel extends Vue {
     }
   }
   .category {
-    border-bottom: 1px solid @line-border-color;
+    border: 1px solid @line-border-color;
     min-height: 120px;
-  }
-  .category:last-child {
-    border-bottom: none;
+    &:first-child {
+      border-bottom: 0;
+    }
   }
   .empty {
     position: absolute;

@@ -101,6 +101,15 @@ export default {
     [types.DELETE_SNAPSHOT]: function ({ commit }, para) {
       return api.datasource.deleteSnapshot(para)
     },
+    [types.FETCH_PARTITION_CONFIG]: function (_, para) {
+      return api.datasource.fetchPartitionConfig(para)
+    },
+    [types.RELOAD_PARTITION_COLUMN]: function (_, para) {
+      return api.datasource.reloadPartitionColumn(para)
+    },
+    [types.SAVE_PARTITION_COLUMN]: function (_, para) {
+      return api.datasource.savePartitionColumn(para)
+    },
     [types.LOAD_DATASOURCE_OF_MODEL]: function ({ comit }, para) {
       return api.datasource.loadDataSourceOfModel(para)
     },
