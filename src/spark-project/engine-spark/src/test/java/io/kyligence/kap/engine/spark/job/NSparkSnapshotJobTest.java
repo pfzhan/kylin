@@ -24,17 +24,33 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.query.engine.QueryExec;
+import java.io.IOException;
+import java.util.Set;
+import java.util.UUID;
+
+import lombok.val;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.parquet.Strings;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -67,6 +83,128 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testQueryPartitionSnapshot() throws Exception {
+        String tableName = "EDW.TEST_SELLER_TYPE_DIM";
+        String partitionCol = "SELLER_TYPE_CD";
+        Set<String> partitions = ImmutableSet.of("5", "16");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
+        TableDesc table = tableManager.getTableDesc(tableName);
+        table.setSelectedSnapshotPartitionCol(partitionCol);
+        table.setPartitionColumn(partitionCol);
+        tableManager.updateTableDesc(table);
+
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false);
+        setPartitions(job, partitions);
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        String sql = "select * from EDW.TEST_SELLER_TYPE_DIM";
+        QueryExec queryExec = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv());
+        val resultSet = queryExec.executeQuery(sql);
+        Assert.assertEquals(2, resultSet.getRows().size());
+    }
+
+    @Test
+    public void testBuildSnapshotByPartitionJob() throws Exception {
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        String partitionCol = "CAL_DT";
+        Set<String> partitions = ImmutableSet.of("2012-01-01", "2012-01-02");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
+        TableDesc table = tableManager.getTableDesc(tableName);
+        table.setSelectedSnapshotPartitionCol(partitionCol);
+        table.setPartitionColumn(partitionCol);
+        tableManager.updateTableDesc(table);
+
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+        Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
+
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false);
+        setPartitions(job, partitions);
+        execMgr.addJob(job);
+
+        StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        ResourceStore remoteResource = ExecutableUtils.getRemoteStore(config, job.getSnapshotBuildingStep());
+        NTableMetadataManager remoteTableManager = NTableMetadataManager.getInstance(remoteResource.getConfig(),
+                getProject());
+        String snapshotPath = tableManager.getTableDesc(tableName).getLastSnapshotPath();
+        Assert.assertNotNull(snapshotPath);
+        Assert.assertEquals(2, list(snapshotPath).length);
+        Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getTempSnapshotPath());
+        Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
+    }
+
+    @Test
+    public void testBuildSnapshotByPartitionRefreshPart() throws Exception {
+        testBuildSnapshotByPartitionJob();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        String partitionCol = "CAL_DT";
+        Set<String> partitions = ImmutableSet.of("2012-01-03", "2012-01-04");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
+        TableDesc table = tableManager.getTableDesc(tableName);
+        table.setSelectedSnapshotPartitionCol(partitionCol);
+        table.setPartitionColumn(partitionCol);
+        tableManager.updateTableDesc(table);
+
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, true);
+        setPartitions(job, partitions);
+        execMgr.addJob(job);
+        StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        String snapshotPath = tableManager.getTableDesc(tableName).getLastSnapshotPath();
+        Assert.assertNotNull(snapshotPath);
+        Assert.assertEquals(4, list(snapshotPath).length);
+
+        ResourceStore remoteResource = ExecutableUtils.getRemoteStore(config, job.getSnapshotBuildingStep());
+        NTableMetadataManager remoteTableManager = NTableMetadataManager.getInstance(remoteResource.getConfig(),
+                getProject());
+        Assert.assertNotNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
+        Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getLastSnapshotPath());
+        Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
+
+    }
+
+    private FileStatus[] list(String path) {
+
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        String baseDir = KapConfig.getInstanceFromEnv().getMetadataWorkingDirectory();
+        String resourcePath = baseDir + "/" + path;
+        try {
+            return fs.listStatus(new Path(resourcePath));
+        } catch (IOException e) {
+            return null; // on IOException, skip the checking
+        }
+    }
+
+    private void setPartitions(NSparkSnapshotJob job, Set<String> partitions) {
+        job.setParam("partitions", Strings.join(partitions, ","));
+        job.getSnapshotBuildingStep().setParam("partitions", Strings.join(partitions, ","));
+    }
+
+    @Test
     public void testBuildSnapshotJob() throws Exception {
         String tableName = "SSB.PART";
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
@@ -75,8 +213,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
-        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), getProject(), "ADMIN",
-                false);
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN", false);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());

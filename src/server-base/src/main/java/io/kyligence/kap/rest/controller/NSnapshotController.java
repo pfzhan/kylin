@@ -28,11 +28,13 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_RELOAD_PARTITION_FAILED;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.DataResult;
@@ -52,10 +54,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.base.CaseFormat;
 
 import io.kyligence.kap.rest.request.SnapshotRequest;
+import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
+import io.kyligence.kap.rest.request.TableReloadPartitionColRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.SnapshotCheckResponse;
-import io.kyligence.kap.rest.response.SnapshotResponse;
+import io.kyligence.kap.rest.response.SnapshotColResponse;
+import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.SnapshotService;
 import io.swagger.annotations.ApiOperation;
@@ -70,6 +75,52 @@ public class NSnapshotController extends NBasicController {
     @Qualifier("snapshotService")
     private SnapshotService snapshotService;
 
+    @ApiOperation(value = "config partition col for snapshot Tables", notes = "config partition col")
+    @PostMapping(value = "/config")
+    @ResponseBody
+    public EnvelopeResponse<String> configSnapshotPartitionCol(@RequestBody SnapshotTableConfigRequest configRequest) {
+        checkProjectName(configRequest.getProject());
+        snapshotService.configSnapshotPartitionCol(configRequest.getProject(), configRequest.getTablePartitionCol());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "get col info of snapshot table", notes = "get col info")
+    @GetMapping(value = "/config")
+    @ResponseBody
+    public EnvelopeResponse<DataResult<List<SnapshotColResponse>>> getSnapshotCols(
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "tables", required = false, defaultValue = "") Set<String> tables,
+            @RequestParam(value = "databases", required = false, defaultValue = "") Set<String> databases,
+            @RequestParam(value = "table_pattern", required = false, defaultValue = "") String tablePattern,
+            @RequestParam(value = "include_exist", required = false, defaultValue = "true") boolean includeExistSnapshot,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
+        project = checkProjectName(project);
+        checkNonNegativeIntegerArg("page_offset", offset);
+        checkNonNegativeIntegerArg("page_size", limit);
+
+        List<SnapshotColResponse> responses = snapshotService.getSnapshotCol(project, tables, databases, tablePattern,
+                includeExistSnapshot);
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
+    }
+
+    @ApiOperation(value = "reload partition col of table", notes = "reload partition col")
+    @PostMapping(value = "/reload_partition_col")
+    @ResponseBody
+    public EnvelopeResponse<SnapshotColResponse> getSnapshotCols(@RequestBody TableReloadPartitionColRequest request)
+            throws Exception {
+        try {
+            checkProjectName(request.getProject());
+            SnapshotColResponse responses = snapshotService.reloadPartitionCol(request.getProject(),
+                    request.getTable());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, responses, "");
+        } catch (Exception e) {
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            throw new KylinException(SNAPSHOT_RELOAD_PARTITION_FAILED, root.getMessage());
+        }
+    }
+
     @ApiOperation(value = "buildSnapshotsManually", tags = { "AI" }, notes = "build snapshots")
     @PostMapping(value = "")
     @ResponseBody
@@ -80,21 +131,24 @@ public class NSnapshotController extends NBasicController {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
-                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), false, snapshotsRequest.getPriority());
+                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), false,
+                snapshotsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "refreshSnapshotsManually", tags = { "AI" }, notes = "refresh snapshots")
     @PutMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> refreshSnapshotsManually(@RequestBody SnapshotRequest snapshotsRequest) {
+    public EnvelopeResponse<JobInfoResponse> refreshSnapshotsManually(@RequestBody SnapshotRequest snapshotsRequest)
+            throws Exception {
         checkProjectName(snapshotsRequest.getProject());
         validatePriority(snapshotsRequest.getPriority());
         if (snapshotsRequest.getTables().isEmpty() && snapshotsRequest.getDatabases().isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
-                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), true, snapshotsRequest.getPriority());
+                snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), true,
+                snapshotsRequest.getPriority());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
 
     }
@@ -122,12 +176,13 @@ public class NSnapshotController extends NBasicController {
     @ApiOperation(value = "getSnapshots", tags = { "AI" }, notes = "get snapshots")
     @GetMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<DataResult<List<SnapshotResponse>>> getSnapshots(
+    public EnvelopeResponse<DataResult<List<SnapshotInfoResponse>>> getSnapshots(
             @RequestParam(value = "project") String project,
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "status", required = false, defaultValue = "") Set<String> statusFilter,
+            @RequestParam(value = "partition", required = false, defaultValue = "") Set<Boolean> partitionFilter,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean isReversed) {
         project = checkProjectName(project);
@@ -135,12 +190,12 @@ public class NSnapshotController extends NBasicController {
         checkNonNegativeIntegerArg("page_size", limit);
         checkBooleanArg("reverse", isReversed);
         try {
-            SnapshotResponse.class.getDeclaredField(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, sortBy));
+            SnapshotInfoResponse.class.getDeclaredField(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, sortBy));
         } catch (NoSuchFieldException e) {
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "No field called '%s'.", sortBy));
         }
-        List<SnapshotResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter, sortBy,
-                isReversed);
+        List<SnapshotInfoResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter,
+                partitionFilter, sortBy, isReversed);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 

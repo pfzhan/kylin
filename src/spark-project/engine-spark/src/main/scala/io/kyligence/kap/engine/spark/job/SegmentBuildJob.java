@@ -116,17 +116,17 @@ public class SegmentBuildJob extends SegmentJob {
         if (config.isSnapshotManualManagementEnabled()) {
             logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);
-            snapshotBuilder.calculateTotalRows(getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
             return;
         } else if (!needBuildSnapshots()) {
             logger.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
-            snapshotBuilder.calculateTotalRows(getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
             return;
         }
         logger.info("Refresh SNAPSHOT.");
         //snapshot building
-        snapshotBuilder.buildSnapshot(getDataflow(dataflowId).getModel(), //
-                ss, //
+        snapshotBuilder.buildSnapshot(ss, getDataflow(dataflowId).getModel(), //
+                //
                 getIgnoredSnapshotTables());
         logger.info("Finished SNAPSHOT.");
     }

@@ -27,19 +27,25 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.catalyst.catalog.SessionCatalog;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import scala.Option;
+import scala.collection.JavaConversions;
 
 public class NSparkTableMetaExplorer implements Serializable {
 
@@ -86,14 +92,38 @@ public class NSparkTableMetaExplorer implements Serializable {
         return getSparkTableMeta(tableName, tableMetadata);
     }
 
+    public Set<String> checkAndGetTablePartitions(String database, String tableName, String partitionCol) {
+        SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
+        TableIdentifier tableIdentifier = TableIdentifier.apply(tableName,
+                Option.apply(database.isEmpty() ? null : database));
+
+        CatalogTable tableMetadata = catalog.getTempViewOrPermanentTableMetadata(tableIdentifier);
+
+        String firstPartCol = tableMetadata.partitionColumnNames().isEmpty() ? null
+                : tableMetadata.partitionColumnNames().head().toLowerCase(Locale.ROOT);
+
+        if (!partitionCol.equalsIgnoreCase(firstPartCol)) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, "table partition col %s not match col %s", firstPartCol, partitionCol));
+        }
+        return JavaConversions.seqAsJavaList(catalog.listPartitions(tableIdentifier, Option.empty())).stream()
+                .map(item -> JavaConversions.mapAsJavaMap(item.spec()).entrySet().stream()
+                        .filter(entry -> partitionCol.equalsIgnoreCase(entry.getKey())) //
+                        .findFirst() //
+                        .map(Map.Entry::getValue) //
+                        .orElse(null))
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+    }
+
     private NSparkTableMeta getSparkTableMeta(String tableName, CatalogTable tableMetadata) {
         NSparkTableMetaBuilder builder = new NSparkTableMetaBuilder();
         builder.setTableName(tableName);
-        builder.setAllColumns(getAllColumns(tableMetadata));
+        builder.setAllColumns(getColumns(tableMetadata, tableMetadata.schema()));
         builder.setOwner(tableMetadata.owner());
         builder.setCreateTime(tableMetadata.createTime() + "");
         builder.setLastAccessTime(tableMetadata.lastAccessTime() + "");
         builder.setTableType(tableMetadata.tableType().name());
+        builder.setPartitionColumns(getColumns(tableMetadata, tableMetadata.partitionSchema()));
 
         if (tableMetadata.storage().inputFormat().isDefined()) {
             builder.setSdInputFormat(tableMetadata.storage().inputFormat().get());
@@ -117,10 +147,9 @@ public class NSparkTableMetaExplorer implements Serializable {
         return builder.createSparkTableMeta();
     }
 
-    private List<NSparkTableMeta.SparkTableColumnMeta> getAllColumns(CatalogTable tableMetadata) {
-        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists
-                .newArrayListWithCapacity(tableMetadata.schema().size());
-        for (org.apache.spark.sql.types.StructField field : tableMetadata.schema().fields()) {
+    private List<NSparkTableMeta.SparkTableColumnMeta> getColumns(CatalogTable tableMetadata, StructType schema) {
+        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists.newArrayListWithCapacity(schema.size());
+        for (org.apache.spark.sql.types.StructField field : schema.fields()) {
             String type = field.dataType().simpleString();
             // fetch provider specified type
             PROVIDER provider = PROVIDER.fromString(tableMetadata.provider());

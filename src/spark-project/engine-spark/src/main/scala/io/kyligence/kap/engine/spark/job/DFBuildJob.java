@@ -180,12 +180,12 @@ public class DFBuildJob extends SparkApplication {
         SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
         if (!config.isSnapshotManualManagementEnabled()) {
             //snapshot building
-            snapshotBuilder.buildSnapshot(dfMgr.getDataflow(dataflowId).getModel(), ss, getIgnoredSnapshotTables());
+            snapshotBuilder.buildSnapshot(ss, dfMgr.getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
         } else {
             //calculate total rows
             logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);
-            snapshotBuilder.calculateTotalRows(dfMgr.getDataflow(dataflowId).getModel(), ss,
+            snapshotBuilder.calculateTotalRows(ss, dfMgr.getDataflow(dataflowId).getModel(),
                     getIgnoredSnapshotTables());
         }
     }

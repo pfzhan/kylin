@@ -21,53 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.request;
 
 import java.util.Map;
-import java.util.Set;
-
-import org.apache.kylin.job.dao.ExecutablePO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
-public class SnapshotRequest implements ProjectInsensitiveRequest {
-
+@Data
+public class SnapshotTableConfigRequest implements ProjectInsensitiveRequest {
     @JsonProperty("project")
     private String project;
 
-    @JsonProperty("tables")
-    private Set<String> tables = Sets.newHashSet();
-
-    @JsonProperty("options")
-    private Map<String, TableOption> options = Maps.newHashMap();
-
-    @JsonProperty("databases")
-    private Set<String> databases = Sets.newHashSet();
-
-    private int priority = ExecutablePO.DEFAULT_PRIORITY;
-
-    @Getter
-    @Setter
-    public static class TableOption {
-        @JsonProperty("partition_col")
-        String partitionCol;
-        @JsonProperty("incremental_build")
-        boolean incrementalBuild;
-
-        public TableOption() {
-        }
-
-        public TableOption(String partitionCol, boolean incrementalBuild) {
-            this.partitionCol = partitionCol;
-            this.incrementalBuild = incrementalBuild;
-        }
-    }
+    @JsonProperty("table_partition_col")
+    private Map<String, String> tablePartitionCol = Maps.newHashMap();
 }

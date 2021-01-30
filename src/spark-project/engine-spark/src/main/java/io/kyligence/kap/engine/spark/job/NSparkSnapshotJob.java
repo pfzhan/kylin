@@ -30,7 +30,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnTable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.spark_project.guava.base.Preconditions;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 
@@ -39,16 +40,22 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
  */
 public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
 
-    public static NSparkSnapshotJob create(TableDesc tableDesc, String project, String submitter, boolean isRefresh) {
+    public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, String partitionCol,
+            boolean incrementBuild, boolean isRefresh) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-        return create(tableDesc, project, submitter, jobType, UUID.randomUUID().toString());
+        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), partitionCol, incrementBuild);
     }
 
-    private static NSparkSnapshotJob create(TableDesc tableDesc, String project, String submitter, JobTypeEnum jobType,
-            String jobId) {
+    public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, boolean isRefresh) {
+        JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
+        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), null, false);
+    }
+
+    public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, JobTypeEnum jobType, String jobId,
+            String partitionCol, boolean incrementalBuild) {
         Preconditions.checkArgument(submitter != null);
         NSparkSnapshotJob job = new NSparkSnapshotJob();
-
+        String project = tableDesc.getProject();
         job.setId(jobId);
         job.setProject(project);
         job.setName(jobType.toString());
@@ -59,6 +66,9 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
         job.setParam(NBatchConstants.P_PROJECT_NAME, project);
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_TABLE_NAME, tableDesc.getIdentity());
+
+        job.setParam(NBatchConstants.P_INCREMENTAL_BUILD, incrementalBuild + "");
+        job.setParam(NBatchConstants.P_SELECTED_PARTITION_COL, partitionCol);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.BUILD_SNAPSHOT.createStep(job, config);

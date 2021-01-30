@@ -43,10 +43,14 @@ public interface NBatchConstants {
     String P_TARGET_MODEL = "targetModel";
     String P_DATA_RANGE_START = "dataRangeStart";
     String P_DATA_RANGE_END = "dataRangeEnd";
+
     String P_IGNORED_SNAPSHOT_TABLES="ignoredSnapshotTables";
     String P_NEED_BUILD_SNAPSHOTS = "needBuildSnapshots";
     String P_PARTITION_IDS = "partitionIds";
     String P_BUCKETS = "buckets";
+
+    String P_INCREMENTAL_BUILD = "incrementalBuild";
+    String P_SELECTED_PARTITION_COL = "selectedPartitionCol";
 
     // ut only
     String P_BREAK_POINT_LAYOUTS = "breakPointLayouts";

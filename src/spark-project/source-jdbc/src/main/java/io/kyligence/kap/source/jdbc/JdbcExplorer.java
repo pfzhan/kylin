@@ -176,6 +176,11 @@ public class JdbcExplorer implements ISourceMetadataExplorer, ISampleDataDeploye
         return true;
     }
 
+    @Override
+    public Set<String> getTablePartitions(String database, String table, String prj, String partitionCols) {
+        throw new UnsupportedOperationException();
+    }
+
     public static boolean isPrecisionApplicable(String typeName) {
         return isScaleApplicable(typeName) || DataType.STRING_FAMILY.contains(typeName);
     }

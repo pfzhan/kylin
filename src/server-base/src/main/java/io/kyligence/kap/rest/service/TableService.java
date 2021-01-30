@@ -1462,9 +1462,11 @@ public class TableService extends BasicService {
     void cleanSnapshot(ReloadTableContext context, TableDesc targetTable, TableDesc originTable, String projectName) {
         if (context.isChanged(originTable)) {
             targetTable.setLastSnapshotPath(null);
-            stopSnapshotJobs(projectName, targetTable.getIdentity());
+            val tableIdentity = targetTable.getIdentity();
+            targetTable.deleteSnapshot();
+            stopSnapshotJobs(projectName, tableIdentity);
         } else {
-            targetTable.setLastSnapshotPath(originTable.getLastSnapshotPath());
+            targetTable.copySnapshotFrom(originTable);
         }
     }
 

@@ -24,17 +24,54 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
+import io.kyligence.kap.engine.spark.builder.SnapshotPartitionBuilder;
+import io.kyligence.kap.engine.spark.utils.FileNames;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFrameworkFactory;
+import io.kyligence.kap.shaded.curator.org.apache.curator.retry.ExponentialBackoffRetry;
 
 public class SnapshotBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(SnapshotBuildJob.class);
@@ -42,8 +79,107 @@ public class SnapshotBuildJob extends SparkApplication {
     @Override
     protected void doExecute() throws Exception {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
+        String selectedPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        new SnapshotBuilder().buildSnapshot(ss, Sets.newHashSet(tableDesc));
+        boolean incrementalBuild = "true".equals(getParam(NBatchConstants.P_INCREMENTAL_BUILD));
+
+        if (selectedPartCol == null) {
+            new SnapshotBuilder().buildSnapshot(ss, Sets.newHashSet(tableDesc));
+        } else {
+            initial(tableDesc, selectedPartCol, incrementalBuild);
+
+            tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
+            logger.info("{} need build partitions: {}", tableDesc.getIdentity(), tableDesc.getNotReadyPartitions());
+
+            new SnapshotPartitionBuilder().buildSnapshot(ss, tableDesc, selectedPartCol);
+
+            if (incrementalBuild) {
+                moveIncrementalPartitions(tableDesc.getLastSnapshotPath(), tableDesc.getTempSnapshotPath());
+            }
+        }
+        EventBusFactory.getInstance()
+                .postSync(new SnapshotBuildFinishedEvent(tableDesc, selectedPartCol, incrementalBuild));
+    }
+
+
+    private void initial(TableDesc table, String selectedPartCol, boolean incrementBuild) {
+        if (table.getTempSnapshotPath() != null) {
+            logger.info("snapshot partition has been initialed, so skip.");
+            return;
+        }
+        Set<String> partitions = getTablePartitions(table, selectedPartCol);
+        Set<String> curPartitions = table.getSnapshotPartitions().keySet();
+        String resourcePath = FileNames.snapshotFile(table) + "/" + UUID.randomUUID();
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NTableMetadataManager tableMetadataManager = NTableMetadataManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
+            TableDesc copy = tableMetadataManager.copyForWrite(table);
+            if (incrementBuild) {
+                copy.addSnapshotPartitions(Sets.difference(partitions, curPartitions));
+            } else {
+                copy.resetSnapshotPartitions(partitions);
+                TableExtDesc copyExt = tableMetadataManager
+                        .copyForWrite(tableMetadataManager.getOrCreateTableExt(table));
+                copyExt.setTotalRows(0);
+                tableMetadataManager.saveTableExt(copyExt);
+            }
+            copy.setTempSnapshotPath(resourcePath);
+            tableMetadataManager.updateTableDesc(copy);
+            return null;
+        }, project);
+
+    }
+
+    private Set<String> getTablePartitions(TableDesc tableDesc, String selectPartitionCol) {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return toPartitions(getParam("partitions"));
+        }
+        ISourceMetadataExplorer explr = SourceFactory.getSource(tableDesc).getSourceMetadataExplorer();
+        Set<String> curPartitions = explr.getTablePartitions(tableDesc.getDatabase(), tableDesc.getName(),
+                tableDesc.getProject(), selectPartitionCol);
+
+        logger.info("{} current partitions: {}", tableDesc.getIdentity(), curPartitions);
+        return curPartitions;
+    }
+
+    private static Set<String> toPartitions(String tableListStr) {
+        if (StringUtils.isBlank(tableListStr)) {
+            return null;
+        }
+        return ImmutableSet.<String> builder().addAll(Arrays.asList(StringSplitter.split(tableListStr, ","))).build();
+    }
+
+    private void moveIncrementalPartitions(String originSnapshotPath, String incrementalSnapshotPath) {
+        String target = getSnapshotDir(originSnapshotPath);
+        Path sourcePath = new Path(getSnapshotDir(incrementalSnapshotPath));
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        try {
+            if (!fs.exists(sourcePath)) {
+                return;
+            }
+            for (FileStatus fileStatus : fs.listStatus(sourcePath)) {
+                Path targetFilePath = new Path(target + "/" + fileStatus.getPath().getName());
+                if (fs.exists(targetFilePath)) {
+                    logger.info(String.format(Locale.ROOT, "delete non-effective partition %s ", targetFilePath));
+                    fs.delete(targetFilePath, true);
+                }
+                fs.rename(fileStatus.getPath(), new Path(target));
+            }
+
+            fs.delete(sourcePath, false);
+        } catch (Exception e) {
+            logger.error(String.format(Locale.ROOT, "from %s to %s move file fail:", incrementalSnapshotPath, originSnapshotPath),
+                    e);
+            Throwables.propagate(e);
+        }
+
+    }
+
+    private String getSnapshotDir(String snapshotPath) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String workingDir = KapConfig.wrap(config).getMetadataWorkingDirectory();
+        return workingDir + "/" + snapshotPath;
     }
 
     @Override

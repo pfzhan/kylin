@@ -179,12 +179,17 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             columns.add(cdesc);
         }
         tableDesc.setColumns(columns.toArray(new ColumnDesc[columnNumber]));
-
-        StringBuilder partitionColumnString = new StringBuilder();
+        List<String> partCols = tableMeta.partitionColumns.stream().map(col -> col.name).collect(Collectors.toList());
+        if (!partCols.isEmpty()) {
+            tableDesc.setPartitionColumn(partCols.get(0).toUpperCase(Locale.ROOT));
+        } else {
+            tableDesc.setPartitionColumn(null);
+        }
+        StringBuilder partitionColumnBuilder = new StringBuilder();
         for (int i = 0, n = tableMeta.partitionColumns.size(); i < n; i++) {
             if (i > 0)
-                partitionColumnString.append(", ");
-            partitionColumnString.append(tableMeta.partitionColumns.get(i).name.toUpperCase(Locale.ROOT));
+                partitionColumnBuilder.append(", ");
+            partitionColumnBuilder.append(tableMeta.partitionColumns.get(i).name.toUpperCase(Locale.ROOT));
         }
 
         TableExtDesc tableExtDesc = new TableExtDesc();
@@ -197,7 +202,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         tableExtDesc.addDataSourceProp("owner", tableMeta.owner);
         tableExtDesc.addDataSourceProp("create_time", tableMeta.createTime);
         tableExtDesc.addDataSourceProp("last_access_time", tableMeta.lastAccessTime);
-        tableExtDesc.addDataSourceProp("partition_column", partitionColumnString.toString());
+        tableExtDesc.addDataSourceProp("partition_column", partitionColumnBuilder.toString());
         tableExtDesc.addDataSourceProp("total_file_size", String.valueOf(tableMeta.fileSize));
         tableExtDesc.addDataSourceProp("total_file_number", String.valueOf(tableMeta.fileNum));
         tableExtDesc.addDataSourceProp("hive_inputFormat", tableMeta.sdInputFormat);
@@ -231,6 +236,11 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     @Override
     public boolean checkTablesAccess(Set<String> tables) {
         return tables.stream().allMatch(this::checkTableAccess);
+    }
+
+    @Override
+    public Set<String> getTablePartitions(String database, String table, String prj, String partCol) {
+        return getTableMetaExplorer().checkAndGetTablePartitions(database, table, partCol);
     }
 
     @Override

@@ -132,6 +132,12 @@ public class CsvSource implements ISource {
         public boolean checkTablesAccess(Set<String> tables) {
             return true;
         }
+
+        @Override
+        public Set<String> getTablePartitions(String database, String table, String prj, String partitionCols) {
+            throw new UnsupportedOperationException();
+        }
+
     }
 
     @Override
@@ -157,7 +163,8 @@ public class CsvSource implements ISource {
                             tblColDescs.add(columnDesc);
                         }
                     }
-                    StructType structType = SchemaProcessor.buildSchemaWithRawTable(tblColDescs.toArray(new ColumnDesc[0]));
+                    StructType structType = SchemaProcessor
+                            .buildSchemaWithRawTable(tblColDescs.toArray(new ColumnDesc[0]));
                     return ss.read().option("delimiter", ",").schema(structType).csv(path);
                 }
             };

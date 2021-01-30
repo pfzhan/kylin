@@ -27,6 +27,5 @@
   "table_type" : "MANAGED",
   "top" : false,
   "increment_loading" : false,
-  "last_snapshot_path" : "default/table_snapshot/DEFAULT.TEST_BANK_LOCATION/87995a59-e490-42e1-8367-244fe32d0c63",
   "database" : "DEFAULT"
 }

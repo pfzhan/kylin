@@ -162,6 +162,11 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
     }
 
     @Override
+    public Set<String> getTablePartitions(String database, String table, String prj, String partitionCols) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void createSampleDatabase(String database) throws Exception {
         hiveClient.executeHQL(generateCreateSchemaSql(database));
     }

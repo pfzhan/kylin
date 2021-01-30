@@ -157,7 +157,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       val seg = df.getFirstSegment
       val dfCopy = df.copy
       val segCopy = dfCopy.getSegment(seg.getId)
-      new SnapshotBuilder().buildSnapshot(df.getModel, spark, null)
+      new SnapshotBuilder().buildSnapshot(spark, df.getModel, null)
       df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
     }
   }
@@ -173,7 +173,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       if (isMock) {
         snapshotBuilder = new MockSnapshotBuilder()
       }
-      snapshotBuilder.buildSnapshot(dfCopy.getModel, spark, ignoredSnapshotTables)
+      snapshotBuilder.buildSnapshot(spark, dfCopy.getModel, ignoredSnapshotTables)
       Assert.assertEquals(snapshotBuilder.distinctTableDesc(df.getModel, ignoredSnapshotTables).size, 7)
     }
 
@@ -189,7 +189,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     val fs = HadoopUtil.getWorkingFileSystem
     for (segment <- df.getSegments.asScala) {
       val dfCopy = segment.getDataflow.copy
-      new SnapshotBuilder().buildSnapshot(dfCopy.getModel, spark, null);
+      new SnapshotBuilder().buildSnapshot(spark, dfCopy.getModel, null);
     }
     val statuses = fs.listStatus(new Path(snapPath))
     Assert.assertEquals(statuses.size, 7)

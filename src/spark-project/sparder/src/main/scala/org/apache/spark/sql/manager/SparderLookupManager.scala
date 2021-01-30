@@ -28,11 +28,16 @@ import java.util.concurrent.TimeUnit
 import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.metadata.model.ColumnDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.DeriveTableColumnInfo
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv}
 import org.apache.spark.sql.util.SparderTypeUtil
+import io.kyligence.kap.query.util.PartitionsFilter.PARTITION_COL
+import io.kyligence.kap.query.util.PartitionsFilter.PARTITIONS
+
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 // scalastyle:off
 object SparderLookupManager extends Logging {
@@ -45,7 +50,7 @@ object SparderLookupManager extends Logging {
     .expireAfterWrite(DEFAULT_EXPIRE_TIME, DEFAULT_TIME_UNIT)
     .removalListener(new RemovalListener[String, Dataset[Row]]() {
       override def onRemoval(
-          notification: RemovalNotification[String, Dataset[Row]]): Unit = {
+                              notification: RemovalNotification[String, Dataset[Row]]): Unit = {
         logInfo("Remove lookup table from spark : " + notification.getKey)
         notification.getValue.unpersist()
       }
@@ -61,19 +66,38 @@ object SparderLookupManager extends Logging {
     val tableName = names.apply(1)
     val metaMgr = NTableMetadataManager.getInstance(kylinConfig, projectName)
     val tableDesc = metaMgr.getTableDesc(tableName)
-    val columns = tableDesc.getColumns
+    val cols = tableDesc.getColumns.toList
+
+    var columns = cols.filter(col => !col.getName.equals(tableDesc.getSnapshotPartitionCol))
+    if (tableDesc.getSnapshotPartitionCol != null) {
+      columns = columns :+ tableDesc.findColumnByName(tableDesc.getSnapshotPartitionCol)
+    }
     val dfTableName = Integer.toHexString(System.identityHashCode(name))
-    val schema = StructType(Range(0, columns.size).map(
-      index => {
-        StructField(DeriveTableColumnInfo(dfTableName,
-          index,
-          columns(index).getName).toString,
-          SparderTypeUtil.toSparkType(columns(index).getType))
-      }))
-    val rsourcePath = KapConfig.getInstanceFromEnv.getReadHdfsWorkingDirectory + sourcePath
-    SparderEnv.getSparkSession.read
-      .schema(StructType(tableDesc.getColumns.map(column => StructField(column.getName, SparderTypeUtil.toSparkType(column.getType))).toSeq))
-      .parquet(rsourcePath)
+
+
+    val orderedCol = new ListBuffer[(ColumnDesc, Int)]
+    var partitionCol: (ColumnDesc, Int) = null
+    for ((col, index) <- tableDesc.getColumns.zipWithIndex) {
+      if (!col.getName.equals(tableDesc.getSnapshotPartitionCol)) {
+        orderedCol.append((col, index))
+      } else {
+        partitionCol = (col, index)
+      }
+    }
+    val options = new scala.collection.mutable.HashMap[String, String]
+    if (partitionCol != null) {
+      orderedCol.append(partitionCol)
+      options.put(PARTITION_COL, tableDesc.getSnapshotPartitionCol)
+      options.put(PARTITIONS, String.join(",", tableDesc.getSnapshotPartitions.keySet()))
+      options.put("mapreduce.input.pathFilter.class", "io.kyligence.kap.query.util.PartitionsFilter")
+    }
+    val originSchema = StructType(orderedCol.map { case (col, index) => StructField(col.getName, SparderTypeUtil.toSparkType(col.getType)) })
+    val schema = StructType(orderedCol.map { case (col, index) => StructField(DeriveTableColumnInfo(dfTableName, index, col.getName).toString, SparderTypeUtil.toSparkType(col.getType)) })
+    val resourcePath = KapConfig.getInstanceFromEnv.getReadHdfsWorkingDirectory + sourcePath
+
+    SparderEnv.getSparkSession.read.options(options)
+      .schema(originSchema)
+      .parquet(resourcePath)
       .toDF(schema.fieldNames: _*)
   }
 

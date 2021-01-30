@@ -62,4 +62,6 @@ public interface ISourceMetadataExplorer {
     boolean checkDatabaseAccess(String database) throws Exception;
 
     boolean checkTablesAccess(Set<String> tables);
+
+    Set<String> getTablePartitions(String database, String table, String prj, String partitionCols);
 }

@@ -33,7 +33,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class SnapshotResponse implements Comparable<SnapshotResponse> {
+public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
 
     @JsonProperty("table")
     private String table;
@@ -62,11 +62,14 @@ public class SnapshotResponse implements Comparable<SnapshotResponse> {
     @JsonProperty("forbidden_colunms")
     private Set<String> columns;
 
-    public SnapshotResponse() {}
+    @JsonProperty("select_partition_col")
+    private String selectPartitionCol;
 
-    public SnapshotResponse(TableDesc tableDesc, long storage, int factTableCount, int lookupTableCount,
-                            long lastModifiedTime, String status, Set<String> columns) {
+    public SnapshotInfoResponse() {
+    }
 
+    public SnapshotInfoResponse(TableDesc tableDesc, long storage, int factTableCount, int lookupTableCount,
+                                long lastModifiedTime, String status, Set<String> columns, String selectPartitionCol) {
 
         this.table = tableDesc.getName();
         this.database = tableDesc.getDatabase();
@@ -77,10 +80,11 @@ public class SnapshotResponse implements Comparable<SnapshotResponse> {
         this.lastModifiedTime = lastModifiedTime;
         this.status = status;
         this.columns = columns;
+        this.selectPartitionCol = selectPartitionCol;
     }
 
     @Override
-    public int compareTo(SnapshotResponse o) {
+    public int compareTo(SnapshotInfoResponse o) {
         if (this.lastModifiedTime == 0) {
             return -1;
         }

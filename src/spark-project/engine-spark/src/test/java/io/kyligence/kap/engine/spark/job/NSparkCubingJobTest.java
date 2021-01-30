@@ -184,7 +184,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         //snapshot building cannot be skip when it is null
 
-        new SnapshotBuilder().buildSnapshot(df.getModel(), ss, ignoredSnapshotTableSet);
+        new SnapshotBuilder().buildSnapshot(ss, df.getModel(), ignoredSnapshotTableSet);
         getLookTables(df).forEach(table -> Assert.assertNotNull(table.getLastSnapshotPath()));
     }
 
@@ -207,7 +207,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         });
 
         //snapshot building can be skip when it is not null
-        new SnapshotBuilder().buildSnapshot(df.getModel(), ss, ignoredSnapshotTableSet);
+        new SnapshotBuilder().buildSnapshot(ss, df.getModel(), ignoredSnapshotTableSet);
         Assert.assertTrue(ignoredSnapshotTableSet.stream().allMatch(
                 tableName -> nTableMetadataManager.getTableDesc(tableName).getLastSnapshotPath().equals(mockPath)));
         getLookTables(df).forEach(table -> Assert.assertNotNull(table.getLastSnapshotPath()));

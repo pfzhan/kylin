@@ -65,7 +65,6 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -87,6 +86,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 /**
@@ -635,6 +635,14 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int snapshotParallelBuildTimeoutSeconds() {
         return Integer.parseInt(getOptional("kylin.snapshot.parallel-build-timeout-seconds", "3600"));
+    }
+
+    public int snapshotPartitionBuildTimeoutSecounds() {
+        return Integer.parseInt(getOptional("kylin.snapshot.partition-build-timeout-seconds", "3600"));
+    }
+
+    public int snapshotPartitionBuildMaxThread() {
+        return Integer.parseInt(getOptional("kylin.snapshot.partition-build-max-thread", "10"));
     }
 
     public int getSnapshotMaxVersions() {
@@ -2158,7 +2166,7 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(this.getOptional("kylin.query.async.result-retain-days", "7d"), TimeUnit.DAYS);
     }
 
-    public String getExternalCatalogClass(){
+    public String getExternalCatalogClass() {
         return getOptional("kylin.use.external.calatog", "");
     }
 
@@ -2446,4 +2454,7 @@ public abstract class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.build.resource.load-rate-threshold", "0.8"));
     }
 
+    public boolean skipFreshAlluxio() {
+        return Boolean.parseBoolean(getOptional("kylin.build.skip-fresh-alluxio", FALSE));
+    }
 }

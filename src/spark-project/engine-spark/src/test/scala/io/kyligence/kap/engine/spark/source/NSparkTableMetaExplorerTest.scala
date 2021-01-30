@@ -21,10 +21,11 @@
  */
 package io.kyligence.kap.engine.spark.source
 
+import com.google.common.collect.Sets
 import io.kyligence.kap.common.util.{TempMetadataBuilder, Unsafe}
 import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable, CatalogTableType}
+import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable, CatalogTablePartition, CatalogTableType}
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.types._
 
@@ -36,6 +37,9 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     SparderEnv.setSparkSession(spark)
 
     spark.sql("CREATE TABLE hive_table (a int, b int)")
+
+
+
 
     withTable("hive_table") {
 
@@ -76,6 +80,63 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       assert(meta.allColumns.get(0).dataType == "char(10)")
       assert(meta.allColumns.get(1).dataType == "varchar(33)")
       assert(meta.allColumns.get(2).dataType == "int")
+    }
+  }
+
+  test("Test load hive partition table") {
+    SparderEnv.setSparkSession(spark)
+    val table = "hive_partition_tablea";
+    val view = CatalogTable(
+      identifier = TableIdentifier(table),
+      tableType = CatalogTableType.MANAGED,
+      storage = CatalogStorageFormat.empty,
+      partitionColumnNames = List("dayno"),
+      schema = new StructType()
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("c", "int")
+        .add("dayno", "string", nullable = false, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(8)").build()),
+      properties = Map()
+    )
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+
+    withTable(table) {
+      val meta = new NSparkTableMetaExplorer().getSparkTableMeta("", table)
+      assert(meta.allColumns.get(0).dataType == "char(10)")
+      assert(meta.allColumns.get(1).dataType == "varchar(33)")
+      assert(meta.allColumns.get(2).dataType == "int")
+      assert(meta.partitionColumns.get(0).name.equals("dayno"))
+      assert(meta.partitionColumns.get(0).dataType == "char(8)")
+    }
+  }
+
+
+  test("Test get partition info from  hive partition table") {
+    SparderEnv.setSparkSession(spark)
+    val table = "hive_multi_partition_table";
+    val view = CatalogTable(
+      identifier = TableIdentifier(table),
+      tableType = CatalogTableType.MANAGED,
+      storage = CatalogStorageFormat.empty,
+      partitionColumnNames = List("year", "month", "day"),
+      schema = new StructType()
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("c", "int")
+        .add("year", "string", nullable = false, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(4)").build())
+        .add("month", "string", nullable = false, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(2)").build())
+        .add("day", "int"),
+      properties = Map()
+    )
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+    spark.sessionState.catalog.createPartitions(TableIdentifier(table), Seq(CatalogTablePartition(
+      Map("year" -> "2019", "month" -> "03", "day" -> "12"), CatalogStorageFormat.empty)), false)
+    withTable(table) {
+      assertResult(Sets.newHashSet("2019"))(new NSparkTableMetaExplorer().checkAndGetTablePartitions("", table, "year"))
+      val thrown = intercept[IllegalArgumentException] {
+        new NSparkTableMetaExplorer().checkAndGetTablePartitions("", table, "day")
+      }
+      assert(thrown.getMessage.contains("not match col"))
     }
   }
 

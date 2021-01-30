@@ -44,14 +44,15 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang3.StringUtils;
-import com.google.common.base.Preconditions;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -68,8 +69,14 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 /**
@@ -108,33 +115,83 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     // ============================================================================
 
     private String name;
+
+    @Getter
+    @Setter
     @JsonProperty("columns")
     private ColumnDesc[] columns;
+
     @JsonProperty("source_type")
     private int sourceType = ISourceAware.ID_HIVE;
+
     @JsonProperty("kafka_bootstrap_servers")
     private String kafkaBootstrapServers;
+
     @JsonProperty("subscribe")
     private String subscribe;
+
     @JsonProperty("starting_offsets")
     private String startingOffsets;
+
     @JsonProperty("table_type")
     private String tableType;
+
     //Sticky table
+    @Getter
+    @Setter
     @JsonProperty("top")
     private boolean isTop;
     @JsonProperty("data_gen")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String dataGen;
 
+    @Getter
+    @Setter
     @JsonProperty("increment_loading")
     private boolean incrementLoading;
 
+    @Getter
+    @Setter
     @JsonProperty("last_snapshot_path")
     private String lastSnapshotPath;
 
+    @Getter
+    @Setter
+    @JsonProperty("last_snapshot_size")
+    private double lastSnapshotSize;
+
+    @Getter
+    @Setter
     @JsonProperty("query_hit_count")
     private int snapshotHitCount = 0;
+
+    //first level partition col for this table
+    @Setter
+    @Getter
+    @JsonProperty("partition_column")
+    private String partitionColumn;
+
+    @Getter
+    @Setter
+    @JsonProperty("snapshot_partitions")
+    private Map<String, Long> snapshotPartitions = Maps.newHashMap();
+
+    //partition col of current built snapshot
+    @Getter
+    @Setter
+    @JsonProperty("snapshot_partition_col")
+    private String snapshotPartitionCol;
+
+    // user select partition for this snapshot table
+    @Setter
+    @Getter
+    @JsonProperty("selected_snapshot_partition_col")
+    private String selectedSnapshotPartitionCol;
+
+    @Setter
+    @Getter
+    @JsonProperty("temp_snapshot_path")
+    private String tempSnapshotPath;
 
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
@@ -166,6 +223,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.database.setName(other.getDatabase());
         this.identity = other.identity;
         this.lastSnapshotPath = other.lastSnapshotPath;
+        this.partitionColumn = other.partitionColumn;
+        this.snapshotPartitions = other.snapshotPartitions;
+        this.selectedSnapshotPartitionCol = other.selectedSnapshotPartitionCol;
+        this.snapshotPartitionCol = other.snapshotPartitionCol;
+
         setMvcc(other.getMvcc());
     }
 
@@ -313,30 +375,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.database.setName(database);
     }
 
-    public ColumnDesc[] getColumns() {
-        return columns;
-    }
-
-    public void setColumns(ColumnDesc[] columns) {
-        this.columns = columns;
-    }
-
-    public boolean isIncrementLoading() {
-        return incrementLoading;
-    }
-
-    public void setIncrementLoading(boolean incrementLoading) {
-        this.incrementLoading = incrementLoading;
-    }
-
-    public boolean isTop() {
-        return isTop;
-    }
-
-    public void setTop(boolean top) {
-        isTop = top;
-    }
-
     public int getMaxColumnIndex() {
         if (columns == null) {
             return -1;
@@ -363,13 +401,10 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.project = project;
 
         if (columns != null) {
-            Arrays.sort(columns, new Comparator<ColumnDesc>() {
-                @Override
-                public int compare(ColumnDesc col1, ColumnDesc col2) {
-                    Integer id1 = Integer.parseInt(col1.getId());
-                    Integer id2 = Integer.parseInt(col2.getId());
-                    return id1.compareTo(id2);
-                }
+            Arrays.sort(columns, (col1, col2) -> {
+                Integer id1 = Integer.parseInt(col1.getId());
+                Integer id2 = Integer.parseInt(col2.getId());
+                return id1.compareTo(id2);
             });
 
             for (ColumnDesc col : columns) {
@@ -460,20 +495,40 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.tableType = tableType;
     }
 
-    public void setLastSnapshotPath(String lastSnapshotPath) {
-        this.lastSnapshotPath = lastSnapshotPath;
+    public void deleteSnapshot() {
+        this.lastSnapshotPath = null;
+        snapshotPartitionCol = null;
+        snapshotPartitions = Maps.newHashMap();
+        selectedSnapshotPartitionCol = null;
     }
 
-    public String getLastSnapshotPath() {
-        return lastSnapshotPath;
+    public void copySnapshotFrom(TableDesc originTable) {
+        setLastSnapshotPath(originTable.getLastSnapshotPath());
+        setSnapshotPartitions(originTable.getSnapshotPartitions());
+        setSnapshotPartitionCol(originTable.getSnapshotPartitionCol());
+        setSelectedSnapshotPartitionCol(originTable.getSelectedSnapshotPartitionCol());
     }
 
-    public void setSnapshotHitCount(int hitCount) {
-        this.snapshotHitCount = hitCount;
+    public void resetSnapshotPartitions(Set<String> snapshotPartitions) {
+        this.snapshotPartitions = snapshotPartitions.stream()
+                .collect(Collectors.toMap(Function.identity(), item -> -1L));
     }
 
-    public int getSnapshotHitCount() {
-        return snapshotHitCount;
+    public void putPartitionSize(String partition, long size) {
+        snapshotPartitions.put(partition, size);
     }
 
+    public void addSnapshotPartitions(Set<String> snapshotPartitions) {
+        snapshotPartitions.forEach(part -> this.snapshotPartitions.put(part, -1L));
+    }
+
+    public Set<String> getNotReadyPartitions() {
+        Set<String> notReadyPartitions = Sets.newHashSet();
+        snapshotPartitions.forEach((item, ready) -> {
+            if (ready == -1) {
+                notReadyPartitions.add(item);
+            }
+        });
+        return notReadyPartitions;
+    }
 }
