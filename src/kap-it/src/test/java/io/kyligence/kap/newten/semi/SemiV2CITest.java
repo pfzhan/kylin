@@ -240,6 +240,76 @@ public class SemiV2CITest extends SemiAutoTestBase {
     }
 
     @Test
+    public void testDeleteOutDatedRecommendations() throws IOException {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare an origin model
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact " });
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+
+        // assert origin model
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(12, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeGenerateRecItems.getAllMeasures().size());
+        Assert.assertTrue(modelBeforeGenerateRecItems.getComputedColumnDescs().isEmpty());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        List<QueryMetrics> queryMetrics = loadQueryHistoryList(
+                "../kap-it/src/test/resources/ut_meta/newten_query_history");
+        queryHistoryDAO.insert(queryMetrics);
+
+        // before accelerate
+        List<RawRecItem> rawRecItemBeforeAccelerate = jdbcRawRecStore.queryAll();
+        Assert.assertTrue(rawRecItemBeforeAccelerate.isEmpty());
+
+        // accelerate
+        projectService.accelerateManually(getProject());
+
+        // after accelerate
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(6, rawRecItems.size());
+        Assert.assertEquals(1, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.COMPUTED_COLUMN));
+        Assert.assertEquals(2, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.DIMENSION));
+        Assert.assertEquals(1, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.MEASURE));
+        Assert.assertEquals(2, getFilterRecCount(rawRecItems, RawRecItem.RawRecType.ADDITIONAL_LAYOUT));
+
+        // set to outdated
+        rawRecItems.forEach(recItem -> recItem.setSemanticVersion(recItem.getSemanticVersion() - 2));
+        jdbcRawRecStore.update(rawRecItems);
+        Assert.assertEquals(6, rawRecItems.size());
+
+        // mock model broken and delete outdated recommendations
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        NDataModel backupModel = modelManager.copyBySerialization(modelManager.getDataModelDesc(modelID));
+
+        modelManager.updateDataModel(modelID, copyForWrite -> {
+            copyForWrite.setBrokenReason(NDataModel.BrokenReason.EVENT);
+            copyForWrite.setBroken(true);
+        });
+
+        Assert.assertTrue(modelManager.getDataModelDesc(modelID).isBroken());
+        RawRecManager.getInstance(getProject()).deleteAllOutDated(getProject());
+        Assert.assertEquals(6, jdbcRawRecStore.queryAll().size());
+
+        // mock not broken and delete outdated recommendations
+        backupModel.setMvcc(-1);
+        modelManager.dropModel(backupModel.getId());
+        modelManager.createDataModelDesc(backupModel, backupModel.getOwner());
+        Assert.assertFalse(modelManager.getDataModelDesc(modelID).isBroken());
+        RawRecManager.getInstance(getProject()).deleteAllOutDated(getProject());
+        Assert.assertEquals(0, jdbcRawRecStore.queryAll().size());
+    }
+
+    @Test
     public void testCCAsDimensionWithoutRename() {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 

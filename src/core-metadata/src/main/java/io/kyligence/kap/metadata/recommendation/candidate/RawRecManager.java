@@ -36,6 +36,7 @@ import org.apache.kylin.common.Singletons;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
@@ -155,9 +156,14 @@ public class RawRecManager {
     }
 
     public void deleteOutDated(String model, int lagVersion) {
-        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDesc(model).getSemanticVersion();
-        jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(model);
+        if (dataModel.isBroken()) {
+            log.info("Skip delete outdated RawRecItems of model({}/{})", project, model);
+        } else {
+            int semanticVersion = dataModel.getSemanticVersion();
+            jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
+        }
     }
 
     public void discardRecItemsOfBrokenModel(String model) {
