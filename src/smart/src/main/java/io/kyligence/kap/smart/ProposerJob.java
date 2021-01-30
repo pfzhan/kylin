@@ -99,7 +99,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
                 .stream().map(model -> model.getAlias().toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
 
         Function<Collection<String>, Boolean> orElse = a -> a != null ? resources.addAll(a) : null;
-        orElse.apply(resourceStore.listResources(ResourceStore.PROJECT_ROOT));
+        orElse.apply(Sets.newHashSet(ResourceStore.PROJECT_ROOT + "/" + project + ".json"));
         orElse.apply(resourceStore.listResources("/" + project + ResourceStore.TABLE_RESOURCE_ROOT));
         orElse.apply(resourceStore.listResources("/" + project + ResourceStore.TABLE_EXD_RESOURCE_ROOT));
         val runner = factoryBuilder.build(config, context.getSmartConfig().getProposeRunnerImpl(), project, resources);
