@@ -86,7 +86,7 @@ public class SnapshotBuildJob extends SparkApplication {
         if (selectedPartCol == null) {
             new SnapshotBuilder().buildSnapshot(ss, Sets.newHashSet(tableDesc));
         } else {
-            initial(tableDesc, selectedPartCol, incrementalBuild);
+            initialize(tableDesc, selectedPartCol, incrementalBuild);
 
             tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
             logger.info("{} need build partitions: {}", tableDesc.getIdentity(), tableDesc.getNotReadyPartitions());
@@ -102,7 +102,7 @@ public class SnapshotBuildJob extends SparkApplication {
     }
 
 
-    private void initial(TableDesc table, String selectedPartCol, boolean incrementBuild) {
+    private void initialize(TableDesc table, String selectedPartCol, boolean incrementBuild) {
         if (table.getTempSnapshotPath() != null) {
             logger.info("snapshot partition has been initialed, so skip.");
             return;

@@ -24,12 +24,11 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.query.engine.QueryExec;
 import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-import lombok.val;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -55,6 +54,8 @@ import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.query.engine.QueryExec;
+import lombok.val;
 
 public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
@@ -144,6 +145,14 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         String snapshotPath = tableManager.getTableDesc(tableName).getLastSnapshotPath();
         Assert.assertNotNull(snapshotPath);
         Assert.assertEquals(2, list(snapshotPath).length);
+        val fs = HadoopUtil.getWorkingFileSystem();
+        Assert.assertEquals(Stream.of(list(snapshotPath)).mapToLong(s -> {
+            try {
+                return HadoopUtil.getContentSummary(fs, s.getPath()).getLength();
+            } catch (IOException e) {
+                return 0L;
+            }
+        }).sum(), tableManager.getTableDesc(tableName).getLastSnapshotSize());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getTempSnapshotPath());
         Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
     }
@@ -227,6 +236,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         NTableMetadataManager remoteTableManager = NTableMetadataManager.getInstance(remoteResource.getConfig(),
                 getProject());
         Assert.assertNotNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
+        Assert.assertNotEquals(0L, tableManager.getTableDesc(tableName).getLastSnapshotSize());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getLastSnapshotPath());
     }
 

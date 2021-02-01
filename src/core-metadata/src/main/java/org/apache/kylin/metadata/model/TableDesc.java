@@ -158,7 +158,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @Getter
     @Setter
     @JsonProperty("last_snapshot_size")
-    private double lastSnapshotSize;
+    private long lastSnapshotSize;
 
     @Getter
     @Setter
@@ -500,6 +500,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         snapshotPartitionCol = null;
         snapshotPartitions = Maps.newHashMap();
         selectedSnapshotPartitionCol = null;
+        lastSnapshotSize = 0;
     }
 
     public void copySnapshotFrom(TableDesc originTable) {

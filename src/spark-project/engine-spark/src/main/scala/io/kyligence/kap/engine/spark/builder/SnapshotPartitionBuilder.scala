@@ -137,8 +137,7 @@ class SnapshotPartitionBuilder extends SnapshotBuilder {
       sourceData.repartition(repartitionNum).write.mode(SaveMode.Overwrite).parquet(resourcePath)
     }
     val (originSize, totalRows) = computeSnapshotSize(sourceData, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
-    Result(snapshotTablePath, originSize, totalRows,
-      HadoopUtil.getContentSummary(HadoopUtil.getWorkingFileSystem, new Path(resourcePath)).getLength)
+    Result(snapshotTablePath, originSize, totalRows)
   }
 
 }

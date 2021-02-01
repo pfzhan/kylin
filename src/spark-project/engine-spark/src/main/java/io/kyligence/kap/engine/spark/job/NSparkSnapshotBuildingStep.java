@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -41,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -90,46 +95,61 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
         if (!result.succeed()) {
             return result;
         }
-        wrapWithCheckQuit(this::mergeRemoteMetaAfterBuilding);
+        try (val remoteStore = ExecutableUtils.getRemoteStore(KylinConfig.getInstanceFromEnv(), this)) {
+            String tableName = getParam(NBatchConstants.P_TABLE_NAME);
+            boolean incrementBuild = "true".equals(getParam(NBatchConstants.P_INCREMENTAL_BUILD));
+            String selectPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
+
+            val remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(), getProject());
+            val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
+            val remoteTblExtDesc = remoteTblMgr.getOrCreateTableExt(remoteTbDesc);
+            val fs = HadoopUtil.getWorkingFileSystem();
+            val baseDir = KapConfig.getInstanceFromEnv().getMetadataWorkingDirectory();
+            if (selectPartCol != null && !incrementBuild) {
+                remoteTbDesc.setLastSnapshotPath(remoteTbDesc.getTempSnapshotPath());
+            }
+            long snapshotSize = 0;
+            try {
+                snapshotSize = HadoopUtil.getContentSummary(fs, new Path(baseDir + remoteTbDesc.getLastSnapshotPath()))
+                        .getLength();
+            } catch (IOException e) {
+                logger.warn("Fetch snapshot size for {} from {} failed", remoteTbDesc.getIdentity(),
+                        baseDir + remoteTbDesc.getLastSnapshotPath());
+            }
+            remoteTbDesc.setLastSnapshotSize(snapshotSize);
+            EventBusFactory.getInstance()
+                    .postSync(new SnapshotBuildFinishedEvent(remoteTbDesc, selectPartCol, incrementBuild));
+            wrapWithCheckQuit(() -> mergeRemoteMetaAfterBuilding(remoteTbDesc, remoteTblExtDesc));
+        }
         return result;
     }
 
-    private void mergeRemoteMetaAfterBuilding() {
-
+    private void mergeRemoteMetaAfterBuilding(TableDesc remoteTbDesc, TableExtDesc remoteTblExtDesc) {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         String selectPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
-        boolean incrementBuild = "true".equals(getParam(NBatchConstants.P_INCREMENTAL_BUILD));
 
-        try (val remoteStore = ExecutableUtils.getRemoteStore(KylinConfig.getInstanceFromEnv(), this)) {
 
-            val remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(), getProject());
-            val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-            val localTbDesc = localTblMgr.getTableDesc(tableName);
-            val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
-            val copy = localTblMgr.copyForWrite(localTbDesc);
-            val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
-            TableExtDesc remoteTblExtDesc = remoteTblMgr.getOrCreateTableExt(remoteTbDesc);
+        val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val localTbDesc = localTblMgr.getTableDesc(tableName);
+        val copy = localTblMgr.copyForWrite(localTbDesc);
+        val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
+
+        copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
+        if (selectPartCol == null) {
+            copy.setSnapshotPartitionCol(null);
+            copy.resetSnapshotPartitions(Sets.newHashSet());
             copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
-
-            if (selectPartCol == null) {
-                copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
-                copyExt.setOriginalSize(remoteTblMgr.getOrCreateTableExt(remoteTbDesc).getOriginalSize());
-                copy.setSnapshotPartitionCol(null);
-                copy.resetSnapshotPartitions(Sets.newHashSet());
-            } else {
-                if (!incrementBuild) {
-                    copy.setLastSnapshotPath(remoteTbDesc.getTempSnapshotPath());
-                }
-                // ?
-                copyExt.setOriginalSize(remoteTbDesc.getSnapshotPartitions().values().stream().mapToLong(i -> i).sum());
-                copy.setSnapshotPartitionCol(selectPartCol);
-                copy.setSnapshotPartitions(remoteTbDesc.getSnapshotPartitions());
-            }
-
-            copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());
-            copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
-            localTblMgr.saveTableExt(copyExt);
-            localTblMgr.updateTableDesc(copy);
+        } else {
+            copyExt.setOriginalSize(remoteTbDesc.getSnapshotPartitions().values().stream().mapToLong(i -> i).sum());
+            copy.setSnapshotPartitionCol(selectPartCol);
+            copy.setSnapshotPartitions(remoteTbDesc.getSnapshotPartitions());
         }
+
+        copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());
+        copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
+
+        localTblMgr.saveTableExt(copyExt);
+        localTblMgr.updateTableDesc(copy);
+
     }
 }

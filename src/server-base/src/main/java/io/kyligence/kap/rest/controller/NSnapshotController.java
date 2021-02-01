@@ -75,7 +75,7 @@ public class NSnapshotController extends NBasicController {
     @Qualifier("snapshotService")
     private SnapshotService snapshotService;
 
-    @ApiOperation(value = "config partition col for snapshot Tables", notes = "config partition col")
+    @ApiOperation(value = "config partition col for snapshot Tables", tags = { "AI" }, notes = "config partition col")
     @PostMapping(value = "/config")
     @ResponseBody
     public EnvelopeResponse<String> configSnapshotPartitionCol(@RequestBody SnapshotTableConfigRequest configRequest) {
@@ -84,7 +84,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "get col info of snapshot table", notes = "get col info")
+    @ApiOperation(value = "get col info of snapshot table", tags = { "AI" }, notes = "get col info")
     @GetMapping(value = "/config")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<SnapshotColResponse>>> getSnapshotCols(
@@ -105,7 +105,7 @@ public class NSnapshotController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
-    @ApiOperation(value = "reload partition col of table", notes = "reload partition col")
+    @ApiOperation(value = "reload partition col of table", tags = { "AI" }, notes = "reload partition col")
     @PostMapping(value = "/reload_partition_col")
     @ResponseBody
     public EnvelopeResponse<SnapshotColResponse> getSnapshotCols(@RequestBody TableReloadPartitionColRequest request)

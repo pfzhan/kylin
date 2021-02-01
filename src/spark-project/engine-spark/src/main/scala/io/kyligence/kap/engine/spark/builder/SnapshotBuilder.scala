@@ -114,8 +114,6 @@ class SnapshotBuilder extends Logging with Serializable {
     val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
     val copy = tableMetadataManager.copyForWrite(table);
     copy.setLastSnapshotPath(resultMap.get(copy.getIdentity).path)
-    copy.setLastSnapshotSize(resultMap.get(copy.getIdentity).fileSize)
-
 
     // define the updating operations
     class TableUpdateOps extends UnitOfWork.Callback[TableDesc] {
@@ -155,7 +153,7 @@ class SnapshotBuilder extends Logging with Serializable {
 
     toCalculateTableDesc.foreach(tableDesc => {
       val totalRows = calculateTableTotalRows(tableDesc.getLastSnapshotPath, tableDesc, ss)
-      map.put(tableDesc.getIdentity, Result("", -1, totalRows, -1))
+      map.put(tableDesc.getIdentity, Result("", -1, totalRows))
     })
 
     toCalculateTableDesc.foreach(table => {
@@ -337,8 +335,7 @@ class SnapshotBuilder extends Logging with Serializable {
       logInfo(s"Create md5 file: ${md5Path} for snap: ${currSnapFile}")
     }
 
-    val fileSize = HadoopUtil.getContentSummary(HadoopUtil.getWorkingFileSystem, new Path(baseDir + "/" +snapshotTablePath)).getLength
-    resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows, fileSize))
+    resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows ))
   }
 
   def buildSingleSnapshotWithoutMd5(ss: SparkSession, tableDesc: TableDesc, baseDir: String,
@@ -372,7 +369,7 @@ class SnapshotBuilder extends Logging with Serializable {
       sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
     val (originSize, totalRows) = computeSnapshotSize(sourceData, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
-    resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows, HadoopUtil.getContentSummary(HadoopUtil.getWorkingFileSystem, new Path(resourcePath)).getLength))
+    resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows))
   }
 
   private[builder] def computeSnapshotSize(sourceData: Dataset[Row], totalRows: Long) = {
@@ -430,6 +427,6 @@ class SnapshotBuilder extends Logging with Serializable {
   }
 
 
-  case class Result(path: String, originalSize: Long, totalRows: Long, fileSize: Long)
+  case class Result(path: String, originalSize: Long, totalRows: Long)
 
 }
