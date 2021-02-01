@@ -47,6 +47,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
 import io.kyligence.kap.rest.request.OptRecRequest;
+import io.kyligence.kap.rest.response.OptRecResponse;
 
 public class OptRecServiceCCTest extends OptRecV2TestBase {
 
@@ -64,7 +65,9 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(3);
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-        optRecService.approve(getProject(), recRequest);
+        OptRecResponse optRecResponse = optRecService.approve(getProject(), recRequest);
+        Assert.assertEquals(1, optRecResponse.getAddedLayouts().size());
+        Assert.assertEquals(0, optRecResponse.getRemovedLayouts().size());
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(8), dataModel.getEffectiveDimensions().keySet());
@@ -81,7 +84,9 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(7);
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-        optRecService.approve(getProject(), recRequest);
+        OptRecResponse optRecResponse = optRecService.approve(getProject(), recRequest);
+        Assert.assertEquals(1, optRecResponse.getAddedLayouts().size());
+        Assert.assertEquals(0, optRecResponse.getRemovedLayouts().size());
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());

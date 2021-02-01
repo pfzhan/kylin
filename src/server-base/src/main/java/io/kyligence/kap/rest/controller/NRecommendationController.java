@@ -47,6 +47,7 @@ import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.request.RecCountUpdateRequest;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.RawRecService;
@@ -73,14 +74,14 @@ public class NRecommendationController extends NBasicController {
     @ApiOperation(value = "approveOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}")
     @ResponseBody
-    public EnvelopeResponse<String> approveOptimizeRecommendations(@PathVariable("model") String modelId,
+    public EnvelopeResponse<OptRecResponse> approveOptimizeRecommendations(@PathVariable("model") String modelId,
             @RequestBody OptRecRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         request.setModelId(modelId);
-        optRecService.approve(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        OptRecResponse optRecResponse = optRecService.approve(request.getProject(), request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecResponse, "");
     }
 
     @ApiOperation(value = "validateOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")

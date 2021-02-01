@@ -77,6 +77,7 @@ import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OptRecDepResponse;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
@@ -295,7 +296,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
 
         // mock optRecRequest() and apply recommendations
         OptRecRequest recRequest = mockOptRecRequest(modelID, optRecDetailResponse);
-        optRecService.approve(getProject(), recRequest);
+        OptRecResponse optRecResponse = optRecService.approve(getProject(), recRequest);
+        Assert.assertEquals(1, optRecResponse.getAddedLayouts().size());
+        Assert.assertEquals(0, optRecResponse.getRemovedLayouts().size());
 
         // assert after apply recommendations
         NDataModel modelAfterApplyRecItems = modelManager.getDataModelDesc(modelID);

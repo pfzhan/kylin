@@ -82,6 +82,7 @@ import io.kyligence.kap.rest.response.OptRecDepResponse;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
+import io.kyligence.kap.rest.response.OptRecResponse;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -463,7 +464,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
     }
 
-    public void approve(String project, OptRecRequest request) {
+    public OptRecResponse approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
         Map<Integer, String> userDefinedRecNameMap = request.getNames();
@@ -471,6 +472,13 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         approveRecItemsToRemoveLayout(request, approveContext);
         approveRecItemsToAddLayout(request, approveContext);
         updateRecommendationCount(project, modelId);
+
+        OptRecResponse response = new OptRecResponse();
+        response.setProject(request.getProject());
+        response.setModelId(request.getModelId());
+        response.setAddedLayouts(approveContext.addedLayoutIdList);
+        response.setRemovedLayouts(approveContext.removedLayoutIdList);
+        return response;
     }
 
     /**

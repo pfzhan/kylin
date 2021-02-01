@@ -48,6 +48,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
 import io.kyligence.kap.rest.request.OptRecRequest;
+import io.kyligence.kap.rest.response.OptRecResponse;
 
 public class OptRecServiceGeneralTest extends OptRecV2TestBase {
 
@@ -95,7 +96,9 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(3);
         prepare(addLayoutId);
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
-        optRecService.approve(getProject(), recRequest);
+        OptRecResponse optRecResponse = optRecService.approve(getProject(), recRequest);
+        Assert.assertEquals(1, optRecResponse.getAddedLayouts().size());
+        Assert.assertEquals(0, optRecResponse.getRemovedLayouts().size());
 
         NDataModel dataModel = getModel();
         Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
@@ -108,7 +111,9 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         //remove
         List<Integer> removeLayoutId = Lists.newArrayList(8);
         OptRecRequest removeQuest = buildOptRecRequest(ImmutableList.of(), removeLayoutId);
-        optRecService.approve(getProject(), removeQuest);
+        OptRecResponse removedResponse = optRecService.approve(getProject(), removeQuest);
+        Assert.assertEquals(0, removedResponse.getAddedLayouts().size());
+        Assert.assertEquals(1, removedResponse.getRemovedLayouts().size());
 
         checkIndexPlan(ImmutableList.of(), getIndexPlan());
 
