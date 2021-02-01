@@ -682,6 +682,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId, List<String> recTypeList,
             String key, boolean desc, String orderBy, int offset, int limit) {
+        aclEvaluate.checkProjectReadPermission(project);
         Set<RawRecItem.IndexRecType> userDefinedTypes = Sets.newHashSet();
         recTypeList.forEach(type -> {
             if (RawRecItem.IndexRecType.ADD_TABLE_INDEX.name().equalsIgnoreCase(type)) {
@@ -718,6 +719,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      */
     public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId, String recActionType) {
         aclEvaluate.checkProjectReadPermission(project);
+        return getOptRecLayoutsResponseInner(project, modelId, recActionType);
+    }
+
+    private OptRecLayoutsResponse getOptRecLayoutsResponseInner(String project, String modelId, String recActionType) {
         OptRecLayoutsResponse layoutsResponse = new OptRecLayoutsResponse();
         List<OptRecLayoutResponse> responses = getRecLayoutResponses(project, modelId, recActionType,
                 layoutsResponse.getBrokenRecs());
@@ -762,7 +767,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String recActionType,
             Set<Integer> brokenRecCollector) {
-        aclEvaluate.checkProjectReadPermission(project);
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
         if (recActionType.equalsIgnoreCase(RecActionType.ALL.name())) {
@@ -817,7 +821,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public void updateRecommendationCount(String project, String modelId) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            int size = getOptRecLayoutsResponse(project, modelId, OptRecService.ALL).getSize();
+            int size = getOptRecLayoutsResponseInner(project, modelId, OptRecService.ALL).getSize();
             NDataModel dataModel = mgr.getDataModelDesc(modelId);
             if (dataModel != null && dataModel.getRecommendationsCount() != size) {
                 mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
