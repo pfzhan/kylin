@@ -25,11 +25,8 @@
 package io.kyligence.kap.engine.spark.application;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -42,17 +39,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NSparkBasicTest;
 
 public class SparkApplicationTest extends NSparkBasicTest {
+
     File tempDir = new File("./temp/");
     File file1 = new File(tempDir, "temp1_" + ResourceDetectUtils.fileName());
     File file2 = new File(tempDir, "temp2_" + ResourceDetectUtils.fileName());
-    File sourceFile1 = new File(tempDir, "source1.txt");
-    File sourceFile2 = new File(tempDir, "source2.txt");
 
     @Before
     public void before() throws IOException {
@@ -74,28 +69,16 @@ public class SparkApplicationTest extends NSparkBasicTest {
             }
         };
 
-        // write source file
-        FileOutputStream out1 = new FileOutputStream(sourceFile1);
-        String minString = "test";
-        out1.write(minString.getBytes(Charset.defaultCharset()));
-        out1.close();
-
-        FileOutputStream out2 = new FileOutputStream(sourceFile2);
-        String maxString = "test_test";
-        out2.write(maxString.getBytes(Charset.defaultCharset()));
-        out2.close();
-
         // write resource_path file
-        Map<String, List<String>> map1 = Maps.newHashMap();
-        map1.put("1", Lists.newArrayList(sourceFile1.getAbsolutePath()));
+        Map<String, Long> map1 = Maps.newHashMap();
+        map1.put("1", 300L);
         ResourceDetectUtils.write(new Path(file1.getAbsolutePath()), map1);
 
-        Map<String, List<String>> map2 = Maps.newHashMap();
-        map2.put("1", Lists.newArrayList(sourceFile2.getAbsolutePath()));
+        Map<String, Long> map2 = Maps.newHashMap();
+        map2.put("1", 200L);
         ResourceDetectUtils.write(new Path(file2.getAbsolutePath()), map2);
 
-        Assert.assertEquals(maxString.getBytes(Charset.defaultCharset()).length + "b",
-                application.chooseContentSize(new Path(tempDir.getAbsolutePath())));
+        Assert.assertEquals("300b", application.chooseContentSize(new Path(tempDir.getAbsolutePath())));
     }
 
     @Test

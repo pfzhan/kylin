@@ -22,6 +22,10 @@
 
 package org.apache.spark.sql.hive.utils
 
+import java.io.IOException
+import java.nio.charset.Charset
+import java.util.{Map => JMap}
+
 import com.google.common.collect.Maps
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -35,9 +39,6 @@ import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, RowData
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 import org.apache.spark.sql.sources.NBaseRelation
 
-import java.io.IOException
-import java.nio.charset.Charset
-import java.util.{Map => JMap}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -89,7 +90,7 @@ object ResourceDetectUtils extends Logging {
   }
 
   @throws[IOException]
-  protected def listSourcePath(shareDir: Path): java.util.Map[String, java.util.Map[String, java.util.List[String]]] = {
+  protected def listSourcePath(shareDir: Path): java.util.Map[String, java.util.Map[String, Double]] = {
     val fs = HadoopUtil.getWorkingFileSystem
     val fileStatuses = fs.listStatus(shareDir, new PathFilter {
       override def accept(path: Path): Boolean = {
@@ -97,11 +98,11 @@ object ResourceDetectUtils extends Logging {
       }
     })
     // segmnet -> (layout_ID, path)
-    val resourcePaths = Maps.newHashMap[String, java.util.Map[String, java.util.List[String]]]()
+    val resourcePaths = Maps.newHashMap[String, java.util.Map[String, Double]]()
     for (file <- fileStatuses) {
       val fileName = file.getPath.getName
       val segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName) - 1)
-      val map = ResourceDetectUtils.readResourcePathsAs[java.util.Map[String, java.util.List[String]]](file.getPath)
+      val map = ResourceDetectUtils.readResourcePathsAs[java.util.Map[String, Double]](file.getPath)
       resourcePaths.put(segmentId, map)
     }
     // return size with unit
@@ -131,14 +132,16 @@ object ResourceDetectUtils extends Logging {
   def getMaxResourceSize(shareDir: Path): Long = {
     ResourceDetectUtils.listSourcePath(shareDir)
       .values.asScala
-      .flatMap(value => value.values().asScala.map(v => getResourceSize(v.asScala.map(path => new Path(path)): _*)))
+      .flatMap(value => value.values().asScala)
       .max
+      .longValue()
   }
 
   def getSegmentSourceSize(shareDir: Path): java.util.Map[String, Long] = {
+    // For a number without fractional part, Gson would convert it as Double,need to convert Double to Long
     ResourceDetectUtils.listSourcePath(shareDir).asScala
       .filter(_._2.keySet().contains("-1"))
-      .map(tp => (tp._1, getResourceSize(tp._2.get("-1").asScala.map(path => new Path(path)): _*)))
+      .map(tp => (tp._1, tp._2.get("-1").longValue()))
       .toMap
       .asJava
   }

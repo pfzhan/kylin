@@ -63,7 +63,7 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
 
     val (ftSources, layoutSources) = sources.partition(_.isFlatTable)
 
-    val sourcePaths = Maps.newHashMap[String, java.util.List[String]]()
+    val sourceSize = Maps.newHashMap[String, Long]()
     val sourceLeaves = Maps.newHashMap[String, java.lang.Integer]()
 
     (layoutSources.groupBy(_.getParentId).values.map { grouped =>
@@ -81,12 +81,11 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
       logInfo(s"leaf nodes is: $leaves")
       val paths = ResourceDetectUtils.getPaths(execution.sparkPlan).map(_.toString).asJava
       logInfo(s"Detected SOURCE $sourceName $leaves ${paths.asScala.mkString(",")}")
-      sourcePaths.put(sourceName, paths)
+      sourceSize.put(sourceName, ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*))
       sourceLeaves.put(sourceName, leaves)
     }
-
     ResourceDetectUtils.write(new Path(rdSharedPath, //
-      s"${segmentId}_${ResourceDetectUtils.fileName()}"), sourcePaths)
+      s"${segmentId}_${ResourceDetectUtils.fileName()}"), sourceSize)
     ResourceDetectUtils.write(new Path(rdSharedPath, //
       s"${segmentId}_${ResourceDetectUtils.cubingDetectItemFileSuffix}"), sourceLeaves)
   }

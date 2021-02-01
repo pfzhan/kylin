@@ -27,8 +27,6 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
@@ -46,6 +44,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 
 public class ResourceDetectBeforeMergingJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(ResourceDetectBeforeMergingJob.class);
@@ -66,18 +65,19 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
         ResourceDetectUtils.write(
                 new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()),
                 ResourceDetectUtils.findCountDistinctMeasure(mergedSeg.getIndexPlan().getAllLayouts()));
-        Map<String, List<String>> resourcePaths = Maps.newHashMap();
+        Map<String, Long> resourceSize = Maps.newHashMap();
         infos.clearSparkPlans();
         for (Map.Entry<Long, DFLayoutMergeAssist> entry : mergeCuboidsAssist.entrySet()) {
             Dataset<Row> afterMerge = entry.getValue().merge();
             infos.recordSparkPlan(afterMerge.queryExecution().sparkPlan());
             List<Path> paths = JavaConversions
                     .seqAsJavaList(ResourceDetectUtils.getPaths(afterMerge.queryExecution().sparkPlan()));
-            List<String> pathStrs = paths.stream().map(Path::toString).collect(Collectors.toList());
-            resourcePaths.put(String.valueOf(entry.getKey()), pathStrs);
+            resourceSize.put(String.valueOf(entry.getKey()),
+                ResourceDetectUtils.getResourceSize(
+                    JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
         }
         ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
-                mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()), resourcePaths);
+                mergedSeg.getId() + "_" + ResourceDetectUtils.fileName()), resourceSize);
     }
 
     @Override

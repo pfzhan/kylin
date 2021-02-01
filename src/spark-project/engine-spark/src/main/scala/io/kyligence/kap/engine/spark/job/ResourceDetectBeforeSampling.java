@@ -17,7 +17,7 @@ import scala.collection.JavaConversions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import scala.collection.JavaConverters;
 
 @Slf4j
 public class ResourceDetectBeforeSampling extends SparkApplication {
@@ -31,10 +31,11 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
 
         final List<Path> paths = JavaConversions
                 .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
-        List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
 
-        Map<String, List<String>> resourcePaths = Maps.newHashMap();
-        resourcePaths.put(tableName, pathList);
+        Map<String, Long> resourceSize = Maps.newHashMap();
+        resourceSize.put(String.valueOf(tableName),
+            ResourceDetectUtils.getResourceSize(
+                JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
 
         Map<String, String> tableLeafTaskNums = Maps.newHashMap();
         tableLeafTaskNums.put(tableName,
@@ -42,7 +43,7 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
 
         ResourceDetectUtils.write(
                 new Path(config.getJobTmpShareDir(project, jobId), tableName + "_" + ResourceDetectUtils.fileName()),
-                resourcePaths);
+            resourceSize);
 
         ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                 tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix()), tableLeafTaskNums);

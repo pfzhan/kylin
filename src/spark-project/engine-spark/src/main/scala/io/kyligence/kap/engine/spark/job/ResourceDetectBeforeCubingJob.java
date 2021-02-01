@@ -53,6 +53,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 
 public class ResourceDetectBeforeCubingJob extends SparkApplication {
     protected volatile NSpanningTree nSpanningTree;
@@ -88,7 +89,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
             sources.addAll(buildFromLayouts.values());
 
-            Map<String, List<String>> resourcePaths = Maps.newHashMap();
+            Map<String, Long> resourceSize = Maps.newHashMap();
             Map<String, Integer> layoutLeafTaskNums = Maps.newHashMap();
             infos.clearSparkPlans();
             for (NBuildSourceInfo source : sources) {
@@ -98,13 +99,14 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 infos.recordSparkPlan(dataset.queryExecution().sparkPlan());
                 List<Path> paths = JavaConversions
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
-                List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
-                resourcePaths.put(String.valueOf(source.getLayoutId()), pathList);
+                resourceSize.put(String.valueOf(source.getLayoutId()),
+                    ResourceDetectUtils.getResourceSize(JavaConverters.asScalaIteratorConverter(paths.iterator()).asScala().toSeq()));
+
                 layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), Integer.parseInt(leafNodeNum));
             }
             ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),
-                    resourcePaths);
+                resourceSize);
             ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                     segId + "_" + ResourceDetectUtils.cubingDetectItemFileSuffix()), layoutLeafTaskNums);
         }

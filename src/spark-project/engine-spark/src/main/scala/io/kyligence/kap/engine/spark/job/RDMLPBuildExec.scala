@@ -62,7 +62,7 @@ class RDMLPBuildExec(private val jobContext: RDSegmentBuildJob, //
 
     val (ftSources, layoutSources) = sources.partition(_.isFlatTable)
 
-    val sourcePaths = Maps.newHashMap[String, java.util.List[String]]()
+    val sourceSize = Maps.newHashMap[String, Long]()
     val sourceLeaves = Maps.newHashMap[String, java.lang.Integer]()
 
     (layoutSources.groupBy(_.getParentId) //
@@ -89,12 +89,12 @@ class RDMLPBuildExec(private val jobContext: RDSegmentBuildJob, //
       ).asJava
 
       logInfo(s"Detected SOURCE $sourceName $leaves ${paths.asScala.mkString(",")}")
-      sourcePaths.put(sourceName, paths)
+      sourceSize.put(sourceName, ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*))
       sourceLeaves.put(sourceName, leaves)
     }
 
     ResourceDetectUtils.write(new Path(rdSharedPath, //
-      s"${segmentId}_${ResourceDetectUtils.fileName()}"), sourcePaths)
+      s"${segmentId}_${ResourceDetectUtils.fileName()}"), sourceSize)
     ResourceDetectUtils.write(new Path(rdSharedPath, //
       s"${segmentId}_${ResourceDetectUtils.cubingDetectItemFileSuffix}"), sourceLeaves)
   }
