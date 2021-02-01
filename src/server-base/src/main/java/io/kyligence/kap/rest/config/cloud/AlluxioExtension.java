@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.cloud;
+package io.kyligence.kap.rest.config.cloud;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,8 +40,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.model.SnapshotBuildFinishedEvent;
 
-import io.kyligence.kap.engine.spark.job.SnapshotBuildFinishedEvent;
+import io.kyligence.kap.guava20.shaded.common.eventbus.KylinEventException;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFrameworkFactory;
@@ -53,16 +54,20 @@ public class AlluxioExtension {
 
     @Subscribe
     public void onSnapshotFinished(SnapshotBuildFinishedEvent finished) throws Exception {
-        if (finished.getSelectedPartCol() == null) {
+        if (finished.getSelectedPartCol() == null || !finished.isIncrementalBuild()) {
             return;
         }
-        refreshCacheIfNecessary(finished.getTableDesc().getLastSnapshotPath());
-
+        try {
+            refreshCacheIfNecessary(finished.getTableDesc().getLastSnapshotPath());
+        } catch (Exception e) {
+            log.error("refresh alluxio failed", e);
+            throw new KylinEventException("refresh alluxio failed", e);
+        }
     }
 
     private void refreshCacheIfNecessary(String snapshotPath) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        if (!KapConfig.wrap(config).isCloud() || config.skipFreshAlluxio()) {
+        if (config.skipFreshAlluxio()) {
             return;
         }
 

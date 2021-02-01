@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.common.scheduler;
 
+import io.kyligence.kap.guava20.shaded.common.eventbus.SyncThrowExceptionEventBus;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,7 +47,7 @@ public class EventBusFactory {
     private final KylinConfig kylinConfig;
     private ExecutorService executor;
     private EventBus asyncEventBus;
-    private EventBus syncEventBus;
+    private EventBus syncEventBus = new SyncThrowExceptionEventBus();
 
     private final Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
 

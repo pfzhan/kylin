@@ -37,6 +37,7 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.job.model.SnapshotBuildFinishedEvent;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -95,16 +96,19 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
         if (!result.succeed()) {
             return result;
         }
+
         try (val remoteStore = ExecutableUtils.getRemoteStore(KylinConfig.getInstanceFromEnv(), this)) {
             String tableName = getParam(NBatchConstants.P_TABLE_NAME);
-            boolean incrementBuild = "true".equals(getParam(NBatchConstants.P_INCREMENTAL_BUILD));
             String selectPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
+            boolean incrementBuild = "true".equals(getParam(NBatchConstants.P_INCREMENTAL_BUILD));
 
             val remoteTblMgr = NTableMetadataManager.getInstance(remoteStore.getConfig(), getProject());
             val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
             val remoteTblExtDesc = remoteTblMgr.getOrCreateTableExt(remoteTbDesc);
+
             val fs = HadoopUtil.getWorkingFileSystem();
             val baseDir = KapConfig.getInstanceFromEnv().getMetadataWorkingDirectory();
+
             if (selectPartCol != null && !incrementBuild) {
                 remoteTbDesc.setLastSnapshotPath(remoteTbDesc.getTempSnapshotPath());
             }
@@ -125,9 +129,9 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
     }
 
     private void mergeRemoteMetaAfterBuilding(TableDesc remoteTbDesc, TableExtDesc remoteTblExtDesc) {
+
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         String selectPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
-
 
         val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val localTbDesc = localTblMgr.getTableDesc(tableName);
@@ -135,10 +139,11 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
         val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));
 
         copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
+        copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
         if (selectPartCol == null) {
+            copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
             copy.setSnapshotPartitionCol(null);
             copy.resetSnapshotPartitions(Sets.newHashSet());
-            copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
         } else {
             copyExt.setOriginalSize(remoteTbDesc.getSnapshotPartitions().values().stream().mapToLong(i -> i).sum());
             copy.setSnapshotPartitionCol(selectPartCol);
@@ -146,8 +151,6 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
         }
 
         copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());
-        copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
-
         localTblMgr.saveTableExt(copyExt);
         localTblMgr.updateTableDesc(copy);
 
