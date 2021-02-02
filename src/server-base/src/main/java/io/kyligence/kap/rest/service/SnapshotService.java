@@ -711,7 +711,7 @@ public class SnapshotService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
 
         Set<String> finalTables = Optional.ofNullable(tables).orElse(Sets.newHashSet());
-        Set<String> finalDatabase = Optional.ofNullable(tables).orElse(Sets.newHashSet());
+        Set<String> finalDatabase = Optional.ofNullable(databases).orElse(Sets.newHashSet());
         val execManager = NExecutableManager.getInstance(getConfig(), project);
         List<AbstractExecutable> executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
                 SNAPSHOT_BUILD, SNAPSHOT_REFRESH);
