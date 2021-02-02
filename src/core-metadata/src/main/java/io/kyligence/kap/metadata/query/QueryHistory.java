@@ -33,7 +33,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
-
 import lombok.Getter;
 import lombok.Setter;
 

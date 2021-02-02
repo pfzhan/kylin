@@ -46,6 +46,7 @@ public class NativeQueryRealization implements Serializable {
     private String indexType;
     private boolean isPartialMatchModel;
     private boolean isValid = true;
+    private boolean isLayoutExist = true;
     private List<String> snapshots;
 
     @JsonUnwrapped

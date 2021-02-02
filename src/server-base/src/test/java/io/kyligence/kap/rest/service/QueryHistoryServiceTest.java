@@ -658,4 +658,25 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("ut_inner_join_cube_partial", models.get(2));
 
     }
+
+    @Test
+    public void testQueryHistoryWithLayoutDel() {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        QueryHistory queryHistory = new QueryHistory();
+        queryHistory.setSql("select * from test_table_1");
+        queryHistory.setQueryRealizations(
+                "741ca86a-1f13-46da-a59f-95fb686153a#null#null,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1222#Agg Index");
+
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(queryHistory)).when(queryHistoryDAO)
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+        Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+
+        Assert.assertFalse(queryHistories.get(0).getNativeQueryRealizations().get(0).isValid());
+        Assert.assertFalse(queryHistories.get(0).getNativeQueryRealizations().get(1).isLayoutExist());
+    }
 }

@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -99,11 +100,6 @@ public class QueryHistoryService extends BasicService {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
         aclEvaluate.checkProjectReadPermission(request.getProject());
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
-        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
-                .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
 
         HashMap<String, Object> data = new HashMap<>();
         List<QueryHistory> queryHistories = Lists.newArrayList();
@@ -128,48 +124,60 @@ public class QueryHistoryService extends BasicService {
             request.setAdmin(true);
         }
 
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
+                .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
         splitModels(request, modelAliasMap);
+        queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page);
 
-        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).forEach(query -> {
+        queryHistories.forEach(query -> {
             QueryHistoryInfo queryHistoryInfo = query.getQueryHistoryInfo();
             if ((queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
                     || queryHistoryInfo.getRealizationMetrics().isEmpty())
                     && StringUtils.isEmpty(query.getQueryRealizations())) {
-                queryHistories.add(query);
                 return;
             }
-
-            List<NativeQueryRealization> realizations = Lists.newArrayList();
-            query.transformRealizations().forEach(realization -> {
-                if (modelAliasMap.containsValue(realization.getModelId())) {
-                    NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
-                    NDataModelResponse model = (NDataModelResponse) modelService
-                            .updateReponseAcl(new NDataModelResponse(nDataModel), request.getProject());
-                    realization.setModelAlias(model.getAlias());
-                    realization.setAclParams(model.getAclParams());
-                    realizations.add(realization);
-                } else {
-                    realization.setValid(false);
-                    val brokenModel = dataModelManager.getDataModelDesc(realization.getModelId());
-                    if (brokenModel == null) {
-                        realization.setModelAlias(DELETED_MODEL);
-                        realizations.add(realization);
-                        return;
-                    }
-                    if (brokenModel.isBroken()) {
-                        realization.setModelAlias(String.format(Locale.ROOT, "%s broken", brokenModel.getAlias()));
-                        realizations.add(realization);
-                    }
-                }
-            });
-            query.setNativeQueryRealizations(realizations);
-            queryHistories.add(query);
+            query.setNativeQueryRealizations(parseQueryRealizationInfo(query, modelAliasMap, request.getProject()));
         });
 
         data.put("query_histories", queryHistories);
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request, request.getProject()));
-
         return data;
+    }
+
+    private List<NativeQueryRealization> parseQueryRealizationInfo(QueryHistory query,
+            Map<String, String> noBrokenModels, String project) {
+
+        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<NativeQueryRealization> realizations = query.transformRealizations();
+
+        realizations.forEach(realization -> {
+            NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
+            if (noBrokenModels.containsValue(realization.getModelId())) {
+                NDataModelResponse model = (NDataModelResponse) modelService
+                        .updateReponseAcl(new NDataModelResponse(nDataModel), project);
+                realization.setModelAlias(model.getAlias());
+                realization.setAclParams(model.getAclParams());
+                realization.setLayoutExist(
+                        isLayoutExist(indexPlanManager, realization.getModelId(), realization.getLayoutId()));
+
+            } else {
+                val modelAlias = nDataModel == null ? DELETED_MODEL
+                        : String.format(Locale.ROOT, "%s broken", nDataModel.getAlias());
+                realization.setModelAlias(modelAlias);
+                realization.setValid(false);
+                realization.setLayoutExist(false);
+            }
+        });
+        return realizations;
+    }
+
+    private boolean isLayoutExist(NIndexPlanManager indexPlanManager, String modelId, Long layoutId) {
+        if (layoutId == null)
+            return false;
+        return indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .anyMatch(index -> index.getId() == layoutId);
     }
 
     private void splitModels(QueryHistoryRequest request, Map<String, String> modelAliasMap) {
@@ -180,8 +188,8 @@ public class QueryHistoryService extends BasicService {
             modelNames.remove(QueryHistory.EngineType.CONSTANTS.name());
             modelNames.remove(QueryHistory.EngineType.RDBMS.name());
 
-            request.setFilterModelIds(modelNames.stream().filter(modelAliasMap::containsKey)
-                    .map(modelAliasMap::get).collect(Collectors.toList()));
+            request.setFilterModelIds(modelNames.stream().filter(modelAliasMap::containsKey).map(modelAliasMap::get)
+                    .collect(Collectors.toList()));
         }
     }
 
@@ -220,8 +228,9 @@ public class QueryHistoryService extends BasicService {
             } else {
                 return null;
             }
-        }).filter(alias -> !StringUtils.isEmpty(alias) && (StringUtils.isEmpty(request.getFilterModelName())
-                || alias.toLowerCase(Locale.ROOT).contains(request.getFilterModelName().toLowerCase(Locale.ROOT))))
+        }).filter(
+                alias -> !StringUtils.isEmpty(alias) && (StringUtils.isEmpty(request.getFilterModelName()) || alias
+                        .toLowerCase(Locale.ROOT).contains(request.getFilterModelName().toLowerCase(Locale.ROOT))))
                 .limit(size).collect(Collectors.toList());
     }
 
