@@ -70,6 +70,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -740,5 +742,25 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
                             result.getResolvedException().getMessage());
                 });
+    }
+
+    @Test
+    public void testCheckUserPermissionBeforeQueryTaskComplete() throws Exception {
+        Authentication otherUser = new TestingAuthenticationToken("OTHER", "OTHER", Constant.IDENTITY_USER);
+        SecurityContextHolder.getContext().setAuthentication(otherUser);
+
+        AsyncQueryService service = new AsyncQueryService();
+        Mockito.doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                service.saveQueryUsername(PROJECT, "123");
+                return null;
+            }
+        }).when(asyncQueryService).saveQueryUsername(Mockito.anyString(), Mockito.anyString());
+        Mockito.doReturn(SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
+        nAsyncQueryController.query(mockAsyncQuerySQLRequest());
+
+        Assert.assertTrue(service.hasPermission("123", PROJECT));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

@@ -37,7 +37,7 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.execution.QueryExecution
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.{CollectExecutionMemoryUsage, SparderTypeUtil}
-import org.apache.spark.sql.{DataFrame, Row, SparderEnv}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparderEnv}
 import org.apache.spark.util.SizeEstimator
 
 import scala.collection.JavaConverters._
@@ -205,8 +205,8 @@ object ResultPlan extends LogEx {
     QueryContext.currentTrace().endLastSpan()
     val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
     format match {
-      case "json" => df.write.option("encoding", encode).json(path)
-      case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).csv(path)
+      case "json" => df.write.option("encoding", encode).mode(SaveMode.Append).json(path)
+      case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).mode(SaveMode.Append).csv(path)
     }
     jobTrace.jobFinished()
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)

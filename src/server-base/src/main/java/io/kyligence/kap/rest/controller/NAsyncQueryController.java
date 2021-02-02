@@ -141,6 +141,7 @@ public class NAsyncQueryController extends NBasicController {
                 String queryId = queryContext.getQueryId();
                 queryIdRef.set(queryId);
                 try {
+                    asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
                     SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
                     if (response.isException()) {
                         asyncQueryService.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
@@ -153,7 +154,6 @@ public class NAsyncQueryController extends NBasicController {
                                 sqlRequest.getFileName(), queryContext.getQueryId());
                         compileResultRef.set(true);
                     }
-                    asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
                 } catch (Exception e) {
                     try {
                         logger.error("failed to run query " + queryContext.getQueryId(), e);
