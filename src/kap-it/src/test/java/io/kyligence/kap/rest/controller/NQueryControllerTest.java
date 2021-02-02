@@ -80,7 +80,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
         final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage")
                 .read(result.getResponse().getContentAsString());
-        Assert.assertTrue(StringUtils.contains(exceptionMsg, "No model found for OLAPContext"));
+        Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
     }
 
     @Test
