@@ -44,6 +44,7 @@ package org.apache.kylin.common;
 
 import static java.lang.Math.toIntExact;
 
+import io.kyligence.kap.common.util.SizeConvertUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -1189,11 +1190,12 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getSparkEngineDriverMemoryTableSampling() {
-        return Integer.parseInt(getOptional("kylin.engine.driver-memory-table-sampling", "1024"));
+        return (int) SizeConvertUtil.byteStringAsMb(getOptional("kylin.engine.driver-memory-table-sampling", "1024"));
     }
 
     public int getSparkEngineDriverMemorySnapshotBuilding() {
-        return Integer.parseInt(getOptional("kylin.engine.driver-memory-snapshot-building", "1024"));
+        return (int) SizeConvertUtil
+                .byteStringAsMb(getOptional("kylin.engine.driver-memory-snapshot-building", "1024"));
     }
 
     public int getSparkEngineDriverMemoryBase() {

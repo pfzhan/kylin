@@ -26,8 +26,14 @@ package io.kyligence.kap.common.util;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.google.common.collect.ImmutableMap;
 
 public class SizeConvertUtil {
+
+    private static final ImmutableMap<String, ByteUnit> byteSuffixes;
 
     private SizeConvertUtil() {
         throw new IllegalStateException("Wrong usage for utility class.");
@@ -40,6 +46,43 @@ public class SizeConvertUtil {
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
         return new DecimalFormat("#,##0.#", DecimalFormatSymbols.getInstance(Locale.getDefault(Locale.Category.FORMAT)))
                 .format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
+
+    public static long byteStringAsMb(String str) {
+        return byteStringAs(str, ByteUnit.MiB);
+    }
+
+    public static long byteStringAs(String str, ByteUnit unit) {
+        String lower = str.toLowerCase(Locale.ROOT).trim();
+
+        try {
+            Matcher m = Pattern.compile("([0-9]+)([a-z]+)?").matcher(lower);
+            Matcher fractionMatcher = Pattern.compile("([0-9]+\\.[0-9]+)([a-z]+)?").matcher(lower);
+            if (m.matches()) {
+                long val = Long.parseLong(m.group(1));
+                String suffix = m.group(2);
+                if (suffix != null && !byteSuffixes.containsKey(suffix)) {
+                    throw new NumberFormatException("Invalid suffix: \"" + suffix + "\"");
+                } else {
+                    return unit.convertFrom(val, suffix != null ? (ByteUnit) byteSuffixes.get(suffix) : unit);
+                }
+            } else if (fractionMatcher.matches()) {
+                throw new NumberFormatException(
+                        "Fractional values are not supported. Input was: " + fractionMatcher.group(1));
+            } else {
+                throw new NumberFormatException("Failed to parse byte string: " + str);
+            }
+        } catch (NumberFormatException var8) {
+            String byteError = "Size must be specified as bytes (b), kibibytes (k), mebibytes (m), gibibytes (g), tebibytes (t), or pebibytes(p). E.g. 50b, 100k, or 250m.";
+            throw new NumberFormatException(byteError + "\n" + var8.getMessage());
+        }
+    }
+
+    static {
+        byteSuffixes = ImmutableMap.<String, ByteUnit> builder().put("b", ByteUnit.BYTE).put("k", ByteUnit.KiB)
+                .put("kb", ByteUnit.KiB).put("m", ByteUnit.MiB).put("mb", ByteUnit.MiB).put("g", ByteUnit.GiB)
+                .put("gb", ByteUnit.GiB).put("t", ByteUnit.TiB).put("tb", ByteUnit.TiB).put("p", ByteUnit.PiB)
+                .put("pb", ByteUnit.PiB).build();
     }
 
 }

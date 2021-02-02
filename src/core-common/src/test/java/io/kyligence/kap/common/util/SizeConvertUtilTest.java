@@ -34,4 +34,14 @@ public class SizeConvertUtilTest {
         String convertedSize = SizeConvertUtil.getReadableFileSize(size);
         Assert.assertEquals("14.1 GB", convertedSize);
     }
+
+    @Test
+    public void testGB() {
+        Assert.assertEquals(100, SizeConvertUtil.byteStringAs("100GB", ByteUnit.GiB));
+        Assert.assertEquals(100 * 1024, SizeConvertUtil.byteStringAs("100GB", ByteUnit.MiB));
+        Assert.assertEquals(100 * 1024 * 1024, SizeConvertUtil.byteStringAs("100GB", ByteUnit.KiB));
+        Assert.assertEquals(100 * 1024 * 1024 * 1024L, SizeConvertUtil.byteStringAs("100GB", ByteUnit.BYTE));
+        Assert.assertEquals(100 * 1024 * 1024, SizeConvertUtil.byteStringAs("100m", ByteUnit.BYTE));
+        Assert.assertEquals(1, SizeConvertUtil.byteStringAsMb("1024KB"));
+    }
 }
