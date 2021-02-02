@@ -355,6 +355,26 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
         check(converter, originSql, ccSql);
     }
 
+    @Test
+    public void testConvertCaseWhen() {
+        RestoreFromComputedColumn converter = new RestoreFromComputedColumn();
+        String originSql = "select case CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) when '10000000Russia' then 'RUSSIA' when '10000001United States' then 'USA' else 'Other COUNTRY' end "
+                + "from TEST_KYLIN_FACT "
+                + "left join TEST_ACCOUNT SELLER_ACCOUNT "
+                + "on TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID "
+                + "left join TEST_COUNTRY SELLER_COUNTRY "
+                + "on SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY "
+                + "order by CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)";
+        String ccSql = "select case LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME when '10000000Russia' then 'RUSSIA' when '10000001United States' then 'USA' else 'Other COUNTRY' end "
+                + "from TEST_KYLIN_FACT "
+                + "left join TEST_ACCOUNT SELLER_ACCOUNT "
+                + "on TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID "
+                + "left join TEST_COUNTRY SELLER_COUNTRY "
+                + "on SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY "
+                + "order by LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME";
+        check(converter, originSql, ccSql);
+    }
+
     private void check(RestoreFromComputedColumn converter, String originSql, String ccSql) {
         String transform = converter.convert(ccSql, "default", "DEFAULT");
         Assert.assertEquals(originSql, transform);

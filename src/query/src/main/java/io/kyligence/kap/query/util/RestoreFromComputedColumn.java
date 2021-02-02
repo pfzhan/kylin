@@ -335,6 +335,10 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         ReplaceRange last = null;
         for (ReplaceRange toBeReplaced : toBeReplacedUsages) {
             if (last != null) {
+                if (last.beginPos == toBeReplaced.beginPos && last.endPos == toBeReplaced.endPos) {
+                    last = toBeReplaced;
+                    continue;
+                }
                 Preconditions.checkState(last.beginPos > toBeReplaced.endPos,
                         "Positions for two column usage has overlaps");
             }
