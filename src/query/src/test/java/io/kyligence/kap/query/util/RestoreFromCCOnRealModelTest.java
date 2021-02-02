@@ -243,7 +243,6 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSubquery() {
         RestoreFromComputedColumn converter = new RestoreFromComputedColumn();
-
         {
             String originSql = "select count(*), sum (F.PRICE * F.ITEM_COUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
                     + " left join test_account a on o.buyer_id = a.account_id  left join test_country c on a.account_country = c.country"
@@ -292,6 +291,14 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
                     + "on f.order_id = o.account_id where cal_dt = '2012-01-02') as tbl";
             String ccSql = "select sum(DEAL_AMOUNT) as \"c1\" from (select f.DEAL_AMOUNT from test_kylin_fact f left join test_order o "
                     + "on f.order_id = o.account_id where cal_dt = '2012-01-02') as tbl";
+            check(converter, originSql, ccSql);
+        }
+
+        {
+            String originSql = "select * from (select * from (select count(*) as num, sum (TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) as summary "
+                    + "from test_kylin_fact) f where num > 0) where num > 0";
+            String ccSql = "select * from (select * from (select count(*) as num, sum (TEST_KYLIN_FACT.DEAL_AMOUNT) as summary "
+                    + "from test_kylin_fact) f where num > 0) where num > 0";
             check(converter, originSql, ccSql);
         }
     }

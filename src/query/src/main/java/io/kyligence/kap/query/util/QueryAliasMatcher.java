@@ -445,7 +445,8 @@ public class QueryAliasMatcher {
 
         if (subQuery != null) {
 
-            if (subQuery.getSelectList().size() == 1 && subQuery.getSelectList().get(0).toString().equals("*")) {
+            if (subQuery.getSelectList().size() == 1 && subQuery.getSelectList().get(0).toString().equals("*")
+                    && subQuery.getFrom() instanceof SqlIdentifier) {
                 reUseSubqeury = true;
             } else {
                 return null;
