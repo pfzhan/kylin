@@ -717,6 +717,7 @@ export default class IndexList extends Vue {
     })
   }
 
+  // 建议通过接口调用
   async accessApi (recs_to_add_layout, recs_to_remove_layout, names) {
     names = names || {}
     return new Promise((resolve, reject) => {
@@ -732,7 +733,7 @@ export default class IndexList extends Vue {
           names
         }).then(async (res) => {
           try {
-            await handleSuccessAsync(res)
+            const result = await handleSuccessAsync(res)
             let acceptIndexs = () => {
               return {
                 add: recs_to_add_layout.length,
@@ -744,7 +745,7 @@ export default class IndexList extends Vue {
               message: <span>{acceptIndexs().add > 0 && acceptIndexs().del > 0
               ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs().add, delLength: acceptIndexs().del})
                 : acceptIndexs().add > 0 ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs().add})
-                : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a href="javascript:void();" onClick={() => this.buildIndex()}>{
+                : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a href="javascript:void();" onClick={() => this.buildIndex({layoutIds: result.added_layouts})}>{
                   (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.modelDesc.segments.length ? this.$t('buildIndexTip') : ''
                 }</a></span>
             })
@@ -764,11 +765,11 @@ export default class IndexList extends Vue {
   }
 
   // 新增建议构建索引
-  buildIndex () {
+  buildIndex ({layoutIds}) {
     this.callConfirmSegmentModal({
       title: this.$t('buildIndex'),
       subTitle: this.$t('batchBuildSubTitle'),
-      indexes: [],
+      indexes: layoutIds || [],
       submitText: this.$t('buildIndex'),
       model: this.modelDesc
     })
@@ -820,6 +821,7 @@ export default class IndexList extends Vue {
     this.getRecommendations()
   }
 
+  // 跳转至 setting 设置界面
   jumpToSetting () {
     if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
       postCloudUrlMessage(this.$route, { name: 'kapSetting' })
