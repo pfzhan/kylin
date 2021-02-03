@@ -87,7 +87,7 @@
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
-            <el-select :class="['measures-width', {'error-tip': showMutipleColumnsTip}]" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
+            <el-select :class="['measures-width', {'error-tip': showMutipleColumnsTip || column.sameIndex}]" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
               <i slot="prefix" class="el-input__icon el-icon-search" v-if="!column.value"></i>
               <el-option
                 v-for="(item, index) in getParameterValue2"
@@ -108,6 +108,7 @@
                 </el-option>
               </el-option-group>
             </el-select>
+            <p class="error-text" v-if="column.sameIndex">{{$t('duplicateColumns')}}</p>
           </div>
           <el-button type="primary" plain icon="el-icon-ksd-add_2" size="mini" v-if="measure.expression === 'TOP_N' && index == 0" circle @click="addNewProperty" class="ksd-ml-10"></el-button><el-button
            type="primary" icon="el-icon-minus" size="mini" circle @click="deleteProperty(index)" class="del-pro" :class="[measure.expression === 'COUNT_DISTINCT' ? 'ksd-ml-10' : 'ksd-ml-5', {'del-margin-more': measure.expression === 'TOP_N' && index > 0}]" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
@@ -144,7 +145,7 @@
     </el-form>
     <span slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="handleHide(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" size="medium" v-guide.saveMeasureBtn @click="checkMeasure" :loading="loadingSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" size="medium" v-guide.saveMeasureBtn @click="checkMeasure" :disabled="sameGroupBy()" :loading="loadingSubmit">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </template>
@@ -187,7 +188,8 @@ import $ from 'jquery'
       addMeasureTitle: 'Add Measure',
       sameColumn: 'Column has been defined as a measure by the same function',
       selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.',
-      createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function {expression}.'
+      createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function {expression}.',
+      duplicateColumns: 'Same Statement'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -207,7 +209,8 @@ import $ from 'jquery'
       addMeasureTitle: '添加度量',
       sameColumn: '该列已被相同函数定义为度量',
       selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。',
-      createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 {expression} 引用。'
+      createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 {expression} 引用。',
+      duplicateColumns: '重复定义'
     }
   }
 })
@@ -300,6 +303,9 @@ export default class AddMeasure extends Vue {
       }
     }
     return []
+  }
+  sameGroupBy () {
+    return this.measure.expression === 'TOP_N' && this.measure.convertedColumns.filter(it => it.sameIndex).length > 0
   }
   validateName (rule, value, callback) {
     if (!value) {
@@ -396,6 +402,7 @@ export default class AddMeasure extends Vue {
 
   deleteProperty (index) {
     this.measure.convertedColumns.splice(index, 1)
+    this.checkSameGroupByColumns()
   }
 
   getCCObj (value) {
@@ -426,6 +433,7 @@ export default class AddMeasure extends Vue {
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
     this.measure.convertedColumns[index].table_guid = nTable && nTable.guid
+    this.checkSameGroupByColumns()
   }
 
   changeCORRParamValue (value) {
@@ -440,6 +448,15 @@ export default class AddMeasure extends Vue {
     } else {
       this.corrCCVisible = false
       this.isCorrCCEdit = false
+    }
+  }
+
+  checkSameGroupByColumns () {
+    if (this.measure.expression === 'TOP_N') {
+      const columnList = this.measure.convertedColumns.map(it => it.value)
+      this.measure.convertedColumns.forEach((item, index, self) => {
+        item.sameIndex = columnList.indexOf(item.value) !== columnList.lastIndexOf(item.value)
+      })
     }
   }
 
@@ -699,7 +716,7 @@ export default class AddMeasure extends Vue {
   .add-measure {
     .measure-flex-row {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       .flex-item {
         flex-shrink: 1;
         width: 100%;
@@ -708,6 +725,14 @@ export default class AddMeasure extends Vue {
             border: 1px solid @error-color-1;
           }
         }
+      }
+      .error-text {
+        font-size: 12px;
+        color: @error-color-1;
+        line-height: 1;
+      }
+      .el-button {
+        margin-top: 5px;
       }
     }
     .error-measure {
