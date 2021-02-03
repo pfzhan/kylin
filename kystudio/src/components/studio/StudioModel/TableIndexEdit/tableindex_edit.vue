@@ -286,6 +286,8 @@
         }
         this.allColumns.push(obj)
       })
+      // 初始判断是否为全选状态
+      this.isSelectAllTableIndex = this.allColumns.length && this.allColumns.filter(it => it.isUsed).length === this.allColumns.length
     }
     get saveBtnDisable () {
       return filterObjectArray(this.allColumns, 'isUsed', true).length === 0 || this.cloneMeta === JSON.stringify(this.allColumns)
@@ -335,6 +337,7 @@
       this.btnLoading = false
       // this.tableIndexMeta.name = ''
       this.searchColumn = ''
+      this.isSelectAllTableIndex = false
       // this.$refs.tableIndexForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback({
@@ -438,6 +441,7 @@
       this.isSelectAllTableIndex = v
       this.allColumns.forEach(item => {
         item.isUsed = v
+        item.isSorted = v
       })
     }
     selectTableIndex (status, col) {
