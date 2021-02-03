@@ -147,9 +147,9 @@
         </el-form-item>
         <el-form-item :label="$t(settingMap[modelSettingForm.settingItem])" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'customSettings'">
           <div class="custom-settings" v-for="(item, index) in modelSettingForm[modelSettingForm.settingItem]" :key="index">
-            <el-input class="custom-param-key" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
-            <el-input class="custom-param-value" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
-            <span class="ky-no-br-space ksd-ml-5">
+            <el-input :class="['custom-param-key', {'is-editting': isEdit}]" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
+            <el-input :class="['custom-param-value', {'is-editting': isEdit}]" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
+            <span class="ky-no-br-space ksd-ml-5" v-if="!isEdit">
               <el-button type="primary" icon="el-icon-ksd-add_2" plain circle size="mini" @click="addCustomSetting"></el-button>
               <el-button icon="el-icon-minus" class="ksd-ml-5" plain circle size="mini" :disabled="modelSettingForm[modelSettingForm.settingItem].length === 1 && index === 0" @click="removeCustomSetting(index)"></el-button>
             </span>
@@ -528,7 +528,7 @@ export default class SettingStorage extends Vue {
   }
   // 增加自定义配置项
   addCustomSetting () {
-    this.modelSettingForm[this.modelSettingForm.settingItem].unshift([])
+    this.modelSettingForm[this.modelSettingForm.settingItem].push([])
   }
   // 删除某个自定义配置项
   removeCustomSetting (index) {
@@ -595,9 +595,15 @@ export default class SettingStorage extends Vue {
   .custom-settings {
     .custom-param-key {
       width: 250px;
+      &.is-editting {
+        width: 300px;
+      }
     }
     .custom-param-value {
       width: 124px;
+      &.is-editting {
+        width: 135px;
+      }
     }
   }
   .el-icon-ksd-alert {
