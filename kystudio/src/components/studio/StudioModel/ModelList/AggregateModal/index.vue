@@ -425,7 +425,7 @@
       <div class="action-layout">
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
         <div class="filter-dimension">
-          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('pleaseFilterNameOrColumn')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table" @scroll="scrollEvent">

@@ -163,7 +163,7 @@ export default {
       noAccount: 'No account is configured in Kylin properties',
       generateLicense: 'Generate License Request File',
       updateLicense: 'Update License',
-      logOutConfirm: 'Comfirm quit?',
+      logOutConfirm: 'Are you sure you want to quit?',
       login: 'Login',
       quit: 'Quit',
       dataVolume: 'Data Source Volume: ',

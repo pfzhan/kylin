@@ -90,7 +90,7 @@ describe('Component Diagnostic', () => {
     expect(mockApis.stopInterfaceCall).toBeCalled()
   })
   it('computed', () => {
-    expect(wrapper.vm.timeRange).toEqual([{"label": "lastHour", "text": "Last one hour"}, {"label": "lastDay", "text": "Last one day"}, {"label": "lastThreeDay", "text": "Last three days"}, {"label": "lastMonth", "text": "Last one month"}, {"label": "custom", "text": "Customize"}])
+    expect(wrapper.vm.timeRange).toEqual([{"label": "lastHour", "text": "Last one hour"}, {"label": "lastDay", "text": "Last 1 Day"}, {"label": "lastThreeDay", "text": "Last three days"}, {"label": "lastMonth", "text": "Last 1 Month"}, {"label": "custom", "text": "Customize"}])
     expect(wrapper.vm.getDownloadNum).toBe('1/1')
     expect(wrapper.vm.getDateTimeValid).toBeFalsy()
     expect(wrapper.vm.showManualDownloadLayout).toBeTruthy()

@@ -215,6 +215,7 @@ vuex.registerModule(['modals', 'UploadSqlModel'], store)
     ...mapState('UploadSqlModel', {
       isShow: state => state.isShow,
       isGenerateModel: state => state.isGenerateModel,
+      title: state => state.title,
       callback: state => state.callback
     }),
     ...mapState({
@@ -346,7 +347,7 @@ export default class UploadSqlModel extends Vue {
   get uploadTitle () {
     if (this.isGenerateModel) {
       if (this.uploadFlag === 'step1') {
-        return this.$t('modelFromSql')
+        return this.title || this.$t('modelFromSql')
       } else if (this.uploadFlag === 'step2') {
         return this.$t('generateModel')
       } else {

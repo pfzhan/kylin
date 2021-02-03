@@ -12,7 +12,7 @@
     <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
       <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-ksd-what"></i></common-tip></span>
       <div class="expression-tips">
-        <p><span class="point">•</span><span class="text">{{$t('expressionTip1')}}</span></p>
+        <p><span class="point">•</span><span class="text" v-html="$t('expressionTip1')"></span></p>
         <p><span class="point">•</span><span class="text">{{$t('expressionTip2')}}</span></p>
       </div>
       <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression" :read-only="source === 'createMeasure' ? isEditMeasureCC : !isEdit" @input="changeExpression">
@@ -55,7 +55,7 @@ import { NamedRegex } from 'config'
   },
   locales: {
     'en': {
-      conditionExpress: 'Note that select one column should contain its table name(or alias table name).',
+      conditionExpress: 'Note that select one column should contain its table name(or alias table name)',
       numberNameFormatValidTip: 'Invalid computed column name',
       sameName: 'The name of computed column can\'t be duplicated within the same model',
       columnName: 'Column Name',
@@ -64,18 +64,18 @@ import { NamedRegex } from 'config'
       expression: 'Expression',
       returnType: 'Return Type',
       paramValue: 'Param Value',
-      nameReuse: 'The measure name is reused.',
-      requiredCCName: 'The column name is required.',
-      requiredReturnType: 'The return type is required.',
-      requiredExpress: 'The expression is required.',
+      nameReuse: 'The measure name is reused',
+      requiredCCName: 'The column name is required',
+      requiredReturnType: 'The return type is required',
+      requiredExpress: 'The expression is required',
       onlyStartLetters: 'Only supports starting with a letter',
       deleteCCTip: 'After saving, as the expression was modified, measure(s) [{names}] would be unavailable and deleted. Do you want to continue?',
-      expressionTip1: 'Within a project, the computed columns with same name must use identical expression',
+      expressionTip1: 'Within a project, the computed columns with same name must use <br/>identical expression',
       expressionTip2: 'When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model)',
       sameExpression: 'This expression has already been used by other computed columns in this model'
     },
     'zh-cn': {
-      conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。',
+      conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”',
       numberNameFormatValidTip: '无效的可计算列列名',
       sameName: '可计算列名称在同一模型下不可重复',
       columnName: '列名',
@@ -87,11 +87,11 @@ import { NamedRegex } from 'config'
       nameReuse: 'Measure 名称已被使用',
       requiredCCName: '请输入名称',
       requiredReturnType: '请选择返回类型',
-      requiredExpress: '请输入表达式。',
+      requiredExpress: '请输入表达式',
       onlyStartLetters: '仅支持字母开头',
       deleteCCTip: '修改后的可计算列表达式将导致度量 [{names}] 无法正常使用。保存后上述度量将被删除。确认要继续保存吗？',
       expressionTip1: '同一项目下同名的可计算列的表达式必须一致',
-      expressionTip2: '当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名)',
+      expressionTip2: '当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名）',
       sameExpression: '该表达式在模型内已存在'
     }
   }

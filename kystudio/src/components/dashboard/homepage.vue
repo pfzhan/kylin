@@ -1,8 +1,8 @@
 <template>
   <div id="homepage">
     <div class="homepage-content">
-      <div class="ksd-title-label ksd-fs-24">{{$t('aiAugmented')}}</div>
-      <div class="ksd-mt-10">{{$t('aiAugmentedDesc')}}</div>
+      <!-- <div class="ksd-title-label ksd-fs-24">{{$t('aiAugmented')}}</div>
+      <div class="ksd-mt-10">{{$t('aiAugmentedDesc')}}</div> -->
       <div class="ksd-mb-10 combination-block clearfix">
         <div class="left-block">
           <div class="card ksd-fright clearfix">
@@ -107,13 +107,23 @@
                         </div>
                       </div>
                   </el-popover>
-                  <div class="recommend-content no-pointer no-border clearfix" v-else>
-                    <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-pattern ksd-fleft"></i></div>
-                    <div class="ksd-fleft ksd-ml-5 re-content">
-                      <div class="popover-btn">{{$t('pattern')}}</div>
-                      <div class="re-count">{{infoData.rec_pattern_count}}</div>
+                  <el-popover
+                    ref="patternPopoverOff"
+                    placement="top"
+                    :title="$t('pattern')"
+                    width="460"
+                    popper-class="recommend-popover"
+                    v-else
+                    trigger="click">
+                    <div v-html="$t('patternDsecByTurnOff')"></div>
+                    <div class="recommend-content no-border clearfix" slot="reference">
+                      <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-pattern ksd-fleft"></i></div>
+                      <div class="ksd-fleft ksd-ml-5 re-content">
+                        <div class="popover-btn">{{$t('pattern')}}</div>
+                        <div class="re-count">{{infoData.rec_pattern_count}}</div>
+                      </div>
                     </div>
-                  </div>
+                  </el-popover>
                   <el-popover
                     ref="rulePopover"
                     placement="top"
@@ -134,13 +144,23 @@
                       </div>
                     </div>
                   </el-popover>
-                  <div class="recommend-content no-pointer" v-else>
-                    <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-rules ksd-fleft"></i></div>
-                    <div class="ksd-fleft ksd-ml-5 re-content">
-                      <div class="popover-btn">{{$t('rule')}}</div>
-                      <div class="re-count">{{infoData.effective_rule_size}}</div>
+                  <el-popover
+                    ref="rulePopoverOff"
+                    placement="top"
+                    :title="$t('rule')"
+                    width="460"
+                    popper-class="recommend-popover"
+                    v-else
+                    trigger="click">
+                    <div v-html="$t('ruleDsecByTurnOff')"></div>
+                    <div class="recommend-content" slot="reference">
+                      <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-rules ksd-fleft"></i></div>
+                      <div class="ksd-fleft ksd-ml-5 re-content">
+                        <div class="popover-btn">{{$t('rule')}}</div>
+                        <div class="re-count">{{infoData.effective_rule_size}}</div>
+                      </div>
                     </div>
-                  </div>
+                  </el-popover>
                   <el-popover
                     ref="recommendationPopover"
                     placement="top"
@@ -155,20 +175,30 @@
                       approved_removal_rec_count: infoData.approved_removal_rec_count
                     })"></div>
                     <div class="recommend-content" slot="reference">
-                    <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-status ksd-fleft"></i></div>
-                    <div class="ksd-fleft ksd-ml-5 re-content">
-                      <div class="popover-btn">{{$t('recommendation')}}</div>
-                      <div class="re-count">{{infoData.approved_rec_count}}</div>
+                      <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-status ksd-fleft"></i></div>
+                      <div class="ksd-fleft ksd-ml-5 re-content">
+                        <div class="popover-btn">{{$t('recommendation')}}</div>
+                        <div class="re-count">{{infoData.approved_rec_count}}</div>
+                      </div>
                     </div>
-                  </div>
                   </el-popover>
-                  <div class="recommend-content no-pointer" v-else>
-                    <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-status ksd-fleft"></i></div>
-                    <div class="ksd-fleft ksd-ml-5 re-content">
-                      <div class="popover-btn">{{$t('recommendation')}}</div>
-                      <div class="re-count">{{infoData.approved_rec_count}}</div>
+                  <el-popover
+                    ref="recommendationPopoverOff"
+                    placement="top"
+                    :title="$t('recommendation')"
+                    width="260"
+                    popper-class="recommend-popover"
+                    v-else
+                    trigger="click">
+                    <div v-html="$t('recommendationDsecByTurnOff')"></div>
+                    <div class="recommend-content" slot="reference">
+                      <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-status ksd-fleft"></i></div>
+                      <div class="ksd-fleft ksd-ml-5 re-content">
+                        <div class="popover-btn">{{$t('recommendation')}}</div>
+                        <div class="re-count">{{infoData.approved_rec_count}}</div>
+                      </div>
                     </div>
-                  </div>
+                  </el-popover>
                 </div>
                 <div class="ky-a-like advance-setting" v-if="isOpenSemiAutomatic&&datasourceActions.includes('modelActions')&&this.currentSelectedProject">
                   <span @click="showGenerateModelDialog">
@@ -380,7 +410,8 @@ export default class Homepage extends Vue {
   }
   showGenerateModelDialog () {
     this.showUploadSqlDialog({
-      isGenerateModel: true
+      isGenerateModel: true,
+      title: this.$t('importQueries')
     })
   }
   get isOpenSemiAutomatic () {

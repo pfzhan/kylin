@@ -39,8 +39,8 @@ let MessageBox = ElementUI.MessageBox
         next(false)
         setTimeout(() => {
           MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
-            confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
-            cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
+            confirmButtonText: this.$t('discardChange'),
+            cancelButtonText: this.$t('continueEditing'),
             type: 'warning'
           }).then(() => {
             if (to.name === 'refresh') { // 刷新逻辑下要手动重定向

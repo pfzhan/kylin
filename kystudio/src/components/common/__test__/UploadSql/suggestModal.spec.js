@@ -130,7 +130,7 @@ describe('Component SuggestModel', () => {
     await wrapper.update()
 
     wrapper.vm.handleSelectionModel([], wrapper.vm.suggestModels[1])
-    expect(wrapper.vm.$data.modelNameError).toEqual('Model with the same name existed.')
+    expect(wrapper.vm.$data.modelNameError).toEqual('Model with the same name already exists. Please rename it.')
     expect(wrapper.vm.$data.isNameErrorModelExisted).toBeTruthy()
     expect(wrapper.emitted().isValidated).toEqual([[true]])
 

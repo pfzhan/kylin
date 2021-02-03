@@ -222,7 +222,7 @@ export default {
       or: '或',
       noLicense: '尚无许可证',
       applyLicense: '申请许可证',
-      validPeriod: '使用期限: ',
+      validPeriod: '使用期限：',
       pastLicense: '输入许可证内容',
       uploadLicense: '上传许可证文件',
       enterLicense: '手动输入许可证',

@@ -19,7 +19,7 @@
       <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN'">
         <span class="setting-label font-medium">
           {{$t('enableSemiAutomatic')}}
-          <span class="beta-label">BETA</span> :
+          <span class="beta-label">BETA</span>
         </span>
         <span class="setting-value fixed">
           <el-switch
@@ -255,16 +255,17 @@
             <el-switch size="small" v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content">
+            <div class="ksd-fs-12 ksd-mt-5">{{$t('querySubmitterTips')}}</div>
             <div class="vip-users-block">
               <el-form-item prop="users">
-                <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
+                <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> User</div>
                 <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable remote :remote-method="remoteMethod" :loading="loading" size="medium" :placeholder="rulesObj.users.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
                   <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.users.length"></span>
                   <el-option v-for="item in filterSubmitterUserOptions" :key="item" :label="item" :value="item"></el-option>
                 </el-select>
               </el-form-item>
               <el-form-item prop="user_groups">
-              <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
+              <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> User Group</div>
               <el-select v-model="rulesObj.user_groups" v-event-stop :popper-append-to-body="false" filterable size="medium" :placeholder="rulesObj.user_groups.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
                 <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.user_groups.length"></span>
                 <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>

@@ -1,12 +1,12 @@
 export default {
   'en': {
-    sourceManagement: 'Source Management',
+    sourceManagement: 'Data Source Management',
     name: 'Name',
     type: 'Type',
     createTime: 'Create Time',
     batchLoad: 'Batch Load',
-    general: 'General',
-    removeSource: 'Remove Source'
+    general: 'View Details',
+    removeSource: 'Delete'
   },
   'zh-cn': {
     sourceManagement: '数据源管理',
@@ -14,7 +14,7 @@ export default {
     type: '类型',
     createTime: '创建时间',
     batchLoad: '批量加载',
-    general: '详情',
-    removeSource: '移除'
+    general: '查看详情',
+    removeSource: '删除'
   }
 }

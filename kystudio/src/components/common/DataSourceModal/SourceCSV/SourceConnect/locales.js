@@ -5,7 +5,7 @@ export default {
     authentication: 'Authentication',
     awsAccessKey: 'AWS Access Key',
     awsSecretKey: 'AWS Secret Key',
-    connectSuccess: 'Connect Successfully',
+    connectSuccess: 'Successfully connected',
     connectFail: 'Connect Failed',
     testConnect: 'Test Connection',
     createTableKind: 'Create Table Method',

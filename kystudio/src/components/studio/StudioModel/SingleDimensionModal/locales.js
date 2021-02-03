@@ -10,7 +10,7 @@ export default {
     expression: 'Expression',
     returnType: 'Return Type',
     sameName: 'The name of dimension can\'t be duplicated within the same model',
-    sameColumn: 'Column has been used',
+    sameColumn: 'The column has been used by another dimension',
     addCCTip: 'Create Computed Column'
   },
   'zh-cn': {

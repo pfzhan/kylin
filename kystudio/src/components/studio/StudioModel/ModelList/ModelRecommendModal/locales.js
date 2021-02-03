@@ -37,7 +37,7 @@ export default {
     exist_index_tip: 'There already exists one index or more who could include this index.',
     similar_index_tip: 'There already exists one index or more who has a high similarity with this index.',
     LOW_FREQUENCY: 'Low Frequency',
-    INCLUDED: 'Inclusion Relation',
+    INCLUDED: 'Included by other indexes',
     SIMILAR: 'High Similarity',
     recommendationTips: 'Only the first {recommendationPageSize} recommendations could be viewed for each tab.'
   },

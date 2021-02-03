@@ -5,7 +5,7 @@ export default {
     measure: 'Measure'
   },
   'zh-cn': {
-    erDiagram: 'ER图',
+    erDiagram: 'ER 图',
     dimension: '维度',
     measure: '度量'
   }

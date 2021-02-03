@@ -81,7 +81,7 @@ export default {
     noEmail: '请输入邮箱地址',
     failApi: '获取失败',
     serverStatus: '服务状态：',
-    lastUpdateTime: '上一次更新时间',
+    lastUpdateTime: '最近更新时间',
     noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作暂时无法提交',
     excess: '超额',
     noActiveAllNode: '无活跃 All 节点',

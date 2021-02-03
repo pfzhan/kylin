@@ -23,7 +23,7 @@ export default {
     creator: '创建人',
     description: '描述',
     connection: '连接配置',
-    hiveMetastoreHost: 'Hive Metastore 主机',
+    hiveMetastoreHost: 'Hive 元数据库主机',
     port: '端口',
     authentication: '授权验证',
     noAuthentication: '无授权验证',

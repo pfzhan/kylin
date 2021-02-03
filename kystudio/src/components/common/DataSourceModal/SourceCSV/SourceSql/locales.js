@@ -1,7 +1,7 @@
 export default {
   'en': {
     pleaseInputSql: 'Please input your table DDL',
-    checkSuccess: 'SQL syntax validated successfully!',
+    checkSuccess: 'Successfully validated SQL syntax',
     verify: 'Verify',
     errorInfo: 'Error Info:'
   },

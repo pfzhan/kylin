@@ -128,7 +128,7 @@ export function getDatasourceObj (that, sourceType) {
   }
   return {
     id: sourceType,
-    label: customTreeTitle !== '' ? `${that.$t(customTreeTitle)}` : `${that.$t('source')} : ${sourceNameStr}`,
+    label: customTreeTitle !== '' ? `${that.$t(customTreeTitle)}` : `${that.$t('source')}${sourceNameStr}`,
     render: render.datasource.render.bind(that),
     children: [],
     sourceType,

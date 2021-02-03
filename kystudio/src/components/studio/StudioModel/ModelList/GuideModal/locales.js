@@ -2,7 +2,7 @@ export default {
   'en': {
     dimMeasTitle: 'Dimensions and Measures Settings',
     dimMeasDesc: 'To be used for indexes, please set dimensions and measures here after adding the tables.',
-    iKnow: 'I Know',
+    iKnow: 'Got it',
     segmentTitle: 'Define the data range for serving queries 3/3',
     segmentSubTitle: 'Add segments to define the model\'s data range for serving queries.',
     ignore: 'Ignore',

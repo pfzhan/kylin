@@ -106,7 +106,7 @@ exports.default = {
     backupSuccess: 'Back up successfully.',
     updateSuccess: 'Updated successfully.',
     resetSuccess: 'Reset successfully.',
-    actionSuccess: 'Operate successfully.',
+    actionSuccess: 'The operation is successfully',
     confirmDel: 'Are you sure to delete it?',
     checkDraft: 'Exit the page will lose unsaved content.',
     copySuccess: 'Content has been copied to the Clipboard.',
@@ -134,7 +134,7 @@ exports.default = {
     noResults: 'No Results',
     checkNoChange: 'No content changed',
     // 格式提示
-    nameFormatValidTip: 'Only supports number, letter and underline.',
+    nameFormatValidTip: 'Only supports number, letter and underline',
     nameFormatValidTip3: 'Only supports starting with a number or a letter.',
     nameFormatValidTip1: 'Please use number, letter, and underline to name your project, and start with a number or a letter.',
     nameFormatValidTip2: 'Only supports Chinese or English characters, numbers, spaces and symbol（_ -()%?）',
@@ -193,6 +193,7 @@ exports.default = {
     reset: 'Reset',
     comma: ', ',
     dot: '.',
+    colon: ': ',
     sqlLimitTip: 'Only the first 100 rows of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
     sqlPartLimitTip: 'Only parts of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
     overLengthTip: '50 characters at maximum.',
@@ -202,7 +203,7 @@ exports.default = {
     searchMeasureName: 'Search Measure Name',
     noDimensionInModel: 'No dimensions added to this model.',
     noMeasureInModel: 'No measures added to this model.',
-    pleaseClickEditModel: 'Click "Edit Model" to add some.',
+    pleaseClickEditModel: 'Click "Edit" to add some.',
     storageQuotaLimit: 'Please input a value no less than 1.00',
     noAllNodeTips: 'There’s no active job node now. Service might be unstable. Do you want to continue?',
     continueOperate: 'Continue',
@@ -491,7 +492,7 @@ exports.default = {
     notOtherChars: 'Not support special symbols (/:\\*?"<>|\')'
   },
   system: {
-    evaluationStatement: 'You are using Kyligence Enterprise with Evaluation License. For more product information, expert consulting and services, please <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We’ll get you the help you need from Apache Kylin core team.',
+    evaluationStatement: 'You are using Kyligence Enterprise with Evaluation License. For more product information, expert consulting and services, please <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We\'ll get you the help you need from Apache Kylin core team.',
     statement: 'You have purchased Kyligence Enterprise with Enterprise License and services. If you encounter any problems in the course of use, please feel free to <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We will provide you with consistent quality products and services.',
     hostName: 'Host Name',
     type: 'Type',

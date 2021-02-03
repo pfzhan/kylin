@@ -17,7 +17,7 @@
           <span v-if="scope.row.config_last_modified>0">{{transToGmtTime(scope.row.config_last_modified)}}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="105" :label="$t('modifiedUser')"></el-table-column>
+      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="150" :label="$t('modifiedUser')"></el-table-column>
       <el-table-column min-width="400px" :label="$t('modelSetting')">
         <template slot-scope="scope">
           <div v-if="scope.row.auto_merge_time_ranges">
@@ -353,7 +353,10 @@ export default class SettingStorage extends Vue {
     }
   }
   removeAutoMerge (row, type) {
-    kapConfirm(this.$t('isDel_' + type)).then(() => {
+    kapConfirm(this.$t('isDel_' + type), {
+      type: 'warning',
+      confirmButtonText: this.$t('kylinLang.common.delete')
+    }).then(() => {
       const rowCopy = objectClone(row)
       rowCopy[type] = null
       rowCopy['auto_merge_enabled'] = type !== 'auto_merge_time_ranges' ? rowCopy['auto_merge_enabled'] : null
@@ -372,7 +375,10 @@ export default class SettingStorage extends Vue {
   }
   // 移除自定义配置项
   removeCustomSettingItem (row, type) {
-    kapConfirm(this.$t('delCustomConfigTip', {name: type})).then(() => {
+    kapConfirm(this.$t('delCustomConfigTip', {name: type}), {
+      type: 'warning',
+      confirmButtonText: this.$t('kylinLang.common.delete')
+    }).then(() => {
       const rowCopy = objectClone(row)
       if (type in rowCopy.override_props) {
         delete rowCopy.override_props[type]

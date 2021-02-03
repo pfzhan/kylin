@@ -255,7 +255,7 @@ describe('Component SuggestModel', () => {
     wrapper.setData({ isEditSql: false })
     await wrapper.update()
     wrapper.vm.delWhiteComfirm() 
-    expect(mockKapConfirm).toBeCalledWith('Are you sure to delete this sql?', null, 'Delete SQL')
+    expect(mockKapConfirm).toBeCalledWith('Are you sure you want to delete this SQL?', null, 'Delete SQL')
       
     wrapper.setData({ isEditSql: true })
     await wrapper.update()
@@ -361,7 +361,7 @@ describe('Component SuggestModel', () => {
 
     await wrapper.vm.convertSqlsSubmit(true)
     jest.runAllTimers()
-    expect(mockGlobalConfirm).toBeCalledWith('Recommendations can\'t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.', 'Failed to Show all Recommendations', {'confirmButtonText': 'OK', 'showCancelButton': false, 'showClose': false, 'type': 'warning'})
+    expect(mockGlobalConfirm).toBeCalledWith('Recommendations can\'t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.', 'Can\'t Show All Recommendations', {'confirmButtonText': 'OK', 'showCancelButton': false, 'showClose': false, 'type': 'warning'})
     expect(wrapper.vm.generateLoading).toBeFalsy()
     expect(wrapper.vm.convertLoading).toBeFalsy()
     expect(wrapper.vm.cancelConvertLoading).toBeFalsy()
@@ -501,7 +501,7 @@ describe('Component SuggestModel', () => {
     wrapper.setData({ uploadFlag: 'step3' })
     await wrapper.update()
     await wrapper.vm.handleCancel()
-    expect(mockGlobalConfirm).toBeCalledWith('Once cancel, all edits would be discarded and adding model from SQL would be terminated. Are you sure to cancel?', 'Notice', {'cancelButtonText': 'Continue Editing', 'confirmButtonText': 'Confirm to Cancel', 'type': 'warning'})
+    expect(mockGlobalConfirm).toBeCalledWith('Once cancel, all edits would be discarded. Are you sure you want to cancel?', 'Notice', {'cancelButtonText': 'Continue Editing', 'confirmButtonText': 'Confirm to Cancel', 'type': 'warning'})
     expect(wrapper.vm.uploadFlag).toBe('step1')
     expect(wrapper.vm.modelType).toBe('suggest')
     expect(wrapper.vm.$store.state.UploadSqlModel.isShow).toBeFalsy()

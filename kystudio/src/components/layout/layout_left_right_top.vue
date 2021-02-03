@@ -78,21 +78,29 @@
               <div class="quota-top-bar">
                 <el-popover ref="quotaPopover" width="290" popper-class="quota-popover" v-model="showQuota">
                   <div class="quota-popover-layout">
-                    <i class="el-icon-ksd-setting" v-if="dashboardActions.includes('viewSetting')" @click="gotoSetting"></i>
-                    <p class="ksd-fs-12">
-                      <span>{{$t('useageMana')}}: </span><span  v-if="quotaInfo.storage_quota_size !== -1" :class="['quota-status', getQuotaColor]">
-                        {{useageRatio*100 | fixed(2)}}%({{quotaInfo.total_storage_size | dataSize}}/{{quotaInfo.storage_quota_size | dataSize}})
-                      </span><span v-else>--</span>
-                    </p>
+                    <div class="contain ksd-fs-12">
+                      <p>
+                        <span>{{$t('useageMana')}}</span>
+                        <span  v-if="quotaInfo.storage_quota_size !== -1" :class="['quota-status', getQuotaColor]">
+                          {{useageRatio*100 | fixed(2)}}% ({{quotaInfo.total_storage_size | dataSize}}/{{quotaInfo.storage_quota_size | dataSize}})
+                        </span>
+                        <span v-else>-</span>
+                      </p>
+                      <common-tip placement="right" :content="$t('settingTips')" v-show="dashboardActions.includes('viewSetting')">
+                        <span class="setting-icon-place">
+                          <i class="el-icon-ksd-setting" @click="gotoSetting"></i>
+                        </span>
+                      </common-tip>
+                    </div>
                     <p class="ksd-fs-12 ksd-mt-5">
-                      <span>{{$t('trash')}}: </span><span v-if="quotaInfo.garbage_storage_size !== -1"><span>
+                      <span>{{$t('trash')}}<common-tip :content="$t('tarshTips')" placement="top"><i class="el-icon-ksd-info ksd-fs-12 ksd-ml-5 trash-tips-icon"></i></common-tip>{{$t('kylinLang.common.colon')}}</span><span v-if="quotaInfo.garbage_storage_size !== -1"><span>
                         {{quotaInfo.garbage_storage_size | dataSize}}
                         </span><common-tip placement="right" :content="$t('clear')" v-if="$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
                         <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
                         :class="{'is_no_quota': useageRatio >= 0.9, 'is-disabled': !quotaInfo.garbage_storage_size || quotaInfo.garbage_storage_size === -1}"
                       @click="clearStorage"></i>
                       </common-tip></span>
-                      <span v-else>--</span>
+                      <span v-else>-</span>
                     </p>
                   </div>
                 </el-popover>
@@ -350,17 +358,19 @@ let MessageBox = ElementUI.MessageBox
       serviceOvertip2: ' days. After the expiration date, you couldn\'t use the support service and the ticket system. Please contact the sales to extend your service time if needed.',
       serviceEndDate: 'Service End Time: ',
       storageQuota: 'Storage Quota: ',
-      useageMana: 'Used Storage',
+      settingTips: 'Configure',
+      useageMana: 'Used Storage: ',
       trash: 'Low Usage Storage',
+      tarshTips: 'Low usage storage refers to the obsolete files generated after the system has been running for a period of time. For more details, please refer to <a href="https://docs.kyligence.io/books/v4.2/en/operation/garbage_clean.en.html" target="_blank">user manual</a>.',
       clear: 'Clear',
       resetPassword: 'Reset Password',
-      confirmLoginOut: 'Are you sure to exit?',
+      confirmLoginOut: 'Are you sure you want to log out?',
       validPeriod: 'Valid Period: ',
       overtip1: 'This License will be expired in ',
       overtip2: 'days. Please contact sales support to apply for the Enterprise License.',
       applayLisence: 'Contact Sales',
-      'continueUse': 'I Know',
-      speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> {speedModel}! Do you want to apply it?',
+      'continueUse': 'Got It',
+      speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries. <span class="ky-highlight-text">{modelCount}</span> {speedModel} would be optimized. Do you want to apply it?',
       ignore: 'Ignore',
       apply: 'Apply',
       hello: 'Hi {user},',
@@ -370,8 +380,8 @@ let MessageBox = ElementUI.MessageBox
       noProject: 'No project now. Please create one project via the top bar.',
       indexs: 'index group(s)',
       models: 'model(s)',
-      holdNaviBar: 'Fold Navigation Bar',
-      unholdNaviBar: 'Unfold Navigation Bar',
+      holdNaviBar: 'Collapse',
+      unholdNaviBar: 'Expand',
       diagnosis: 'Diagnosis',
       disableAddProject: 'Can not create project in edit mode',
       systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
@@ -386,12 +396,14 @@ let MessageBox = ElementUI.MessageBox
       serviceOvertip2: ' 天后到期。过期后您将无法使用该产品的技术支持服务，相应的工单系统权限也将关闭。请联系销售支持人员申请延期。',
       serviceEndDate: '服务截止日期：',
       storageQuota: '存储配额：',
-      useageMana: '已使用',
+      settingTips: '设置',
+      useageMana: '已使用：',
       trash: '低效存储',
+      tarshTips: '低效存储指的是系统运行一段时间后产生的垃圾文件，详情请<a href="https://docs.kyligence.io/books/v4.2/zh-cn/operation/garbage_clean.cn.html" target="_blank">查看手册</a>。',
       clear: '清除',
       resetPassword: '重置密码',
       confirmLoginOut: '确认退出吗？',
-      validPeriod: '使用期限: ',
+      validPeriod: '使用期限：',
       overtip1: '当前使用的许可证将在 ',
       overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。',
       applayLisence: '联系销售',
@@ -406,8 +418,8 @@ let MessageBox = ElementUI.MessageBox
       noProject: '无项目。请在顶栏新建一个项目。',
       indexs: '索引组',
       models: '模型',
-      holdNaviBar: '收起导航栏',
-      unholdNaviBar: '展开导航栏',
+      holdNaviBar: '收起',
+      unholdNaviBar: '展开',
       diagnosis: '诊断',
       disableAddProject: '编辑模式下不可新建项目',
       systemUprade: '系统已进入维护模式，元数据相关操作暂不可用。',
@@ -773,7 +785,10 @@ export default class LayoutLeftRightTop extends Vue {
     this.toggleMenu(!this.briefMenuGet)
   }
   logoutConfirm () {
-    return kapConfirm(this.$t('confirmLoginOut'))
+    return kapConfirm(this.$t('confirmLoginOut'), {
+      type: 'warning',
+      confirmButtonText: this.$t('kylinLang.common.exit')
+    })
   }
   changePassword (userDetail) {
     this.callUserEditModal({ editType: 'password', userDetail })
@@ -1046,11 +1061,24 @@ export default class LayoutLeftRightTop extends Vue {
   @import '../../assets/styles/variables.less';
   .quota-popover {
     position: relative;
-    .el-icon-ksd-setting {
-      position: absolute;
-      right: 10px;
-      &:hover {
-        color: @base-color;
+    // .el-icon-ksd-setting {
+    //   position: absolute;
+    //   right: 10px;
+    //   &:hover {
+    //     color: @base-color;
+    //   }
+    // }
+    .quota-popover-layout {
+      .contain {
+        display: flex;
+        justify-content: space-between;
+      }
+    }
+    .setting-icon-place {
+      i {
+        &:hover {
+          color: @base-color;
+        }
       }
     }
     .quota-status {
@@ -1063,6 +1091,9 @@ export default class LayoutLeftRightTop extends Vue {
       &.is-success {
         color: @text-normal-color;
       }
+    }
+    .trash-tips-icon {
+      color: @text-disabled-color;
     }
   }
   .quota-top-bar {

@@ -3,6 +3,6 @@ export default {
     erDiagram: 'ER Diagram'
   },
   'zh-cn': {
-    erDiagram: 'ER图'
+    erDiagram: 'ER 图'
   }
 }
