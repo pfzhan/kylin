@@ -800,7 +800,7 @@ export default class SettingBasic extends Vue {
   }
   .rule-setting-input {
     display: inline-block;
-    width: 60px;
+    width: 70px;
     &.count-input{
       width: 80px;
       &.el-input-number.is-without-controls .el-input__inner{
