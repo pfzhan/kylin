@@ -477,7 +477,7 @@ public class NExecutableManager {
             try {
                 exe.execute("kill -9 " + pid, null);
             } catch (ShellException e) {
-                logger.warn("failed to kill remote driver {} on {}", nodeInfo, pid);
+                logger.warn("failed to kill remote driver {} on {}", nodeInfo, pid, e);
             }
         }
     }

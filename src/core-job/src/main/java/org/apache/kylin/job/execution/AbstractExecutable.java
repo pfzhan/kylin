@@ -145,7 +145,7 @@ public abstract class AbstractExecutable implements Executable {
     @Delegate
     private ExecutableParams executableParams = new ExecutableParams();
     protected String project;
-    private ExecutableContext context;
+    protected ExecutableContext context;
 
     @Getter
     @Setter

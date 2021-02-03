@@ -110,7 +110,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
             return null;
-        }, project);
+        }, context.getEpochId(), project);
     }
 
     @Override
@@ -200,7 +200,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
             return null;
 
-        }, project);
+        }, context.getEpochId(), project);
 
         // dispatch job-finished message out
         EventBusFactory.getInstance().postWithLimit(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(),
