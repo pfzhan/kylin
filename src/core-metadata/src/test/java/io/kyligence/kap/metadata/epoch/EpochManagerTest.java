@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -320,5 +321,31 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
         Assert.assertTrue(epochManager.checkEpochOwner("TesT1"));
         Assert.assertTrue(epochManager.checkEpochOwner("TEST2"));
+    }
+
+    @Test
+    public void testListProjectWithPermission() {
+        String testIdentity = "testIdentity";
+
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+
+        epochManager.setIdentity(testIdentity);
+
+        List<String> projectLists = Arrays.asList("test1", "test2");
+
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+
+        projectLists.forEach(projectTemp -> {
+            projectManager.createProject(projectTemp, "abcd", "", null, MaintainModelType.MANUAL_MAINTAIN);
+
+        });
+        //only update one target
+        epochManager.tryUpdateEpoch(projectLists.get(0), false);
+
+        List<String> projectListWithPermission = ReflectionTestUtils.invokeMethod(epochManager, "listProjectWithPermission");
+
+        //project + global = epoch with permission
+        Assert.assertEquals(projectManager.listAllProjects().size(), projectListWithPermission.size() - 1);
+
     }
 }
