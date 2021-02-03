@@ -522,6 +522,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSQL_LIST_IS_EMPTY() {
+        return "请输入数组参数 “sqls”。";
+    }
+
+    @Override
     public String getDELETE_PROJECT_NOT_EMPTY() {
         return "不能修改该项目，如需要修改请先清空其中的Cube和Model";
     }

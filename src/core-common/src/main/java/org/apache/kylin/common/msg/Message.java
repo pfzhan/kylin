@@ -866,6 +866,10 @@ public class Message {
         return "The suffix of sql files must be 'txt' or 'sql'.";
     }
 
+    public String getSQL_LIST_IS_EMPTY() {
+        return "Please enter the array parameter \"sqls\".";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB() {

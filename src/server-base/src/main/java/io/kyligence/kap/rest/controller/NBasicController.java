@@ -382,6 +382,13 @@ public class NBasicController {
         return prjInstance.getName();
     }
 
+    public List<String> checkSqlIsNotNull(List<String> rawSqls) {
+        if (CollectionUtils.isEmpty(rawSqls)) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getSQL_LIST_IS_EMPTY());
+        }
+        return rawSqls;
+    }
+
     protected void checkSegmentParms(String[] ids, String[] names) {
 
         //both not empty

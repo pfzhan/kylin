@@ -35,6 +35,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
@@ -393,6 +394,21 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCouldAnsweredByExistedModelWithNullSqls() throws Exception {
+        List<String> sqls = new ArrayList<>();
+        try {
+            FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/models/validation")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)));
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.INVALID_PARAMETER.toErrorCode(), e.getErrorCode());
+            Assert.assertEquals("Please enter the array parameter \"sqls\".", e.getMessage());
+        }
+
+    }
+
+    @Test
     public void testAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
@@ -564,18 +580,18 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("multi_level_partition");
 
         Mockito.doReturn(null).when(nModelController).addMultiPartitionValues(modelId, request);
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         // test exception
         request.setProject("default");
-        mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is4xxClientError());
     }
 

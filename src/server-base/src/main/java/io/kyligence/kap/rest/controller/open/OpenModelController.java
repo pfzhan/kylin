@@ -400,6 +400,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<String>> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
         String projectName = checkProjectName(request.getProject());
+        checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         List<NDataModel> models = modelService.couldAnsweredByExistedModels(request.getProject(), request.getSqls());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
