@@ -152,7 +152,8 @@ public class NQueryLayoutChooser {
         }
 
         if (Thread.interrupted()) {
-            throw new KylinTimeoutException("layout chooser is timeout");
+            throw new KylinTimeoutException("The query exceeds the set time limit of "
+                    + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds() + "s. Current step: Layout chooser. ");
         }
 
         if (candidates.isEmpty()) {

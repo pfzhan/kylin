@@ -479,7 +479,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         try {
             if (executorService != null && !executorService.awaitTermination(timeout, TimeUnit.SECONDS)) {
                 ExecutorServiceUtil.forceShutdown(executorService);
-                throw new KylinTimeoutException("diagnosis packaging timeout.");
+                throw new KylinTimeoutException("The query exceeds the set time limit of "
+                        + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds()
+                        + "s. Current step: Diagnosis packaging. ");
             }
         } catch (InterruptedException e) {
             ExecutorServiceUtil.forceShutdown(executorService);

@@ -135,7 +135,8 @@ object SparkSqlClient {
           }
           QueryContext.current.getQueryTagInfo.setTimeout(true)
           logger.info("Query timeout ", e)
-          throw new KylinTimeoutException("Query timeout after: " + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s")
+          throw new KylinTimeoutException("The query exceeds the set time limit of "
+            + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Collecting dataset for push-down. ")
         }
         else throw e
     } finally {

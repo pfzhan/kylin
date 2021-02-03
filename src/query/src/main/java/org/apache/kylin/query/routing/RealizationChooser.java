@@ -192,7 +192,9 @@ public class RealizationChooser {
             }
             QueryContext.current().getQueryTagInfo().setTimeout(true);
             Thread.currentThread().interrupt();
-            throw new KylinTimeoutException("select layout candidate is timeout");
+            throw new KylinTimeoutException("The query exceeds the set time limit of "
+                    + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds()
+                    + "s. Current step: Realization chooser. ");
         }
     }
 

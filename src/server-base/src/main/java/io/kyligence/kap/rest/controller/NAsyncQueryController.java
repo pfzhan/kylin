@@ -203,16 +203,15 @@ public class NAsyncQueryController extends NBasicController {
             aclEvaluate.checkProjectReadPermission(project);
             checkProjectName(project);
         }
-        boolean isDeleteSuceess;
         try {
-            isDeleteSuceess = asyncQueryService.batchDelete(project, time);
+            if (asyncQueryService.batchDelete(project, time)) {
+                return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+            } else {
+                return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false,
+                        MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
+            }
         } catch (ParseException e) {
             throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR());
-        }
-        if (isDeleteSuceess) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
-        } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
         }
     }
 

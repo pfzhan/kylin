@@ -178,7 +178,9 @@ public class PushDownUtil {
             pushdownResult = pushDownTask.get(30, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             pushDownTask.cancel(true);
-            throw new KylinTimeoutException("Get latest data range by push down timeout 30s !");
+            throw new KylinTimeoutException("The query exceeds the set time limit of "
+                    + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds()
+                    + "s. Current step: Getting latest data range by push down. ");
         }
 
         return pushdownResult;

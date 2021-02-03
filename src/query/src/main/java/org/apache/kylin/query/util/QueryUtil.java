@@ -108,7 +108,9 @@ public class QueryUtil {
                     throw new UserStopQueryException("");
                 }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
-                throw new KylinTimeoutException("SQL transformation is timeout");
+                throw new KylinTimeoutException("The query exceeds the set time limit of "
+                        + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds()
+                        + "s. Current step: SQL transformation. ");
             }
             sql = t.transform(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
@@ -182,7 +184,8 @@ public class QueryUtil {
                     throw new UserStopQueryException("");
                 }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
-                throw new KylinTimeoutException("Push-down SQL convert is timeout");
+                throw new KylinTimeoutException("The query exceeds the set time limit of "
+                        + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds() + "s. Current step: Massage push-down sql. ");
             }
             sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }

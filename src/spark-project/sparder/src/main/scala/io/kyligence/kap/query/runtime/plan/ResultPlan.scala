@@ -123,8 +123,8 @@ object ResultPlan extends LogEx {
         }
         QueryContext.current().getQueryTagInfo.setTimeout(true)
         logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
-        throw new KylinTimeoutException(
-          s"Query timeout after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s");
+        throw new KylinTimeoutException("The query exceeds the set time limit of "
+          + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Collecting dataset for sparder. ")
     } finally {
       QueryContext.current().setExecutionID(QueryToExecutionIDCache.getQueryExecutionID(queryId))
     }

@@ -137,7 +137,10 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
             Throwable cause = e.getCause();
             Assert.assertTrue(cause instanceof KylinTimeoutException);
-            Assert.assertTrue(cause.getMessage().contains("Query timeout after:"));
+            Assert.assertTrue(
+                    ("Error while executing SQL \"select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME\": "
+                            + "The query exceeds the set time limit of 300s. "
+                            + "Current step: Collecting dataset for sparder. ").equals(e.getMessage()));
 
             // reset query thread's interrupt state.
             Thread.interrupted();
@@ -167,7 +170,9 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             } catch (Exception e) {
                 Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
                 Assert.assertTrue(e instanceof KylinTimeoutException);
-                Assert.assertTrue(e.getMessage().contains("Query timeout after:"));
+                Assert.assertTrue(
+                        "The query exceeds the set time limit of 300s. Current step: Collecting dataset for push-down. "
+                                .equals(e.getMessage()));
 
                 // reset query thread's interrupt state.
                 Thread.interrupted();
@@ -223,7 +228,8 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
             Assert.assertTrue(e.getCause() instanceof KylinTimeoutException);
             Assert.assertEquals("KE-00000002", ((KylinTimeoutException) e.getCause()).getErrorCode().getCodeString());
-            Assert.assertEquals("select layout candidate is timeout", e.getCause().getMessage());
+            Assert.assertEquals("The query exceeds the set time limit of 300s. Current step: Realization chooser. ",
+                    e.getCause().getMessage());
             Thread.interrupted();
         }
         slowQueryDetector.queryEnd();
