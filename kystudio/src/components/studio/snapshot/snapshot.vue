@@ -218,7 +218,7 @@
       class="refresh-snapshot-dialog ke-it-refresh-snapshot"
       @close="handleCloseRefreshDialog">
       <span slot="title" class="ksd-title-label">{{$t('refreshTitle')}}</span>
-      <p><i class="el-icon-ksd-info ksd-mr-5 alert-info"></i>{{$t('refreshNoPartitionTips', {snapshotNum: multipleSelection.length})}}</p>
+      <p><i class="el-icon-ksd-info ksd-mr-5 alert-info"></i>{{refreshSnapshotTables.length ? $t('refreshTips', {snapshotNum: multipleSelection.length, partitionColNum: refreshSnapshotTables.length}) : $t('refreshNoPartitionTips', {snapshotNum: multipleSelection.length})}}</p>
       <el-table class="ksd-mt-10 snapshot-table ke-it-snapshot_table"
         v-if="refreshSnapshotTables.length"
         :data="refreshSnapshotTables"
