@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.model;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -259,15 +260,22 @@ public class NDataModelManager {
             if (partition != null) {
                 partitionIds.add(partition.getId());
             } else {
-                MultiPartitionDesc.PartitionInfo toAddPartition = new MultiPartitionDesc.PartitionInfo(
-                        maxPartitionId.incrementAndGet(), value);
-                copy.getMultiPartitionDesc().getPartitions().add(toAddPartition);
-                partitionIds.add(toAddPartition.getId());
+                value = wrapValue(value);
+                if (value.length != 0) {
+                    MultiPartitionDesc.PartitionInfo toAddPartition = new MultiPartitionDesc.PartitionInfo(
+                            maxPartitionId.incrementAndGet(), wrapValue(value));
+                    copy.getMultiPartitionDesc().getPartitions().add(toAddPartition);
+                    partitionIds.add(toAddPartition.getId());
+                }
             }
         });
         copy.getMultiPartitionDesc().setMaxPartitionID(maxPartitionId.get());
         crud.save(copy);
         return partitionIds;
+    }
+
+    private String[] wrapValue(String[] value) {
+        return Arrays.stream(value).map(String::trim).filter(StringUtils::isNotBlank).toArray(String[]::new);
     }
 
     public NDataModel updateDataModel(String modelId, NDataModelUpdater updater) {

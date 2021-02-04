@@ -49,6 +49,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MULTI_PA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_VALUES;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
@@ -195,6 +196,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.query.util.KapQueryUtil;
@@ -1659,7 +1661,8 @@ public class ModelService extends BasicService {
 
         AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
-        ProposerJob.propose(proposeContext, (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
+        ProposerJob.propose(proposeContext,
+                (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
         return proposeContext.getProposedModels();
     }
 
@@ -1693,7 +1696,8 @@ public class ModelService extends BasicService {
         AbstractContext proposeContext = reuseExistedModel
                 ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), createNewModel)
                 : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
-        return ProposerJob.propose(proposeContext, (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
+        return ProposerJob.propose(proposeContext,
+                (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
     }
 
     public ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
@@ -3921,8 +3925,20 @@ public class ModelService extends BasicService {
     public void deletePartitionsByValues(String project, String segmentId, String modelId,
             List<String[]> subPartitionValues) {
         NDataModel model = checkModelIsMLP(modelId, project);
+        checkPartitionValues(model, subPartitionValues);
         Set<Long> ids = model.getMultiPartitionDesc().getPartitionIdsByValues(subPartitionValues);
         deletePartitions(project, segmentId, model.getId(), ids);
+    }
+
+    private void checkPartitionValues(NDataModel model, List<String[]> subPartitionValues) {
+        List<String[]> modelPartitionValues = model.getMultiPartitionDesc().getPartitions().stream()
+                .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
+        List<String[]> absentValues = MultiPartitionUtil.findAbsentValues(modelPartitionValues, subPartitionValues);
+        if (!absentValues.isEmpty()) {
+            throw new KylinException(INVALID_PARTITION_VALUES, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getINVALID_PARTITION_VALUE(),
+                    absentValues.stream().map(arr -> String.join(", ", arr)).collect(Collectors.joining(", "))));
+        }
     }
 
     @Transaction(project = 0)

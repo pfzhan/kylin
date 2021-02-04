@@ -2036,6 +2036,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getINVALID_PARTITION_VALUE(){
+        return "子分区值 “%s” 不存在，请确认后重试。";
+    }
+
+    @Override
     public String getPARTITION_VALUE_NOT_SUPPORT() {
         return "模型 '%s' 未设置子分区列，请先进行设置";
     }

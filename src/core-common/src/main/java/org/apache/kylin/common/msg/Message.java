@@ -1792,6 +1792,10 @@ public class Message {
         return "Model '%s' does not have sub partition.";
     }
 
+    public String getINVALID_PARTITION_VALUE(){
+        return "The subpartition(s) “%s“ doesn’t exist. Please check and try again.";
+    }
+
     public String getPARTITION_VALUE_NOT_SUPPORT() {
         return "The subpartition column of model '%s' has not been set yet. Please set it first.";
     }

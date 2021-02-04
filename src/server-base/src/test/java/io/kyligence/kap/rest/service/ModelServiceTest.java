@@ -787,6 +787,23 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(3, values.size());
         Assert.assertEquals(3L, values.get(2).getId());
         Assert.assertArrayEquals(new String[] { "3" }, values.get(2).getPartitionValue());
+
+        // add a empty value and a value with part of blank
+        modelService.addMultiPartitionValues(project, modelId,
+                Lists.<String[]> newArrayList(new String[] { "  14  " }, new String[] { "  " }));
+        values = modelService.getMultiPartitionValues(project, modelId);
+        Assert.assertEquals(4, values.size());
+        Assert.assertArrayEquals(new String[] { "14" }, values.get(3).getPartitionValue());
+
+        try {
+            partitionValues = Lists.<String[]> newArrayList(new String[] { "not-exist-value" });
+            modelService.deletePartitionsByValues(project, null, modelId, partitionValues);
+        } catch (Exception ex) {
+            Assert.assertTrue(ex instanceof KylinException);
+            Assert.assertTrue(ex.getMessage()
+                    .contains("The subpartition(s) “not-exist-value“ doesn’t exist. Please check and try again."));
+        }
+
     }
 
     @Test

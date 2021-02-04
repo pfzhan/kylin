@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.model.util;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.util.Pair;
 
 import com.google.common.collect.Lists;
 
@@ -44,11 +45,13 @@ public class MultiPartitionUtil {
         return true;
     }
 
-    public static List<String[]> findDuplicateValues(List<String[]> originValues, List<String[]> addValues) {
+    private static Pair<List<String[]>, List<String[]>> partitionValues(List<String[]> originValues,
+            List<String[]> addValues) {
         List<String[]> oldValues = cloneList(originValues);
         List<String[]> newValues = cloneList(addValues);
 
         List<String[]> duplicates = Lists.newArrayList();
+        List<String[]> absents = Lists.newArrayList();
         for (String[] newValue : newValues) {
             boolean isSame = false;
             for (String[] oldValue : oldValues) {
@@ -59,10 +62,18 @@ public class MultiPartitionUtil {
                 }
             }
             if (!isSame) {
-                oldValues.add(newValue);
+                absents.add(newValue);
             }
         }
-        return duplicates;
+        return Pair.newPair(duplicates, absents);
+    }
+
+    public static List<String[]> findDuplicateValues(List<String[]> originValues, List<String[]> addValues) {
+        return partitionValues(originValues, addValues).getFirst();
+    }
+
+    public static List<String[]> findAbsentValues(List<String[]> originValues, List<String[]> addValues) {
+        return partitionValues(originValues, addValues).getSecond();
     }
 
     public static List<String[]> cloneList(List<String[]> list) {
