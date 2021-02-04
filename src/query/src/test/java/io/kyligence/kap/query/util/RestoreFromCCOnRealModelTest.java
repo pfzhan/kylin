@@ -382,6 +382,15 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
         check(converter, originSql, ccSql);
     }
 
+    @Test
+    public void testConvertToComputedColumnForUnion() {
+        String originSql = "select sum(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from test_kylin_fact "
+                + "union all select sum(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from test_kylin_fact limit 1";
+        String ccSql = "select sum(DEAL_AMOUNT) from test_kylin_fact "
+                + "union all select sum(DEAL_AMOUNT) from test_kylin_fact limit 1";
+        check(new RestoreFromComputedColumn(), originSql, ccSql);
+    }
+
     private void check(RestoreFromComputedColumn converter, String originSql, String ccSql) {
         String transform = converter.convert(ccSql, "default", "DEFAULT");
         Assert.assertEquals(originSql, transform);

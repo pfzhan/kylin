@@ -106,11 +106,19 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
             if (query instanceof SqlWith) {
                 query = ((SqlWith) query).body;
             }
-            RootTableValidator validator = new RootTableValidator();
-            ((SqlSelect) query).getFrom().accept(validator);
-            if (validator.hasRoot) {
-                Preconditions.checkState(query == sqlCall);
-                sqlSelectsOrOrderbys.set(sqlSelectsOrOrderbys.size() - 1, call);
+            if (query instanceof SqlBasicCall && SqlKind.UNION == query.getKind()) {
+                for (SqlNode operand : ((SqlBasicCall) query).getOperandList()) {
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
+                }
+            } else {
+                RootTableValidator validator = new RootTableValidator();
+                ((SqlSelect) query).getFrom().accept(validator);
+                if (validator.hasRoot) {
+                    Preconditions.checkState(query == sqlCall);
+                    sqlSelectsOrOrderbys.set(sqlSelectsOrOrderbys.size() - 1, call);
+                }
             }
         }
         return null;
