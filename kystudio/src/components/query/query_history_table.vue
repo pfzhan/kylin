@@ -99,7 +99,11 @@
                     <th class="label">{{$t('kylinLang.query.index_id')}}</th>
                     <td>
                       <p>
-                        <span class="realizations-layout-id" v-for="(item, index) in props.row.realizations" :key="item.layoutId" @click="openLayoutDetails(item)">{{`${item.layoutId}${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                        <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId" @click="openLayoutDetails(item)">
+                          <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
+                            <span>{{`${item.layoutId}${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                          </el-tooltip>
+                        </span>
                       </p>
                     </td>
                   </tr>
@@ -308,7 +312,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       searchAnsweredBy: 'Search by model name',
       searchSubmitter: 'Search by submitter',
       aggDetailTitle: 'Aggregate Detail',
-      tabelDetailTitle: 'Table Index Detail'
+      tabelDetailTitle: 'Table Index Detail',
+      unExistLayoutTip: 'This index has been deleted'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -342,7 +347,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       searchAnsweredBy: '请搜索查询对象',
       searchSubmitter: '请搜索用户名',
       aggDetailTitle: '聚合索引详情',
-      tabelDetailTitle: '明细索引详情'
+      tabelDetailTitle: '明细索引详情',
+      unExistLayoutTip: '该索引已被删除'
     }
   },
   filters: {
@@ -914,6 +920,7 @@ export default class QueryHistoryTable extends Vue {
   }
   // 展示 layout 详情
   async openLayoutDetails (item) {
+    if (!item.layoutExist) return
     const {modelId, layoutId} = item
     try {
       const res = await this.loadAllIndex({
@@ -1127,6 +1134,10 @@ export default class QueryHistoryTable extends Vue {
       .realizations-layout-id {
         color: @base-color;
         cursor: pointer;
+        &.is-disabled {
+          color: @text-normal-color;
+          cursor: default;
+        }
       }
       .el-date-editor {
         line-height: 1;
