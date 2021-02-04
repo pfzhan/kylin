@@ -2,7 +2,15 @@
   <!-- 模型构建 -->
     <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal(false)">
       <div>
-        <p class="segment-tips ksd-fs-12"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('changeBuildTypeTips')}}</p>
+        <!-- <p class="segment-tips ksd-fs-12"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('changeBuildTypeTips')}}</p> -->
+        <el-alert
+          :title="$t('changeBuildTypeTips')"
+          type="warning"
+          :closable="false"
+          class="ksd-mb-10"
+          v-if="isShowWarning"
+          show-icon>
+        </el-alert>
         <div class="ksd-title-label-small ksd-mb-10">{{$t('chooseBuildType')}}</div>
         <!-- <div>
           <el-radio-group v-model="buildOrComplete" class="ksd-mb-10">
@@ -97,7 +105,9 @@
                 filterable
                 class="partition-multi-partition"
                 popper-class="js_multi-partition"
-                style="width:100%">
+                style="width:100%"
+                @change="changePartitionSetting"
+              >
                   <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
                   <el-option :label="$t('noPartition')" value=""></el-option>
                   <el-option :label="t.name" :value="t.name" v-for="t in subPartitionColumnsOptions" :key="t.name">
@@ -318,6 +328,7 @@
     showDetail = false
     errorSegments = []
     buildType = ''
+    defaultBuildType = ''
     buildOrComplete = 'build'
     partitionMeta = {
       table: '',
@@ -385,9 +396,7 @@
       return !(this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format && this.modelBuildMeta.dataRangeVal.length) && this.buildType === 'incremental'
     }
     handChangeBuildType () {
-      if (this.isHaveSegment) {
-        this.isShowWarning = true
-      }
+      this.changePartitionSetting()
       if (this.buildType === 'incremental' && !this.partitionMeta.table) {
         this.isExpand = true
         this.partitionMeta.table = this.partitionTables[0].alias
@@ -483,21 +492,35 @@
       return result
     }
 
+    // 分区设置改变
+    changePartitionSetting () {
+      if (JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta) || this.buildType !== this.defaultBuildType) {
+        if (this.isHaveSegment) {
+          this.isShowWarning = true
+        }
+      } else {
+        this.isShowWarning = false
+      }
+    }
+
     partitionTableChange () {
       this.partitionMeta.column = ''
       this.partitionMeta.format = ''
       this.$refs.partitionForm.validate()
       this.modelBuildMeta.dataRangeVal = []
+      this.changePartitionSetting()
     }
 
     partitionColumnChange () {
       // this.partitionMeta.format = 'yyyy-MM-dd'
       // this.$refs.partitionForm.validate()
       this.modelBuildMeta.dataRangeVal = []
+      this.changePartitionSetting()
     }
 
     partitionColumnFormatChange () {
       this.modelBuildMeta.dataRangeVal = []
+      this.changePartitionSetting()
     }
 
     get partitionTables () {
@@ -576,6 +599,7 @@
     async initModelBuldRange () {
       if (this.isShow) {
         this.buildType = this.type
+        this.defaultBuildType = this.type
         this.buildOrComplete = this.buildOrComp
         this.modelBuildMeta.dataRangeVal = []
         if (this.modelDesc.last_build_end && this.buildType === 'incremental') {

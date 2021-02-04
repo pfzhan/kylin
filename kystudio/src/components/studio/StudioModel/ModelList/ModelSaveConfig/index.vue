@@ -57,6 +57,7 @@
                 filterable
                 class="partition-column"
                 popper-class="js_partition-column"
+                @change="changeColumn('column')"
                 style="width:100%">
               <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.column.length"></i>
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
@@ -74,7 +75,9 @@
               v-model="partitionMeta.format"
               class="partition-column-format"
               popper-class="js_partition-column-format"
-              :placeholder="$t('pleaseInputColumnFormat')">
+              :placeholder="$t('pleaseInputColumnFormat')"
+              @change="changeColumn('format')"
+            >
               <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
@@ -106,20 +109,22 @@
         <el-row>
           <el-col :span="11">
            <el-select
-                :disabled="isLoadingNewRange"
-                v-model="partitionMeta.multiPartition"
-                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                filterable
-                class="partition-multi-partition"
-                popper-class="js_multi-partition"
-                style="width:100%">
-                <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
-                <el-option :label="$t('noPartition')" value=""></el-option>
-                <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
-                  <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
-                  <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
-                </el-option>
-              </el-select>
+              :disabled="isLoadingNewRange"
+              v-model="partitionMeta.multiPartition"
+              :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+              filterable
+              class="partition-multi-partition"
+              popper-class="js_multi-partition"
+              style="width:100%"
+              @change="changeColumn('multiPartition')"
+            >
+              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
+              <el-option :label="$t('noPartition')" value=""></el-option>
+              <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
+                <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
+              </el-option>
+            </el-select>
           </el-col>
         </el-row>
       </el-form-item>
@@ -254,6 +259,7 @@ export default class ModelPartitionModal extends Vue {
   isShowWarning = false
   importantChange = false
   isExpand = false
+  defaultBuildType = 'incremental'
 
   toggleShowPartition () {
     this.isExpand = !this.isExpand
@@ -273,8 +279,12 @@ export default class ModelPartitionModal extends Vue {
     }
   }
   handChangeBuildType (val) {
-    if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
-      this.isShowWarning = true
+    if (this.defaultBuildType !== this.buildType) {
+      if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
+        this.isShowWarning = true
+      }
+    } else {
+      this.isShowWarning = false
     }
     if (val === 'incremental' && !this.partitionMeta.table) {
       this.partitionMeta.table = this.partitionTables[0].alias
@@ -298,6 +308,16 @@ export default class ModelPartitionModal extends Vue {
       return callback(new Error(this.$t('pleaseInputColumn')))
     }
     callback()
+  }
+  // 增量加载下，更改分区设置列
+  changeColumn (type) {
+    if (JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta)) {
+      if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
+        this.isShowWarning = true
+      }
+    } else {
+      this.isShowWarning = false
+    }
   }
   modelBuildMeta = {
     dataRangeVal: [],
@@ -431,6 +451,7 @@ export default class ModelPartitionModal extends Vue {
       // })
       if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column)) {
         this.buildType = 'fullLoad'
+        this.defaultBuildType = 'fullLoad'
       }
       if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
         let named = this.modelDesc.partition_desc.partition_date_column.split('.')
@@ -478,6 +499,7 @@ export default class ModelPartitionModal extends Vue {
     this.isLoadingSave = false
     this.isLoadingFormat = false
     this.isShowWarning = false
+    this.defaultBuildType = 'incremental'
   }
 
   get isChangeToFullLoad () {

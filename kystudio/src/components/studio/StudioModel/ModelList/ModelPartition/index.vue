@@ -8,7 +8,15 @@
     @close="isShow && handleClose(false)"
     :close-on-press-escape="false"
     :close-on-click-modal="false">
-    <p class="segment-change-tip"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('segmentChangedTips')}}</p>
+    <!-- <p class="segment-change-tip"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('segmentChangedTips')}}</p> -->
+    <el-alert
+      :title="$t('segmentChangedTips')"
+      type="warning"
+      :closable="false"
+      class="ksd-mb-10"
+      v-if="isShowWarning"
+      show-icon>
+    </el-alert>
     <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
       <el-form-item  :label="$t('partitionDateTable')" class="clearfix">
         <el-row :gutter="5">
@@ -35,7 +43,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="11">
-            <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
+            <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" @change="changePartitionSetting" :placeholder="$t('pleaseInputColumn')">
               <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
@@ -71,7 +79,9 @@
               :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
               filterable
               class="partition-multi-partition"
-              style="width:100%">
+              style="width:100%"
+              @change="changePartitionSetting"
+            >
                 <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
                 <el-option :label="$t('noPartition')" value=""></el-option>
                 <el-option :label="t.name" :value="t.name" v-for="t in subPartitionColumnOtions" :key="t.name">
@@ -154,6 +164,7 @@ export default class ModelPartition extends Vue {
     format: '',
     multiPartition: ''
   }
+  isShowWarning = false
   validateBrokenColumn (rule, value, callback) {
     if (value) {
       if (this.checkIsBroken(this.brokenPartitionColumns, value)) {
@@ -226,15 +237,28 @@ export default class ModelPartition extends Vue {
     }
     return result
   }
+  // 分区设置改变
+  changePartitionSetting () {
+    console.log(this.partitionMeta)
+    if (JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta)) {
+      if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
+        this.isShowWarning = true
+      }
+    } else {
+      this.isShowWarning = false
+    }
+  }
   partitionTableChange () {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
     this.partitionMeta.multiPartition = ''
     this.$refs.partitionForm.validate()
+    this.changePartitionSetting()
   }
   partitionColumnChange () {
     this.partitionMeta.format = 'yyyy-MM-dd'
     this.$refs.partitionForm.validate()
+    this.changePartitionSetting()
   }
   resetForm () {
     this.partitionMeta = {
@@ -247,6 +271,7 @@ export default class ModelPartition extends Vue {
     this.filterCondition = ''
     this.isLoadingSave = false
     this.isLoadingFormat = false
+    this.isShowWarning = false
   }
   get partitionTables () {
     let result = []
