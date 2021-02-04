@@ -124,7 +124,7 @@
               </el-radio>
               <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
             </el-form-item> -->
-            <el-form-item prop="dataRangeVal" :class="{'is-error': isShowErrorSegments}" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
+            <el-form-item :class="{'is-error': isShowErrorSegments}" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
               <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
                 {{$t('customLoadRange')}}
               </el-radio>
@@ -133,7 +133,7 @@
               <div class="ky-no-br-space" style="height:32px;">
                 <el-date-picker
                   type="datetime"
-                  class="ksd-mr-5"
+                  :class="['ksd-mr-5', {'is-error': dateErrorMsg}]"
                   ref="prevPicker"
                   v-model="modelBuildMeta.dataRangeVal[0]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
@@ -145,6 +145,7 @@
                 <el-date-picker
                   type="datetime"
                   ref="nextPicker"
+                  :class="{'is-error': dateErrorMsg}"
                   v-model="modelBuildMeta.dataRangeVal[1]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   value-format="timestamp"
@@ -167,6 +168,7 @@
                 <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
                 <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
               </div>
+              <p v-if="dateErrorMsg" class="error-date-range error-msg">{{dateErrorMsg}}</p>
             </el-form-item>
           </el-form>
           <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
@@ -306,9 +308,9 @@
       isLoadExisted: false
     }
     rules = {
-      dataRangeVal: [{
-        validator: this.validateRange, trigger: 'blur'
-      }]
+      // dataRangeVal: [{
+      //   validator: this.validateRange, trigger: 'blur'
+      // }]
     }
     loadRangeDateError = ''
     isShowRangeDateError = false
@@ -345,6 +347,7 @@
     isMultipleBuild = false
     duplicateValueError = false
     subPartitionOptions = []
+    dateErrorMsg = ''
 
     @Watch('buildType')
     changeBuildType (newVal, oldVal) {
@@ -535,31 +538,39 @@
     get format () {
       return this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_format || 'yyyy-MM-dd'
     }
-    validateRange (rule, value, callback) {
-      const [ startValue, endValue ] = value
-      let format = ''
-      switch (this.partitionMeta.format) {
-        case 'yyyy-MM-dd':
-        case 'yyyyMMdd':
-        case 'yyyy/MM/dd':
-          format = 'YYYY/MM/DD'
-          break
-        case 'yyyy-MM':
-        case 'yyyyMM':
-          format = 'YYYY/MM'
-          break
-      }
-      const formatTimestampStart = !format ? startValue : (startValue && new Date(moment(new Date(startValue)).format(format)).getTime())
-      const formatTimestampEnd = !format ? endValue : (endValue && new Date(moment(new Date(endValue)).format(format)).getTime())
-      const isLoadExisted = this.modelBuildMeta.isLoadExisted
+    validateRange (value) {
+      return new Promise((resolve, reject) => {
+        const [ startValue, endValue ] = value
+        let format = ''
+        switch (this.partitionMeta.format) {
+          case 'yyyy-MM-dd':
+          case 'yyyyMMdd':
+          case 'yyyy/MM/dd':
+            format = 'YYYY/MM/DD'
+            break
+          case 'yyyy-MM':
+          case 'yyyyMM':
+            format = 'YYYY/MM'
+            break
+        }
+        const formatTimestampStart = !format ? startValue : (startValue && new Date(moment(new Date(startValue)).format(format)).getTime())
+        const formatTimestampEnd = !format ? endValue : (endValue && new Date(moment(new Date(endValue)).format(format)).getTime())
+        const isLoadExisted = this.modelBuildMeta.isLoadExisted
 
-      if ((!startValue || !endValue || transToUTCMs(formatTimestampStart) > transToUTCMs(formatTimestampEnd)) && !isLoadExisted) {
-        callback(new Error(this.$t('invaildDate')))
-      } else if (startValue && endValue && transToUTCMs(formatTimestampStart) === transToUTCMs(formatTimestampEnd) && !isLoadExisted) {
-        callback(new Error(this.$t('invaildDateNoEqual')))
-      } else {
-        callback()
-      }
+        if ((!startValue || !endValue || transToUTCMs(formatTimestampStart) > transToUTCMs(formatTimestampEnd)) && !isLoadExisted) {
+          // callback(new Error(this.$t('invaildDate')))
+          this.dateErrorMsg = this.$t('invaildDate')
+          reject()
+        } else if (startValue && endValue && transToUTCMs(formatTimestampStart) === transToUTCMs(formatTimestampEnd) && !isLoadExisted) {
+          // callback(new Error(this.$t('invaildDateNoEqual')))
+          this.dateErrorMsg = this.$t('invaildDateNoEqual')
+          reject()
+        } else {
+          // callback()
+          this.dateErrorMsg = ''
+          resolve()
+        }
+      })
     }
     @Watch('isShow')
     async initModelBuldRange () {
@@ -650,6 +661,7 @@
     }
     resetError () {
       this.loadRangeDateError = ''
+      this.dateErrorMsg = ''
       this.isShowRangeDateError = false
       this.isShowErrorSegments = false
       this.errorSegments = []
@@ -664,6 +676,7 @@
       this.showDetail = false
       this.isWillAddIndex = false
       this.multiPartitionValues = []
+      this.dateErrorMsg = ''
       this.resetError()
       this.hideModal()
       setTimeout(() => {
@@ -719,6 +732,7 @@
       this.setbuildModel(false)
     }
     async setbuildModel (isBuild, type) {
+      await this.validateRange(this.modelBuildMeta.dataRangeVal)
       this.btnLoading = true
       try {
         if (this.buildType === 'incremental' && this.buildOrComplete === 'build') {
@@ -1001,6 +1015,16 @@
     }
     .item-desc {
       font-size: 12px;
+      line-height: 1;
+    }
+    .el-date-editor.is-error {
+      .el-input__inner {
+        border: 1px solid @error-color-1;
+      }
+    }
+    .error-date-range {
+      padding: 0;
+      margin: 0;
       line-height: 1;
     }
     .error-msg {
