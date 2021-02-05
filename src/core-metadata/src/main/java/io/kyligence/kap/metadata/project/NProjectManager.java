@@ -95,6 +95,10 @@ public class NProjectManager implements IKeepNames {
         crud.reloadAll();
     }
 
+    public void invalidCache(String resourceName) {
+        crud.invalidateCache(resourceName);
+    }
+
     public ProjectInstance getProject(String projectName) {
         return crud.listAll().stream()
                 .filter(projectInstance -> projectInstance.getName().equalsIgnoreCase(projectName)).findAny()

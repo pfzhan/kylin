@@ -119,6 +119,12 @@ public class NTableMetadataManager {
         srcTableCrud.reloadAll();
     }
 
+    public void invalidCache(String resourceName) {
+        srcTableCrud.invalidateCache(resourceName);
+        srcExtCrud.invalidateCache(resourceName);
+        extFilterCrud.invalidateCache(resourceName);
+    }
+
     public List<TableDesc> listAllTables() {
         return srcTableCrud.listAll();
     }

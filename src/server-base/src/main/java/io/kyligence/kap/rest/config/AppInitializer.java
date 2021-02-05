@@ -69,6 +69,7 @@ import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
 import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
+import io.kyligence.kap.rest.config.initialize.CacheCleanListner;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
@@ -165,6 +166,8 @@ public class AppInitializer {
         // register schema change listener
         EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager),
                 "table");
+        // register for clean cache when delete
+        EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListner(), "cacheInManager");
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();

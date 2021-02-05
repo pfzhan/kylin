@@ -205,6 +205,10 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         return cache.getIfPresent(resourceName);
     }
 
+    public void invalidateCache(String resourceName) {
+        this.cache.invalidate(resourceName);
+    }
+
     abstract protected T initEntityAfterReload(T entity, String resourceName);
 
     protected T initBrokenEntity(T entity, String resourceName) {
