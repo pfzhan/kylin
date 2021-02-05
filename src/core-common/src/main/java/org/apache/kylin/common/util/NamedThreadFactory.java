@@ -49,13 +49,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class NamedThreadFactory implements ThreadFactory {
     private final ThreadGroup group;
     private static final AtomicLong poolNumber = new AtomicLong(1);
-    private static final AtomicLong threadNumber = new AtomicLong(1);
+    private AtomicLong threadNumber;
     private String namePrefix;
 
     public NamedThreadFactory(String namePrefix) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
         this.namePrefix = namePrefix + "-p-" + poolNumber.getAndIncrement();
+        threadNumber = new AtomicLong(1);
     }
 
     public Thread newThread(Runnable r) {

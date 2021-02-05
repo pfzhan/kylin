@@ -67,6 +67,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -121,7 +122,7 @@ public class RealizationChooser {
     private static ExecutorService selectCandidateService = new ThreadPoolExecutor(
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadCoreNum(),
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
-            new SynchronousQueue<Runnable>(), new NamedThreadFactory("RealizationChooserRunner"),
+            new SynchronousQueue<Runnable>(), new NamedThreadFactory("RealChooser"),
             new ThreadPoolExecutor.CallerRunsPolicy());
     
     private static Cache<SQLDigest, Candidate> candidateCache = CacheBuilder.newBuilder().maximumSize(3000)
@@ -156,7 +157,9 @@ public class RealizationChooser {
             for (OLAPContext ctx : contexts) {
                 Future<?> future = selectCandidateService.submit(Objects.requireNonNull(TtlRunnable.get(() -> {
                     try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
-                            .setAndUnsetThreadLocalConfig(kylinConfig)) {
+                            .setAndUnsetThreadLocalConfig(kylinConfig);
+                            SetThreadName ignored = new SetThreadName(Thread.currentThread().getName() + " QueryId %s",
+                                    queryId)) {
                         if (project != null) {
                             NTableMetadataManager.getInstance(kylinConfig, project);
                             NDataModelManager.getInstance(kylinConfig, project);
