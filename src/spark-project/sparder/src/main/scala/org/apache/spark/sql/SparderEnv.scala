@@ -283,9 +283,6 @@ object SparderEnv extends Logging {
       override protected def initialValue = 0L
     }
 
-  val _queryRef =
-    new ThreadLocal[AtomicReference[java.lang.Boolean]]
-
   def accumulateScanFiles(numFiles: java.lang.Long): Unit = {
     _numScanFiles.set(_numScanFiles.get() + numFiles)
   }
@@ -307,12 +304,6 @@ object SparderEnv extends Logging {
   def setDF(df: Dataset[Row]): Unit = {
     _df.set(df)
   }
-
-  def setResultRef(ref: AtomicReference[java.lang.Boolean]): Unit = {
-    _queryRef.set(ref)
-  }
-
-  def getResultRef: AtomicReference[java.lang.Boolean] = _queryRef.get
 
   // clean it after query end
   def clean(): Unit = {

@@ -133,8 +133,6 @@ public class SQLResponse implements Serializable {
 
     private String server;
 
-    private String suite;
-
     @JsonProperty("is_stop_by_user")
     private boolean isStopByUser;
 

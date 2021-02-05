@@ -47,25 +47,39 @@ import java.sql.SQLException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class QueryParams {
 
     String project;
     String sql;
     String defaultSchema;
-    SQLException sqlException;
+    String executeAs;
+    String prepareSql;
     boolean isSelect;
     boolean isPrepare;
     boolean isForced;
-    QueryContext.AclInfo aclInfo;
+    boolean forcedToPushDown;
+    boolean isCCNeeded;
+    boolean isPrepareStatementWithParams;
+    boolean partialMatchIndex;
+    boolean acceptPartial;
+    boolean isACLDisabledOrAdmin;
     int limit;
     int offset;
-    boolean isCCNeeded;
+    SQLException sqlException;
+    QueryContext.AclInfo aclInfo;
+    @JsonIgnore
     KylinConfig kylinConfig;
+    PrepareSqlStateParam[] params;
 
     public QueryParams(String project, String sql, String defaultSchema, boolean isPrepare) {
         this.project = project;
@@ -106,5 +120,22 @@ public class QueryParams {
         this.offset = offset;
         this.defaultSchema = defaultSchema;
         this.isCCNeeded = isCCNeeded;
+    }
+
+    public QueryParams(KylinConfig kylinConfig, String sql, String project, int limit, int offset, boolean isCCNeeded,
+                       String executeAs, boolean forcedToPushDown, boolean isPrepareStatementWithParams, boolean partialMatchIndex,
+                       boolean acceptPartial, boolean isSelect) {
+        this.kylinConfig = kylinConfig;
+        this.sql = sql;
+        this.project = project;
+        this.limit = limit;
+        this.offset = offset;
+        this.isCCNeeded = isCCNeeded;
+        this.executeAs = executeAs;
+        this.forcedToPushDown = forcedToPushDown;
+        this.isPrepareStatementWithParams = isPrepareStatementWithParams;
+        this.partialMatchIndex = partialMatchIndex;
+        this.acceptPartial = acceptPartial;
+        this.isSelect = isSelect;
     }
 }

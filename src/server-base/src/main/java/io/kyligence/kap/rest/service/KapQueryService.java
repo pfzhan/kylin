@@ -76,7 +76,7 @@ import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import lombok.val;
 
 @Component("kapQueryService")
@@ -113,8 +113,7 @@ public class KapQueryService extends QueryService {
         }
 
         if (QueryMetricsContext.isStarted()) {
-            final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
-                    QueryContext.current(), getCurrentUserGroups());
+            final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
         }

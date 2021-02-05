@@ -276,8 +276,8 @@ public abstract class SparkApplication implements Application, IKeep {
             HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();
             if (isJobOnCluster(sparkConf)) {
-                if (config.getSparkConfigOverride().size() > 0) {
-                    Map<String, String> sparkConfigOverride = getSparkConfigOverride(config);
+                if (getSparkConfigOverride(config).size() > 0) {
+                    Map<String, String> sparkConfigOverride = getApplicationSparkConfig(config);
                     for (Map.Entry<String, String> entry : sparkConfigOverride.entrySet()) {
                         sparkConf.set(entry.getKey(), entry.getValue());
                     }
@@ -309,6 +309,7 @@ public abstract class SparkApplication implements Application, IKeep {
 
             // for spark metrics
             JobMetricsUtils.registerListener(ss);
+            SparderEnv.registerListener(ss.sparkContext());
 
             //#8341
             SparderEnv.setSparkSession(ss);
@@ -401,7 +402,7 @@ public abstract class SparkApplication implements Application, IKeep {
         chooseContentSize(helper);
 
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, Integer.toString(layoutSize));
-        Map<String, String> configOverride = config.getSparkConfigOverride();
+        Map<String, String> configOverride = getSparkConfigOverride(config);
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE));
         helper.setOption(SparkConfHelper.REQUIRED_CORES, calculateRequiredCores());
         helper.setConf(COUNT_DISTICT, hasCountDistinct().toString());
@@ -476,8 +477,12 @@ public abstract class SparkApplication implements Application, IKeep {
         return NSparkCubingUtil.toIgnoredTableSet(getParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES));
     }
 
-    private Map<String, String> getSparkConfigOverride(KylinConfig config) {
-        Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
+    protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
+        return config.getSparkConfigOverride();
+    }
+
+    private Map<String, String> getApplicationSparkConfig(KylinConfig config) {
+        Map<String, String> sparkConfigOverride = getSparkConfigOverride(config);
         String sparkExecutorExtraJavaOptionsKey = "spark.executor.extraJavaOptions";
         StringBuilder sb = new StringBuilder();
         if (sparkConfigOverride.containsKey(sparkExecutorExtraJavaOptionsKey)) {

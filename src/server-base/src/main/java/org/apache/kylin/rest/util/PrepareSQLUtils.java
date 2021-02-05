@@ -31,6 +31,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Locale;
 
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.config.Lex;
@@ -38,14 +39,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigCannotInitException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.request.PrepareSqlRequest;
 
 public class PrepareSQLUtils {
 
     private static final char LITERAL_QUOTE = '\'';
     private static final char PARAM_PLACEHOLDER = '?';
 
-    public static String fillInParams(String prepareSQL, PrepareSqlRequest.StateParam[] params) {
+    public static String fillInParams(String prepareSQL, PrepareSqlStateParam[] params) {
 
         int startOffset = 0;
         int placeHolderIdx = -1;
@@ -65,12 +65,12 @@ public class PrepareSQLUtils {
         if (paramIdx != params.length) {
             throw new IllegalStateException(String.format(Locale.ROOT,
                     "Invalid PrepareStatement, failed to match params with place holders, sql: %s, params: %s",
-                    prepareSQL, Arrays.stream(params).map(PrepareSqlRequest.StateParam::getValue)));
+                    prepareSQL, Arrays.stream(params).map(PrepareSqlStateParam::getValue)));
         }
         return prepareSQL;
     }
 
-    private static String convertToLiteralString(PrepareSqlRequest.StateParam param) {
+    private static String convertToLiteralString(PrepareSqlStateParam param) {
         Object value = getValue(param);
         if (value == null) {
             return "NULL";
@@ -91,7 +91,7 @@ public class PrepareSQLUtils {
         }
     }
 
-    private static Object getValue(PrepareSqlRequest.StateParam param) {
+    private static Object getValue(PrepareSqlStateParam param) {
         boolean isNull = (null == param.getValue());
 
         Class<?> clazz;

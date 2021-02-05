@@ -28,11 +28,13 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.calcite.rel.`type`.RelDataType
+import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
+import org.apache.kylin.query.util.AsyncQueryUtil
 import org.apache.spark.SparkException
 import org.apache.spark.sql.execution.QueryExecution
 import org.apache.spark.sql.hive.QueryMetricUtils
@@ -190,7 +192,6 @@ object ResultPlan extends LogEx {
   }
 
   def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {
-    SparderEnv.getResultRef.set(true)
     SparderEnv.setDF(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
@@ -205,15 +206,19 @@ object ResultPlan extends LogEx {
     QueryContext.currentTrace().endLastSpan()
     val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
     format match {
-      case "json" => df.write.option("encoding", encode).mode(SaveMode.Append).json(path)
-      case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).mode(SaveMode.Append).csv(path)
+      case "json" => df.write.option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).json(path)
+      case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).csv(path)
     }
+    AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
     jobTrace.jobFinished()
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
     val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
     QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
     QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
+    QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")
+      .map(_.value).get)
   }
+
 }
 
 object QueryToExecutionIDCache extends LogEx {

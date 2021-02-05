@@ -34,7 +34,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -55,14 +54,11 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
+import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.parquet.Strings;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -91,34 +87,12 @@ public class AsyncQueryService extends BasicService {
         RUNNING, FAILED, SUCCESS, MISS
     }
 
-    protected FileSystem getFileSystem() {
-        return HadoopUtil.getWorkingFileSystem();
-    }
-
     public void saveQueryUsername(String project, String queryId) throws IOException {
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getUserFileName()));
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, AsyncQueryUtil.getUserFileName()));
                 OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             osw.write(getUsername());
-        }
-    }
-
-    public void saveMetaData(String project, SQLResponse sqlResponse, String queryId) throws IOException {
-        ArrayList<String> dataTypes = Lists.newArrayList();
-        ArrayList<String> columnNames = Lists.newArrayList();
-        for (SelectedColumnMeta selectedColumnMeta : sqlResponse.getColumnMetas()) {
-            dataTypes.add(selectedColumnMeta.getColumnTypeName());
-            columnNames.add(selectedColumnMeta.getName());
-        }
-
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getMetaDataFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
-            String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
-            osw.write(metaString);
-
         }
     }
 
@@ -126,8 +100,8 @@ public class AsyncQueryService extends BasicService {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         List<List<String>> result = Lists.newArrayList();
-        FileSystem fileSystem = getFileSystem();
-        try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getMetaDataFileName()));
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()));
                 BufferedReader bufferedReader = new BufferedReader(
                         new InputStreamReader(is, Charset.defaultCharset()))) {
             result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
@@ -136,23 +110,11 @@ public class AsyncQueryService extends BasicService {
         return result;
     }
 
-    public void saveFileInfo(String project, String format, String encode, String fileName, String queryId)
-            throws IOException {
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFileInfo())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
-            osw.write(format + "\n");
-            osw.write(encode + "\n");
-            osw.write(fileName);
-        }
-    }
-
     public FileInfo getFileInfo(String project, String queryId) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileInfo fileInfo = new FileInfo();
-        try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getFileInfo()));
+        try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
                 BufferedReader bufferedReader = new BufferedReader(
                         new InputStreamReader(is, Charset.defaultCharset()))) {
             fileInfo.setFormat(bufferedReader.readLine());
@@ -162,26 +124,11 @@ public class AsyncQueryService extends BasicService {
         }
     }
 
-    public void createErrorFlag(String project, String queryId, String errorMessage) throws IOException {
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        if (!fileSystem.exists(asyncQueryResultDir)) {
-            fileSystem.mkdirs(asyncQueryResultDir);
-        }
-        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFailureFlagFileName())); //
-                OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
-            if (errorMessage != null) {
-                osw.write(errorMessage);
-                os.hflush();
-            }
-        }
-    }
-
     public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
             HttpServletResponse response, String fileFormat, String encode) throws IOException {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path dataPath = getAsyncQueryResultDir(project, queryId);
 
         if (!fileSystem.exists(dataPath)) {
@@ -220,8 +167,8 @@ public class AsyncQueryService extends BasicService {
     public String retrieveSavedQueryException(String project, String queryId) throws IOException {
         Message msg = MsgPicker.getMsg();
 
-        FileSystem fileSystem = getFileSystem();
-        Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), getFailureFlagFileName());
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), AsyncQueryUtil.getFailureFlagFileName());
 
         if (!fileSystem.exists(dataPath)) {
             throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
@@ -236,11 +183,14 @@ public class AsyncQueryService extends BasicService {
 
     public QueryStatus queryStatus(String project, String queryId) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        if (getFileSystem().exists(asyncQueryResultDir)) {
-            if (getFileSystem().exists(new Path(asyncQueryResultDir, getFailureFlagFileName()))) {
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
+        if (fileSystem.exists(asyncQueryResultDir)) {
+            if (fileSystem.exists(new Path(asyncQueryResultDir, AsyncQueryUtil.getFailureFlagFileName()))) {
                 return QueryStatus.FAILED;
             }
-            if (getFileSystem().exists(new Path(asyncQueryResultDir, getSuccessFlagFileName()))) {
+            if (fileSystem.exists(new Path(asyncQueryResultDir, AsyncQueryUtil.getSuccessFlagFileName()))
+                    && fileSystem.exists(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()))
+                    && fileSystem.exists(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()))) {
                 return QueryStatus.SUCCESS;
             }
             return QueryStatus.RUNNING;
@@ -250,9 +200,9 @@ public class AsyncQueryService extends BasicService {
 
     public String getQueryUsername(String queryId, String project) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         if (fileSystem.exists(asyncQueryResultDir)) {
-            try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getUserFileName()));
+            try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, AsyncQueryUtil.getUserFileName()));
                     BufferedReader bufferedReader = new BufferedReader(
                             new InputStreamReader(is, Charset.defaultCharset()))) {
                 return bufferedReader.readLine();
@@ -272,9 +222,9 @@ public class AsyncQueryService extends BasicService {
     public long fileStatus(String project, String queryId) throws IOException {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        if (getFileSystem().exists(asyncQueryResultDir) && getFileSystem().isDirectory(asyncQueryResultDir)) {
+        if (AsyncQueryUtil.getFileSystem().exists(asyncQueryResultDir) && AsyncQueryUtil.getFileSystem().isDirectory(asyncQueryResultDir)) {
             long totalFileSize = 0;
-            FileStatus[] fileStatuses = getFileSystem().listStatus(asyncQueryResultDir);
+            FileStatus[] fileStatuses = AsyncQueryUtil.getFileSystem().listStatus(asyncQueryResultDir);
             for (FileStatus fileStatus : fileStatuses) {
                 if (!fileStatus.getPath().getName().startsWith("_"))
                     totalFileSize += fileStatus.getLen();
@@ -298,7 +248,7 @@ public class AsyncQueryService extends BasicService {
         List<ProjectInstance> projectInstances = projectManager.listAllProjects();
         boolean allSuccess = true;
         Set<Path> asyncQueryResultPaths = new HashSet<Path>();
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         for (ProjectInstance projectInstance : projectInstances) {
             Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir(projectInstance.getName());
             if (!fileSystem.exists(asyncQueryResultBaseDir)) {
@@ -309,7 +259,7 @@ public class AsyncQueryService extends BasicService {
 
         logger.info("clean all async result dir");
         for (Path path : asyncQueryResultPaths) {
-            if (!getFileSystem().delete(path, true)) {
+            if (!AsyncQueryUtil.getFileSystem().delete(path, true)) {
                 allSuccess = false;
             }
         }
@@ -322,13 +272,13 @@ public class AsyncQueryService extends BasicService {
             throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         }
         logger.info("clean async query result for query id [{}]", queryId);
-        return getFileSystem().delete(resultDir, true);
+        return AsyncQueryUtil.getFileSystem().delete(resultDir, true);
     }
 
     public boolean deleteOldQueryResult(String project, long time) throws IOException {
         boolean isAllSucceed = true;
         Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir(project);
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         if (!fileSystem.exists(asyncQueryResultBaseDir)) {
             return true;
         }
@@ -382,31 +332,11 @@ public class AsyncQueryService extends BasicService {
         return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir(project), queryId);
     }
 
-    public String getSuccessFlagFileName() {
-        return "_SUCCESS";
-    }
-
-    public String getFailureFlagFileName() {
-        return "_FAILED";
-    }
-
-    public String getMetaDataFileName() {
-        return "_METADATA";
-    }
-
-    public String getUserFileName() {
-        return "_USER";
-    }
-
-    public String getFileInfo() {
-        return "_FILEINFO";
-    }
-
     private String processHeader(FileSystem fileSystem, Path dataPath) throws IOException {
 
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         for (FileStatus header : fileStatuses) {
-            if (header.getPath().getName().equals(getMetaDataFileName())) {
+            if (header.getPath().getName().equals(AsyncQueryUtil.getMetaDataFileName())) {
                 try (FSDataInputStream inputStream = fileSystem.open(header.getPath());
                         BufferedReader bufferedReader = new BufferedReader(
                                 new InputStreamReader(inputStream, Charset.defaultCharset()))) {
@@ -419,7 +349,7 @@ public class AsyncQueryService extends BasicService {
 
     private void processCSV(OutputStream outputStream, Path dataPath, boolean includeHeader, String columnNames)
             throws IOException {
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         if (includeHeader) {
             IOUtils.copy(IOUtils.toInputStream(columnNames), outputStream);
@@ -435,7 +365,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     private void processJSON(OutputStream outputStream, Path dataPath, String encode) throws IOException {
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         List<String> rowResults = Lists.newArrayList();
         for (FileStatus f : fileStatuses) {
@@ -455,7 +385,7 @@ public class AsyncQueryService extends BasicService {
             String columnNames) throws IOException {
         List<String[]> results = Lists.newArrayList();
         List<String> rowResults = Lists.newArrayList();
-        FileSystem fileSystem = getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         for (FileStatus f : fileStatuses) {
             if (!f.getPath().getName().startsWith("_")) {

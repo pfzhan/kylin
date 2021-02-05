@@ -159,6 +159,9 @@ public class PushDownUtil {
         if (!queryParams.isSelect() && !queryParams.isPrepare() && kylinConfig.isPushDownUpdateEnabled()) {
             runner.executeUpdate(sql, project);
         }
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            AsyncQueryUtil.saveMetaDataAndFileInfo(QueryContext.current(), returnColumnMeta);
+        }
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 

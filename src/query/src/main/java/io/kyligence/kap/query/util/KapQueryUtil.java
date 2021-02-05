@@ -68,6 +68,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KapQueryUtil {
 
+    public static final String DEFAULT_SCHEMA = "DEFAULT";
+
     private KapQueryUtil() {
     }
 
@@ -86,8 +88,8 @@ public class KapQueryUtil {
             // massage nested CC for drafted model
             Map<String, NDataModel> modelMap = Maps.newHashMap();
             modelMap.put(model.getUuid(), model);
-            ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT", modelMap);
-            QueryParams queryParams = new QueryParams(project, ccSql, "DEFAULT", false);
+            ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, DEFAULT_SCHEMA, modelMap);
+            QueryParams queryParams = new QueryParams(project, ccSql, DEFAULT_SCHEMA, false);
             queryParams.setKylinConfig(QueryUtil.getKylinConfig(project));
             queryParams.setAclInfo(aclInfo);
 

@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.model;
 
 public interface NBatchConstants {
+    String P_ASYNC_QUERY_NAME = "asyncQuery";
     String P_CUBOID_AGG_UDF = "newtenCuboidAggUDF";
     String P_DATAFLOW_ID = "dataflowId";
     String P_SEGMENT_IDS = "segmentIds";
@@ -51,6 +52,10 @@ public interface NBatchConstants {
 
     String P_INCREMENTAL_BUILD = "incrementalBuild";
     String P_SELECTED_PARTITION_COL = "selectedPartitionCol";
+
+    String P_QUERY_ID = "queryId";
+    String P_QUERY_PARAMS = "queryParams";
+    String P_QUERY_CONTEXT = "queryContext";
 
     // ut only
     String P_BREAK_POINT_LAYOUTS = "breakPointLayouts";

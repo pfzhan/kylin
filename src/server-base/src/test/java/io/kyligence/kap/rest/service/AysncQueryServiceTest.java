@@ -54,6 +54,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
+import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.parquet.Strings;
@@ -114,7 +115,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
         if (sqlResponse.isException()) {
-            asyncQueryService.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
+            AsyncQueryUtil.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
         }
         assertTrue(asyncQueryService.queryStatus(PROJECT, queryId) == AsyncQueryService.QueryStatus.FAILED);
         String ret = asyncQueryService.retrieveSavedQueryException(PROJECT, queryId);
@@ -125,7 +126,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testCreateErrorFlagWhenMessageIsNull() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.createErrorFlag(PROJECT, queryId, null);
+        AsyncQueryUtil.createErrorFlag(PROJECT, queryId, null);
     }
 
     @Test
@@ -235,9 +236,9 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         String queryId = uuid.toString();
         mockResultFile(queryId, false);
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
-        assertTrue(asyncQueryService.getFileSystem().exists(resultPath));
+        assertTrue(AsyncQueryUtil.getFileSystem().exists(resultPath));
         asyncQueryService.deleteAllFolder();
-        assertTrue(!asyncQueryService.getFileSystem().exists(resultPath));
+        assertTrue(!AsyncQueryUtil.getFileSystem().exists(resultPath));
     }
 
     @Test
@@ -248,7 +249,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         // before delete
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
-        assertTrue(asyncQueryService.getFileSystem().exists(resultPath));
+        assertTrue(AsyncQueryUtil.getFileSystem().exists(resultPath));
 
         // after delete
         asyncQueryService.deleteByQueryId(PROJECT, queryId);
@@ -283,10 +284,10 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         // before delete
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
-        assertTrue(asyncQueryService.getFileSystem().exists(resultPath));
+        assertTrue(AsyncQueryUtil.getFileSystem().exists(resultPath));
         asyncQueryService.deleteOldQueryResult(PROJECT, time - 1000 * 60);
         resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
-        assertTrue(asyncQueryService.getFileSystem().exists(resultPath));
+        assertTrue(AsyncQueryUtil.getFileSystem().exists(resultPath));
 
         // after delete
         asyncQueryService.deleteOldQueryResult(PROJECT, time + 1000 * 60);
@@ -351,6 +352,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         client.start();
         Boolean hasRunning = exchanger.exchange(false);
         assertTrue(hasRunning);
+        Thread.sleep(1000);
         AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(PROJECT, queryId);
         assertTrue(queryStatus == AsyncQueryService.QueryStatus.SUCCESS);
         long l = asyncQueryService.fileStatus(PROJECT, queryId);
@@ -381,7 +383,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         when(sqlResponse.getExceptionMessage()).thenReturn("some error!!!");
 
         if (sqlResponse.isException()) {
-            asyncQueryService.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
+            AsyncQueryUtil.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
         }
         asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.FAILED, PROJECT, "");
     }
@@ -457,14 +459,14 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         sqlResponse.setColumnMetas(
                 Lists.newArrayList(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0",
                         "c0", null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false)));
-        asyncQueryService.saveMetaData(PROJECT, sqlResponse, queryId);
+        AsyncQueryUtil.saveMetaData(PROJECT, sqlResponse.getColumnMetas(), queryId);
     }
 
     @Test
     public void testSaveFileInfo() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+        AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
         AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
         assertEquals(fileInfo.getFormat(), formatDefault);
         assertEquals(fileInfo.getEncode(), encodeDefault);
@@ -486,7 +488,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         List<String> row1 = Lists.newArrayList("a1", "b1", "c1");
         List<String> row2 = Lists.newArrayList("a2", "b2", "c2");
-        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
@@ -499,7 +501,9 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 ICsvListWriter csvWriter = new CsvListWriter(osw, CsvPreference.STANDARD_PREFERENCE)) {
             csvWriter.write(row1);
             csvWriter.write(row2);
-            fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getSuccessFlagFileName()));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
         }
 
         return asyncQueryResultDir;
@@ -509,7 +513,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         String row1 = "{'column1':'a1', 'column2':'b1'}\n";
         String row2 = "{'column1':'a2', 'column2':'b2'}";
-        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
@@ -518,20 +522,22 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                 OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) {
             osw.write(StringEscapeUtils.unescapeJson(row1));
             osw.write(StringEscapeUtils.unescapeJson(row2));
-            fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getSuccessFlagFileName()));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
         }
 
         return asyncQueryResultDir;
     }
 
     public void mockMetadata(String queryId) throws IOException {
-        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         try (FSDataOutputStream os = fileSystem
-                .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
+                .create(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName())); //
                 OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
             osw.write(metaString);
@@ -543,13 +549,13 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     public void mockFormat(String queryId) throws IOException {
-        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         try (FSDataOutputStream os = fileSystem
-                .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
+                .create(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName())); //
                 OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             osw.write(formatDefault);
 
@@ -559,13 +565,13 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     public void mockEncode(String queryId) throws IOException {
-        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
         try (FSDataOutputStream os = fileSystem
-                .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
+                .create(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName())); //
                 OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8)) { //
             osw.write(encodeDefault);
 

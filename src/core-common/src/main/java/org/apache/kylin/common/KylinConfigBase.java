@@ -1183,6 +1183,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.engine.spark-conf.");
     }
 
+    public Map<String, String> getAsyncQuerySparkConfigOverride() {
+        return getPropertiesByPrefix("kylin.query.async-query.spark-conf.");
+    }
+
     public int getSparkEngineMaxRetryTime() {
         return Integer.parseInt(getOptional("kylin.engine.max-retry-time", "3"));
     }
@@ -2202,6 +2206,14 @@ public abstract class KylinConfigBase implements Serializable {
 
     public long getAsyncQueryResultRetainDays() {
         return TimeUtil.timeStringAs(this.getOptional("kylin.query.async.result-retain-days", "7d"), TimeUnit.DAYS);
+    }
+
+    public Boolean isUniqueAsyncQueryYarnQueue() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.unique-async-query-yarn-queue-enabled", FALSE));
+    }
+
+    public String getAsyncQueryHadoopConfDir() {
+        return getOptional("kylin.query.async-query.submit-hadoop-conf-dir", "");
     }
 
     public String getExternalCatalogClass() {

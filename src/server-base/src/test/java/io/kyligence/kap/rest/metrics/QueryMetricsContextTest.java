@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.rest.metrics;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -36,8 +36,6 @@ import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.request.SQLRequest;
-import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,6 +44,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -53,24 +52,22 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import lombok.val;
-
-import static io.kyligence.kap.metadata.query.QueryHistory.USER_STOP_QUERY_ERROR;
 
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     private static final String QUERY_ID = "3395dd9a-a8fb-47c0-b586-363271ca52e2";
 
-    private String massageSql(final SQLRequest request) {
+    private String massageSql(QueryContext queryContext) {
 
-        String defaultSchema = new QueryExec(request.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(request.getProject()), request.getSql(),
-                request.getProject(), request.getLimit(), request.getOffset(), defaultSchema, false);
+        String defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()), queryContext.getUserSQL(),
+                queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(), defaultSchema, false);
         return QueryUtil.massageSql(queryParams);
     }
 
@@ -102,8 +99,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         exceptionRule.expect(IllegalStateException.class);
         exceptionRule.expectMessage("Query metric context is not started");
 
-        QueryMetricsContext.collect(Mockito.mock(SQLRequest.class), Mockito.mock(SQLResponse.class),
-                Mockito.mock(QueryContext.class), Mockito.mock(HashSet.class));
+        QueryMetricsContext.collect(Mockito.mock(QueryContext.class));
     }
 
     @Test
@@ -116,24 +112,19 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         queryContext.getMetrics().setFinalCause(new RuntimeException(new RuntimeException("other error")));
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
 
-        final SQLResponse response = new SQLResponse();
-        response.setException(true);
-        response.setHitExceptionCache(true);
-        response.setServer("localhost:7070");
-        response.setSuite("suite_1");
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
         Assert.assertEquals("Other error", influxdbTags.get("error_type"));
         Assert.assertEquals("localhost:7070", influxdbTags.get("server"));
-        Assert.assertEquals("suite_1", influxdbTags.get("suite"));
     }
 
     @Test
@@ -143,16 +134,16 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         queryContext.getMetrics().setFinalCause(new UserStopQueryException(""));
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
-        final SQLResponse response = new SQLResponse();
-        response.setException(true);
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
-        Assert.assertEquals(USER_STOP_QUERY_ERROR, influxdbTags.get("error_type"));
+        queryContext.setProject("default");
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
+        Assert.assertEquals("Other error", influxdbTags.get("error_type"));
     }
 
     @Test
@@ -167,19 +158,17 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         queryContext.getQueryTagInfo().setWithoutSyntaxError(true);
         queryContext.getMetrics().setFinalCause(new RuntimeException(new RuntimeException("other error")));
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
 
-        final SQLResponse response = new SQLResponse();
-        response.setException(true);
-        response.setHitExceptionCache(true);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
         Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, influxdbTags.get("error_type"));
     }
 
@@ -192,21 +181,17 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
         long startTime = 1514764800000L;
-        request.setQueryStartTime(startTime);
+        queryContext.setProject("default");
+        queryContext.setUserSQL(sql);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getMetrics().setQueryStartTime(startTime);
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
 
-        final SQLResponse response = new SQLResponse();
-        response.setHitExceptionCache(true);
-        response.setEngineType("HIVE");
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
         Assert.assertTrue(influxdbTags.containsKey("error_type"));
 
         // assert month
@@ -216,6 +201,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     @Test
     public void assertCollectWithPushDown() {
         final String sql = "select * from test_with_pushdown";
+        final String sqlPattern = "select * from \"test_with_pushdown\"";
         final QueryContext queryContext = QueryContext.current();
         queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
@@ -223,39 +209,31 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         queryContext.getMetrics().setFinalCause(new SqlValidatorException("Syntax error", new RuntimeException()));
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.getMetrics().setQueryStartTime(System.currentTimeMillis());
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.setPushdownEngine("MOCKUP");
+        queryContext.getMetrics().setScannedBytes(QueryContext.calScannedValueWithDefault(Lists.newArrayList(999L)));
+        queryContext.getMetrics().setScannedRows(QueryContext.calScannedValueWithDefault(Lists.newArrayList(111L)));
+        queryContext.getQueryTagInfo().setPushdown(true);
 
-        final SQLResponse response = new SQLResponse(null, null, 0, false, null, true, true);
-        response.setEngineType("MOCKUP");
-        response.setDuration(100L);
-        response.setScanBytes(Lists.newArrayList(999L));
-        response.setScanRows(Lists.newArrayList(111L));
-        response.setTotalScanBytes(QueryContext.calScannedValueWithDefault(response.getScanBytes()));
-        response.setTotalScanRows(QueryContext.calScannedValueWithDefault(response.getScanRows()));
-
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         // assert tags
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
         Assert.assertEquals("ADMIN", influxdbTags.get("submitter"));
-        Assert.assertEquals("Unknown", influxdbTags.get("suite"));
         Assert.assertEquals("MOCKUP", influxdbTags.get("engine_type"));
         Assert.assertEquals("Syntax error", influxdbTags.get("error_type"));
         Assert.assertEquals("false", influxdbTags.get("index_hit"));
 
         // assert fields
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(queryContext.getQueryId(), influxdbFields.get("query_id"));
         Assert.assertEquals("select * from test_with_pushdown", influxdbFields.get("sql_text"));
-        Assert.assertEquals(100L, influxdbFields.get("duration"));
         Assert.assertEquals(999L, influxdbFields.get("total_scan_bytes"));
         Assert.assertEquals(111L, influxdbFields.get("total_scan_count"));
-        Assert.assertEquals(999L, response.getTotalScanBytes());
-        Assert.assertEquals(111L, response.getTotalScanRows());
 
         // assert realizations
         final List<QueryMetrics.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
@@ -265,31 +243,27 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     @Test
     public void assertCollectWithConstantQuery() {
         final String sql = "select * from test_table where 1 <> 1";
+        final String sqlPattern = "select * from \"test_with_pushdown\"";
         final QueryContext queryContext = QueryContext.current();
         queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
 
-        final SQLResponse response = new SQLResponse(null, null, 0, false, null, true, true);
-        response.setEngineType("CONSTANTS");
-
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         // assert tags
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
         Assert.assertEquals("ADMIN", influxdbTags.get("submitter"));
-        Assert.assertEquals("Unknown", influxdbTags.get("suite"));
         Assert.assertEquals("CONSTANTS", influxdbTags.get("engine_type"));
         Assert.assertEquals("false", influxdbTags.get("index_hit"));
 
         // assert fields
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(queryContext.getQueryId(), influxdbFields.get("query_id"));
         Assert.assertEquals("select * from test_table where 1 <> 1", influxdbFields.get("sql_text"));
 
@@ -308,24 +282,25 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         queryContext.getMetrics().setFinalCause(new RuntimeException("realization not found", new RuntimeException()));
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setUserSQL(sql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
+        queryContext.getQueryTagInfo().setPushdown(false);
 
-        final SQLResponse response = new SQLResponse();
-        NativeQueryRealization aggIndex = new NativeQueryRealization("mocked_model_id", "mocked_model", 1L,
-                QueryMetricsContext.AGG_INDEX);
-        NativeQueryRealization tableIndex = new NativeQueryRealization("mocked_model_id", "mocked_model",
-                IndexEntity.TABLE_INDEX_START_ID + 2, QueryMetricsContext.TABLE_INDEX);
-        response.setNativeRealizations(Lists.newArrayList(aggIndex, tableIndex));
-        response.setEngineType("NATIVE");
+        QueryContext.NativeQueryRealization aggIndex = new QueryContext.NativeQueryRealization("mocked_model_id",
+                "mocked_model", 1L, QueryMetricsContext.AGG_INDEX, false, false, false, Lists.newArrayList());
+        QueryContext.NativeQueryRealization tableIndex = new QueryContext.NativeQueryRealization("mocked_model_id",
+                "mocked_model", IndexEntity.TABLE_INDEX_START_ID + 2, QueryMetricsContext.TABLE_INDEX, false, false,
+                false, Lists.newArrayList());
+        queryContext.setNativeQueryRealizationList(Lists.newArrayList(aggIndex, tableIndex));
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
         // assert query metric tags
-        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        final Map<String, String> influxdbTags = getInfluxdbTags(metricsContext);
         Assert.assertEquals("NATIVE", influxdbTags.get("engine_type"));
         Assert.assertEquals(QueryHistory.OTHER_ERROR, influxdbTags.get("error_type"));
         Assert.assertEquals("true", influxdbTags.get("index_hit"));
@@ -339,7 +314,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(queryContext.getQueryId(), actual.getQueryId());
 
         // assert realization metric tags
-        Assert.assertEquals("Unknown", actual.getSuite());
         Assert.assertEquals("mocked_model_id", actual.getModelId());
         Assert.assertEquals("1", actual.getLayoutId());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, actual.getIndexType());
@@ -355,22 +329,17 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(origSql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.setUserSQL(origSql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final SQLResponse response = new SQLResponse();
-        response.setHitExceptionCache(true);
-        response.setServer("localhost:7070");
-        response.setSuite("suite_1");
-        response.setEngineType("HIVE");
-
-        queryContext.getMetrics().setCorrectedSql(massageSql(request));
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
@@ -385,22 +354,18 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(origSql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.setUserSQL(origSql);
+        queryContext.getMetrics().setCorrectedSql(massageSql(queryContext));
 
-        final SQLResponse response = new SQLResponse();
-        response.setHitExceptionCache(true);
-        response.setServer("localhost:7070");
-        response.setSuite("suite_1");
-        response.setEngineType("HIVE");
-        response.setStorageCacheUsed(true);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
@@ -414,21 +379,17 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(origSql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.getMetrics().setCorrectedSql(origSql);
+        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
 
-        final SQLResponse response = new SQLResponse();
-        response.setHitExceptionCache(true);
-        response.setServer("localhost:7070");
-        response.setSuite("suite_1");
-        response.setEngineType("HIVE");
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
@@ -453,21 +414,17 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(origSql);
-        request.setUsername("ADMIN");
+        queryContext.setProject("default");
+        queryContext.getMetrics().setCorrectedSql(origSql);
+        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+        queryContext.getMetrics().setServer("localhost:7070");
+        queryContext.setPushdownEngine("HIVE");
 
-        final SQLResponse response = new SQLResponse();
-        response.setHitExceptionCache(true);
-        response.setServer("localhost:7070");
-        response.setSuite("suite_1");
-        response.setEngineType("HIVE");
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
-
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
@@ -481,19 +438,54 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final SQLRequest request = new SQLRequest();
-        request.setProject("default");
-        request.setSql(sql);
-        request.setUsername("ADMIN");
-        long startTime = System.currentTimeMillis();
-        request.setQueryStartTime(startTime);
+        long startTime = 1514764800000L;
+        queryContext.setProject("default");
+        queryContext.setUserSQL(sql);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getMetrics().setQueryStartTime(startTime);
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
 
-        final SQLResponse response = new SQLResponse();
-        response.setHitExceptionCache(true);
-        response.setEngineType("HIVE");
-
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
         Assert.assertEquals(startTime, metricsContext.getQueryTime());
+    }
+
+    public Map<String, String> getInfluxdbTags(QueryMetrics queryMetrics) {
+        final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
+                .put(QueryHistory.SUBMITTER, queryMetrics.getSubmitter()) //
+                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(queryMetrics.isIndexHit())).put(QueryHistory.MONTH, queryMetrics.getMonth())
+                .put(QueryHistory.IS_TABLE_INDEX_USED, String.valueOf(queryMetrics.isTableIndexUsed()))
+                .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(queryMetrics.isAggIndexUsed()))
+                .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(queryMetrics.isTableSnapshotUsed()));
+
+        if (StringUtils.isBlank(queryMetrics.getServer())) {
+            queryMetrics.setServer(queryMetrics.getDefaultServer());
+        }
+        builder.put(QueryHistory.QUERY_SERVER, queryMetrics.getServer());
+
+        if (StringUtils.isNotBlank(queryMetrics.getErrorType())) {
+            builder.put(QueryHistory.ERROR_TYPE, queryMetrics.getErrorType());
+        } else {
+            builder.put(QueryHistory.ERROR_TYPE, "");
+        }
+
+        if (StringUtils.isNotBlank(queryMetrics.getEngineType())) {
+            builder.put(QueryHistory.ENGINE_TYPE, queryMetrics.getEngineType());
+        } else {
+            builder.put(QueryHistory.ENGINE_TYPE, "");
+        }
+
+        return builder.build();
+    }
+
+    public static Map<String, Object> getInfluxdbFields(QueryMetrics queryMetrics) {
+        final ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object> builder() //
+                .put(QueryHistory.SQL_TEXT, queryMetrics.getSql()) //
+                .put(QueryHistory.QUERY_ID, queryMetrics.getQueryId()) //
+                .put(QueryHistory.QUERY_DURATION, queryMetrics.getQueryDuration()).put(QueryHistory.TOTAL_SCAN_BYTES, queryMetrics.getTotalScanBytes())
+                .put(QueryHistory.TOTAL_SCAN_COUNT, queryMetrics.getTotalScanCount()).put(QueryHistory.RESULT_ROW_COUNT, queryMetrics.getResultRowCount())
+                .put(QueryHistory.IS_CACHE_HIT, queryMetrics.isCacheHit()).put(QueryHistory.QUERY_STATUS, queryMetrics.getQueryStatus())
+                .put(QueryHistory.QUERY_TIME, queryMetrics.getQueryTime()).put(QueryHistory.SQL_PATTERN, queryMetrics.getSqlPattern());
+        return builder.build();
     }
 }

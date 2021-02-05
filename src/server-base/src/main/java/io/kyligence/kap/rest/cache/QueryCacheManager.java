@@ -32,6 +32,7 @@ import java.util.Locale;
 import javax.annotation.PostConstruct;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.util.QueryUtil;
@@ -129,12 +130,18 @@ public class QueryCacheManager {
     }
 
     public void cacheSuccessQuery(SQLRequest sqlRequest, SQLResponse sqlResponse) {
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            return;
+        }
         if (cacheable(sqlRequest, sqlResponse)) {
             doCacheSuccessQuery(sqlRequest, sqlResponse);
         }
     }
 
     public void cacheFailedQuery(SQLRequest sqlRequest, SQLResponse sqlResponse) {
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            return;
+        }
         try {
             getProjectCache(Type.EXCEPTION_QUERY_CACHE, sqlRequest.getProject())
                     .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
@@ -165,6 +172,7 @@ public class QueryCacheManager {
         }
 
         cached.setStorageCacheUsed(true);
+        QueryContext.current().getQueryTagInfo().setStorageCacheUsed(true);
         return cached;
     }
 
@@ -174,6 +182,7 @@ public class QueryCacheManager {
             return null;
         }
         cached.setHitExceptionCache(true);
+        QueryContext.current().getQueryTagInfo().setHitExceptionCache(true);
         return cached;
     }
 

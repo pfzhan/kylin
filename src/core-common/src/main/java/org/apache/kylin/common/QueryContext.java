@@ -53,7 +53,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -99,6 +101,12 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     private String userSQL;
+    @Getter
+    @Setter
+    private Integer limit = 0;
+    @Getter
+    @Setter
+    private Integer offset = 0;
 
     @Getter
     @Setter
@@ -123,6 +131,10 @@ public class QueryContext implements Closeable {
 
     public static QueryTrace currentTrace() {
         return contexts.get().getQueryTrace();
+    }
+
+    public static void set(QueryContext queryContext) {
+        contexts.set(queryContext);
     }
 
     public static void reset() {
@@ -162,6 +174,7 @@ public class QueryContext implements Closeable {
 
     @Getter
     @Setter
+    @NoArgsConstructor
     public static class AclInfo {
 
         private String username;
@@ -187,10 +200,15 @@ public class QueryContext implements Closeable {
     @Setter
     public class Metrics {
         private String correctedSql;
+        private String sqlPattern;
         private Throwable finalCause;
         private Throwable olapCause;
         private boolean exactlyMatch;
+        private boolean isException;
         private int segCount;
+        private long queryStartTime;
+        private String server;
+        private long resultRowCount;
 
         private AtomicLong sourceScanBytes = new AtomicLong();
         private AtomicLong sourceScanRows = new AtomicLong();
@@ -281,8 +299,30 @@ public class QueryContext implements Closeable {
         private boolean isHighPriorityQuery = false;
         private boolean withoutSyntaxError;
         private boolean isAsyncQuery;
+        private boolean isPushdown;
+        private boolean isPartial = false;
+        private boolean isStorageCacheUsed = false;
+        private boolean hitExceptionCache = false;
         private String fileFormat;
         private String fileEncode;
+        private String fileName;
+    }
+
+    @Getter
+    @Setter
+    private List<NativeQueryRealization> nativeQueryRealizationList;
+
+    @AllArgsConstructor
+    @Getter
+    public static class NativeQueryRealization {
+        private String modelId;
+        private String modelAlias;
+        private Long layoutId;
+        private String indexType;
+        private boolean isPartialMatchModel;
+        private boolean isValid = true;
+        private boolean isLayoutExist = true;
+        private List<String> snapshots;
     }
 
 }

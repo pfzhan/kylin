@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -307,7 +306,7 @@ public class NSparkExecutable extends AbstractExecutable {
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
-    private ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
+    protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
 
         try {
@@ -336,7 +335,7 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    private void killOrphanApplicationIfExists(String jobStepId) {
+    protected void killOrphanApplicationIfExists(String jobStepId) {
         try {
             val sparkConf = getSparkConf();
             val sparkMaster = sparkConf.getOrDefault(SPARK_MASTER, "local");
@@ -389,7 +388,7 @@ public class NSparkExecutable extends AbstractExecutable {
         return overrides;
     }
 
-    private void overrideDriverOps(KylinConfig config, Map<String, String> sparkConfigOverride) {
+    protected void overrideDriverOps(KylinConfig config, Map<String, String> sparkConfigOverride) {
         StringBuilder sb = new StringBuilder();
         if (sparkConfigOverride.containsKey(DRIVER_OPS)) {
             sb.append(sparkConfigOverride.get(DRIVER_OPS).trim());
@@ -450,7 +449,7 @@ public class NSparkExecutable extends AbstractExecutable {
                 "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
         Map<String, String> sparkConf = getSparkConf();
-        for (Entry<String, String> entry : sparkConf.entrySet()) {
+        for (Map.Entry<String, String> entry : sparkConf.entrySet()) {
             appendSparkConf(sb, entry.getKey(), entry.getValue());
         }
         // extra classpath
@@ -491,7 +490,7 @@ public class NSparkExecutable extends AbstractExecutable {
             }
         }
 
-        sb.append("--name job_step_%s ");
+        sb.append("--name " + getJobNamePrefix() + "%s ");
         sb.append("--jars %s %s %s ");
 
         // Three parameters at most per line.
@@ -557,7 +556,7 @@ public class NSparkExecutable extends AbstractExecutable {
         attachMetadataAndKylinProps(config, false);
     }
 
-    private void attachMetadataAndKylinProps(KylinConfig config, boolean kylinPropsOnly) throws IOException {
+    protected void attachMetadataAndKylinProps(KylinConfig config, boolean kylinPropsOnly) throws IOException {
 
         String metaDumpUrl = getDistMetaUrl();
         if (StringUtils.isEmpty(metaDumpUrl)) {
@@ -634,6 +633,10 @@ public class NSparkExecutable extends AbstractExecutable {
         } catch (Exception e) {
             logger.error("delete job tmp in path {} failed.", taskPath, e);
         }
+    }
+
+    protected String getJobNamePrefix() {
+        return "job_step_";
     }
 
     public boolean needMergeMetadata() {

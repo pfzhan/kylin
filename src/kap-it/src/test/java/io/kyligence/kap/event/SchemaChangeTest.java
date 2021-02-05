@@ -265,7 +265,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
             val response = queryService.query(req);
             with().pollInterval(10, TimeUnit.MILLISECONDS) //
                     .and().with().pollDelay(10, TimeUnit.MILLISECONDS) //
-                    .await().atMost(60000, TimeUnit.MILLISECONDS) //
+                    .await().atMost(100000, TimeUnit.MILLISECONDS) //
                     .untilAsserted(() -> {
                         String message = pair.getFirst() + " failed";
                         Assert.assertEquals(message, pair.getSecond(), response.isQueryPushDown());

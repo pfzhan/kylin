@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.util.Shell;
@@ -37,7 +38,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.parquet.Strings;
 import org.apache.spark.SparkConf;
@@ -162,8 +162,8 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 Arrays.asList(new Timestamp[]{Timestamp.valueOf(paramString)})).collectAsList();
         List<List<String>> setTimestampResults = transformToString(rows);
         // setTimestamp pushdown
-        PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[]{
-                new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(), paramString)};
+        PrepareSqlStateParam[] params = new PrepareSqlStateParam[]{
+                new PrepareSqlStateParam(Timestamp.class.getCanonicalName(), paramString)};
         String sqlPushDown = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params);
         List<List<String>> setTimestampPushdownResults = SparkSqlClient
                 .executeSql(ss, sqlPushDown, UUID.randomUUID(), getProject()).getFirst();
@@ -173,8 +173,8 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 .collectAsList();
         List<List<String>> setStringResults = transformToString(rows2);
         // setString pushdown
-        PrepareSqlRequest.StateParam[] params2 = new PrepareSqlRequest.StateParam[]{
-                new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), paramString)};
+        PrepareSqlStateParam[] params2 = new PrepareSqlStateParam[]{
+                new PrepareSqlStateParam(String.class.getCanonicalName(), paramString)};
         String sqlPushDown2 = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params2);
         List<List<String>> setStringPushdownResults = SparkSqlClient
                 .executeSql(ss, sqlPushDown2, UUID.randomUUID(), getProject()).getFirst();

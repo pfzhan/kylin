@@ -42,14 +42,12 @@ public class QueryMetrics implements IKeep {
 
     protected static final Logger logger = LoggerFactory.getLogger(QueryMetrics.class);
 
-    protected static final KapConfig kapConfig = KapConfig.getInstanceFromEnv().getInstanceFromEnv();
+    protected static final KapConfig kapConfig = KapConfig.getInstanceFromEnv();
     public static final String UNKNOWN = "Unknown";
 
     public static final String AGG_INDEX = "Agg Index";
     public static final String TABLE_INDEX = "Table Index";
     public static final String TABLE_SNAPSHOT = "Table Snapshot";
-
-    protected static final ThreadLocal<QueryMetrics> contexts = new ThreadLocal<>();
 
     // fields below are columns in InfluxDB table which records down query history
     protected long id;
@@ -62,7 +60,6 @@ public class QueryMetrics implements IKeep {
 
     protected String submitter;
     protected String server;
-    protected String suite;
 
     protected long queryDuration;
     protected long totalScanBytes;
@@ -90,6 +87,10 @@ public class QueryMetrics implements IKeep {
 
     protected QueryHistoryInfo queryHistoryInfo;
 
+    public QueryMetrics(String queryId) {
+        this.queryId = queryId;
+    }
+
     public QueryMetrics(String queryId, String defaultServer) {
         this.queryId = queryId;
         this.defaultServer = defaultServer;
@@ -107,8 +108,6 @@ public class QueryMetrics implements IKeep {
         protected String queryId;
 
         protected long duration;
-
-        protected String suite;
 
         protected String layoutId;
 

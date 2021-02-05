@@ -222,6 +222,20 @@ public class HDFSMetadataStore extends MetadataStore {
     }
 
     @Override
+    public void dump(ResourceStore store, List<String> resources) throws Exception {
+        val compressedFile = new Path(this.rootPath, COMPRESSED_FILE);
+        try (FSDataOutputStream out = fs.create(compressedFile, true);
+                ZipOutputStream zipOut = new ZipOutputStream(new CheckedOutputStream(out, new CRC32()))) {
+            for (String resPath : resources) {
+                val raw = store.getResource(resPath);
+                compress(zipOut, raw);
+            }
+        } catch (Exception e) {
+            throw new IOException("Put compressed resource fail", e);
+        }
+    }
+
+    @Override
     public void restore(ResourceStore store) throws IOException {
         val compressedFile = getRealHDFSPath(COMPRESSED_FILE);
         if (!fs.exists(compressedFile) || !fs.isFile(compressedFile)) {

@@ -42,7 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
-import static org.apache.kylin.rest.service.QueryService.SPARK_MEM_LIMIT_EXCEEDED;
+import static io.kyligence.kap.rest.metrics.QueryMetricsContextTest.getInfluxdbFields;
+import static org.apache.kylin.common.QueryContext.PUSHDOWN_HIVE;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -63,7 +64,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -72,8 +72,6 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
-import org.apache.kylin.common.persistence.InMemResourceStore;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -97,7 +95,6 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
-import org.apache.spark.SparkException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -108,6 +105,8 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -130,14 +129,17 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 import net.sf.ehcache.CacheManager;
@@ -191,6 +193,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         origin = new QueryService();
         queryService = Mockito.spy(origin);
+        queryService.queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
 
         ReflectionTestUtils.setField(queryCacheManager, "cacheManager", cacheManager);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
@@ -212,93 +215,22 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    private void stubQueryConnection(final String sql, final String project) throws SQLException {
+    private void stubQueryConnection(final String sql, final String project) throws Exception {
         final QueryResult queryResult = Mockito.mock(QueryResult.class);
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        queryService.queryRoutingEngine = Mockito.mock(QueryRoutingEngine.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
         Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
+        Mockito.when(queryService.queryRoutingEngine.queryWithSqlMassage(Mockito.any()))
+                .thenReturn(new Pair<>(Lists.newArrayList(), Lists.newArrayList()));
     }
 
-    private void stubQueryConnectionSQLException(final String sql, final String project) throws Exception {
-        final SQLException sqlException = new SQLException();
-
-        final QueryResult queryResult = Mockito.mock(QueryResult.class);
-        final QueryExec queryExec = Mockito.mock(QueryExec.class);
-        Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
-        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
-        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
-        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
-        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
-        Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
-
-        // mock PushDownUtil
-        SQLRequest sqlRequest = new SQLRequest();
-        sqlRequest.setSql(sql);
-        sqlRequest.setProject(project);
-
-        Mockito.doAnswer(invocation -> {
-            pushdownCount++;
-            Assert.assertTrue(
-                    ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()) instanceof InMemResourceStore);
-            return new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                    Collections.EMPTY_LIST);
-        }).when(queryService).tryPushDownSelectQuery(sqlRequest, null, sqlException, false);
-
-    }
-
-    private void stubPushDownException(final String sql, final String project) throws Exception {
-        final SQLException sqlException = new SQLException();
-
-        final QueryResult queryResult = Mockito.mock(QueryResult.class);
-        final QueryExec queryExec = Mockito.mock(QueryExec.class);
-        Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
-        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
-        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
-        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
-        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
-        Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
-
-        QueryContext.current().setPushdownEngine("HIVE");
-
-        // mock PushDownUtil
-        SQLRequest sqlRequest = new SQLRequest();
-        sqlRequest.setSql(sql);
-        sqlRequest.setProject(project);
-        Mockito.doThrow(new SQLException("push down error")).when(queryService).tryPushDownSelectQuery(sqlRequest, null,
-                sqlException, false);
-    }
-
-    private void stubQueryConnectionException(final String project) throws Exception {
-        Mockito.when(queryService.newQueryExec(project))
+    private void stubQueryConnectionException() throws Exception {
+        Mockito.when(queryService.queryRoutingEngine.queryWithSqlMassage(Mockito.any()))
                 .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
-        Mockito.when(queryService.newQueryExec(project, null))
-                .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
-    }
-
-    @Test
-    public void testQueryPushDown() throws Throwable {
-
-        Assert.assertEquals(0, pushdownCount);
-        final String sql = "select * from success_table_2";
-        final String project = "default";
-        stubQueryConnectionSQLException(sql, project);
-
-        final SQLRequest request = new SQLRequest();
-        request.setProject(project);
-        request.setSql(sql);
-
-        final String expectedQueryID = QueryContext.current().getQueryId();
-
-        final SQLResponse response = queryService.doQueryWithCache(request, false);
-        Assert.assertEquals(true, response.isQueryPushDown());
-        Assert.assertEquals(expectedQueryID, response.getQueryId());
-
-        Mockito.verify(queryService).recordMetric(request, response);
-        Assert.assertEquals(1, pushdownCount);
-
     }
 
     @Test
@@ -324,7 +256,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST)).when(queryService).tryPushDownSelectQuery(sqlRequest, null, null, false);
+                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
 
@@ -335,7 +267,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testQueryPushDownErrorMessage() throws Exception {
         final String sql = "select * from success_table_2";
         final String project = "default";
-        stubPushDownException(sql, project);
+
+        Mockito.doAnswer(invocation -> {
+            QueryContext.current().setPushdownEngine(PUSHDOWN_HIVE);
+            throw new SQLException("push down error");
+        }).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
@@ -421,7 +357,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(log.contains("mock_model_alias2"));
     }
 
-    private void mockOLAPContextForEmptyLayout() {
+    private void mockOLAPContextForEmptyLayout() throws Exception {
         val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
 
         Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
@@ -441,9 +377,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         OLAPContext.registerContext(mock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+        mockQueryWithSqlMassage();
     }
 
-    private void mockOLAPContext() {
+    private void mockOLAPContext() throws Exception {
         val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
 
         Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
@@ -484,9 +421,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         OLAPContext.registerContext(tableMock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+        mockQueryWithSqlMassage();
     }
 
-    private void mockOLAPContextWithOneModelInfo(String modelId, String modelAlias, long layoutId) {
+    private void mockQueryWithSqlMassage() throws Exception {
+        Mockito.doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) {
+                return new Pair<>(Lists.newArrayList(), Lists.newArrayList());
+            }
+        }).when(queryService.queryRoutingEngine).queryWithSqlMassage(Mockito.any());
+    }
+
+    private void mockOLAPContextWithOneModelInfo(String modelId, String modelAlias, long layoutId) throws Exception {
         final OLAPContext mock = new OLAPContext(1);
 
         final NDataModel mockModel = Mockito.spy(new NDataModel());
@@ -507,6 +454,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         OLAPContext.registerContext(mock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+
+        mockQueryWithSqlMassage();
     }
 
     @Test
@@ -514,14 +463,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final String sql = "select * from exception_table";
         final String project = "newten";
 
-        Mockito.when(queryService.newQueryExec(project))
-                .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
-        Mockito.when(queryService.newQueryExec(project, null))
-                .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
-
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
+
+        Mockito.doThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")))
+                .when(queryService).query(request);
 
         final SQLResponse sqlResponse = queryService.doQueryWithCache(request, false);
         Assert.assertTrue(sqlResponse.isException());
@@ -539,7 +486,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
 
-        stubQueryConnectionException(project);
+        stubQueryConnectionException();
         try {
             final String expectedQueryID = QueryContext.current().getQueryId();
             final SQLResponse response = queryService.doQueryWithCache(request, false);
@@ -846,7 +793,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithConstants() throws IOException, SQLException {
+    public void testQueryWithConstants() throws Exception {
         String sql = "select price from test_kylin_fact where 1 <> 1";
         stubQueryConnection(sql, "default");
 
@@ -858,7 +805,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithEmptyLayout() throws SQLException {
+    public void testQueryWithEmptyLayout() throws Exception {
         String sql = "select price*item_count from test_kylin_fact where cal_dt = '2020-01-01' limit 100";
         stubQueryConnection(sql, "default");
         mockOLAPContextForEmptyLayout();
@@ -968,7 +915,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithCacheSignatureExpired() throws Exception {
+    public void testQueryWithCacheSignatureNotExpired() throws Exception {
 
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val modelAlias = "nmodel_basic";
@@ -976,7 +923,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final String project = "default";
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
 
-        final String sql = "select * from success_table";
+        final String sql = "select * from success_table_1";
         stubQueryConnection(sql, project);
         mockOLAPContextWithOneModelInfo(modelId, modelAlias, layoutId);
 
@@ -993,6 +940,27 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, secondSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
         Assert.assertEquals("nmodel_basic", secondSuccess.getNativeRealizations().get(0).getModelAlias());
+    }
+
+    @Test
+    public void testQueryWithCacheSignatureExpired() throws Exception {
+
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val modelAlias = "nmodel_basic";
+        long layoutId = 1000001L;
+        final String project = "default";
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+
+        final String sql = "select * from success_table_2";
+        stubQueryConnection(sql, project);
+        mockOLAPContextWithOneModelInfo(modelId, modelAlias, layoutId);
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        // case of not hitting cache
+        final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
 
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
@@ -1111,8 +1079,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final PrepareSqlRequest request = new PrepareSqlRequest();
         request.setProject(project);
         request.setSql(sql);
-        PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[1];
-        params[0] = new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), "value1");
+        PrepareSqlStateParam[] params = new PrepareSqlStateParam[1];
+        params[0] = new PrepareSqlStateParam(String.class.getCanonicalName(), "value1");
         request.setParams(params);
 
         final SQLResponse response = new SQLResponse();
@@ -1133,10 +1101,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
-                Sets.newHashSet("ROLE_ADMIN"));
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
 
-        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(filledSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         QueryMetricsContext.reset();
     }
@@ -1322,33 +1289,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Access is denied.");
         queryService.doQueryWithCache(request, false);
-    }
-
-    @Test
-    public void testThrowExceptionWhenSparkOOM() throws Exception {
-        QueryService queryService = Mockito.spy(new QueryService());
-        SQLRequest sqlRequest = new SQLRequest();
-        sqlRequest.setExecuteAs("ADMIN");
-        sqlRequest.setProject("default");
-        sqlRequest.setSql("select 1");
-        QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
-
-        Mockito.doReturn(queryExec).when(queryService).newQueryExec("default", "ADMIN");
-        Mockito.doReturn(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true)).when(queryService)
-                .getExecuteAclInfo("default", "ADMIN");
-        Mockito.when(queryService.execute("select 1", sqlRequest, queryExec)).thenThrow(new SparkException(
-                "Job aborted due to stage failure: Task 40 in stage 888.0 failed 1 times, most recent failure: "
-                        + "Lost task 40.0 in stage 888.0 (TID 79569, hrbd-73, executor 5): ExecutorLostFailure (executor 5 exited "
-                        + "caused by one of the running tasks) Reason: Container killed by YARN for exceeding memory limits.  6.5 GB "
-                        + "of 6.5 GB physical memory used. Consider boosting spark.yarn.executor.memoryOverhead or disabling "
-                        + "yarn.nodemanager.vmem-check-enabled because of YARN-4714."));
-        try {
-            queryService.queryWithSqlMassage(sqlRequest);
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof SparkException || e.getCause() instanceof SparkException);
-            Assert.assertTrue(e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)
-                    || e.getCause().getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED));
-        }
     }
 
     @Test

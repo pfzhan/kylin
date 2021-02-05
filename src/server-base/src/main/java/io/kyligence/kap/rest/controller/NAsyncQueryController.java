@@ -46,6 +46,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.exception.QueryErrorCode;
+import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -118,7 +119,6 @@ public class NAsyncQueryController extends NBasicController {
                     "");
         }
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
-        final AtomicReference<Boolean> compileResultRef = new AtomicReference<>();
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();
         final SecurityContext context = SecurityContextHolder.getContext();
         executorService.submit(new Runnable() {
@@ -129,13 +129,13 @@ public class NAsyncQueryController extends NBasicController {
                 SecurityContextHolder.setContext(context);
 
                 SparderEnv.setSeparator(sqlRequest.getSeparator());
-                SparderEnv.setResultRef(compileResultRef);
 
                 QueryContext queryContext = QueryContext.current();
                 sqlRequest.setQueryId(queryContext.getQueryId());
                 queryContext.getQueryTagInfo().setAsyncQuery(true);
                 queryContext.getQueryTagInfo().setFileFormat(format);
                 queryContext.getQueryTagInfo().setFileEncode(encode);
+                queryContext.getQueryTagInfo().setFileName(sqlRequest.getFileName());
                 queryContext.setProject(sqlRequest.getProject());
                 logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
                 String queryId = queryContext.getQueryId();
@@ -144,21 +144,14 @@ public class NAsyncQueryController extends NBasicController {
                     asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
                     SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
                     if (response.isException()) {
-                        asyncQueryService.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
+                        AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
                                 response.getExceptionMessage());
-                        compileResultRef.set(false);
                         exceptionHandle.set(response.getExceptionMessage());
-                    } else {
-                        asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
-                        asyncQueryService.saveFileInfo(sqlRequest.getProject(), format, encode,
-                                sqlRequest.getFileName(), queryContext.getQueryId());
-                        compileResultRef.set(true);
                     }
                 } catch (Exception e) {
                     try {
                         logger.error("failed to run query " + queryContext.getQueryId(), e);
-                        compileResultRef.set(false);
-                        asyncQueryService.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
+                        AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
                                 e.getMessage());
                         exceptionHandle.set(e.getMessage());
                     } catch (Exception e1) {
@@ -171,7 +164,7 @@ public class NAsyncQueryController extends NBasicController {
             }
         });
 
-        while (compileResultRef.get() == null) {
+        while (queryIdRef.get() == null) {
             Thread.sleep(200);
         }
 

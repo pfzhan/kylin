@@ -27,7 +27,9 @@ package io.kyligence.kap.query.engine.data;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.StructField;
+import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 
 public class QueryResult {
 
@@ -49,5 +51,21 @@ public class QueryResult {
 
     public List<StructField> getColumns() {
         return columns;
+    }
+
+    public List<SelectedColumnMeta> getColumnMetas() {
+        List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
+        int columnCount = this.columns.size();
+        List<StructField> fieldList = this.columns;
+
+        // fill in selected column meta
+        for (int i = 0; i < columnCount; ++i) {
+            int nullable = fieldList.get(i).isNullable() ? 1 : 0;
+            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true,
+                    fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null, null,
+                    null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
+                    fieldList.get(i).getDataTypeName(), false, false, false));
+        }
+        return columnMetas;
     }
 }

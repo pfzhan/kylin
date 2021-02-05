@@ -43,6 +43,7 @@
 package org.apache.kylin.query.util;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
@@ -64,6 +65,8 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
+        QueryUtil.queryTransformers = Collections.emptyList();
+        QueryUtil.pushDownConverters = Collections.emptyList();
         this.createTestMetadata();
     }
 

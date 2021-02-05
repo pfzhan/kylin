@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -133,6 +134,13 @@ public abstract class MetadataStore {
             log.info("there is no resources in rootPath ({}),please check the rootPath.", rootPath);
             return;
         }
+        for (String resPath : resources) {
+            val raw = store.getResource(resPath);
+            putResource(raw, null, UnitOfWork.DEFAULT_EPOCH_ID);
+        }
+    }
+
+    public void dump(ResourceStore store, List<String> resources) throws Exception {
         for (String resPath : resources) {
             val raw = store.getResource(resPath);
             putResource(raw, null, UnitOfWork.DEFAULT_EPOCH_ID);

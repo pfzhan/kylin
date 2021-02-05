@@ -60,11 +60,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,9 +76,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
+import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.util.QueryModelPriorities;
-import org.apache.calcite.avatica.ColumnMetaData.Rep;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -99,7 +98,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
@@ -121,7 +119,6 @@ import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -153,13 +150,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -169,13 +162,11 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.SchemaMetaData;
-import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.engine.data.TableSchema;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -192,8 +183,7 @@ public class QueryService extends BasicService {
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     public static final String UNKNOWN = "Unknown";
     private static final String JDBC_METADATA_SCHEMA = "metadata";
-    // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
-    public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
+    public static final String IS_ASYNC_QUERY_PUSH_DOWN = "async query temporary unknown whether push down";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
@@ -212,8 +202,11 @@ public class QueryService extends BasicService {
     @Autowired
     private AppConfig appConfig;
 
+    protected QueryRoutingEngine queryRoutingEngine;
+
     public QueryService() {
         slowQueryDetector.start();
+        queryRoutingEngine = new QueryRoutingEngine();
     }
 
     private static String getQueryKeyById(String project, String creator) {
@@ -221,12 +214,41 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
-        SQLResponse ret;
         try {
             slowQueryDetector.queryStart(sqlRequest.getStopId());
             markHighPriorityQueryIfNeeded();
-            ret = queryWithSqlMassage(sqlRequest);
-            return ret;
+
+            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+                    sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                    true, sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(),
+                    isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(), sqlRequest.isAcceptPartial(), true);
+            if (queryParams.isPrepareStatementWithParams()) {
+                queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(), ((PrepareSqlRequest) sqlRequest).getParams()));
+                queryParams.setParams(((PrepareSqlRequest) sqlRequest).getParams());
+            }
+            queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
+            queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
+
+            if (QueryContext.current().getQueryTagInfo().isAsyncQuery()
+                    && KylinConfig.getInstanceFromEnv().isUniqueAsyncQueryYarnQueue()) {
+                AsyncQueryJob asyncQueryJob = new AsyncQueryJob();
+                asyncQueryJob.setProject(queryParams.getProject());
+                asyncQueryJob.submit(queryParams);
+                return buildSqlResponse(false, Lists.newArrayList(), Lists.newArrayList(), sqlRequest.getProject());
+            }
+
+            SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(queryParams.getSql());
+            if (null != fakeResponse) {
+                logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
+                QueryContext.currentTrace().startSpan(EXECUTION);
+                QueryContext.currentTrace().startSpan(FETCH_RESULT);
+                return fakeResponse;
+            }
+
+            Pair<List<List<String>>, List<SelectedColumnMeta>> pair = queryRoutingEngine.queryWithSqlMassage(queryParams);
+            QueryContext.current().getMetrics().setResultRowCount(pair.getFirst().size());
+            return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(), pair.getFirst(),
+                    pair.getSecond(), sqlRequest.getProject());
         } finally {
             slowQueryDetector.queryEnd();
             Thread.interrupted(); //reset if interrupted
@@ -263,6 +285,9 @@ public class QueryService extends BasicService {
                     queryExec.getSchema(), BackdoorToggles.getPrepareOnly(), false, false);
             queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownQuery(queryParams);
+            if (r != null) {
+                QueryContext.current().getMetrics().setResultRowCount(r.getFirst().size());
+            }
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
@@ -363,7 +388,9 @@ public class QueryService extends BasicService {
                 .put(LogReport.PARTIAL_RESULT, response.isPartial())
                 .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
                 .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
-                .put(LogReport.PUSH_DOWN, response.isQueryPushDown()).put(LogReport.IS_PREPARE, response.isPrepare())
+                .put(LogReport.PUSH_DOWN, QueryContext.current().getQueryTagInfo().isAsyncQuery()
+                        ? IS_ASYNC_QUERY_PUSH_DOWN : response.isQueryPushDown())
+                .put(LogReport.IS_PREPARE, response.isPrepare())
                 .put(LogReport.TIMEOUT, response.isTimeout()).put(LogReport.TRACE_URL, response.getTraceUrl())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
@@ -385,6 +412,9 @@ public class QueryService extends BasicService {
         checkIfExecuteUserValid(sqlRequest);
         final QueryContext queryContext = QueryContext.current();
         queryContext.setProject(sqlRequest.getProject());
+        queryContext.getMetrics().setQueryStartTime(sqlRequest.getQueryStartTime());
+        queryContext.setLimit(sqlRequest.getLimit());
+        queryContext.setOffset(sqlRequest.getOffset());
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
             // validate queryId with UUID.fromString
             queryContext.setQueryId(UUID.fromString(sqlRequest.getQueryId()).toString());
@@ -436,16 +466,6 @@ public class QueryService extends BasicService {
         }
     }
 
-    private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
-        val kylinConfig = getConfig();
-        if (kylinConfig.isTransactionEnabledInQuery()) {
-            return UnitOfWork.doInTransactionWithRetry(
-                    UnitOfWorkParams.<T> builder().unitName(project).readonly(true).processor(f).build());
-        } else {
-            return f.process();
-        }
-    }
-
     private void checkSqlRequest(SQLRequest sqlRequest) {
         Message msg = MsgPicker.getMsg();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -473,13 +493,14 @@ public class QueryService extends BasicService {
         if (sqlRequest.getBackdoorToggles() != null)
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
 
-        QueryMetricsContext.start(QueryContext.current().getQueryId(), getDefaultServer());
+        QueryContext queryContext = QueryContext.current();
+        QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
 
         TraceScope scope = null;
         if (kylinConfig.isHtraceTracingEveryQuery() || BackdoorToggles.getHtraceEnabled()) {
             logger.info("Current query is under tracing");
             HtraceInit.init();
-            scope = Trace.startSpan("query life cycle for " + QueryContext.current().getQueryId(), Sampler.ALWAYS);
+            scope = Trace.startSpan("query life cycle for " + queryContext.getQueryId(), Sampler.ALWAYS);
         }
         String traceUrl = getTraceUrl(scope);
 
@@ -487,17 +508,18 @@ public class QueryService extends BasicService {
         try {
             long startTime = System.currentTimeMillis();
             QueryContext.currentTrace().startSpan(GET_ACL_INFO);
-            QueryContext.current().setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
+            queryContext.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
+            queryContext.getMetrics().setServer(clusterManager.getLocalServer());
 
             String userSQL = sqlRequest.getSql();
             String project = sqlRequest.getProject();
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
             logger.info("Using project: {}", project);
 
-            QueryContext.current().setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
+            queryContext.setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
             String sql = QueryUtil.removeCommentInSql(userSQL);
-            QueryContext.current().setUserSQL(userSQL);
+            queryContext.setUserSQL(userSQL);
 
             Pair<Boolean, String> result = TempStatementUtil.handleTempStatement(sql, kylinConfig);
             boolean isCreateTempStatement = result.getFirst();
@@ -539,18 +561,39 @@ public class QueryService extends BasicService {
             if (isPrepareStatementWithParams(sqlRequest)) {
                 String filledSql = sqlRequest.getSql();
                 if (!KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()) {
-                    PrepareSqlRequest.StateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
+                    PrepareSqlStateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
                     filledSql = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), params);
                 }
-                QueryContext.current().getMetrics().setCorrectedSql(filledSql);
-                QueryContext.current().setUserSQL(filledSql);
+                queryContext.getMetrics().setCorrectedSql(filledSql);
+                queryContext.setUserSQL(filledSql);
             }
             logQuery(sqlRequest, sqlResponse);
 
-            try {
-                recordMetric(sqlRequest, sqlResponse);
-            } catch (Throwable th) {
-                logger.warn("Write metric error.", th);
+            if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql()) && queryContext.getQueryTagInfo().isStorageCacheUsed()) {
+                String defaultSchema = "DEFAULT";
+                try {
+                    defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
+                } catch (Exception e) {
+                    logger.warn("Failed to get connection, project: {}", queryContext.getProject(), e);
+                }
+                QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()),
+                        queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(), defaultSchema,
+                        false);
+                queryParams.setAclInfo(queryContext.getAclInfo());
+                queryContext.getMetrics().setCorrectedSql(QueryUtil.massageSql(queryParams));
+            }
+            if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())) {
+                queryContext.getMetrics().setCorrectedSql(queryContext.getUserSQL());
+            }
+            queryContext.getMetrics()
+                    .setSqlPattern(QueryPatternUtil.normalizeSQLPattern(queryContext.getMetrics().getCorrectedSql()));
+
+            if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+                try {
+                    recordMetric(sqlRequest, sqlResponse);
+                } catch (Throwable th) {
+                    logger.warn("Write metric error.", th);
+                }
             }
 
             //check query result row count
@@ -560,6 +603,7 @@ public class QueryService extends BasicService {
 
         } catch (Exception e) {
             logger.error("Query error", e);
+            QueryContext.current().getMetrics().setException(true);
             if (sqlResponse != null) {
                 sqlResponse.setException(true);
                 sqlResponse.setExceptionMessage(e.getMessage());
@@ -612,6 +656,7 @@ public class QueryService extends BasicService {
             Trace.addTimelineAnnotation("response from execution");
         } catch (Throwable e) { // calcite may throw AssertError
             logger.error("Exception while executing query", e);
+            QueryContext.current().getMetrics().setException(true);
             String errMsg = makeErrorMsgUserFriendly(e);
 
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
@@ -675,75 +720,6 @@ public class QueryService extends BasicService {
         return "http://" + hostname + ":" + port + "/zipkin/traces/" + Long.toHexString(scope.getSpan().getTraceId());
     }
 
-    protected SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
-        QueryExec queryExec = newQueryExec(sqlRequest.getProject(), sqlRequest.getExecuteAs());
-
-        if (sqlRequest.isForcedToPushDown()) {
-            return pushDownQuery(null, sqlRequest, queryExec.getSchema());
-        }
-
-        try {
-            return doTransactionEnabled(() -> {
-
-                SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
-                if (null != fakeResponse) {
-                    logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
-                    QueryContext.currentTrace().startSpan(EXECUTION);
-                    QueryContext.currentTrace().startSpan(FETCH_RESULT);
-                    return fakeResponse;
-                }
-
-                if (KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()
-                        && isPrepareStatementWithParams(sqlRequest)) {
-                    String sqlString = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), ((PrepareSqlRequest) sqlRequest).getParams());
-                    sqlRequest.setSql(sqlString);
-                }
-
-                QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
-                        sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                        queryExec.getSchema(), true);
-                queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
-                String correctedSql = QueryUtil.massageSql(queryParams);
-
-                //CAUTION: should not change sqlRequest content!
-                QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
-                QueryContext.current().setPartialMatchIndex(sqlRequest.isPartialMatchIndex());
-
-                logger.info("The corrected query: {}", correctedSql);
-
-                Trace.addTimelineAnnotation("query massaged");
-
-                // add extra parameters into olap context, like acceptPartial
-                Map<String, String> parameters = new HashMap<String, String>();
-                parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
-                OLAPContext.setParameters(parameters);
-                // force clear the query context before a new query
-                clearThreadLocalContexts();
-
-                // skip masking if executing user has admin permission
-                if (!isACLDisabledOrAdmin(sqlRequest.getProject(), queryParams.getAclInfo())) {
-                    QueryResultMasks.init(sqlRequest.getProject(),
-                            NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                                    .getProject(sqlRequest.getProject()).getConfig());
-                }
-                return execute(correctedSql, sqlRequest, queryExec);
-            }, sqlRequest.getProject());
-        } catch (TransactionException e) {
-            if (e.getCause() instanceof SQLException && !e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)) {
-                return pushDownQuery((SQLException) e.getCause(), sqlRequest, queryExec.getSchema());
-            } else {
-                throw e;
-            }
-        } catch (SQLException e) {
-            if (e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)) {
-                throw e;
-            }
-            return pushDownQuery(e, sqlRequest, queryExec.getSchema());
-        } finally {
-            QueryResultMasks.remove();
-        }
-    }
-
     boolean isACLDisabledOrAdmin(String project, QueryContext.AclInfo aclInfo) {
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
@@ -758,28 +734,6 @@ public class QueryService extends BasicService {
 
         // is project admin
         return aclInfo != null && aclInfo.isHasAdminPermission();
-    }
-
-    private SQLResponse pushDownQuery(SQLException sqlException, SQLRequest sqlRequest, String defaultSchema)
-            throws SQLException {
-        QueryContext.current().getMetrics().setOlapCause(sqlException);
-        Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
-        try {
-            r = tryPushDownSelectQuery(sqlRequest, defaultSchema, sqlException, BackdoorToggles.getPrepareOnly());
-        } catch (KylinException e) {
-            logger.error("pushdown failed with kylin exception ", e);
-            throw e;
-        } catch (Exception e2) {
-            logger.error("pushdown engine failed current query too", e2);
-            //exception in pushdown, throw it instead of exception in calcite
-            throw new RuntimeException(
-                    "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
-        }
-
-        if (r == null)
-            throw sqlException;
-
-        return buildSqlResponse(true, r.getFirst(), r.getSecond(), sqlRequest.getProject());
     }
 
     public void clearThreadLocalContexts() {
@@ -827,29 +781,6 @@ public class QueryService extends BasicService {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
         }
         return new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission);
-    }
-
-    public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
-            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
-        QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
-        String sqlString = sqlRequest.getSql();
-        if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
-                && isPrepareStatementWithParams(sqlRequest)
-                && !KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()) {
-            sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
-        }
-
-        if (BackdoorToggles.getPrepareOnly()) {
-            sqlString = QueryUtil.addLimit(sqlString);
-        }
-
-        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
-                sqlRequest.getLimit(), sqlRequest.getOffset());
-        QueryParams queryParams = new QueryParams(sqlRequest.getProject(), massagedSql, defaultSchema, isPrepare,
-                sqlException, sqlRequest.isForcedToPushDown(), true, sqlRequest.getLimit(), sqlRequest.getOffset());
-        queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
-
-        return PushDownUtil.tryPushDownQuery(queryParams);
     }
 
     public List<TableMeta> getMetadata(String project) {
@@ -1117,74 +1048,8 @@ public class QueryService extends BasicService {
         }
     }
 
-    protected SQLResponse execute(String correctedSql, SQLRequest sqlRequest, QueryExec queryExec) throws Exception {
-        boolean isPushDown = false;
-
-        List<List<String>> results = Lists.newArrayList();
-        List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
-
-        // special case for prepare query.
-        if (BackdoorToggles.getPrepareOnly()) {
-            return getPrepareOnlySqlResponse(correctedSql, queryExec, isPushDown, results, columnMetas);
-        }
-
-        if (isPrepareStatementWithParams(sqlRequest)) {
-            for (int i = 0; i < ((PrepareSqlRequest) sqlRequest).getParams().length; i++) {
-                setParam(queryExec, i, ((PrepareSqlRequest) sqlRequest).getParams()[i]);
-            }
-        }
-        // special case for prepare query.
-        QueryResult queryResult = queryExec.executeQuery(correctedSql);
-
-        int columnCount = queryResult.getColumns().size();
-        List<StructField> fieldList = queryResult.getColumns();
-
-        results.addAll(queryResult.getRows());
-
-        // fill in selected column meta
-        for (int i = 0; i < columnCount; ++i) {
-            int nullable = fieldList.get(i).isNullable() ? 1 : 0;
-            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true,
-                    fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null, null,
-                    null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
-                    fieldList.get(i).getDataTypeName(), false, false, false));
-        }
-
-        return buildSqlResponse(isPushDown, results, columnMetas, sqlRequest.getProject());
-    }
-
     protected String makeErrorMsgUserFriendly(Throwable e) {
         return QueryUtil.makeErrorMsgUserFriendly(e);
-    }
-
-    private SQLResponse getPrepareOnlySqlResponse(String correctedSql, QueryExec queryExec, Boolean isPushDown,
-            List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
-
-        CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
-
-        PreparedStatement preparedStatement = null;
-        try {
-            List<StructField> fields = queryExec.getColumnMetaData(correctedSql);
-            for (int i = 0; i < fields.size(); ++i) {
-
-                StructField field = fields.get(i);
-                String columnName = field.getName();
-
-                if (columnName.startsWith("_KY_")) {
-                    continue;
-                }
-
-                columnMetas.add(new SelectedColumnMeta(false, false, false, false, field.isNullable() ? 1 : 0, true,
-                        field.getPrecision(), columnName, columnName, null, null, null, field.getPrecision(),
-                        Math.max(field.getScale(), 0), field.getDataType(), field.getDataTypeName(), true, false,
-                        false));
-            }
-        } finally {
-            CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(false);
-            DBUtils.closeQuietly(preparedStatement);
-        }
-
-        return new SQLResponse(columnMetas, results, 0, false, null, false, isPushDown);
     }
 
     private boolean isPrepareStatementWithParams(SQLRequest sqlRequest) {
@@ -1194,54 +1059,15 @@ public class QueryService extends BasicService {
         return false;
     }
 
-    private void addTableSnapshots(Set<String> tableSets, OLAPContext ctx) {
-        for (val entry : ctx.storageContext.getCandidate().getDerivedToHostMap().keySet()) {
-            tableSets.add(entry.getTable());
-        }
-    }
-
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
             List<SelectedColumnMeta> columnMetas, String project) {
-        boolean isPartialResult = false;
-        StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
-        List<NativeQueryRealization> realizations = Lists.newArrayList();
-
-        if (OLAPContext.getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
-            for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
-                if (ctx.realization != null) {
-                    isPartialResult |= ctx.storageContext.isPartialResultReturned();
-                    logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
-                    final String realizationType;
-                    Set<String> tableSets = Sets.newHashSet();
-                    if (ctx.storageContext.isEmptyLayout()) {
-                        realizationType = null;
-                    } else if (ctx.storageContext.isUseSnapshot()) {
-                        realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
-                        tableSets.add(ctx.getFirstTableIdentity());
-                    } else if (ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
-                        realizationType = QueryMetricsContext.TABLE_INDEX;
-                        addTableSnapshots(tableSets, ctx);
-                    } else {
-                        realizationType = QueryMetricsContext.AGG_INDEX;
-                        addTableSnapshots(tableSets, ctx);
-                    }
-                    String modelId = ctx.realization.getModel().getUuid();
-                    String modelAlias = ctx.realization.getModel().getAlias();
-                    List<String> snapshots = Lists.newArrayList(tableSets);
-                    realizations
-                            .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
-                                    realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
-                }
-            }
-        }
-        logger.info(logSb.toString());
-
-        SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null, isPartialResult, isPushDown);
+        SQLResponse response = new SQLResponse(columnMetas, results, 0, false,
+                null, QueryContext.current().getQueryTagInfo().isPartial(), isPushDown);
         QueryContext queryContext = QueryContext.current();
 
         response.wrapResultOfQueryContext(queryContext);
 
-        response.setNativeRealizations(realizations);
+        response.setNativeRealizations(OLAPContext.getNativeRealizations());
 
         setAppMaterURL(response);
 
@@ -1252,7 +1078,7 @@ public class QueryService extends BasicService {
         }
 
         // case of query like select * from table where 1 <> 1
-        if (CollectionUtils.isEmpty(realizations)) {
+        if (CollectionUtils.isEmpty(response.getNativeRealizations())) {
             response.setEngineType(QueryHistory.EngineType.CONSTANTS.name());
             return response;
         }
@@ -1277,74 +1103,6 @@ public class QueryService extends BasicService {
             } catch (Throwable th) {
                 logger.error("Get app master for sql failed", th);
             }
-        }
-    }
-
-    /**
-     * @param queryExec
-     * @param index 0 based index
-     * @param param
-     * @throws SQLException
-     */
-    @SuppressWarnings("squid:S3776")
-    private void setParam(QueryExec queryExec, int index, PrepareSqlRequest.StateParam param) {
-        boolean isNull = (null == param.getValue());
-
-        Class<?> clazz;
-        try {
-            clazz = Class.forName(param.getClassName());
-        } catch (ClassNotFoundException e) {
-            throw new InternalErrorException(e);
-        }
-
-        Rep rep = Rep.of(clazz);
-
-        switch (rep) {
-        case PRIMITIVE_CHAR:
-        case CHARACTER:
-        case STRING:
-            queryExec.setPrepareParam(index, isNull ? null : String.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_INT:
-        case INTEGER:
-            queryExec.setPrepareParam(index, isNull ? 0 : Integer.parseInt(param.getValue()));
-            break;
-        case PRIMITIVE_SHORT:
-        case SHORT:
-            queryExec.setPrepareParam(index, isNull ? 0 : Short.parseShort(param.getValue()));
-            break;
-        case PRIMITIVE_LONG:
-        case LONG:
-            queryExec.setPrepareParam(index, isNull ? 0 : Long.parseLong(param.getValue()));
-            break;
-        case PRIMITIVE_FLOAT:
-        case FLOAT:
-            queryExec.setPrepareParam(index, isNull ? 0 : Float.parseFloat(param.getValue()));
-            break;
-        case PRIMITIVE_DOUBLE:
-        case DOUBLE:
-            queryExec.setPrepareParam(index, isNull ? 0 : Double.parseDouble(param.getValue()));
-            break;
-        case PRIMITIVE_BOOLEAN:
-        case BOOLEAN:
-            queryExec.setPrepareParam(index, !isNull && Boolean.parseBoolean(param.getValue()));
-            break;
-        case PRIMITIVE_BYTE:
-        case BYTE:
-            queryExec.setPrepareParam(index, isNull ? 0 : Byte.parseByte(param.getValue()));
-            break;
-        case JAVA_UTIL_DATE:
-        case JAVA_SQL_DATE:
-            queryExec.setPrepareParam(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
-            break;
-        case JAVA_SQL_TIME:
-            queryExec.setPrepareParam(index, isNull ? null : Time.valueOf(param.getValue()));
-            break;
-        case JAVA_SQL_TIMESTAMP:
-            queryExec.setPrepareParam(index, isNull ? null : Timestamp.valueOf(param.getValue()));
-            break;
-        default:
-            queryExec.setPrepareParam(index, isNull ? null : param.getValue());
         }
     }
 

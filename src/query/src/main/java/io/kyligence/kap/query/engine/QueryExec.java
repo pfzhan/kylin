@@ -60,6 +60,7 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.ReadFsSwitch;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
+import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,13 +124,14 @@ public class QueryExec {
      */
     public QueryResult executeQuery(String sql) throws SQLException {
         magicDirts(sql);
+        QueryContext queryContext = QueryContext.current();
         try {
             beforeQuery();
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-            QueryContext.current().record("end calcite convert sql to relnode");
+            queryContext.record("end_convert_to_relnode");
             RelNode node = queryOptimizer.optimize(relRoot).rel;
-            QueryContext.current().record("end calcite optimize");
+            queryContext.record("end_calcite_optimize");
 
             List<StructField> resultFields = RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType);
             if (resultFields.isEmpty()) { // result fields size may be 0 because of ACL controls and should return immediately
@@ -143,7 +145,11 @@ public class QueryExec {
             }
 
             QueryResultMasks.setRootRelNode(node);
-            return new QueryResult(executeQueryPlan(postOptimize(node)), resultFields);
+            QueryResult queryResult = new QueryResult(executeQueryPlan(postOptimize(node)), resultFields);
+            if (queryContext.getQueryTagInfo().isAsyncQuery()) {
+                AsyncQueryUtil.saveMetaDataAndFileInfo(queryContext, queryResult.getColumnMetas());
+            }
+            return queryResult;
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg
             throw newSqlException(sql, "parse failed: " + e.getMessage(), e);

@@ -64,7 +64,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.metadata.query.QueryMetricsContext;
 
 public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     private String project = "cache";

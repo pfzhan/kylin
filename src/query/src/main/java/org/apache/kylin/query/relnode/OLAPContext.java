@@ -53,6 +53,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryMetrics;
+import lombok.val;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -62,6 +65,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -284,6 +288,52 @@ public class OLAPContext {
     public boolean isConstantQueryWithoutAggregation() {
         // deal with probing query like select 1,current_date from Table
         return allColumns.isEmpty() && aggregations.isEmpty() && constantAggregations.isEmpty();
+    }
+
+    public static List<NativeQueryRealization> getNativeRealizations() {
+        StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
+        List<NativeQueryRealization> realizations = Lists.newArrayList();
+
+        if (getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
+            for (OLAPContext ctx : getThreadLocalContexts()) {
+                if (ctx.realization != null) {
+                    if (!QueryContext.current().getQueryTagInfo().isPartial()) {
+                        QueryContext.current().getQueryTagInfo()
+                                .setPartial(ctx.storageContext.isPartialResultReturned());
+                    }
+
+                    logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
+                    final String realizationType;
+                    Set<String> tableSets = Sets.newHashSet();
+                    if (ctx.storageContext.isEmptyLayout()) {
+                        realizationType = null;
+                    } else if (ctx.storageContext.isUseSnapshot()) {
+                        realizationType = QueryMetrics.TABLE_SNAPSHOT;
+                        tableSets.add(ctx.getFirstTableIdentity());
+                    } else if (ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
+                        realizationType = QueryMetrics.TABLE_INDEX;
+                        addTableSnapshots(tableSets, ctx);
+                    } else {
+                        realizationType = QueryMetrics.AGG_INDEX;
+                        addTableSnapshots(tableSets, ctx);
+                    }
+                    String modelId = ctx.realization.getModel().getUuid();
+                    String modelAlias = ctx.realization.getModel().getAlias();
+                    List<String> snapshots = Lists.newArrayList(tableSets);
+                    realizations
+                            .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
+                                    realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
+                }
+            }
+        }
+        logger.info(logSb.toString());
+        return realizations;
+    }
+
+    private static void addTableSnapshots(Set<String> tableSets, OLAPContext ctx) {
+        for (val entry : ctx.storageContext.getCandidate().getDerivedToHostMap().keySet()) {
+            tableSets.add(entry.getTable());
+        }
     }
 
     SQLDigest sqlDigest;

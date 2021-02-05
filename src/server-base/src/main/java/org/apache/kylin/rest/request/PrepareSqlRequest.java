@@ -43,7 +43,8 @@
 package org.apache.kylin.rest.request;
 
 
-import java.io.Serializable;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,75 +59,17 @@ public class PrepareSqlRequest extends SQLRequest {
         super();
     }
 
-    private StateParam[] params;
+    private PrepareSqlStateParam[] params;
 
-    public StateParam[] getParams() {
+    public PrepareSqlStateParam[] getParams() {
         return params;
     }
 
-    public void setParams(StateParam[] params) {
+    public void setParams(PrepareSqlStateParam[] params) {
         this.params = params;
     }
 
-    public static class StateParam implements Serializable {
-        private String className;
-        private String value;
 
-        public StateParam() {
-        }
-
-        public StateParam(String className, String value) {
-            this.className = className;
-            this.value = value;
-        }
-
-        public String getClassName() {
-            return className;
-        }
-
-        public void setClassName(String className) {
-            this.className = className;
-        }
-
-        public String getValue() {
-            return value;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((className == null) ? 0 : className.hashCode());
-            result = prime * result + ((value == null) ? 0 : value.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            StateParam other = (StateParam) obj;
-            if (className == null) {
-                if (other.className != null)
-                    return false;
-            } else if (!className.equals(other.className))
-                return false;
-            if (value == null) {
-                if (other.value != null)
-                    return false;
-            } else if (!value.equals(other.value))
-                return false;
-            return true;
-        }
-    }
 
     @Override
     public Object getCacheKey() {
