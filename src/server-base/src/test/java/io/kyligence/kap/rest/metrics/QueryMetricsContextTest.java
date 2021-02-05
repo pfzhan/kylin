@@ -32,6 +32,7 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
@@ -58,6 +59,8 @@ import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import lombok.val;
+
+import static io.kyligence.kap.metadata.query.QueryHistory.USER_STOP_QUERY_ERROR;
 
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
@@ -131,6 +134,25 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("Other error", influxdbTags.get("error_type"));
         Assert.assertEquals("localhost:7070", influxdbTags.get("server"));
         Assert.assertEquals("suite_1", influxdbTags.get("suite"));
+    }
+
+    @Test
+    public void assertCollectUserStopError() {
+        final String sql = "select * from test_with_UserStopError";
+        final QueryContext queryContext = QueryContext.current();
+        queryContext.getMetrics().setCorrectedSql(sql);
+        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+        queryContext.getMetrics().setFinalCause(new UserStopQueryException(""));
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql(sql);
+        request.setUsername("ADMIN");
+        final SQLResponse response = new SQLResponse();
+        response.setException(true);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
+        final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+        Assert.assertEquals(USER_STOP_QUERY_ERROR, influxdbTags.get("error_type"));
     }
 
     @Test

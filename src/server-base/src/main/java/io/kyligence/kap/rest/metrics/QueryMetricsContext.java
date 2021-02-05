@@ -45,6 +45,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -199,6 +200,13 @@ public class QueryMetricsContext extends QueryMetrics {
 
     private void collectErrorType(final QueryContext context) {
         Throwable olapErrorCause = context.getMetrics().getOlapCause();
+        Throwable cause = context.getMetrics().getFinalCause();
+
+        if (cause instanceof UserStopQueryException) {
+            this.errorType = QueryHistory.USER_STOP_QUERY_ERROR;
+            return;
+        }
+
         while (olapErrorCause != null) {
             if (olapErrorCause instanceof NoRealizationFoundException) {
                 this.errorType = QueryHistory.NO_REALIZATION_FOUND_ERROR;
@@ -213,7 +221,6 @@ public class QueryMetricsContext extends QueryMetrics {
             olapErrorCause = olapErrorCause.getCause();
         }
 
-        Throwable cause = context.getMetrics().getFinalCause();
         while (cause != null) {
             if (cause instanceof SqlValidatorException || cause instanceof SqlParseException
                     || cause.getClass().getName().contains("ParseException")) {

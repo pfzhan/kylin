@@ -91,6 +91,7 @@ public class QueryHistory implements IKeep {
     public static final String NO_REALIZATION_FOUND_ERROR = "No realization found";
     public static final String NOT_SUPPORTED_SQL_BY_OLAP_ERROR = "Not Supported By OLAP SQL";
     public static final String OTHER_ERROR = "Other error";
+    public static final String USER_STOP_QUERY_ERROR = "Stopped By User";
 
     @JsonProperty(SQL_TEXT)
     private String sql;

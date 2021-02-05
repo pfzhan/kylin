@@ -616,7 +616,7 @@ public class QueryService extends BasicService {
             if (UserStopQueryException.causedByUserStop(e)) {
                 sqlResponse.setStopByUser(true);
                 sqlResponse.setColumnMetas(Lists.newArrayList());
-                sqlResponse.setResults(Lists.newArrayList());
+                sqlResponse.setExceptionMessage(MsgPicker.getMsg().getSTOP_BY_USER_ERROR_MESSAGE());
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);

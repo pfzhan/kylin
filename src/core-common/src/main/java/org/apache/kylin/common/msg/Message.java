@@ -1815,4 +1815,8 @@ public class Message {
     public String getROW_ACL_NOT_STRING_TYPE() {
         return "The like operator could only be used for char or varchar data type. Please reset.";
     }
+
+    public String getSTOP_BY_USER_ERROR_MESSAGE() {
+        return "Stopped by user.";
+    }
 }
