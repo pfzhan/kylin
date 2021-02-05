@@ -77,7 +77,25 @@ function prompt() {
     fi
 }
 
+function check_kylin_query_transformers() {
+    query_transformers=""
+    if [[ -f ${OLD_KYLIN_HOME}/conf/kylin.properties.override ]]; then
+        query_transformers=$(sed -n '/^kylin.query.transformers/p' ${OLD_KYLIN_HOME}/conf/kylin.properties.override)
+    fi
+
+    if [[ -z "${query_transformers}" && -f ${OLD_KYLIN_HOME}/conf/kylin.properties ]]; then
+        query_transformers=$(sed -n '/^kylin.query.transformers/p' ${OLD_KYLIN_HOME}/conf/kylin.properties)
+    fi
+
+    if [[ -n "${query_transformers}" && (! ${query_transformers} =~ io.kyligence.kap.query.security.RowFilter) ]]; then
+          error "Please check the value of the configuration item [kylin.query.transformers] in kylin.properties or kylin.properties.override, which needs to include [io.kyligence.kap.query.security.RowFilter] class."
+          exit 1
+    fi
+}
+
 function upgrade() {
+
+    check_kylin_query_transformers
 
     # needed by km
     if [[ -f ${OLD_KYLIN_HOME}/pid ]]; then
