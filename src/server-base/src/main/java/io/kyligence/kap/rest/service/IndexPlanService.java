@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_TA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan.UpdateRuleImpact;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -138,7 +139,8 @@ public class IndexPlanService extends BasicService {
             val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
                 val newRuleBasedCuboid = request.convertToRuleBasedIndex();
                 newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
-                copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
+                copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, Sets.newHashSet(), false, true,
+                        request.isRestoreDeletedIndex());
             });
             BuildIndexResponse response = new BuildIndexResponse();
             if (request.isLoadData()) {
@@ -359,10 +361,10 @@ public class IndexPlanService extends BasicService {
 
     public DiffRuleBasedIndexResponse calculateDiffRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
         aclEvaluate.checkProjectWritePermission(request.getProject());
-        Pair<Set<LayoutEntity>, Set<LayoutEntity>> diff = getIndexPlan(request.getProject(), request.getModelId())
+        UpdateRuleImpact diff = getIndexPlan(request.getProject(), request.getModelId())
                 .diffRuleBasedIndex(request.convertToRuleBasedIndex());
 
-        return new DiffRuleBasedIndexResponse(request.getModelId(), diff.getFirst().size(), diff.getSecond().size());
+        return DiffRuleBasedIndexResponse.from(request.getModelId(), diff);
     }
 
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
@@ -813,9 +815,11 @@ public class IndexPlanService extends BasicService {
                     .map(layout -> (layout / IndexEntity.INDEX_ID_STEP) * IndexEntity.INDEX_ID_STEP)
                     .collect(Collectors.toSet());
             val originAgg = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), RuleBasedIndex.class);
-            copy.addRuleBasedBlackList(
-                    copy.getRuleBaseLayouts().stream().filter(l -> changedLayouts.contains(l.getId()))
-                            .map(LayoutEntity::getId).collect(Collectors.toList()));
+
+            val reloadLayouts = copy.getRuleBaseLayouts().stream().filter(l -> changedLayouts.contains(l.getId()))
+                    .collect(Collectors.toSet());
+
+            copy.addRuleBasedBlackList(reloadLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toList()));
             val changedIndexes = copy.getIndexes().stream().filter(i -> indexes.contains(i.getId()))
                     .collect(Collectors.toList());
             copy.setIndexes(
@@ -845,7 +849,7 @@ public class IndexPlanService extends BasicService {
                 updatedAgg.setGlobalDimCap(originAgg.getGlobalDimCap());
                 updatedAgg.setDimensions(originAgg.getDimensions());
                 updatedAgg.setLastModifiedTime(System.currentTimeMillis());
-                copy.setRuleBasedIndex(updatedAgg, false, false);
+                copy.setRuleBasedIndex(updatedAgg, reloadLayouts, false, false, false);
             }
         });
     }

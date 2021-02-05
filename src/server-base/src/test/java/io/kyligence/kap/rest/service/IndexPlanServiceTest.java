@@ -27,6 +27,7 @@ import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.CUSTOM_TAB
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Source.RECOMMENDED_TABLE_INDEX;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.READY;
 import static org.apache.kylin.metadata.model.SegmentStatusEnum.WARNING;
+import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -134,6 +135,67 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         AtomicBoolean clean = new AtomicBoolean(false);
         Assert.assertFalse(clean.get());
         return clean;
+    }
+
+    private UpdateRuleBasedCuboidRequest createUpdateRuleRequest(String project, String modelId,
+            NAggregationGroup aggregationGroup, boolean restoreDelIndex) {
+        return UpdateRuleBasedCuboidRequest.builder().project(project).modelId(modelId)
+                .aggregationGroups(Lists.newArrayList(aggregationGroup)).restoreDeletedIndex(restoreDelIndex).build();
+    }
+
+    private NAggregationGroup mkAggGroup(Integer... dimension) {
+        NAggregationGroup aggregationGroup = new NAggregationGroup();
+        aggregationGroup.setIncludes(dimension);
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        aggregationGroup.setSelectRule(selectRule);
+        return aggregationGroup;
+    }
+
+    @Test
+    public void testUpdateRuleWithRollbackBlacklistLayout() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        prepare(modelId);
+
+        NAggregationGroup aggregationGroup = mkAggGroup(1);
+        IndexPlan saved = indexPlanService.updateRuleBasedCuboid(getProject(),
+                createUpdateRuleRequest(getProject(), modelId, aggregationGroup, false)).getFirst();
+
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Long> ids = saved.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
+        indexPlanManager.updateIndexPlan(modelId, copyForWrite -> copyForWrite.addRuleBasedBlackList(ids));
+
+        aggregationGroup = mkAggGroup(1, 2);
+        val updateRuleRequest = createUpdateRuleRequest(getProject(), modelId, aggregationGroup, true);
+
+        saved = indexPlanService.updateRuleBasedCuboid(getProject(), updateRuleRequest).getFirst();
+        Assert.assertEquals(3, saved.getRuleBaseLayouts().size());
+    }
+
+    @Test
+    public void testUpdateRuleWithDelBlacklistLayout() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        prepare(modelId);
+
+        NAggregationGroup aggregationGroup = mkAggGroup(1);
+        IndexPlan saved = indexPlanService.updateRuleBasedCuboid(getProject(),
+                createUpdateRuleRequest(getProject(), modelId, aggregationGroup, false)).getFirst();
+
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Long> ids = saved.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
+        indexPlanManager.updateIndexPlan(modelId, copyForWrite -> copyForWrite.addRuleBasedBlackList(ids));
+
+        aggregationGroup = mkAggGroup(1, 2);
+        val updateRuleRequest = createUpdateRuleRequest(getProject(), modelId, aggregationGroup, false);
+        val diff = indexPlanService.calculateDiffRuleBasedIndex(updateRuleRequest);
+
+        Assert.assertThat(diff.getIncreaseLayouts(), is(2));
+        Assert.assertThat(diff.getDecreaseLayouts(), is(0));
+        Assert.assertThat(diff.getRollbackLayouts(), is(1));
+        saved = indexPlanService.updateRuleBasedCuboid(getProject(), updateRuleRequest).getFirst();
+        Assert.assertEquals(2, saved.getRuleBaseLayouts().size());
     }
 
     @Test

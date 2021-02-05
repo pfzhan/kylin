@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler.ColOrder;
+import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -185,9 +187,7 @@ public class RuleBasedIndex implements Serializable, IKeep {
     }
 
     public Set<LayoutEntity> genCuboidLayouts() {
-        val result = Sets.<LayoutEntity> newHashSet();
-        genCuboidLayouts(result);
-        return result;
+        return genCuboidLayouts(Sets.newHashSet(), Sets.newHashSet(), true);
     }
 
     // ============================================================================
@@ -247,77 +247,117 @@ public class RuleBasedIndex implements Serializable, IKeep {
         return ImmutableBitSet.valueOf(getMeasures());
     }
 
-    void genCuboidLayouts(Set<LayoutEntity> result) {
-        CuboidScheduler initialCuboidScheduler = getCuboidScheduler();
-        val colOrders = initialCuboidScheduler.getAllColOrders();
-        Map<LayoutEntity, Long> layoutIdMap = Maps.newHashMap();
-        for (LayoutEntity layout : result) {
-            layoutIdMap.put(layout, layout.getId());
+
+    Set<LayoutEntity> genCuboidLayouts(Set<LayoutEntity> previousLayouts) {
+        return genCuboidLayouts(previousLayouts, Sets.newHashSet(), true);
+    }
+
+    Set<LayoutEntity> genCuboidLayouts(Set<LayoutEntity> previousLayouts, Set<LayoutEntity> needDelLayouts) {
+        return genCuboidLayouts(previousLayouts, needDelLayouts, true);
+    }
+
+    Set<LayoutEntity> genCuboidLayouts(Set<LayoutEntity> previousLayouts, Set<LayoutEntity> needDelLayouts,
+            boolean excludeDel) {
+
+        Set<LayoutEntity> genLayouts = Sets.newHashSet();
+
+        Map<LayoutEntity, Long> existLayouts = Maps.newHashMap();
+        for (LayoutEntity layout : previousLayouts) {
+            existLayouts.put(layout, layout.getId());
         }
         for (LayoutEntity layout : indexPlan.getWhitelistLayouts()) {
-            layoutIdMap.put(layout, layout.getId());
+            existLayouts.put(layout, layout.getId());
         }
-        val identifierIndexMap = layoutIdMap.keySet().stream().map(LayoutEntity::getIndex).collect(
-                Collectors.groupingBy(IndexEntity::createIndexIdentifier, Collectors.reducing(null, (l, r) -> r)));
-        val needAllocationId = layoutIdMapping.isEmpty();
+
+        Map<LayoutEntity, Long> delLayouts = Maps.newHashMap();
+        for (LayoutEntity layout : needDelLayouts) {
+            delLayouts.put(layout, layout.getId());
+        }
+
+        Map<IndexIdentifier, IndexEntity> identifierIndexMap = existLayouts.keySet().stream()
+                .map(LayoutEntity::getIndex).collect(Collectors.groupingBy(IndexEntity::createIndexIdentifier,
+                        Collectors.reducing(null, (l, r) -> r)));
+        boolean needAllocationId = layoutIdMapping.isEmpty();
         long proposalId = indexStartId + 1;
+
+        val colOrders = getCuboidScheduler().getAllColOrders();
         for (int i = 0; i < colOrders.size(); i++) {
             val colOrder = colOrders.get(i);
-            val layout = new LayoutEntity();
-            layout.setManual(true);
+
+            val layout = createLayout(colOrder);
 
             val dimensionsInLayout = colOrder.getDimensions();
             val measuresInLayout = colOrder.getMeasures();
-            layout.setColOrder(colOrder.toList());
-            if (colOrder.getDimensions().containsAll(indexPlan.getAggShardByColumns())) {
-                layout.setShardByColumns(indexPlan.getAggShardByColumns());
-            }
-            if (colOrder.getDimensions().containsAll(indexPlan.getExtendPartitionColumns())
-                    && getModel().getStorageType() == 2) {
-                layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
-            }
-            layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
             // if a cuboid is same as the layout's one, then reuse it
             val indexIdentifier = new IndexEntity.IndexIdentifier(dimensionsInLayout, measuresInLayout, false);
-            var maybeIndex = identifierIndexMap.get(indexIdentifier);
+            var layoutIndex = identifierIndexMap.get(indexIdentifier);
             // if two layout is equal, the id should be same
-            Long prevId = layoutIdMap.get(layout);
-            if (!needAllocationId) {
-                layout.setId(layoutIdMapping.get(i));
-            } else if (prevId != null) {
-                layout.setId(layoutIdMap.get(layout));
-            } else if (maybeIndex != null) {
-                val id = maybeIndex.getId() + maybeIndex.getNextLayoutOffset();
-                layout.setId(id);
-            } else {
-                layout.setId(proposalId);
-                proposalId += IndexEntity.INDEX_ID_STEP;
-            }
+            Long prevId = existLayouts.get(layout);
+
             if (needAllocationId) {
+                if (prevId != null) {
+                    layout.setId(existLayouts.get(layout));
+                } else if (delLayouts.containsKey(layout)) {
+                    layout.setId(delLayouts.get(layout));
+                    layoutBlackList.add(delLayouts.get(layout));
+                } else if (layoutIndex != null) {
+                    val id = layoutIndex.getId() + layoutIndex.getNextLayoutOffset();
+                    layout.setId(id);
+                } else {
+                    layout.setId(proposalId);
+                    proposalId += IndexEntity.INDEX_ID_STEP;
+                }
                 layoutIdMapping.add(layout.getId());
-            }
-
-            if (maybeIndex == null) {
-                long indexId = layout.getIndexId();
-                maybeIndex = new IndexEntity();
-                maybeIndex.setId(indexId);
-                maybeIndex.setDimensions(dimensionsInLayout);
-                maybeIndex.setMeasures(measuresInLayout);
-                maybeIndex.setIndexPlan(indexPlan);
-                maybeIndex.setNextLayoutOffset(layout.getId() % IndexEntity.INDEX_ID_STEP + 1);
-                identifierIndexMap.putIfAbsent(maybeIndex.createIndexIdentifier(), maybeIndex);
             } else {
-                maybeIndex.setNextLayoutOffset(
-                        Math.max(layout.getId() % IndexEntity.INDEX_ID_STEP + 1, maybeIndex.getNextLayoutOffset()));
+                layout.setId(layoutIdMapping.get(i));
             }
-            layout.setUpdateTime(lastModifiedTime);
-            layout.setIndex(maybeIndex);
 
-            result.add(layout);
+            if (layoutIndex == null) {
+                long indexId = layout.getIndexId();
+                layoutIndex = new IndexEntity();
+                layoutIndex.setId(indexId);
+                layoutIndex.setDimensions(dimensionsInLayout);
+                layoutIndex.setMeasures(measuresInLayout);
+                layoutIndex.setIndexPlan(indexPlan);
+                layoutIndex.setNextLayoutOffset(layout.getId() % IndexEntity.INDEX_ID_STEP + 1);
+
+                identifierIndexMap.putIfAbsent(layoutIndex.createIndexIdentifier(), layoutIndex);
+            } else {
+                layoutIndex.setNextLayoutOffset(
+                        Math.max(layout.getId() % IndexEntity.INDEX_ID_STEP + 1, layoutIndex.getNextLayoutOffset()));
+            }
+            layout.setIndex(layoutIndex);
+
+            genLayouts.add(layout);
         }
 
         // remove layout in blacklist
-        result.removeIf(layout -> layoutBlackList.contains(layout.getId()));
+        if (excludeDel) {
+            genLayouts.removeIf(layout -> layoutBlackList.contains(layout.getId()));
+        }
+        return genLayouts;
+    }
+
+    private LayoutEntity createLayout(ColOrder colOrder) {
+        LayoutEntity layout = new LayoutEntity();
+        layout.setManual(true);
+        layout.setColOrder(colOrder.toList());
+        if (colOrder.getDimensions().containsAll(indexPlan.getAggShardByColumns())) {
+            layout.setShardByColumns(indexPlan.getAggShardByColumns());
+        }
+        if (colOrder.getDimensions().containsAll(indexPlan.getExtendPartitionColumns())
+                && getModel().getStorageType() == 2) {
+            layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
+        }
+        layout.setUpdateTime(lastModifiedTime);
+        layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
+        return layout;
+    }
+
+    public Set<LayoutEntity> getBlacklistLayouts() {
+        val allLayouts = genCuboidLayouts(Sets.newHashSet(), Sets.newHashSet(), false);
+        val existLayouts = genCuboidLayouts();
+        return allLayouts.stream().filter(layout -> !existLayouts.contains(layout)).collect(Collectors.toSet());
     }
 }

@@ -105,7 +105,7 @@ public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
         val request = UpdateRuleBasedCuboidRequest.builder().project("default")
                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").aggregationGroups(Lists.newArrayList()).build();
         Mockito.when(indexPlanService.calculateDiffRuleBasedIndex(Mockito.any(UpdateRuleBasedCuboidRequest.class)))
-                .thenReturn(new DiffRuleBasedIndexResponse("", 1, 1));
+                .thenReturn(new DiffRuleBasedIndexResponse("", 1, 1, 1));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule_based_index_diff")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

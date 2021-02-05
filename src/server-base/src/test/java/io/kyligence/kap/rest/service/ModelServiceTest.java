@@ -3598,12 +3598,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
         modelService.updateModelConfig(project, model, modelConfigRequest);
         updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
-        Assert.assertEquals(initialSize - 1, updatedSize);
+        Assert.assertEquals(initialSize - 3, updatedSize);
         // switch on is-base-cuboid-always-valid
         modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>());
         modelService.updateModelConfig(project, model, modelConfigRequest);
         updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
-        Assert.assertEquals(initialSize, updatedSize);
+        Assert.assertEquals(initialSize - 2, updatedSize);
     }
 
     private List<AbstractExecutable> mockJobs() {

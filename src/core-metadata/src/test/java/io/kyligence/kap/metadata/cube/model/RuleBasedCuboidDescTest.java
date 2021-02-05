@@ -327,10 +327,10 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
 
         val result = indexPlan.diffRuleBasedIndex(newRule);
         Assert.assertTrue(
-                CollectionUtils.isNotEmpty(result.getFirst()) && CollectionUtils.isNotEmpty(result.getSecond()));
+                CollectionUtils.isNotEmpty(result.getDecreaseLayouts()) && CollectionUtils.isNotEmpty(result.getIncreaseLayouts()));
         Assert.assertTrue(
-                result.getFirst().stream().map(LayoutEntity::getId).collect(Collectors.toSet()).contains(30001L));
-        Assert.assertTrue(result.getSecond().stream()
+                result.getDecreaseLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()).contains(30001L));
+        Assert.assertTrue(result.getIncreaseLayouts().stream()
                 .anyMatch(layoutEntity -> layoutEntity.getOrderedMeasures().containsKey(100001)
                         && layoutEntity.getOrderedMeasures().containsKey(100002)));
     }

@@ -41,11 +41,13 @@
  */
 package org.apache.kylin.rest.response;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.cube.model.IndexPlan.UpdateRuleImpact;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.io.Serializable;
 
 @Getter
 @AllArgsConstructor
@@ -59,4 +61,13 @@ public class DiffRuleBasedIndexResponse implements Serializable {
 
     @JsonProperty("increase_layouts")
     private Integer increaseLayouts;
+
+    @JsonProperty("rollback_layouts")
+    private Integer rollbackLayouts;
+
+    public static DiffRuleBasedIndexResponse from(String modelId, UpdateRuleImpact impact) {
+        return new DiffRuleBasedIndexResponse(modelId, impact.getDecreaseLayouts().size(),
+                impact.getIncreaseLayouts().size(), impact.getRollbackLayouts().size());
+
+    }
 }

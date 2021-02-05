@@ -49,7 +49,6 @@ import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IEngineAware;
@@ -79,6 +78,8 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -494,7 +495,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return source.stream().filter(layout -> !target.contains(layout)).collect(Collectors.toSet());
     }
 
-    public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
+    public UpdateRuleImpact diffRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
         genMeasuresForRuleBasedIndex(ruleBasedIndex);
         if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
             ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
@@ -505,13 +506,31 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
         Set<LayoutEntity> sourceLayouts = null == this.ruleBasedIndex ? Sets.newHashSet()
                 : this.ruleBasedIndex.genCuboidLayouts();
-        ruleBasedIndex.genCuboidLayouts(Sets.newHashSet(sourceLayouts));
+
+        Set<LayoutEntity> previousDeletedLayouts = null == this.ruleBasedIndex ? Sets.newHashSet()
+                : this.ruleBasedIndex.getBlacklistLayouts();
+
+        ruleBasedIndex.genCuboidLayouts(Sets.newHashSet(sourceLayouts), previousDeletedLayouts);
         Set<LayoutEntity> targetLayouts = ruleBasedIndex.genCuboidLayouts();
 
-        return new Pair<>(layoutsNotIn(sourceLayouts, targetLayouts), layoutsNotIn(targetLayouts, sourceLayouts));
+        return new UpdateRuleImpact(layoutsNotIn(sourceLayouts, targetLayouts),
+                layoutsNotIn(targetLayouts, sourceLayouts), ruleBasedIndex.getBlacklistLayouts());
+    }
+
+    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
+        setRuleBasedIndex(ruleBasedIndex, false);
+    }
+
+    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, boolean reuseStartId) {
+        setRuleBasedIndex(ruleBasedIndex, reuseStartId, false);
     }
 
     public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, boolean reuseStartId, boolean markToBeDeleted) {
+        setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), reuseStartId, markToBeDeleted, false);
+    }
+
+    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, Set<LayoutEntity> reloadLayouts, boolean reuseStartId,
+            boolean markToBeDeleted, boolean restoreDeletedIndex) {
         checkIsNotCachedAndShared();
         genMeasuresForRuleBasedIndex(ruleBasedIndex);
 
@@ -523,12 +542,20 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         ruleBasedIndex.init();
         Set<LayoutEntity> originSet = this.ruleBasedIndex == null ? Sets.newHashSet()
                 : this.ruleBasedIndex.genCuboidLayouts();
-        ruleBasedIndex.genCuboidLayouts(Sets.newHashSet(originSet));
+
+        Set<LayoutEntity> needDelLayouts = Sets.newHashSet();
+        if (!restoreDeletedIndex) {
+            needDelLayouts = getBlacklistLayouts();
+            needDelLayouts = needDelLayouts.stream().filter(l -> !reloadLayouts.contains(l))
+                    .collect(Collectors.toSet());
+        }
+        ruleBasedIndex.genCuboidLayouts(Sets.newHashSet(originSet), needDelLayouts);
 
         this.ruleBasedIndex = ruleBasedIndex;
-        Set<LayoutEntity> targetSet = this.ruleBasedIndex.genCuboidLayouts();
-        this.ruleBasedLayouts = Lists.newArrayList(targetSet);
 
+        Set<LayoutEntity> targetSet = this.ruleBasedIndex.genCuboidLayouts();
+
+        this.ruleBasedLayouts = Lists.newArrayList(targetSet);
         if (markToBeDeleted && CollectionUtils.isNotEmpty(layoutsNotIn(targetSet, originSet))) {
             Set<LayoutEntity> toBeDeletedSet = layoutsNotIn(originSet, targetSet);
             if (CollectionUtils.isNotEmpty(toBeDeletedSet)) {
@@ -537,6 +564,13 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         updateNextId();
+    }
+
+    private Set<LayoutEntity> getBlacklistLayouts() {
+        if (this.ruleBasedIndex == null) {
+            return Sets.newHashSet();
+        }
+        return this.ruleBasedIndex.getBlacklistLayouts();
     }
 
     private void genMeasuresForRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
@@ -554,14 +588,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         ruleBasedIndex.setMeasures(Lists.newArrayList(measures));
-    }
-
-    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, boolean reuseStartId) {
-        setRuleBasedIndex(ruleBasedIndex, reuseStartId, false);
-    }
-
-    public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
-        setRuleBasedIndex(ruleBasedIndex, false);
     }
 
     public void setAggShardByColumns(List<Integer> aggShardByColumns) {
@@ -947,4 +973,13 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return getOverrideProps().getOrDefault(KylinConfig.MODEL_OFFLINE_FLAG, "false").trim().equals(KylinConfig.TRUE);
     }
 
+    @AllArgsConstructor
+    @Data
+    public static class UpdateRuleImpact {
+        private Set<LayoutEntity> decreaseLayouts;
+
+        private Set<LayoutEntity> increaseLayouts;
+
+        private Set<LayoutEntity> rollbackLayouts;
+    }
 }

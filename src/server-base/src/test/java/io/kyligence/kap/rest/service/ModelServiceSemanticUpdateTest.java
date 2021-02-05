@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.hamcrest.Matchers.is;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1394,4 +1396,45 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         Assert.assertEquals(1, executables.size());
     }
 
+    @Test
+    public void testModelSemanticUpdateNoBlackListLayoutRestore() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+
+        val newRule = new RuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        group1.setMeasures(new Integer[] { 100000, 100008 });
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        // create measure
+        val ruleBasedIndex = indexPlanManager.getIndexPlan(modelId).getRuleBasedIndex();
+        val layouts = ruleBasedIndex.genCuboidLayouts();
+        indexPlanService.removeIndexes(getProject(), modelId,
+                layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet()));
+
+        var request = newSemanticRequest(modelId);
+        val newMeasure1 = new SimplifiedMeasure();
+        newMeasure1.setName("NEST5_SUM");
+        newMeasure1.setExpression("SUM");
+        val param = new ParameterResponse();
+        param.setType("column");
+        param.setValue("TEST_KYLIN_FACT.NEST5");
+        newMeasure1.setParameterValue(Lists.newArrayList(param));
+        request.getSimplifiedMeasures().add(newMeasure1);
+        newMeasure1.setReturnType("decimal(38, 0)");
+        modelService.updateDataModelSemantic(getProject(), request);
+        Assert.assertThat(indexPlanManager.getIndexPlan(modelId).getRuleBasedIndex().getLayoutBlackList().size(),
+                is(7));
+        Assert.assertThat(indexPlanManager.getIndexPlan(modelId).getRuleBasedIndex().genCuboidLayouts().size(), is(0));
+
+    }
 }

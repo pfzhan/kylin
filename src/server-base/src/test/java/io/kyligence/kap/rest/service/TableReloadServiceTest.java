@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.CoreMatchers.is;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -118,6 +119,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Autowired
     private ModelService modelService;
+
+    @Autowired
+    private IndexPlanService indexPlanService;
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
@@ -1114,6 +1118,47 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(layouts1.size(), layouts2.size());
         Assert.assertTrue(layouts1.stream()
                 .allMatch(l -> layouts2.stream().anyMatch(l2 -> l2.equals(l) && l2.getId() > l.getId())));
+    }
+
+    @Test
+    public void testReload_WithNoBlacklistLayoutRestore() throws Exception {
+        val newRule = new RuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        group1.setMeasures(new Integer[] { 100000, 100008 });
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val modelId = originIndexPlan.getId();
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts1 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+        Assert.assertEquals(4, layouts1.size());
+
+        indexPlanService.removeIndexes(getProject(), modelId,
+                layouts1.stream().map(LayoutEntity::getId).collect(Collectors.toSet()));
+        dropModelWhen(id -> !id.equals(modelId));
+
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("SLR_SEGMENT_CD", "bigint");
+            }
+        }, true);
+        addColumn("DEFAULT.TEST_KYLIN_FACT", false, new ColumnDesc("5", "newCol", "double", "", "", "", null));
+        removeColumn("DEFAULT.TEST_KYLIN_FACT", "IS_EFFECTUAL");
+
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts2 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+        Assert.assertThat(layouts2.size(), is(0));
     }
 
     @Test

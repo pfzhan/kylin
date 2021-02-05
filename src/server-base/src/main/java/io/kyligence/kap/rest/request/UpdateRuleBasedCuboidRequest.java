@@ -69,6 +69,10 @@ public class UpdateRuleBasedCuboidRequest implements ProjectInsensitiveRequest {
     @JsonProperty("load_data")
     private boolean isLoadData = true;
 
+    @Builder.Default
+    @JsonProperty("restore_deleted_index")
+    private boolean restoreDeletedIndex = false;
+
     public RuleBasedIndex convertToRuleBasedIndex() {
         val newRuleBasedCuboid = new RuleBasedIndex();
         BeanUtils.copyProperties(this, newRuleBasedCuboid);
