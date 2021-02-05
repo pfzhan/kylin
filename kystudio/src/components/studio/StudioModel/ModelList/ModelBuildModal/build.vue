@@ -396,11 +396,14 @@
       return !(this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format && this.modelBuildMeta.dataRangeVal.length) && this.buildType === 'incremental'
     }
     handChangeBuildType () {
-      this.changePartitionSetting()
       if (this.buildType === 'incremental' && !this.partitionMeta.table) {
         this.isExpand = true
         this.partitionMeta.table = this.partitionTables[0].alias
       }
+      this.isShowWarning = false
+      this.$nextTick(() => {
+        this.changePartitionSetting()
+      })
     }
     validateBrokenColumn (rule, value, callback) {
       if (value) {
@@ -756,10 +759,10 @@
       this.setbuildModel(false)
     }
     async setbuildModel (isBuild, type) {
-      await this.validateRange(this.modelBuildMeta.dataRangeVal)
       this.btnLoading = true
       try {
         if (this.buildType === 'incremental' && this.buildOrComplete === 'build') {
+          await this.validateRange(this.modelBuildMeta.dataRangeVal)
           this.$refs.buildForm.validate(async (valid) => {
             if (!valid) {
               this.btnLoading = false
