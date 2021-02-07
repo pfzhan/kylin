@@ -116,7 +116,7 @@ describe('Component GlobalDialog', () => {
     wrapper.vm.$store.state.DetailDialogModal.showCopyTextLeftBtn = false
     await wrapper.update()
     wrapper.vm.onError()
-    expect(mockMessage).toHaveBeenCalledWith({'message': 'Failed to copy! Your browser does not support paste boards!', 'type': 'error'})
+    expect(mockMessage).toHaveBeenCalledWith({'message': 'Can\'t copy! Your browser does not support paste boards!', 'type': 'error'})
 
     wrapper.vm.$store.state.DetailDialogModal.showCopyTextLeftBtn = true
     await wrapper.update()
@@ -127,7 +127,7 @@ describe('Component GlobalDialog', () => {
     wrapper.vm.$store.state.DetailDialogModal.showCopyTextLeftBtn = false
     await wrapper.update()
     wrapper.vm.onCopy()
-    expect(mockMessage).toHaveBeenCalledWith({'message': 'Failed to copy! Your browser does not support paste boards!', 'type': 'error'})
+    expect(mockMessage).toHaveBeenCalledWith({'message': 'Can\'t copy! Your browser does not support paste boards!', 'type': 'error'})
 
     wrapper.vm.$store.state.DetailDialogModal.callback = mockCallback
     await wrapper.update()

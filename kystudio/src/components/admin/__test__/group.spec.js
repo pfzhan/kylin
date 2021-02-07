@@ -101,7 +101,7 @@ describe('Component Group', () => {
     expect(wrapper.vm.$data.pagination.page_size).toBe(50)
 
     await wrapper.vm.dropGroup()
-    // expect(kapConfirmMockHandle).toBeCalledWith('Are you sure to delete the group ?', null, 'Delete Group')
+    // expect(kapConfirmMockHandle).toBeCalledWith('Are you sure you want to delete the group ?', null, 'Delete Group')
     expect(mockHandleError).toBeCalled()
   })
 })

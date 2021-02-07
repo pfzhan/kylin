@@ -18,6 +18,7 @@
           :data="totalUserData"
           :value="form.selected_users"
           :before-query="queryHandler"
+          :filter-placeholder="$t('userPld')"
           :total-elements="totalSizes"
           :show-overflow-tip="true"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
@@ -204,7 +205,7 @@ export default class GroupEditModal extends Vue {
       // 成功提示
       this.$message({
         type: 'success',
-        message: this.$t('kylinLang.common.saveSuccess')
+        message: this.$t('saveUserGroupSuccess')
       })
       this.submitLoading = false
       // 关闭模态框，通知父组件成功

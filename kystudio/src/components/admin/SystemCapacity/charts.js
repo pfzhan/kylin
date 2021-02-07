@@ -89,8 +89,8 @@ export default {
             treePath.push(treePathInfo[i].name)
           }
           return [
-            '<div class="tooltip-title">' + _this.$t('projectNameByTreeMap') + '：' + formatUtil.encodeHTML(treePath.join('/')) + '</div>',
-            _this.$t('usedCapacityByTreeMap') + ': ' + capacity
+            '<div class="tooltip-title">' + _this.$t('projectNameByTreeMap') + formatUtil.encodeHTML(treePath.join('/')) + '</div>',
+            _this.$t('usedCapacityByTreeMap') + capacity
           ].join('')
         }
       },

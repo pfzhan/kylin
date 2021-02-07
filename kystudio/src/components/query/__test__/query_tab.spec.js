@@ -235,7 +235,7 @@ describe('Component queryTab', () => {
 
     await wrapper.vm.resetQuery()
     jest.runAllTimers()
-    expect(mockKapConfirm).toBeCalledWith('Are you sure to reset the SQL Editor?', {"cancelButtonText": "Cancel", "confirmButtonText": "Reset", "type": "warning"})
+    expect(mockKapConfirm).toBeCalledWith('Are you sure you want to reset the SQL Editor?', {"cancelButtonText": "Cancel", "confirmButtonText": "Reset", "type": "warning"})
     expect(wrapper.emitted().resetQuery).toEqual([[]])
     expect(wrapper.vm.$refs.insightBox.$emit).toBeCalledWith('setValue', '')
   })

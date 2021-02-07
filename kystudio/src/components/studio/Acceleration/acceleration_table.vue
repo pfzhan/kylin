@@ -110,7 +110,7 @@ import { handleError, indexOfObjWithSomeKey, objectClone } from '../../../util/i
       clearAll: 'Clear All'
     },
     'zh-cn': {
-      delSql: '您确认要删除 {numbers} 条查询语句吗？',
+      delSql: '确认要删除 {numbers} 条查询语句吗？',
       addToBlackList: '确定将这 {numbers} 条查询语句加入禁用名单吗？',
       openBatchBtn: '开启批量操作',
       closeBatchBtn: '关闭批量操作',

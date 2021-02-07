@@ -28,7 +28,7 @@ export default {
     sampleSuccess: ' and submit the sampling task',
     structureSuccess: ' and building index task',
     concludingRemarks: ' which can be viewed on the task monitoring page.',
-    invalidType: 'Please input an integer',
+    invalidType: 'Please enter an integer',
     invalidLarger: 'Input should be no larger than 20,000,000 rows',
     invalidSmaller: 'Input should be no less than 10,000 rows',
     reloadTips: 'After being reloaded, ',

@@ -129,6 +129,7 @@
           filterable
           :data="totalGroups"
           :value="form.authorities"
+          :filter-placeholder="$t('userGroupFilter')"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
           :show-overflow-tip="true"
           @change="value => inputHandler('authorities', value)">
@@ -360,8 +361,8 @@ export default class UserEditModal extends Vue {
       this.$message({
         type: 'success',
         message: this.editType !== 'password'
-          ? this.$t('kylinLang.common.saveSuccess')
-          : this.$t('kylinLang.common.updateSuccess')
+          ? this.$t('saveUserSuccess')
+          : this.$t('updateUserSuccess')
       })
       // 关闭模态框，通知父组件成功
       this.closeHandler(true)

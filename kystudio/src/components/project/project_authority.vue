@@ -88,12 +88,11 @@
         <div class="item-point">{{$t('authorTips1')}}</div>
         <div class="item-point" v-html="$t('authorTips2')"></div>
       </div>
-      <!-- <el-alert :title="$t('authorTips')" class="ksd-mb-20" show-icon :closable="false" :show-background="false" type="info" v-if="!isEditAuthor"></el-alert> -->
       <div class="ksd-title-label-small">{{$t('selectUserAccess')}}</div>
       <div v-for="(accessMeta, index) in accessMetas" :key="index" class="user-group-select ksd-mt-10 ky-no-br-space">
         <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEditAuthor" @change="changeUserType(index)" size="medium" class="user-select" :popper-class="'js_principal' + (index + 1)">
-          <el-option label="user" :value="true"></el-option>
-          <el-option label="group" :value="false"></el-option>
+          <el-option :label="$t('users')" :value="true"></el-option>
+          <el-option :label="$t('userGroups')" :value="false"></el-option>
         </el-select>
         <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select> -->
         <el-select
@@ -140,7 +139,7 @@
           <div class="over-limit-tip" v-if="showLimitTips(accessMeta.principal)">{{$t('overLimitTip')}}</div>
         </el-select>
         <el-select :class="['type-select', 'type-select' + (index + 1)]" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium" :popper-class="'js_access_type_sel' + (index + 1)">
-          <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
+          <el-option :label="$t(item.key)" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
         </el-select>
         <span class="ky-no-br-space ksd-ml-10 repeatBtn" v-if="!isEditAuthor">
           <el-button type="primary" icon="el-icon-ksd-add_2" class="ksd-mr-5" plain circle size="mini" @click="addAccessMetas" v-if="index==0"></el-button>
@@ -190,41 +189,45 @@ import tableAccess from './table_access'
   },
   locales: {
     'en': {
-      projectTitle: '{projectName} Authorization',
+      projectTitle: 'Authorization (Project: {projectName})',
       back: 'Back',
-      userAccess: 'User / Group',
-      selectUserAccess: 'Select User / Group',
-      userNameOrGroup: 'Filter by user or group name',
+      userAccess: 'User/Group',
+      selectUserAccess: 'Select User/Group',
+      userNameOrGroup: 'Search by username or user group name',
       toggleTableView: 'Swtich to Table Operation',
       toggleUserView: 'Swtich to User Operation',
       userOrGroup: 'Name',
       type: 'Type',
       accessType: 'Role',
       accessTables: 'Access Tables',
-      author: 'Add User / Group',
-      editAuthor: 'Edit User / Group',
-      overLimitTip: 'Only the first 100 results are displayed. Please change the keywords to narrow your search.',
-      selectUserOrUserGroups: 'Please select or input the user / user group name.',
-      userGroups: 'User Groups',
-      users: 'Users',
+      author: 'Add User/User Group',
+      editAuthor: 'Edit User/User Group',
+      overLimitTip: 'Only the first 100 results would be displayed. Please use another keyword to refine the search results.',
+      selectUserOrUserGroups: 'Please enter or select the username/user group name',
+      userGroups: 'User Group',
+      users: 'User',
+      Query: 'Query',
+      Admin: 'Admin',
+      Management: 'Management',
+      Operation: 'Operation',
       tableName: 'Table Name',
       datasourceType: 'Data Source',
       tableType: 'Table',
-      deleteAccessTip: 'Please confirm whether to delete the authorization of {userName} in this project?',
+      deleteAccessTip: 'Are you sure you want to delete the authorization of "{userName}" in this project?',
       access: 'Role',
-      deleteAccessTitle: 'Delete Access',
-      authorTips: 'System management has all permissions for all projects, so the system administrator is not included in the added user list.',
-      authorTips1: 'By default, a user/user group will be automatically granted all access permissions on all tables in this project after added into this project.',
-      authorTips2: `What role does Kyligence Enterprise provide?<br>
-      The relationship of each role is as below: Admin > Management > Operation > Query. For example, Admin includes all the permissions of the other three roles and Management includes all the permissions of Operation and Query.<br>
-      1. Query: Query as the business analyst has permissions to query tables or indexes.<br>
-      2. Operation: Operation as the operator has permissions to build indexes and monitor job status.<br>
-      3. Management: Management as the model designer has permissions to load tables and design models.<br>
-      4. Admin: Admin as the project admin has all permissions and can manage and maintain this project, which includes loading tables, authority user access permissions, etc.`,
+      deleteAccessTitle: 'Delete Authorization',
+      authorTips: 'Can\'t add system admin to the list, as this role already has full access to all projects.',
+      authorTips1: 'By default, the added user/user group would be granted full access to all the tables in the project.',
+      authorTips2: `What roles does Kyligence Enterprise provide?<br>
+      The relationship of each role is: Admin > Management > Operation > Query. For example, Admin includes all the permissions of the other three roles. Management includes all the permissions of Operation and Query. Operation includes all the permissions of Query.<br>
+      1. Query: For business analyst who would need permissions to query tables or indexes.<br>
+      2. Operation: For the operator who need permissions to build indexes and monitor job status.<br>
+      3. Management: For the model designer who would need permissions to load tables and design models.<br>
+      4. Admin: For the project admin who would need all permissions and could manage and maintain this project, including loading tables, authorizing user access permissions, etc.`,
       noAuthorityTip: 'Access denied. Please try again after logging in.'
     },
     'zh-cn': {
-      projectTitle: '{projectName} 权限',
+      projectTitle: '授权（项目：{projectName})',
       back: '返回',
       userAccess: '用户/用户组',
       selectUserAccess: '选择用户/用户组',
@@ -237,24 +240,28 @@ import tableAccess from './table_access'
       accessTables: '有权限的表',
       author: '添加用户/用户组',
       editAuthor: '编辑用户/用户组',
-      overLimitTip: '默认展示前 100 条搜索结果，请尝试修改您的关键字进行更精确的搜索',
+      overLimitTip: '默认展示前 100 条搜索结果。请修改关键词进行精确搜索。',
       selectUserOrUserGroups: '请选择或者输入用户/用户组名称',
       userGroups: '用户组',
       users: '用户',
-      tableName: '表名',
+      Query: '查询人员',
+      Admin: '项目管理员',
+      Management: '管理员',
+      Operation: '运维人员',
+      tableName: '表名称',
       datasourceType: '数据源',
       tableType: '表',
-      deleteAccessTip: '请确认是否删除 {userName} 在当前项目的所有访问权限？',
+      deleteAccessTip: '请确认是否删除 “{userName}” 在当前项目的权限？',
       access: '权限',
       deleteAccessTitle: '删除权限',
-      authorTips: '系统管理拥有所有项目的所有权限，故在添加的用户列表中不包含系统管理员。',
-      authorTips1: '默认情况下，用户/用户组被添加至项目后，将自动授予该项目下的所有表及行列的访问权限。',
-      authorTips2: `Kyligence Enterprise 提供什么样的角色权限？<br>
-      权限包含关系如下： Admin > Management > Operation > Query，即 Admin 包含了其他三种权限，Management 包含了 Operation 和 Query 权限， Operation 包含了 Query 权限。<br>
-      1. Query：定位为一般分析师，只需要项目中的表或者模型/索引的查询权限。<br>
-      2. Operation：定位为公司／组织内的IT运维人员，负责模型/索引的运维工作。<br>
-      3. Management：定位为业务部门的建模人员，对数据的业务情况很清楚，负责对数据进行导入、设计模型等。<br>
-      4. Admin：定义为项目的管理员，拥有项目内的所有权限，负责对项目进行整体运维和管理，包括授权等。`,
+      authorTips: '无法添加系统管理员，该角色已拥有所有项目的所有权限。',
+      authorTips1: '当用户/用户组被添加至该项目后，将被默认授予该项目下的所有表及行列的访问权限。',
+      authorTips2: `Kyligence Enterprise 提供什么样的角色？<br>
+      角色间包含关系如下： 项目管理员 > 管理员 > 运维人员 > 查询人员。即项目管理员包含了其他三种角色权限，管理员包含了运维人员和查询人员权限，运维人员包含了查询人员权限。<br>
+      1. 查询人员：适用于分析师，只需要项目中的表或者模型/索引的查询权限。<br>
+      2. 运维人员：适用于公司/组织内的 IT 运维人员，负责模型/索引的维护工作。<br>
+      3. 管理员：适用于业务部门的建模人员，对数据的业务情况很清楚，负责导入数据或设计模型等。<br>
+      4. 项目管理员：适用于项目级管理员，拥有项目内的所有权限，负责对项目进行整体运维和管理以及授权等操作。`,
       noAuthorityTip: '当前用户无访问权限，请重新登录后进行尝试。'
     }
   }
@@ -308,9 +315,9 @@ export default class ProjectAuthority extends Vue {
   groupTotalSize = 0
   showMaskByOrder = [
     { key: 'Query', value: 1 },
-    { key: 'Admin', value: 16 },
     { key: 'Operation', value: 64 },
-    { key: 'Management', value: 32 }
+    { key: 'Management', value: 32 },
+    { key: 'Admin', value: 16 }
   ]
   submitLoading = false
   projectAccess = null
@@ -741,8 +748,7 @@ export default class ProjectAuthority extends Vue {
           margin-top: 100px;
           font-size: 12px;
           color: @text-title-color;
-          width: 80%;
-          text-align: center;
+          width: 70%;
         }
         ul {
           overflow-y: auto;

@@ -1,6 +1,6 @@
 export default {
   'en': {
-    dataRangeValValid: 'Please input build date range',
+    dataRangeValValid: 'Please enter build date range',
     modelBuild: 'Load Data',
     buildRange: 'Build Range',
     startDate: 'Start Date',

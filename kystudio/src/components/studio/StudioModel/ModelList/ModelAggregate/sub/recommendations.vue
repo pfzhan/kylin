@@ -323,7 +323,7 @@ import filterElements from '../../../../../../filter/index'
       validateTitle: 'Add Items to Model',
       validateModalTip: 'To accept the selected recommendations, the following items have to be added to the model:',
       add: 'Add',
-      requiredName: 'Please input alias',
+      requiredName: 'Please enter alias',
       sameName: 'The following dimension/measure name already exists in this model, or CC name is duplicated with existing column names. Please rename and try again',
       bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es).',
       onlyAcceptAdd: 'Successfully added {addLength} index(es).',

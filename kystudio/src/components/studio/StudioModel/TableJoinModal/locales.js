@@ -3,7 +3,7 @@ export default {
     addJoinCondition: 'Add Join Condition',
     checkCompleteLink: 'connection info is incomplete',
     delConn: 'Delete connection',
-    delConnTip: 'Are you sure to delete this connection?',
+    delConnTip: 'Are you sure you want to delete this connection?',
     noColumnFund: 'Column not found',
     tableJoin: 'Join Condition for Tables',
     columnsJoin: 'Join Condition for Columns',

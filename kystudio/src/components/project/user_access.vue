@@ -106,7 +106,10 @@
             </ul>
             <kap-nodata :content="emptyText3" v-if="!isCurrentTableChecked&&!rows.length">
             </kap-nodata>
-            <div class="view-all-tips" v-if="isCurrentTableChecked&&!rows.length">{{$t('viewAllDataTips')}}</div>
+            <div class="view-all-tips" v-if="isCurrentTableChecked&&!rows.length">
+              <div><i class="point">•</i> {{$t('viewAllDataTips')}}</div>
+              <div><i class="point">•</i> {{$t('viewAllDataTips1')}}</div>
+            </div>
           </div>
         </div>
       </el-col>
@@ -188,16 +191,17 @@ import { pageSizeMapping } from '../../config'
       accessTables: 'Table Access List',
       accessColumns: 'Column Access List',
       accessRows: 'Row Access List',
-      searchKey: 'Please input a keyword',
+      searchKey: 'Search by table or column name',
       accessTips: 'All tables in current datasource are accessible.',
       accessColsTips: 'All columns in current table are accessible.',
       accessRowsTips: 'All rows in current table are accessible.',
-      viewAllDataTips: 'By setting the row ACL, the user/group will only be able to view data that match the specified filters. For the columns without conditions, users will be able to view all the data for this column.',
+      viewAllDataTips: 'After the row ACL was set, the user/user group could only access the data that match the specified filters.',
+      viewAllDataTips1: 'For the columns without conditions set, user/user group could access all the data.',
       addRowAccess: 'Add Row ACL',
-      addRowAccess1: 'Add Row ACL - {tableName}',
-      editRowAccess: 'Edit Row ACL - {tableName}',
-      pleaseInput: 'Please enter values. Use "," to separate multiple values.',
-      loadMore: 'Load More ...',
+      addRowAccess1: 'Add Row ACL (Table: {tableName})',
+      editRowAccess: 'Edit Row ACL (Table: {tableName})',
+      pleaseInput: 'Confirm by pressing "enter" key and separate multiple values by comma.',
+      loadMore: 'Load More',
       tipsTitle: 'The row ACL provides = and like operators. The like operator could only be used for char or varchar data type, and needs to be used with wildcards. ',
       viewDetail: 'View Rules',
       rules1: '_ (underscore) wildcard characters, matches any single character. ',
@@ -208,16 +212,17 @@ import { pageSizeMapping } from '../../config'
       accessTables: '表级访问列表',
       accessColumns: '列级访问列表',
       accessRows: '行级访问列表',
-      searchKey: '请输入关键字搜索',
+      searchKey: '搜索表名或列名',
       accessTips: '当前数据源上所有表均可访问',
       accessColsTips: '当前表上所有列均可访问',
       accessRowsTips: '当前表上所有行均可访问',
-      viewAllDataTips: '通过设置行级权限，用户/组将仅能查看到表中符合筛选条件的数据。对于没有设置的列，将默认能够查看该列所有数据。',
+      viewAllDataTips: '设置行级权限后，用户/用户组仅能查看到表中符合筛选条件的数据。',
+      viewAllDataTips1: '对于没有设置权限的列，用户/用户组仍能够查看该列所有数据。',
       addRowAccess: '添加行级权限',
-      addRowAccess1: '添加行级权限 - {tableName}',
-      editRowAccess: '编辑行级权限 - {tableName}',
-      pleaseInput: '请输入值。多个值请用 “,” 分隔。',
-      loadMore: '加载更多 ...',
+      addRowAccess1: '添加行级权限（表： {tableName}）',
+      editRowAccess: '编辑行级权限（表： {tableName}）',
+      pleaseInput: '请用回车进行输入确认并用逗号进行多个值分割',
+      loadMore: '加载更多',
       tipsTitle: '行级权限支持 = 和 like 操作符。其中，like 仅支持 char 和 varchar 类型的列，需配合通配符使用。',
       viewDetail: '查看规则',
       rules1: '_（下划线）通配符，匹配任意单个字符。',

@@ -196,7 +196,7 @@ describe('Component SettingAdvanced', () => {
     expect(wrapper.vm.ifShowYarn).toBeTruthy()
     expect('threshold' in wrapper.vm.accelerateRules).toBeTruthy()
     expect(wrapper.vm.setDefaultDBRules).toEqual({'default_database': {'message': 'Please select', 'required': true, 'trigger': 'change'}})
-    expect(wrapper.vm.emailRules).toEqual([{'message': 'Please input email', 'required': true, 'trigger': 'blur'}, {'message': 'Please input vaild email.', 'trigger': 'blur', 'type': 'email'}])
+    expect(wrapper.vm.emailRules).toEqual([{'message': 'Please enter email', 'required': true, 'trigger': 'blur'}, {'message': 'Please enter vaild email.', 'trigger': 'blur', 'type': 'email'}])
     expect(wrapper.vm.yarnQueueRules['yarn_queue'][0].message).toEqual(['The queue name is required', 'Incorrect format'])
     expect(wrapper.vm.userType).toBeTruthy()
     expect('principal' in wrapper.vm.kerberosRules).toBeTruthy()

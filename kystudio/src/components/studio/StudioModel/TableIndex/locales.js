@@ -37,7 +37,7 @@ export default {
     empty: 'Emtpy Index',
     manualAdvice: 'User-defined index',
     autoAdvice: 'System-defined index',
-    delTableIndexTip: 'Are you sure to delete the table index {tableIndexName}?',
+    delTableIndexTip: 'Are you sure you want to delete the table index {tableIndexName}?',
     delTableIndexTitle: 'Delete Table Index',
     buildIndex: 'Build Index'
   },

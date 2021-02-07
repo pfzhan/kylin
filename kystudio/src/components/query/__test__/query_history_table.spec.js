@@ -156,7 +156,7 @@ describe('Component QueryHistoryTable', () => {
     expect(wrapper.vm.showCopyStatus).toBeFalsy()
 
     wrapper.vm.onError()
-    expect(mockMessage).toBeCalledWith('Failed to copy! Your browser does not support paste boards!')
+    expect(mockMessage).toBeCalledWith('Can\'t copy! Your browser does not support paste boards!')
 
 
     wrapper.vm.expandChange({...queryHistorys[0], sql_text: Array(200).fill('select \n').join('')})

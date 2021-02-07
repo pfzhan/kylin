@@ -4,7 +4,7 @@ export default {
     modelClone: 'Model Clone',
     inputCloneName: 'Please enter name',
     inputModelName: 'Please enter model name',
-    delModelTip: 'Are you sure to drop this model?',
+    delModelTip: 'Are you sure you want to drop this model?',
     noModel: 'You can click below button to add a model',
     discardChange: 'Discard Changes',
     continueEditing: 'Continue Editing'

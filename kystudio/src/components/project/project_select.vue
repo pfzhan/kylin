@@ -76,8 +76,8 @@ export default {
     this.selected_project = this.$store.state.project.selected_project
   },
   locales: {
-    'en': {selectAll: '-- Select All --', pleaseSearchOrSelectProject: 'Please search or select project'},
-    'zh-cn': {selectAll: '-- 选择全部 --', pleaseSearchOrSelectProject: '请搜索或选择项目'}
+    'en': {selectAll: 'Select All', pleaseSearchOrSelectProject: 'Please search or select project'},
+    'zh-cn': {selectAll: '选择全部', pleaseSearchOrSelectProject: '请搜索或选择项目'}
   }
 }
 </script>

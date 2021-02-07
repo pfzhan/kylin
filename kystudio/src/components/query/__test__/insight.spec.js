@@ -221,7 +221,7 @@ describe('Component Insight', () => {
       sql: "select * from SSB.DATES_VIEW"
     })
     // jest.runAllTimers()
-    expect(mockKapConfirm).toBeCalledWith('Are you sure to delete _fwewfe?', null, 'Delete SQL')
+    expect(mockKapConfirm).toBeCalledWith('Are you sure you want to delete _fwewfe?', null, 'Delete SQL')
     expect(mockApi.mockDeleteQuery.mock.calls[0][1]).toEqual({"id": "-1317973139", "project": "Kyligence"})
     // expect(mockMessage).toBeCalled()
     expect(wrapper.vm.savedList.length).toBe(2)

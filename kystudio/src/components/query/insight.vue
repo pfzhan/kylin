@@ -21,7 +21,7 @@
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
               <el-button plain size="small" :disabled="editableTabs.length<2" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
-              size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}({{savedSize}})</el-button>
+              size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('savedQueries')}}({{savedSize}})</el-button>
             </div>
             <tab class="insight_tab" type="card" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
               <template slot-scope="props">
@@ -128,18 +128,18 @@ import { insightKeyword } from '../../config'
     'en': {
       dialogHiveTreeNoData: 'Please click data source to load source tables',
       trace: 'Trace',
-      savedQueries: 'Save Queries',
+      savedQueries: 'Saved Queries',
       queryBox: 'Query Box',
       more: 'More',
       closeAll: 'Close All',
       delSqlTitle: 'Delete SQL',
-      confirmDel: 'Are you sure to delete {queryName}?',
+      confirmDel: 'Are you sure you want to delete {queryName}?',
       runQuery: 'Run Query'
     },
     'zh-cn': {
       dialogHiveTreeNoData: '请点击数据源来加载源表',
       trace: '追踪',
-      savedQueries: '保存的查询',
+      savedQueries: '已保存的查询',
       queryBox: '查询窗口',
       more: '更多',
       closeAll: '关闭全部',

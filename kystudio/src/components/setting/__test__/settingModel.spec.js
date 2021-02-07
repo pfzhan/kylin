@@ -159,7 +159,7 @@ describe('Component SettingModel', () => {
     expect(mockApi.mockUpdateModelConfig.mock.calls[0][1]).toEqual({"alias": "test0001", "auto_merge_enabled": null, "auto_merge_time_ranges": null, "config_last_modified": 0, "config_last_modifier": null, "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {}, "project": "learn_kylin", "retention_range": null, "volatile_range": null})
 
     await wrapper.vm.removeCustomSettingItem(settingValue[0], 'kylin.config.enginee.code')
-    expect(mockKapConfirm.mock.calls[1][0]).toBe('Are you sure to delete custom setting item kylin.config.enginee.code？')
+    expect(mockKapConfirm.mock.calls[1][0]).toBe('Are you sure you want to delete custom setting item kylin.config.enginee.code？')
     expect(mockApi.mockUpdateModelConfig.mock.calls[1][1]).toEqual({"alias": "test0001", "auto_merge_enabled": null, "auto_merge_time_ranges": null, "config_last_modified": 0, "config_last_modifier": null, "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {}, "project": "learn_kylin", "retention_range": null, "volatile_range": null})
 
     await wrapper.vm.nextStep()

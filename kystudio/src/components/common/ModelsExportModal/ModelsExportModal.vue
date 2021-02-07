@@ -392,7 +392,7 @@ export default class ModelsExportModal extends Vue {
     font-size: 14px;
   }
   .filter {
-    width: 200px;
+    width: 240px;
   }
   .header {
     margin-bottom: 10px;

@@ -7,11 +7,11 @@
       nested
       style="width: 100%">
       <el-table-column
-        label="Key"
+        :label="$t('key')"
         prop="key">
       </el-table-column>
       <el-table-column
-        label="Value"
+        :label="$t('value')"
         prop="value">
       </el-table-column>
     </el-table>
@@ -32,6 +32,16 @@ import { pageRefTags } from 'config'
 export default {
   name: 'project_config',
   props: ['override'],
+  locales: {
+    'en': {
+      key: 'Parameter Key',
+      value: 'Parameter Value'
+    },
+    'zh-cn': {
+      key: '配置项名称',
+      value: '配置项值'
+    }
+  },
   data () {
     return {
       pageRefTags: pageRefTags,

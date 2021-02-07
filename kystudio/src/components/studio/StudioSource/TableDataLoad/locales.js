@@ -20,7 +20,7 @@ export default {
     loadData: 'Load Data',
     refreshData: 'Refresh Data',
     notLoadYet: 'Not loaded yet',
-    suggestSetLoadRangeTip: 'Please input a load range after the partition set, or the system wouldn\'t accelerate queries automatically.',
+    suggestSetLoadRangeTip: 'Please enter a load range after the partition set, or the system wouldn\'t accelerate queries automatically.',
     dateFormat: 'Time Format:',
     detectFormat: 'Detect partition format'
   },

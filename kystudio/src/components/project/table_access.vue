@@ -106,16 +106,16 @@ import { Component } from 'vue-property-decorator'
       tables: 'Table',
       columns: 'Columns',
       rows: 'Rows',
-      userOrGroupTitle: 'User/Group List',
+      userOrGroupTitle: 'User/User Group List',
       accessColumns: 'Column Access List',
       accessRows: 'Row Access List',
-      searchKey: 'Please input a keyword'
+      searchKey: 'Please enter a keyword'
     },
     'zh-cn': {
       tables: '表',
       columns: '列',
       rows: '行',
-      userOrGroupTitle: '用户/组访问列表',
+      userOrGroupTitle: '用户/用户组访问列表',
       accessColumns: '列级访问列表',
       accessRows: '行级访问列表',
       searchKey: '请输入关键字搜索'

@@ -55,7 +55,7 @@ export default {
     selectPartitionPlaceholder: '请选择分区列',
     noPartition: '无分区',
     detectPartition: '获取源表分区',
-    fetchPartitionErrorTip: '获取失败，请手动选择',
+    fetchPartitionErrorTip: '无法获取，请手动选择',
     viewAllPartition: '查看全部',
     preStep: '上一步',
     undefinedPartitionColErrorTip: '该源表未定义分区。',

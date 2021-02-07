@@ -158,11 +158,11 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
   locales: {
     'en': {
       copySuccess: 'Successed to copy.',
-      copyFail: 'Failed to copy.'
+      copyFail: 'Can\'t copy.'
     },
     'zh-cn': {
       copySuccess: '复制成功',
-      copyFail: '复制失败'
+      copyFail: '无法复制'
     }
   }
 })

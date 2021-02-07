@@ -65,7 +65,7 @@ import { indexOfObjWithSomeKey } from '../../util/index'
     })
   },
   locales: {
-    'en': {serviceList: 'Server List', reloadMetadata: 'Reload Metadata', backup: 'Backup Metadata', reloadCheck: 'Are you sure to reload metadata and clean cache? ', reloadSuccessful: 'Reload metadata successful.', backupSys: 'Are you sure to backup the system?', reloadTip: 'Reload the metadata of this instance.', backupTip: ' Backup the metadata of this instance.', workproperly: ' work properly.'},
+    'en': {serviceList: 'Server List', reloadMetadata: 'Reload Metadata', backup: 'Backup Metadata', reloadCheck: 'Are you sure you want to reload metadata and clean cache? ', reloadSuccessful: 'Reload metadata successful.', backupSys: 'Are you sure you want to backup the system?', reloadTip: 'Reload the metadata of this instance.', backupTip: ' Backup the metadata of this instance.', workproperly: ' work properly.'},
     'zh-cn': {serviceList: '服务器列表', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份元数据', reloadCheck: '确定要重载元数据并清理缓存? ', reloadSuccessful: '重载元数据成功。', backupSys: '确定要进行系统备份? ', reloadTip: '重新载入全部元数据。', backupTip: '备份全部元数据。', workproperly: '工作正常'}
   }
 })

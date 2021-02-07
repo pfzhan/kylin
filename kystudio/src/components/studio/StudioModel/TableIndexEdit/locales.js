@@ -12,7 +12,7 @@ export default {
     sortLimitTip: 'At most nine \'sort\' column is allowed.',
     sort: 'Order',
     tableIndex: 'table index',
-    cofirmEditTableIndex: 'After submitting, the system will create a new table index based on your changes. Meanwhile, the original index will be changed to "LOCKED" status and still be available for querying. The index will be deleted after the new table index is built successfully. Please note that the deleted index cannot be recovered. Are you sure to submit?',
+    cofirmEditTableIndex: 'After submitting, the system will create a new table index based on your changes. Meanwhile, the original index will be changed to "LOCKED" status and still be available for querying. The index will be deleted after the new table index is built successfully. Please note that the deleted index cannot be recovered. Are you sure you want to submit?',
     saveAndBuild: 'Save and Build',
     cardinality: 'Cardinality',
     order: 'Order',

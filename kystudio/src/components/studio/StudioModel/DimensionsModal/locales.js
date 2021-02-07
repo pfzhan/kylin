@@ -14,7 +14,7 @@ export default {
     expression: 'Expression',
     sqlOutput: 'Dimensions Suggestion',
     outputTipOne: 'Dimensions suggested based on inputed SQL patterns.',
-    resetTip: 'Reset will call last saving back and overwrite existing dimensions. Please confirm to continue?',
+    resetTip: 'Reset will call last saving back and overwrite existing dimensions. Are you sure you want to continue?',
     dataOriented: 'Data Oriented',
     mix: 'Mix',
     businessOriented: 'Business Oriented',

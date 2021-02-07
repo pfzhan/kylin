@@ -113,7 +113,7 @@ describe('Component User', () => {
     expect(mockUserByGroupName).toBeCalled()
 
     await wrapper.vm.dropUser({username: 'xx'})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure to delete the user xx?', null, 'Delete User')
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user xx?', null, 'Delete User')
     expect(mockRemoveUser).toBeCalled()
     expect(mockMessage).toBeCalled()
 
@@ -121,11 +121,11 @@ describe('Component User', () => {
       removeUser: jest.fn().mockRejectedValue(false)
     }
     await User.options.methods.dropUser.call(options, { username: 'xx' })
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure to delete the user xx?', null, 'Delete User')
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user xx?', null, 'Delete User')
     expect(mockHandleError).toBeCalled()
 
     await wrapper.vm.changeStatus({disabled: true})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure to Enable the user ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to Enable the user ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
     expect(mockHandleError).toBeCalled()
 
     const options1 = {
@@ -134,7 +134,7 @@ describe('Component User', () => {
       $t: (content) => content
     }
     await User.options.methods.changeStatus.call(options1, {disabled: false})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure to Enable the user ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to Enable the user ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
     expect(mockHandleError).toBeCalled()
 
     const options3 = {

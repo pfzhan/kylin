@@ -657,7 +657,6 @@ export default class SystemCapacity extends Vue {
 
 <style scoped lang="less">
 @import '../../../assets/styles/variables.less';
-
 .system-capacity {
   padding: 20px 15px;
   box-sizing: border-box;
@@ -876,6 +875,11 @@ export default class SystemCapacity extends Vue {
 
 <style lang="less">
   @import '../../../assets/styles/variables.less';
+  .project-capacity .el-table__header {
+    .el-table__column-filter-trigger i {
+      font-size: 14px;
+    }
+  }
   .input-emails {
     .el-input__inner {
       border: none;

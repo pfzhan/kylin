@@ -3,7 +3,7 @@ export default {
     searchModel: 'Search Model',
     relatedModel: 'Related Model',
     total: '（Total: {count}）',
-    dicardConfirm: 'Are you sure to unlink this model?',
+    dicardConfirm: 'Are you sure you want to unlink this model?',
     discard: 'Unlink',
     startTime: 'Start Time:',
     endTime: 'End Time:',

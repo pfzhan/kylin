@@ -12,10 +12,10 @@ export default {
     masterCredentials: 'Master Credentials',
     username: 'User Name',
     password: 'Password',
-    inputUserame: 'Please input user name',
-    inputPassword: 'Please input password ',
-    hostValidTip: 'Please input valid host address, eg: 127.0.0.1',
-    portValidTip: 'Please input valid port.'
+    inputUserame: 'Please enter user name',
+    inputPassword: 'Please enter password ',
+    hostValidTip: 'Please enter valid host address, eg: 127.0.0.1',
+    portValidTip: 'Please enter valid port.'
   },
   'zh-cn': {
     type: '数据源类型',

@@ -1,6 +1,6 @@
 export default {
   'en': {
-    updateAt: 'Last update :',
+    updateAt: 'Last updated time:',
     delete: 'Delete',
     reload: 'Reload',
     general: 'Storage',
@@ -20,7 +20,7 @@ export default {
     sampleDesc1: 'Sampling range should not exceed ',
     sampleDesc2: ' rows.',
     sampleDialogTitle: 'Table Sampling',
-    invalidType: 'Please input an integer',
+    invalidType: 'Please enter an integer',
     minNumber: 'Input should be no less than 10,000 rows',
     maxNumber: 'Input should be no larger than 20,000,000 rows',
     confirmSampling: 'The source table {table_name} has a related sample job running, it will be discarded if you re-submit a new sample job. Do you really want to re-submit a new one?',
@@ -29,7 +29,7 @@ export default {
     deleteTable: 'Delete Table'
   },
   'zh-cn': {
-    updateAt: '上次更新时间 :',
+    updateAt: '最后更新时间 :',
     delete: '删除',
     reload: '重载',
     general: '存储信息',

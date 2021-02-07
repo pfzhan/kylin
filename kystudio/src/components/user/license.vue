@@ -208,14 +208,14 @@ export default {
       noLicense: 'No license',
       applyLicense: 'Apply Evaluation License',
       validPeriod: 'Valid Period: ',
-      pastLicense: 'Paste license content',
-      uploadLicense: 'Upload license file',
+      pastLicense: 'Paste License Content',
+      uploadLicense: 'Upload License File',
       enterLicense: 'Enter the license',
       pleaseEnterLicense: 'Please paste license content',
       pleaseSelectLicense: 'Please select a license file',
       upload: 'Upload',
-      dropOrClickUpload: 'Drop file here or click to upload',
-      filesSizeError: 'Supported file size is up to 5 MB, please check and upload again.'
+      dropOrClickUpload: 'Please drag and drop the file here or click to upload',
+      filesSizeError: 'Currently the supported file size is up to 5 MB. Please check and upload again.'
     },
     'zh-cn': {
       youcan: '您可以',

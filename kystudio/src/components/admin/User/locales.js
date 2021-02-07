@@ -2,27 +2,27 @@ export default {
   en: {
     back: 'Back',
     user: 'User',
-    userName: 'User Name Search',
-    securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.',
+    userName: 'Search by username',
+    securityProfileTip: 'The current security configuration doesn\'t allow managing users/user groups.',
     admin: 'System Admin',
     status: 'Status',
     action: 'Actions',
     editRole: 'Edit Role',
     resetPassword: 'Reset Password',
-    drop: 'Drop',
+    drop: 'Delete',
     disable: 'Disable',
     enable: 'Enable',
     groupMembership: 'Assign to Group',
-    cofirmDelUser: 'Are you sure to delete the user {userName}?',
+    cofirmDelUser: 'Are you sure you want to delete the user "{userName}"?',
     delUserTitle: 'Delete User',
     userList: 'User List',
-    changeUserTips: 'Are you sure to {status} the user {userName}?'
+    changeUserTips: 'Are you sure you want to {status} the user "{userName}"?'
   },
   'zh-cn': {
     back: '返回',
     user: '用户',
     userName: '搜索用户名',
-    securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。',
+    securityProfileTip: '当前安全配置不支持手动新增、编辑、删除用户/用户组。',
     admin: '系统管理员',
     status: '状态',
     action: '操作',
@@ -31,10 +31,10 @@ export default {
     drop: '删除',
     disable: '禁用',
     enable: '启用',
-    groupMembership: '分组',
-    cofirmDelUser: '确认删除用户 {userName} 吗？',
+    groupMembership: '分配到用户组',
+    cofirmDelUser: '确认删除用户 "{userName}" 吗？',
     delUserTitle: '删除用户',
     userList: '用户列表',
-    changeUserTips: '你确认要{status}用户 {userName} 吗？'
+    changeUserTips: '你确认要{status}用户 "{userName}" 吗？'
   }
 }

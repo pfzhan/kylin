@@ -146,7 +146,7 @@ describe('Component Login', () => {
     expect(wrapper.is('div')).toBeTruthy()
     expect(wrapper.classes()).toEqual([])
     expect(wrapper.vm.$data.user).toEqual({ username: null, password: '' })
-    expect(wrapper.find('.login-footer').text()).toEqual('©2020 Kyligence Inc. All rights reserved.')
+    expect(wrapper.find('.login-footer').text()).toEqual('©2021 Kyligence Inc. All rights reserved.')
     expect(mockGetAboutKap).toBeCalled()
     expect(mockHandleSuccess).toBeCalled()
     expect(mockHandleError).toBeCalled()

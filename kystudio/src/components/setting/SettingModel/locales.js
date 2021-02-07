@@ -55,10 +55,10 @@ export default {
     customOptions: 'Besides the defined configurations, you can also add some advanced settings.<br/><i class="el-icon-ksd-alert"></i>Note: It\'s highly recommended to use this feature with the support of Kyligence Service Team.',
     customSettingKeyPlaceholder: 'Configuration Name',
     customSettingValuePlaceholder: 'Value',
-    delCustomConfigTip: 'Are you sure to delete custom setting item {name}？'
+    delCustomConfigTip: 'Are you sure you want to delete custom setting item {name}？'
   },
   'zh-cn': {
-    modifyTime: '修改时间',
+    modifyTime: '最后更新时间',
     modelSetting: '已重写的设置项',
     modifiedUser: '修改人',
     segmentMerge: 'Segment 合并：',

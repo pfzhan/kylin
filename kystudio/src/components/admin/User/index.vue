@@ -229,7 +229,7 @@ export default class SecurityUser extends Vue {
     try {
       const { uuid, username } = userDetail
 
-      await kapConfirm(this.$t('cofirmDelUser', {userName: username}), null, this.$t('delUserTitle'))
+      await kapConfirm(this.$t('cofirmDelUser', {userName: username}), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('delUserTitle'))
       await this.removeUser(uuid)
 
       this.loadUsers()
@@ -241,7 +241,7 @@ export default class SecurityUser extends Vue {
 
   async changeStatus (userDetail) {
     const status = userDetail.disabled ? this.$t('enable') : this.$t('disable')
-    await kapConfirm(this.$t('changeUserTips', {status: status, userName: userDetail.username}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: status, type: 'warning'})
+    await kapConfirm(this.$t('changeUserTips', {status: status.toLowerCase(), userName: userDetail.username}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: status, type: 'warning'})
     try {
       await this.updateStatus({
         uuid: userDetail.uuid,

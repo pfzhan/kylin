@@ -37,7 +37,7 @@ export default {
     sourceManagement: '数据源管理',
     loadTables: '加载表元数据',
     loadTablesSuccess: '成功同步全部源表。',
-    loadTablesFail: '{db_counts} 个数据库和 {table_counts} 个源表元数据加载失败，请联系管理员检查当前数据源中是否存在所选的数据库或源表。',
+    loadTablesFail: '{db_counts} 个数据库和 {table_counts} 个源表元数据无法加载，请联系管理员检查当前数据源中是否存在所选的数据库或源表。',
     databases: '数据库',
     tables: '源表',
     cloudHive: '文件数据源',
