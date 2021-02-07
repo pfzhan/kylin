@@ -327,6 +327,64 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCleanupToBeDeleted_afterChangeType() throws Exception {
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val project = "default";
+
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val saved = indexManager.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.setIndexes(Lists.newArrayList());
+            copyForWrite.setRuleBasedIndex(JsonUtil.readValueQuietly(("{" //
+                    + "    \"dimensions\": [ 0, 1, 2, 3, 4, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32, 33 ],\n" //
+                    + "    \"measures\": [ 100000, 100001, 100002, 100003, 100004, 100005, 100007, 100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016 ],\n" //
+                    + "    \"aggregation_groups\": [\n" + "      {\n" //
+                    + "        \"includes\": [ 2, 8, 3, 4, 16, 33, 6, 7 ],\n" //
+                    + "        \"select_rule\": {\n" //
+                    + "          \"hierarchy_dims\": [\n" //
+                    + "            [ 33, 6, 7, 8 ]\n" //
+                    + "          ],\n" //
+                    + "          \"mandatory_dims\": [],\n" //
+                    + "          \"joint_dims\": [\n" //
+                    + "            [ 3, 4, 16 ]\n" //
+                    + "          ],\n" //
+                    + "          \"dim_cap\": 1\n" //
+                    + "        }\n" //
+                    + "      },\n" //
+                    + "      {\n" //
+                    + "        \"includes\": [ 2, 8, 3, 4, 16, 33, 6, 7, 9, 18, 19, 20, 21, 13, 14, 15, 17, 22, 23, 24, 25 ],\n" //
+                    + "        \"select_rule\": {\n" //
+                    + "          \"hierarchy_dims\": [],\n" //
+                    + "          \"mandatory_dims\": [ 2 ],\n" + "          \"joint_dims\": [\n" //
+                    + "            [ 33, 6, 7, 8 ],\n" //
+                    + "            [ 3, 4, 16 ],\n" //
+                    + "            [ 9, 18, 19, 20, 21 ],\n" //
+                    + "            [ 13, 14, 15, 17, 22, 23, 24, 25 ]\n" //
+                    + "          ],\n" //
+                    + "          \"dim_cap\": 1\n" //
+                    + "        }\n" //
+                    + "      }\n" //
+                    + "    ],\n" //
+                    + "    \"storage_type\": 20" //
+                    + "}").getBytes(), RuleBasedIndex.class), false, true);
+        });
+
+        val toBeDeletedLayouts = saved.getToBeDeletedIndexes();
+        Assert.assertEquals(1, toBeDeletedLayouts.size());
+
+        changeTypeColumn("DEFAULT.TEST_CATEGORY_GROUPINGS", new HashMap<String, String>() {
+            {
+                put("META_CATEG_NAME", "int");
+            }
+        }, true);
+
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_CATEGORY_GROUPINGS", false);
+
+        val saved2 = indexManager.getIndexPlan(modelId);
+        val toBeDeletedLayouts2 = saved2.getToBeDeletedIndexes();
+        Assert.assertEquals(0, toBeDeletedLayouts2.size());
+    }
+
+    @Test
     public void testReload_AddIndexCount() throws Exception {
 
         val newRule = new RuleBasedIndex();

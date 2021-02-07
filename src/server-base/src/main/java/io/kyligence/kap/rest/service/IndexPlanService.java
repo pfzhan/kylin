@@ -783,6 +783,10 @@ public class IndexPlanService extends BasicService {
         for (Integer id : ids) {
             if (id < NDataModel.MEASURE_ID_BASE) {
                 String columnName = model.getColumnNameByColumnId(id);
+                if (columnName == null) {
+                    result.add(new IndexResponse.ColOrderPair(id + "", "column", null));
+                    continue;
+                }
                 TblColRef colRef = model.findColumnByAlias(columnName);
                 TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
                 TableExtDesc.ColumnStats columnStats = Objects.isNull(tableExt) ? null
@@ -851,6 +855,8 @@ public class IndexPlanService extends BasicService {
                 updatedAgg.setLastModifiedTime(System.currentTimeMillis());
                 copy.setRuleBasedIndex(updatedAgg, reloadLayouts, false, false, false);
             }
+            // cleanup to_be_deleted layouts
+            copy.removeLayouts(changedLayouts, true, true);
         });
     }
 
