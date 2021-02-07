@@ -232,7 +232,7 @@ public abstract class AbstractExecutable implements Executable {
                     checkNeedQuit(false);
                     f.process();
                     return null;
-                }, context.getEpochId(), project);
+                }, getEpochId(), project);
             } catch (Exception e) {
                 if (Throwables.getCausalChain(e).stream().anyMatch(x -> x instanceof JobStoppedException)) {
                     // "in this short period user might changed job state" happens
@@ -277,6 +277,10 @@ public abstract class AbstractExecutable implements Executable {
     protected void onExecuteErrorHook(String jobId) {
         // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
     }
+    
+    protected long getEpochId() {
+        return context == null ? -1 : context.getEpochId();
+    }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, Consumer<String> hook) {
@@ -285,7 +289,6 @@ public abstract class AbstractExecutable implements Executable {
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, String logPath, Consumer<String> hook) {
-        long epochId = context == null ? -1 : context.getEpochId();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -299,7 +302,7 @@ public abstract class AbstractExecutable implements Executable {
                 hook.accept(jobId);
             }
             return null;
-        }, epochId, project);
+        }, getEpochId(), project);
 
         //write output to HDFS
         updateJobOutputToHDFS(project, jobId, output, logPath);
@@ -387,32 +390,28 @@ public abstract class AbstractExecutable implements Executable {
             return;
         }
 
-        val parent = this.getParent();
-
-        if (ExecutableState.READY == parent.getStatus()) {
-            //if a job is restarted(all steps' status changed to READY), the old thread may still be alive and attempt to update job output
-            //in this case the old thread should fail itself by calling this
-            if (applyChange) {
-
-                logger.debug("abort {} because parent job is {}", getId(), ExecutableState.READY);
-                updateJobOutput(project, getId(), ExecutableState.READY, null, null, null);
+        boolean aborted = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            boolean abort = false;
+            val parent = getParent();
+            ExecutableState state = parent.getStatus();
+            switch (state) {
+            case READY:
+            case PAUSED:
+            case DISCARDED:
+                //if a job is restarted(all steps' status changed to READY) or paused or discarded, the old thread may still be alive and attempt to update job output
+                //in this case the old thread should fail itself by calling this
+                if (applyChange) {
+                    logger.debug("abort {} because parent job is {}", getId(), state);
+                    updateJobOutput(project, getId(), state, null, null, null);
+                }
+                abort = true;
+                break;
+            default:
+                break;
             }
-            throw new JobStoppedNonVoluntarilyException();
-        } else if (ExecutableState.PAUSED == parent.getStatus()) {
-            //if a job is paused
-            if (applyChange) {
-
-                logger.debug("abort {} because parent job is {}", getId(), ExecutableState.PAUSED);
-                updateJobOutput(project, getId(), ExecutableState.PAUSED, null, null, null);
-            }
-            throw new JobStoppedNonVoluntarilyException();
-        } else if (ExecutableState.DISCARDED == parent.getStatus()) {
-            //if a job is discarded
-            if (applyChange) {
-
-                logger.debug("abort {} because parent job is {}", getId(), ExecutableState.DISCARDED);
-                updateJobOutput(project, getId(), ExecutableState.DISCARDED, null, null, null);
-            }
+            return abort;
+        }, getEpochId(), project);
+        if (aborted) {
             throw new JobStoppedNonVoluntarilyException();
         }
     }

@@ -110,7 +110,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
             return null;
-        }, context.getEpochId(), project);
+        }, getEpochId(), project);
     }
 
     @Override
@@ -122,6 +122,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         boolean hasSuicidal = false;
         boolean hasPaused = false;
         for (Executable task : jobs) {
+            logger.info("Sub-task finished {}, state: {}", task.getDisplayName(), task.getStatus());
             boolean taskSucceed = false;
             switch (task.getStatus()) {
             case RUNNING:
@@ -163,6 +164,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             state = ExecutableState.READY;
         }
 
+        logger.info("Job finished {}, state:{}", this.getDisplayName(), state);
+
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             switch (state) {
             case SUCCEED:
@@ -200,7 +203,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
             return null;
 
-        }, context.getEpochId(), project);
+        }, getEpochId(), project);
 
         // dispatch job-finished message out
         EventBusFactory.getInstance().postWithLimit(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(),

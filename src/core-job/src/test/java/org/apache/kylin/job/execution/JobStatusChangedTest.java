@@ -47,20 +47,20 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class JobStatusChangedTest extends NLocalFileMetadataTestCase {
     String project = "default";
+    KylinConfig config;
 
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        config = KylinConfig.getInstanceFromEnv();
+        NProjectManager prjMgr = NProjectManager.getInstance(config);
+        prjMgr.createProject(project, "", "", Maps.newLinkedHashMap(), MaintainModelType.MANUAL_MAINTAIN);
     }
 
     @Test
     public void test_KE24110_FailSamplingJobWithEpochChanged() throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NProjectManager prjMgr = NProjectManager.getInstance(config);
-        prjMgr.createProject(project, "", "", Maps.newLinkedHashMap(), MaintainModelType.MANUAL_MAINTAIN);
-
         EpochManager epcMgr = EpochManager.getInstance(config);
         epcMgr.tryUpdateEpoch(project, true);
 
