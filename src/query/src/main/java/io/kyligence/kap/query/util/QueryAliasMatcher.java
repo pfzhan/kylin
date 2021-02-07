@@ -111,6 +111,9 @@ public class QueryAliasMatcher {
             }
             ColumnRowType first = Iterables.getFirst(alias2CRT.values(), null);
             Preconditions.checkNotNull(first);
+            if (first.getAllColumns() == null) {
+                return null;
+            }
             return first.getAllColumns().get(0).getTableRef();
         }
 
@@ -144,9 +147,16 @@ public class QueryAliasMatcher {
                         alias2CRT.put(alias, columnRowType);
                     }
 
-                    //subqeury as alias
-                    if ((operands[0] instanceof SqlSelect) || (operands[0] instanceof SqlOrderBy) //
-                            && operands[1] instanceof SqlIdentifier) {
+                    //subquery as alias
+                    if ((operands[0] instanceof SqlSelect)
+                            || ((operands[0] instanceof SqlOrderBy) && operands[1] instanceof SqlIdentifier)) {
+                        String alias = operands[1].toString();
+                        alias2CRT.put(alias, SUBQUERY_TAG);
+                    }
+
+                    // union-all as alias
+                    if ((operands[0] instanceof SqlBasicCall && operands[0].getKind() == SqlKind.UNION
+                            && operands[1] instanceof SqlIdentifier)) {
                         String alias = operands[1].toString();
                         alias2CRT.put(alias, SUBQUERY_TAG);
                     }
@@ -465,6 +475,9 @@ public class QueryAliasMatcher {
 
         List<JoinDesc> joinDescs = sqlJoinCapturer.getJoinDescs();
         TableRef firstTable = sqlJoinCapturer.getFirstTable();
+        if (firstTable == null) {
+            return null;
+        }
         JoinsGraph joinsGraph = new JoinsGraph(firstTable, joinDescs);
 
         if (sqlJoinCapturer.foundJoinOnCC) {
