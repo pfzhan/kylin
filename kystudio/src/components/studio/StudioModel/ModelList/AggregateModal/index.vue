@@ -618,6 +618,7 @@ export default class AggregateModal extends Vue {
   backUpDimensions = []
   pageOffset = 0
   pageSize = 50
+  generateDeletedIndexes = true
 
   @Watch('$lang')
   changeCurrentLang (newVal, oldVal) {
@@ -1153,9 +1154,9 @@ export default class AggregateModal extends Vue {
         }
         let diffRes = await this.getIndexDiff(data)
         let diffResult = await handleSuccessAsync(diffRes)
-        await this.confirmSubmitTips(diffResult)
+        await this.confirmSubmitTips(diffResult, isCatchUp)
         // 获取数字正常的情况下，才进行 submit
-        let res = await this.submit(data)
+        let res = await this.submit({...data, restoreDeletedIndex: !this.generateDeletedIndexes})
         let result = await handleSuccessAsync(res)
         // if (!isCatchUp && !this.model.segments.length) {
         //   this.$emit('needShowBuildTips', this.model.uuid)
@@ -1231,17 +1232,52 @@ export default class AggregateModal extends Vue {
     this.$message.success(this.$t('clearSuccess'))
     this.isNeedCheck = true
   }
-  confirmSubmitTips (diffResult) {
-    if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts === 0) {
-      return kapConfirm(this.$t('decreaseTips', {decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
-    } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts > 0) {
-      const saveText = this.form.isCatchUp ? this.$t('saveAndBuild') : this.$t('kylinLang.common.save')
-      return kapConfirm(this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}) + saveText, {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: saveText, type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
-    } else {
-      return new Promise((resolve) => {
-        resolve()
-      })
-    }
+  confirmSubmitTips (diffResult, isCatchUp) {
+    const saveText = isCatchUp ? this.$t('confirmTextBySaveAndBuild') : this.$t('confirmTextBySave')
+    const saveBtnText = isCatchUp ? this.$t('bulidAndSubmit') : this.$t('kylinLang.common.save')
+    const ctx = this.$createElement
+    this.generateDeletedIndexes = true // 默认 checkbox 勾选状态
+    this.$nextTick(() => {
+      this.chengeGenerateDeletedIndexesStatus('init', this.generateDeletedIndexes, diffResult)
+    })
+    return this.$msgbox({
+      message: ctx('div', null, [
+        ctx('p', { class: diffResult.increase_layouts > 0 && diffResult.decrease_layouts > 0 ? 'agg-build-message-all_title' : 'agg-build-message-single_title' },
+          !this.generateDeletedIndexes
+            ? this.$t(diffResult.increase_layouts > 0 && diffResult.decrease_layouts > 0 ? 'mixTips' : 'onlyIncreaseOrDecreaseTip', {increaseNum: diffResult.increase_layouts + diffResult.rollback_layouts, decreaseNum: diffResult.decrease_layouts})
+            : this.$t(diffResult.increase_layouts > 0 && diffResult.decrease_layouts > 0 ? 'mixTips' : 'onlyIncreaseOrDecreaseTip', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts})
+        ),
+        ctx('p', null, saveText),
+        ctx('div', null,
+          diffResult.rollback_layouts > 0
+            ? [
+              ctx('el-checkbox', { class: 'ksd-mt-10', style: 'margin-left: -20px;', props: { checked: this.generateDeletedIndexes }, nativeOn: { change: (v) => this.chengeGenerateDeletedIndexesStatus('change', v, diffResult) } }, this.$t('generateDeletedIndexes', {rollbackNum: diffResult.rollback_layouts}))
+            ] : null
+        )]
+      ),
+      cancelButtonText: this.$t('kylinLang.common.cancel'),
+      confirmButtonText: saveBtnText,
+      type: 'warning',
+      closeOnClickModal: false,
+      showClose: false,
+      closeOnPressEscape: false,
+      showCancelButton: true,
+      // customClass: diffResult.increase_layouts > 0 && diffResult.decrease_layouts > 0 ? 'aggBuildChangeMessageAll' : 'aggBuildChangeMessageSinger',
+      title: this.$t('kylinLang.common.tip')
+    })
+  }
+  chengeGenerateDeletedIndexesStatus (type, v, diffResult) {
+    this.generateDeletedIndexes = type === 'init' ? v : v.target.checked
+    // this.$set(this, 'generateDeletedIndexes', v.target.checked)
+    this.$nextTick(() => {
+      if (document.body.getElementsByClassName('agg-build-message-all_title').length || document.body.getElementsByClassName('agg-build-message-single_title').length) {
+        if (diffResult.increase_layouts > 0 && diffResult.decrease_layouts > 0) {
+          document.body.getElementsByClassName('agg-build-message-all_title')[0].innerHTML = !this.generateDeletedIndexes ? this.$t('mixTips', {increaseNum: diffResult.increase_layouts + diffResult.rollback_layouts, decreaseNum: diffResult.decrease_layouts}) : this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts})
+        } else {
+          document.body.getElementsByClassName('agg-build-message-single_title')[0].innerHTML = !this.generateDeletedIndexes ? this.$t('onlyIncreaseOrDecreaseTip', {increaseNum: diffResult.increase_layouts + diffResult.rollback_layouts, decreaseNum: diffResult.decrease_layouts}) : this.$t('onlyIncreaseOrDecreaseTip', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts})
+        }
+      }
+    })
   }
   checkFormVaild () {
     if (!this.isFormVaild) {

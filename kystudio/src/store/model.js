@@ -284,7 +284,7 @@ export default {
       return api.model.fetchAggregateGroups(params.projectName, params.modelId)
     },
     [types.UPDATE_AGGREGATE_GROUPS] ({ commit }, params) {
-      return api.model.updateAggregateGroups(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp, params.globalDimCap)
+      return api.model.updateAggregateGroups(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp, params.globalDimCap, params.restoreDeletedIndex)
     },
     [types.FETCH_RELATED_MODEL_STATUS] ({ commit }, params) {
       return api.model.fetchRelatedModelStatus(params.projectName, params.uuids)

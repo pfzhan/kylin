@@ -191,8 +191,8 @@ export default {
   fetchAggregateGroups: (project, model) => {
     return Vue.resource(apiUrl + 'index_plans/rule').get({ project, model })
   },
-  updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap) => {
-    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap, scheduler_version: 2 })
+  updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap, restoreDeletedIndex) => {
+    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap, scheduler_version: 2, restore_deleted_index: restoreDeletedIndex })
   },
   getCalcCuboids: (project, modelId, dimensions, aggregationGroups, globalDimCap) => {
     return Vue.resource(apiUrl + 'index_plans/agg_index_count').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, global_dim_cap: globalDimCap, scheduler_version: 2 })
