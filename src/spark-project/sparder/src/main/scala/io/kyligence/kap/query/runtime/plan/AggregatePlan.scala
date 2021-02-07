@@ -53,26 +53,26 @@ object AggregatePlan extends LogEx {
           rel: KapAggregateRel,
           dataContext: DataContext): DataFrame = logTime("aggregate", info = true) {
 
-      var dataFrame = inputs.get(0)
-      val schemaNames = dataFrame.schema.fieldNames
-      val groupList = rel.getRewriteGroupKeys.asScala
-        .map(groupId => col(schemaNames.apply(groupId)))
-        .toList
+    var dataFrame = inputs.get(0)
+    val schemaNames = dataFrame.schema.fieldNames
+    val groupList = rel.getRewriteGroupKeys.asScala
+      .map(groupId => col(schemaNames.apply(groupId)))
+      .toList
 
-      if (rel.getContext != null && rel.getContext.isExactlyAggregate) {
-        // exactly match, skip agg, direct project.
-        val aggCols = rel.getRewriteAggCalls.asScala
-          .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
-        val prjList = groupList ++ aggCols
-        logInfo(s"Query exactly match index, skip agg, project $prjList.")
-        dataFrame.select(prjList: _*)
-      } else {
-        dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
-        val aggList = buildAgg(dataFrame.schema, rel)
-        val groupSets = rel.getRewriteGroupSets.asScala
-          .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
-        SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
-      }
+    if (rel.getContext != null && rel.getContext.isExactlyAggregate) {
+      // exactly match, skip agg, direct project.
+      val aggCols = rel.getRewriteAggCalls.asScala
+        .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
+      val prjList = groupList ++ aggCols
+      logInfo(s"Query exactly match index, skip agg, project $prjList.")
+      dataFrame.select(prjList: _*)
+    } else {
+      dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
+      val aggList = buildAgg(dataFrame.schema, rel)
+      val groupSets = rel.getRewriteGroupSets.asScala
+        .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
+      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
+    }
   }
 
   private def genFiltersWhenIntersectCount(rel: KapAggregateRel, dataFrame: DataFrame): DataFrame = {
@@ -126,35 +126,39 @@ object AggregatePlan extends LogEx {
         val columnName = argNames.map(col)
         val registeredFuncName = RuntimeHelper.registerSingleByColName(funcName, dataType)
         val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, funcName, hash, argNames: _*)
-        if (funcName == "COUNT_DISTINCT") {
-          if (dataType.getName == "hllc") {
-            org.apache.spark.sql.KapFunctions
-              .approx_count_distinct(columnName.head, dataType.getPrecision)
-              .alias(aggName)
-          } else {
+        funcName match {
+          case FunctionDesc.FUNC_COUNT_DISTINCT =>
+            if (dataType.getName == "hllc") {
+              org.apache.spark.sql.KapFunctions
+                .approx_count_distinct(columnName.head, dataType.getPrecision)
+                .alias(aggName)
+            } else {
               KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
-          }
-        } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_BITMAP_UUID)) {
-          KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)
-        } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT)) {
-          require(columnName.size >= 3, s"Input columns size ${columnName.size} don't greater than or equal to 3.")
-          val columns = columnName.slice(0, 3).zipWithIndex.map {
-            case (column: Column, 2) => column.cast(ArrayType.apply(schema.fields.apply(call.getArgList.get(1)).dataType))
-            case (column: Column, _) => column
-          }
-          val separator = s"\\${KylinConfig.getInstanceFromEnv.getIntersectFilterOrSeparator}"
-          val upperBound = KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound
-          call.name.toUpperCase(Locale.ROOT) match {
-            case FunctionDesc.FUNC_INTERSECT_COUNT => KapFunctions.intersect_count(separator, upperBound, columns.toList: _*).alias(aggName)
-            case FunctionDesc.FUNC_INTERSECT_VALUE => KapFunctions.intersect_value(separator, upperBound, columns.toList: _*).alias(aggName)
-            case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID => KapFunctions.intersect_bitmap(separator, upperBound, columns.toList: _*).alias(aggName)
-            case FunctionDesc.FUNC_INTERSECT_COUNT_V2 => KapFunctions.intersect_count_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
-            case FunctionDesc.FUNC_INTERSECT_VALUE_V2 => KapFunctions.intersect_value_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
-            case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID_V2 => KapFunctions.intersect_bitmap_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
-            case func => throw new UnsupportedOperationException(s"Unsupported intersect count function: $func, please check the sql.")
-          }
-        } else {
-          callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
+            }
+          case func if func.equalsIgnoreCase(FunctionDesc.FUNC_BITMAP_UUID) =>
+            KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)
+          case func if func.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT) =>
+            require(columnName.size >= 3, s"Input columns size ${columnName.size} don't greater than or equal to 3.")
+            val columns = columnName.slice(0, 3).zipWithIndex.map {
+              case (column: Column, 2) => column.cast(ArrayType.apply(schema.fields.apply(call.getArgList.get(1)).dataType))
+              case (column: Column, _) => column
+            }
+            val separator = s"\\${KylinConfig.getInstanceFromEnv.getIntersectFilterOrSeparator}"
+            val upperBound = KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound
+            call.name.toUpperCase(Locale.ROOT) match {
+              case FunctionDesc.FUNC_INTERSECT_COUNT => KapFunctions.intersect_count(separator, upperBound, columns.toList: _*).alias(aggName)
+              case FunctionDesc.FUNC_INTERSECT_VALUE => KapFunctions.intersect_value(separator, upperBound, columns.toList: _*).alias(aggName)
+              case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID => KapFunctions.intersect_bitmap(separator, upperBound, columns.toList: _*).alias(aggName)
+              case FunctionDesc.FUNC_INTERSECT_COUNT_V2 => KapFunctions.intersect_count_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
+              case FunctionDesc.FUNC_INTERSECT_VALUE_V2 => KapFunctions.intersect_value_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
+              case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID_V2 => KapFunctions.intersect_bitmap_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
+              case func => throw new UnsupportedOperationException(s"Unsupported intersect count function: $func, please check the sql.")
+            }
+          case func if func.equalsIgnoreCase(FunctionDesc.FUNC_PERCENTILE) =>
+            require(columnName.size == 2, s"Input columns size ${columnName.size} don't equal to 2.")
+            KapFunctions.k_percentile(columnName.head, columnName(1), dataType.getPrecision).alias(aggName)
+          case _ =>
+            callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
         }
       case (call: Any, index: Int) =>
         val funcName = OLAPAggregateRel.getAggrFuncName(call)

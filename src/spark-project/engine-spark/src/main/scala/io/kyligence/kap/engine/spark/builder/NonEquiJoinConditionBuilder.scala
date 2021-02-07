@@ -199,7 +199,7 @@ object NonEquiJoinConditionBuilder {
 
             val ts1 = k_lit(children.head).cast(TimestampType)
             val ts2 = k_lit(children.last).cast(TimestampType)
-            kap_subtract_months(ts1, ts2)
+            k_subtract_months(ts1, ts2)
 
           } else {
             throw new IllegalStateException(
