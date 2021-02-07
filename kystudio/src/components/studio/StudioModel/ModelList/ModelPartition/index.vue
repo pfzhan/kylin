@@ -239,7 +239,6 @@ export default class ModelPartition extends Vue {
   }
   // 分区设置改变
   changePartitionSetting () {
-    console.log(this.partitionMeta)
     if (JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta)) {
       if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
         this.isShowWarning = true

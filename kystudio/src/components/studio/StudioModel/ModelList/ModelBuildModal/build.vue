@@ -400,10 +400,11 @@
         this.isExpand = true
         this.partitionMeta.table = this.partitionTables[0].alias
       }
-      this.isShowWarning = false
-      this.$nextTick(() => {
-        this.changePartitionSetting()
-      })
+      this.dateErrorMsg = ''
+      this.isShowWarning = this.buildType !== this.defaultBuildType
+      // this.$nextTick(() => {
+      //   this.changePartitionSetting()
+      // })
     }
     validateBrokenColumn (rule, value, callback) {
       if (value) {
