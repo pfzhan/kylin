@@ -681,7 +681,7 @@ export default class DataSourceBar extends Vue {
       if (this.$store.state.config.platform === 'iframe' && sourceNameStr.toLocaleLowerCase() === 'hive') {
         sourceNameStr = this.$t('cloudHive')
       }
-      datasource.label = `${this.$t('source')} : ${sourceNameStr}`
+      datasource.label = `${this.$t('source')}${sourceNameStr}`
     })
   }
 }
