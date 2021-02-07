@@ -32,15 +32,21 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Arrays;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
+import org.apache.kylin.rest.service.UserGrantedAuthority;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -54,6 +60,15 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import lombok.val;
 
 public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
+
+    @Autowired
+    protected UserService userService;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
+    }
 
     @Test
     public void testQuery() throws Exception {

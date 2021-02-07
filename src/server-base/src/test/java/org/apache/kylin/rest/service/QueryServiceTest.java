@@ -201,6 +201,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
         pushdownCount = 0;
 
+        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @After
@@ -1237,6 +1238,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExecuteAsUserSwitchOff() {
+        overwriteSystemProp("kylin.query.query-with-execute-as", "false");
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
         request.setExecuteAs("unknown");

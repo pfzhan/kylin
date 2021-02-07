@@ -788,19 +788,23 @@ public class QueryService extends BasicService {
         return new QueryExec(project, projectKylinConfig);
     }
 
-    protected QueryContext.AclInfo getExecuteAclInfo(String project, String executeAs) {
+    protected QueryContext.AclInfo getExecuteAclInfo(String project) {
+        return getExecuteAclInfo(project, null);
+    }
+
+    @VisibleForTesting
+    public QueryContext.AclInfo getExecuteAclInfo(String project, String executeAs) {
+        if (executeAs == null) {
+            executeAs = AclPermissionUtil.getCurrentUsername();
+        }
+
         // check if it is cached in query context
         if (QueryContext.current().getAclInfo() != null) {
             val aclInfo = QueryContext.current().getAclInfo();
-            if ((executeAs != null && executeAs.equals(aclInfo.getUsername()))
-                    || (executeAs == null && Objects.equals(aclInfo.getUsername(), AclPermissionUtil.getCurrentUsername()))) {
+            if (executeAs != null && executeAs.equals(aclInfo.getUsername())) {
                 return aclInfo;
             }
         }
-
-        if (executeAs == null)
-            return AclPermissionUtil.prepareQueryContextACLInfo(project,
-                    userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername()));
 
         Set<String> groupsOfExecuteUser;
         boolean hasAdminPermission = false;
@@ -861,8 +865,7 @@ public class QueryService extends BasicService {
             return Collections.emptyList();
         }
 
-        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
-                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+        QueryContext.current().setAclInfo(getExecuteAclInfo(project));
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
@@ -920,8 +923,7 @@ public class QueryService extends BasicService {
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
-        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
-                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+        QueryContext.current().setAclInfo(getExecuteAclInfo(project));
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
         Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData);
         Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project);

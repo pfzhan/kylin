@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -55,6 +56,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.service.UserGrantedAuthority;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -120,6 +123,9 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
 
     @Autowired
     KapQueryService queryService;
+
+    @Autowired
+    protected UserService userService;
 
     @BeforeClass
     public static void beforeClass() {
@@ -200,6 +206,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 }
             }).collect(Collectors.toList()));
         });
+        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @After
