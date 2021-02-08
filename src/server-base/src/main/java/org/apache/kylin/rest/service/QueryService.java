@@ -536,6 +536,12 @@ public class QueryService extends BasicService {
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
+            if (isPrepareStatementWithParams(sqlRequest)) {
+                PrepareSqlRequest.StateParam[] params = ((PrepareSqlRequest)sqlRequest).getParams();
+                String filledSql = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), params);
+                QueryContext.current().getMetrics().setCorrectedSql(filledSql);
+                QueryContext.current().setUserSQL(filledSql);
+            }
             logQuery(sqlRequest, sqlResponse);
 
             try {

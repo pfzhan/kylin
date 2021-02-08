@@ -54,6 +54,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -62,6 +63,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -90,9 +92,11 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
+import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.spark.SparkException;
 import org.junit.After;
@@ -1099,6 +1103,38 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("null", matcher.group(23)); //Trace URL
         Assert.assertEquals(tag, matcher.group(27));
         Assert.assertEquals(pushDownForced, matcher.group(28));
+    }
+
+    @Test
+    public void testQueryWithParam() {
+        final String sql = "select * from test where col1 = ?";
+        final String project = "default";
+        final PrepareSqlRequest request = new PrepareSqlRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[1];
+        params[0] = new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), "value1");
+        request.setParams(params);
+
+        final SQLResponse response = new SQLResponse();
+        response.setHitExceptionCache(true);
+        response.setEngineType("NATIVE");
+        queryService.queryWithCache(request, false);
+
+        final QueryContext queryContext = QueryContext.current();
+        String filledSql = PrepareSQLUtils.fillInParams(request.getSql(), params);
+        Assert.assertEquals(queryContext.getUserSQL(), filledSql);
+        Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
+        queryContext.getMetrics().setCorrectedSql(filledSql);
+        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
+
+        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        Assert.assertEquals(filledSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+        QueryMetricsContext.reset();
     }
 
     @Test
