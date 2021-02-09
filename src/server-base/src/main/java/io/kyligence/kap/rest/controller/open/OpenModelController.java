@@ -510,6 +510,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());
+        checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
@@ -521,6 +522,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());
+        checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         checkNotEmpty(request.getSqls());

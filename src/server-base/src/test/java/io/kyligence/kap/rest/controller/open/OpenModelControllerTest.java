@@ -409,6 +409,36 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testPostModelSuggestionCouldAnsweredByExistedModelWithNullSqls() throws Exception {
+        List<String> sqls = new ArrayList<>();
+        try {
+            FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)));
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.INVALID_PARAMETER.toErrorCode(), e.getErrorCode());
+            Assert.assertEquals("Please enter the array parameter \"sqls\".", e.getMessage());
+        }
+
+    }
+
+    @Test
+    public void testPostModelOptimizationCouldAnsweredByExistedModelWithNullSqls() throws Exception {
+        List<String> sqls = new ArrayList<>();
+        try {
+            FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")
+                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)));
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.INVALID_PARAMETER.toErrorCode(), e.getErrorCode());
+            Assert.assertEquals("Please enter the array parameter \"sqls\".", e.getMessage());
+        }
+
+    }
+
+    @Test
     public void testAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
