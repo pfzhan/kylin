@@ -40,7 +40,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
@@ -113,14 +115,69 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         @Getter
         private final OptRecV2 recommendation;
         private final Map<Integer, String> userDefinedRecNameMap;
-        private final OptRecManagerV2 recManagerV2;
         private final String project;
 
         private RecApproveContext(String project, String modelId, Map<Integer, String> userDefinedRecNameMap) {
             this.project = project;
             this.userDefinedRecNameMap = userDefinedRecNameMap;
-            this.recManagerV2 = OptRecManagerV2.getInstance(project);
-            this.recommendation = recManagerV2.loadOptRecV2(modelId);
+            this.recommendation = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+            checkUserDefinedRecNames(userDefinedRecNameMap);
+        }
+
+        private void checkUserDefinedRecNames(Map<Integer, String> userDefinedRecNameMap) {
+            Map<String, Set<Integer>> checkedColumnMap = Maps.newHashMap();
+            Map<String, Set<Integer>> checkedMeasureMap = Maps.newHashMap();
+
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
+            model.getAllNamedColumns().forEach(column -> {
+                if (!column.isExist()) {
+                    return;
+                }
+                checkedColumnMap.putIfAbsent(column.getName().toUpperCase(Locale.ROOT), Sets.newHashSet());
+                checkedColumnMap.get(column.getName().toUpperCase(Locale.ROOT)).add(column.getId());
+            });
+            model.getAllMeasures().forEach(measure -> {
+                if (measure.isTomb()) {
+                    return;
+                }
+                checkedMeasureMap.putIfAbsent(measure.getName().toUpperCase(Locale.ROOT), Sets.newHashSet());
+                checkedMeasureMap.get(measure.getName().toUpperCase(Locale.ROOT)).add(measure.getId());
+            });
+
+            userDefinedRecNameMap.forEach((id, name) -> {
+                if (id > 0) {
+                    return;
+                }
+                RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
+                if (rawRecItem.getType() == RawRecItem.RawRecType.DIMENSION
+                        || rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                    checkedColumnMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
+                    Set<Integer> idSet = checkedColumnMap.get(name.toUpperCase(Locale.ROOT));
+                    idSet.remove(rawRecItem.getDependIDs()[0]);
+                    idSet.add(id);
+                }
+                if (rawRecItem.getType() == RawRecItem.RawRecType.MEASURE) {
+                    checkedMeasureMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
+                    checkedMeasureMap.get(name.toUpperCase(Locale.ROOT)).add(id);
+                }
+            });
+            checkedColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            checkedMeasureMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            Map<String, Set<Integer>> conflictMap = Maps.newHashMap();
+            checkedColumnMap.forEach((name, idSet) -> {
+                conflictMap.putIfAbsent(name, Sets.newHashSet());
+                conflictMap.get(name).addAll(idSet);
+            });
+            checkedMeasureMap.forEach((name, idSet) -> {
+                conflictMap.putIfAbsent(name, Sets.newHashSet());
+                conflictMap.get(name).addAll(idSet);
+            });
+            if (!checkedColumnMap.isEmpty() || !checkedMeasureMap.isEmpty()) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
+                                + JsonUtil.writeValueAsStringQuietly(conflictMap));
+            }
         }
 
         public List<RawRecItem> approveRawRecItems(List<Integer> recItemIds, boolean isAdd) {
@@ -277,11 +334,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             if (userDefinedRecNameMap.containsKey(negRecItemId)) {
                 measureRef.rebuild(userDefinedRecNameMap.get(negRecItemId));
                 measure = measureRef.getMeasure();
-                measure.setId(++maxMeasureId);
-                recManagerV2.checkMeasureName(model, measure);
-            } else {
-                measure.setId(++maxMeasureId);
             }
+            measure.setId(++maxMeasureId);
             model.getAllMeasures().add(measure);
             measures.put(negRecItemId, measure);
             measures.put(measure.getId(), measure);
@@ -311,7 +365,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 column.setName(userDefinedRecNameMap.get(negRecItemId));
             }
             column.setStatus(NDataModel.ColumnStatus.DIMENSION);
-            recManagerV2.checkDimensionName(model, column);
             model.getAllNamedColumns().get(column.getId()).setName(column.getName());
             dimensions.putIfAbsent(negRecItemId, column);
             columns.get(column.getId()).setStatus(column.getStatus());
@@ -331,7 +384,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             if (userDefinedRecNameMap.containsKey(negRecItemId)) {
                 ccRef.rebuild(userDefinedRecNameMap.get(negRecItemId));
                 cc = ccRef.getCc();
-                recManagerV2.checkCCName(model, cc);
             }
             int lastColumnId = model.getMaxColumnId();
             NDataModel.NamedColumn columnInModel = new NDataModel.NamedColumn();

@@ -1657,23 +1657,13 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getCC_COLUMN_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT, "可计算列名“%s”与当前模型下的列重名。请重新命名。", ccName);
-    }
-
-    @Override
-    public String getCC_MEASURE_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT, "可计算列名“%s”与当前模型下的度量重名。请重新命名。", ccName);
-    }
-
-    @Override
-    public String getCC_DIMENSION_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT, "可计算列名“%s”与当前模型下的维度重名。请重新命名。", ccName);
-    }
-
-    @Override
     public String getCC_NAME_CONFLICT(String ccName) {
         return String.format(Locale.ROOT, "可计算列“%s”已存在。", ccName);
+    }
+
+    @Override
+    public String get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() {
+        return "该名称已存在，请重新命名。";
     }
 
     @Override
@@ -2036,7 +2026,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getINVALID_PARTITION_VALUE(){
+    public String getINVALID_PARTITION_VALUE() {
         return "子分区值 “%s” 不存在，请确认后重试。";
     }
 

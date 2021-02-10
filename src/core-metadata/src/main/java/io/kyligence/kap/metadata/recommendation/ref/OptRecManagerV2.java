@@ -24,29 +24,9 @@
 
 package io.kyligence.kap.metadata.recommendation.ref;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.Singletons;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.TblColRef;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -64,8 +44,18 @@ import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class OptRecManagerV2 {
@@ -85,96 +75,6 @@ public class OptRecManagerV2 {
             throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
                     MsgPicker.getMsg().getCC_NAME_CONFLICT(newCC.getColumnName()));
         }
-    }
-
-    // for user defined
-    public void checkCCName(NDataModel model, ComputedColumnDesc cc) {
-        val otherModels = NDataModelManager.getInstance(config, project).listAllModels().stream()
-                .filter(m -> !m.getId().equals(model.getId()) && !m.isBroken()).collect(Collectors.toList());
-
-        for (NDataModel otherModel : otherModels) {
-            for (ComputedColumnDesc existCC : otherModel.getComputedColumnDescs()) {
-                ComputedColumnUtil.singleCCConflictCheck(otherModel, model, existCC, cc, new CCConflictHandlerV2());
-            }
-        }
-        Set<String> measureNameSet = Sets.newHashSet();
-        Set<String> columnNameSet = Sets.newHashSet();
-        Set<String> dimensionSet = Sets.newHashSet();
-        Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
-        for (ComputedColumnDesc computedColumn : model.getComputedColumnDescs()) {
-            ccMap.putIfAbsent(computedColumn.getColumnName().toUpperCase(Locale.ROOT), computedColumn);
-        }
-        for (NDataModel.NamedColumn column : model.getAllNamedColumns()) {
-            TblColRef tblColRef = model.getEffectiveCols().get(column.getId());
-            if (tblColRef == null) {
-                continue;
-            }
-            ColumnDesc columnDesc = tblColRef.getColumnDesc();
-            if (!column.isExist() || columnDesc.isComputedColumn()) {
-                continue;
-            }
-
-            if (column.isDimension()) {
-                dimensionSet.add(column.getName().toUpperCase(Locale.ROOT));
-            } else {
-                columnNameSet.add(column.getName().toUpperCase(Locale.ROOT));
-            }
-        }
-        for (NDataModel.Measure modelAllMeasure : model.getAllMeasures()) {
-            if (!modelAllMeasure.isTomb()) {
-                measureNameSet.add(modelAllMeasure.getName().toUpperCase(Locale.ROOT));
-            }
-        }
-
-        if (ccMap.containsKey(cc.getColumnName().toUpperCase(Locale.ROOT))) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getCC_NAME_CONFLICT(cc.getColumnName()));
-        } else if (dimensionSet.contains(cc.getColumnName().toUpperCase(Locale.ROOT))) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getCC_DIMENSION_NAME_CONFLICT(cc.getColumnName()));
-        } else if (columnNameSet.contains(cc.getColumnName().toUpperCase(Locale.ROOT))) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getCC_COLUMN_NAME_CONFLICT(cc.getColumnName()));
-        } else if (measureNameSet.contains(cc.getColumnName().toUpperCase(Locale.ROOT))) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getCC_MEASURE_NAME_CONFLICT(cc.getColumnName()));
-        }
-    }
-
-    public void checkMeasureName(NDataModel model, NDataModel.Measure measure) {
-        Set<String> measureSet = model.getAllMeasures().stream() //
-                .filter(measure1 -> !measure1.isTomb()) //
-                .map(MeasureDesc::getName).collect(Collectors.toSet());
-        if (measureSet.contains(measure.getName())) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
-        }
-
-        model.getAllNamedColumns().forEach(column -> {
-            if (column.isExist() && measure.getName().equalsIgnoreCase(column.getName())) {
-                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
-            }
-        });
-    }
-
-    public void checkDimensionName(NDataModel model, NDataModel.NamedColumn column) {
-        model.getAllNamedColumns().forEach(existingColumn -> {
-            if (!column.isExist() || column.getId() == existingColumn.getId()) {
-                return;
-            }
-            if (column.getName().equalsIgnoreCase(existingColumn.getName())) {
-                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().getDIMENSION_CONFLICT(column.getName()));
-            }
-        });
-
-        model.getAllMeasures().forEach(measure -> {
-            if (!measure.isTomb() && column.getName().equalsIgnoreCase(measure.getName())) {
-                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().getDIMENSION_CONFLICT(column.getName()));
-            }
-        });
     }
 
     public static OptRecManagerV2 getInstance(String project) {

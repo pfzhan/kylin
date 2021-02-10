@@ -42,9 +42,9 @@
 
 package org.apache.kylin.common.msg;
 
-import java.util.Locale;
-
 import org.apache.kylin.common.Singletons;
+
+import java.util.Locale;
 
 public class Message {
 
@@ -1414,22 +1414,8 @@ public class Message {
         return String.format(Locale.ROOT, "Computed column \"%s\" already exists.", ccName);
     }
 
-    public String getCC_COLUMN_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT,
-                "The computed column name \"%s\" is duplicated with an existing column name in the current model. Please rename it.",
-                ccName);
-    }
-
-    public String getCC_MEASURE_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT,
-                "The computed column name \"%s\" is duplicated with an existing measure name in the current model. Please rename it.",
-                ccName);
-    }
-
-    public String getCC_DIMENSION_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT,
-                "The computed column name \"%s\" is duplicated with an existing dimension name in the current model. Please rename it.",
-                ccName);
+    public String get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() {
+        return "The name already exists. Please rename and try again.";
     }
 
     public String getDIMENSION_CONFLICT(String dimensionName) {
@@ -1792,7 +1778,7 @@ public class Message {
         return "Model '%s' does not have sub partition.";
     }
 
-    public String getINVALID_PARTITION_VALUE(){
+    public String getINVALID_PARTITION_VALUE() {
         return "The subpartition(s) “%s“ doesn’t exist. Please check and try again.";
     }
 
