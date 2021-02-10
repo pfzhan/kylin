@@ -207,8 +207,9 @@
             <el-form :model="scope.row" :ref="`validateForm_${scope.row.item_id}`" :rules="scope.row.type !== 'cc' ? rules : rulesCC">
               <el-form-item prop="name">
                 <el-tooltip class="item" effect="dark" :content="$t('usedInOtherModel')" placement="top" :disabled="scope.row.type === 'cc' ? !scope.row.cross_model : true">
-                  <el-input v-model="scope.row.name" size="mini" :disabled="scope.row.type === 'cc' ? scope.row.cross_model : false"></el-input>
+                  <el-input :class="{'is-error': sameNameErrorStatus(scope.row.item_id)}" v-model="scope.row.name" size="mini" @change="changeInputContent" :disabled="scope.row.type === 'cc' ? scope.row.cross_model : false"></el-input>
                 </el-tooltip>
+                <p class="error-text" v-if="sameNameErrorStatus(scope.row.item_id)">{{$t('sameNameTips')}}</p>
               </el-form-item>
             </el-form>
           </template>
@@ -232,7 +233,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { transToGmtTime, postCloudUrlMessage } from 'util/business'
 import { mapActions, mapState, mapGetters } from 'vuex'
-import { handleSuccessAsync, handleError, getQueryString } from '../../../../../../util'
+import { handleSuccessAsync, handleError, getQueryString, ArrayFlat } from '../../../../../../util'
 import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
 import filterElements from '../../../../../../filter/index'
 
@@ -324,7 +325,7 @@ import filterElements from '../../../../../../filter/index'
       validateModalTip: 'To accept the selected recommendations, the following items have to be added to the model:',
       add: 'Add',
       requiredName: 'Please enter alias',
-      sameName: 'The following dimension/measure name already exists in this model, or CC name is duplicated with existing column names. Please rename and try again',
+      sameNameTips: 'The name already exists. Please rename and try again.',
       bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es).',
       onlyAcceptAdd: 'Successfully added {addLength} index(es).',
       onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
@@ -390,7 +391,7 @@ import filterElements from '../../../../../../filter/index'
       validateModalTip: '通过所选优化建议需要添加以下内容至模型：',
       add: '确认添加',
       requiredName: '请输入别名',
-      sameName: '以下维度/度量名称在模型下已存在，或可计算列名与模型中的列名相同。请重新命名',
+      sameNameTips: '该名称已存在，请重新命名。',
       bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引。',
       onlyAcceptAdd: '成功新增 {addLength} 条索引。',
       onlyAcceptDelete: '成功删除 {delLength} 条索引。',
@@ -438,6 +439,7 @@ export default class IndexList extends Vue {
     name: [{required: true, validator: this.validateNameCC, trigger: 'blur'}]
   }
   hasError = false
+  sameNameErrorIds = []
 
   get emptyText () {
     return this.$t('kylinLang.common.noData')
@@ -449,6 +451,15 @@ export default class IndexList extends Vue {
 
   get getValidateList () {
     return this.validateData.list.filter(item => (item.type === 'dimension' && item.add) || (item.type === 'measure' && item.add) || (item.type === 'cc' && item.add))
+  }
+
+  sameNameErrorStatus (id) {
+    return this.sameNameErrorIds.includes(id)
+  }
+
+  // 更改 input 内容
+  changeInputContent () {
+    this.sameNameErrorIds = []
   }
 
   // 移除错误提示信息
@@ -495,30 +506,20 @@ export default class IndexList extends Vue {
   }
 
   validateName (rule, value, callback) {
-    const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
     if (!value || !value.trim()) {
       callback(new Error(this.$t('requiredName')))
     } else if (!NamedRegex1.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
-    } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value)) {
-      this.removeSameNameErrror()
-      this.$message({ type: 'error', message: this.$t('sameName'), closeOtherMessages: true })
-      callback(new Error(false))
     } else {
       callback()
     }
   }
 
   validateNameCC (rule, value, callback) {
-    const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
     if (!NamedRegex.test(value.toUpperCase())) {
       return callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else if (/^\d|^_+/.test(value)) {
       return callback(new Error(this.$t('onlyStartLetters')))
-    } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value) || this.checkSameCCNameInColumns(value)) {
-      this.removeSameNameErrror()
-      this.$message({ type: 'error', message: this.$t('sameName'), closeOtherMessages: true })
-      return callback(new Error(false))
     } else {
       callback()
     }
@@ -710,6 +711,7 @@ export default class IndexList extends Vue {
       names[it.item_id] = it.name
     })
     this.accessApi(recs_to_add_layout, recs_to_remove_layout, names).then(() => {
+      this.sameNameErrorIds = []
       this.isLoading = false
       this.showValidate = false
     }).catch(e => {
@@ -757,7 +759,10 @@ export default class IndexList extends Vue {
             reject()
           }
         }).catch(e => {
-          handleError(e)
+          const { body: { exception } } = e
+          const data = JSON.parse(exception.split('\n')[1])
+          this.sameNameErrorIds = ArrayFlat(Object.values(data))
+          // handleError(e)
           reject()
         })
       }
@@ -930,6 +935,15 @@ export default class IndexList extends Vue {
   margin-top: 10px;
   .el-form-item__content {
     line-height: 23px;
+    > .is-error {
+      .el-input__inner {
+        border: 1px solid @error-color-1;
+      }
+    }
+    .error-text {
+      color: @error-color-1;
+      font-size: 12px;
+    }
   }
   .cell {
     height: initial;
