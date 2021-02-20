@@ -200,7 +200,7 @@ export default class TableJoinModal extends Vue {
         this.$set(this.joinColumns, 'op', [''])
       }
       // 拖动添加默认填充
-      // 如果添加的是重复的连接条件不做处理
+      // 如果添加的是重复的关联关系不做处理
       if (this.form.fColumnName && this.form.pColumnName) {
         let findex = this.joinColumns.foreign_key.indexOf(this.form.fColumnName)
         let pindex = this.joinColumns.primary_key.indexOf(this.form.pColumnName)
@@ -402,7 +402,7 @@ export default class TableJoinModal extends Vue {
     })
   }
 
-  // 检测连接条件
+  // 检测关联关系
   checkNoEqualRelation (joinColumns) {
     let flag = true
     this.isErrorValue = []
@@ -411,7 +411,7 @@ export default class TableJoinModal extends Vue {
     let greater_than = joins.filter(it => it.op === 'GREATER_THAN_OR_EQUAL' && it.fk && it.pk)
     let less_than = joins.filter(it => it.op === 'LESS_THAN' && it.fk && it.pk)
     // let equals = joins.filter(it => it.op === 'EQUAL' && it.fk && it.pk)
-    // 两张表仅可使用同一连接条件一次
+    // 两张表仅可使用同一关联关系一次
     const pAlias = this.form.tables[this.form.pid].name.split('.')[1]
     const currentJoin = {
       foreign_key: joinColumns.foreign_key,
@@ -467,7 +467,7 @@ export default class TableJoinModal extends Vue {
       this.isErrorValue.push(3)
       flag = false
     }
-    // 列的连接条件不能重复定义
+    // 列的关联关系不能重复定义
     joins.forEach((item, index, self) => {
       this.errorFlag = [...this.errorFlag, ...self.map(it => item.index !== it.index && it.joinExpression === item.joinExpression && item.index).filter(it => typeof it === 'number')]
     })
@@ -503,7 +503,7 @@ export default class TableJoinModal extends Vue {
     return flag
   }
 
-  // 保存连接条件
+  // 保存关联关系
   async saveJoinCondition () {
     await this.$refs.conditionForm.validate()
     var joinData = this.joinColumns // 修改后的连接关系

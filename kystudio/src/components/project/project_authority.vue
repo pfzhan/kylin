@@ -35,8 +35,12 @@
             <span>{{props.row.role_or_name}}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('type')" prop="type"></el-table-column>
-        <el-table-column :label="$t('accessType')" prop="promission"></el-table-column>
+        <el-table-column :label="$t('type')" prop="type">
+          <template slot-scope="props">{{$t(props.row.type)}}</template>
+        </el-table-column>
+        <el-table-column :label="$t('accessType')" prop="promission">
+          <template slot-scope="props">{{$t(props.row.promission)}}</template>
+        </el-table-column>
         <el-table-column :label="$t('kylinLang.common.action')" :width="87">
           <template slot-scope="scope">
             <el-tooltip :content="$t('kylinLang.common.edit')" effect="dark" placement="top">
@@ -206,6 +210,8 @@ import tableAccess from './table_access'
       selectUserOrUserGroups: 'Please enter or select the username/user group name',
       userGroups: 'User Group',
       users: 'User',
+      Group: 'User Group',
+      User: 'User',
       Query: 'Query',
       Admin: 'Admin',
       Management: 'Management',
@@ -244,6 +250,8 @@ import tableAccess from './table_access'
       selectUserOrUserGroups: '请选择或者输入用户/用户组名称',
       userGroups: '用户组',
       users: '用户',
+      Group: '用户组',
+      User: '用户',
       Query: '查询人员',
       Admin: '项目管理员',
       Management: '管理员',

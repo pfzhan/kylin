@@ -267,7 +267,7 @@ exports.default = {
     dragTip: '拖拽左侧的table到该区域',
     resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。',
     dimensionLinkLimit: '只有维度列可以进行关联',
-    computedLinkLimit: '可计算列不能作为连接条件。',
+    computedLinkLimit: '可计算列不能作为关联关系。',
     columnName: '列名',
     addCC: '添加可计算列',
     editCC: '编辑可计算列',
