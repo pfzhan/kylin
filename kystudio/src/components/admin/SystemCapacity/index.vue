@@ -453,14 +453,25 @@ export default class SystemCapacity extends Vue {
       return ''
     }
   }
-
   initLineCharts () {
     if (this.lineOptions) {
-      const objs = Object.keys(this.lineOptions).sort((a, b) => a - b)
+      const curDate = new Date().getTime()
+      const objs1 = Object.keys(this.lineOptions).sort((a, b) => a - b)
+      const xDates1 = objs1.map(it => (transToUtcDateFormat(+it)))
+      let length = this.selectedDataLine === 'month' ? 30 : 90
+      let newObj = {}
+      for (let i = 0; i < length; i++) {
+        let date = transToUtcDateFormat(curDate - 86400000 * i)
+        if (xDates1.indexOf(date) === -1) {
+          newObj[curDate - 86400000 * i] = 0
+        }
+      }
+      let allObj = {...this.lineOptions, ...newObj}
+      const objs = Object.keys(allObj).sort((a, b) => a - b)
       const xDates = objs.map(it => (transToUtcDateFormat(+it)))
-      const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
+      const yVol = objs.map(it => (+allObj[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
       this.lineCharts = echarts.init(document.getElementById('used-data-map'))
-      this.lineCharts.setOption(charts.line(this, xDates, yVol, this.lineOptions))
+      this.lineCharts.setOption(charts.line(this, xDates, yVol, allObj))
     }
   }
 
