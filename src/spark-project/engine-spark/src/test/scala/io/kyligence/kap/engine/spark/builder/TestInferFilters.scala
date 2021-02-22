@@ -55,6 +55,7 @@ class TestInferFilters extends SparderBaseFunSuite with SharedSparkSession with 
   }
 
   test("infer filters from join desc") {
+    getTestConfig.setProperty("kylin.engine.persist-flattable-enabled", "false")
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, PROJECT)
     val df: NDataflow = dsMgr.getDataflow(MODEL_NAME1)
     // cleanup all segments first

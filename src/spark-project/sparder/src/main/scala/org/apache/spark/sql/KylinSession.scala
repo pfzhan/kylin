@@ -49,14 +49,16 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class KylinSession(
-    @transient val sc: SparkContext,
-    @transient private val existingSharedState: Option[SharedState],
-    @transient private val parentSessionState: Option[SessionState])
+                    @transient val sc: SparkContext,
+                    @transient private val existingSharedState: Option[SharedState],
+                    @transient private val parentSessionState: Option[SessionState],
+                    @transient override private[sql] val extensions: SparkSessionExtensions)
   extends SparkSession(sc) {
   def this(sc: SparkContext) {
     this(sc,
       existingSharedState = None,
-      parentSessionState = None)
+      parentSessionState = None,
+      extensions = null)
   }
 
   @transient
@@ -85,15 +87,16 @@ class KylinSession(
   }
 
   override def newSession(): KylinSession = {
-    new KylinSession(sparkContext, Some(sharedState), parentSessionState = None)
+    new KylinSession(sparkContext, Some(sharedState), parentSessionState = None, extensions)
   }
 
   override def cloneSession(): SparkSession = {
     val result = new KylinSession(
       sparkContext,
       Some(sharedState),
-      Some(sessionState))
-    result.sessionState  // force copy of SessionState
+      Some(sessionState),
+      null)
+    result.sessionState // force copy of SessionState
     result
   }
 
@@ -145,6 +148,8 @@ object KylinSession extends Logging {
       val userSuppliedContext: Option[SparkContext] =
         getValue("userSuppliedContext", builder)
           .asInstanceOf[Option[SparkContext]]
+      val extensions = getValue("extensions", builder)
+        .asInstanceOf[SparkSessionExtensions]
       var (session, existingSharedState, parentSessionState) = SparkSession.getActiveSession match {
         case Some(sparkSession: KylinSession) =>
           if ((sparkSession ne null) && !sparkSession.sparkContext.isStopped) {
@@ -191,13 +196,13 @@ object KylinSession extends Logging {
           // by SparkSession
 
           // KE-12678
-          if(sc.master.startsWith("yarn")) {
+          if (sc.master.startsWith("yarn")) {
             Unsafe.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
           }
 
           sc
         }
-        session = new KylinSession(sparkContext, existingSharedState, parentSessionState)
+        session = new KylinSession(sparkContext, existingSharedState, parentSessionState, extensions)
         SparkSession.setDefaultSession(session)
         SparkSession.setActiveSession(session)
         sparkContext.addSparkListener(new SparkListener {

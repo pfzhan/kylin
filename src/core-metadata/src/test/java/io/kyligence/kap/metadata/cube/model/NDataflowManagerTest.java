@@ -712,6 +712,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testJoinedFlatTableDescDiff() {
         KylinConfig kylinConfig = getTestConfig();
+        kylinConfig.setProperty("kylin.engine.persist-flattable-enabled", "false");
         NDataflowManager dfManager = NDataflowManager.getInstance(kylinConfig, projectDefault);
         List<NDataflow> dataflowList = dfManager.listAllDataflows();
         NDataSegment dataSegment = dataflowList.get(4).getLastSegment();
