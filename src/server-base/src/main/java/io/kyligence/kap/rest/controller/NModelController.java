@@ -715,6 +715,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         validateRange(start, end);
+        modelService.checkModelPermission(project, modelId);
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, status,
                 withAllIndexes, withoutAnyIndexes, allToComplement, sortBy, reverse);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");

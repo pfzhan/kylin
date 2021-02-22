@@ -2144,7 +2144,7 @@ public class ModelService extends BasicService {
 
     public JobInfoResponse fullBuildSegmentsManually(FullBuildSegmentParams params) {
         aclEvaluate.checkProjectOperationPermission(params.getProject());
-
+        checkModelPermission(params.getProject(), params.getModelId());
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
                 .doInTransactionWithCheckAndRetry(() -> constructFullBuild(params), params.getProject());
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
@@ -3817,6 +3817,7 @@ public class ModelService extends BasicService {
     public List<SegmentPartitionResponse> getSegmentPartitions(String project, String modelId, String segmentId,
             List<String> status, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
+        checkModelPermission(project, modelId);
         val model = getModelById(modelId, project);
         val partitionDesc = model.getMultiPartitionDesc();
         val dataflow = getDataflowManager(project).getDataflow(modelId);
@@ -3849,6 +3850,7 @@ public class ModelService extends BasicService {
     public JobInfoResponse buildSegmentPartitionByValue(String project, String modelId, String segmentId,
             List<String[]> partitionValues, boolean parallelBuild) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkModelPermission(project, modelId);
         checkSegmentsExistById(modelId, project, new String[] { segmentId });
         checkModelIsMLP(modelId, project);
         val dfm = getDataflowManager(project);
@@ -3898,6 +3900,7 @@ public class ModelService extends BasicService {
         val segment = df.getSegment(param.getSegmentId());
         var partitions = param.getPartitionIds();
         aclEvaluate.checkProjectOperationPermission(project);
+        checkModelPermission(project, modelId);
 
         if (CollectionUtils.isEmpty(param.getPartitionIds())) {
             partitions = getModelById(modelId, project).getMultiPartitionDesc()
@@ -3944,6 +3947,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void deletePartitions(String project, String segmentId, String modelId, Set<Long> partitions) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkModelPermission(project, modelId);
         checkSegmentsExistById(modelId, project, new String[] { segmentId });
         checkModelIsMLP(modelId, project);
         if (CollectionUtils.isEmpty(partitions)) {
