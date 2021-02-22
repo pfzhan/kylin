@@ -26,16 +26,20 @@ import java.util.Set
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowManager}
 import org.apache.commons.lang3.RandomStringUtils
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
-import org.apache.spark.dict.{NGlobalDictMetaInfo, NGlobalDictionaryV2}
+import org.apache.spark.application.NoRetryException
+import org.apache.spark.dict.{NGlobalDictMetaInfo, NGlobalDictStoreFactory, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
+import org.scalatest.Matchers.the
 
 import scala.collection.mutable
 
@@ -99,6 +103,30 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     val meta7 = buildDict(seg, randomDataSet, dictColSet)
     Assert.assertEquals(280, meta7.getBucketSize)
     Assert.assertEquals(9600, meta7.getDictCount)
+
+    // case: global dict build with error check
+    // clean all
+    val col = dictColSet.iterator().next()
+    val dict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
+    val dictPath = new Path(seg.getConfig.getHdfsWorkingDirectory + dict.getResourceDir)
+    val fileSystem = dictPath.getFileSystem(new Configuration())
+    fileSystem.delete(dictPath, true)
+
+    // rebuild
+    randomDataSet = generateOriginData(100, 21)
+    val meta = buildDict(seg, randomDataSet, dictColSet)
+    Assert.assertEquals(2, meta.getBucketSize)
+    Assert.assertEquals(100, meta.getDictCount)
+
+    val dictStore = NGlobalDictStoreFactory.getResourceStore(seg.getConfig.getHdfsWorkingDirectory + dict.getResourceDir)
+    val versionPath = dictStore.getVersionDir(dictStore.listAllVersions()(0))
+    // delete dict of bucket 0
+    fileSystem.delete(new Path(versionPath, "CURR_0"), true)
+
+    // reduce source data and build dict
+    randomDataSet = generateOriginData(51, 21)
+    val thrown = the[NoRetryException] thrownBy buildDict(seg, randomDataSet, dictColSet)
+    thrown.printStackTrace()
   }
 
   def buildDict(seg: NDataSegment, randomDataSet: Dataset[Row], dictColSet: Set[TblColRef]): NGlobalDictMetaInfo = {

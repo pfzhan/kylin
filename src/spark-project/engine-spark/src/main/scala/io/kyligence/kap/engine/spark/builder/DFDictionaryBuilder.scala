@@ -33,6 +33,7 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
+import org.apache.spark.application.NoRetryException
 import org.apache.spark.dict.NGlobalDictionaryV2
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.execution.FilterExec
@@ -44,10 +45,10 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 class DFDictionaryBuilder(
-  val dataset: Dataset[Row],
-  @transient val seg: NDataSegment,
-  val ss: SparkSession,
-  val colRefSet: util.Set[TblColRef]) extends LogEx with Serializable {
+                           val dataset: Dataset[Row],
+                           @transient val seg: NDataSegment,
+                           val ss: SparkSession,
+                           val colRefSet: util.Set[TblColRef]) extends LogEx with Serializable {
 
   @throws[IOException]
   def buildDictSet(): Unit = {
@@ -86,7 +87,7 @@ class DFDictionaryBuilder(
       build(ref, bucketPartitionSize, dictColDistinct)
     } finally lock.unlock()
   }
-                            
+
   @throws[IOException]
   private[builder]
   def build(ref: TblColRef, bucketPartitionSize: Int,
@@ -143,6 +144,22 @@ class DFDictionaryBuilder(
     ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, null)
 
     globalDict.writeMetaDict(bucketPartitionSize, seg.getConfig.getGlobalDictV2MaxVersions, seg.getConfig.getGlobalDictV2VersionTTL)
+
+    if (seg.getConfig.isGlobalDictCheckEnabled) {
+      logInfo(s"Start to check the correctness of the global dict, table: ${ref.getTableAlias}, col: ${ref.getName}")
+      val latestGD = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
+      for (bid <- 0 until globalDict.getMetaInfo.getBucketSize) {
+        val dMap = latestGD.loadBucketDictionary(bid).getAbsoluteDictMap
+        val vdCount = dMap.values().stream().distinct().count()
+        val kdCount = dMap.keySet().stream().distinct().count()
+        if (kdCount != vdCount) {
+          logError(s"Global dict correctness check failed, table: ${ref.getTableAlias}, col: ${ref.getName}")
+          throw new NoRetryException("Global dict build error, bucket: " + bid + ", key distinct count:" + kdCount
+            + ", value distinct count: " + vdCount)
+        }
+      }
+      logInfo(s"Global dict correctness check completed, table: ${ref.getTableAlias}, col: ${ref.getName}")
+    }
   }
 
   private def getLockPath(pathName: String) = s"/${seg.getProject}${HadoopUtil.GLOBAL_DICT_STORAGE_ROOT}/$pathName/lock"
