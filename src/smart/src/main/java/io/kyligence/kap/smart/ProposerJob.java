@@ -108,8 +108,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         val params = Maps.<String, String> newHashMap();
         params.put("contextClass", context.getClass().getName());
 
-        val jobId = LocalDateTime.now(Clock.systemDefaultZone()).format(
-                DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault(Locale.Category.FORMAT)));
+        val jobId = generateJobId(project);
         try {
             val jobTmpDir = runner.prepareEnv(jobId);
 
@@ -144,6 +143,11 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             runner.cleanupEnv();
         }
         return context;
+    }
+
+    private static String generateJobId(String project) {
+        return project + "-" + LocalDateTime.now(Clock.systemDefaultZone()).format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault(Locale.Category.FORMAT)));
     }
 
     static final Option OPTION_META_DIR = OptionBuilder.getInstance().withArgName("meta").hasArg().isRequired(true)
