@@ -1236,7 +1236,7 @@ export default class AggregateModal extends Vue {
     const saveText = isCatchUp ? this.$t('confirmTextBySaveAndBuild') : this.$t('confirmTextBySave')
     const saveBtnText = isCatchUp ? this.$t('bulidAndSubmit') : this.$t('kylinLang.common.save')
     const ctx = this.$createElement
-    this.generateDeletedIndexes = true // 默认 checkbox 勾选状态
+    // this.generateDeletedIndexes = true // 默认 checkbox 勾选状态
     this.$nextTick(() => {
       this.chengeGenerateDeletedIndexesStatus('init', this.generateDeletedIndexes, diffResult)
     })
