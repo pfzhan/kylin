@@ -194,8 +194,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     public void shutdown() {
         logger.info("Shutting down DefaultScheduler for project {} ....", project);
         releaseResources();
-        ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
-        ExecutorServiceUtil.shutdownGracefully(jobPool, 60);
+        if (null != fetcherPool) {
+            ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
+        }
+        if (null != jobPool) {
+            ExecutorServiceUtil.shutdownGracefully(jobPool, 60);
+        }
     }
 
     public void forceShutdown() {
