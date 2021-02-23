@@ -82,7 +82,7 @@ describe('Component SaveQueryDialog', () => {
     wrapper.vm.checkName(null, '', _callback)
     expect(_callback.mock.calls[0][0].toString()).toEqual('Error: Please enter here')
     wrapper.vm.checkName(null, '*123', _callback)
-    expect(_callback.mock.calls[1][0].toString()).toEqual('Error: Only supports number, letter and underline.')
+    expect(_callback.mock.calls[1][0].toString()).toEqual('Error: Only supports number, letter and underline')
     wrapper.vm.checkName(null, 'test', _callback)
     expect(_callback).toBeCalledWith()
   })

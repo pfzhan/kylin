@@ -331,7 +331,7 @@
     <transition name="bouncecenter">
       <div class="panel-search-box panel-box" :class="{'full-screen': isFullScreen}"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
         <el-row :gutter="20">
-          <el-col :span="12" :offset="6">
+          <el-col :span="14" :offset="5">
             <el-alert class="search-action-result" v-if="modelSearchActionSuccessTip" v-timer-hide:2
               :title="modelSearchActionSuccessTip"
               type="success"
@@ -353,7 +353,7 @@
             </div>
             </transition>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="5">
             <div class="search-action-list" v-if="modelSearchActionHistoryList && modelSearchActionHistoryList.length">
               <div class="action-list-title">{{$t('searchHistory')}}</div>
               <div class="action-content" v-for="(item, index) in modelSearchActionHistoryList" :key="index">

@@ -6,7 +6,7 @@ export default {
     aggregateGroupTitle: 'Aggregate-Group-{id}',
     numTitle: 'Index Amount: {num}',
     maxDimCom: 'Max Dimension Combination',
-    dimComTips: 'The MDC set here applies only to this aggregation group.',
+    dimComTips: 'The MDC set here applies only to this aggregation group',
     noLimitation: 'No Limitation',
     dimension: 'Dimension（{size}/{total}）',
     measure: 'Measure（{size}/{total}）',

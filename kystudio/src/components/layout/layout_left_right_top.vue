@@ -402,7 +402,7 @@ let MessageBox = ElementUI.MessageBox
       tarshTips: '低效存储指的是系统运行一段时间后产生的垃圾文件，详情请<a href="https://docs.kyligence.io/books/v4.2/zh-cn/operation/garbage_clean.cn.html" target="_blank">查看手册</a>。',
       clear: '清除',
       resetPassword: '重置密码',
-      confirmLoginOut: '确认退出吗？',
+      confirmLoginOut: '确认要注销吗？',
       validPeriod: '使用期限：',
       overtip1: '当前使用的许可证将在 ',
       overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。',
@@ -787,8 +787,8 @@ export default class LayoutLeftRightTop extends Vue {
   logoutConfirm () {
     return kapConfirm(this.$t('confirmLoginOut'), {
       type: 'warning',
-      confirmButtonText: this.$t('kylinLang.common.exit')
-    })
+      confirmButtonText: this.$t('kylinLang.common.logout')
+    }, this.$t('kylinLang.common.logout'))
   }
   changePassword (userDetail) {
     this.callUserEditModal({ editType: 'password', userDetail })
@@ -796,7 +796,7 @@ export default class LayoutLeftRightTop extends Vue {
   loginOutFunc () {
     if (this.$route.name === 'ModelEdit') {
       MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
-        confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
+        confirmButtonText: window.kapVm.$t('kylinLang.common.logout'),
         cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
         type: 'warning'
       }).then(() => {

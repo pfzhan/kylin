@@ -9,7 +9,7 @@
           <!-- <el-button v-if="accessView == 'user'" plain type="primary" @click="toggleView('table')">{{$t('toggleTableView')}}</el-button>
           <el-button v-if="accessView == 'table'" plain type="primary" @click="toggleView('user')">{{$t('toggleUserView')}}</el-button> -->
         </div>
-        <div style="width:200px;" class="ksd-fright" v-if="accessView == 'user'">
+        <div style="width:240px;" class="ksd-fright" v-if="accessView == 'user'">
           <el-input class="show-search-btn"
             size="medium"
             v-model="serarchChar"
@@ -197,7 +197,7 @@ import tableAccess from './table_access'
       back: 'Back',
       userAccess: 'User/Group',
       selectUserAccess: 'Select User/Group',
-      userNameOrGroup: 'Search by username or user group name',
+      userNameOrGroup: 'Search by user/user group',
       toggleTableView: 'Swtich to Table Operation',
       toggleUserView: 'Swtich to User Operation',
       userOrGroup: 'Name',
@@ -237,7 +237,7 @@ import tableAccess from './table_access'
       back: '返回',
       userAccess: '用户/用户组',
       selectUserAccess: '选择用户/用户组',
-      userNameOrGroup: '搜索用户或用户组名称',
+      userNameOrGroup: '搜索用户或用户组',
       toggleTableView: '切换至表操作界面',
       toggleUserView: '切换至用户操作界面',
       userOrGroup: '名称',

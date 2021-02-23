@@ -157,7 +157,7 @@ describe('Component SuggestModel', () => {
     await wrapper.update()
 
     wrapper.vm.handleSelectionModel([], wrapper.vm.suggestModels[2])
-    expect(wrapper.vm.$data.modelNameError).toEqual('Only supports number, letter and underline.')
+    expect(wrapper.vm.$data.modelNameError).toEqual('Only supports number, letter and underline')
     expect(wrapper.vm.$data.isNameErrorModelExisted).toBeTruthy()
     expect(wrapper.emitted().isValidated[1]).toEqual([true])
 

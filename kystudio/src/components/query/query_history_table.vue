@@ -317,7 +317,7 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
-      ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。',
+      ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询查询耗时；<br/>特定用户(组)；<br/>所有下压查询。',
       toAcce: '去加速',
       searchSQL: '搜索单个关键词或查询 ID',
       noSpaceTips: '无法识别输入中的空格',
@@ -516,7 +516,7 @@ export default class QueryHistoryTable extends Vue {
     }
   }
 
-  // 清除响应时间筛选项
+  // 清除查询耗时筛选项
   clearLatencyRange () {
     if (this.filterTags.filter(item => item.key === 'latency').length) {
       let idx = null

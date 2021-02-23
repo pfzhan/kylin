@@ -27,7 +27,7 @@ export default {
     month: 'Month(s)',
     quarter: 'Quarter(s)',
     DAY1: 'daily',
-    WEEK1: 'Week',
+    WEEK1: 'weekly',
     MONTH1: 'monthly',
     year: 'Year(s)',
     HOUR: '1 Hour',
@@ -44,7 +44,7 @@ export default {
     storageGarbageDesc1: 'If ',
     storageGarbageDesc2: ' usage is lower than ',
     storageGarbageDesc3: ' time(s), the storage of indexes would be regarded as low usage storage.',
-    storageGarbageDesc3ForSemiAutomatic: ' times, then the storage of indexes would be regarded as low usage storage.',
+    storageGarbageDesc3ForSemiAutomatic: ' time(s), the storage of indexes would be regarded as low usage storage.',
     enableSemiAutomatic: 'Recommendation',
     enableSemiAutomaticDesc: 'After enabling this mode, the system will provide recommendations for existing models by analyzing the query history and model usage.',
     confirmClose: 'Turn Off',
@@ -59,7 +59,7 @@ export default {
     queryDuration: 'Duration Rule',
     AccQueryStart: 'Generate recommendations for queries used for more than ',
     AccQueryEnd: ' times',
-    from: 'Generate recommendations for the queries of which the latency is between',
+    from: 'Generate recommendations for the queries of which the duration is between',
     to: 'to',
     secondes: 'second(s)',
     acclerationRuleSettings: 'Recommendation Settings',
@@ -68,8 +68,8 @@ export default {
     suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated every day by default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">user manual</a> for details.',
     emptySegmentEnable: 'Creating Reserved Segments',
     emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index. Please note that queries would be answered by the pushdown engine (if turned on) when they hit empty segments.',
-    overTimeLimitTip: 'The upper limit of the latency range can\'t exceed 3600 seconds',
-    prevGreaterThanNext: 'The upper limit of the latency range should be greater than the lower limit'
+    overTimeLimitTip: 'The upper limit of the duration range can\'t exceed 3600 seconds',
+    prevGreaterThanNext: 'The upper limit of the duration range should be greater than the lower limit'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -115,8 +115,8 @@ export default {
     storageGarbage: '低效存储',
     storageGarbageDesc1: '当',
     storageGarbageDesc2: '使用频率低于',
-    storageGarbageDesc3: '次的索引组为低效存储。',
-    storageGarbageDesc3ForSemiAutomatic: '次的索引组为低效存储',
+    storageGarbageDesc3: '次的索引查询所对应的存储即为低效存储。',
+    storageGarbageDesc3ForSemiAutomatic: '次的索引查询所对应的存储即为低效存储。',
     enableSemiAutomatic: '智能推荐',
     enableSemiAutomaticDesc: '开启智能推荐模式后，系统将根据您的查询历史及使用情况，对已有模型提供优化建议。',
     confirmClose: '确认关闭',
@@ -131,7 +131,7 @@ export default {
     queryDuration: '查询耗时',
     AccQueryStart: '对使用次数大于',
     AccQueryEnd: '的查询生成优化建议。',
-    from: '对延迟的范围在',
+    from: '对耗时的范围在',
     to: '秒到',
     secondes: '秒的查询生成优化建议。',
     acclerationRuleSettings: '优化建议规则设置',
@@ -140,7 +140,7 @@ export default {
     suggestionTip2: '条类型为新增索引的优化建议。默认每天更新一次，此更新频率可进行配置，详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/zh-cn/acceleration/" target="_blank">查看手册</a>。',
     emptySegmentEnable: '支持创建保留 Segment',
     emptySegmentEnableDesc: '该选项开启后，您可以在 Segment 列表页面直接创建一个不包含任何索引的 Segment。请注意，查询命中空的 Segment 时，如果同时开启了查询下压引擎，将会通过下压查询回答。',
-    overTimeLimitTip: '延迟范围的上限不超过 3600 秒',
-    prevGreaterThanNext: '延迟范围的上限应大于下限'
+    overTimeLimitTip: '耗时范围的上限不超过 3600 秒',
+    prevGreaterThanNext: '耗时范围的上限应大于下限'
   }
 }

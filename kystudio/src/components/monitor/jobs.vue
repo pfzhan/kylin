@@ -421,7 +421,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pauseJob: 'Are you sure you want to pause {count} job record(s)?',
       pauseJobTitle: 'Pause Job',
       dropJob: 'Are you sure you want to delete {count} job record(s)?',
-      dropJobTitle: 'Drop Job',
+      dropJobTitle: 'Delete Job',
       discardJob: 'Are you sure you want to discard the following job(s)? Please note that it couldn\'t be recovered.',
       discardJobWarning: 'Are you sure you want to discard the following job(s)? Discarding the highlighted job(s) might result in gaps between segments. The query results would be empty for those data ranges. Please note that the discarded jobs couldn’t be recovered.',
       discardJobTitle: 'Discard Job',

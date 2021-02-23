@@ -425,7 +425,7 @@
       <div class="action-layout">
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
         <div class="filter-dimension">
-          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('pleaseFilterNameOrColumn')"></el-input>
+          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:240px" :placeholder="$t('pleaseFilterNameOrColumn')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table" @scroll="scrollEvent">
@@ -488,7 +488,7 @@
       <div class="action-measure-layout">
         <p class="alert">{{$t('editMeasuresTip')}}</p>
         <div class="filter-measure">
-          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:240px" :placeholder="$t('pleaseFilterName')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table measure-table">

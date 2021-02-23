@@ -35,11 +35,11 @@ export default {
     refreshError: 'Can\'t refresh data source.',
     noSourceData: 'No data source information. Please try refreshing.<br/>Be sure that active job node is available now, and you have permission to access the source tables in Hive.',
     loadTableTips1_1: 'Once a database was selected, ',
-    loadTableTips1_2: 'only the tables which haven’t been loaded yet would be loaded',
+    loadTableTips1_2: 'only the tables which haven\'t been loaded yet would be loaded',
     loadTableTips1_3: '.',
     loadTableTips2_1: 'You may ',
     loadTableTips2_2: 'manually input the database or table name',
-    loadTableTips2_3: ' , and press the ENTER key to complete. Use a comma to separate multiple values.',
+    loadTableTips2_3: ', and press the ENTER key to complete. Use a comma to separate multiple values.',
     loadTableTips3_1: 'Up to ',
     loadTableTips3_2: '1000 tables',
     loadTableTips3_3: ' could be loaded per time.'

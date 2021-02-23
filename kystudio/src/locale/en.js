@@ -135,8 +135,8 @@ exports.default = {
     checkNoChange: 'No content changed',
     // 格式提示
     nameFormatValidTip: 'Only supports number, letter and underline',
-    nameFormatValidTip3: 'Only supports starting with a number or a letter.',
-    nameFormatValidTip1: 'Please use number, letter, and underline to name your project, and start with a number or a letter.',
+    nameFormatValidTip3: 'Only supports starting with a number or a letter',
+    nameFormatValidTip1: 'Please use number, letter, and underline to name your project, and start with a number or a letter',
     nameFormatValidTip2: 'Only supports Chinese or English characters, numbers, spaces and symbol（_ -()%?）',
     nameMaxLen: '{len} characters at maximum',
     projectPlaceholder: 'Only supports number, letter and underline. Must start with a number or a letter',
@@ -148,7 +148,7 @@ exports.default = {
     usernameEmpty: 'Please enter a username',
     passwordEmpty: 'Please enter a password',
     passwordLength: 'The password must contain at least 8 characters. Please re-enter.',
-    passwordConfirm: 'Password and confirm password are not the same.',
+    passwordConfirm: 'The password confirmation doesn\'t match.',
     noProject: 'Please enter the project name',
     // 其他
     name: 'Name',

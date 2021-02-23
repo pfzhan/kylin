@@ -119,7 +119,7 @@
       <el-button type="primary" :disabled="disabledSubmitBtn" plain size="small" class="ksd-ml-10" :loading="submitLoading" @click="submitAccess">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
 
-    <el-dialog :title="rowAuthorTitle" width="750px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
+    <el-dialog :title="rowAuthorTitle" width="960px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
       <div class="like-tips-block ksd-mb-10">
         <div class="ksd-mb-5">{{$t('tipsTitle')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('viewDetail')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></div>
         <div class="detail-content" v-if="showDetails">

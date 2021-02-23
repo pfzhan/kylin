@@ -8,7 +8,7 @@ export default {
     delModelTitle: 'Delete Model',
     pergeModelTip: 'Are you sure you want to purge all segments of the model {modelName}?',
     pergeModelTitle: 'Purge Model',
-    disableModelTip: 'The offline model couldn’t serve queries. The built indexes could still be used after the model is online again. Are you sure you want to offline model "{modelName}"?',
+    disableModelTip: 'The offline model couldn\'t serve queries. The built indexes could still be used after the model is online again. Are you sure you want to offline model "{modelName}"?',
     disableModelTitle: 'Offline Model',
     enableModelTip: 'Are you sure you want to online the model {modelName}?',
     disableModelSuccessTip: 'Offline the model successfully.',
