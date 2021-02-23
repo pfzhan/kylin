@@ -203,7 +203,10 @@ export default class UserEditModal extends Vue {
   // Data: 用来销毁el-form
   isFormShow = false
   isLoading = false
-
+  numberList = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+  lowerLetter = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+  letterList = this.lowerLetter.concat(this.lowerLetter.map(v => v.toUpperCase()))
+  characterList = ['~', '@', '#', '$', '%', '^', '&', '*', '(', ')', '{', '}', '|', ':', '<', '>', '?', '[', ']', ';', '\'', ',', '.', '/']
   // 密码规则出错信息
   pwdRuleList = {
     len: '',
@@ -272,6 +275,15 @@ export default class UserEditModal extends Vue {
     }
   }
 
+  mustContain (value) {
+    let arr = this.numberList.concat(this.characterList).concat(this.letterList)
+    let valueArr = value.split('')
+    let notContainOther = valueArr.every(v => arr.includes(v))
+    let containNumber = this.numberList.some(v => value.includes(v))
+    let containCharacter = this.characterList.some(v => value.includes(v))
+    return notContainOther && containNumber && containCharacter
+  }
+
   handlerKeyEvent (e) {
     if (e.keyCode === 13) {
       this.submit()
@@ -307,7 +319,7 @@ export default class UserEditModal extends Vue {
       } else {
         this.pwdRuleList.num = this.pwdRuleList.num ? 'error' : ''
       }
-      if (/[~!@#$%^&*(){}|:"<>?\[\];',.\/`]+/.test(value)) { // eslint-disable-line
+      if (this.mustContain(value)) { // eslint-disable-line
         this.pwdRuleList.char = 'ok'
       } else {
         this.pwdRuleList.char = this.pwdRuleList.char ? 'error' : ''
@@ -328,7 +340,7 @@ export default class UserEditModal extends Vue {
       if (!/[0-9]+/.test(value)) {
         this.pwdRuleList.num = 'error'
       }
-      if (!/[~!@#$%^&*(){}|:"<>?\[\];',.\/`]+/.test(value)) { // eslint-disable-line
+      if (!this.mustContain(value)) { // eslint-disable-line
         this.pwdRuleList.char = 'error'
       }
     }
