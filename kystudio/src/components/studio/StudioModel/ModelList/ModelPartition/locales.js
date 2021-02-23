@@ -31,6 +31,6 @@ export default {
     noColumnFund: '找不到该列',
     changeSegmentTip1: '您修改分区列为 {tableColumn}，格式为 {dateType}，保存后会导致模型 {modelName} 下的所有 Segments 被清空。您需要重新加载数据，数据加载期间该模型不能服务于相关的查询。请确认是否提交？',
     changeSegmentTip2: '您修改为无分区列，保存后会导致模型 {modelName} 下所有 Segments 被清空。系统将自动重新构建索引并全量加载数据，索引构建期间该模型不能服务于相关的查询。请确认是否提交？',
-    changeSegmentTips: '修改模型分区设置后，系统将删除所有 Segment 及数据，模型将无法服务于业务查询。同时正在执行的构建任务将被终止。<br/>确定继续吗？'
+    changeSegmentTips: '修改模型分区设置后，系统将删除所有 Segment 及数据，模型将无法服务于业务查询。同时正在执行的构建任务将被终止。<br/>是否要继续保存？'
   }
 }

@@ -401,7 +401,7 @@
         this.partitionMeta.table = this.partitionTables[0].alias
       }
       this.dateErrorMsg = ''
-      this.isShowWarning = this.buildType !== this.defaultBuildType
+      this.isShowWarning = this.isHaveSegment && (this.buildType !== this.defaultBuildType || JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta))
       // this.$nextTick(() => {
       //   this.changePartitionSetting()
       // })

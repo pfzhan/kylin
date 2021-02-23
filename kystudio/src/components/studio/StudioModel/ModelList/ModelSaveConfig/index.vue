@@ -279,13 +279,7 @@ export default class ModelPartitionModal extends Vue {
     }
   }
   handChangeBuildType (val) {
-    if (this.defaultBuildType !== this.buildType) {
-      if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
-        this.isShowWarning = true
-      }
-    } else {
-      this.isShowWarning = false
-    }
+    this.isShowWarning = typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0 && (this.defaultBuildType !== this.buildType || this.isChangePartition)
     if (val === 'incremental' && !this.partitionMeta.table) {
       this.partitionMeta.table = this.partitionTables[0].alias
     }
