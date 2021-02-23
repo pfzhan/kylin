@@ -534,7 +534,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
 
     private void assertCuboidIdMapping(String indexPlanId, long layoutId, List<Integer> expectedColOrder) {
         val indexPlan = getIndexPlanManager().getIndexPlan(indexPlanId);
-        val layoutEntity = indexPlan.getCuboidLayout(layoutId);
+        val layoutEntity = indexPlan.getLayoutEntity(layoutId);
         val actualColOrder = layoutEntity.getColOrder();
         Assert.assertArrayEquals(actualColOrder.toArray(), expectedColOrder.toArray());
     }

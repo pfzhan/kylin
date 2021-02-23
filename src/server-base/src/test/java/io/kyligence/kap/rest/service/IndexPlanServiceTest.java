@@ -481,7 +481,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                         .sortByColumns(Arrays.asList("TEST_SITES.SITE_NAME")).build());
         var saved = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(originLayoutSize, saved.getAllLayouts().size());
-        var layout = saved.getCuboidLayout(20000000001L);
+        var layout = saved.getLayoutEntity(20000000001L);
         Assert.assertTrue(layout.isManual());
         Assert.assertTrue(layout.isAuto());
 
@@ -490,7 +490,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000000001L);
         saved = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        layout = saved.getCuboidLayout(20000000001L);
+        layout = saved.getLayoutEntity(20000000001L);
         Assert.assertEquals(originLayoutSize, saved.getAllLayouts().size());
         Assert.assertFalse(layout.isManual());
         Assert.assertTrue(layout.isAuto());
@@ -833,7 +833,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
-        val manualAgg = indexPlan.getCuboidLayout(1010001L);
+        val manualAgg = indexPlan.getLayoutEntity(1010001L);
         Assert.assertNotNull(manualAgg);
         Assert.assertTrue(manualAgg.isManual());
 
@@ -856,7 +856,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
-        val manualAgg = indexPlan.getCuboidLayout(1010001L);
+        val manualAgg = indexPlan.getLayoutEntity(1010001L);
         Assert.assertNotNull(manualAgg);
         Assert.assertTrue(manualAgg.isManual());
 
@@ -880,23 +880,23 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
-        val manualAgg = indexPlan.getCuboidLayout(1010001L);
+        val manualAgg = indexPlan.getLayoutEntity(1010001L);
         Assert.assertNotNull(manualAgg);
         Assert.assertTrue(manualAgg.isManual());
         indexPlanService.removeIndex(getProject(), modelId, manualAgg.getId());
         indexPlan = indexPlanManager.getIndexPlan(modelId);
-        Assert.assertNull(indexPlan.getCuboidLayout(1010001L));
-        val autoTable = indexPlan.getCuboidLayout(20000000001L);
+        Assert.assertNull(indexPlan.getLayoutEntity(1010001L));
+        val autoTable = indexPlan.getLayoutEntity(20000000001L);
         Assert.assertNotNull(autoTable);
         Assert.assertTrue(autoTable.isAuto());
         indexPlanService.removeIndex(getProject(), modelId, autoTable.getId());
         indexPlan = indexPlanManager.getIndexPlan(modelId);
-        Assert.assertNull(indexPlan.getCuboidLayout(20000000001L));
+        Assert.assertNull(indexPlan.getLayoutEntity(20000000001L));
 
         testUpdateTableIndex_markToBeDeleted();
         indexPlanService.removeIndex(getProject(), modelId, 20000010001L);
         indexPlan = indexPlanManager.getIndexPlan(modelId);
-        Assert.assertNull(indexPlan.getCuboidLayout(20000010001L));
+        Assert.assertNull(indexPlan.getLayoutEntity(20000010001L));
         // Assert.assertTrue(clean.get());
     }
 
@@ -906,12 +906,12 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
-        var manualAgg = indexPlan.getCuboidLayout(1010001L);
+        var manualAgg = indexPlan.getLayoutEntity(1010001L);
         Assert.assertNotNull(manualAgg);
-        var autoTable = indexPlan.getCuboidLayout(20000000001L);
+        var autoTable = indexPlan.getLayoutEntity(20000000001L);
         Assert.assertNotNull(autoTable);
 
-        autoTable = indexPlan.getCuboidLayout(20000010001L);
+        autoTable = indexPlan.getLayoutEntity(20000010001L);
         Assert.assertNotNull(autoTable);
 
         // delete layoutIds
@@ -920,12 +920,12 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         indexPlan = indexPlanManager.getIndexPlan(modelId);
 
-        manualAgg = indexPlan.getCuboidLayout(1010001L);
+        manualAgg = indexPlan.getLayoutEntity(1010001L);
         Assert.assertNull(manualAgg);
-        autoTable = indexPlan.getCuboidLayout(20000000001L);
+        autoTable = indexPlan.getLayoutEntity(20000000001L);
         Assert.assertNull(autoTable);
 
-        autoTable = indexPlan.getCuboidLayout(20000010001L);
+        autoTable = indexPlan.getLayoutEntity(20000010001L);
         Assert.assertNull(autoTable);
 
         // delete not exists layoutIds

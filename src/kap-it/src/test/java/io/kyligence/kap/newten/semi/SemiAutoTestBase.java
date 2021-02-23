@@ -216,7 +216,7 @@ public class SemiAutoTestBase extends NSuggestTestBase {
                 val indexInSmart = targetIndexPlanMap.get(modelId);
                 val modelInSmart = targetModelMap.get(modelId);
                 r.setLayoutId(indexPlan
-                        .getAllLayouts().stream().filter(l -> isMatch(l, indexInSmart.getCuboidLayout(r.getLayoutId()),
+                        .getAllLayouts().stream().filter(l -> isMatch(l, indexInSmart.getLayoutEntity(r.getLayoutId()),
                                 indexPlan.getModel(), modelInSmart))
                         .map(LayoutEntity::getId).findFirst().orElse(r.getLayoutId()));
             });

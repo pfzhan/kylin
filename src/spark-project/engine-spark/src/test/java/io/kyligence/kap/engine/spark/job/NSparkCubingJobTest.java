@@ -227,10 +227,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         List<LayoutEntity> round1 = new ArrayList<>();
-        round1.add(df.getIndexPlan().getCuboidLayout(20_000_020_001L));
-        round1.add(df.getIndexPlan().getCuboidLayout(1_000_001L));
-        round1.add(df.getIndexPlan().getCuboidLayout(30001L));
-        round1.add(df.getIndexPlan().getCuboidLayout(10002L));
+        round1.add(df.getIndexPlan().getLayoutEntity(20_000_020_001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(1_000_001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(30001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(10002L));
 
         NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(round1, df.getUuid());
         for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
@@ -280,10 +280,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
          * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
          */
         List<LayoutEntity> round2 = new ArrayList<>();
-        round2.add(df.getIndexPlan().getCuboidLayout(1L));
-        round2.add(df.getIndexPlan().getCuboidLayout(20_000_000_001L));
-        round2.add(df.getIndexPlan().getCuboidLayout(20001L));
-        round2.add(df.getIndexPlan().getCuboidLayout(10001L));
+        round2.add(df.getIndexPlan().getLayoutEntity(1L));
+        round2.add(df.getIndexPlan().getLayoutEntity(20_000_000_001L));
+        round2.add(df.getIndexPlan().getLayoutEntity(20001L));
+        round2.add(df.getIndexPlan().getLayoutEntity(10001L));
 
         //update seg
         val df2 = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -338,10 +338,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow(dataflowId);
 
         List<LayoutEntity> round1 = new ArrayList<>();
-        round1.add(df.getIndexPlan().getCuboidLayout(20_000_020_001L));
-        round1.add(df.getIndexPlan().getCuboidLayout(1_000_001L));
-        round1.add(df.getIndexPlan().getCuboidLayout(30001L));
-        round1.add(df.getIndexPlan().getCuboidLayout(10002L));
+        round1.add(df.getIndexPlan().getLayoutEntity(20_000_020_001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(1_000_001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(30001L));
+        round1.add(df.getIndexPlan().getLayoutEntity(10002L));
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
                 null);
@@ -376,7 +376,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow(dataflowId);
 
         List<LayoutEntity> round1 = new ArrayList<>();
-        round1.add(df.getIndexPlan().getCuboidLayout(10002L));
+        round1.add(df.getIndexPlan().getLayoutEntity(10002L));
         NDataSegment seg1 = dsMgr.appendSegment(df,
                 new SegmentRange.TimePartitionedSegmentRange("2012-01-01", "2012-02-01"), SegmentStatusEnum.READY);
         NDataSegment seg2 = dsMgr.appendSegment(df,
@@ -723,8 +723,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // dict building simulation
         final long cntDstLayoutId = 1_000_001L;
         final long normalLayoutId = 20_000_010_001L;
-        layouts.add(df.getIndexPlan().getCuboidLayout(cntDstLayoutId));
-        layouts.add(df.getIndexPlan().getCuboidLayout(normalLayoutId));
+        layouts.add(df.getIndexPlan().getLayoutEntity(cntDstLayoutId));
+        layouts.add(df.getIndexPlan().getLayoutEntity(normalLayoutId));
 
         // prepare job
         final NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(newSegment), Sets.newLinkedHashSet(layouts),

@@ -328,7 +328,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             layouts = indexPlan.getAllLayouts();
         } else {
             for (long id : layoutID) {
-                layouts.add(indexPlan.getCuboidLayout(id));
+                layouts.add(indexPlan.getLayoutEntity(id));
             }
         }
         long start = SegmentRange.dateToLong("2009-01-01 00:00:00");

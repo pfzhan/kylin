@@ -324,7 +324,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         if (getContext().storageContext.getCandidate() == null) {
             return false;
         }
-        IndexEntity index = getContext().storageContext.getCandidate().getCuboidLayout().getIndex();
+        IndexEntity index = getContext().storageContext.getCandidate().getLayoutEntity().getIndex();
         if (index.getModel().getStorageType() != 0) {
             return false;
         }
@@ -354,7 +354,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         }
         Set<String> cuboidDimSet = new HashSet<>();
         if (getContext() != null && getContext().storageContext.getCandidate() != null) {
-            cuboidDimSet = getContext().storageContext.getCandidate().getCuboidLayout().getOrderedDimensions().values()
+            cuboidDimSet = getContext().storageContext.getCandidate().getLayoutEntity().getOrderedDimensions().values()
                     .stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
 
         }
@@ -398,7 +398,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         Set<String> groupByCols = getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
         Set<String> cuboidDimSet = new HashSet<>();
         if (getContext() != null && getContext().storageContext.getCandidate() != null) {
-            cuboidDimSet = getContext().storageContext.getCandidate().getCuboidLayout().getOrderedDimensions().values()
+            cuboidDimSet = getContext().storageContext.getCandidate().getLayoutEntity().getOrderedDimensions().values()
                     .stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
 
         }

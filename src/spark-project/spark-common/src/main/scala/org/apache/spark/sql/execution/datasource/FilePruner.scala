@@ -88,7 +88,7 @@ class FilePruner(val session: SparkSession,
 
   private val layout: LayoutEntity = {
     val cuboidId = options.getOrElse("cuboidId", sys.error("cuboidId option is required")).toLong
-    dataflow.getIndexPlan.getCuboidLayout(cuboidId)
+    dataflow.getIndexPlan.getLayoutEntity(cuboidId)
   }
 
   val workingDir: String = KapConfig.wrap(dataflow.getConfig).getReadParquetStoragePath(dataflow.getProject)

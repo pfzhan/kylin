@@ -46,8 +46,8 @@ public class ComparatorUtils {
     }
 
     public static Comparator<NLayoutCandidate> simple() {
-        return (o1, o2) -> o2.getCuboidLayout().getOrderedDimensions().size()
-                - o1.getCuboidLayout().getOrderedDimensions().size();
+        return (o1, o2) -> o2.getLayoutEntity().getOrderedDimensions().size()
+                - o1.getLayoutEntity().getOrderedDimensions().size();
     }
 
     /**

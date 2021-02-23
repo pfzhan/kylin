@@ -31,7 +31,6 @@ import java.util.Set;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealizationCandidate;
@@ -69,17 +68,15 @@ public class NDataflowCapabilityChecker {
         } else {
             // for query-on-facttable
             boolean partialMatchIndex = QueryContext.current().isPartialMatchIndex();
-            Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> candidateAndInfluence = NQueryLayoutChooser
-                    .selectCuboidLayout(dataflow, prunedSegments, digest);
+            NLayoutCandidate candidateAndInfluence = NQueryLayoutChooser
+                    .selectLayoutCandidate(dataflow, prunedSegments, digest);
             if (partialMatchIndex && candidateAndInfluence == null) {
-                candidateAndInfluence = NQueryLayoutChooser.selectPartialCuboidLayout(dataflow, prunedSegments, digest);
+                candidateAndInfluence = NQueryLayoutChooser.selectPartialLayoutCandidate(dataflow, prunedSegments, digest);
             }
             if (candidateAndInfluence != null) {
-                chosenCandidate = candidateAndInfluence.getFirst();
-                result.influences.addAll(candidateAndInfluence.getSecond());
-                if (chosenCandidate != null) {
-                    logger.info("Matched layout {} snapshot in dataflow {} ", chosenCandidate, dataflow);
-                }
+                chosenCandidate = candidateAndInfluence;
+                result.influences.addAll(candidateAndInfluence.getCapabilityResult().influences);
+                logger.info("Matched layout {} snapshot in dataflow {} ", chosenCandidate, dataflow);
             }
         }
         if (chosenCandidate != null) {

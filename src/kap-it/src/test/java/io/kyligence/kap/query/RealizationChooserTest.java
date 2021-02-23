@@ -107,7 +107,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
         RealizationChooser.attemptSelectCandidate(context, CacheBuilder.newBuilder().maximumSize(10)
                 .expireAfterWrite(1, TimeUnit.DAYS).build());
-        Assert.assertEquals(context.storageContext.getCandidate().getCuboidLayout().getModel().getId(), dataflow);
+        Assert.assertEquals(context.storageContext.getCandidate().getLayoutEntity().getModel().getId(), dataflow);
 
     }
 
@@ -523,7 +523,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         val prunedPartitions = context.storageContext.getPrunedPartitions();
         val candidate = context.storageContext.getCandidate();
         Assert.assertEquals(expectedRanges.size(), prunedSegments.size());
-        Assert.assertEquals(expectedLayoutId, candidate.getCuboidLayout().getId());
+        Assert.assertEquals(expectedLayoutId, candidate.getLayoutEntity().getId());
 
         val model = NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(dfId);
         val partitionColDateFormat = model.getPartitionDesc().getPartitionDateFormat();

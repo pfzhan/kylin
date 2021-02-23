@@ -309,7 +309,7 @@ public class OLAPContext {
         if (candidate == null) {
             return false;
         }
-        boolean isTableIndex = candidate.getCuboidLayout().getIndex().isTableIndex();
+        boolean isTableIndex = candidate.getLayoutEntity().getIndex().isTableIndex();
         boolean isLookupTable = isFirstTableLookupTableInModel(realization.getModel());
         return !isTableIndex && !isLookupTable;
     }
@@ -416,7 +416,7 @@ public class OLAPContext {
 
     public boolean isAnsweredByTableIndex() {
         if (this.storageContext.getCandidate() != null
-                && this.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
+                && this.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
             return true;
         }
         return false;

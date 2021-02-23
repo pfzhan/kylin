@@ -793,11 +793,11 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
         IndexPlan indexPlan = indexPlanManager.getIndexPlanByModelAlias("model_index");
         Assert.assertEquals(2, indexPlan.getWhitelistLayouts().size());
-        LayoutEntity layout = indexPlan.getCuboidLayout(20000030001L);
+        LayoutEntity layout = indexPlan.getLayoutEntity(20000030001L);
         Assert.assertEquals("1,4,5,6,7,8,10,12",
                 layout.getColOrder().stream().map(String::valueOf).collect(Collectors.joining(",")));
 
-        layout = indexPlan.getCuboidLayout(20000040001L);
+        layout = indexPlan.getLayoutEntity(20000040001L);
         Assert.assertEquals("4,5", layout.getColOrder().stream().map(String::valueOf).collect(Collectors.joining(",")));
 
         NDataModel dataModel = dataModelManager.getDataModelDescByAlias("model_column_update");

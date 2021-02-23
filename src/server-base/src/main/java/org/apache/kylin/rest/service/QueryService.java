@@ -1215,7 +1215,7 @@ public class QueryService extends BasicService {
                     } else if (ctx.storageContext.isUseSnapshot()) {
                         realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
                         tableSets.add(ctx.getFirstTableIdentity());
-                    } else if (ctx.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
+                    } else if (ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
                         realizationType = QueryMetricsContext.TABLE_INDEX;
                         addTableSnapshots(tableSets, ctx);
                     } else {

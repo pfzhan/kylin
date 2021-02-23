@@ -74,7 +74,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(cube.getAllIndexes().contains(cuboidDesc));
         Assert.assertEquals(2, cuboidDesc.getLayouts().size());
 
-        LayoutEntity cuboidLayout = spanningTree.getCuboidLayout(10001L);
+        LayoutEntity cuboidLayout = spanningTree.getLayoutEntity(10001L);
         Assert.assertNotNull(cuboidLayout);
         Assert.assertSame(spanningTree.getIndexEntity(10000L).getLayouts().get(0), cuboidLayout);
 

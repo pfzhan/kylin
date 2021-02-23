@@ -112,16 +112,16 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     }
 
     @Override
-    public IndexEntity getIndexEntity(long cuboidId) {
-        if (nodesMap.get(cuboidId) == null) {
-            throw new IllegalStateException("Cuboid（ID:" + cuboidId + ") does not exist!");
+    public IndexEntity getIndexEntity(long indexId) {
+        if (nodesMap.get(indexId) == null) {
+            throw new IllegalStateException("Cuboid（ID:" + indexId + ") does not exist!");
         }
-        return nodesMap.get(cuboidId).indexEntity;
+        return nodesMap.get(indexId).indexEntity;
     }
 
     @Override
-    public LayoutEntity getCuboidLayout(long cuboidLayoutId) {
-        return layoutMap.get(cuboidLayoutId);
+    public LayoutEntity getLayoutEntity(long layoutId) {
+        return layoutMap.get(layoutId);
     }
 
     @Override

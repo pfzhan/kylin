@@ -139,7 +139,7 @@ case class SparderDerivedUtil(gtInfoTableName: String,
   }
 
   def indexOnTheCuboidValues(col: TblColRef): Int = {
-    val cuboidDims = layoutCandidate.getCuboidLayout.getColumns
+    val cuboidDims = layoutCandidate.getLayoutEntity.getColumns
     val cuboidIdx = cuboidDims.indexOf(col)
     cuboidIdx
   }

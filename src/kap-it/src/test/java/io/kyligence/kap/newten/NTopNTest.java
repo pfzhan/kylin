@@ -91,7 +91,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         NDataflow dataflow = dfMgr.getDataflow(dfID);
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dataflow.getIndexPlan().getCuboidLayout(101001L)), true);
+                Sets.newHashSet(dataflow.getIndexPlan().getLayoutEntity(101001L)), true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
@@ -109,7 +109,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         NDataflow dataflow = dfMgr.getDataflow(dfID);
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dataflow.getIndexPlan().getCuboidLayout(101001L)), true);
+                Sets.newHashSet(dataflow.getIndexPlan().getLayoutEntity(101001L)), true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();
@@ -132,8 +132,8 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         dfMgr.updateDataflowStatus("da101c43-6d22-48ce-88d2-bf0ce0594022", RealizationStatusEnum.OFFLINE);
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100001L),
-                        dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(100003L)),
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getLayoutEntity(100001L),
+                        dfMgr.getDataflow(dfID).getIndexPlan().getLayoutEntity(100003L)),
                 true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -163,7 +163,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         String dfID = "fb6ce800-43ee-4ef9-b100-39d523f36304";
         //  layout[ID, count(*), sum(price), Topn(price, SELLER_ID)]
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(1L)), true);
+                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getLayoutEntity(1L)), true);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         List<Pair<String, String>> query = new ArrayList<>();
@@ -203,13 +203,13 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             OLAPContext context = getOlapContext(nameAndQueryPair.getSecond()).get(0);
             Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
             context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-            val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(),
+            val pair = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
                     context.getSQLDigest());
             Assert.assertNotNull(pair);
-            Assert.assertEquals(1, pair.getSecond().size());
-            Assert.assertFalse(pair.getSecond().get(0) instanceof CapabilityResult.DimensionAsMeasure);
+            Assert.assertEquals(1, pair.getCapabilityResult().influences.size());
+            Assert.assertFalse(pair.getCapabilityResult().influences.get(0) instanceof CapabilityResult.DimensionAsMeasure);
             Assert.assertEquals(context.allColumns,
-                    Sets.newHashSet(pair.getSecond().get(0).getInvolvedMeasure().getFunction().getColRefs()));
+                    Sets.newHashSet(pair.getCapabilityResult().influences.get(0).getInvolvedMeasure().getFunction().getColRefs()));
         }
     }
 

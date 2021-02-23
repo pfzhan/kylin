@@ -383,7 +383,7 @@ public class RealizationChooser {
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;
         }
-        LayoutEntity cuboidLayout = layoutCandidate.getCuboidLayout();
+        LayoutEntity cuboidLayout = layoutCandidate.getLayoutEntity();
         context.setCandidate(layoutCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);

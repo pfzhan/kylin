@@ -24,9 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -37,20 +35,16 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
 import org.spark_project.guava.collect.Sets;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.val;
 
 public class NSparkCubingUtil {
@@ -119,7 +113,7 @@ public class NSparkCubingUtil {
     }
 
     public static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> layouts) {
-        return layouts.stream().map(indexPlan::getCuboidLayout).filter(Objects::nonNull)
+        return layouts.stream().map(indexPlan::getLayoutEntity).filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 

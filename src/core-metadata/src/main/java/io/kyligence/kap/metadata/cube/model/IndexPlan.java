@@ -299,16 +299,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
     }
 
-    public IndexEntity getIndexEntity(long cuboidDescId) {
+    public IndexEntity getIndexEntity(long indexId) {
         final NSpanningTree tree = getSpanningTree();
-        if (!tree.isValid(cuboidDescId)) {
+        if (!tree.isValid(indexId)) {
             return null;
         }
-        return tree.getIndexEntity(cuboidDescId);
+        return tree.getIndexEntity(indexId);
     }
 
-    public LayoutEntity getCuboidLayout(Long cuboidLayoutId) {
-        return getSpanningTree().getCuboidLayout(cuboidLayoutId);
+    public LayoutEntity getLayoutEntity(Long layoutId) {
+        return getSpanningTree().getLayoutEntity(layoutId);
     }
 
     public KylinConfig getConfig() {

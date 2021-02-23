@@ -109,7 +109,7 @@ public class NDataLayout implements Serializable {
     }
 
     public LayoutEntity getLayout() {
-        return segDetails.getDataflow().getIndexPlan().getSpanningTree().getCuboidLayout(layoutId);
+        return segDetails.getDataflow().getIndexPlan().getSpanningTree().getLayoutEntity(layoutId);
     }
 
     // ============================================================================

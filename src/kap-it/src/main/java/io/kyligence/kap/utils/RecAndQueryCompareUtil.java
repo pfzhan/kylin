@@ -111,7 +111,7 @@ public class RecAndQueryCompareUtil {
         final IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project)
                 .getIndexPlan(queryLayoutRelation.getModelId());
         Preconditions.checkNotNull(indexPlan);
-        final LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
+        final LayoutEntity cuboidLayout = indexPlan.getLayoutEntity(queryLayoutRelation.getLayoutId());
         final ImmutableList<Integer> colOrder = cuboidLayout.getColOrder();
         final BiMap<Integer, TblColRef> effectiveDimCols = cuboidLayout.getIndex().getEffectiveDimCols();
         final ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures = cuboidLayout.getIndex()
@@ -156,7 +156,7 @@ public class RecAndQueryCompareUtil {
                     return;
                 }
 
-                final LayoutEntity cuboidLayout = olapContext.storageContext.getCandidate().getCuboidLayout();
+                final LayoutEntity cuboidLayout = olapContext.storageContext.getCandidate().getLayoutEntity();
                 final String modelId = cuboidLayout.getModel().getUuid();
                 final long layoutId = cuboidLayout.getId();
                 final int semanticVersion = cuboidLayout.getModel().getSemanticVersion();

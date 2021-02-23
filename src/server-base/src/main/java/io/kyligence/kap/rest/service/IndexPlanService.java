@@ -290,7 +290,7 @@ public class IndexPlanService extends BasicService {
         if (id < IndexEntity.TABLE_INDEX_START_ID) {
             throw new IllegalStateException("Table Index Id should large than " + IndexEntity.TABLE_INDEX_START_ID);
         }
-        val layout = indexPlan.getCuboidLayout(id);
+        val layout = indexPlan.getLayoutEntity(id);
         Preconditions.checkNotNull(layout);
         Preconditions.checkState(layout.isManual());
 
@@ -312,7 +312,7 @@ public class IndexPlanService extends BasicService {
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkNotNull(indexPlan);
 
-        String notExistsLayoutIds = ids.stream().filter(id -> Objects.isNull(indexPlan.getCuboidLayout(id))).sorted()
+        String notExistsLayoutIds = ids.stream().filter(id -> Objects.isNull(indexPlan.getLayoutEntity(id))).sorted()
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
@@ -322,7 +322,7 @@ public class IndexPlanService extends BasicService {
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             for (Long id : ids) {
-                val layout = indexPlan.getCuboidLayout(id);
+                val layout = indexPlan.getLayoutEntity(id);
                 if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
                     copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
                 }
@@ -348,7 +348,7 @@ public class IndexPlanService extends BasicService {
         val indexPlan = getIndexPlan(project, modelId);
         Preconditions.checkNotNull(indexPlan);
         for (Long id : layoutIds) {
-            val layout = indexPlan.getCuboidLayout(id);
+            val layout = indexPlan.getLayoutEntity(id);
             Preconditions.checkNotNull(layout);
         }
 

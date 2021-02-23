@@ -141,7 +141,7 @@ public class DFBuildJob extends SparkApplication {
             if (!buildFromLayouts.isEmpty()) {
                 NBuildSourceInfo min = Collections.min(buildFromLayouts.values(),
                         (o1, o2) -> Math.toIntExact(o1.getCount() - o2.getCount()));
-                long count = SanityChecker.getCount(min.getParentDS(), indexPlan.getCuboidLayout(min.getLayoutId()));
+                long count = SanityChecker.getCount(min.getParentDS(), indexPlan.getLayoutEntity(min.getLayoutId()));
                 seg2Count.put(segId, count);
                 build(buildFromLayouts.values(), segId, nSpanningTree);
             }

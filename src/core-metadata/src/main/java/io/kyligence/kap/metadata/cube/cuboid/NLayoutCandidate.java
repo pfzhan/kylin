@@ -29,48 +29,55 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealizationCandidate;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import lombok.Getter;
 import lombok.Setter;
 
 public class NLayoutCandidate implements IRealizationCandidate {
-    private @Nonnull LayoutEntity cuboidLayout;
+    private @Nonnull LayoutEntity layoutEntity;
     @Setter
     private double cost;
 
-    public static final NLayoutCandidate EMPTY = new NLayoutCandidate(new LayoutEntity(), Double.MAX_VALUE);
+    @Setter
+    @Getter
+    private CapabilityResult capabilityResult;
+
+    public static final NLayoutCandidate EMPTY = new NLayoutCandidate(new LayoutEntity(), Double.MAX_VALUE, new CapabilityResult());
 
     // derived
     private @Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap = Maps.newHashMap();
 
-    public NLayoutCandidate(@Nonnull LayoutEntity cuboidLayout) {
-        this.cuboidLayout = cuboidLayout;
+    public NLayoutCandidate(@Nonnull LayoutEntity layoutEntity) {
+        this.layoutEntity = layoutEntity;
     }
 
-    public NLayoutCandidate(@Nonnull LayoutEntity cuboidLayout, double cost) {
-        this.cuboidLayout = cuboidLayout;
+    public NLayoutCandidate(@Nonnull LayoutEntity layoutEntity, double cost, CapabilityResult result) {
+        this.layoutEntity = layoutEntity;
         this.cost = cost;
+        this.capabilityResult = result;
     }
 
     public boolean isEmptyCandidate() {
-        return this.getCuboidLayout().getIndex() == null;
+        return this.getLayoutEntity().getIndex() == null;
     }
 
     @Nonnull
-    public LayoutEntity getCuboidLayout() {
-        return cuboidLayout;
+    public LayoutEntity getLayoutEntity() {
+        return layoutEntity;
     }
 
-    public void setCuboidLayout(@Nonnull LayoutEntity cuboidLayout) {
-        this.cuboidLayout = cuboidLayout;
+    public void setLayoutEntity(@Nonnull LayoutEntity cuboidLayout) {
+        this.layoutEntity = cuboidLayout;
     }
 
     @Nonnull
@@ -128,7 +135,7 @@ public class NLayoutCandidate implements IRealizationCandidate {
 
     @Override
     public String toString() {
-        return "NLayoutCandidate{" + "cuboidLayout=" + cuboidLayout + ", indexEntity=" + cuboidLayout.getIndex()
+        return "NLayoutCandidate{" + "cuboidLayout=" + layoutEntity + ", indexEntity=" + layoutEntity.getIndex()
                 + ", cost=" + cost + '}';
     }
 }

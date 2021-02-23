@@ -66,9 +66,9 @@ public abstract class NSpanningTree implements Serializable {
 
     abstract public Collection<LayoutEntity> getLayouts(IndexEntity cuboidDesc);
 
-    abstract public IndexEntity getIndexEntity(long cuboidId);
+    abstract public IndexEntity getIndexEntity(long indexId);
 
-    abstract public LayoutEntity getCuboidLayout(long cuboidLayoutId);
+    abstract public LayoutEntity getLayoutEntity(long layoutId);
 
     abstract public void decideTheNextLayer(Collection<IndexEntity> currentLayer, NDataSegment segment);
 

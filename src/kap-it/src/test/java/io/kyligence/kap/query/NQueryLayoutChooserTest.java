@@ -32,7 +32,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.spark.sql.SparderEnv;
@@ -90,20 +89,20 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
         NDataflow newDf = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
-                .selectCuboidLayout(newDf, newDf.getQueryableSegments(), context.getSQLDigest());
+        NLayoutCandidate pair = NQueryLayoutChooser
+                .selectLayoutCandidate(newDf, newDf.getQueryableSegments(), context.getSQLDigest());
         Assert.assertNotNull(pair);
-        Assert.assertEquals(10001L, pair.getFirst().getCuboidLayout().getId());
-        Assert.assertFalse(pair.getFirst().getCuboidLayout().getIndex().isTableIndex());
-        Assert.assertEquals(1000.0D, pair.getFirst().getCost(), 0.01);
+        Assert.assertEquals(10001L, pair.getLayoutEntity().getId());
+        Assert.assertFalse(pair.getLayoutEntity().getIndex().isTableIndex());
+        Assert.assertEquals(1000.0D, pair.getCost(), 0.01);
 
         // 2. tableIndex match
         sql = "select CAL_DT from test_kylin_fact where CAL_DT='2012-01-10'";
         OLAPContext context1 = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(newDf.getModel(), context1);
         context1.fixModel(newDf.getModel(), sqlAlias2ModelName1);
-        pair = NQueryLayoutChooser.selectCuboidLayout(newDf, newDf.getQueryableSegments(), context1.getSQLDigest());
-        Assert.assertTrue(pair.getFirst().getCuboidLayout().getIndex().isTableIndex());
+        pair = NQueryLayoutChooser.selectLayoutCandidate(newDf, newDf.getQueryableSegments(), context1.getSQLDigest());
+        Assert.assertTrue(pair.getLayoutEntity().getIndex().isTableIndex());
     }
 
     @Test
@@ -121,18 +120,18 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
         NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val pair = NQueryLayoutChooser.selectCuboidLayout(df, df.getQueryableSegments(), context.getSQLDigest());
+        val pair = NQueryLayoutChooser.selectLayoutCandidate(df, df.getQueryableSegments(), context.getSQLDigest());
         Assert.assertNotNull(pair);
-        Assert.assertEquals(1010001, pair.getFirst().getCuboidLayout().getId());
+        Assert.assertEquals(1010001, pair.getLayoutEntity().getId());
 
         sql = "select CAL_DT, TRANS_ID, count(*) as GMV from test_kylin_fact \n"
                 + " where CAL_DT > '2012-01-10' and TRANS_ID = 10000 group by CAL_DT, TRANS_ID ";
         OLAPContext context1 = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
         context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
-        val pair1 = NQueryLayoutChooser.selectCuboidLayout(df, df.getQueryableSegments(), context1.getSQLDigest());
+        val pair1 = NQueryLayoutChooser.selectLayoutCandidate(df, df.getQueryableSegments(), context1.getSQLDigest());
         Assert.assertNotNull(pair1);
-        Assert.assertEquals(1010002, pair1.getFirst().getCuboidLayout().getId());
+        Assert.assertEquals(1010002, pair1.getLayoutEntity().getId());
 
         // same filter level, select the col with smallest cardinality
         sql = "select CAL_DT, TRANS_ID, count(*) as GMV from test_kylin_fact \n"
@@ -141,9 +140,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         OLAPContext context2 = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
         context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
-        val pair2 = NQueryLayoutChooser.selectCuboidLayout(df, df.getQueryableSegments(), context2.getSQLDigest());
+        val pair2 = NQueryLayoutChooser.selectLayoutCandidate(df, df.getQueryableSegments(), context2.getSQLDigest());
         Assert.assertNotNull(pair2);
-        Assert.assertEquals(1010002, pair2.getFirst().getCuboidLayout().getId());
+        Assert.assertEquals(1010002, pair2.getLayoutEntity().getId());
     }
 
     @Test
@@ -167,10 +166,10 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
         dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(),
+        val pair = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
                 context.getSQLDigest());
         Assert.assertNotNull(pair);
-        Assert.assertEquals(1010001L, pair.getFirst().getCuboidLayout().getId());
+        Assert.assertEquals(1010001L, pair.getLayoutEntity().getId());
     }
 
     @Test
@@ -233,20 +232,20 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         // same filter level, select the col with smallest cardinality and with shardby col
         dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val pair1 = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(),
+        val pair1 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
                 context1.getSQLDigest());
         Assert.assertNotNull(pair1);
-        Assert.assertEquals(1010002, pair1.getFirst().getCuboidLayout().getId());
+        Assert.assertEquals(1010002, pair1.getLayoutEntity().getId());
 
         sql = "select CAL_DT, TRANS_ID, count(*) as GMV from test_kylin_fact \n"
                 + " where CAL_DT = '2012-01-10' and TRANS_ID > 10000 group by CAL_DT, TRANS_ID ";
         OLAPContext context2 = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
         context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
-        val pair2 = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(),
+        val pair2 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
                 context2.getSQLDigest());
         Assert.assertNotNull(pair2);
-        Assert.assertEquals(1010003, pair2.getFirst().getCuboidLayout().getId());
+        Assert.assertEquals(1010003, pair2.getLayoutEntity().getId());
     }
 
     @Test
@@ -258,8 +257,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
         context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
-                .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+        NLayoutCandidate pair = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
 
         Assert.assertNotNull(pair);
         List<NDataModel.Measure> allMeasures = dataflow.getModel().getAllMeasures();
@@ -278,41 +277,41 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         OLAPContext context1 = prepareOlapContext(sql1).get(0);
         Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
         context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair1 = NQueryLayoutChooser
-                .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context1.getSQLDigest());
-        Assert.assertFalse(pair1.getFirst().getCuboidLayout().getIndex().isTableIndex());
+        NLayoutCandidate pair1 = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context1.getSQLDigest());
+        Assert.assertFalse(pair1.getLayoutEntity().getIndex().isTableIndex());
 
         String sql2 = "select max(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context2 = prepareOlapContext(sql2).get(0);
         Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
         context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair2 = NQueryLayoutChooser
-                .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context2.getSQLDigest());
-        Assert.assertFalse(pair2.getFirst().getCuboidLayout().getIndex().isTableIndex());
+        NLayoutCandidate pair2 = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context2.getSQLDigest());
+        Assert.assertFalse(pair2.getLayoutEntity().getIndex().isTableIndex());
 
         String sql3 = "select min(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context3 = prepareOlapContext(sql3).get(0);
         Map<String, String> sqlAlias2ModelName3 = RealizationChooser.matchJoins(dataflow.getModel(), context3);
         context3.fixModel(dataflow.getModel(), sqlAlias2ModelName3);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair3 = NQueryLayoutChooser
-                .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context3.getSQLDigest());
-        Assert.assertFalse(pair3.getFirst().getCuboidLayout().getIndex().isTableIndex());
+        val pair3 = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context3.getSQLDigest());
+        Assert.assertFalse(pair3.getLayoutEntity().getIndex().isTableIndex());
 
         String sql4 = "select count(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context4 = prepareOlapContext(sql4).get(0);
         Map<String, String> sqlAlias2ModelName4 = RealizationChooser.matchJoins(dataflow.getModel(), context4);
         context4.fixModel(dataflow.getModel(), sqlAlias2ModelName4);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair4 = NQueryLayoutChooser
-                .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context4.getSQLDigest());
-        Assert.assertFalse(pair4.getFirst().getCuboidLayout().getIndex().isTableIndex());
+        val pair4 = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context4.getSQLDigest());
+        Assert.assertFalse(pair4.getLayoutEntity().getIndex().isTableIndex());
 
         String sql5 = "select count(distinct ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context5 = prepareOlapContext(sql5).get(0);
         Map<String, String> sqlAlias2ModelName5 = RealizationChooser.matchJoins(dataflow.getModel(), context5);
         context5.fixModel(dataflow.getModel(), sqlAlias2ModelName5);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair5 = NQueryLayoutChooser
-                .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context5.getSQLDigest());
-        Assert.assertFalse(pair5.getFirst().getCuboidLayout().getIndex().isTableIndex());
+        val pair5 = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context5.getSQLDigest());
+        Assert.assertFalse(pair5.getLayoutEntity().getIndex().isTableIndex());
     }
 
     @Test
@@ -425,9 +424,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                         .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
                 Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
                 context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-                Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
-                        .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
-                Assert.assertEquals(20000010001L, pair.getFirst().getCuboidLayout().getId());
+                val pair = NQueryLayoutChooser
+                        .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+                Assert.assertEquals(20000010001L, pair.getLayoutEntity().getId());
             }
         } finally {
             getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");
@@ -488,9 +487,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                     .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
             Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
             context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-            Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair = NQueryLayoutChooser
-                    .selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
-            Assert.assertEquals(1L, pair.getFirst().getCuboidLayout().getId());
+            val pair = NQueryLayoutChooser
+                    .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+            Assert.assertEquals(1L, pair.getLayoutEntity().getId());
         } finally {
             getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");
         }

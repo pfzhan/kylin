@@ -81,10 +81,10 @@ public class NSparkCubingUtilTest extends NLocalWithSparkSessionTest {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         final List<IndexPlan> indexPlans = indexPlanManager.listAllIndexPlans();
         Set<LayoutEntity> layouts = Sets.newLinkedHashSet();
-        LayoutEntity one = indexPlans.get(0).getCuboidLayout(20001L);
-        LayoutEntity two = indexPlans.get(0).getCuboidLayout(10001L);
-        LayoutEntity three = indexPlans.get(0).getCuboidLayout(10002L);
-        LayoutEntity four = indexPlans.get(0).getCuboidLayout(20001L);
+        LayoutEntity one = indexPlans.get(0).getLayoutEntity(20001L);
+        LayoutEntity two = indexPlans.get(0).getLayoutEntity(10001L);
+        LayoutEntity three = indexPlans.get(0).getLayoutEntity(10002L);
+        LayoutEntity four = indexPlans.get(0).getLayoutEntity(20001L);
         layouts.add(one);
         layouts.add(two);
         layouts.add(three);

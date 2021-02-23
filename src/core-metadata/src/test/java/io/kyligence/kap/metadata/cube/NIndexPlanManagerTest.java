@@ -178,7 +178,7 @@ public class NIndexPlanManagerTest {
         logLayouts(cube);
         log.debug("-------------");
         val originalSize = cube.getAllLayouts().size();
-        val layout = cube.getCuboidLayout(1000001L);
+        val layout = cube.getLayoutEntity(1000001L);
         Assert.assertTrue(layout.isAuto());
         Assert.assertTrue(layout.isManual());
         cube = manager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
@@ -187,7 +187,7 @@ public class NIndexPlanManagerTest {
         logLayouts(cube);
         Assert.assertEquals(originalSize - 2, cube.getAllLayouts().size());
         Assert.assertEquals(1, cube.getRuleBasedIndex().getLayoutBlackList().size());
-        val layout2 = cube.getCuboidLayout(1000001L);
+        val layout2 = cube.getLayoutEntity(1000001L);
         Assert.assertNull(layout2);
     }
 

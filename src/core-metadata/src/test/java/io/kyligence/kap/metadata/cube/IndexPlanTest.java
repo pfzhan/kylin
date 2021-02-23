@@ -150,7 +150,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         {
             IndexPlan indexPlan = mgr.getIndexPlanByModelAlias("nmodel_basic");
-            LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(1000001L);
+            LayoutEntity cuboidLayout = indexPlan.getLayoutEntity(1000001L);
             final String colIndexType = cuboidLayout.getColIndexType(1);
             Assert.assertEquals("eq", colIndexType);
             Assert.assertEquals(10, indexPlan.getWhitelistLayouts().size());
@@ -166,7 +166,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
                             copyForWrite.setIndexPlanOverrideIndexes(map);
                         }
                     });
-            LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(1000001L);
+            LayoutEntity cuboidLayout = indexPlan.getLayoutEntity(1000001L);
             final String colIndexType = cuboidLayout.getColIndexType(1);
             Assert.assertEquals("non-eq", colIndexType);
         }
@@ -181,10 +181,10 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
                             Map<Integer, String> map2 = Maps.newHashMap();
                             map.put(1, "non-eq-2");
-                            copyForWrite.getCuboidLayout(1000001L).setLayoutOverrideIndexes(map2);
+                            copyForWrite.getLayoutEntity(1000001L).setLayoutOverrideIndexes(map2);
                         }
                     });
-            LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(1000001L);
+            LayoutEntity cuboidLayout = indexPlan.getLayoutEntity(1000001L);
             final String colIndexType = cuboidLayout.getColIndexType(1);
             Assert.assertEquals("non-eq-2", colIndexType);
         }

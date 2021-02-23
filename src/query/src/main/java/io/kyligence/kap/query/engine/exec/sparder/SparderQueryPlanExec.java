@@ -130,7 +130,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         boolean exactlyMatch = true;
         for (OLAPContext ctx : ContextUtil.listContextsHavingScan()) {
             NLayoutCandidate candidate = ctx.storageContext.getCandidate();
-            if (Objects.nonNull(candidate) && IndexEntity.isAggIndex(candidate.getCuboidLayout().getId())
+            if (Objects.nonNull(candidate) && IndexEntity.isAggIndex(candidate.getLayoutEntity().getId())
                     && !ctx.isExactlyAggregate()) {
                 exactlyMatch = false;
                 break;

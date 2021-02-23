@@ -75,7 +75,7 @@ object TableScanPlan extends LogEx {
       val prunedPartitionMap = olapContext.storageContext.getPrunedPartitions
       olapContext.resetSQLDigest()
       val context = olapContext.storageContext
-      val cuboidLayout = context.getCandidate.getCuboidLayout
+      val cuboidLayout = context.getCandidate.getLayoutEntity
       if (cuboidLayout.getIndex.isTableIndex) {
         QueryContext.current().getQueryTagInfo.setTableIndex(true)
       }

@@ -145,7 +145,7 @@ class DFSmartBuild extends DFBuildJob with Logging {
         override def compare(x: NBuildSourceInfo, y: NBuildSourceInfo): Int = (x.getCount - y.getCount).toInt
       }
       val min = buildFromLayouts.values.asScala.min(countOrdering)
-      val count = SanityChecker.getCount(min.getParentDS, indexPlan.getCuboidLayout(min.getLayoutId))
+      val count = SanityChecker.getCount(min.getParentDS, indexPlan.getLayoutEntity(min.getLayoutId))
       seg2Count.put(segId, count)
     }
 

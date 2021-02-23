@@ -252,7 +252,7 @@ public class ReproposeTest extends AutoTestOnLearnKylinData {
 
         final IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project)
                 .getIndexPlan(queryLayoutRelation.getModelId());
-        val layout = indexPlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
+        val layout = indexPlan.getLayoutEntity(queryLayoutRelation.getLayoutId());
         ImmutableList<Integer> colOrder = layout.getColOrder();
         BiMap<Integer, TblColRef> effectiveDimCols = layout.getIndex().getEffectiveDimCols();
         ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures = layout.getIndex().getEffectiveMeasures();

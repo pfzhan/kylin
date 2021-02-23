@@ -421,10 +421,10 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         val layouts1 = smartContext3.getAccelerateInfoMap().get(sql1).getRelatedLayouts();
         val layouts2 = smartContext3.getAccelerateInfoMap().get(sql2).getRelatedLayouts();
         Assert.assertEquals(1, layouts1.size());
-        val layout1 = modelContext1.getTargetIndexPlan().getCuboidLayout(layouts1.iterator().next().getLayoutId());
+        val layout1 = modelContext1.getTargetIndexPlan().getLayoutEntity(layouts1.iterator().next().getLayoutId());
         Assert.assertEquals("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", layout1.getColumns().get(0).getAliasDotName());
         Assert.assertEquals(1, layouts2.size());
-        val layout2 = modelContext1.getTargetIndexPlan().getCuboidLayout(layouts1.iterator().next().getLayoutId());
+        val layout2 = modelContext1.getTargetIndexPlan().getLayoutEntity(layouts1.iterator().next().getLayoutId());
         Assert.assertEquals("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", layout2.getColumns().get(0).getAliasDotName());
 
     }
