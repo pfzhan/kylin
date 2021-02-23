@@ -135,7 +135,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         epochManager.setMaintenanceMode("MODE1");
         transactionThrown.expectInTransaction(EpochNotMatchException.class);
-        transactionThrown.expectMessageInTransaction("System is trying to recover, please try again later");
+        transactionThrown.expectMessageInTransaction("System is trying to recover service. Please try again later");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/_global/p1/abc",

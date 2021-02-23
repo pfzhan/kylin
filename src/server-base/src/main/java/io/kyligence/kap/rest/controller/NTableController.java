@@ -172,7 +172,7 @@ public class NTableController extends NBasicController {
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> unloadTable(@RequestParam(value = "project") String project,
-            @PathVariable(value = "database") String database, // 
+            @PathVariable(value = "database") String database, //
             @PathVariable(value = "table") String table,
             @RequestParam(value = "cascade", defaultValue = "false") Boolean cascade) {
 
@@ -541,8 +541,7 @@ public class NTableController extends NBasicController {
         }
 
         if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
-            throw new KylinException(INVALID_TABLE_NAME,
-                    String.format(Locale.ROOT, msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
+            throw new KylinException(INVALID_TABLE_NAME, msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME());
         }
     }
 

@@ -264,12 +264,12 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-03-01")));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Add Job failed due to segment indexes are not aligned");
+        thrown.expectMessage("Can’t submit the job, as the indexes are not identical in the selected segments. Please check and try again.");
         jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
     @Test
-    public void testMergeJob_notReadySegmentEception() {
+    public void testMergeJob_notReadySegmentException() {
         val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfm.getDataflow(MODEL_ID);
@@ -280,7 +280,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
             jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("No executable job is generated.", e.getMessage());
+            Assert.assertEquals("Can’t find executable jobs at the moment. Please try again later.", e.getMessage());
         }
     }
 

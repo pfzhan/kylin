@@ -62,53 +62,10 @@ public class CnMessage extends Message {
         return "当前模型下，可计算列名[%s]已被使用，请重新命名可计算列名";
     }
 
-    @Override
-    public String getCUBE_NOT_FOUND() {
-        return "找不到 Cube '%s'";
-    }
 
     @Override
     public String getSEG_NOT_FOUND() {
         return "找不到 Segment '%s' 在模型 '%s' 上";
-    }
-
-    @Override
-    public String getKAFKA_DEP_NOT_FOUND() {
-        return "找不到 Kafka 依赖";
-    }
-
-    @Override
-    public String getBUILD_DRAFT_CUBE() {
-        return "Cube 草稿不能被构建";
-    }
-
-    @Override
-    public String getBUILD_BROKEN_CUBE() {
-        return "损坏的 cube '%s' 不能被构建";
-    }
-
-    @Override
-    public String getINCONSISTENT_CUBE_DESC_SIGNATURE() {
-        return "Inconsistent cube desc signature for '%s', if it's right after an upgrade, please try 'Edit CubeDesc' to delete the 'signature' field. Or use 'bin/metastore.sh refresh-cube-signature' to batch refresh all cubes' signatures, then reload metadata to take effect.";
-    }
-
-    public String getDELETE_NOT_FIRST_LAST_SEG() {
-        return "非首尾 segment '%s' 不能被删除";
-    }
-
-    @Override
-    public String getDELETE_NOT_READY_SEG() {
-        return "非 READY 状态 segment '%s' 不能被删除, 请先抛弃它正在运行的任务";
-    }
-
-    @Override
-    public String getINVALID_BUILD_TYPE() {
-        return "非法构建类型: '%s'";
-    }
-
-    @Override
-    public String getNO_ACL_ENTRY() {
-        return "找不到对象 '%s' 的授权记录";
     }
 
     @Override
@@ -127,98 +84,8 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getDISABLE_NOT_READY_CUBE() {
-        return "仅 ready 状态的 cube 可以被禁用, '%s' 的状态是 %s";
-    }
-
-    @Override
-    public String getPURGE_NOT_DISABLED_CUBE() {
-        return "仅 disabled 状态的 cube 可以被清空, '%s' 的状态是 %s";
-    }
-
-    @Override
-    public String getCLONE_BROKEN_CUBE() {
-        return "损坏的 cube '%s' 不能被克隆";
-    }
-
-    @Override
-    public String getINVALID_CUBE_NAME() {
-        return "非法 cube 名称 '%s', 仅支持字母, 数字和下划线";
-    }
-
-    @Override
-    public String getCUBE_ALREADY_EXIST() {
-        return "Cube 名称 '%s' 已存在";
-    }
-
-    @Override
-    public String getCUBE_DESC_ALREADY_EXIST() {
-        return "Cube '%s' 已存在";
-    }
-
-    @Override
-    public String getBROKEN_CUBE_DESC() {
-        return "损坏的 Cube 描述 '%s'";
-    }
-
-    @Override
-    public String getENABLE_NOT_DISABLED_CUBE() {
-        return "仅 disabled 状态的 cube 可以被启用, '%s' 的状态是 %s";
-    }
-
-    @Override
-    public String getNO_READY_SEGMENT() {
-        return "Cube '%s' 不包含任何 READY 状态的 segment";
-    }
-
-    @Override
-    public String getENABLE_WITH_RUNNING_JOB() {
-        return "Cube 存在正在运行的任务, 不能被启用";
-    }
-
-    @Override
-    public String getDISCARD_JOB_FIRST() {
-        return "Cube '%s' 存在正在运行或失败的任务, 请抛弃它们后重试";
-    }
-
-    @Override
     public String getIDENTITY_EXIST_CHILDREN() {
         return "'%s' 存在下级授权";
-    }
-
-    @Override
-    public String getINVALID_CUBE_DEFINITION() {
-        return "非法 cube 定义";
-    }
-
-    @Override
-    public String getEMPTY_CUBE_NAME() {
-        return "Cube 名称不可为空";
-    }
-
-    @Override
-    public String getUSE_DRAFT_MODEL() {
-        return "不能使用模型草稿 '%s'";
-    }
-
-    @Override
-    public String getINCONSISTENT_CUBE_DESC() {
-        return "Cube 描述 '%s' 与现有不一致， 请清理 cube 或避免更新 cube 描述的关键字段";
-    }
-
-    @Override
-    public String getUPDATE_CUBE_NO_RIGHT() {
-        return "无权限更新此 cube";
-    }
-
-    @Override
-    public String getNOT_STREAMING_CUBE() {
-        return "Cube '%s' 不是实时 cube";
-    }
-
-    @Override
-    public String getCUBE_RENAME() {
-        return "Cube 不能被重命名";
     }
 
     // Model
@@ -253,23 +120,8 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getMODEL_ID_NOT_FOUND() {
-        return "模型 ID 不能为空";
-    }
-
-    @Override
     public String getDUPLICATE_MODEL_NAME() {
         return "模型名称 '%s' 已存在, 不能被创建";
-    }
-
-    @Override
-    public String getDROP_REFERENCED_MODEL() {
-        return "模型被 Cube '%s' 引用, 不能被删除";
-    }
-
-    @Override
-    public String getUPDATE_MODEL_KEY_FIELD() {
-        return "由于维度、度量或者连接关系被修改导致与存在的cube定义不一致，因而当前模型无法保存。";
     }
 
     @Override
@@ -285,11 +137,6 @@ public class CnMessage extends Message {
     @Override
     public String getMODEL_MODIFY_ABANDON(String table) {
         return String.format(Locale.ROOT, "模型不支持被修改，因为没有 ['%s'] 权限", table);
-    }
-
-    @Override
-    public String getINDEX_ALREADY_DELETED() {
-        return "该索引已经被删除";
     }
 
     @Override
@@ -310,21 +157,6 @@ public class CnMessage extends Message {
     @Override
     public String getPROJECT_ONGOING_OPTIMIZATION() {
         return "当前有进行中的优化任务。请稍后再试。";
-    }
-
-    @Override
-    public String getEMPTY_NEW_MODEL_NAME() {
-        return "新模型名称不可为空";
-    }
-
-    @Override
-    public String getUPDATE_MODEL_NO_RIGHT() {
-        return "无权限更新此模型";
-    }
-
-    @Override
-    public String getMODEL_RENAME() {
-        return "模型不能被重命名";
     }
 
     @Override
@@ -363,11 +195,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED() {
-        return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列 '%s' 表达式相同。";
-    }
-
-    @Override
     public String getEXPORT_BROKEN_MODEL() {
         return "无法导出 Broken 的模型 [%s]。";
     }
@@ -403,11 +230,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
-        return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列重名。";
-    }
-
-    @Override
     public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED() {
         return "该可计算列的表达式已被用于模型 '%s'，名称为 '%s'。请修改名称以保持一致，或使用其他的表达式。";
     }
@@ -425,16 +247,6 @@ public class CnMessage extends Message {
     @Override
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL() {
         return "该可计算列名在模型内已存在。";
-    }
-
-    @Override
-    public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
-        return "模型 '%s' 导入失败：模型中的事实表在其他模型中已经作为维度表存在。";
-    }
-
-    @Override
-    public String getMODEL_METADATA_CHECK_FAILED() {
-        return "压缩包中包含的模型元数据与系统已有的模型元数据存在冲突，请查看详细冲突信息，修正后重新导入。";
     }
 
     @Override
@@ -466,17 +278,12 @@ public class CnMessage extends Message {
     // Job
     @Override
     public String getILLEGAL_TIME_FILTER() {
-        return "非法时间条件: %s";
+        return "选择的时间范围无效。请重新选择";
     }
 
     @Override
     public String getILLEGAL_EXECUTABLE_STATE() {
-        return "非法状态: %s";
-    }
-
-    @Override
-    public String getILLEGAL_JOB_TYPE() {
-        return "非法任务类型, id: %s.";
+        return "选择的任务状态无效。请重新选择";
     }
 
     @Override
@@ -527,15 +334,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getDELETE_PROJECT_NOT_EMPTY() {
-        return "不能修改该项目，如需要修改请先清空其中的Cube和Model";
-    }
-
-    public String getRENAME_PROJECT_NOT_EMPTY() {
-        return "不能重命名该项目，如果要重命名请先清空其中的Cube和Model";
-    }
-
-    @Override
     public String getPROJECT_CHANGE_PERMISSION() {
         return "没有权限操作。仅系统管理员可以更改项目的所有者。";
     }
@@ -555,40 +353,25 @@ public class CnMessage extends Message {
         return "找不到 Hive 表 '%s'";
     }
 
-    @Override
-    public String getTABLE_DESC_NOT_FOUND() {
-        return "找不到表 '%s'";
-    }
-
-    @Override
-    public String getTABLE_IN_USE_BY_MODEL() {
-        return "表已被模型 '%s' 使用";
-    }
-
     // table sampling
     @Override
     public String getBEYOND_MIX_SAMPLING_ROWSHINT() {
-        return "采样的行数低于了最小采样行数（ %d 行）";
+        return "采样的行数应大于 %d。 请修改。";
     }
 
     @Override
     public String getBEYOND_MAX_SAMPLING_ROWS_HINT() {
-        return "采样的行数超过了最大采样行数（ %d 行）";
+        return "采样的行数应小于 %d。请修改。";
     }
 
     @Override
     public String getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME() {
-        return "采样表的名称不符合规范，表名正确格式：database.table";
-    }
-
-    @Override
-    public String getFAILED_FOR_IN_SAMPLING() {
-        return "表 %s 有正在进行的抽样任务，暂时无法触发新一个抽样任务。";
+        return "无效的采样表名称。请以 “database.table” 为格式命名。";
     }
 
     @Override
     public String getFAILED_FOR_NO_SAMPLING_TABLE() {
-        return "没有传入采样表名称（database.table），请至少提供一张表";
+        return "无法执行表采样。请选择至少一张表。";
     }
 
     @Override
@@ -601,106 +384,14 @@ public class CnMessage extends Message {
         return "源表 %1$s 中列 %2$s 的数据类型发生变更。请从模型 %3$s 中删除该列，或修改该列的数据类型。";
     }
 
-    // Cube Desc
-    @Override
-    public String getCUBE_DESC_NOT_FOUND() {
-        return "找不到 cube '%s'";
-    }
-
-    // Streaming
-    @Override
-    public String getINVALID_TABLE_DESC_DEFINITION() {
-        return "非法表定义";
-    }
-
-    @Override
-    public String getINVALID_STREAMING_CONFIG_DEFINITION() {
-        return "非法 StreamingConfig 定义";
-    }
-
-    @Override
-    public String getINVALID_KAFKA_CONFIG_DEFINITION() {
-        return "非法 KafkaConfig 定义";
-    }
-
-    @Override
-    public String getADD_STREAMING_TABLE_FAIL() {
-        return "添加流式表失败";
-    }
-
-    @Override
-    public String getEMPTY_STREAMING_CONFIG_NAME() {
-        return "StreamingConfig 名称不可为空";
-    }
-
-    @Override
-    public String getSTREAMING_CONFIG_ALREADY_EXIST() {
-        return "StreamingConfig '%s' 已存在";
-    }
-
-    @Override
-    public String getSAVE_STREAMING_CONFIG_FAIL() {
-        return "保存 StreamingConfig 失败";
-    }
-
-    @Override
-    public String getKAFKA_CONFIG_ALREADY_EXIST() {
-        return "KafkaConfig '%s' 已存在";
-    }
-
-    @Override
-    public String getCREATE_KAFKA_CONFIG_FAIL() {
-        return "StreamingConfig 已创建, 但 KafkaConfig 创建失败";
-    }
-
-    @Override
-    public String getSAVE_KAFKA_CONFIG_FAIL() {
-        return "KafkaConfig 保存失败";
-    }
-
-    @Override
-    public String getROLLBACK_STREAMING_CONFIG_FAIL() {
-        return "操作失败, 并且回滚已创建的 StreamingConfig 失败";
-    }
-
-    @Override
-    public String getROLLBACK_KAFKA_CONFIG_FAIL() {
-        return "操作失败, 并且回滚已创建的 KafkaConfig 失败";
-    }
-
-    @Override
-    public String getUPDATE_STREAMING_CONFIG_NO_RIGHT() {
-        return "无权限更新此 StreamingConfig";
-    }
-
-    @Override
-    public String getUPDATE_KAFKA_CONFIG_NO_RIGHT() {
-        return "无权限更新此 KafkaConfig";
-    }
-
-    @Override
-    public String getSTREAMING_CONFIG_NOT_FOUND() {
-        return "找不到 StreamingConfig '%s'";
-    }
-
     @Override
     public String getQUERY_NOT_ALLOWED() {
-        return "任务节点不支持查询";
+        return "任务节点不支持查询。请选择查询节点。";
     }
 
     @Override
     public String getNOT_SUPPORTED_SQL() {
         return "不支持的 SQL";
-    }
-
-    @Override
-    public String getTABLE_META_INCONSISTENT() {
-        return "表元数据与JDBC 元数据不一致";
-    }
-
-    @Override
-    public String getCOLUMN_META_INCONSISTENT() {
-        return "列元数据与JDBC 元数据不一致";
     }
 
     @Override
@@ -757,11 +448,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getINVALID_SID() {
-        return "用户名/组名只能包含字母，数字，空格和下划线";
-    }
-
-    @Override
     public String getEMPTY_QUERY_NAME() {
         return "查询名称不能为空";
     }
@@ -774,11 +460,6 @@ public class CnMessage extends Message {
     @Override
     public String getREVOKE_ADMIN_PERMISSION() {
         return "不能取消创建者的管理员权限";
-    }
-
-    @Override
-    public String getACE_ID_REQUIRED() {
-        return "找不到 Ace id";
     }
 
     @Override
@@ -819,12 +500,6 @@ public class CnMessage extends Message {
 
     public String getASYNC_QUERY_PROJECT_NAME_EMPTY() {
         return "项目名称不能为空。请检查后重试。";
-    }
-
-    // Admin
-    @Override
-    public String getGET_ENV_CONFIG_FAIL() {
-        return "无法获取 Kylin env Config";
     }
 
     // User
@@ -885,11 +560,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getUSER_LOGIN_AS_USER_NOT_ADMIN() {
-        return "仅 ADMIN 用户可切换为其他用户登录。";
-    }
-
-    @Override
     public String getNEW_PASSWORD_SAME_AS_OLD() {
         return "新密码与旧密码一致，请输入一个不同的新密码";
     }
@@ -909,41 +579,14 @@ public class CnMessage extends Message {
         return "更改失败，请重试。";
     }
 
-    // Diagnosis
-    @Override
-    public String getDIAG_NOT_FOUND() {
-        return "在 %s 找不到 diag.sh";
-    }
-
-    @Override
-    public String getGENERATE_DIAG_PACKAGE_FAIL() {
-        return "无法生成诊断包";
-    }
-
     @Override
     public String getDIAG_PACKAGE_NOT_AVAILABLE() {
         return "诊断包不可用, 路径: %s";
     }
 
     @Override
-    public String getDIAG_PACKAGE_NOT_FOUND() {
-        return "找不到诊断包, 路径: %s";
-    }
-
-    @Override
     public String getDIAG_FAILED() {
         return "生成诊断包失败。请尝试重新生成。";
-    }
-
-    // ExternalFilter
-    @Override
-    public String getFILTER_ALREADY_EXIST() {
-        return "Filter '%s' 已存在";
-    }
-
-    @Override
-    public String getFILTER_NOT_FOUND() {
-        return "找不到 filter '%s'";
     }
 
     // Basic
@@ -965,18 +608,6 @@ public class CnMessage extends Message {
     @Override
     public String getSQL_NUMBER_EXCEEDS_LIMIT() {
         return "最多可同时导入 %s 条 SQL";
-    }
-
-    @Override
-    public String getSQL_FILE_TYPE_MISMATCH() {
-        return "sql文件的后缀必须是 'txt' 或 'sql'";
-    }
-
-    // Query statistics
-
-    @Override
-    public String getNOT_SET_INFLUXDB() {
-        return "未设置参数 kap.metric.write-destination 为 INFLUX";
     }
 
     //license
@@ -1051,28 +682,6 @@ public class CnMessage extends Message {
     public String getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY() {
         return "当前项目已使用数据量（%s/%s）和节点数（%s/%s）均超过配置上限。系统无法进行构建或数据加载任务。\n"
                 + "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
-    }
-
-    // ICredential
-
-    @Override
-    public String getINVALID_CREDENTIAL() {
-        return "错误凭证,请检查您的凭证";
-    }
-
-    @Override
-    public String getINVALID_URL() {
-        return "错误文件地址，请检查您的文件地址";
-    }
-
-    @Override
-    public String getNoTableFound() {
-        return "找不到表。请检查您的SQL语句";
-    }
-
-    @Override
-    public String getNoJobNode() {
-        return "未发现执行任务的节点。请启动对应节点或配置一个任务节点（ 配置文件${KYLIN_HOME}/conf/kylin.properties，配置项 kylin.server.mode）。";
     }
 
     @Override
@@ -1167,42 +776,37 @@ public class CnMessage extends Message {
     //HA
     @Override
     public String getNO_ACTIVE_LEADERS() {
-        return "系统中暂无活跃的任务节点，请联系您的系统管理员进行检查并修复。";
+        return "系统中暂无活跃的任务节点。请联系系统管理员进行检查并修复。";
     }
 
     @Override
     public String getLEADERS_HANDLE_OVER() {
-        return "系统正在尝试恢复服务，请稍后进行尝试。";
+        return "系统正在尝试恢复服务。请稍后重试。";
     }
 
     @Override
     public String getTABLE_REFRESH_NOTFOUND() {
-        return "未找到缓存表: %s";
+        return "连接数据源异常。请尝试重新刷新。";
     }
 
     @Override
     public String getTABLE_REFRESH_ERROR() {
-        return "刷新缓存表异常";
+        return "连接数据源异常。请尝试重新刷新。";
     }
 
     @Override
     public String getTABLE_REFRESH_PARAM_INVALID() {
-        return "请求中tables字段非法，请检查后重试.";
-    }
-
-    @Override
-    public String getTABLE_REFRESH_PARAM_NONE() {
-        return "请求中未发现tables字段，请检查后重试.";
+        return "请求中的 “tables” 字段无效。请检查后重试。";
     }
 
     @Override
     public String getTABLE_REFRESH_PARAM_MORE() {
-        return "请求中包含非tables的多余字段，请检查后重试.";
+        return "请求中包含非 “tables“ 的多余字段。请检查后重试。";
     }
 
     @Override
     public String getTRANSFER_FAILED() {
-        return "转发失败。";
+        return "请求转发失败。请稍后重试。";
     }
 
     @Override
@@ -1266,11 +870,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getINVALID_REMOVE_SEGMENT() {
-        return "只有头部或尾部的连续的Segment才能被移除！";
-    }
-
-    @Override
     public String getINVALID_MERGE_SEGMENT() {
         return "无法合并暂不可用的Segment";
     }
@@ -1292,7 +891,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_LOAD_HIVE_TABLE_NAME() {
-        return "不能执行该操作，请设置kap.table.load-hive-tablename-cached.enabled=true，然后重试";
+        return "无法执行该操作。请设置 ”kap.table.load-hive-tablename-cached.enabled=true”，然后重试。";
     }
 
     @Override
@@ -1487,17 +1086,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getTABLE_SAMPLE_MAX_ROWS() {
-        return "表级数据抽样取值范围在 10000 ~ 20000000 之间";
+        return "表抽样取值范围应在 10,000 至 20,000,000 行之间。";
     }
 
     @Override
     public String getTABLE_NOT_FOUND() {
-        return "找不到表 '%s'";
+        return "无法找到表 \"%s\" 。请检查后重试。";
     }
 
     @Override
     public String getILLEGAL_JOB_STATE() {
-        return "非法的任务状态:%s 状态必须是 “PENDING“, “RUNNING“, “FINISHED“, “ERROR” 或者 “DISCARDED“.";
+        return "选择的任务状态无效，状态必须是 “PENDING“, “RUNNING“, “FINISHED“, “ERROR” 或 “DISCARDED“。请检查后重试。";
     }
 
     @Override
@@ -1513,7 +1112,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDATABASE_NOT_EXIST() {
-        return "数据库:[%s]不存在";
+        return "无法找到数据库 \"%s\" 。请检查后重试。";
     }
 
     @Override
@@ -1543,7 +1142,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getHIVETABLE_NOT_FOUND() {
-        return "数据源中以下表加载失败：{%s}。请检查数据源。";
+        return "无法加载表 \"%s\"。请确保以上表在数据源中存在。";
     }
 
     @Override
@@ -1622,36 +1221,6 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getAGG_INDEX_LOST_DIMENSION() {
-        return "聚合索引缺少依赖：缺少维度，您需要先通过对应维度的优化建议。";
-    }
-
-    @Override
-    public String getAGG_INDEX_LOST_MEASURE() {
-        return "聚合索引缺少依赖：缺少度量，您需要先通过对应度量的优化建议。";
-    }
-
-    @Override
-    public String getTABLE_INDEX_LOST_CC() {
-        return "明细索引缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
-    }
-
-    @Override
-    public String getMEASURE_LOST_CC() {
-        return "度量缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
-    }
-
-    @Override
-    public String getCC_LOST_CC() {
-        return "可计算列缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
-    }
-
-    @Override
-    public String getDIMENSION_LOST_CC() {
-        return "维度缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
-    }
-
-    @Override
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
         return String.format(Locale.ROOT, "可计算列%s的表达式%s与可计算列%s相同。", newCCName, newCCExpression, existedCCName);
     }
@@ -1678,7 +1247,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_TIME_FORMAT() {
-        return "时间分区列设置失败，您选取的时间分区列不符合时间格式，请重新选择其他时间分区列。";
+        return "无法设置时间分区列，选取的时间分区列不符合时间格式。请重新选择。";
     }
 
     @Override
@@ -1767,7 +1336,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getJOB_NODE_INVALID(String url) {
-        return "该服务请求无法在任务节点执行";
+        return "该请求无法在任务节点执行。请检查后重试。";
     }
 
     @Override
@@ -1781,33 +1350,18 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getLICENSE_ERROR_PRE() {
-        return "该许可证存在以下问题：\n";
-    }
-
-    @Override
-    public String getLICENSE_ERROR_SUFF() {
-        return "\n请上传新的许可证或联系 Kyligence 销售人员。";
-    }
-
-    @Override
-    public String getUNSUPPORTED_RECOMMENDATION_MODE() {
-        return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
-    }
-
-    @Override
     public String getADD_JOB_CHECK_FAIL() {
         return "任务提交失败，相应构建对象下已有任务在运行。";
     }
 
     @Override
     public String getADD_JOB_EXCEPTION() {
-        return "没有可执行的任务生成。";
+        return "当前没有可执行的任务。请稍后重试。";
     }
 
     @Override
     public String getADD_JOB_ABANDON() {
-        return "添加job失败，该节点不是构建节点。";
+        return "无法添加任务，该节点不是构建节点。请检查后重试。";
     }
 
     @Override
@@ -1817,7 +1371,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
-        return "添加任务失败，segment的索引未对齐。";
+        return "无法添加任务，Segment 索引不一致。请检查后重试。";
     }
 
     @Override
@@ -1832,17 +1386,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getADD_JOB_CHECK_SEGMENT_READY_FAIL() {
-        return "添加任务失败，没有ready状态的Segment。";
-    }
-
-    @Override
-    public String getADD_JOB_CHECK_LAYOUT_FAIL() {
-        return "添加任务失败，没有需要构建的layout。";
+        return "无法添加任务，当前没有 READY 状态的 Segment。请稍后重试。";
     }
 
     @Override
     public String getADD_JOB_CHECK_INDEX_FAIL() {
-        return "添加任务失败，该segment的索引数是空.";
+        return "无法添加任务，Segment 索引为空。请稍后重试。";
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
@@ -1851,10 +1400,6 @@ public class CnMessage extends Message {
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_EMPTY() {
         return "添加任务失败，多级分区值为空。";
-    }
-
-    public String getADD_JOB_CHECK_MULTI_PARTITION_NOT_ALIGNED() {
-        return "添加任务失败，多级分区没有对齐。";
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
@@ -1878,7 +1423,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getInvalidJobStatusTransaction() {
-        return "无法 %s 状态为 %s 的任务 %s";
+        return "无法 %s 状态为 %s 的任务 \"%s\"。";
     }
 
     // Punctuations

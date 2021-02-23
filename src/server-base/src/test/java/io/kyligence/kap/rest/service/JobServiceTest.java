@@ -379,7 +379,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Failed to DISCARD a SUCCEED job");
+        thrown.expectMessage("Can’t DISCARD job");
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD",
                 Lists.newArrayList());
     }
@@ -578,7 +578,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void testCheckJobStatus() {
         jobService.checkJobStatus(Lists.newArrayList("RUNNING"));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_STATE(), "UNKNOWN"));
+        thrown.expectMessage(MsgPicker.getMsg().getILLEGAL_JOB_STATE());
         jobService.checkJobStatus("UNKNOWN");
     }
 

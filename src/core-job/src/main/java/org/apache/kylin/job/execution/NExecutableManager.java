@@ -516,7 +516,7 @@ public class NExecutableManager {
         }
         if (!job.getStatus().isNotProgressing()) {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", job.getStatus(), jobId));
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", jobId, job.getStatus()));
         }
 
         if (job instanceof DefaultChainedExecutable) {
@@ -535,7 +535,7 @@ public class NExecutableManager {
         }
         if (jobToRestart.getStatus().isFinalState()) {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobToRestart.getStatus(), jobId));
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobId, jobToRestart.getStatus()));
         }
 
         // to redesign: merge executableDao ops
@@ -640,7 +640,7 @@ public class NExecutableManager {
         }
         if (!job.getStatus().isProgressing()) {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", job.getStatus(), jobId));
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", jobId, job.getStatus()));
         }
 
         updateJobOutput(jobId, ExecutableState.PAUSED);

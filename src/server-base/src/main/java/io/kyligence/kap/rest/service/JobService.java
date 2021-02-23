@@ -308,8 +308,7 @@ public class JobService extends BasicService {
         case ALL:
             return 0;
         default:
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, msg.getILLEGAL_TIME_FILTER(), timeFilter));
+            throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
         }
     }
 
@@ -332,8 +331,7 @@ public class JobService extends BasicService {
         case STOPPED:
             return ExecutableState.PAUSED;
         default:
-            throw new KylinException(INVALID_PARAMETER,
-                    String.format(Locale.ROOT, msg.getILLEGAL_EXECUTABLE_STATE(), status));
+            throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_EXECUTABLE_STATE());
         }
     }
 
@@ -375,7 +373,7 @@ public class JobService extends BasicService {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         if (ExecutableState.SUCCEED == job.getStatus()) {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", job.getStatus(), jobId));
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", jobId, job.getStatus()));
         }
         if (ExecutableState.DISCARDED == job.getStatus()) {
             return;
@@ -647,8 +645,7 @@ public class JobService extends BasicService {
     public void checkJobStatus(String jobStatus) {
         Message msg = MsgPicker.getMsg();
         if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException(ILLEGAL_JOB_STATUS,
-                    String.format(Locale.ROOT, msg.getILLEGAL_JOB_STATE(), jobStatus));
+            throw new KylinException(ILLEGAL_JOB_STATUS, msg.getILLEGAL_JOB_STATE());
         }
     }
 

@@ -1888,7 +1888,7 @@ public class TableService extends BasicService {
             result.setCode(ResponseCode.CODE_SUCCESS);
         } else {
             result.setCode(ResponseCode.CODE_UNDEFINED);
-            result.setMsg(String.format(Locale.ROOT, message.getTABLE_REFRESH_NOTFOUND(), failed));
+            result.setMsg(message.getTABLE_REFRESH_NOTFOUND());
         }
         result.setRefreshed(refreshed);
         result.setFailed(failed);

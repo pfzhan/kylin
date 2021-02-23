@@ -496,7 +496,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testUnloadNotExistTable() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Cannot find table 'DEFAULT.not_exist_table'");
+        thrown.expectMessage("Can’t find table \"DEFAULT.not_exist_table\".");
         tableService.unloadTable("default", "DEFAULT.not_exist_table", false);
     }
 

@@ -678,7 +678,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRTableNotExist() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Cannot find table 'DEFAULT.notexist'");
+        thrown.expectMessage("Can’t find table \"DEFAULT.notexist\". Please check and try again.");
         val requests = getFillRequest();
         List<AclTCRRequest.Table> tables = new ArrayList<>(requests.get(0).getTables());
         AclTCRRequest.Table table = new AclTCRRequest.Table();
@@ -710,7 +710,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRDatabaseNotExist() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Database:[notexist] is not exist");
+        thrown.expectMessage("Can’t find database \"notexist\". Please check and try again.");
         val requests = getFillRequest();
         AclTCRRequest request = new AclTCRRequest();
         request.setDatabaseName("notexist");

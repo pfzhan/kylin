@@ -194,11 +194,11 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isFailed());
-        Assert.assertEquals("Cannot find table 'UNKNOWN_ALIAS'.",
+        Assert.assertEquals("Can’t find table \"UNKNOWN_ALIAS\". Please check and try again.",
                 accelerateInfoMap.get(sqls[0]).getFailedCause().getMessage());
 
         Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isFailed());
-        Assert.assertEquals("Cannot find table 'UNKNOWN_ALIAS'.",
+        Assert.assertEquals("Can’t find table \"UNKNOWN_ALIAS\". Please check and try again.",
                 accelerateInfoMap.get(sqls[1]).getFailedCause().getMessage());
 
         Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isFailed());

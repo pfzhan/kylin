@@ -61,40 +61,8 @@ public class Message {
         return "In this model, computed column name [%s] has been used, please rename your computed column.";
     }
 
-    public String getCUBE_NOT_FOUND() {
-        return "Cannot find cube '%s'.";
-    }
-
     public String getSEG_NOT_FOUND() {
         return "Cannot find segment '%s' in model '%s'.";
-    }
-
-    public String getKAFKA_DEP_NOT_FOUND() {
-        return "Could not find Kafka dependency.";
-    }
-
-    public String getBUILD_DRAFT_CUBE() {
-        return "Could not build draft cube.";
-    }
-
-    public String getBUILD_BROKEN_CUBE() {
-        return "Broken cube '%s' can't be built.";
-    }
-
-    public String getINCONSISTENT_CUBE_DESC_SIGNATURE() {
-        return "Inconsistent cube desc signature for '%s', if it's right after an upgrade, please try 'Edit CubeDesc' to delete the 'signature' field. Or use 'bin/metastore.sh refresh-cube-signature' to batch refresh all cubes' signatures, then reload metadata to take effect.";
-    }
-
-    public String getDELETE_NOT_READY_SEG() {
-        return "Cannot delete segment '%s' as its status is not READY. Discard the on-going job for it.";
-    }
-
-    public String getINVALID_BUILD_TYPE() {
-        return "Invalid build type: '%s'.";
-    }
-
-    public String getNO_ACL_ENTRY() {
-        return "There should have been an Acl entry for ObjectIdentity '%s'.";
     }
 
     public String getACL_INFO_NOT_FOUND() {
@@ -109,84 +77,8 @@ public class Message {
         return "Parent acl required.";
     }
 
-    public String getDISABLE_NOT_READY_CUBE() {
-        return "Only ready cube can be disabled, status of '%s' is %s.";
-    }
-
-    public String getPURGE_NOT_DISABLED_CUBE() {
-        return "Only disabled cube can be purged, status of '%s' is %s.";
-    }
-
-    public String getCLONE_BROKEN_CUBE() {
-        return "Broken cube '%s' can't be cloned.";
-    }
-
-    public String getINVALID_CUBE_NAME() {
-        return "Invalid Cube name '%s', only letters, numbers and underlines are supported.";
-    }
-
-    public String getCUBE_ALREADY_EXIST() {
-        return "The cube named '%s' already exists.";
-    }
-
-    public String getCUBE_DESC_ALREADY_EXIST() {
-        return "The cube desc named '%s' already exists.";
-    }
-
-    public String getBROKEN_CUBE_DESC() {
-        return "Broken cube desc named '%s'.";
-    }
-
-    public String getENABLE_NOT_DISABLED_CUBE() {
-        return "Only disabled cube can be enabled, status of '%s' is %s.";
-    }
-
-    public String getNO_READY_SEGMENT() {
-        return "Cube '%s' doesn't contain any READY segment.";
-    }
-
-    public String getDELETE_SEGMENT_CAUSE_GAPS() {
-        return "Cube '%s' has gaps caused by deleting segment '%s'.";
-    }
-
-    public String getENABLE_WITH_RUNNING_JOB() {
-        return "Enable is not allowed with a running job.";
-    }
-
-    public String getDISCARD_JOB_FIRST() {
-        return "The cube '%s' has running or failed job, please discard it and try again.";
-    }
-
     public String getIDENTITY_EXIST_CHILDREN() {
         return "Children exists for '%s'.";
-    }
-
-    public String getINVALID_CUBE_DEFINITION() {
-        return "The cube definition is invalid.";
-    }
-
-    public String getEMPTY_CUBE_NAME() {
-        return "Cube name should not be empty.";
-    }
-
-    public String getUSE_DRAFT_MODEL() {
-        return "Cannot use draft model '%s'.";
-    }
-
-    public String getINCONSISTENT_CUBE_DESC() {
-        return "CubeDesc '%s' is inconsistent with existing. Try purge that cube first or avoid updating key cube desc fields.";
-    }
-
-    public String getUPDATE_CUBE_NO_RIGHT() {
-        return "You don't have right to update this cube.";
-    }
-
-    public String getNOT_STREAMING_CUBE() {
-        return "Cube '%s' is not a Streaming Cube.";
-    }
-
-    public String getCUBE_RENAME() {
-        return "Cube renaming is not allowed.";
     }
 
     // Model
@@ -214,14 +106,6 @@ public class Message {
         return "The measure name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). %s characters at maximum.";
     }
 
-    public String getMODEL_ID_NOT_FOUND() {
-        return "Model id required";
-    }
-
-    public String getINDEX_ALREADY_DELETED() {
-        return "The index has been deleted.";
-    }
-
     public String getDUPLICATE_DIMENSION_NAME() {
         return "Dimension name '%s' already exists.";
     }
@@ -240,14 +124,6 @@ public class Message {
 
     public String getDUPLICATE_MODEL_NAME() {
         return "Model name '%s' is duplicated, could not be created.";
-    }
-
-    public String getDROP_REFERENCED_MODEL() {
-        return "Model is referenced by IndexPlan '%s' , could not dropped";
-    }
-
-    public String getUPDATE_MODEL_KEY_FIELD() {
-        return "Model cannot save because there are dimensions, measures or join relations modified to be inconsistent with existing cube.";
     }
 
     public String getBROKEN_MODEL_OPERATION_DENIED() {
@@ -271,18 +147,6 @@ public class Message {
         return "Failed to add table-level permissions.  User  (group)  [%s] has no project [%s] permissions.  Please grant user (group) project-level permissions first.";
     }
 
-    public String getEMPTY_NEW_MODEL_NAME() {
-        return "New model name should not be empty.";
-    }
-
-    public String getUPDATE_MODEL_NO_RIGHT() {
-        return "You don't have right to update this model.";
-    }
-
-    public String getMODEL_RENAME() {
-        return "Model renaming is not allowed.";
-    }
-
     public String getCheckCCType() {
         return "The actual data type of computed column {0} is {1}, but defined as {2}. Please modify and try again.";
     }
@@ -293,10 +157,6 @@ public class Message {
 
     public String getMODEL_METADATA_PACKAGE_INVALID() {
         return "Parsing the file failed. Please check that the model package is complete.";
-    }
-
-    public String getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED() {
-        return "Model '%s' import failed: Computed column '%s' of this model has the same expression as model '%s' computed column '%s'.";
     }
 
     public String getEXPORT_BROKEN_MODEL() {
@@ -327,10 +187,6 @@ public class Message {
         return "You should export one model at least.";
     }
 
-    public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
-        return "Model '%s' import failed: Computed column '%s' of this model has the same name as computed column in model '%s'.";
-    }
-
     public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED() {
         return "The expression of computed column has already been used in model '%s' as '%s'. Please modify the name to keep consistent, or use a different expression.";
     }
@@ -345,14 +201,6 @@ public class Message {
 
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL() {
         return "This name has already been used by other computed columns in this model.";
-    }
-
-    public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
-        return "Model '%s' import failed: the fact table in the model already exists as a dimension table in other models.";
-    }
-
-    public String getMODEL_METADATA_CHECK_FAILED() {
-        return "The model metadata contained in the compressed package conflicts with the existing model metadata of the system. Please check the detailed conflict information and import again after correction.";
     }
 
     public String getMODEL_CHANGE_PERMISSION() {
@@ -378,25 +226,21 @@ public class Message {
 
     // Job
     public String getILLEGAL_TIME_FILTER() {
-        return "Illegal timeFilter: %s.";
+        return "The selected time filter is invalid. Please select again.";
     }
 
     public String getILLEGAL_EXECUTABLE_STATE() {
-        return "Illegal executable status: %s.";
+        return "The job status is invalid. Please select again.";
     }
 
     public String getILLEGAL_JOB_STATE() {
-        return "Illegal job status: %s. The value should be “PENDING“, “RUNNING“, “FINISHED“, “ERROR” or “DISCARDED“.";
+        return "The job status is invalid. The value must be “PENDING“, “RUNNING“, “FINISHED“, “ERROR” or “DISCARDED“. Please check and try again.";
     }
 
     public String getILLEGAL_JOB_ACTION() {
         return "Invalid value in parameter “action“ or “statuses“ or “job_ids“,  " //
                 + "The value of “statuses“ or the status of jobs specified by “job_ids“ contains “%s“, "
                 + "this status of jobs can only perform the following actions: “%s“ .";
-    }
-
-    public String getILLEGAL_JOB_TYPE() {
-        return "Illegal job type, id: %s.";
     }
 
     public String getILLEGAL_STATE_TRANSFER() {
@@ -427,10 +271,6 @@ public class Message {
 
     public String getEMPTY_SID() {
         return "User/Group name should not be empty.";
-    }
-
-    public String getINVALID_SID() {
-        return "User/Group name should only contain alphanumerics, spaces and underscores.";
     }
 
     public String getEMPTY_QUERY_NAME() {
@@ -551,10 +391,6 @@ public class Message {
         return "User %s is locked permanently. Please contact to your administrator to reset.";
     }
 
-    public String getUSER_LOGIN_AS_USER_NOT_ADMIN() {
-        return "Only ADMIN user is allowed to login in as another user.";
-    }
-
     public String getOWNER_CHANGE_ERROR() {
         return "The change failed. Please try again.";
     }
@@ -572,10 +408,6 @@ public class Message {
         return "The project name \"%s\" already exists. Please rename it.";
     }
 
-    public String sourceTYPE_NOT_ALLOWED() {
-        return "this source type not allowed";
-    }
-
     public String getPROJECT_NOT_FOUND() {
         return "Can't find project \"%s\".";
     }
@@ -586,18 +418,6 @@ public class Message {
 
     public String getPROJECT_ONGOING_OPTIMIZATION() {
         return "System is optimizing historical queries at the moment. Please try again later. ";
-    }
-
-    public String getDELETE_PROJECT_NOT_EMPTY() {
-        return "Cannot modify non-empty project";
-    }
-
-    public String getPROJECT_RENAME() {
-        return "Project renaming is not allowed.";
-    }
-
-    public String getPROJECT_FAILED() {
-        return "Cannot find project.";
     }
 
     public String getPROJECT_CHANGE_PERMISSION() {
@@ -614,35 +434,23 @@ public class Message {
 
     // Table
     public String getTABLE_NOT_FOUND() {
-        return "Cannot find table '%s'.";
-    }
-
-    public String getTABLE_DESC_NOT_FOUND() {
-        return "Cannot find table descriptor '%s'.";
-    }
-
-    public String getTABLE_IN_USE_BY_MODEL() {
-        return "Table is already in use by models '%s'.";
+        return "Can’t find table \"%s\". Please check and try again.";
     }
 
     public String getBEYOND_MIX_SAMPLING_ROWSHINT() {
-        return "Sampling range should not be less than the max limit(%s rows)!";
+        return "The number of sampling rows should be greater than %d. Please modify it.";
     }
 
     public String getBEYOND_MAX_SAMPLING_ROWS_HINT() {
-        return "Sampling range should not exceed the max limit(%s rows)!";
+        return "The number of sampling rows should be smaller than %d. Please modify it.";
     }
 
     public String getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME() {
-        return "Illegal table name '%s', please input a qualified table name as database.table!";
-    }
-
-    public String getFAILED_FOR_IN_SAMPLING() {
-        return "The source table %s has a related sample job running. Please trigger another sample job later.";
+        return "The name of table for sampling is invalid. Please enter a table name like “database.table”. ";
     }
 
     public String getFAILED_FOR_NO_SAMPLING_TABLE() {
-        return "Please input at least one table(database.table) for sampling!";
+        return "Can’t perform table sampling. Please select at least one table.";
     }
 
     public String getRELOAD_TABLE_CC_RETRY() {
@@ -653,74 +461,8 @@ public class Message {
         return "The data type of column %2$s from the source table %1$s has changed. Please remove the column from model %3$s, or modify the data type.";
     }
 
-    // Cube Desc
-    public String getCUBE_DESC_NOT_FOUND() {
-        return "Cannot find cube desc '%s'.";
-    }
-
-    // Streaming
-    public String getINVALID_TABLE_DESC_DEFINITION() {
-        return "The TableDesc definition is invalid.";
-    }
-
-    public String getINVALID_STREAMING_CONFIG_DEFINITION() {
-        return "The StreamingConfig definition is invalid.";
-    }
-
-    public String getINVALID_KAFKA_CONFIG_DEFINITION() {
-        return "The KafkaConfig definition is invalid.";
-    }
-
-    public String getADD_STREAMING_TABLE_FAIL() {
-        return "Failed to add streaming table.";
-    }
-
-    public String getEMPTY_STREAMING_CONFIG_NAME() {
-        return "StreamingConfig name should not be empty.";
-    }
-
-    public String getSTREAMING_CONFIG_ALREADY_EXIST() {
-        return "The streamingConfig named '%s' already exists.";
-    }
-
-    public String getSAVE_STREAMING_CONFIG_FAIL() {
-        return "Failed to save StreamingConfig.";
-    }
-
-    public String getKAFKA_CONFIG_ALREADY_EXIST() {
-        return "The kafkaConfig named '%s' already exists.";
-    }
-
-    public String getCREATE_KAFKA_CONFIG_FAIL() {
-        return "StreamingConfig is created, but failed to create KafkaConfig.";
-    }
-
-    public String getSAVE_KAFKA_CONFIG_FAIL() {
-        return "Failed to save KafkaConfig.";
-    }
-
-    public String getROLLBACK_STREAMING_CONFIG_FAIL() {
-        return "Action failed and failed to rollback the created streaming config.";
-    }
-
-    public String getROLLBACK_KAFKA_CONFIG_FAIL() {
-        return "Action failed and failed to rollback the created kafka config.";
-    }
-
-    public String getUPDATE_STREAMING_CONFIG_NO_RIGHT() {
-        return "You don't have right to update this StreamingConfig.";
-    }
-
-    public String getUPDATE_KAFKA_CONFIG_NO_RIGHT() {
-        return "You don't have right to update this KafkaConfig.";
-    }
-
-    public String getSTREAMING_CONFIG_NOT_FOUND() {
-        return "StreamingConfig with name '%s' not found.";
-    }
-
     public String getQUERY_NOT_ALLOWED() {
-        return "Job node is not available for queries.";
+        return "Job node is unavailable for queries. Please select a query node.";
     }
 
     public String getNOT_SUPPORTED_SQL() {
@@ -729,14 +471,6 @@ public class Message {
 
     public String getQUERY_TOO_MANY_RUNNING() {
         return "Too many concurrent query requests.";
-    }
-
-    public String getTABLE_META_INCONSISTENT() {
-        return "Table metadata inconsistent with JDBC meta.";
-    }
-
-    public String getCOLUMN_META_INCONSISTENT() {
-        return "Column metadata inconsistent with JDBC meta.";
     }
 
     public String getEXPORT_RESULT_NOT_ALLOWED() {
@@ -762,10 +496,6 @@ public class Message {
 
     public String getREVOKE_ADMIN_PERMISSION() {
         return "Can't revoke admin permission of owner.";
-    }
-
-    public String getACE_ID_REQUIRED() {
-        return "Ace id required.";
     }
 
     public String getEMPTY_PERMISSION() {
@@ -809,11 +539,6 @@ public class Message {
         return "The project name can’t be empty. Please check and try again.";
     }
 
-    // Admin
-    public String getGET_ENV_CONFIG_FAIL() {
-        return "Failed to get Kylin env Config.";
-    }
-
     // User
     public String getAUTH_INFO_NOT_FOUND() {
         return "Cannot find authentication information.";
@@ -823,34 +548,12 @@ public class Message {
         return "User '%s' not found.";
     }
 
-    // Diagnosis
-    public String getDIAG_NOT_FOUND() {
-        return "diag.sh not found at %s.";
-    }
-
-    public String getGENERATE_DIAG_PACKAGE_FAIL() {
-        return "Failed to generate diagnostic package.";
-    }
-
     public String getDIAG_PACKAGE_NOT_AVAILABLE() {
         return "Diagnostic package is not available in directory: %s.";
     }
 
-    public String getDIAG_PACKAGE_NOT_FOUND() {
-        return "Diagnostic package not found in directory: %s.";
-    }
-
     public String getDIAG_FAILED() {
         return "Can’t generate diagnostic package. Please try regenerating it.";
-    }
-
-    // ExternalFilter
-    public String getFILTER_ALREADY_EXIST() {
-        return "The filter named '%s' already exists.";
-    }
-
-    public String getFILTER_NOT_FOUND() {
-        return "The filter named '%s' does not exist.";
     }
 
     // Basic
@@ -870,22 +573,11 @@ public class Message {
         return "Up to %s SQLs could be imported at a time";
     }
 
-    public String getSQL_FILE_TYPE_MISMATCH() {
-        return "The suffix of sql files must be 'txt' or 'sql'.";
-    }
-
     public String getSQL_LIST_IS_EMPTY() {
         return "Please enter the array parameter \"sqls\".";
     }
 
-    // Query statistics
-
-    public String getNOT_SET_INFLUXDB() {
-        return "Not set kap.metric.write-destination to 'INFLUX'";
-    }
-
     // License
-
     public String getLICENSE_OVERDUE_TRIAL() {
         return "The license has expired and the validity period is [%s - %s]. Please upload a new license or contact Kyligence.";
     }
@@ -953,22 +645,6 @@ public class Message {
                 + "Please contact Kyligence, or try stopping some nodes and deleting some segments and stopping some nodes.";
     }
 
-    public String getINVALID_CREDENTIAL() {
-        return "Invalid credential.Please check your credential";
-    }
-
-    public String getINVALID_URL() {
-        return "Invalid object url.Please check your object url";
-    }
-
-    public String getNoTableFound() {
-        return "Can not find any table.Please check your sql";
-    }
-
-    public String getNoJobNode() {
-        return "No job node(or all node) detected. Please start the node or configure a job node( or all node) via the property \"kylin.server.mode\" in the file ${KYLIN_HOME}/conf/kylin.properties.";
-    }
-
     public String getTABLENOTFOUND() {
         return "Failed to save model [%s]. Please ensure the columns used in model [%s] must be existed in source table [%s]";
     }
@@ -1001,14 +677,6 @@ public class Message {
                 + "The expression of nested computed column is [%s].";
     }
 
-    public String getDOWNLOAD_FAILED() {
-        return "Failed to download file.";
-    }
-
-    public String getDIAG_PACKAGE_TIMEOUT() {
-        return "Package generating timeout, please contact Kyligence Support for help.";
-    }
-
     public String getCHANGE_GLOBALADMIN() {
         return "You cannot add,modify or remove the system administrator’s rights";
     }
@@ -1036,7 +704,7 @@ public class Message {
 
     //HA
     public String getNO_ACTIVE_LEADERS() {
-        return "There is no active All node, please contact to your administrator to check and fix.";
+        return "There is no active leader node. Please contact system admin to check and fix.";
     }
 
     //Kerberos
@@ -1057,32 +725,27 @@ public class Message {
     }
 
     public String getLEADERS_HANDLE_OVER() {
-        return "System is trying to recover, please try again later.";
+        return "System is trying to recover service. Please try again later.";
     }
 
     public String getTABLE_REFRESH_ERROR() {
-        return "Refresh catalog cache error";
+        return "Can’t connect to data source due to unexpected error. Please refresh and try again.";
     }
 
     public String getTABLE_REFRESH_NOTFOUND() {
-        return "Table not found in cache: %s";
+        return "Can’t connect to data source due to unexpected error. Please refresh and try again.";
     }
 
     public String getTABLE_REFRESH_PARAM_INVALID() {
-        return "Illegal parameters in the tables field, or the format of the parameters is incorrect";
-    }
-
-    public String getTABLE_REFRESH_PARAM_NONE() {
-        return "The tables field was not included in the request. Please check the json and try again.";
+        return "The “table“ parameter is invalid. Please check and try again.";
     }
 
     public String getTABLE_REFRESH_PARAM_MORE() {
-        return "The requested json contains illegal fields other than the tables field. "
-                + "Please check the json and try again.";
+        return "There exists invalid filed(s) other than the expected “tables“. Please check and try again.";
     }
 
     public String getTRANSFER_FAILED() {
-        return "Transfer failed.";
+        return "Can’t transfer the request at the moment. Please try again later.";
     }
 
     public String getUSER_EXISTS() {
@@ -1129,10 +792,6 @@ public class Message {
         return "Table oriented model [%s] can not build indices manually!";
     }
 
-    public String getINVALID_REMOVE_SEGMENT() {
-        return "Only consecutive segments in head or tail can be removed!";
-    }
-
     public String getINVALID_MERGE_SEGMENT() {
         return "Cannot merge segments which are not ready";
     }
@@ -1150,7 +809,7 @@ public class Message {
     }
 
     public String getINVALID_LOAD_HIVE_TABLE_NAME() {
-        return "This operator is not allowed , Please set kap.table.load-hive-tablename-cached.enabled=true and try again";
+        return "Can’t operate now. Please set “kap.table.load-hive-tablename-cached.enabled=true”, and try again.";
     }
 
     public String getINVALID_REMOVE_USER_FROM_ALL_USER() {
@@ -1283,7 +942,7 @@ public class Message {
     }
 
     public String getTABLE_SAMPLE_MAX_ROWS() {
-        return "Table-level data sampling ranging from 10000 to 20000000";
+        return "The sampling range should between 10,000 and 20,000,000 rows.";
     }
 
     public String getFILE_NOT_EXIST() {
@@ -1291,7 +950,7 @@ public class Message {
     }
 
     public String getDATABASE_NOT_EXIST() {
-        return "Database:[%s] is not exist.";
+        return "Can’t find database \"%s\". Please check and try again.";
     }
 
     public String getBROKEN_MODEL_CANNOT_ONOFFLINE() {
@@ -1317,7 +976,7 @@ public class Message {
     }
 
     public String getHIVETABLE_NOT_FOUND() {
-        return "The table cannot be loaded in the data source: {%s}. Please check the data source.";
+        return "Can’t load table \"%s\". Please ensure that the table(s) could be found in the data source.";
     }
 
     public String getDUPLICATE_LAYOUT() {
@@ -1380,30 +1039,6 @@ public class Message {
         return "Failed to get query result. The row number of query result exceeds the maximum: {%s}. Please add more filters or contact the administrator to adjust the maximum row number of query result.";
     }
 
-    public String getAGG_INDEX_LOST_DIMENSION() {
-        return "Aggregate index lacks dependency: missing dimensions, you need to pass the optimization suggestions of the corresponding dimensions first.";
-    }
-
-    public String getAGG_INDEX_LOST_MEASURE() {
-        return "Aggregate index lacks dependency: lack of metric, you need to pass the optimization suggestion of the corresponding measures first.";
-    }
-
-    public String getTABLE_INDEX_LOST_CC() {
-        return "The table index lacks dependencies: missing computed columns, you need to pass the optimization suggestions corresponding to computed columns first.";
-    }
-
-    public String getMEASURE_LOST_CC() {
-        return "The measure lacks dependency: missing computed columns, you need to first pass the optimization suggestions corresponding to computed columns.";
-    }
-
-    public String getCC_LOST_CC() {
-        return "Computed columns lack dependency: missing computed columns, you need to pass the optimization suggestion corresponding to computed columns first.";
-    }
-
-    public String getDIMENSION_LOST_CC() {
-        return "Dimension lacks dependency: missing computed columns, you need to pass the optimization suggestion corresponding to computed columns first.";
-    }
-
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
         return String.format(Locale.ROOT,
                 "The expression %s of the computed column %s is the same as the computed column %s.", newCCExpression,
@@ -1427,11 +1062,11 @@ public class Message {
     }
 
     public String getJOB_NODE_INVALID(String url) {
-        return "The request can’t be executed on job node.";
+        return "Can’t execute this request on job node. Please check and try again.";
     }
 
     public String getINVALID_TIME_FORMAT() {
-        return "Fail to set the time partition column. The time partition column selected does not conform to the time format. Please select anothor time partition column again.";
+        return "Can’t set the time partition column. The values of the selected column is not time formatted. Please select again.";
     }
 
     public String getSEGMENT_CONTAINS_GAPS() {
@@ -1574,28 +1209,16 @@ public class Message {
         return "Column [%s] is duplicated in API requests.";
     }
 
-    public String getLICENSE_ERROR_PRE() {
-        return "The license couldn’t be updated:\n";
-    }
-
-    public String getLICENSE_ERROR_SUFF() {
-        return "\nPlease upload a new license, or contact Kyligence.";
-    }
-
-    public String getUNSUPPORTED_RECOMMENDATION_MODE() {
-        return "Model recommendation is not supported in current project, please enable recommendation mode and try again.";
-    }
-
     public String getADD_JOB_CHECK_FAIL() {
         return "The job failed to be submitted. There already exists building job running under the corresponding subject.";
     }
 
     public String getADD_JOB_EXCEPTION() {
-        return "No executable job is generated.";
+        return "Can’t find executable jobs at the moment. Please try again later.";
     }
 
     public String getADD_JOB_ABANDON() {
-        return "Create Job failed due to only job node is allowed.";
+        return "Can’t submit the job to this node, as it’s not a job node. Please check and try again.";
     }
 
     public String getSTORAGE_QUOTA_LIMIT() {
@@ -1604,19 +1227,15 @@ public class Message {
     }
 
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
-        return "Add Job failed due to segment indexes are not aligned.";
+        return "Can’t submit the job, as the indexes are not identical in the selected segments. Please check and try again.";
     }
 
     public String getADD_JOB_CHECK_SEGMENT_READY_FAIL() {
-        return "Add Job failed due to no segment is ready.";
-    }
-
-    public String getADD_JOB_CHECK_LAYOUT_FAIL() {
-        return "Add Job failed due to no layout is to be built.";
+        return "Can’t submit the job, as there are no segments in READY status. Please try again later.";
     }
 
     public String getADD_JOB_CHECK_INDEX_FAIL() {
-        return "Failed to add Job due to layout is empty in this segment.";
+        return "Can’t submit the job, as no index is included in the segment. Please check and try again.";
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
@@ -1625,10 +1244,6 @@ public class Message {
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_EMPTY() {
         return "Add Job failed due to multi partition value is empty.";
-    }
-
-    public String getADD_JOB_CHECK_MULTI_PARTITION_NOT_ALIGNED() {
-        return "Add Job failed due to multi partition is not aligned.";
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
@@ -1649,7 +1264,7 @@ public class Message {
     }
 
     public String getInvalidJobStatusTransaction() {
-        return "Failed to %s a %s job %s.";
+        return "Can’t %s job \"%s\", as it is in %s status.";
     }
 
     // Punctuations

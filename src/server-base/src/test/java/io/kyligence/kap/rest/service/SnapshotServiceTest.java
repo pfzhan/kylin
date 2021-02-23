@@ -154,7 +154,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         enableSnapshotManualManagement();
         Set<String> tables = Sets.newHashSet("non-exist");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Cannot find table 'non-exist'.");
+        thrown.expectMessage("Can’t find table \"non-exist\". Please check and try again.");
         snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), false, 3);
     }
 
@@ -234,7 +234,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         // build snapshots of non-exist database
         databases = Sets.newHashSet("non-exist");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Database:[NON-EXIST] is not exist.");
+        thrown.expectMessage("Can’t find database \"NON-EXIST\". Please check and try again.");
         snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3);
     }
 

@@ -708,7 +708,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(200);
 
-        String errorMsg = "Sampling range should not be less than the max limit(10000 rows)!";
+        String errorMsg = "The number of sampling rows should be greater than 10000. Please modify it.";
         initMockito(loadTableResponse, tableLoadRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -729,7 +729,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(30_000_000);
 
-        String errorMsg = "Sampling range should not exceed the max limit(20000000 rows)!";
+        String errorMsg = "The number of sampling rows should be smaller than 20000000. Please modify it.";
         initMockito(loadTableResponse, tableLoadRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -748,7 +748,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setRows(20000);
 
-        String errorMsg = "Please input at least one table(database.table) for sampling!";
+        String errorMsg = "Can’t perform table sampling. Please select at least one table.";
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
                         ExecutablePO.DEFAULT_PRIORITY);
@@ -769,7 +769,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setRows(20000);
         request.setQualifiedTableName("test_kylin_fact");
 
-        String errorMsg = "Illegal table name 'test_kylin_fact', please input a qualified table name as database.table!";
+        String errorMsg = "The name of table for sampling is invalid. Please enter a table name like “database.table”.";
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
                         ExecutablePO.DEFAULT_PRIORITY);
@@ -841,7 +841,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     public void testRefreshSingleCatalogCacheError() throws Exception {
         HashMap request = new HashMap();
         request.put("tables", "DEFAULT.TEST_KYLIN_FACT");
-        String errorMsg = "Illegal parameters in the tables field, or the format of the parameters is incorrect";
+        String errorMsg = "The “table“ parameter is invalid. Please check and try again.";
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
