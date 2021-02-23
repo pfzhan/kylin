@@ -1598,6 +1598,11 @@ public class Message {
         return "Create Job failed due to only job node is allowed.";
     }
 
+    public String getSTORAGE_QUOTA_LIMIT() {
+        return "No storage quota available. The system failed to submit building job, while the query engine will still be available. "
+                + "Please clean up low-efficient storage in time, increase the low-efficient storage threshold, or notify the administrator to increase the storage quota for this project.";
+    }
+
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
         return "Add Job failed due to segment indexes are not aligned.";
     }

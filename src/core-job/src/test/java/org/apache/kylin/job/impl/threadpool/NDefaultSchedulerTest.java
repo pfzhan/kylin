@@ -1903,4 +1903,36 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         getConditionFactory().untilAsserted(() -> Assert.assertFalse(instance.hasStarted()));
     }
 
+    @Test
+    public void testStorageQuotaLimitReached() {
+        // case READY
+        {
+            scheduler.getContext().setReachQuotaLimit(true);
+            overwriteSystemProp("kylin.storage.quota-in-giga-bytes", "0");
+            DefaultChainedExecutable job = new DefaultChainedExecutable();
+            job.setProject(project);
+            AbstractExecutable task1 = new SucceedTestExecutable();
+            task1.setProject(project);
+            job.addTask(task1);
+            executableManager.addJob(job);
+            waitForJobFinish(job.getId());
+            Assert.assertEquals(ExecutableState.PAUSED, executableManager.getJob(job.getId()).getStatus());
+        }
+
+        // case RUNNING
+        {
+            scheduler.getContext().setReachQuotaLimit(true);
+            overwriteSystemProp("kylin.storage.quota-in-giga-bytes", Integer.toString(Integer.MAX_VALUE));
+            DefaultChainedExecutable job = new DefaultChainedExecutable();
+            job.setProject(project);
+            AbstractExecutable task1 = new LongRunningTestExecutable();
+            task1.setProject(project);
+            job.addTask(task1);
+            executableManager.addJob(job);
+            waitForJobByStatus(job.getId(), 60000, ExecutableState.RUNNING, executableManager);
+            overwriteSystemProp("kylin.storage.quota-in-giga-bytes", "0");
+            waitForJobFinish(job.getId());
+            Assert.assertEquals(ExecutableState.PAUSED, executableManager.getJob(job.getId()).getStatus());
+        }
+    }
 }

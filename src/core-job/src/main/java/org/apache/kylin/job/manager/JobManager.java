@@ -26,6 +26,7 @@ package org.apache.kylin.job.manager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.ServerErrorCode.STORAGE_QUOTA_LIMIT;
 
 import java.util.stream.Collectors;
 
@@ -41,6 +42,7 @@ import org.apache.kylin.job.handler.AddIndexHandler;
 import org.apache.kylin.job.handler.AddSegmentHandler;
 import org.apache.kylin.job.handler.MergeSegmentHandler;
 import org.apache.kylin.job.handler.RefreshSegmentHandler;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.model.JobParam;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -124,6 +126,7 @@ public class JobManager {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_ABANDON());
         }
         checkNotNull(project);
+        checkStorageQuota(project);
         jobParam.setProject(project);
         ExecutableUtil.computeParams(jobParam);
         AbstractJobHandler handler;
@@ -155,4 +158,11 @@ public class JobManager {
         this.project = project;
     }
 
+    public static void checkStorageQuota(String project) {
+        val scheduler = NDefaultScheduler.getInstance(project);
+        if (scheduler.hasStarted() && scheduler.getContext().isReachQuotaLimit()) {
+            log.error("Add job failed due to no available storage quota in project {}", project);
+            throw new KylinException(STORAGE_QUOTA_LIMIT, MsgPicker.getMsg().getSTORAGE_QUOTA_LIMIT());
+        }
+    }
 }

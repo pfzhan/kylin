@@ -235,6 +235,7 @@ public class CliCommandExecutor {
     @Setter
     @Getter
     @AllArgsConstructor
+    @ToString
     public static class JobKilled {
 
         String jobId;

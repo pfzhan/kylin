@@ -160,6 +160,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     ILLEGAL_JOB_STATE_TRANSFER("KE-10013005"), //
     CONCURRENT_SUBMIT_JOB_LIMIT("KE-10013006"), //
     ILLEGAL_JOB_ACTION("KE-10013007"), //
+    STORAGE_QUOTA_LIMIT("KE-10013008"), //
 
     // 10014XXX sql expression
     INVALID_FILTER_CONDITION("KE-10014001"), //

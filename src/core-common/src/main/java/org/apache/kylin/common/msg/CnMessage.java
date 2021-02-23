@@ -1811,6 +1811,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSTORAGE_QUOTA_LIMIT() {
+        return "已无可用的存储配额。系统提交构建任务失败，查询引擎依然正常服务。请及时清理低效存储，提高低效存储阈值，或者通知管理员提高本项目的存储配额。";
+    }
+
+    @Override
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
         return "添加任务失败，segment的索引未对齐。";
     }

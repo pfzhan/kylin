@@ -57,6 +57,7 @@ import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
@@ -157,6 +158,7 @@ public class SnapshotService extends BasicService {
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             checkRunningSnapshotTask(project, needBuildSnapshotTables);
+            JobManager.checkStorageQuota(project);
             getSourceUsageManager().licenseCheckWrap(project, () -> {
                 for (TableDesc tableDesc : tables) {
                     NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);

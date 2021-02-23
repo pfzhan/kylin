@@ -31,6 +31,7 @@ import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
+import com.google.common.base.Strings;
 import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,8 +55,8 @@ public class ProcessUtils {
             Process p = Runtime.getRuntime().exec("ps -e");
             try (BufferedReader input = new BufferedReader(
                     new InputStreamReader(p.getInputStream(), Charset.defaultCharset()))) {
-                while ((line = input.readLine()) != null) {
-                    if (Objects.equals(line.split("\\s+")[0], pid + "")) {
+                while (!Strings.isNullOrEmpty(line = input.readLine())) {
+                    if (Objects.equals(line.trim().split("\\s+")[0], pid + "")) {
                         return true;
                     }
                 }

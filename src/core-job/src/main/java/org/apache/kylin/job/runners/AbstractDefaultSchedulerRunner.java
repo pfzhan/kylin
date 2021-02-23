@@ -24,12 +24,16 @@
 package org.apache.kylin.job.runners;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDefaultSchedulerRunner implements Runnable {
-
+    private static final Logger logger = LoggerFactory.getLogger(AbstractDefaultSchedulerRunner.class);
     protected final NDefaultScheduler nDefaultScheduler;
 
     protected final ExecutableContext context;
@@ -49,6 +53,26 @@ public abstract class AbstractDefaultSchedulerRunner implements Runnable {
             return true;
         }
         return false;
+    }
+
+    // stop job if Storage Quota Limit reached
+    protected void stopJobIfSQLReached(String jobId) {
+        if (context.isReachQuotaLimit()) {
+            try {
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    if (context.isReachQuotaLimit()) {
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(jobId);
+                        logger.info("Job {} paused due to no available storage quota.", jobId);
+                        logger.info("Please clean up low-efficient storage in time, "
+                                + "increase the low-efficient storage threshold, "
+                                + "or notify the administrator to increase the storage quota for this project.");
+                    }
+                    return null;
+                }, context.getEpochId(), project);
+            }catch (Exception e) {
+                logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} failed to pause", project, jobId, e);
+            }
+        }
     }
 
     @Override

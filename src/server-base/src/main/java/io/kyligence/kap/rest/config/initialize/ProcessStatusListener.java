@@ -101,6 +101,7 @@ public class ProcessStatusListener {
             return;
         }
         int pid = maybePid.get();
+        log.debug("Try to kill process {}", pid);
         if (ProcessUtils.isAlive(pid)) {
             try {
                 log.info("Start to destroy process {} of job {}", pid, jobId);

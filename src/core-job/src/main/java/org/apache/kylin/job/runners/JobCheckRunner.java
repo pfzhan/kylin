@@ -86,6 +86,7 @@ public class JobCheckRunner extends AbstractDefaultSchedulerRunner {
         for (final String id : executableManager.getJobs()) {
             if (runningJobs.containsKey(id)) {
                 discardTimeoutJob(id, runningJobInfos.get(id));
+                stopJobIfSQLReached(id);
             }
         }
 

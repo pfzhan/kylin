@@ -31,14 +31,15 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
-import com.google.common.collect.Lists;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -68,6 +69,7 @@ public class TableSamplingService extends BasicService {
                 execMgr.discardJob(existingJobs.get(table).getId());
             }
 
+            JobManager.checkStorageQuota(project);
             val tableDesc = tableMgr.getTableDesc(table);
             val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows, priority);
             jobIds.add(samplingJob.getId());

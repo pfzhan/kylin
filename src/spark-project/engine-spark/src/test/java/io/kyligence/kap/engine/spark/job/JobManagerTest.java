@@ -50,15 +50,18 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -80,6 +83,7 @@ import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
+import org.junit.rules.ExpectedException;
 
 /**
  *
@@ -89,6 +93,9 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
     private final static String PROJECT = "default";
 
     private static JobManager jobManager;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setup() throws Exception {
@@ -323,6 +330,20 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executables2.get(1).getTargetPartitions().size());
 
         checkConcurrent(param2);
+    }
+
+    @Test
+    public void testQuotaLimitReached() {
+        thrown.expect(KylinException.class);
+        NDefaultScheduler defaultScheduler = NDefaultScheduler.getInstance(PROJECT);
+        defaultScheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        defaultScheduler.getContext().setReachQuotaLimit(true);
+        JobParam param = new JobParam(Sets.newHashSet(), null, null, "ADMIn", Sets.newHashSet(), null);
+        try {
+            jobManager.addJob(param);
+        } finally {
+            defaultScheduler.forceShutdown();
+        }
     }
 
 

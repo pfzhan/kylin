@@ -138,7 +138,12 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 switch (output.getState()) {
                 case READY:
                     nReady++;
-                    if (isJobPoolFull() || context.isReachQuotaLimit()) {
+                    if (isJobPoolFull()) {
+                        break;
+                    }
+
+                    if (context.isReachQuotaLimit()) {
+                        stopJobIfSQLReached(id);
                         break;
                     }
 

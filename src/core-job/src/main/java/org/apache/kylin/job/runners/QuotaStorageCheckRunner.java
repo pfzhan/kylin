@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import lombok.val;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
@@ -51,8 +52,14 @@ public class QuotaStorageCheckRunner extends AbstractDefaultSchedulerRunner {
     }
 
     private boolean reachStorageQuota() {
-        val storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), nDefaultScheduler.getProject());
-        val totalSize = storageVolumeInfo.getTotalStorageSize();
+        var storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), nDefaultScheduler.getProject());
+        var totalSize = storageVolumeInfo.getTotalStorageSize();
+        int retryCount = 3;
+        while (retryCount-- > 0 && totalSize < 0) {
+            storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(),
+                    nDefaultScheduler.getProject());
+            totalSize = storageVolumeInfo.getTotalStorageSize();
+        }
         val storageQuotaSize = storageVolumeInfo.getStorageQuotaSize();
         if (totalSize < 0) {
             logger.error(
