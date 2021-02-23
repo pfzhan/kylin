@@ -578,6 +578,14 @@ public class Message {
     }
 
     // License
+    public String getLICENSE_ERROR_PRE() {
+        return "The license couldn’t be updated:\n";
+    }
+
+    public String getLICENSE_ERROR_SUFF() {
+        return "\nPlease upload a new license, or contact Kyligence.";
+    }
+
     public String getLICENSE_OVERDUE_TRIAL() {
         return "The license has expired and the validity period is [%s - %s]. Please upload a new license or contact Kyligence.";
     }
