@@ -1810,4 +1810,8 @@ public class Message {
     public String getSTOP_BY_USER_ERROR_MESSAGE() {
         return "Stopped by user.";
     }
+
+    public String getExceedMaxAllowedPacket() {
+        return "The result packet of MySQL exceeds the limit. Please contact the admin to adjust the value of “max_allowed_packet“ as 256M in MySQL. ";
+    }
 }

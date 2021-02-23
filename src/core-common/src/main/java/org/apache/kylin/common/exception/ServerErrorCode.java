@@ -52,6 +52,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_DETECT_DATA_RANGE("KE-10000007"), //
     ONGOING_OPTIMIZATION("KE-10000008"), //
     EVENT_HANDLE("KE-10000009"), //
+    EXCEED_MAX_ALLOWED_PACKET("KE-10000010"),
 
     // 10001XXX project
     PROJECT_NOT_EXIST("KE-10001001"), //

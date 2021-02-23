@@ -23,17 +23,22 @@
  */
 package io.kyligence.kap.common.persistence.metadata.jdbc;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.EXCEED_MAX_ALLOWED_PACKET;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.msgpack.core.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +75,11 @@ public class JdbcUtil implements IKeep {
             if (e instanceof DataIntegrityViolationException) {
                 consumer.onError();
             }
+
+            if (Objects.nonNull(e.getMessage()) && e.getMessage().contains("max_allowed_packet")) {
+                throw new KylinException(EXCEED_MAX_ALLOWED_PACKET, MsgPicker.getMsg().getExceedMaxAllowedPacket());
+            }
+
             throw new PersistException("persist messages failed", e);
         }
     }

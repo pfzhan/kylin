@@ -2064,4 +2064,9 @@ public class CnMessage extends Message {
     public String getROW_ACL_NOT_STRING_TYPE() {
         return "like 行级权限仅支持 char 或 varchar 类型维度，请重新设置。";
     }
+
+    @Override
+    public String getExceedMaxAllowedPacket() {
+        return "MySQL 元数据库返回结果超过配置限制。请联系管理员在 MySQL 中将配置 “max_allowed_packet” 调整至 256M。";
+    }
 }
