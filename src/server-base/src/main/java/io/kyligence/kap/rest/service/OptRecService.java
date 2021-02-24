@@ -134,6 +134,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 if (!column.isExist()) {
                     return;
                 }
+                if (column.isDimension()) {
+                    checkedColumnMap.putIfAbsent(column.getName(), Sets.newHashSet());
+                    checkedColumnMap.get(column.getName()).add(column.getId());
+                }
                 checkedColumnMap.putIfAbsent(column.getName().toUpperCase(Locale.ROOT), Sets.newHashSet());
                 checkedColumnMap.get(column.getName().toUpperCase(Locale.ROOT)).add(column.getId());
             });
@@ -141,8 +145,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 if (measure.isTomb()) {
                     return;
                 }
-                checkedMeasureMap.putIfAbsent(measure.getName().toUpperCase(Locale.ROOT), Sets.newHashSet());
-                checkedMeasureMap.get(measure.getName().toUpperCase(Locale.ROOT)).add(measure.getId());
+                checkedMeasureMap.putIfAbsent(measure.getName(), Sets.newHashSet());
+                checkedMeasureMap.get(measure.getName()).add(measure.getId());
             });
 
             userDefinedRecNameMap.forEach((id, name) -> {
@@ -152,14 +156,14 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
                 if (rawRecItem.getType() == RawRecItem.RawRecType.DIMENSION
                         || rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                    checkedColumnMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
-                    Set<Integer> idSet = checkedColumnMap.get(name.toUpperCase(Locale.ROOT));
+                    checkedColumnMap.putIfAbsent(name, Sets.newHashSet());
+                    Set<Integer> idSet = checkedColumnMap.get(name);
                     idSet.remove(rawRecItem.getDependIDs()[0]);
                     idSet.add(id);
                 }
                 if (rawRecItem.getType() == RawRecItem.RawRecType.MEASURE) {
-                    checkedMeasureMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
-                    checkedMeasureMap.get(name.toUpperCase(Locale.ROOT)).add(id);
+                    checkedMeasureMap.putIfAbsent(name, Sets.newHashSet());
+                    checkedMeasureMap.get(name).add(id);
                 }
             });
             checkedColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
@@ -173,7 +177,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 conflictMap.putIfAbsent(name, Sets.newHashSet());
                 conflictMap.get(name).addAll(idSet);
             });
-            if (!checkedColumnMap.isEmpty() || !checkedMeasureMap.isEmpty()) {
+            conflictMap.entrySet().removeIf(entry -> entry.getValue().stream().allMatch(id -> id > 0));
+            if (!conflictMap.isEmpty()) {
                 throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
                         MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
                                 + JsonUtil.writeValueAsStringQuietly(conflictMap));

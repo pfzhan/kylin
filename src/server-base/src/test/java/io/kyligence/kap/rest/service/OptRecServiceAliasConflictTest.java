@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
@@ -66,7 +67,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(13);
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
-        nameMap.put(-8, "cc1");
+        nameMap.put(-8, "CC1");
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
@@ -88,6 +89,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         modelManager.updateDataModel(getDefaultUUID(), copyForWrite -> {
             List<NDataModel.Measure> allMeasures = copyForWrite.getAllMeasures();
             allMeasures.get(0).setName("CC_AUTO__1611234685746_1");
+            copyForWrite.getAllNamedColumns().get(10).setName("CC1");
         });
         Assert.assertEquals("CC_AUTO__1611234685746_1",
                 modelManager.getDataModelDesc(getDefaultUUID()).getAllMeasures().get(0).getName());
@@ -216,7 +218,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16, 17);
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
-        nameMap.put(-15, "count_all");
+        nameMap.put(-15, "count_all".toUpperCase(Locale.ROOT));
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
@@ -260,7 +262,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
         nameMap.put(-18, "CC2");
-        nameMap.put(-19, "cc2");
+        nameMap.put(-19, "CC2");
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         optRecService.approve(getProject(), recRequest);
@@ -283,8 +285,8 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(27);
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
-        nameMap.put(-10, "computedCol005");
-        nameMap.put(-25, "computedCol005");
+        nameMap.put(-10, "COMPUTEDCOL005");
+        nameMap.put(-25, "computedCol005".toUpperCase(Locale.ROOT));
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
@@ -306,7 +308,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
         nameMap.put(-18, "CC2");
-        nameMap.put(-21, "cc2");
+        nameMap.put(-21, "CC2");
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
         optRecService.approve(getProject(), recRequest);
         NDataModel dataModel = getModel();
@@ -328,7 +330,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
         nameMap.put(-20, "CC2");
-        nameMap.put(-21, "cc2");
+        nameMap.put(-21, "cc2".toUpperCase(Locale.ROOT));
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
         optRecService.approve(getProject(), recRequest);
 
@@ -425,8 +427,8 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         List<Integer> addLayoutId = Lists.newArrayList(27);
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
-        nameMap.put(-8, "computedCol002");
-        nameMap.put(-25, "computedCol002");
+        nameMap.put(-8, "computedCol002".toUpperCase(Locale.ROOT));
+        nameMap.put(-25, "computedCol002".toUpperCase(Locale.ROOT));
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
 
         try {
@@ -457,7 +459,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         } catch (Exception e) {
             KylinException rootCause = (KylinException) Throwables.getRootCause(e);
             Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
-            Assert.assertEquals("The name already exists. Please rename and try again.\n" + "{\"MEASURE00\":[-12,-15]}",
+            Assert.assertEquals("The name already exists. Please rename and try again.\n" + "{\"measure00\":[-12,-15]}",
                     rootCause.getMessage());
         }
 
@@ -478,7 +480,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         } catch (Exception e) {
             KylinException rootCause = (KylinException) Throwables.getRootCause(e);
             Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
-            Assert.assertEquals("The name already exists. Please rename and try again.\n" + "{\"DIM1\":[-9,-11]}",
+            Assert.assertEquals("The name already exists. Please rename and try again.\n" + "{\"dim1\":[-9,-11]}",
                     rootCause.getMessage());
         }
 
