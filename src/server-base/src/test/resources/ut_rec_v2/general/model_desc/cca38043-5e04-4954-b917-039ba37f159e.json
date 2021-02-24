@@ -32,7 +32,8 @@
   }, {
     "id" : 1,
     "name" : "LO_LINENUMBER",
-    "column" : "P_LINEORDER.LO_LINENUMBER"
+    "column" : "P_LINEORDER.LO_LINENUMBER",
+    "status": "DIMENSION"
   }, {
     "id" : 2,
     "name" : "LO_ORDTOTALPRICE",

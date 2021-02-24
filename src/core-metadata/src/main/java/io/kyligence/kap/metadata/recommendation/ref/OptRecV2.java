@@ -326,6 +326,13 @@ public class OptRecV2 {
         }
 
         LayoutEntity layout = RawRecUtil.getLayout(rawRecItem);
+        if (RawRecItem.RawRecType.REMOVAL_LAYOUT == rawRecItem.getType()) {
+            NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            Map<Long, LayoutEntity> allLayoutsMap = indexMgr.getIndexPlan(uuid).getAllLayoutsMap();
+            if (!allLayoutsMap.containsKey(layout.getId())) {
+                return BrokenRefProxy.getProxy(LayoutRef.class, negRecItemId);
+            }
+        }
         LayoutRef layoutRef = new LayoutRef(layout, negRecItemId, rawRecItem.isAgg());
         for (int dependId : rawRecItem.getDependIDs()) {
             initDependencyRef(dependId, dataModel);
@@ -656,6 +663,11 @@ public class OptRecV2 {
     private Set<Integer> filterBrokenLayoutRefs() {
         Set<Integer> brokenIds = Sets.newHashSet();
         additionalLayoutRefs.forEach((id, ref) -> {
+            if (ref.isBroken() && id < 0) {
+                brokenIds.add(-id);
+            }
+        });
+        removalLayoutRefs.forEach((id, ref) -> {
             if (ref.isBroken() && id < 0) {
                 brokenIds.add(-id);
             }

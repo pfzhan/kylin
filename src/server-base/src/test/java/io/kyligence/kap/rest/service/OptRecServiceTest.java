@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -45,6 +46,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -98,6 +100,23 @@ public class OptRecServiceTest extends OptRecV2TestBase {
     public OptRecServiceTest() {
         super("../server-base/src/test/resources/ut_rec_v2/opt_service",
                 new String[] { "db89adb4-3aad-4f2a-ac2e-72ea0a30420b" });
+    }
+
+    @Test
+    public void testGetOptRecRequestExcludeRecIfDeleteDependLayout() throws IOException {
+        prepareAllLayoutRecs();
+        OptRecLayoutsResponse recResp1 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "ALL");
+        Assert.assertEquals(28, recResp1.getLayouts().size());
+
+        // delete the depend layout
+        NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        Set<Long> deletedLayouts = Sets.newHashSet();
+        deletedLayouts.add(130001L);
+        indexMgr.updateIndexPlan(getDefaultUUID(), copyForWrite -> {
+            copyForWrite.removeLayouts(deletedLayouts, true, true);
+        });
+        OptRecLayoutsResponse recResp2 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "ALL");
+        Assert.assertEquals(27, recResp2.getLayouts().size());
     }
 
     @Test

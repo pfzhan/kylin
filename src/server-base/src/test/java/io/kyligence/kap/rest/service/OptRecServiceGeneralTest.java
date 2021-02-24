@@ -69,11 +69,12 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableMap.of(100000, "COUNT_ALL", 100001, "MEASURE_AUTO_1"),
                 extractIdToName(dataModel.getEffectiveMeasures()));
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
                 .add(ImmutableList.of(0, 100000, 100001)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
     }
@@ -101,10 +102,10 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         Assert.assertEquals(0, optRecResponse.getRemovedLayouts().size());
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001), dataModel.getEffectiveMeasures().keySet());
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder().add(ImmutableList.of(1, 100000))
                 .add(ImmutableList.of(0, 100000, 100001)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
 
@@ -115,7 +116,7 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         Assert.assertEquals(0, removedResponse.getAddedLayouts().size());
         Assert.assertEquals(1, removedResponse.getRemovedLayouts().size());
 
-        checkIndexPlan(ImmutableList.of(), getIndexPlan());
+        checkIndexPlan(ImmutableList.of(ImmutableList.of(0, 100000, 100001)), getIndexPlan());
 
         Assert.assertEquals(RawRecItem.RawRecState.APPLIED, jdbcRawRecStore.queryById(8).getState());
     }
@@ -128,11 +129,12 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001), dataModel.getEffectiveMeasures().keySet());
         Assert.assertEquals("KE_TEST", dataModel.getMeasureNameByMeasureId(100001));
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
                 .add(ImmutableList.of(0, 100000, 100001)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
     }
@@ -146,11 +148,13 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
-                .add(ImmutableList.of(0, 100000, 100001)).add(ImmutableList.of(11, 100000, 100002)).build();
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(0, 100000, 100001)) //
+                .add(ImmutableList.of(11, 100000, 100002)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
     }
 
@@ -163,13 +167,14 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
         Assert.assertEquals("KE_TEST_1", dataModel.getMeasureNameByMeasureId(100001));
         Assert.assertEquals("KE_TEST_2", dataModel.getMeasureNameByMeasureId(100002));
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
-                .add(ImmutableList.of(0, 100000, 100001)).add(ImmutableList.of(11, 100000, 100002)).build();
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder().add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(0, 100000, 100001)) //
+                .add(ImmutableList.of(11, 100000, 100002)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
     }
 
@@ -182,10 +187,11 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest1);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001), dataModel.getEffectiveMeasures().keySet());
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
                 .add(ImmutableList.of(0, 100000, 100001)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
 
@@ -194,10 +200,12 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest2);
 
         dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
 
-        layoutColOrder = ImmutableList.<List<Integer>> builder().add(ImmutableList.of(0, 100000, 100001))
+        layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(0, 100000, 100001)) //
                 .add(ImmutableList.of(11, 100000, 100002)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
 
@@ -212,10 +220,11 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest1);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001), dataModel.getEffectiveMeasures().keySet());
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
                 .add(ImmutableList.of(11, 100000, 100001)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
 
@@ -224,10 +233,12 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest2);
 
         dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
 
-        layoutColOrder = ImmutableList.<List<Integer>> builder().add(ImmutableList.of(11, 100000, 100001))
+        layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(11, 100000, 100001)) //
                 .add(ImmutableList.of(0, 100000, 100002)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
 
@@ -242,11 +253,13 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         optRecService.approve(getProject(), recRequest1);
 
         NDataModel dataModel = getModel();
-        Assert.assertEquals(ImmutableSet.of(0, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
 
-        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder()
-                .add(ImmutableList.of(0, 100000, 100001)).add(ImmutableList.of(11, 100000, 100002))
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(0, 100000, 100001)) //
+                .add(ImmutableList.of(11, 100000, 100002)) //
                 .add(ImmutableList.of(0, 100000, 100002)).build();
         checkIndexPlan(layoutColOrder, getIndexPlan());
     }
