@@ -46,9 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.cache.Cache;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -76,7 +74,7 @@ public class QueryRouter {
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
     public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations,
-            Map<String, String> aliasMap, Cache<SQLDigest, Candidate> candidateCache) {
+            Map<String, String> aliasMap) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         IRealization readyReal = null;
@@ -98,14 +96,6 @@ public class QueryRouter {
 
         olapContext.resetSQLDigest();
         SQLDigest sqlDigest = olapContext.getSQLDigest();
-
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (kylinConfig.isUseQueryRealizationChooserCache() && candidateCache.getIfPresent(sqlDigest) != null
-                && candidateCache.getIfPresent(sqlDigest).getRealization() == readyReal) {
-            Candidate candidate = candidateCache.getIfPresent(sqlDigest);
-            candidate.setRewrittenCtx(preserveRewriteProps(olapContext));
-            return candidate;
-        }
 
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {
@@ -129,9 +119,6 @@ public class QueryRouter {
         chosen.setRewrittenCtx(preserveRewriteProps(olapContext));
         logger.debug("The realizations remaining: {}, and the final chosen one for current olap context {} is {}",
                 RoutingRule.getPrintableText(candidates), olapContext.id, chosen.realization.getCanonicalName());
-        if (kylinConfig.isUseQueryRealizationChooserCache()) {
-            candidateCache.put(sqlDigest, chosen);
-        }
         return chosen;
     }
 

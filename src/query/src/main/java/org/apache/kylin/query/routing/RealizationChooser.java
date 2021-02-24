@@ -42,26 +42,28 @@
 
 package org.apache.kylin.query.routing;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import com.alibaba.ttl.TtlRunnable;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectLoader;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -86,28 +88,22 @@ import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectLoader;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 public class RealizationChooser {
@@ -124,9 +120,6 @@ public class RealizationChooser {
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>(), new NamedThreadFactory("RealChooser"),
             new ThreadPoolExecutor.CallerRunsPolicy());
-    
-    private static Cache<SQLDigest, Candidate> candidateCache = CacheBuilder.newBuilder().maximumSize(3000)
-            .expireAfterWrite(1, TimeUnit.DAYS).build();
 
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
@@ -141,7 +134,7 @@ public class RealizationChooser {
                 continue;
             }
             ctx.realizationCheck = new RealizationCheck();
-            attemptSelectCandidate(ctx, candidateCache);
+            attemptSelectCandidate(ctx);
             Preconditions.checkNotNull(ctx.realization);
         }
     }
@@ -169,7 +162,7 @@ public class RealizationChooser {
                         }
                         if (!ctx.isConstantQueryWithAggregations()) {
                             ctx.realizationCheck = new RealizationCheck();
-                            attemptSelectCandidate(ctx, candidateCache);
+                            attemptSelectCandidate(ctx);
                             Preconditions.checkNotNull(ctx.realization);
                         }
                     } catch (KylinTimeoutException e) {
@@ -202,7 +195,7 @@ public class RealizationChooser {
     }
 
     @VisibleForTesting
-    public static void attemptSelectCandidate(OLAPContext context, Cache<SQLDigest, Candidate> candidateCache) {
+    public static void attemptSelectCandidate(OLAPContext context) {
         context.setHasSelected(true);
         // Step 1. get model through matching fact table with query
         Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
@@ -217,7 +210,7 @@ public class RealizationChooser {
         logger.debug("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-            Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap, candidateCache);
+            Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
             logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), candidate != null);
             if (candidate != null) {
                 candidates.add(candidate);
@@ -231,7 +224,7 @@ public class RealizationChooser {
                 && KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
             for (NDataModel model : modelMap.keySet()) {
                 OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-                Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap, candidateCache);
+                Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
                 if (candidate != null) {
                     candidates.add(candidate);
                 }
@@ -269,8 +262,7 @@ public class RealizationChooser {
     }
 
     private static Candidate selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
-            Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap,
-            Cache<SQLDigest, Candidate> candidateCache) {
+            Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap) {
         final Map<String, String> map = matchJoins(model, context, isPartialMatch);
         if (map == null) {
             return null;
@@ -287,7 +279,7 @@ public class RealizationChooser {
             return null;
         }
         Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)),
-                model2AliasMap.get(model), candidateCache);
+                model2AliasMap.get(model));
         if (candidate != null) {
             logger.trace("Model {} QueryRouter matched", model);
         } else {

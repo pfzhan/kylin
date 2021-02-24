@@ -1571,10 +1571,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.query.realization.chooser.thread-core-num", "5"));
     }
 
-    public boolean isUseQueryRealizationChooserCache() {
-        return Boolean.parseBoolean(this.getOptional("kylin.query.realization.chooser.cache-enabled", FALSE));
-    }
-
     /**
      * Extras calcite properties to config Calcite connection
      */
