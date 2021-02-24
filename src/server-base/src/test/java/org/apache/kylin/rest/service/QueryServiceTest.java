@@ -1026,7 +1026,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
             queryService.queryWithCache(request, false);
         } catch (KylinException e) {
-            Assert.assertEquals("Job node is not available for queries.", e.getMessage());
+            Assert.assertEquals("Job node is unavailable for queries. Please select a query node.", e.getMessage());
         }
 
         try {

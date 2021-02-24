@@ -78,7 +78,7 @@ public class ProjectBasedRoundRobinRuleTest extends NLocalFileMetadataTestCase {
     public void testChooseWithEmptyOwner() throws IOException {
         createHttpServletRequestMock("default2");
         exceptionRule.expect(KylinException.class);
-        exceptionRule.expectMessage("System is trying to recover, please try again later.");
+        exceptionRule.expectMessage("System is trying to recover service. Please try again later.");
         new ProjectBasedRoundRobinRule().choose("");
     }
 
