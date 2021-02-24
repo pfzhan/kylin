@@ -43,7 +43,7 @@ export default {
       callback(new Error(this.$t('kylinLang.common.passwordEmpty')))
     } else if (value.length < 8) {
       callback(new Error(this.$t('kylinLang.common.passwordLength')))
-    } else if (!/^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?\[\];',.\/`])[\da-zA-Z~!@#$%^&*(){}|:"<>?\[\];',.\/`]{8,}$/.test(value)) { // eslint-disable-line
+    } else if (!/^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?\[\];',.\/`]).{8,}$/.test(value)) { // eslint-disable-line
       callback(new Error(this.$t('kylinLang.user.tip_password_unsafe')))
     } else {
       callback()
