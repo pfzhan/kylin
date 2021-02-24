@@ -980,6 +980,7 @@ export default class AggregateModal extends Vue {
     }
     this.hideModal()
     this.isEditGlobalDim = false
+    this.generateDeletedIndexes = true
     setTimeout(() => {
       this.resetModalForm()
       this.setChangedForm(false)
