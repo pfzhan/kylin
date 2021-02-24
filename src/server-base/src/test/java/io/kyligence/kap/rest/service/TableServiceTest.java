@@ -68,6 +68,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -811,7 +812,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void checkRefreshDataRangeException1() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("There is no ready segment to refresh!");
+        thrown.expectMessage(Message.getInstance().getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT());
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
     }
@@ -819,7 +820,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void checkRefreshDataRangeException2() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data during refresh range must be ready!");
+        thrown.expectMessage(Message.getInstance().getINVALID_REFRESH_SEGMENT_BY_NOT_READY());
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
@@ -834,7 +835,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetAutoMergeConfigException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'default' not found.");
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "default"));
         tableService.getAutoMergeConfigByModel("default", "default");
     }
 
@@ -942,8 +943,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getINVALID_SET_TABLE_INC_LOADING(),
+                "DEFAULT.TEST_ACCOUNT", "nmodel_basic_inner"));
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
     }
 
@@ -951,8 +952,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testSetFact_IncrementingExists_Exception() {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getINVALID_SET_TABLE_INC_LOADING(),
+                "DEFAULT.TEST_ACCOUNT", "nmodel_basic_inner"));
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
     }
 
@@ -1253,7 +1254,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         // model not exist
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'nomodel' not found.");
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "nomodel"));
         tableService.getTablesOfModel(project, "nomodel");
     }
 }

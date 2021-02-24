@@ -2839,9 +2839,7 @@ public class ModelService extends BasicService {
 
         for (int i = 0; i < segmentList.size() - 1; i++) {
             if (!segmentList.get(i).getSegRange().connects(segmentList.get(i + 1).getSegRange())) {
-                throw new KylinException(FAILED_MERGE_SEGMENT,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(),
-                                segmentList.get(i).displayIdName(), segmentList.get(i + 1).displayIdName()));
+                throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS());
             }
         }
     }
@@ -3398,7 +3396,7 @@ public class ModelService extends BasicService {
             CalciteParser.getExpNode(cc.getExpression()).accept(sqlVisitor);
         } catch (Util.FoundOne e) {
             throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(), cc.getFullName(), ccInCheck, cc.getExpression()));
+                    MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(), ccInCheck, cc.getFullName()));
         }
     }
 
@@ -3858,10 +3856,8 @@ public class ModelService extends BasicService {
         val segment = df.getSegment(segmentId);
         val duplicatePartitions = segment.findDuplicatePartitions(partitionValues);
         if (!duplicatePartitions.isEmpty()) {
-            val msg = duplicatePartitions.stream().map(partition -> String.join(",", partition))
-                    .collect(Collectors.joining("_"));
             throw new KylinException(FAILED_CREATE_JOB,
-                    MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(msg));
+                    MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE());
         }
         dfm.appendPartitions(df.getId(), segment.getId(), partitionValues);
         Set<Long> targetPartitions = getDataModelManager(project).getDataModelDesc(modelId).getMultiPartitionDesc()

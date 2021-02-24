@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -325,7 +326,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
-        String errorMsg = "Start or end of range must be greater than 0!";
+        String errorMsg = Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO();
         DateRangeRequest request = new DateRangeRequest();
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
@@ -365,7 +366,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetDateRang_lessThan0_exception() throws Exception {
-        String errorMsg = "Start or end of range must be greater than 0!";
+        String errorMsg = Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO();
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("-1");
         dateRangeRequest.setTable("TEST_KYLIN_FACT");

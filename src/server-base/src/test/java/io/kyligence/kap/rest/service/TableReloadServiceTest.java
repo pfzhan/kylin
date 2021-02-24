@@ -365,7 +365,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     + "      }\n" //
                     + "    ],\n" //
                     + "    \"storage_type\": 20" //
-                    + "}").getBytes(), RuleBasedIndex.class), false, true);
+                    + "}").getBytes(StandardCharsets.UTF_8), RuleBasedIndex.class), false, true);
         });
 
         val toBeDeletedLayouts = saved.getToBeDeletedIndexes();

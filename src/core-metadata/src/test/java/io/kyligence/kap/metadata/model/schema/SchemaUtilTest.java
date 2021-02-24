@@ -338,11 +338,13 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(2, modelSchemaChange.getDifferences());
 
-        Assert.assertTrue(modelSchemaChange.getNewItems().stream().anyMatch(pair -> pair
-                .getType() == SchemaNodeType.MODEL_CC && pair.getDetail().equals("CC2")
-                && pair.getAttributes().get("expression").equals("P_LINEORDER.LO_CUSTKEY + 1") && !pair.isImportable()
-                && pair.getConflictReason().getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.DIFFERENT_CC_NAME_HAS_SAME_EXPR
-                && pair.getConflictReason().getConflictItem().equals("CC1")));
+        Assert.assertTrue(modelSchemaChange.getNewItems().stream()
+                .anyMatch(pair -> pair.getType() == SchemaNodeType.MODEL_CC && pair.getDetail().equals("CC2")
+                        && pair.getAttributes().get("expression").equals("P_LINEORDER.LO_CUSTKEY + 1")
+                        && !pair.isImportable()
+                        && pair.getConflictReason()
+                                .getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.DIFFERENT_CC_NAME_HAS_SAME_EXPR
+                        && pair.getConflictReason().getConflictItem().equals("CC1")));
     }
 
     @Test
@@ -483,7 +485,8 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                         && pair.getFirstDetail().equals("SSB.CUSTOMER.C_CUSTKEY")
                         && pair.getFirstSchemaNode().getAttributes().get("datatype").equals("integer")
                         && pair.getSecondSchemaNode().getAttributes().get("datatype").equals("varchar(4096)")
-                        && pair.getConflictReason().getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.TABLE_COLUMN_DATATYPE_CHANGED
+                        && pair.getConflictReason()
+                                .getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.TABLE_COLUMN_DATATYPE_CHANGED
                         && pair.getConflictReason().getConflictItem().equals("C_CUSTKEY")));
     }
 
@@ -506,7 +509,8 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(modelSchemaChange.getMissingItems().stream()
                 .anyMatch(schemaChange -> schemaChange.getType() == SchemaNodeType.MODEL_TABLE
                         && !schemaChange.isImportable() && schemaChange.getDetail().equals("SSB.CUSTOMER_NEW")
-                        && schemaChange.getConflictReason().getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.MISSING_TABLE
+                        && schemaChange.getConflictReason()
+                                .getReason() == SchemaChangeCheckResult.UN_IMPORT_REASON.MISSING_TABLE
                         && schemaChange.getConflictReason().getConflictItem().equals("SSB.CUSTOMER_NEW")));
     }
 
@@ -638,7 +642,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
         String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Import model failed.\n" + "Model [none_exists_column] is broken, can not export.\n"
+        thrown.expectMessage("Can’t import the model.\n" + "Model [none_exists_column] is broken, can not export.\n"
                 + "Model [illegal_index] is broken, can not export.\n"
                 + "Model [none_exists_table] is broken, can not export.");
         new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);

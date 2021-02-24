@@ -174,7 +174,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         modelPreviewResponseList = metaStoreService.getPreviewModels("original_project", Collections.emptyList());
         Assert.assertEquals(12, modelPreviewResponseList.size());
 
-        Assert.assertTrue(modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartitionValues));
+        Assert.assertTrue(
+                modelPreviewResponseList.stream().anyMatch(ModelPreviewResponse::isHasMultiplePartitionValues));
     }
 
     @Test
@@ -221,12 +222,11 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 .anyMatch(indexPlan -> !indexPlan.getOverrideProps().isEmpty()));
     }
 
-
     @Test
     public void testGetCompressedModelMetadataWithRec() throws Exception {
         List<RawRecItem> rawRecItems = new ArrayList<>();
-        val rawRecItemsNode = JsonUtil.readValue(new File(
-                "src/test/resources/ut_meta/metastore_model/rec/1af229fb-bb2c-42c5-9663-2bd92b50a861.json"),
+        val rawRecItemsNode = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/metastore_model/rec/1af229fb-bb2c-42c5-9663-2bd92b50a861.json"),
                 JsonNode.class);
         Assert.assertNotNull(rawRecItemsNode);
         for (JsonNode jsonNode : rawRecItemsNode) {
@@ -341,7 +341,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testExportNotExistsModel() throws Exception {
         String notExistsUuid = UUID.randomUUID().toString();
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, "Data Model with name '%s' not found.", notExistsUuid));
+        thrown.expectMessage(String.format(Locale.ROOT, "Can’t find model named \"%s\". Please check and try again.",
+                notExistsUuid));
         metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(notExistsUuid), false, false,
                 false);
     }
@@ -351,7 +352,9 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         // broken model id
         String brokenModelId = "8b5a2d39-304f-4a20-a9da-942f461534d8";
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(Locale.ROOT, "Model [%s] is broken, can not export.", brokenModelId));
+        thrown.expectMessage(String.format(Locale.ROOT,
+                "Can’t export model \"%s\"  as it’s in \"BROKEN\" status. Please re-select and try again.",
+                brokenModelId));
         metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(brokenModelId), false, false,
                 false);
 
@@ -361,7 +364,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testExportEmptyModel() throws Exception {
         // empty model list
         thrown.expect(KylinException.class);
-        thrown.expectMessage("You should export one model at least.");
+        thrown.expectMessage("Please select at least one model to export.");
         metaStoreService.getCompressedModelMetadata(getProject(), Lists.newArrayList(), false, false, false);
     }
 
@@ -753,7 +756,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         File file = new File("src/test/resources/ut_model_metadata/metastore_model_metadata.zip");
         val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Please verify the metadata file first");
+        thrown.expectMessage(
+                "Can’t parse the metadata file. Please don’t modify the content or zip the file manually after unzip.");
         metaStoreService.checkModelMetadata("default", multipartFile, null);
     }
 
@@ -763,7 +767,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 "src/test/resources/ut_model_metadata/metastore_model_metadata_c4a20039c16dfbb5dcc5610c5052d7b1.zip");
         val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Please verify the metadata file first");
+        thrown.expectMessage(
+                "Can’t parse the metadata file. Please don’t modify the content or zip the file manually after unzip.");
         metaStoreService.checkModelMetadata("default", multipartFile, null);
     }
 
@@ -1189,8 +1194,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         thrown.expectCause(new BaseMatcher<Throwable>() {
             @Override
             public boolean matches(Object item) {
-                return ((Exception) item).getMessage()
-                        .contains("Model [conflict_filter_condition_model]'s ImportType [OVERWRITE] is illegal.");
+                return ((Exception) item).getMessage().contains(
+                        "Can’t select ImportType \"OVERWRITE\" for the model \"conflict_filter_condition_model\". Please select \"UN_IMPORT\" (or \"NEW\").");
             }
 
             @Override
@@ -1216,8 +1221,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         thrown.expectCause(new BaseMatcher<Throwable>() {
             @Override
             public boolean matches(Object item) {
-                return ((Exception) item).getMessage()
-                        .contains("Model [missing_table_model_1]'s ImportType [NEW] is illegal.");
+                return ((Exception) item).getMessage().contains(
+                        "Can’t select ImportType \"NEW\" for the model \"missing_table_model_1\". Please select \"UN_IMPORT\".");
             }
 
             @Override
@@ -1244,9 +1249,9 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("KE-10002016(Failed to import model):Import model failed.\n"
-                                + "Model [ssb_model_1] not exists, Can not overwrite model.\n"
-                                + "Model [ssb_model_2] not exists, Can not overwrite model.");
+                        .contains("KE-10002016(Failed to import model):Can’t import the model.\n"
+                                + "Can’t overwrite the model \"ssb_model_1\", as it doesn’t exist. Please re-select and try again.\n"
+                                + "Can’t overwrite the model \"ssb_model_2\", as it doesn’t exist. Please re-select and try again.");
             }
 
             @Override
@@ -1275,7 +1280,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("KE-10002009(Model Metadata File Error):Import model failed.\n"
+                        .contains("KE-10002009(Model Metadata File Error):Can’t import the model.\n"
                                 + "Model name 'conflict_filter_condition_model' is duplicated, could not be created.\n"
                                 + "Model name 'model_column_update' is duplicated, could not be created.");
             }
@@ -1310,10 +1315,10 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("KE-10002016(Failed to import model):Import model failed.\n"
-                                + "Invalid model name 'ssb_model@_test', only letters, numbers and underlines are supported.\n"
-                                + "Invalid model name '#ssb_model_test', only letters, numbers and underlines are supported.\n"
-                                + "Invalid model name 'ssb_model_test ', only letters, numbers and underlines are supported.");
+                        .contains("KE-10002016(Failed to import model):Can’t import the model.\n"
+                                + "The model name \"ssb_model@_test\" is invalid. Please use letters, numbers and underlines only.\n"
+                                + "The model name \"#ssb_model_test\" is invalid. Please use letters, numbers and underlines only.\n"
+                                + "The model name \"ssb_model_test \" is invalid. Please use letters, numbers and underlines only.");
             }
 
             @Override

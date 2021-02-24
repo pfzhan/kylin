@@ -33,6 +33,7 @@ import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;
@@ -138,7 +139,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckStartAndEndException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Start and end must exist or not at the same time!");
+        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_CONSISTENT());
         nBasicController.validateDataRange("10", "");
     }
 
@@ -159,21 +160,21 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Start or end of range must be greater than 0!");
+        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
         nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Start or end of range must be greater than 0!");
+        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_LESS_THAN_ZERO());
         nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Invalid start or end time format. Only support timestamp type, unit ms");
+        thrown.expectMessage(Message.getInstance().getINVALID_RANGE_NOT_FORMAT());
         nBasicController.validateDataRange("start", "end");
     }
 

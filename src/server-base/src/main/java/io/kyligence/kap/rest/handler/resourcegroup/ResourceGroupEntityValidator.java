@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.handler.resourcegroup;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -35,11 +35,8 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupEntity;
 import io.kyligence.kap.rest.request.resourecegroup.ResourceGroupRequest;
-import lombok.val;
 
 @Order(300)
 @Component
@@ -50,14 +47,22 @@ public class ResourceGroupEntityValidator implements IResourceGroupRequestValida
             return;
         }
         List<ResourceGroupEntity> entities = request.getResourceGroupEntities();
+        HashMap<String, Integer> entityIds = new HashMap<>();
         for (ResourceGroupEntity entity : entities) {
-            if (StringUtils.isBlank(entity.getId())) {
+            String entityId = entity.getId();
+            if (StringUtils.isBlank(entityId)) {
                 throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_RESOURCE_GROUP_ID());
+            } else {
+                if (!entityIds.containsKey(entityId)) {
+                    entityIds.put(entityId, 1);
+                } else {
+                    entityIds.put(entityId, entityIds.get(entityId) + 1);
+                }
+                if (entityIds.get(entityId) > 1) {
+                    throw new KylinException(INVALID_PARAMETER,
+                            MsgPicker.getMsg().getDUPLICATED_RESOURCE_GROUP_ID(entityId));
+                }
             }
-        }
-        val resourceGroupIds = entities.stream().map(ResourceGroupEntity::getId).collect(Collectors.toList());
-        if (resourceGroupIds.size() != Sets.newHashSet(resourceGroupIds).size()) {
-            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getDUPLICATED_RESOURCE_GROUP_ID());
         }
     }
 }

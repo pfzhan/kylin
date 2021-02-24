@@ -651,7 +651,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val dataflowId = "747f864b-9721-4b97-acde-0aa8e8656cba";
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not find the Segments by ids [not_exist_id].");
+        thrown.expectMessage("Can’t find the segment by ID \"not_exist_id\". Please check and try again.");
         modelService.getSegmentPartitions(project, dataflowId, "not_exist_id", null, "last_modified_time", false);
     }
 
@@ -705,7 +705,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.updateMultiPartitionMapping(project, modelId, mappingRequest);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof IllegalArgumentException);
-            Assert.assertTrue(ex.getMessage().contains("Failed to update multi-partition mapping, invalid request"));
+            Assert.assertTrue(ex.getMessage().contains(
+                    "Can’t update the mapping relationships of the partition column. The value for the parameter “multi_partition_columns“ doesn’t match the partition column defined in the model. Please check and try again."));
         }
         // wrong partition column
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_format_name"));
@@ -714,7 +715,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.updateMultiPartitionMapping(project, modelId, mappingRequest);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof KylinException);
-            Assert.assertTrue(ex.getMessage().contains("Failed to update multi-partition mapping, invalid request"));
+            Assert.assertTrue(ex.getMessage().contains(
+                    "Can’t update the mapping relationships of the partition column. The value for the parameter “multi_partition_columns“ doesn’t match the partition column defined in the model. Please check and try again."));
         }
         // wrong value mapping, missing partition3
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_site_id"));
@@ -727,7 +729,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.updateMultiPartitionMapping(project, modelId, mappingRequest);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof KylinException);
-            Assert.assertTrue(ex.getMessage().contains("Failed to update multi-partition mapping, invalid request"));
+            Assert.assertTrue(
+                    ex.getMessage().contains("Can’t update the mapping relationships of the partition column"));
         }
         // wrong type model
         val project2 = "default";
@@ -738,7 +741,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.updateMultiPartitionMapping(project2, modelId2, mappingRequest2);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof KylinException);
-            Assert.assertTrue(ex.getMessage().contains("does not have sub partition"));
+            Assert.assertTrue(ex.getMessage().contains(
+                    "\"ut_inner_join_cube_partial\" is not a multilevel partitioning model. Please check and try again."));
         }
     }
 
@@ -923,7 +927,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testDropModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
+        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
         modelService.dropModel("nmodel_basic2222", "default");
     }
 
@@ -967,7 +971,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model [test_encoding] is table oriented, can not purge the model");
+        thrown.expectMessage(
+                "Can’t purge data by specifying model \"test_encoding\" under the current project settings.");
         modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
 
@@ -1023,21 +1028,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testPurgeModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
+        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
         modelService.purgeModelManually("nmodel_basic2222", "default");
     }
 
     @Test
     public void testCloneModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model alias [nmodel_basic_inner] are duplicated!");
+        thrown.expectMessage("Model \"nmodel_basic_inner\" already exists. Please rename it.");
         modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner", "default");
     }
 
     @Test
     public void testCloneModelExceptionName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
+        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
         modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
     }
 
@@ -1121,14 +1126,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testRenameModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
+        thrown.expectMessage("Can’t find model named \"nmodel_basic222\". Please check and try again.");
         modelService.renameDataModel("default", "nmodel_basic222", "new_name");
     }
 
     @Test
     public void testRenameModelException2() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model alias [nmodel_basic_inner] are duplicated");
+        thrown.expectMessage("Model \"nmodel_basic_inner\" already exists. Please rename it.");
         modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner");
     }
 
@@ -1144,7 +1149,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testUpdateDataModelStatus_ModelNotExist_Exception() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
+        thrown.expectMessage("Can’t find model named \"nmodel_basic222\". Please check and try again.");
         modelService.updateDataModelStatus("nmodel_basic222", "default", "OFFLINE");
     }
 
@@ -1585,7 +1590,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataModelManager.updateDataModelDesc(modelUpdate);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
+        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { "not_exist_01" }, false);
@@ -1666,7 +1671,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model [nmodel_basic_inner] is table oriented, can not remove segments manually!");
+        thrown.expectMessage(
+                "Can’t delete the segment(s) in model \"nmodel_basic_inner\" under the current project settings.");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
     }
@@ -1718,8 +1724,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("The range of segments " + dataSegment1.displayIdName() + " and "
-                    + dataSegment3.displayIdName() + " are discontinuous.", e.getMessage());
+            Assert.assertEquals(
+                    "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again.",
+                    e.getMessage());
         }
 
         modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
@@ -1741,8 +1748,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("Can not remove or refresh or merge segment " + dataSegment2.displayIdName()
-                    + ", because the segment is LOCKED.", e.getMessage());
+            Assert.assertEquals("Can’t remove, refresh or merge segment \"" + dataSegment2.displayIdName()
+                    + "\", as it’s LOCKED. Please try again later.", e.getMessage());
         }
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -1837,7 +1844,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testRefreshSegmentById_isNotExist() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
+        thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
         //refresh exception
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { "not_exist_01" }));
@@ -1888,7 +1895,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model alias [nmodel_basic] are duplicated");
+        thrown.expectMessage("Model \"nmodel_basic\" already exists. Please rename it.");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setUuid("new_model");
         modelRequest.setLastModified(0L);
@@ -1912,7 +1919,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not create model manually in SQL acceleration project!");
+        thrown.expectMessage("Can’t add model manually under this project.");
         modelService.createModel(modelRequest.getProject(), modelRequest);
 
     }
@@ -2269,7 +2276,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
         thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction("Table oriented model [nmodel_basic] can not build segments manually!");
+        thrown.expectMessageInTransaction(
+                "Can’t manually build segments in model \"nmodel_basic\" under the current project settings.");
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 
@@ -3021,8 +3029,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return CauseType.SELF_CONFLICT_WITH_SAME_NAME == ccException.getCauseType()
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
-                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT") && ccException.getMessage()
-                                .equals("This name has already been used by other computed columns in this model.");
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
+                        && ccException.getMessage().equals(
+                                "This name has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3062,7 +3071,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "This expression has already been used by other computed columns in this model.");
+                                "This expression has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3103,7 +3112,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "This expression has already been used by other computed columns in this model.");
+                                "This expression has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3407,7 +3416,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains(
-                    "The subpartition column of model 'nmodel_basic' has not been set yet. Please set it first."));
+                    "Model \"nmodel_basic\" hasn’t set a partition column yet. Please set it first and try again."));
         }
     }
 
@@ -3652,7 +3661,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "Dimension name 'CAL_DT1' already exists."));
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(),
+                    "Dimension name \"CAL_DT1\" already exists. Please rename it."));
         }
 
         // invalid dimension name
@@ -3662,8 +3672,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertTrue(StringUtils.contains(ex.getMessage(),
-                    "The dimension name 'CAL_DT1@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). "
-                            + getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
+                    "The dimension name \"CAL_DT1@!\" is invalid. Please use only characters, numbers, spaces and symbol(_ -()%?). "
+                            + getTestConfig().getMaxModelDimensionMeasureNameLength()
+                            + " characters at maximum are supported."));
         }
 
         StringBuilder name = new StringBuilder();
@@ -3675,7 +3686,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertTrue(StringUtils.contains(ex.getMessage(),
-                    getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
+                    getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum are supported."));
         }
 
         namedColumns.remove(dimension);
@@ -3696,8 +3707,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "The measure name 'illegal_measure_name@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). "
-                            + getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
+                    "The measure name \"illegal_measure_name@!\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%?). "
+                            + getTestConfig().getMaxModelDimensionMeasureNameLength()
+                            + " characters at maximum are supported."));
         }
 
         // duplicate measure name
@@ -3714,7 +3726,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
-            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Measure name 'count_1' already exists."));
+            Assert.assertTrue(
+                    StringUtils.contains(e.getMessage(), "Measure name \"count_1\" already exists. Please rename it."));
         }
 
         // duplicate measure definitions
@@ -3725,7 +3738,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "The measure definition is the same as the measure 'count_2'. So this measure cannot be created."));
+                    "The definition of this measure  is the same as measure \"count_2\". Please modify it."));
         }
 
         measures.remove(measure2);
@@ -3747,7 +3760,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "Duplicate join condition 'TEST_ACCOUNT.ACCOUNT_ID' and 'TEST_KYLIN_FACT.SELLER_ID'."));
+                    "Can’t create the join condition between \"TEST_ACCOUNT.ACCOUNT_ID\" and \"TEST_KYLIN_FACT.SELLER_ID\", because a same one already exists."));
         }
     }
 
@@ -3780,7 +3793,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val project = "default";
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Table oriented model [all_fixed_length] can not build indices manually!");
+        thrown.expectMessage(
+                "Can’t manually build indexes in model \"all_fixed_length\" under the current project settings.");
         modelService.buildIndicesManually(modelId, project, 3);
     }
 
@@ -3847,7 +3861,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Ready segments range has changed, can not refresh, please try again.");
+        thrown.expectMessage("Can’t refresh at the moment, as the segment range has changed. Please try again later.");
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
         response.setAffectedEnd("120");
@@ -3881,7 +3895,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not refresh, some segments is building within the range you want to refresh!");
+        thrown.expectMessage(
+                "an’t refresh some segments, as they are being built at the moment. Please try again later.");
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         val loadingRange = new NDataLoadingRange();
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
@@ -3901,7 +3916,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not refresh, some segments is building within the range you want to refresh!");
+        thrown.expectMessage(
+                "Can’t refresh some segments, as they are being built at the moment. Please try again later.");
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         val loadingRange = new NDataLoadingRange();
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
@@ -4244,7 +4260,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
-                "In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
+                "The computed column name \"SITE_ID\" has been used in the current model. Please rename it.");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";
@@ -4268,7 +4284,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
-                "In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
+                "The computed column name \"SITE_ID\" has been used in the current model. Please rename it.");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";
@@ -4448,8 +4464,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // user not exists
         ownerChangeRequest1.setOwner("nonUser");
-        thrown.expectMessage("Illegal users!"
-                + " Only the system administrator, project administrator role, and management role can be set as the model owner.");
+        thrown.expectMessage(
+                "This user can’t be set as the model’s owner. Please select system admin, project admin or management user.");
         modelService.updateModelOwner(project, modelId, ownerChangeRequest1);
 
         // empty admin users, throw exception
@@ -4541,7 +4557,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testConvertSegmentIdWithName_NotExistName() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not find the Segments by names [not exist name1,not exist name2]");
+        thrown.expectMessage(
+                "Can’t find the segment by name \"not exist name1,not exist name2\". Please check and try again.");
 
         modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
                 new String[] { "not exist name1", "not exist name2" });
@@ -4923,7 +4940,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(
-                    "The partitions included in the selected segments are not fully aligned. Please build partition first and try merging again.",
+                    "The subpartitions included in the selected segments are not fully aligned. Please build the subpartitions first and try merging again.",
                     e.getMessage());
         }
 
@@ -5003,7 +5020,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Add Job failed due to partition [un] is duplicated.", e.getMessage());
+            Assert.assertEquals("Can’t add the job. Please ensure that the subpartitions are unique.", e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
@@ -5058,7 +5075,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(), "Add Job failed due to multi partition param is illegal.");
+            Assert.assertEquals(e.getMessage(),
+                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
         }
 
         // no target partition value in segment
@@ -5070,7 +5088,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(), "Add Job failed due to multi partition param is illegal.");
+            Assert.assertEquals(e.getMessage(),
+                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
         }
 
         // no target partition value or partition id
@@ -5080,7 +5099,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(e.getMessage(), "Add Job failed due to multi partition param is illegal.");
+            Assert.assertEquals(e.getMessage(),
+                    "Can’t add the job. Please ensure that the operation is valid for the current object.");
         }
     }
 
@@ -5376,7 +5396,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         partitionValues.add(new String[] { "p2" });
         partitionValues.add(new String[] { "p3" });
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Data Model with name '1' not found.");
+        thrown.expectMessage("Can’t find model named \"1\". Please check and try again.");
         modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
     }
 
@@ -5434,7 +5454,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // model id is invalid
         assertKylinExeption(() -> {
             modelService.checkModelPermission(getProject(), "xxx");
-        }, "Data Model with name 'xxx' not found");
+        }, "Can’t find model named \"xxx\". Please check and try again.");
 
         addAclTable("DEFAULT.TEST_ENCODING", "user", true);
         modelService.checkModelPermission(getProject(), "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");

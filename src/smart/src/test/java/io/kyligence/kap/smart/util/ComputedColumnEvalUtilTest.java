@@ -164,10 +164,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
             ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals(
-                    "Failed to validate the expression " + "'SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)' "
-                            + "in computed column 'TEST_KYLIN_FACT.CC_2'.",
-                    e.getMessage());
+            Assert.assertTrue(e.getMessage().contains("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)"));
         }
     }
 

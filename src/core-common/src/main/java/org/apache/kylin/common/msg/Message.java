@@ -58,11 +58,11 @@ public class Message {
 
     // Cube
     public String getCHECK_CC_AMBIGUITY() {
-        return "In this model, computed column name [%s] has been used, please rename your computed column.";
+        return "The computed column name \"%s\" has been used in the current model. Please rename it.";
     }
 
     public String getSEG_NOT_FOUND() {
-        return "Cannot find segment '%s' in model '%s'.";
+        return "Can‘t find segment \"%s\" in model \"%s\". Please try again.";
     }
 
     public String getACL_INFO_NOT_FOUND() {
@@ -70,11 +70,11 @@ public class Message {
     }
 
     public String getACL_DOMAIN_NOT_FOUND() {
-        return "Acl domain object required.";
+        return "Can’t authorize at the moment due to unknown object. Please try again later, or contact technical support.";
     }
 
     public String getPARENT_ACL_NOT_FOUND() {
-        return "Parent acl required.";
+        return "Can’t authorize at the moment due to unknown object. Please try again later, or contact technical support.";
     }
 
     public String getIDENTITY_EXIST_CHILDREN() {
@@ -83,43 +83,43 @@ public class Message {
 
     // Model
     public String getINVALID_MODEL_DEFINITION() {
-        return "The data model definition is invalid.";
+        return "Can’t find model. Please check and try again.";
     }
 
     public String getEMPTY_MODEL_NAME() {
-        return "Model name should not be empty.";
+        return "The model name can’t be empty.";
     }
 
     public String getINIT_MEASURE_FAILED() {
-        return "Cannot init measure %s: %s";
+        return "Can’t initialize metadata at the moment. Please try restarting first. If the problem still exist, please contact technical support.";
     }
 
     public String getINVALID_MODEL_NAME() {
-        return "Invalid model name '%s', only letters, numbers and underlines are supported.";
+        return "The model name \"%s\" is invalid. Please use letters, numbers and underlines only.";
     }
 
     public String getINVALID_DIMENSION_NAME() {
-        return "The dimension name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). %s characters at maximum.";
+        return "The dimension name \"%s\" is invalid. Please use only characters, numbers, spaces and symbol(_ -()%%?). %s characters at maximum are supported.";
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "The measure name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). %s characters at maximum.";
+        return "The measure name \"%s\" is invalid. Please use Chinese or English characters, numbers, spaces or symbol(_ -()%%?). %s characters at maximum are supported.";
     }
 
     public String getDUPLICATE_DIMENSION_NAME() {
-        return "Dimension name '%s' already exists.";
+        return "Dimension name \"%s\" already exists. Please rename it. ";
     }
 
     public String getDUPLICATE_MEASURE_NAME() {
-        return "Measure name '%s' already exists.";
+        return "Measure name \"%s\" already exists. Please rename it. ";
     }
 
     public String getDUPLICATE_MEASURE_DEFINITION() {
-        return "The measure definition is the same as the measure '%s'. So this measure cannot be created.";
+        return "The definition of this measure  is the same as measure \"%s\". Please modify it.";
     }
 
     public String getDUPLICATE_JOIN_CONDITIONS() {
-        return "Duplicate join condition '%s' and '%s'.";
+        return "Can’t create the join condition between \"%s\" and \"%s\", because a same one already exists.";
     }
 
     public String getDUPLICATE_MODEL_NAME() {
@@ -131,7 +131,7 @@ public class Message {
     }
 
     public String getMODEL_NOT_FOUND() {
-        return "Data Model with name '%s' not found.";
+        return "Can’t find model named \"%s\". Please check and try again.";
     }
 
     public String getMODEL_MODIFY_ABANDON(String table) {
@@ -140,7 +140,7 @@ public class Message {
     }
 
     public String getEMPTY_PROJECT_NAME() {
-        return "No valid project name. Please select one project.";
+        return "Can’t find project information. Please select a project.";
     }
 
     public String getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION() {
@@ -148,19 +148,19 @@ public class Message {
     }
 
     public String getCheckCCType() {
-        return "The actual data type of computed column {0} is {1}, but defined as {2}. Please modify and try again.";
+        return "The actual data type \"{1}\" of computed column \"{0}\" is inconsistent with the defined type \"{1}\". Please modify it.";
     }
 
     public String getCheckCCExpression() {
-        return "Failed to validate the expression '%2$s' in computed column '%1$s'.";
+        return "Can’t validate the expression \"%s\" (computed column: %s). Please check the expression, or try again later.";
     }
 
     public String getMODEL_METADATA_PACKAGE_INVALID() {
-        return "Parsing the file failed. Please check that the model package is complete.";
+        return "Can’t parse the file. Please ensure that the file is complete.";
     }
 
     public String getEXPORT_BROKEN_MODEL() {
-        return "Model [%s] is broken, can not export.";
+        return "Can’t export model \"%s\"  as it’s in \"BROKEN\" status. Please re-select and try again.";
     }
 
     public String getIMPORT_BROKEN_MODEL() {
@@ -168,23 +168,28 @@ public class Message {
     }
 
     public String getIMPORT_MODEL_EXCEPTION() {
-        return "Import model failed.";
+        return "Can’t import the model.";
     }
 
-    public String getUN_SUITABLE_IMPORT_TYPE() {
-        return "Model [%s]'s ImportType [%s] is illegal.";
+    public String getUN_SUITABLE_IMPORT_TYPE(String optionalType) {
+        if (optionalType == null) {
+            return "Can’t select ImportType \"%s\" for the model \"%s\". Please select \"UN_IMPORT\".";
+        } else {
+            return "Can’t select ImportType \"%s\" for the model \"%s\". Please select \"UN_IMPORT\" (or \""
+                    + optionalType + "\").";
+        }
     }
 
     public String getCAN_NOT_OVERWRITE_MODEL() {
-        return "Model [%s] not exists, Can not overwrite model.";
+        return "Can’t overwrite the model \"%s\", as it doesn’t exist. Please re-select and try again.";
     }
 
     public String getILLEGAL_MODEL_METADATA_FILE() {
-        return "Please verify the metadata file first.";
+        return "Can’t parse the metadata file. Please don’t modify the content or zip the file manually after unzip.";
     }
 
     public String getEXPORT_AT_LEAST_ONE_MODEL() {
-        return "You should export one model at least.";
+        return "Please select at least one model to export.";
     }
 
     public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED() {
@@ -192,7 +197,7 @@ public class Message {
     }
 
     public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL() {
-        return "This expression has already been used by other computed columns in this model.";
+        return "This expression has already been used by other computed columns in this model. Please modify it.";
     }
 
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED() {
@@ -200,15 +205,15 @@ public class Message {
     }
 
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL() {
-        return "This name has already been used by other computed columns in this model.";
+        return "This name has already been used by other computed columns in this model. Please modify it.";
     }
 
     public String getMODEL_CHANGE_PERMISSION() {
-        return "Only the system administrator or the project administrator can change the owner of the model.";
+        return "Don’t have permission. The model’s owner could only be changed by system or project admin.";
     }
 
     public String getMODEL_OWNER_CHANGE_INVALID_USER() {
-        return "Illegal users! Only the system administrator, project administrator role, and management role can be set as the model owner.";
+        return "This user can’t be set as the model’s owner. Please select system admin, project admin or management user.";
     }
 
     // index
@@ -244,11 +249,11 @@ public class Message {
     }
 
     public String getILLEGAL_STATE_TRANSFER() {
-        return "Illegal job state transfer, id: [%s], from: [%s], to: [%s]";
+        return "An error occurred when updating the job status. Please refresh the job list and try again.";
     }
 
     public String getINVALID_PRIORITY() {
-        return "Invalid priority, must be range in 0-4";
+        return "The selected priority is invalid. Please select a value within the range from 0 to 4.";
     }
 
     // Acl
@@ -261,7 +266,7 @@ public class Message {
     }
 
     public String getUSERGROUP_EXIST() {
-        return "Group [%s] already exists.";
+        return "The user group \"%s\" already exists. Please check and try again.";
     }
 
     // user group
@@ -516,7 +521,7 @@ public class Message {
 
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
-        return "The query corresponding to this query id in the current project cannot be found .";
+        return "Can’t find the query corresponding to this ID in the current project. Please check and try again.";
     }
 
     public String getQUERY_RESULT_FILE_NOT_FOUND() {
@@ -654,21 +659,21 @@ public class Message {
     }
 
     public String getTABLENOTFOUND() {
-        return "Failed to save model [%s]. Please ensure the columns used in model [%s] must be existed in source table [%s]";
+        return "Can’t save model \"%s\". Please ensure that the used column \"%s\" exist in source table \"%s\".";
     }
 
     // Async push down get date format
     public String getPUSHDOWN_PARTITIONFORMAT_ERROR() {
-        return "Detect failed, please set the partition format manually.";
+        return "Can’t detect at the moment. Please set the partition format manually.";
     }
 
     // Async push down get data range
     public String getPUSHDOWN_DATARANGE_ERROR() {
-        return "Detect failed, please set the data range manually.";
+        return "Can’t detect at the moment. Please set the data range manually.";
     }
 
     public String getPUSHDOWN_DATARANGE_TIMEOUT() {
-        return "Detect timeout, please set the data range manually.";
+        return "Can’t detect at the moment. Please set the data range manually.";
     }
 
     public String getDIMENSION_NOTFOUND() {
@@ -680,9 +685,7 @@ public class Message {
     }
 
     public String getNESTED_CC_CASCADE_ERROR() {
-        return "Operation failed. "
-                + "There is a nested computed column [%s] in the current model depends on the current computed column [%s]. "
-                + "The expression of nested computed column is [%s].";
+        return "Can’t modify computed column \"%s\". It’s been referenced by a nested computed column \"%s\" in the current model. Please remove it from the nested column first.";
     }
 
     public String getCHANGE_GLOBALADMIN() {
@@ -703,11 +706,11 @@ public class Message {
     }
 
     public String getSEGMENT_LOCKED() {
-        return "Can not remove or refresh or merge segment %s, because the segment is LOCKED.";
+        return "Can’t remove, refresh or merge segment \"%s\", as it’s LOCKED. Please try again later.";
     }
 
     public String getSEGMENT_STATUS(String status) {
-        return "Can not refresh or merge segment %s, because the segment is " + status + ".";
+        return "Can’t refresh or merge segment \"%s\", as it’s in \"" + status + "\".Please try again later.";
     }
 
     //HA
@@ -769,51 +772,51 @@ public class Message {
     }
 
     public String getCOLUMU_IS_NOT_DIMENSION() {
-        return "Column [%s] is not dimension";
+        return "Please add column \"%s\" as a dimension.";
     }
 
     public String getMODEL_CAN_NOT_PURGE() {
-        return "Model [%s] is table oriented, can not purge the model";
+        return "Can’t purge data by specifying model \"%s\" under the current project settings.";
     }
 
     public String getMODEL_SEGMENT_CAN_NOT_REMOVE() {
-        return "Model [%s] is table oriented, can not remove segments manually!";
+        return "Can’t delete the segment(s) in model \"%s\" under the current project settings.";
     }
 
     public String getSEGMENT_CAN_NOT_REFRESH() {
-        return "Can not refresh, some segments is building within the range you want to refresh!";
+        return "Can’t refresh some segments, as they are being built at the moment. Please try again later.";
     }
 
     public String getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE() {
-        return "Ready segments range has changed, can not refresh, please try again.";
+        return "Can’t refresh at the moment, as the segment range has changed. Please try again later.";
     }
 
     public String getCAN_NOT_BUILD_SEGMENT() {
-        return "Can not build segments, please define table index or aggregate index first!";
+        return "Can’t build segment(s). Please add some indexes first.";
     }
 
     public String getCAN_NOT_BUILD_SEGMENT_MANUALLY() {
-        return "Table oriented model [%s] can not build segments manually!";
+        return "Can’t manually build segments in model \"%s\" under the current project settings.";
     }
 
     public String getCAN_NOT_BUILD_INDICES_MANUALLY() {
-        return "Table oriented model [%s] can not build indices manually!";
+        return "Can’t manually build indexes in model \"%s\" under the current project settings.";
     }
 
     public String getINVALID_MERGE_SEGMENT() {
-        return "Cannot merge segments which are not ready";
+        return "Can’t merge segments which are not ready yet.";
     }
 
     public String getINVALID_SET_TABLE_INC_LOADING() {
-        return "Can not set table '%s' incremental loading, as another model '%s' uses it as a lookup table";
+        return "Can‘t set table \"%s\" as incremental loading. It’s been used as a dimension table in model \"%s\".";
     }
 
     public String getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT() {
-        return "There is no ready segment to refresh!";
+        return "There is no ready segment to refresh at the moment. Please try again later.";
     }
 
     public String getINVALID_REFRESH_SEGMENT_BY_NOT_READY() {
-        return "Data during refresh range must be ready!";
+        return "Can’t refresh at the moment. Please ensure that all segments within the refresh range is ready.";
     }
 
     public String getINVALID_LOAD_HIVE_TABLE_NAME() {
@@ -833,39 +836,39 @@ public class Message {
     }
 
     public String getSEGMENT_LIST_IS_EMPTY() {
-        return "Segments id list can not empty!";
+        return "Can’t find the segment(s). Please check and try again.";
     }
 
     public String getSEGMENT_ID_NOT_EXIST() {
-        return "Can not find the Segments by ids [%s].";
+        return "Can’t find the segment by ID \"%s\". Please check and try again.";
     }
 
     public String getSEGMENT_NAME_NOT_EXIST() {
-        return "Can not find the Segments by names [%s].";
+        return "Can’t find the segment by name \"%s\". Please check and try again.";
     }
 
     public String getLAYOUT_LIST_IS_EMPTY() {
-        return "Layouts id list can not empty!";
+        return "Can’t find the layout(s). Please check and try again.";
     }
 
     public String getLAYOUT_NOT_EXISTS() {
-        return "Layouts [%s] not exist!";
+        return "Can’t find layout \"%s\". Please check and try again.";
     }
 
     public String getINVALID_REFRESH_SEGMENT() {
-        return "You should choose at least one segment to refresh!";
+        return "Please select at least one segment to refresh.";
     }
 
     public String getEMPTY_SEGMENT_PARAMETER() {
-        return "Please input the value of the Segment ID or Name.";
+        return "Please enter segment ID or name.";
     }
 
     public String getCONFLICT_SEGMENT_PARAMETER() {
-        return "You cannot input segment ID and Name at the same time.";
+        return "Can’t enter segment ID and name at the same time. Please re-enter.";
     }
 
     public String getINVALID_MERGE_SEGMENT_BY_TOO_LESS() {
-        return "You should choose at least two segment to merge!";
+        return "Please select at least two segments to merge.";
     }
 
     public String getCONTENT_IS_EMPTY() {
@@ -897,56 +900,55 @@ public class Message {
     }
 
     public String getINVALID_COMPUTER_COLUMN_NAME() {
-        return "The computed column's name:[%s] is invalid (null, start with number or underline, include symbol except char, "
-                + "number and underline), please choose another name.";
+        return "The computed column name \"%s\" is invalid. Please starts with a letter, and use only letters, numbers, and underlines. Please rename it.";
     }
 
     public String getMODEL_ALIAS_DUPLICATED() {
-        return "Model alias [%s] are duplicated!";
+        return "Model \"%s\" already exists. Please rename it.";
     }
 
     public String getINVALID_RANGE_LESS_THAN_ZERO() {
-        return "Start or end of range must be greater than 0!";
+        return "The start and end time should be greater than 0. Please modify it.";
     }
 
     public String getINVALID_RANGE_NOT_FORMAT() {
-        return "Invalid start or end time format. Only support timestamp type, unit ms";
+        return "The format of start or end time is invalid. Only supports timestamp with time unit of millisecond (ms). Please modify it.";
     }
 
     public String getINVALID_RANGE_END_LESSTHAN_START() {
-        return "The end time must be greater than the start time";
+        return "The end time must be greater than the start time. Please modify it.";
     }
 
     public String getINVALID_RANGE_NOT_CONSISTENT() {
-        return "Start and end must exist or not at the same time!";
+        return "The start and end time must exist or not exist at the same time. Please modify it.";
     }
 
     public String getID_CANNOT_EMPTY() {
-        return "Id cannot be empty";
+        return "ID can’t be empty. Please check and try again.";
     }
 
     public String getINVALID_CREATE_MODEL() {
-        return "Can not create model manually in SQL acceleration project!";
+        return "Can’t add model manually under this project.";
     }
 
     public String getSEGMENT_INVALID_RANGE() {
-        return "ToBeRefreshSegmentRange [%s] is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is [%s]";
+        return "Can’t refresh. The segment range \"%s\" exceeds the range of loaded data, which is \"%s\". Please modify and try again.";
     }
 
     public String getSEGMENT_RANGE_OVERLAP() {
-        return "Segments to build overlaps built or building segment from %s to %s, please select new data range and try again!";
+        return "Can’t build segment. The specified data range overlaps with the built segments from \"%s\" to \"%s\". Please modify and try again.";
     }
 
     public String getPARTITION_COLUMN_NOT_EXIST() {
-        return "Partition column does not exist!";
+        return "Can’t find the partition column. Please check and try again.";
     }
 
     public String getINVALID_PARTITION_COLUMN() {
-        return "Partition_date_column must use root fact table column";
+        return "Please select an original column (not a computed column) from the fact table as time partition column.";
     }
 
     public String getTABLE_NAME_CANNOT_EMPTY() {
-        return "Table name must be specified!";
+        return "Table name can’t be empty. Please check and try again.";
     }
 
     public String getTABLE_SAMPLE_MAX_ROWS() {
@@ -962,7 +964,7 @@ public class Message {
     }
 
     public String getBROKEN_MODEL_CANNOT_ONOFFLINE() {
-        return "Broken model [%s] can not online or offline!";
+        return "Can’t get model \"%s\" online or offline, as it’s in BROKEN state.";
     }
 
     public String getINVALID_NAME_START_WITH_DOT() {
@@ -988,7 +990,7 @@ public class Message {
     }
 
     public String getDUPLICATE_LAYOUT() {
-        return "The same index already exists.";
+        return "Can’t add this index, as the same index already exists. Please modify.";
     }
 
     public String getDEFAULT_REASON() {
@@ -1012,7 +1014,7 @@ public class Message {
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
-        return "Table '%s' not found.";
+        return "Can’t find the table \"%s\". Please check and try again.";
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
@@ -1078,7 +1080,7 @@ public class Message {
     }
 
     public String getSEGMENT_CONTAINS_GAPS() {
-        return "The range of segments %s and %s are discontinuous.";
+        return "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again.";
     }
 
     public String getSegmentMergeLayoutConflictError() {
@@ -1086,15 +1088,15 @@ public class Message {
     }
 
     public String getSegmentMergePartitionConflictError() {
-        return "The partitions included in the selected segments are not fully aligned. Please build partition first and try merging again.";
+        return "The subpartitions included in the selected segments are not fully aligned. Please build the subpartitions first and try merging again.";
     }
 
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
-        return "The dimension table of this model has been used as fact table. Please set another dimension table.";
+        return "Can’t set the dimension table of this model, as it has been used as fact table in another model. Please modify and try again.";
     }
 
     public String getNO_DATA_IN_TABLE() {
-        return "There are no data in table %s.";
+        return "Can’t get data from table \"%s\". Please check and try again.";
     }
 
     public String getEFFECTIVE_DIMENSION_NOT_FIND() {
@@ -1114,25 +1116,23 @@ public class Message {
     }
 
     public String getINVALID_INTEGER_FORMAT() {
-        return "Failed to rewrite the model settings, %s parameter value must be non-negative integer.";
+        return "Can’t rewrite the model settings. The value of  \"%s\" must be non-negative integer. Please modify and try again.";
     }
 
     public String getINVALID_MEMORY_SIZE() {
-        return "Failed to rewrite the model settings, spark-conf.spark.executor.instances parameter "
-                + "value must be a combination of non-negative integer and unit g.";
+        return "Can’t rewrite the model settings. The value of \"spark-conf.spark.executor.memory\" must be non-negative integer, with the unit of GB. Please modify and try again.";
     }
 
     public String getINVALID_BOOLEAN_FORMAT() {
-        return "Failed to rewrite the model settings, %s parameter value must be true or false.";
+        return "Can’t rewrite the model settings. The value of \"%s\" must be either “true” or “false”. Please modify and try again.";
     }
 
     public String getINVALID_AUTO_MERGE_CONFIG() {
-        return "Failed to rewrite model settings, automatic merge range cannot be empty.";
+        return "Can’t rewrite the model settings. The automatic merge range can’t be empty. Please modify and try again.";
     }
 
     public String getINVALID_VOLATILE_RANGE_CONFIG() {
-        return "Failed to rewrite the model setting, the unit of the dynamic interval parameter must be "
-                + "one of day, week, month, and year and the value must be non-negative integer.";
+        return "Can’t rewrite the model settings. The unit of the dynamic interval parameter must be either \"day\", \"week\", \"month\", or \"year\", and the value must be non-negative integer. Please modify and try again.";
     }
 
     public String getINVALID_RETENTION_RANGE_CONFIG() {
@@ -1157,11 +1157,11 @@ public class Message {
     }
 
     public String getEMPTY_DATABASE() {
-        return "Invalid value for parameter ‘database’ which should not be empty.";
+        return "Please enter the value for the parameter \"Database\". ";
     }
 
     public String getEMPTY_TABLE_LIST() {
-        return "Invalid value for parameter ‘tables’ which should not be empty.";
+        return "Please enter the value for the parameter \"Table\". ";
     }
 
     public String getEMPTY_TABLE_NAME() {
@@ -1201,7 +1201,8 @@ public class Message {
     }
 
     public String getCOLUMN_PARAMETER_INVALID(String column) {
-        return String.format(Locale.ROOT, "Column [%s] assignment is failed.Please check the column date type.",
+        return String.format(Locale.ROOT,
+                "Can’t assign value(s) for the column \"%s\", as the value(s) doesn’t match the column’s data type. Please check and try again.",
                 column);
     }
 
@@ -1218,7 +1219,7 @@ public class Message {
     }
 
     public String getADD_JOB_CHECK_FAIL() {
-        return "The job failed to be submitted. There already exists building job running under the corresponding subject.";
+        return "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
     }
 
     public String getADD_JOB_EXCEPTION() {
@@ -1247,20 +1248,21 @@ public class Message {
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
-        return "Add Job failed due to multi partition param is illegal.";
+        return "Can’t add the job. Please ensure that the operation is valid for the current object.";
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_EMPTY() {
-        return "Add Job failed due to multi partition value is empty.";
+        return "Can’t add the job, as the subpartition value is empty. Please check and try again.";
     }
 
-    public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
-        return String.format(Locale.ROOT, "Add Job failed due to partition [%s] is duplicated.", dupPartitions);
+    public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE() {
+        return "Can’t add the job. Please ensure that the subpartitions are unique.";
     }
 
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
         return String.format(Locale.ROOT,
-                "The table metadata can’t be reloaded now. Column %s already exists in table %s.", column, table);
+                "Can’t reload the table at the moment. Column \"%s\" already exists in table \"%s\". Please modify and try again.",
+                table, column);
     }
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
@@ -1268,7 +1270,7 @@ public class Message {
     }
 
     public String getCOLUMN_UNRECOGNIZED() {
-        return "Cannot recognize column(s) %s . When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model).";
+        return "Can’t recognize column \"%s\". Please use \"TABLE_ALIAS.COLUMN\" to reference a column.";
     }
 
     public String getInvalidJobStatusTransaction() {
@@ -1285,7 +1287,7 @@ public class Message {
     }
 
     public String getGROUP_UUID_NOT_EXIST() {
-        return "Group uuid %s is not exist.";
+        return "Can’t operate user group (UUID: %s). Please check and try again.";
     }
 
     public String getMODEL_ONLINE_WITH_EMPTY_SEG() {
@@ -1299,103 +1301,108 @@ public class Message {
     }
 
     public String getCONNECT_DATABASE_ERROR() {
-        return "Failed to connect database.Please check if the database connection is healthy.";
+        return "Can’t connect to the RDBMS metastore. Please check if the metastore is working properly.";
     }
 
     // acl
     public String getInvalidColumnAccess() {
-        return "The current user/group does not have permission of column %s.";
+        return "The current user or user group doesn’t have access to the column \"%s\".";
     }
 
     public String getInvalidSensitiveDataMaskColumnType() {
-        return "Boolean, Map, and Array data types do not support data masking.";
+        return "Can’t do data masking for the data with type of boolean, map or array.";
     }
 
     public String getNotSupportNestedDependentCol() {
-        return "Not Supported setting association rules on association columns [%s].";
+        return "Can’t set association rules on the column \"%s\". This column has been associated with another column.";
     }
 
     // Snapshots
     public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
-        return "Have no permission for table(s) '%s'.";
+        return "Don’t have permission. Please ensure that you have required permission to the table which this snapshot is associated with.";
     }
 
     public String getSNAPSHOT_NOT_FOUND() {
-        return "Snapshot(s) '%s' not found.";
+        return "Can't find the snapshot \"%s\". Please check and try again.";
     }
 
     public String getSNAPSHOT_MANAGEMENT_NOT_ENABLED() {
-        return "Snapshot management is not enabled.";
+        return "Snapshot management is not enabled in the settings. Please check and try again.";
     }
 
     public String getINVALID_DIAG_TIME_PARAMETER() {
-        return "The end time must be greater than the start time, please input the correct parameters to execute.";
+        return "The end time must be greater than the start time. Please modify it.";
     }
 
     // Resource Group
     public String getRESOURCE_GROUP_FIELD_IS_NULL() {
-        return "Resource group fields can not be null.";
+        return "Can’t execute this request. Please ensure that all the parameters for the resource group request are included.";
     }
 
     public String getRESOURCE_CAN_NOT_BE_EMPTY() {
-        return "In resource group mode, at least one resource group exists.";
+        return "Please ensure that at least one resource group exists once the resource group mode is enabled.";
     }
 
     public String getEMPTY_RESOURCE_GROUP_ID() {
-        return "Resource group id can not be empty.";
+        return "Resource group ID can’t be empty. Please check and try again.";
     }
 
-    public String getDUPLICATED_RESOURCE_GROUP_ID() {
-        return "Resource group id can not duplicated.";
+    public String getDUPLICATED_RESOURCE_GROUP_ID(String entityId) {
+        return String.format(Locale.ROOT, "The resource group ID \"%s\" already exists. Please check and try again.",
+                entityId);
     }
 
     public String getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM() {
-        return "Resource group information must be cleared before closing the resource group.";
+        return "To disable the resource group mode, please remove all the instances and projects for the existing resource groups.";
     }
 
     public String getPROJECT_WITHOUT_RESOURCE_GROUP() {
-        return "No Resource Group is allocated, please contact your administrator.";
+        return "Can’t use this project properly as no resource group has been allocated yet. Please contact admin.";
     }
 
     public String getEMPTY_KYLIN_INSTANCE_IDENTITY() {
-        return "Kylin instance filed can not be empty.";
+        return "Please enter a value for the parameter \"instance\".";
     }
 
     public String getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID() {
-        return "Kylin instance resource_group_id field can not be empty.";
+        return "Please enter a value for the parameter \"resource_group_id\".";
     }
 
-    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE() {
-        return "Kylin instance resource_group_id not exists.";
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE(String id) {
+        return String.format(Locale.ROOT,
+                "Can’t find the parameter \"resource_group_id\" in the instance, which value is \"%s\". Please check and try again.",
+                id);
     }
 
     public String getDUPLICATED_KYLIN_INSTANCE() {
-        return "Kylin instance can not duplicated.";
+        return "The same instance already exists. Please check and try again.";
     }
 
     public String getEMPTY_PROJECT_IN_MAPPING_INFO() {
-        return "Project can not be empty in mapping_info.";
+        return "The project can’t be empty in the mapping_info. Please check and try again.";
     }
 
     public String getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO() {
-        return "Resource group id can not be empty in mapping_info.";
+        return "The parameter \"resource_group_id\" can’t be empty in the mapping_info. Please check and try again.";
     }
 
     public String getPROJECT_BINDING_RESOURCE_GROUP_INVALID() {
-        return "A project is bound to two resource groups at most, and each request is bound to at most one resource group, invalid project name: [%s].";
+        return "Can’t allocate resource group for project \"%s\". Please ensure that the project is allocated to two resource groups at most. Meanwhile, each request (query or build) is allocated to one resource group.";
     }
 
-    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO() {
-        return "Mapping info resource_group_id not exists.";
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO(String id) {
+        return String.format(Locale.ROOT,
+                "Can’t find the parameter \"resource_group_id\" (\"%s\") in the mapping_info. Please check and try again.",
+                id);
     }
 
     public String getMODEL_ONLINE_FORBIDDEN() {
-        return "This model can’t go online.";
+        return "Can’t get the model online. Please set the configuration “kylin.model.offline“ as false first.";
     }
 
     // multi level partition mapping
     public String getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID() {
-        return "Failed to update multi-partition mapping, invalid request";
+        return "Can’t update the mapping relationships of the partition column. The value for the parameter “multi_partition_columns“ doesn’t match the partition column defined in the model. Please check and try again.";
     }
 
     public String getCONCURRENT_SUBMIT_JOB_LIMIT() {
@@ -1403,7 +1410,7 @@ public class Message {
     }
 
     public String getMODEL_IS_NOT_MLP() {
-        return "Model '%s' does not have sub partition.";
+        return "\"%s\" is not a multilevel partitioning model. Please check and try again.";
     }
 
     public String getINVALID_PARTITION_VALUE() {
@@ -1411,7 +1418,7 @@ public class Message {
     }
 
     public String getPARTITION_VALUE_NOT_SUPPORT() {
-        return "The subpartition column of model '%s' has not been set yet. Please set it first.";
+        return "Model \"%s\" hasn’t set a partition column yet. Please set it first and try again.";
     }
 
     public String getADMIN_PERMISSION_UPDATE_ABANDON() {

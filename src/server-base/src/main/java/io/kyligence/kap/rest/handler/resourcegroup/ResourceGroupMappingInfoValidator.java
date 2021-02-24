@@ -73,7 +73,7 @@ public class ResourceGroupMappingInfoValidator implements IResourceGroupRequestV
             }
             if (!resourceGroups.contains(info.getResourceGroupId())) {
                 throw new KylinException(INVALID_PARAMETER,
-                        MsgPicker.getMsg().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO());
+                        MsgPicker.getMsg().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO(info.getResourceGroupId()));
             }
         }
 

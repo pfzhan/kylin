@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -187,13 +188,16 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         // mock AclManager bean in spring
         ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
         PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
-        PowerMockito.when(SpringContext.getBean(PermissionFactory.class)).thenReturn(PowerMockito.mock(PermissionFactory.class));
-        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class)).thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
+        PowerMockito.when(SpringContext.getBean(PermissionFactory.class))
+                .thenReturn(PowerMockito.mock(PermissionFactory.class));
+        PowerMockito.when(SpringContext.getBean(PermissionGrantingStrategy.class))
+                .thenReturn(PowerMockito.mock(PermissionGrantingStrategy.class));
 
         AclManager aclManger = AclManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(projectDefault);
-        AclEntity projectAE = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE, projectInstance.getUuid());
+        AclEntity projectAE = AclEntityFactory.createAclEntity(AclEntityType.PROJECT_INSTANCE,
+                projectInstance.getUuid());
         AclServiceTest.MockAclEntity userAE = new AclServiceTest.MockAclEntity(user5);
         MutableAclRecord projectAcl = (MutableAclRecord) aclService.createAcl(new ObjectIdentityImpl(projectAE));
         aclService.createAcl(new ObjectIdentityImpl(userAE));
@@ -465,7 +469,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.assertTrue(e.getCause() instanceof KylinException);
-            Assert.assertTrue(e.getCause().getMessage().contains("Please check the column date type."));
+            Assert.assertTrue(e.getCause().getMessage()
+                    .contains("Can’t assign value(s) for the column \"DEFAULT.TEST_ORDER.ORDER_ID\""));
         }
     }
 
@@ -651,7 +656,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCREmptyTables() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Invalid value for parameter ‘tables’ which should not be empty");
+        thrown.expectMessage(Message.getInstance().getEMPTY_TABLE_LIST());
         val requests = getFillRequest();
         requests.get(0).setTables(null);
         aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
@@ -948,8 +953,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         column.setColumnName("NOT_EXIST_COLUMN");
         tableRequest.setColumns(Lists.newArrayList(column));
 
-        assertKylinExeption(() ->
-                aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request)),
+        assertKylinExeption(
+                () -> aclTCRService.mergeAclTCR(projectDefault, user1, true, Collections.singletonList(request)),
                 "Column:[EDW.TEST_SELLER_TYPE_DIM.NOT_EXIST_COLUMN] is not exist.");
 
         column.setColumnName("DIM_CRE_DATE");
@@ -1027,7 +1032,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             public boolean matches(Object item) {
                 if (item instanceof KylinException) {
                     return ((KylinException) item).getMessage()
-                            .contains("The current user/group does not have permission of column DIM_CRE_USER.");
+                            .contains("doesn’t have access to the column \"DIM_CRE_USER\"");
                 }
                 return false;
             }
@@ -1084,8 +1089,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             @Override
             public boolean matches(Object item) {
                 if (item instanceof KylinException) {
-                    return ((KylinException) item).getMessage().contains(
-                            "Not Supported setting association rules on association columns [DIM_CRE_DATE, DIM_CRE_USER]");
+                    return ((KylinException) item).getMessage()
+                            .contains("Can’t set association rules on the column \"DIM_CRE_DATE, DIM_CRE_USER\"");
                 }
                 return false;
             }
@@ -1125,8 +1130,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
             @Override
             public boolean matches(Object item) {
                 if (item instanceof KylinException) {
-                    return ((KylinException) item).getMessage()
-                            .contains("Boolean, Map, and Array data types do not support data masking.");
+                    return ((KylinException) item).getMessage().contains("boolean, map or array");
                 }
                 return false;
             }
@@ -1149,7 +1153,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         request.setPermission("ADMIN");
         request.setProject(projectDefault);
         request.setType(MetadataConstants.TYPE_USER);
-        List<AccessRequest> accessRequests = accessController.convertBatchPermissionRequestToAccessRequests(ae, request);
+        List<AccessRequest> accessRequests = accessController.convertBatchPermissionRequestToAccessRequests(ae,
+                request);
         Assert.assertEquals(user5, accessRequests.get(0).getSid());
         Assert.assertEquals("newUser", accessRequests.get(1).getSid());
 

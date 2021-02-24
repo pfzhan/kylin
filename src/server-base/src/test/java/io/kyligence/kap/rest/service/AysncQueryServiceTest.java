@@ -256,7 +256,8 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
-            Assert.assertEquals("The query corresponding to this query id in the current project cannot be found .",
+            Assert.assertEquals(
+                    "Can’t find the query corresponding to this ID in the current project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -267,7 +268,8 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             asyncQueryService.deleteByQueryId(PROJECT, "123");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
-            Assert.assertEquals("The query corresponding to this query id in the current project cannot be found .",
+            Assert.assertEquals(
+                    "Can’t find the query corresponding to this ID in the current project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -292,7 +294,8 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
-            Assert.assertEquals("The query corresponding to this query id in the current project cannot be found .",
+            Assert.assertEquals(
+                    "Can’t find the query corresponding to this ID in the current project. Please check and try again.",
                     e.getMessage());
         }
     }

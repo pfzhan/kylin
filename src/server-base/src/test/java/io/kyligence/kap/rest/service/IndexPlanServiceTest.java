@@ -35,12 +35,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
@@ -778,7 +780,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testUpdateAggShard_WithInvalidColumn() {
         val wrongColumn = "TEST_CAL_DT.WEEK_BEG_DT";
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Column [" + wrongColumn + "] is not dimension");
+        thrown.expectMessage(
+                String.format(Locale.ROOT, Message.getInstance().getCOLUMU_IS_NOT_DIMENSION(), wrongColumn));
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val request = new AggShardByColumnsRequest();
         request.setModelId(modelId);
@@ -930,7 +933,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         // delete not exists layoutIds
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Layouts [1010001,20000000001,20000010001] not exist!");
+        thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getLAYOUT_NOT_EXISTS(),
+                "1010001,20000000001,20000010001"));
         indexPlanService.removeIndexes(getProject(), modelId,
                 new HashSet<>(Arrays.asList(1010001L, 20000000001L, 20000010001L)));
 

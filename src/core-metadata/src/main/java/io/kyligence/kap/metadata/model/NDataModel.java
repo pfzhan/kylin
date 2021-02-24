@@ -1105,8 +1105,7 @@ public class NDataModel extends RootPersistentEntity {
                     func.init(this);
                 }
             } catch (Exception e) {
-                throw new KylinException(FAILED_UPDATE_MODEL, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getINIT_MEASURE_FAILED(), m.getName(), e.getMessage()));
+                throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getINIT_MEASURE_FAILED());
             }
         }
 

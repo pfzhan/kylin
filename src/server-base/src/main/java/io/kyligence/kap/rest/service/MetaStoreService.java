@@ -640,8 +640,13 @@ public class MetaStoreService extends BasicService {
             val modelSchemaChange = checkResult.getModels().get(modelImport.getOriginalName());
 
             if (modelSchemaChange == null || !modelSchemaChange.overwritable()) {
-                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
-                        msg.getUN_SUITABLE_IMPORT_TYPE(), modelImport.getOriginalName(), modelImport.getImportType()));
+                String createType = null;
+                if (modelSchemaChange != null && modelSchemaChange.creatable()) {
+                    createType = "NEW";
+                }
+                throw new KylinException(MODEL_IMPORT_ERROR,
+                        String.format(Locale.ROOT, msg.getUN_SUITABLE_IMPORT_TYPE(createType),
+                                modelImport.getImportType(), modelImport.getOriginalName()));
             }
         } else if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
 
@@ -662,8 +667,9 @@ public class MetaStoreService extends BasicService {
             val modelSchemaChange = checkResult.getModels().get(modelImport.getTargetName());
 
             if (modelSchemaChange == null || !modelSchemaChange.creatable()) {
-                throw new KylinException(MODEL_IMPORT_ERROR, String.format(Locale.ROOT,
-                        msg.getUN_SUITABLE_IMPORT_TYPE(), modelImport.getTargetName(), modelImport.getImportType()));
+                throw new KylinException(MODEL_IMPORT_ERROR,
+                        String.format(Locale.ROOT, msg.getUN_SUITABLE_IMPORT_TYPE(null), modelImport.getImportType(),
+                                modelImport.getTargetName()));
             }
 
         }

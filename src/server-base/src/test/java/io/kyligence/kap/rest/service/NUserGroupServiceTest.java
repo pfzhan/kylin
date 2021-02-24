@@ -96,8 +96,8 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         try {
             userGroupService.addGroup("g1");
         } catch (Exception e) {
-            Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
-                    "Group [g1] already exists."));
+            Assert.assertTrue(
+                    StringUtils.contains(e.getCause().getCause().getMessage(), "user group \"g1\" already exists"));
         }
 
         //test modify users in user group

@@ -318,7 +318,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains("are discontinuous."));
+            Assert.assertTrue(e.getMessage().contains(
+                    "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again."));
         }
 
         // Set seg1's cuboid-0's status to NEW
@@ -342,8 +343,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(
-                    e.getMessage().contains("The indexes included in the selected segments are not fully identical"));
+            Assert.assertTrue(e.getMessage().contains(
+                    "The indexes included in the selected segments are not fully identical. Please build index first and try merging again."));
         }
     }
 

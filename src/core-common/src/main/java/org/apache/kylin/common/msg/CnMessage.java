@@ -59,13 +59,12 @@ public class CnMessage extends Message {
     // Cube
     @Override
     public String getCHECK_CC_AMBIGUITY() {
-        return "当前模型下，可计算列名[%s]已被使用，请重新命名可计算列名";
+        return "可计算列名 “%s” 在当前模型下已存在。请重新命名。";
     }
-
 
     @Override
     public String getSEG_NOT_FOUND() {
-        return "找不到 Segment '%s' 在模型 '%s' 上";
+        return "Segment “%s” 在模型 “%s” 内不存在。请重试。";
     }
 
     @Override
@@ -75,12 +74,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getACL_DOMAIN_NOT_FOUND() {
-        return "找不到授权对象";
+        return "由于未知对象，当前无法赋权。请稍后再试，或联系技术支持。";
     }
 
     @Override
     public String getPARENT_ACL_NOT_FOUND() {
-        return "找不到上级授权";
+        return "由于未知对象，当前无法赋权。请稍后再试，或联系技术支持。";
     }
 
     @Override
@@ -91,7 +90,7 @@ public class CnMessage extends Message {
     // Model
     @Override
     public String getINVALID_MODEL_DEFINITION() {
-        return "非法模型定义";
+        return "无法找到模型。请检查后重试。";
     }
 
     @Override
@@ -101,22 +100,22 @@ public class CnMessage extends Message {
 
     @Override
     public String getINIT_MEASURE_FAILED() {
-        return "度量 %s 初始化失败：%s";
+        return "无法初始化元数据。请尝试重新启动。若问题依然存在，请联系技术支持。";
     }
 
     @Override
     public String getINVALID_MODEL_NAME() {
-        return "非法模型名称 '%s', 仅支持字母, 数字和下划线";
+        return "无效的模型名称 “%s”。请使用字母、数字或下划线命名。";
     }
 
     @Override
     public String getINVALID_DIMENSION_NAME() {
-        return "'%s'维度名称无效， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持%s 个字符。";
+        return "无效的维度名称 “%s”。请使用中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持%s 个字符。";
     }
 
     @Override
     public String getINVALID_MEASURE_NAME() {
-        return "'%s'度量名称无效， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持%s 个字符。";
+        return "无效的度量名称 “%s”。请使用中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持%s 个字符。";
     }
 
     @Override
@@ -131,7 +130,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getMODEL_NOT_FOUND() {
-        return "找不到模型 '%s'";
+        return "无法找到模型 “%s”。 请检查后重试。";
     }
 
     @Override
@@ -161,42 +160,42 @@ public class CnMessage extends Message {
 
     @Override
     public String getDUPLICATE_DIMENSION_NAME() {
-        return "维度名称 '%s' 已存在";
+        return "维度名称 “%s” 已存在。请重新命名。";
     }
 
     @Override
     public String getDUPLICATE_MEASURE_NAME() {
-        return "度量名称 '%s' 已存在";
+        return "度量名称 “%s” 已存在。请重新命名。";
     }
 
     @Override
     public String getDUPLICATE_MEASURE_DEFINITION() {
-        return "维度表达 '%s' 已存在，不能被创建";
+        return "该度量的定义和度量 “%s” 相同。请修改。";
     }
 
     @Override
     public String getDUPLICATE_JOIN_CONDITIONS() {
-        return "Join条件 '%s'和'%s' 已存在，不能被创建";
+        return "“%s” 和 “%s” 已存在联接条件，不能被创建。请修改。";
     }
 
     @Override
     public String getCheckCCType() {
-        return "可计算列 {0} 定义的数据类型 {2} 与实际类型{1} 不符，请修改后进行重试";
+        return "可计算列 “{0}” 定义的数据类型 “{2}” 与实际类型 “{1}” 不符。请修改。";
     }
 
     @Override
     public String getCheckCCExpression() {
-        return "可计算列 %s 表达式 %s 校验失败。";
+        return "无法校验表达式 “%s” (可计算列：%s)。请检查表达式的正确性，或稍后重试。";
     }
 
     @Override
     public String getMODEL_METADATA_PACKAGE_INVALID() {
-        return "解析失败，请检查模型数据包是否完整。";
+        return "无法解析文件。请检查该文件的完整性。";
     }
 
     @Override
     public String getEXPORT_BROKEN_MODEL() {
-        return "无法导出 Broken 的模型 [%s]。";
+        return "无法导出模型 “%s”，因为该模型状态为 “BROKEN” 。请重新选择并重试。";
     }
 
     @Override
@@ -206,27 +205,31 @@ public class CnMessage extends Message {
 
     @Override
     public String getIMPORT_MODEL_EXCEPTION() {
-        return "模型导入失败。";
+        return "无法导入模型。";
     }
 
     @Override
-    public String getUN_SUITABLE_IMPORT_TYPE() {
-        return "模型 [%s] 的导入类型 [%s] 不合法。";
+    public String getUN_SUITABLE_IMPORT_TYPE(String optionalType) {
+        if (optionalType == null) {
+            return "导入类型 “%s“ 对模型 “%s” 不可用，仅可选择 “UN_IMPORT”。";
+        } else {
+            return "导入类型 “%s“ 对模型 “%s” 不可用，仅可选择 “UN_IMPORT” (或 “" + optionalType + "”)。";
+        }
     }
 
     @Override
     public String getCAN_NOT_OVERWRITE_MODEL() {
-        return "模型 [%s] 不存在，不能够覆盖。";
+        return "无法覆盖模型 “%s“，因为该模型不存在。请重新选择后重试。";
     }
 
     @Override
     public String getILLEGAL_MODEL_METADATA_FILE() {
-        return "导入的元数据文件不合法。";
+        return "无法解析元数据文件。请勿修改或重新压缩导出的文件。";
     }
 
     @Override
     public String getEXPORT_AT_LEAST_ONE_MODEL() {
-        return "至少需要选择一个模型导出。";
+        return "请至少选择一个模型进行导出。";
     }
 
     @Override
@@ -236,7 +239,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL() {
-        return "该表达式在模型内已存在。";
+        return "该可计算列表达式在模型内已存在。请修改。";
     }
 
     @Override
@@ -246,17 +249,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL() {
-        return "该可计算列名在模型内已存在。";
+        return "该可计算列名在模型内已存在。请修改。";
     }
 
     @Override
     public String getMODEL_CHANGE_PERMISSION() {
-        return "仅系统管理员和项目管理员可以更改模型的所有者。";
+        return "没有权限操作。仅系统管理员和项目管理员可以更改模型的所有者。";
     }
 
     @Override
     public String getMODEL_OWNER_CHANGE_INVALID_USER() {
-        return "非法用户！仅系统管理员、项目的管理员角色和 Management 角色可以被设置成模型的所有者。";
+        return "该用户无法被设置成模型所有者。请选择系统管理员、项目管理员、或模型管理员。";
     }
 
     // index
@@ -288,12 +291,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getILLEGAL_STATE_TRANSFER() {
-        return "非法的任务状态转移, id: [%s], 转移前: [%s], 转移后: [%s]";
+        return "任务状态更新时遇到错误，无法执行当前操作。请刷新任务列表后重试。";
     }
 
     @Override
     public String getINVALID_PRIORITY() {
-        return "无效优先级，必须在0-4范围内";
+        return "选择的优先级无效。请选择在 0 到 4 范围内的数值。";
     }
 
     // Acl
@@ -304,7 +307,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getUSERGROUP_EXIST() {
-        return "用户组 [%s] 已存在。";
+        return "用户组 “%s” 已存在。请检查后重试。";
     }
 
     // Project
@@ -475,7 +478,7 @@ public class CnMessage extends Message {
     // Async Query
     @Override
     public String getQUERY_RESULT_NOT_FOUND() {
-        return "该查询不存在有效的结果, 请首先检查它的状态";
+        return "无法在当前项目下找到对应该 ID 的查询。请检查后重试。";
     }
 
     @Override
@@ -686,24 +689,24 @@ public class CnMessage extends Message {
 
     @Override
     public String getTABLENOTFOUND() {
-        return "模型 [%s] 保存失败，请确保模型中使用的列 [%s] 在源表 [%s] 中存在";
+        return "模型 “%s” 保存失败。请确保模型中使用的列 “%s” 在源表 “%s” 中存在。";
     }
 
     // Async push down get date format
     @Override
     public String getPUSHDOWN_PARTITIONFORMAT_ERROR() {
-        return "获取失败，请手动选择分区格式";
+        return "自动探测失败，请手动选择分区格式。";
     }
 
     // Async push down get data range
     @Override
     public String getPUSHDOWN_DATARANGE_ERROR() {
-        return "获取失败，请手动选择数据范围";
+        return "自动探测失败，请手动选择数据范围。";
     }
 
     @Override
     public String getPUSHDOWN_DATARANGE_TIMEOUT() {
-        return "获取超时，请手动选择数据范围";
+        return "自动探测失败，请手动选择数据范围。";
     }
 
     @Override
@@ -718,7 +721,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getNESTED_CC_CASCADE_ERROR() {
-        return "操作失败，在当前模型中存在嵌套可计算列[%s]依赖于当前可计算列[%s]，嵌套可计算列的表达式为[%s]。";
+        return "无法修改可计算列 “%s”。当前模型中存在嵌套可计算列 “%s” 依赖于当前可计算列。请先解除引用关系后再进行修改。";
     }
 
     @Override
@@ -744,12 +747,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getSEGMENT_LOCKED() {
-        return "由于 Segment %s 被锁定，所以不能删除、刷新或者合并该 Segment。";
+        return "Segment “%s” 被锁定，无法删除、刷新或合并。请稍后重试。";
     }
 
     @Override
     public String getSEGMENT_STATUS(String status) {
-        return "由于 Segment %s 处于 " + status + " 状态，所以不能合并或者刷新该 Segment。";
+        return "Segment “%s” 处于 “" + status + "” 状态，无法刷新或合并。请稍后重试。";
     }
 
     //Kerberos
@@ -831,62 +834,62 @@ public class CnMessage extends Message {
 
     @Override
     public String getCOLUMU_IS_NOT_DIMENSION() {
-        return "列[%s]不是一个维度";
+        return "请先添加列 “%s” 为维度。";
     }
 
     @Override
     public String getMODEL_CAN_NOT_PURGE() {
-        return "模型[%s]无法被清除";
+        return "当前项目设置下，不支持指定模型 “%s” 清除数据。";
     }
 
     @Override
     public String getMODEL_SEGMENT_CAN_NOT_REMOVE() {
-        return "模型[%s]不能手动清除Segment";
+        return "当前项目设置下，无法手动删除模型 “%s” 中的 Segment。";
     }
 
     @Override
     public String getSEGMENT_CAN_NOT_REFRESH() {
-        return "由于您需要刷新的Segment中有部分Segment正在构建，您现在无法刷新。";
+        return "有部分 Segment 正在构建，无法刷新。请稍后重试。";
     }
 
     @Override
     public String getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE() {
-        return "可用的Segment范围已更改，无法刷新，请重试。";
+        return "当前无法刷新 Segment，因为范围已更改。请稍后重试。";
     }
 
     @Override
     public String getCAN_NOT_BUILD_SEGMENT() {
-        return "无法构建Segment，请先定义聚合索引或者明细索引。";
+        return "无法构建 Segment。请先添加索引。";
     }
 
     @Override
     public String getCAN_NOT_BUILD_SEGMENT_MANUALLY() {
-        return "模型[%s]不能手动构建Segment";
+        return "当前项目设置下，无法手动构建模型 “%s” 的 Segment。";
     }
 
     @Override
     public String getCAN_NOT_BUILD_INDICES_MANUALLY() {
-        return "模型[%s]不能手动构建索引";
+        return "当前项目设置下，无法手动构建模型 “%s” 的索引。";
     }
 
     @Override
     public String getINVALID_MERGE_SEGMENT() {
-        return "无法合并暂不可用的Segment";
+        return "无法合并暂不可用的 Segment。";
     }
 
     @Override
     public String getINVALID_SET_TABLE_INC_LOADING() {
-        return "无法设置表[％s]的增量加载，因为另一个模型[％s]将该表用作维表";
+        return "无法设置表 “％s” 的增量加载，因为其已在模型 “％s” 中作为维表使用。";
     }
 
     @Override
     public String getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT() {
-        return "没有可用的Segment可以刷新";
+        return "当前没有可用的 Segment 可以刷新，请稍后重试。";
     }
 
     @Override
     public String getINVALID_REFRESH_SEGMENT_BY_NOT_READY() {
-        return "刷新范围内的数据必须就绪";
+        return "当前无法刷新，请确保刷新范围内的所有 Segment 均已就绪。";
     }
 
     @Override
@@ -941,47 +944,47 @@ public class CnMessage extends Message {
 
     @Override
     public String getSEGMENT_LIST_IS_EMPTY() {
-        return "Segments 列表为空";
+        return "找不到 Segment。请检查后重试。";
     }
 
     @Override
     public String getSEGMENT_ID_NOT_EXIST() {
-        return "Segment Ids [%s] 不存在。";
+        return "找不到 ID 为 “%s” 的 Segment。请检查后重试。";
     }
 
     @Override
     public String getSEGMENT_NAME_NOT_EXIST() {
-        return "Segment Names [%s] 不存在。";
+        return "找不到名为 “%s” 的 Segment。请检查后重试。”。";
     }
 
     @Override
     public String getLAYOUT_LIST_IS_EMPTY() {
-        return "Layouts 列表为空";
+        return "找不到 Layout。请检查后重试。";
     }
 
     @Override
     public String getLAYOUT_NOT_EXISTS() {
-        return "Layouts [%s] 不存在!";
+        return "找不到 Layout “%s”。请检查后重试。";
     }
 
     @Override
     public String getINVALID_REFRESH_SEGMENT() {
-        return "您应该至少选择一个Segment来刷新。";
+        return "请至少选一个 Segment 刷新。";
     }
 
     @Override
     public String getEMPTY_SEGMENT_PARAMETER() {
-        return "请输入 Segment ID 或者 Segment Name。";
+        return "请输入 Segment ID 或名称。";
     }
 
     @Override
     public String getCONFLICT_SEGMENT_PARAMETER() {
-        return "您不能同时输入Segment ID 和 Name。";
+        return "不能同时输入 Segment ID 和名称。请重新输入。";
     }
 
     @Override
     public String getINVALID_MERGE_SEGMENT_BY_TOO_LESS() {
-        return "您应该至少选择两个Segment来合并。";
+        return "请至少选择两个 Segment 合并。";
     }
 
     @Override
@@ -1021,67 +1024,67 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_COMPUTER_COLUMN_NAME() {
-        return "计算列[%s]的名称不能为空，或以字母以外的符号开头，或包含字母、数字、下划线以外的符号，请使用其他名称。";
+        return "无效的计算列名称 “%s”。请以字母开头，并只使用字母、数字、下划线。请重新命名。";
     }
 
     @Override
     public String getMODEL_ALIAS_DUPLICATED() {
-        return "模型表名[%s]已存在";
+        return "模型 “%s” 已存在。请重新命名。";
     }
 
     @Override
     public String getINVALID_RANGE_LESS_THAN_ZERO() {
-        return "起始时间和终止时间必须大于0";
+        return "起始时间和终止时间必须大于 0。请修改。";
     }
 
     @Override
     public String getINVALID_RANGE_NOT_FORMAT() {
-        return "无效的起始时间或终止时间格式。仅支持时间戳类型，单位毫秒";
+        return "起始或终止时间格式无效。仅支持时间戳，单位毫秒（ms）。请修改。";
     }
 
     @Override
     public String getINVALID_RANGE_END_LESSTHAN_START() {
-        return "终止时间必须大于起始时间";
+        return "终止时间必须大于起始时间。请修改。";
     }
 
     @Override
     public String getINVALID_RANGE_NOT_CONSISTENT() {
-        return "起始时间和终止时间必须同时存在或者同时不存在";
+        return "起始时间和终止时间必须同时存在或者同时不存在。请修改。";
     }
 
     @Override
     public String getID_CANNOT_EMPTY() {
-        return "ID不能为空";
+        return "ID 不能为空。请检查后重试。";
     }
 
     @Override
     public String getINVALID_CREATE_MODEL() {
-        return "无法在SQL加速项目中手动创建模型！";
+        return "无法在此项目中手动添加模型。";
     }
 
     @Override
     public String getSEGMENT_INVALID_RANGE() {
-        return "要刷新的[%s] Segment 范围已经超出了加载数据的范围，加载数据的范围是[%s]";
+        return "无法刷新，Segment 范围 “%s” 超出了加载数据的范围 “%s”。请修改后重试。";
     }
 
     @Override
     public String getSEGMENT_RANGE_OVERLAP() {
-        return "将要构建的范围和已构建的范围重合，从[%s]到[%s]，请选择新的数据范围，然后重试";
+        return "无法构建，待构建的范围和已构建的范围在 “%s” 到 “%s” 之间存在重合。请修改后重试。";
     }
 
     @Override
     public String getPARTITION_COLUMN_NOT_EXIST() {
-        return "分区列不存在";
+        return "无法找到分区列。请检查后重试。";
     }
 
     @Override
     public String getINVALID_PARTITION_COLUMN() {
-        return "时间分区列必须使用事实表上的原始列";
+        return "请选择事实表上的原始列（而非可计算列）作为时间分区列。";
     }
 
     @Override
     public String getTABLE_NAME_CANNOT_EMPTY() {
-        return "必须指定表名！";
+        return "表名不能为空。请检查后重试。";
     }
 
     @Override
@@ -1117,7 +1120,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getBROKEN_MODEL_CANNOT_ONOFFLINE() {
-        return "处于Broken状态的模型[%s]无法上线或下线";
+        return "模型 “%s” 无法上线或下线，因为其处于 BROKEN 状态。";
     }
 
     @Override
@@ -1147,7 +1150,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDUPLICATE_LAYOUT() {
-        return "已存在相同的索引。";
+        return "无法新建该索引，因为已存在相同的索引。请修改。";
     }
 
     @Override
@@ -1177,7 +1180,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
-        return "没有找到表 “%s”。";
+        return "无法找到表 “%s” 。请检查后重试。";
     }
 
     @Override
@@ -1252,7 +1255,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getSEGMENT_CONTAINS_GAPS() {
-        return "Segment %s 和 %s 区间不连续。";
+        return "无法合并所选 Segment，因为时间范围不连续。请检查后重试。";
     }
 
     @Override
@@ -1262,17 +1265,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getSegmentMergePartitionConflictError() {
-        return "当前 segments 所包含的分区不一致，请先构建分区并确保其一致后再合并";
+        return "当前 Segments 所包含的分区不一致，请先构建分区并确保其一致后再合并。";
     }
 
     @Override
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
-        return "此模型维度表已被设置为事实表。请重新设置维度表。";
+        return "无法设置此模型的维度表，因为其已被用作其他模型的事实表。请修改后重试。";
     }
 
     @Override
     public String getNO_DATA_IN_TABLE() {
-        return "表[%s]中无数据。";
+        return "无法从表 “%s” 中获取数据。请检查后重试。";
     }
 
     @Override
@@ -1293,22 +1296,22 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_INTEGER_FORMAT() {
-        return "重写模型设置失败，%s 参数值必须为非负整数.";
+        return "无法重写模型设置，“%s” 参数值必须为非负整数。请修改后重试。";
     }
 
     @Override
     public String getINVALID_MEMORY_SIZE() {
-        return "重写模型设置失败，spark-conf.spark.executor.memory 参数值必须为非负整数与单位 g 的组合.";
+        return "无法重写模型设置，“spark-conf.spark.executor.memory” 参数值必须为非负整数，且单位为 GB。请修改后重试。";
     }
 
     @Override
     public String getINVALID_BOOLEAN_FORMAT() {
-        return "重写模型设置失败，%s 参数值必须为 true 或 false.";
+        return "无法重写模型设置，“%s” 参数值必须为 “true” 或 “false”。请修改后重试。";
     }
 
     @Override
     public String getINVALID_AUTO_MERGE_CONFIG() {
-        return "重写模型设置失败，自动合并范围不能为空.";
+        return "无法重写模型设置，自动合并范围不能为空。请修改后重试。";
     }
 
     @Override
@@ -1317,11 +1320,11 @@ public class CnMessage extends Message {
     }
 
     public String getCOLUMN_PARAMETER_INVALID(String column) {
-        return String.format(Locale.ROOT, "列 [%s] 赋值失败，请检查该列类型后重新赋值。", column);
+        return String.format(Locale.ROOT, "无法给列 ”%s” 赋值，值和列的类型不匹配。请检查后重试。", column);
     }
 
     public String getINVALID_VOLATILE_RANGE_CONFIG() {
-        return "重写模型设置失败，动态区间参数单位必须为天、周、月、年其中一个,且值必须为非负整数.";
+        return "无法重写模型设置，动态区间参数单位必须为“天”、“周”、“月”、“年”其中一个，且值必须为非负整数。请修改后重试。";
     }
 
     @Override
@@ -1351,7 +1354,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADD_JOB_CHECK_FAIL() {
-        return "任务提交失败，相应构建对象下已有任务在运行。";
+        return "当前无法提交任务，因为已有相同对象的构建任务正在进行。请稍后再试。";
     }
 
     @Override
@@ -1376,12 +1379,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getEMPTY_DATABASE() {
-        return "database 参数为空";
+        return "请输入参数 “Database” 的值。";
     }
 
     @Override
     public String getEMPTY_TABLE_LIST() {
-        return "table 参数为空";
+        return "请输入参数 “Table” 的值。";
     }
 
     @Override
@@ -1395,20 +1398,20 @@ public class CnMessage extends Message {
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
-        return "添加任务失败，多级分区参数不合法。";
+        return "无法添加任务。请确保该操作对当前对象有效。";
     }
 
     public String getADD_JOB_CHECK_MULTI_PARTITION_EMPTY() {
-        return "添加任务失败，多级分区值为空。";
+        return "无法添加任务，子分区值为空。请检查后重试。";
     }
 
-    public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE(String dupPartitions) {
-        return String.format(Locale.ROOT, "添加任务失败，分区 [%s] 是重复的.", dupPartitions);
+    public String getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE() {
+        return "无法添加任务。请确保不存在重复的子分区值。";
     }
 
     @Override
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
-        return String.format(Locale.ROOT, "当前暂不可重载表。表 %s 中已经存在列 %s。", table, column);
+        return String.format(Locale.ROOT, "当前无法重载表。列 “%s” 在表 “%s” 中已存在。请修改后重试。", column, table);
     }
 
     @Override
@@ -1418,7 +1421,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getCOLUMN_UNRECOGNIZED() {
-        return "表达式中的列名无法识别 %s 。当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名)。";
+        return "无法识别表达式中的列名 “%s”。 请使用 “TABLE_ALIAS.COLUMN“ 来命名。";
     }
 
     @Override
@@ -1438,19 +1441,24 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getGROUP_UUID_NOT_EXIST() {
+        return "无法操作用户组 (UUID:%s)。请检查后重试。";
+    }
+
+    @Override
     public String getMODEL_ONLINE_WITH_EMPTY_SEG() {
         return "该模型尚未添加 Segment，不可服务于查询。请先添加 Segment 后再上线。";
     }
 
     @Override
     public String getMODEL_ONLINE_FORBIDDEN() {
-        return "该模型不可上线";
+        return "无法上线该模型。若需上线，请将配置项 “kylin.model.offline“ 设为 false。";
     }
 
     // multi level partition mapping
     @Override
     public String getMULTI_PARTITION_MAPPING_REQEUST_NOT_VALID() {
-        return "更新多级分区映射关系失败, 字段 'multi_partition_columns' 必须和模型中定义的多级分区列完全一致";
+        return "无法更新多级分区列映射关系，参数 “multi_partition_columns“ 的值和模型中定义的多级分区列不一致。请检查后重试。";
     }
 
     @Override
@@ -1460,119 +1468,114 @@ public class CnMessage extends Message {
 
     @Override
     public String getCONNECT_DATABASE_ERROR() {
-        return "连接数据库异常。请检查数据库连接是否正常。";
+        return "当前无法连接 RDBMS 元数据库。请检查元数据库是否工作正常。";
     }
 
     // acl
     @Override
     public String getInvalidColumnAccess() {
-        return "当前用户/组对 %s 列没有访问权限。";
+        return "当前用户或用户组没有权限访问列 “%s“ 。";
     }
 
     @Override
     public String getInvalidSensitiveDataMaskColumnType() {
-        return "Boolean、Map、Array 数据类型暂不支持脱敏。";
+        return "暂不支持对 Boolean, Map, Array 类型的数据进行脱敏。";
     }
 
     public String getNotSupportNestedDependentCol() {
-        return "不支持在关联列 [%s] 上设置关联规则";
+        return "无法对列 “%s” 设置关联规则，因为该列已被其他列关联。";
     }
 
     // Snapshots
     @Override
     public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
-        return "没有获取如下表信息的权限：'%s'。";
+        return "没有权限操作此快照。请确保您有该快照对应的表的相关权限。";
     }
 
     @Override
     public String getSNAPSHOT_NOT_FOUND() {
-        return "获取不到如下快照：'%s'。";
+        return "无法找到快照 “%s”。请检查后重试。";
     }
 
     @Override
     public String getSNAPSHOT_MANAGEMENT_NOT_ENABLED() {
-        return "快照管理模式未开启";
+        return "快照管理模式未开启。请检查后重试。";
     }
 
     @Override
     public String getINVALID_DIAG_TIME_PARAMETER() {
-        return "终止时间必须大于起始时间，请输入正确的参数执行。";
+        return "终止时间必须大于起始时间。请修改。";
     }
 
     // Resource Group
     @Override
     public String getRESOURCE_GROUP_FIELD_IS_NULL() {
-        return "资源组请求字段均不能为 null。";
+        return "无法完成该请求。请确保资源组请求需要的所有参数都已填写完整。";
     }
 
     @Override
     public String getRESOURCE_CAN_NOT_BE_EMPTY() {
-        return "在资源组模式下，至少存在一个资源组。";
+        return "当资源组模式开启后，请确保至少存在一个资源组。";
     }
 
     @Override
     public String getEMPTY_RESOURCE_GROUP_ID() {
-        return "资源组 id 不能为空。";
+        return "资源组 ID 不能为空。请检查后重试。";
     }
 
     @Override
-    public String getDUPLICATED_RESOURCE_GROUP_ID() {
-        return "资源组不能有重复的 id。";
+    public String getDUPLICATED_RESOURCE_GROUP_ID(String entityId) {
+        return String.format(Locale.ROOT, "资源组 ID “%s“ 已存在。请检查后重试。", entityId);
     }
 
     @Override
     public String getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM() {
-        return "关闭资源组前必须清空资源组信息.";
+        return "如需关闭资源组模式，请先移除资源组关联的实例和项目。";
     }
 
     @Override
     public String getPROJECT_WITHOUT_RESOURCE_GROUP() {
-        return "当前项目未绑定资源组，请联系管理员。";
+        return "当前项目未绑定资源组，无法正常使用。请联系管理员进行绑定。";
     }
 
     @Override
     public String getEMPTY_KYLIN_INSTANCE_IDENTITY() {
-        return "实例 instance 字段不能为空。";
+        return "请填写参数 ”Instance” 的值。";
     }
 
     @Override
     public String getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID() {
-        return "实例 resource_group_id 字段不能为空。";
+        return "请填写参数 “resource_group_id” 的值。";
     }
 
     @Override
-    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE() {
-        return "实例中的 resource_group_id 不存在。";
+    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE(String id) {
+        return String.format(Locale.ROOT, "无法在实例中找到值为 “%s” 的 “resource_group_id“。请检查后重试。", id);
     }
 
     @Override
     public String getDUPLICATED_KYLIN_INSTANCE() {
-        return "实例不能重复。";
+        return "存在重复的实例。请检查后重试。";
     }
 
     @Override
     public String getEMPTY_PROJECT_IN_MAPPING_INFO() {
-        return "mapping_info 中，project 不能为空。";
+        return "在 mapping_info 中，项目不可为空。请检查后重试。";
     }
 
     @Override
     public String getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO() {
-        return "mapping_info 中，resource_group_id 不能为空。";
+        return "在 mapping_info 中，参数 “resource_group_id” 不能为空。请检查后重试。";
     }
 
     @Override
     public String getPROJECT_BINDING_RESOURCE_GROUP_INVALID() {
-        return "一个项目最多绑定两个资源组，每种请求最多绑定一个资源组，不合理的项目名称： [%s].";
-    }
-
-    @Override
-    public String getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO() {
-        return "mapping_info 中，resource_group_id 不存在。";
+        return "无法绑定项目 “%s” 的资源请求。请确保一个项目最多绑定两个资源组，且构建和查询请求各绑定一个资源组。";
     }
 
     @Override
     public String getMODEL_IS_NOT_MLP() {
-        return "模型 '%s' 没有子分区。";
+        return "模型 “%s“ 未设置多级分区。请检查后重试。";
     }
 
     @Override
@@ -1582,7 +1585,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPARTITION_VALUE_NOT_SUPPORT() {
-        return "模型 '%s' 未设置子分区列，请先进行设置";
+        return "模型 “%s” 未设置子分区列。请设置后重试。";
     }
 
     @Override

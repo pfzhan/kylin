@@ -59,7 +59,7 @@ public class NUserGroupManagerTest extends NLocalFileMetadataTestCase {
             group.add("g1");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (KylinException e) {
-            Assert.assertEquals("Group [g1] already exists.", e.getMessage());
+            Assert.assertEquals("The user group \"g1\" already exists. Please check and try again.", e.getMessage());
         }
 
         group.delete("g1");
@@ -85,7 +85,7 @@ public class NUserGroupManagerTest extends NLocalFileMetadataTestCase {
             group.add("TEST1");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (KylinException e) {
-            Assert.assertEquals("Group [test1] already exists.", e.getMessage());
+            Assert.assertEquals("The user group \"test1\" already exists. Please check and try again.", e.getMessage());
         }
 
         group.delete("Test1");

@@ -50,17 +50,20 @@ public class ResourceGroupKylinInstanceValidator implements IResourceGroupReques
         if (!request.isResourceGroupEnabled()) {
             return;
         }
-        List<String> resourceGroups = request.getResourceGroupEntities().stream().map(ResourceGroupEntity::getId).collect(Collectors.toList());
+        List<String> resourceGroups = request.getResourceGroupEntities().stream().map(ResourceGroupEntity::getId)
+                .collect(Collectors.toList());
         List<KylinInstance> instances = request.getKylinInstances();
         for (KylinInstance instance : instances) {
             if (StringUtils.isBlank(instance.getInstance())) {
                 throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_KYLIN_INSTANCE_IDENTITY());
             }
             if (StringUtils.isBlank(instance.getResourceGroupId())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID());
+                throw new KylinException(INVALID_PARAMETER,
+                        MsgPicker.getMsg().getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID());
             }
             if (!resourceGroups.contains(instance.getResourceGroupId())) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE());
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg()
+                        .getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE(instance.getResourceGroupId()));
             }
         }
         val identities = instances.stream().map(KylinInstance::getInstance).collect(Collectors.toList());

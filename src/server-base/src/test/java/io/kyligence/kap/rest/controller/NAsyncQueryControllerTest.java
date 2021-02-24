@@ -259,9 +259,8 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))).andExpect(result -> {
-                    Assert.assertEquals(
-                            "The query corresponding to this query id in the current project cannot be found .",
-                            result.getResolvedException().getMessage());
+                    Assert.assertTrue(result.getResolvedException().getMessage()
+                            .contains("Can’t find the query corresponding to this ID in the current project"));
                 });
 
         Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),

@@ -297,7 +297,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof KylinException);
                 Assert.assertEquals(
-                        "Cannot init measure TEST_MEASURE_WITH_CC: Column 'TEST_KYLIN_FACT.TEST_CC_1' not found in any table.",
+                        "Can’t initialize metadata at the moment. Please try restarting first. If the problem still exist, please contact technical support.",
                         e.getMessage());
             }
 
@@ -347,7 +347,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testUpdateMeasure_DuplicateParams() throws Exception {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "The measure definition is the same as the measure 'TRANS_SUM2'. So this measure cannot be created.");
+                "The definition of this measure  is the same as measure \"TRANS_SUM2\". Please modify it.");
         val request = newSemanticRequest();
         val newMeasure1 = new SimplifiedMeasure();
         newMeasure1.setName("TRANS_SUM2");
@@ -759,7 +759,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         try {
             modelService.updateDataModelSemantic(getProject(), request);
         } catch (KylinException e) {
-            Assert.assertEquals("Cannot init measure NEST5_SUM: Invalid column type varchar(4096) for measure SUM",
+            Assert.assertEquals(
+                    "Can’t initialize metadata at the moment. Please try restarting first. If the problem still exist, please contact technical support.",
                     e.getMessage());
         }
     }
@@ -780,9 +781,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         // expect a KylinException when modify cc used by a nested cc
         NDataModel modelDesc = getTestModel();
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Operation failed. There is a nested computed column [TEST_KYLIN_FACT.NEST6] "
-                + "in the current model depends on the current computed column [TEST_KYLIN_FACT.NEST5]. "
-                + "The expression of nested computed column is [TEST_KYLIN_FACT.NEST5+1].");
+        thrown.expectMessage(
+                "Can’t modify computed column \"TEST_KYLIN_FACT.NEST5\". It’s been referenced by a nested computed column \"TEST_KYLIN_FACT.NEST6\" in the current model. Please remove it from the nested column first.");
         modelService.checkComputedColumn(modelDesc, getProject(), "TEST_KYLIN_FACT.NEST5");
     }
 

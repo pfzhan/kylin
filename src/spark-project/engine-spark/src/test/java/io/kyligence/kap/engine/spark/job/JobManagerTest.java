@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -63,6 +62,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -83,7 +83,6 @@ import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
-import org.junit.rules.ExpectedException;
 
 /**
  *
@@ -136,13 +135,13 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
             // build none partition
             param.setTargetPartitions(Sets.newHashSet());
             jobManager.buildPartitionJob(param);
-        }, "Add Job failed due to multi partition value is empty.");
+        }, "Can’t add the job, as the subpartition value is empty. Please check and try again.");
 
         assertExeption(() -> {
             // build a partition already in segment
             param.setTargetPartitions(Sets.newHashSet(7L));
             jobManager.buildPartitionJob(param);
-        }, "Add Job failed due to multi partition param is illegal.");
+        }, "Can’t add the job. Please ensure that the operation is valid for the current object.");
 
         long originBucketId = df.getSegment(segmentId).getMaxBucketId();
         // success build partition
@@ -164,26 +163,27 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(executables.get(0).getLayoutIds().size(), 15);
 
         List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01", "2010-02-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
+                "2010-02-01", SegmentStatusEnum.READY);
         dataSegment1.getMultiPartitions().forEach(partition -> {
             partition.setStatus(PartitionStatusEnum.NEW);
         });
         val segments = Lists.newArrayList(dataSegment1);
         val update = new NDataflowUpdate(df.getUuid());
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[]{}));
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
         dfm.updateDataflow(update);
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.removeLayouts(Sets.newHashSet(1L), false, true);
         });
-        JobParam param2 = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN", Sets.newHashSet(7L), null);
+        JobParam param2 = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN",
+                Sets.newHashSet(7L), null);
         param2.setProject(PROJECT);
         jobManager.buildPartitionJob(param2);
         List<AbstractExecutable> executables2 = getRunningExecutables(PROJECT, modelId);
         Assert.assertEquals(2, executables2.size());
         Assert.assertEquals(14, indexPlanManager.getIndexPlan(modelId).getAllLayouts().size());
         Assert.assertEquals(14, executables2.get(1).getLayoutIds().size());
-
 
         // Although a new layout is added, the layout of the previous job in the same segment is still used.
         indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
@@ -198,7 +198,8 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
             indexes.add(newTableIndex);
             copyForWrite.setIndexes(indexes);
         });
-        JobParam param3 = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN", Sets.newHashSet(8L), null);
+        JobParam param3 = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN",
+                Sets.newHashSet(8L), null);
         jobManager.buildPartitionJob(param3);
         List<AbstractExecutable> executables3 = getRunningExecutables(PROJECT, modelId);
         Assert.assertEquals(3, executables3.size());
@@ -210,7 +211,6 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         checkConcurrent(param3);
     }
 
-
     @Test
     public void testIndexBuildJob() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
@@ -219,7 +219,8 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
 
         List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01", "2010-02-01", SegmentStatusEnum.READY);
+        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
+                "2010-02-01", SegmentStatusEnum.READY);
         JobParam param = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN", null, null);
         jobManager.addRelatedIndexJob(param);
         List<AbstractExecutable> executables = getRunningExecutables(PROJECT, modelId);
@@ -227,16 +228,20 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(15, executables.get(0).getLayoutIds().size());
         Assert.assertEquals(2, executables.get(0).getTargetPartitions().size());
 
-        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01", "2010-03-01", SegmentStatusEnum.READY);
-        JobParam param2 = new JobParam(Sets.newHashSet(dataSegment2.getId()), Sets.newHashSet(1L), modelId, "ADMIN", null, null);
+        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01",
+                "2010-03-01", SegmentStatusEnum.READY);
+        JobParam param2 = new JobParam(Sets.newHashSet(dataSegment2.getId()), Sets.newHashSet(1L), modelId, "ADMIN",
+                null, null);
         jobManager.addRelatedIndexJob(param2);
         List<AbstractExecutable> executables2 = getRunningExecutables(PROJECT, modelId);
         Assert.assertEquals(2, executables2.size());
         Assert.assertEquals(1, executables2.get(1).getLayoutIds().size());
         checkConcurrent(param2);
 
-        NDataSegment dataSegment3 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-03-01", "2010-04-01", SegmentStatusEnum.NEW);
-        JobParam param3 = new JobParam(Sets.newHashSet(dataSegment3.getId()), Sets.newHashSet(1L), modelId, "ADMIN", null, null);
+        NDataSegment dataSegment3 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-03-01",
+                "2010-04-01", SegmentStatusEnum.NEW);
+        JobParam param3 = new JobParam(Sets.newHashSet(dataSegment3.getId()), Sets.newHashSet(1L), modelId, "ADMIN",
+                null, null);
 
         try {
             jobManager.addRelatedIndexJob(param3);
@@ -245,11 +250,13 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(e.getCause().getMessage(), "No segment is ready in this job.");
         }
 
-        NDataSegment dataSegment4 = generateSegmentForMultiPartition(modelId, Lists.newArrayList(), "2010-04-01", "2010-05-01", SegmentStatusEnum.READY);
-        JobParam param4 = new JobParam(Sets.newHashSet(dataSegment4.getId()), Sets.newHashSet(1L), modelId, "ADMIN", null, null);
+        NDataSegment dataSegment4 = generateSegmentForMultiPartition(modelId, Lists.newArrayList(), "2010-04-01",
+                "2010-05-01", SegmentStatusEnum.READY);
+        JobParam param4 = new JobParam(Sets.newHashSet(dataSegment4.getId()), Sets.newHashSet(1L), modelId, "ADMIN",
+                null, null);
         assertExeption(() -> {
             jobManager.addRelatedIndexJob(param4);
-        }, "Add Job failed due to multi partition value is empty.");
+        }, "Can’t add the job, as the subpartition value is empty. Please check and try again.");
     }
 
     @Test
@@ -261,16 +268,20 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
 
         List<String> partitionValues = Lists.newArrayList("usa", "cn");
-        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01", "2010-02-01", SegmentStatusEnum.READY);
-        JobParam param = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN", Sets.newHashSet(7L), null);
+        NDataSegment dataSegment1 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-01-01",
+                "2010-02-01", SegmentStatusEnum.READY);
+        JobParam param = new JobParam(Sets.newHashSet(dataSegment1.getId()), null, modelId, "ADMIN",
+                Sets.newHashSet(7L), null);
         jobManager.addSegmentJob(param);
         List<AbstractExecutable> executables = getRunningExecutables(PROJECT, modelId);
         Assert.assertEquals(1, executables.size());
         Assert.assertEquals(1, executables.get(0).getTargetPartitions().size());
         Assert.assertEquals(15, executables.get(0).getLayoutIds().size());
 
-        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01", "2010-03-01", SegmentStatusEnum.READY);
-        JobParam param2 = new JobParam(Sets.newHashSet(dataSegment2.getId()), Sets.newHashSet(1L), modelId, "ADMIN", Sets.newHashSet(7L), null);
+        NDataSegment dataSegment2 = generateSegmentForMultiPartition(modelId, partitionValues, "2010-02-01",
+                "2010-03-01", SegmentStatusEnum.READY);
+        JobParam param2 = new JobParam(Sets.newHashSet(dataSegment2.getId()), Sets.newHashSet(1L), modelId, "ADMIN",
+                Sets.newHashSet(7L), null);
         jobManager.addSegmentJob(param2);
         List<AbstractExecutable> executables2 = getRunningExecutables(PROJECT, modelId);
         Assert.assertEquals(2, executables2.size());
@@ -279,7 +290,6 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
 
         checkConcurrent(param2);
     }
-
 
     @Test
     public void testSegmentRefreshJob() {
@@ -346,17 +356,16 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         }
     }
 
-
     // Concurrent job exeption
     public void checkConcurrent(JobParam param) {
         assertExeption(() -> {
             jobManager.addSegmentJob(param);
-        }, "The job failed to be submitted. There already exists building job running under the corresponding subject.");
+        }, "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.");
     }
 
     private List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        List<AbstractExecutable> runningExecutables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
-                model);
+        List<AbstractExecutable> runningExecutables = NExecutableManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project, model);
         runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
         return runningExecutables;
     }
@@ -377,11 +386,12 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         });
     }
 
-    private NDataSegment generateSegmentForMultiPartition(String modelId, List<String> partitionValues, String start, String end, SegmentStatusEnum status) {
+    private NDataSegment generateSegmentForMultiPartition(String modelId, List<String> partitionValues, String start,
+            String end, SegmentStatusEnum status) {
         val dfm = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        val partitions = Lists.<String[]>newArrayList();
+        val partitions = Lists.<String[]> newArrayList();
         partitionValues.forEach(value -> {
-            partitions.add(new String[]{value});
+            partitions.add(new String[] { value });
         });
         long startTime = SegmentRange.dateToLong(start);
         long endTime = SegmentRange.dateToLong(end);
@@ -394,15 +404,16 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         return newSegment;
     }
 
-    private NDataLayout generateLayoutForMultiPartition(String modelId, String segmentId, List<String> partitionValues, long layoutId) {
+    private NDataLayout generateLayoutForMultiPartition(String modelId, String segmentId, List<String> partitionValues,
+            long layoutId) {
         val dfm = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
 
         val model = modelManager.getDataModelDesc(modelId);
         val df = dfm.getDataflow(modelId);
-        val partitions = Lists.<String[]>newArrayList();
+        val partitions = Lists.<String[]> newArrayList();
         partitionValues.forEach(value -> {
-            partitions.add(new String[]{value});
+            partitions.add(new String[] { value });
         });
         val partitionIds = model.getMultiPartitionDesc().getPartitionIdsByValues(partitions);
         NDataLayout layout = NDataLayout.newDataLayout(df, segmentId, layoutId);
@@ -411,6 +422,5 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         });
         return layout;
     }
-
 
 }

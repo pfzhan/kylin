@@ -63,7 +63,7 @@ public class ComputedColumnDescTest extends NLocalFileMetadataTestCase {
     public void simpleParserCheckTestFail1() {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "Cannot recognize column(s) C.Y . When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model).");
+                "Can’t recognize column \"C.Y\". Please use \"TABLE_ALIAS.COLUMN\" to reference a column.");
 
         ComputedColumnDesc cc = new ComputedColumnDesc();
         Set<String> aliasSet = Sets.newHashSet("A", "B");
@@ -162,7 +162,6 @@ public class ComputedColumnDescTest extends NLocalFileMetadataTestCase {
         Set<String> aliasSet = Sets.newHashSet("A", "B");
         cc.simpleParserCheck("avg(a.x) over (partition by a.y) as xxx", aliasSet);
     }
-
 
     @Test
     public void simpleParserCheckTestFail11() {

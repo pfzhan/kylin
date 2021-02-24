@@ -163,7 +163,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         enableSnapshotManualManagement();
         Set<String> tables = Sets.newHashSet("DEFAULT.TEST_KYLIN_FACT");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Snapshot(s) 'DEFAULT.TEST_KYLIN_FACT' not found.");
+        thrown.expectMessage("Can't find the snapshot \"DEFAULT.TEST_KYLIN_FACT\". Please check and try again.");
         snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), true, 3);
     }
 
@@ -205,8 +205,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(tables, Sets.newHashSet(tableNameOfSamplingJob1, tableNameOfSamplingJob2));
 
         // refresh failed
-        String expected = "The job failed to be submitted. There already exists building job running "
-                + "under the corresponding subject.";
+        String expected = "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
         String actual = "";
         try {
             snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), true, 3);
@@ -295,8 +294,9 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
             snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3);
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof JobSubmissionException);
-            Assert.assertEquals("The job failed to be submitted. There already exists building job running "
-                    + "under the corresponding subject.", (e.getCause()).getMessage());
+            Assert.assertEquals(
+                    "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.",
+                    (e.getCause()).getMessage());
         }
     }
 

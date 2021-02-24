@@ -241,9 +241,7 @@ public class SnapshotService extends BasicService {
         if (!nonPermittedTables.isEmpty()) {
             List<String> tableIdentities = nonPermittedTables.stream().map(TableDesc::getIdentity)
                     .collect(Collectors.toList());
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSNAPSHOT_OPERATION_PERMISSION_DENIED(),
-                            StringUtils.join(tableIdentities, "', '")));
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSNAPSHOT_OPERATION_PERMISSION_DENIED());
         }
 
     }
@@ -423,10 +421,9 @@ public class SnapshotService extends BasicService {
         List<SnapshotInfoResponse> response = new ArrayList<>();
         tables.forEach(tableDesc -> {
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
-            response.add(new SnapshotInfoResponse(tableDesc, tableDesc.getLastSnapshotSize(),
-                    countPair.getFirst(), countPair.getSecond(), tableDesc.getLastModified(),
-                    getSnapshotJobStatus(tableDesc, executables), getForbiddenColumns(tableDesc),
-                    tableDesc.getSelectedSnapshotPartitionCol()));
+            response.add(new SnapshotInfoResponse(tableDesc, tableDesc.getLastSnapshotSize(), countPair.getFirst(),
+                    countPair.getSecond(), tableDesc.getLastModified(), getSnapshotJobStatus(tableDesc, executables),
+                    getForbiddenColumns(tableDesc), tableDesc.getSelectedSnapshotPartitionCol()));
         });
 
         if (!statusFilter.isEmpty()) {
