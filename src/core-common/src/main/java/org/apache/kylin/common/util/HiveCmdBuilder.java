@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -226,6 +227,8 @@ public class HiveCmdBuilder {
             File file = new File(fileUrl);
             if (file.exists()) {
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+                factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
                 DocumentBuilder builder = factory.newDocumentBuilder();
                 Document doc = builder.parse(file);
                 NodeList nl = doc.getElementsByTagName("property");
