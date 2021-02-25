@@ -51,6 +51,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -150,7 +151,13 @@ public abstract class SparkApplication implements Application, IKeep {
     public Boolean updateSparkJobInfo(String url, String json) {
         String serverAddress = System.getProperty("spark.driver.rest.server.address", "127.0.0.1:7070");
         String requestApi = String.format(Locale.ROOT, "http://%s%s", serverAddress, url);
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+
+        try {
+            Long timeout = config.getUpdateJobInfoTimeout();
+            RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(timeout.intValue())
+                    .setConnectTimeout(timeout.intValue()).setConnectionRequestTimeout(timeout.intValue())
+                    .setStaleConnectionCheckEnabled(true).build();
+            CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
             HttpPut httpPut = new HttpPut(requestApi);
             httpPut.addHeader(HttpHeaders.CONTENT_TYPE, HTTP_VND_APACHE_KYLIN_JSON);
             httpPut.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
@@ -164,7 +171,7 @@ public abstract class SparkApplication implements Application, IKeep {
                 String responseContent = IOUtils.toString(inputStream);
                 logger.warn("update spark job failed, info: {}", responseContent);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("http request {} failed!", requestApi, e);
         }
         return false;

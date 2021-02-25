@@ -2188,6 +2188,10 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-interval", "5s"), TimeUnit.SECONDS);
     }
 
+    public long getUpdateJobInfoTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.job.update-job-info-timeout", "30s"), TimeUnit.MILLISECONDS);
+    }
+
     public long getCatchUpTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-timeout", "2s"), TimeUnit.SECONDS);
     }
