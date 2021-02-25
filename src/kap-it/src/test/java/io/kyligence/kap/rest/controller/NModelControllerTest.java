@@ -46,7 +46,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.Assert;
 import org.junit.Test;
@@ -73,8 +76,9 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
-        Assert.assertTrue(
-                result.getResponse().getContentAsString().contains("Model alias [nmodel_basic] are duplicated!"));
+        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
+        JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
+        Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }
 
     @Test
@@ -96,8 +100,10 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
-        Assert.assertTrue(result.getResponse().getContentAsString()
-                .contains("Model alias [new_MOdel, new_model] are duplicated!"));
+        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(),
+                "new_MOdel, new_model");
+        JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
+        Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }
 
     @Test
@@ -126,9 +132,10 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
-        Assert.assertTrue(result.getResponse().getContentAsString()
-                .contains("Model alias [ut_inner_join_cube_partial] are duplicated!"));
-
+        JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
+        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(),
+                "ut_inner_join_cube_partial");
+        Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }
 
     @Test
@@ -143,7 +150,8 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
-        Assert.assertTrue(
-                result.getResponse().getContentAsString().contains("Model alias [nmodel_basic] are duplicated!"));
+        String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
+        JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
+        Assert.assertTrue(jsonNode.get("msg").asText().contains(msg));
     }
 }
