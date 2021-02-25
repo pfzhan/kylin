@@ -515,6 +515,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val seg2 = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
         seg2.setStatus(SegmentStatusEnum.READY);
+        seg2.setEncodingDataSkew(true);
+        seg2.setSnapshotReady(true);
+        seg2.setDictReady(true);
+        seg2.setFlatTableReady(true);
+        seg2.setFactViewReady(true);
         segs3.add(seg2);
         val segToRemove = dataflow.getSegment(segments.get(1).getId());
         segs2.add(segToRemove);
@@ -528,6 +533,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "" + Long.MAX_VALUE, "", "start_time", false);
         Assert.assertEquals(3, segments.size());
         Assert.assertEquals("MERGING", segments.get(2).getStatusToDisplay().toString());
+
+        // KE-25547, complete segment response
+        val seg2Resp = segments.stream().filter(s -> s.getId().equals(seg2.getId())).findFirst().get();
+        Assert.assertNotNull(seg2Resp);
+        Assert.assertEquals(seg2.isEncodingDataSkew(), seg2Resp.isEncodingDataSkew());
+        Assert.assertEquals(seg2.isSnapshotReady(), seg2Resp.isSnapshotReady());
+        Assert.assertEquals(seg2.isDictReady(), seg2Resp.isDictReady());
+        Assert.assertEquals(seg2.isFlatTableReady(), seg2Resp.isFlatTableReady());
+        Assert.assertEquals(seg2.isFactViewReady(), seg2Resp.isFactViewReady());
     }
 
     @Test

@@ -166,6 +166,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.lastBuildTime = other.lastBuildTime;
         this.sourceCount = other.sourceCount;
         this.additionalInfo = other.additionalInfo;
+        this.isEncodingDataSkew = other.isEncodingDataSkew;
+        this.isSnapshotReady = other.isSnapshotReady;
+        this.isDictReady = other.isDictReady;
+        this.isFlatTableReady = other.isFlatTableReady;
+        this.isFactViewReady = other.isFactViewReady;
     }
 
     void initAfterReload() {
