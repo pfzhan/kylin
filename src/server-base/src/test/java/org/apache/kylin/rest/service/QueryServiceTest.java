@@ -96,7 +96,6 @@ import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.spark.SparkException;
 import org.junit.After;
@@ -1119,10 +1118,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = new SQLResponse();
         response.setHitExceptionCache(true);
         response.setEngineType("NATIVE");
+
+        overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "true");
+        queryService.queryWithCache(request, false);
+
+        overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "false");
         queryService.queryWithCache(request, false);
 
         final QueryContext queryContext = QueryContext.current();
-        String filledSql = PrepareSQLUtils.fillInParams(request.getSql(), params);
+        String filledSql = "select * from test where col1 = 'value1'";
         Assert.assertEquals(queryContext.getUserSQL(), filledSql);
         Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
         queryContext.getMetrics().setCorrectedSql(filledSql);

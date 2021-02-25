@@ -537,8 +537,11 @@ public class QueryService extends BasicService {
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
             if (isPrepareStatementWithParams(sqlRequest)) {
-                PrepareSqlRequest.StateParam[] params = ((PrepareSqlRequest)sqlRequest).getParams();
-                String filledSql = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), params);
+                String filledSql = sqlRequest.getSql();
+                if (!KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()) {
+                    PrepareSqlRequest.StateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
+                    filledSql = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), params);
+                }
                 QueryContext.current().getMetrics().setCorrectedSql(filledSql);
                 QueryContext.current().setUserSQL(filledSql);
             }
