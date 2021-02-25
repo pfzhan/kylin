@@ -18,7 +18,7 @@
           @click="editUser('new')">
           {{$t('user')}}
         </el-button>
-        <div style="width:200px;" class="ksd-fright">
+        <div style="width:240px;" class="ksd-fright">
           <el-input class="show-search-btn"
             size="medium"
             v-model="filterName"
