@@ -40,12 +40,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.powermock.reflect.Whitebox;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -63,6 +65,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NMetaStoreController;
 import io.kyligence.kap.rest.request.ModelImportRequest;
+import io.kyligence.kap.rest.request.ModelPreviewRequest;
 import io.kyligence.kap.rest.request.OpenModelPreviewRequest;
 import io.kyligence.kap.rest.service.MetaStoreService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -225,6 +228,30 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
         modelPreviewRequest.setExportRecommendations(true);
         modelPreviewRequest.setExportOverProps(true);
         return modelPreviewRequest;
+    }
+
+    @Test
+    public void testConvertToModelPreviewRequest() throws Exception {
+        OpenModelPreviewRequest openModelPreviewRequest = new OpenModelPreviewRequest();
+        openModelPreviewRequest.setNames(Collections.singletonList("model1"));
+        openModelPreviewRequest.setExportOverProps(true);
+        openModelPreviewRequest.setExportRecommendations(true);
+        openModelPreviewRequest.setExportMultiplePartitionValues(true);
+
+        NDataModelManager dataModelManager = Mockito.mock(NDataModelManager.class);
+        NDataModel dataModel = Mockito.mock(NDataModel.class);
+        Mockito.doReturn("1").when(dataModel).getUuid();
+        Mockito.doReturn(dataModel).when(dataModelManager).getDataModelDescByAlias(anyString());
+
+        Mockito.doReturn(dataModelManager).when(modelService).getDataModelManager(defaultProjectName);
+
+        ModelPreviewRequest request = Whitebox.invokeMethod(openMetaStoreController, "convertToModelPreviewRequest",
+                defaultProjectName, openModelPreviewRequest);
+
+        Assert.assertEquals(Collections.singletonList("1"), request.getIds());
+        Assert.assertTrue(request.isExportOverProps());
+        Assert.assertTrue(request.isExportRecommendations());
+        Assert.assertTrue(request.isExportMultiplePartitionValues());
     }
 
 }

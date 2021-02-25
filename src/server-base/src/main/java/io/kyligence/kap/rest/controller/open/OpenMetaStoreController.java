@@ -135,6 +135,7 @@ public class OpenMetaStoreController extends NBasicController {
         modelPreviewRequest.setIds(modelIds);
         modelPreviewRequest.setExportRecommendations(request.isExportRecommendations());
         modelPreviewRequest.setExportOverProps(request.isExportOverProps());
+        modelPreviewRequest.setExportMultiplePartitionValues(request.isExportMultiplePartitionValues());
         return modelPreviewRequest;
     }
 
