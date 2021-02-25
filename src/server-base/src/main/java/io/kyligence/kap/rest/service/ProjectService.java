@@ -490,18 +490,17 @@ public class ProjectService extends BasicService {
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
         Map<String, Set<Integer>> modelToRecMap = getModelToRecMap(project);
-        AsyncAccelerationTask asyncAcceleration = (AsyncAccelerationTask) AsyncTaskManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
-        if (asyncAcceleration.isAlreadyRunning()) {
+        if (getAsyncAccTask(project).isAlreadyRunning()) {
             throw new KylinException(ONGOING_OPTIMIZATION, MsgPicker.getMsg().getPROJECT_ONGOING_OPTIMIZATION());
         }
 
         QueryHistoryTaskScheduler scheduler = QueryHistoryTaskScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                asyncAcceleration.setAlreadyRunning(true);
-                asyncAcceleration.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), false);
-                AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+                AsyncAccelerationTask accTask = getAsyncAccTask(project);
+                accTask.setAlreadyRunning(true);
+                accTask.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), false);
+                AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
                 return null;
             }, project);
 
@@ -513,8 +512,9 @@ public class ProjectService extends BasicService {
             } catch (Throwable e) {
                 logger.error("Accelerate failed", e);
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    asyncAcceleration.setAlreadyRunning(false);
-                    AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+                    AsyncAccelerationTask accTask = getAsyncAccTask(project);
+                    accTask.setAlreadyRunning(false);
+                    AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
                     return null;
                 }, project);
             }
@@ -524,12 +524,18 @@ public class ProjectService extends BasicService {
         Set<Integer> deltaRecSet = Sets.newHashSet();
         deltaRecsMap.forEach((k, deltaRecs) -> deltaRecSet.addAll(deltaRecs));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            asyncAcceleration.setAlreadyRunning(false);
-            asyncAcceleration.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), !deltaRecSet.isEmpty());
-            AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(asyncAcceleration);
+            AsyncAccelerationTask accTask = getAsyncAccTask(project);
+            accTask.setAlreadyRunning(false);
+            accTask.getUserRefreshedTagMap().put(aclEvaluate.getCurrentUserName(), !deltaRecSet.isEmpty());
+            AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(accTask);
             return null;
         }, project);
         return deltaRecSet;
+    }
+
+    private AsyncAccelerationTask getAsyncAccTask(String project) {
+        return (AsyncAccelerationTask) AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
     }
 
     private Map<String, Set<Integer>> getDeltaRecs(Map<String, Set<Integer>> modelToRecMap, String project) {
