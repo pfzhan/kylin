@@ -134,12 +134,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 if (!column.isExist()) {
                     return;
                 }
-                if (column.isDimension()) {
-                    checkedColumnMap.putIfAbsent(column.getName(), Sets.newHashSet());
-                    checkedColumnMap.get(column.getName()).add(column.getId());
-                }
-                checkedColumnMap.putIfAbsent(column.getName().toUpperCase(Locale.ROOT), Sets.newHashSet());
-                checkedColumnMap.get(column.getName().toUpperCase(Locale.ROOT)).add(column.getId());
+                checkedColumnMap.putIfAbsent(column.getName(), Sets.newHashSet());
+                checkedColumnMap.get(column.getName()).add(column.getId());
             });
             model.getAllMeasures().forEach(measure -> {
                 if (measure.isTomb()) {
@@ -177,7 +173,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 conflictMap.putIfAbsent(name, Sets.newHashSet());
                 conflictMap.get(name).addAll(idSet);
             });
-            conflictMap.entrySet().removeIf(entry -> entry.getValue().stream().allMatch(id -> id > 0));
+            conflictMap.entrySet().removeIf(entry -> entry.getValue().stream().allMatch(id -> id >= 0));
             if (!conflictMap.isEmpty()) {
                 throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
                         MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
