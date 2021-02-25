@@ -329,15 +329,28 @@ public class AccessServiceTest extends NLocalFileMetadataTestCase {
     public void testGenerateAceResponsesByFuzzMatching() throws Exception {
         AclEntity ae = new AclServiceTest.MockAclEntity("test");
         final Map<Sid, Permission> sidToPerm = new HashMap<>();
-        sidToPerm.put(new GrantedAuthoritySid("ADMIN"), AclPermission.ADMINISTRATION);
-        sidToPerm.put(new GrantedAuthoritySid("admin"), AclPermission.ADMINISTRATION);
-        sidToPerm.put(new GrantedAuthoritySid("ANALYST"), AclPermission.ADMINISTRATION);
-        sidToPerm.put(new PrincipalSid("ROLE_ADMIN"), AclPermission.ADMINISTRATION);
-        sidToPerm.put(new PrincipalSid("role_ADMIN"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new PrincipalSid("ADMIN"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new PrincipalSid("admin"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new PrincipalSid("ANALYST"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new GrantedAuthoritySid("ROLE_ADMIN"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new GrantedAuthoritySid("role_ADMIN"), AclPermission.ADMINISTRATION);
         accessService.batchGrant(ae, sidToPerm);
         List<AccessEntryResponse> result = accessService.generateAceResponsesByFuzzMatching(ae, "", false);
         Assert.assertEquals(2, result.size());
-        Assert.assertEquals("ANALYST", ((GrantedAuthoritySid) result.get(0).getSid()).getGrantedAuthority());
+        Assert.assertEquals("ANALYST", ((PrincipalSid) result.get(0).getSid()).getPrincipal());
+    }
+
+    @Test
+    public void testGenerateAceResponsesByFuzzMatchingWhenHasSameNameUserAndGroupName() throws Exception {
+        AclEntity ae = new AclServiceTest.MockAclEntity("test");
+        final Map<Sid, Permission> sidToPerm = new HashMap<>();
+        sidToPerm.put(new GrantedAuthoritySid("ADMIN"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new PrincipalSid("ADMIN"), AclPermission.ADMINISTRATION);
+        accessService.batchGrant(ae, sidToPerm);
+        List<AccessEntryResponse> result = accessService.generateAceResponsesByFuzzMatching(ae, "", false);
+        Assert.assertEquals(1, result.size());
+        // expect ADMIN group is in acl
+        Assert.assertEquals("ADMIN", ((GrantedAuthoritySid) result.get(0).getSid()).getGrantedAuthority());
     }
 
     @Test

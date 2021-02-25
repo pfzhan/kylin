@@ -409,9 +409,9 @@ public class AccessService extends BasicService {
             Sid sid = user.getSid();
             boolean isNormalUser = false;
             if (sid instanceof GrantedAuthoritySid) {
-                isNormalUser = !adminUsers.contains(((GrantedAuthoritySid) sid).getGrantedAuthority());
+                isNormalUser = !StringUtils.equalsIgnoreCase(((GrantedAuthoritySid) sid).getGrantedAuthority(), ROLE_ADMIN);
             } else if (sid instanceof PrincipalSid) {
-                isNormalUser = !StringUtils.equalsIgnoreCase(((PrincipalSid) sid).getPrincipal(), ROLE_ADMIN);
+                isNormalUser = !adminUsers.contains(((PrincipalSid) sid).getPrincipal());
             }
             if (isNormalUser) {
                 result.add(user);
