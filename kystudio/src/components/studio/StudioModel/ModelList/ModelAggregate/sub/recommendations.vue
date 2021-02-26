@@ -761,7 +761,12 @@ export default class IndexList extends Vue {
         }).catch(e => {
           const { body: { exception } } = e
           const data = JSON.parse(exception.split('\n')[1])
-          this.sameNameErrorIds = ArrayFlat(Object.values(data))
+          const errorIds = ArrayFlat(Object.values(data))
+          if (errorIds.length > 0) {
+            this.sameNameErrorIds = errorIds
+          } else {
+            handleError(e)
+          }
           // handleError(e)
           reject()
         })
