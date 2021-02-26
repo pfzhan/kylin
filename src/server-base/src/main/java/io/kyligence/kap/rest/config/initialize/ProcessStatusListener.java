@@ -34,6 +34,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -41,6 +43,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.ProcessUtils;
@@ -55,9 +58,13 @@ public class ProcessStatusListener {
     private static final String KILL_PROCESS_TREE = "kill-process-tree.sh";
     private static final int CMD_EXEC_TIMEOUT_SEC = 60;
 
+    // Lock subscribed actions which would read or write the child-process file.
+    private final Lock fileLock = new ReentrantLock();
+
     @Subscribe
     public void onProcessStart(CliCommandExecutor.ProcessStart processStart) {
         int pid = processStart.getPid();
+        fileLock.lock();
         try (OutputStream os = new FileOutputStream(CHILD_PROCESS_FILE, true);
                 BufferedWriter writer = new BufferedWriter(
                         new OutputStreamWriter(os, Charset.defaultCharset().name()))) {
@@ -65,6 +72,8 @@ public class ProcessStatusListener {
             writer.flush();
         } catch (IOException ex) {
             log.error("write child job process {} from {} failed", pid, CHILD_PROCESS_FILE.getAbsolutePath());
+        } finally {
+            fileLock.unlock();
         }
     }
 
@@ -74,13 +83,18 @@ public class ProcessStatusListener {
         if (!CHILD_PROCESS_FILE.exists())
             return;
 
-        val children = parseProcessFile();
+        fileLock.lock();
+        try {
+            val children = parseProcessFile();
 
-        if (!children.containsKey(pid))
-            return;
+            if (!children.containsKey(pid))
+                return;
 
-        children.remove(pid);
-        persistProcessFile(children);
+            children.remove(pid);
+            persistProcessFile(children);
+        } finally {
+            fileLock.unlock();
+        }
     }
 
     /**
@@ -93,7 +107,13 @@ public class ProcessStatusListener {
     @Subscribe
     public void destroyProcessByJobId(CliCommandExecutor.JobKilled jobKilled) {
         val jobId = jobKilled.getJobId();
-        val children = parseProcessFile();
+        final Map<Integer, String> children;
+        fileLock.lock();
+        try {
+            children = parseProcessFile();
+        } finally {
+            fileLock.unlock();
+        }
         Optional<Integer> maybePid = children.entrySet().stream().filter(entry -> entry.getValue().equals(jobId))
                 .map(Map.Entry::getKey).findAny();
         if (!maybePid.isPresent()) {
@@ -122,6 +142,9 @@ public class ProcessStatusListener {
             } catch (Exception e) {
                 log.error("Destroy process of job {} FAILED.", jobId, e);
             }
+        } else {
+            // Essential log here.
+            log.info("Ignore not alive process {} of job {}", pid, jobId);
         }
     }
 
@@ -134,6 +157,7 @@ public class ProcessStatusListener {
         }
     }
 
+    @VisibleForTesting
     static Map<Integer, String> parseProcessFile() {
         Map<Integer, String> result = Maps.newHashMap();
         try {
