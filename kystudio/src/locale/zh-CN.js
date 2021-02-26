@@ -22,6 +22,7 @@ exports.default = {
     loadMetadata: '加载元数据',
     notice: '提示',
     ok: '确定',
+    confirmClose: '确定关闭',
     exit: '退出',
     retry: '重试',
     continue: '继续',

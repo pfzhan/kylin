@@ -233,7 +233,7 @@
             @input="value => handleSwitch(value)">
           </el-switch>
         </span>
-        <div class="setting-desc">{{$t('exposingCCDesc', {type: platform === 'iframe' ? 'Kyligence' : 'Kyligence Enterprise'})}}</div>
+        <div class="setting-desc">{{$t('exposingCCDesc')}}</div>
       </div>
     </EditableBlock>
     <!-- 支持拉链表 -->
@@ -464,7 +464,7 @@ export default class SettingAdvanced extends Vue {
       const submitData = _getExposeCCSetting(this.project)
       if (!value) {
         try {
-          await kapConfirm(this.$t('confirmCloseExposeCC', {type: this.platform === 'iframe' ? 'Kyligence' : 'Kyligence Enterprise'}))
+          await kapConfirm(this.$t('confirmCloseExposeCC'), {confirmButtonText: this.$t('kylinLang.common.confirmClose')})
           submitData.expose_computed_column = value
           try {
             await this.updateExposeCCConfig(submitData)

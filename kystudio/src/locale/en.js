@@ -22,6 +22,7 @@ exports.default = {
     load: 'Load',
     loadMetadata: 'Load metadata',
     ok: 'OK',
+    confirmClose: 'Turn Off',
     exit: 'Exit',
     retry: 'Retry',
     submit: 'Submit',
