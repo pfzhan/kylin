@@ -121,7 +121,51 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             this.project = project;
             this.userDefinedRecNameMap = userDefinedRecNameMap;
             this.recommendation = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+            checkCCRecConflictWithColumn(userDefinedRecNameMap);
             checkUserDefinedRecNames(userDefinedRecNameMap);
+        }
+
+        private void checkCCRecConflictWithColumn(Map<Integer, String> userDefinedRecNameMap) {
+            Map<String, Set<Integer>> checkedTableColumnMap = Maps.newHashMap();
+
+            userDefinedRecNameMap.forEach((id, name) -> {
+                if (id >= 0) {
+                    return;
+                }
+                RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
+                if (rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                    checkedTableColumnMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
+                    checkedTableColumnMap.get(name.toUpperCase(Locale.ROOT)).add(id);
+                }
+            });
+
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
+
+            String factTableName = model.getRootFactTableName().split("\\.").length < 2 ? model.getRootFactTableName()
+                    : model.getRootFactTableName().split("\\.")[1];
+
+            model.getAllNamedColumns().forEach(column -> {
+                if (!column.isExist()) {
+                    return;
+                }
+                String[] tableAndColumn = column.getAliasDotColumn().split("\\.");
+
+                if (!tableAndColumn[0].equalsIgnoreCase(factTableName)) {
+                    return;
+                }
+                if (checkedTableColumnMap.containsKey(tableAndColumn[1].toUpperCase(Locale.ROOT))) {
+                    checkedTableColumnMap.get(tableAndColumn[1]).add(column.getId());
+                }
+
+            });
+
+            checkedTableColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            if (!checkedTableColumnMap.isEmpty()) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
+                                + JsonUtil.writeValueAsStringQuietly(checkedTableColumnMap));
+            }
         }
 
         private void checkUserDefinedRecNames(Map<Integer, String> userDefinedRecNameMap) {
@@ -146,7 +190,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             });
 
             userDefinedRecNameMap.forEach((id, name) -> {
-                if (id > 0) {
+                if (id >= 0) {
                     return;
                 }
                 RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);

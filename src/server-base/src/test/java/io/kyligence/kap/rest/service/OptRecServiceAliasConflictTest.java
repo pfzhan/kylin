@@ -82,6 +82,25 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
     }
 
     @Test
+    public void testCCRecConflictWithTableColumn() throws Exception {
+        List<Integer> addLayoutId = Lists.newArrayList(13);
+        prepare(addLayoutId);
+        Map<Integer, String> nameMap = Maps.newHashMap();
+        nameMap.put(-8, "LO_shiPPRIOTITY");
+        OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
+
+        try {
+            optRecService.approve(getProject(), recRequest);
+            Assert.fail();
+        } catch (Exception e) {
+            KylinException rootCause = (KylinException) Throwables.getRootCause(e);
+            Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
+            Assert.assertEquals("The name already exists. Please rename and try again.\n{\"LO_SHIPPRIOTITY\":[-8,9]}",
+                    rootCause.getMessage());
+        }
+    }
+
+    @Test
     public void testCCRecNameNoConflictWithExistingMeasure() throws IOException {
         List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16);
         prepare(addLayoutId);
