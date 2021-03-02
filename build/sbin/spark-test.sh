@@ -215,7 +215,7 @@ then
     echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR"
 
     local_input_dir=${KYLIN_HOME}/logs/tmp
-    input_file=spark_client_test_input
+    input_file=spark_client_test_input_`date +%N`
     full_input_file=${local_input_dir}/${input_file}
     mkdir -p ${local_input_dir}
 
