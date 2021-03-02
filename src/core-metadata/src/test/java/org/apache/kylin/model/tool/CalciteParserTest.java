@@ -43,6 +43,7 @@
 package org.apache.kylin.model.tool;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlKind;
@@ -183,5 +184,14 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
     public void testTransformDoubleQuote() throws SqlParseException {
         String expr = "`ABC`.`CBA` + 1";
         Assert.assertEquals(expr.replace("`", "\""), CalciteParser.transformDoubleQuote(expr));
+    }
+    @Test
+    public void testRowExpression() {
+        String sql = "SELECT 'LO_LINENUMBER', 'LO_SUPPKEY' FROM \"SSB\".\"P_LINEORDER\" WHERE ROW('LO_ORDERKEY', 'LO_CUSTKEY') IN (ROW(123, 234), ROW(321, 432)) GROUP BY 'LO_LINENUMBER', 'LO_SUPPKEY'";
+        try {
+            CalciteParser.parse(sql);
+        } catch (SqlParseException e) {
+            fail("can't parse row construction");
+        }
     }
 }
