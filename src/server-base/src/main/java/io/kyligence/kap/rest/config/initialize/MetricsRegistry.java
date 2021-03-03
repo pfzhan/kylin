@@ -42,11 +42,16 @@ import org.apache.kylin.rest.util.SpringContext;
 
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.metadata.cube.storage.StorageVolumeInfo;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -56,12 +61,25 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.query.util.LoadCounter;
 import io.kyligence.kap.query.util.LoadDesc;
-import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
 public class MetricsRegistry {
     private static final String GLOBAL = "global";
+
+    private static Map<String, Long> totalStorageSizeMap = Maps.newHashMap();
+
+    public static void refreshTotalStorageSize() {
+        val projectService = SpringContext.getBean(ProjectService.class);
+        totalStorageSizeMap.forEach((project, totalStorageSize) -> {
+            val storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(project);
+            totalStorageSizeMap.put(project, storageVolumeInfoResponse.getTotalStorageSize());
+        });
+    }
+
+    public static void removeProjectFromStorageSizeMap(String project) {
+            totalStorageSizeMap.remove(project);
+    }
 
     public static void registerGlobalMetrics(KylinConfig config, String host) {
 
@@ -150,13 +168,15 @@ public class MetricsRegistry {
 
     static void registerStorageMetrics(String project) {
         val projectService = SpringContext.getBean(ProjectService.class);
-        MetricsGroup.newGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project, () -> {
-            StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
-            return resp == null ? 0L : resp.getTotalStorageSize();
-        });
+        totalStorageSizeMap.put(project, projectService.getStorageVolumeInfoResponse(project).getTotalStorageSize());
+
+        MetricsGroup.newGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project, () ->
+                totalStorageSizeMap.getOrDefault(project, 0L));
+
         MetricsGroup.newGauge(MetricsName.PROJECT_GARBAGE_SIZE, MetricsCategory.PROJECT, project, () -> {
-            StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
-            return resp == null ? 0L : resp.getGarbageStorageSize();
+            val collector = new ProjectStorageInfoCollector(Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
+            StorageVolumeInfo storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
+            return storageVolumeInfo.getGarbageStorageSize();
         });
     }
 

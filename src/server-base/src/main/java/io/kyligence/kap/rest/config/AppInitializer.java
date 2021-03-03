@@ -107,7 +107,7 @@ public class AppInitializer {
     @Autowired
     HostInfoFetcher hostInfoFetcher;
 
-    private static final ScheduledExecutorService METRICS_SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1,
+    private static final ScheduledExecutorService METRICS_SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(2,
             new NamedThreadFactory("MetricsChecker"));
 
     private static final Set<String> allControlledProjects = Collections.synchronizedSet(new HashSet<>());
@@ -231,12 +231,16 @@ public class AppInitializer {
             for (String outDatedProject : outDatedProjects) {
                 log.info("Remove project metrics for {}", outDatedProject);
                 MetricsGroup.removeProjectMetrics(outDatedProject);
+                MetricsRegistry.removeProjectFromStorageSizeMap(outDatedProject);
             }
 
             allControlledProjects.clear();
             allControlledProjects.addAll(allProjects);
 
         }, 1, 1, TimeUnit.MINUTES);
+
+        METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(MetricsRegistry::refreshTotalStorageSize,
+                0, 10, TimeUnit.MINUTES);
     }
 
     private void postInit() {
