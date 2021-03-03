@@ -204,7 +204,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
         this.condition.accept(visitor);
         if (isHeterogeneousSegmentOrMultiPartEnabled(this.context)) {
-            context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
+            context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(context, this)));
         }
         if (isJoinMatchOptimizationEnabled()) {
             collectNotNullTableWithFilterCondition(context);
@@ -276,7 +276,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
             this.condition.accept(visitor);
             if (isHeterogeneousSegmentOrMultiPartEnabled(context)) {
-                context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
+                context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(context, this)));
             }
             if (isJoinMatchOptimizationEnabled()) {
                 collectNotNullTableWithFilterCondition(context);
@@ -304,10 +304,12 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     }
 
     private class FilterConditionExpander extends RexVisitorImpl<RexNode> {
+        private OLAPContext context;
         private RelNode currentRel;
 
-        public FilterConditionExpander(RelNode currentRel) {
+        public FilterConditionExpander(OLAPContext context, RelNode currentRel) {
             super(true);
+            this.context = context;
             this.currentRel = currentRel;
         }
 
@@ -424,17 +426,13 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
 
         private RexNode visitChild(RexInputRef rexInputRef, RelNode relNode) {
             if (relNode instanceof TableScan) {
-                val columnIndex = rexInputRef.getIndex();
-                val tableScan = (OLAPTableScan) relNode;
-                val columnRef = tableScan.getColumnRowType().getColumnByIndex(columnIndex);
-                val columnIdentity = columnRef.getTable() + "." + columnRef.getName();
-                return RexInputRef.of(columnIdentity, columnIndex, tableScan.getRowType());
+                return context.createUniqueInputRefContextTables((OLAPTableScan) relNode, rexInputRef.getIndex());
             }
 
             if (relNode instanceof Project) {
                 val projectRel = (Project) relNode;
                 val expression = projectRel.getChildExps().get(rexInputRef.getIndex());
-                return expression.accept(new FilterConditionExpander(projectRel.getInput()));
+                return expression.accept(new FilterConditionExpander(context, projectRel.getInput()));
             }
 
             val index = rexInputRef.getIndex();

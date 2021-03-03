@@ -215,7 +215,7 @@ public class RealizationPruner {
             if (tableIdentity.equals(partitionCol.getTable())) {
                 val index = tableScan.getColumnRowType().getAllColumns().indexOf(partitionCol);
                 if (index >= 0) {
-                    return RexInputRef.of(tableIdentity + "." + partitionCol.getName(), index, tableScan.getRowType());
+                    return OLAPContext.createUniqueInputRefAmongTables(tableScan, index, tableScans);
                 }
                 throw new IllegalStateException(String.format(Locale.ROOT, "Cannot find column %s in all tableScans",
                         partitionCol.getIdentity()));

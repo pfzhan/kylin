@@ -498,6 +498,41 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         }
     }
 
+    // https://olapio.atlassian.net/browse/AL-1357
+    @Test
+    public void testHeterogeneousSegmentFilter() throws SQLException {
+        // layout 20000000001, tableindex
+        // layout 20001, cal_dt & trans_id
+        // layout 10001, cal_dt
+        // layout 1, trans_id
+
+        // segment1 [2012-01-01, 2012-01-02] layout 20000000001, 20001
+        // segment2 [2012-01-02, 2012-01-03] layout 20000000001, 20001, 10001
+        // segment3 [2012-01-03, 2012-01-04] layout 20001, 10001, 1
+        // segment4 [2012-01-04, 2012-01-05] layout 10001, 1
+        // segment5 [2012-01-05, 2012-01-06] layout 20000000001, 20001, 10001, 1
+
+        val project = "heterogeneous_segment";
+        val dfId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        val expectedRanges = Lists.<Pair<String, String>> newArrayList();
+        val segmentRange1 = Pair.newPair("2012-01-01", "2012-01-02");
+        val segmentRange2 = Pair.newPair("2012-01-02", "2012-01-03");
+        val segmentRange3 = Pair.newPair("2012-01-03", "2012-01-04");
+        val segmentRange4 = Pair.newPair("2012-01-04", "2012-01-05");
+        val segmentRange5 = Pair.newPair("2012-01-05", "2012-01-06");
+        val layout_20000000001 = 20000000001L;
+        val layout_20001 = 20001L;
+        val layout_10001 = 10001L;
+        val layout_1 = 1L;
+
+        val sql = "select cal_dt, sum(price) from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id ";
+
+        val sql1_date = sql
+                + "where cal_dt = DATE '2012-01-01' and test_account.ACCOUNT_SELLER_LEVEL = 1 group by cal_dt";
+        expectedRanges.add(segmentRange1);
+        assertPrunedSegmentsRange(project, sql1_date, dfId, expectedRanges, layout_20000000001, null);
+    }
+
     private void assertPrunedSegmentsRange(String project, String sql, String dfId,
             List<Pair<String, String>> expectedRanges, long expectedLayoutId,
             Map<String, List<Long>> expectedPartitions) throws SQLException {

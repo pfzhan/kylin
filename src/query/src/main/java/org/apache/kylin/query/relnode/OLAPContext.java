@@ -44,6 +44,7 @@ package org.apache.kylin.query.relnode;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -52,9 +53,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -81,6 +85,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.relnode.KapRel;
 import lombok.Getter;
 import lombok.Setter;
+
 
 /**
  */
@@ -452,5 +457,25 @@ public class OLAPContext {
 
     public void matchJoinWithEnhancementTransformation() {
         this.setJoinsGraph(JoinsGraph.normalizeJoinGraph(joinsGraph));
+    }
+
+    public static RexInputRef createUniqueInputRefAmongTables(OLAPTableScan table, int columnIdx, Collection<OLAPTableScan> tables) {
+        List<TableScan> sorted = new ArrayList<>(tables);
+        sorted.sort(Comparator.comparingInt(AbstractRelNode::getId));
+        int offset = 0;
+        for (TableScan tableScan : sorted) {
+            if (tableScan == table) {
+                return new RexInputRef(
+                        table.getRowType().getFieldList().get(columnIdx).getName(),
+                        offset + columnIdx,
+                        table.getRowType().getFieldList().get(columnIdx).getType());
+            }
+            offset += tableScan.getRowType().getFieldCount();
+        }
+        return null;
+    }
+
+    public RexInputRef createUniqueInputRefContextTables(OLAPTableScan table, int columnIdx) {
+        return createUniqueInputRefAmongTables(table, columnIdx, allTableScans);
     }
 }
