@@ -108,7 +108,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     protected void waitForJobFinish(String jobId) {
-        waitForJobFinish(jobId, 60000);
+        waitForJobFinish(jobId, 120000);
     }
 
     protected void waitForJobFinish(String jobId, int maxWaitTime) {
