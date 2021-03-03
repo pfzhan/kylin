@@ -23,10 +23,19 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
-import com.google.common.base.Joiner;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import java.io.Closeable;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import javax.sql.rowset.CachedRowSet;
+
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.kylin.sdk.datasource.framework.FixedCachedRowSetImpl;
 import org.apache.kylin.sdk.datasource.framework.conv.DefaultConfigurer;
@@ -36,16 +45,9 @@ import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.rowset.CachedRowSet;
-import java.io.Closeable;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Joiner;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * Extends this Abstract class to create Adaptors for new jdbc data source.

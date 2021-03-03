@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<DATASOURCE_DEF NAME="Snow Flake" ID="snowflake">
+<DATASOURCE_DEF NAME="SnowFlake" ID="snowflake" DIALECT="snowflake">
     <PROPERTY NAME="sql.default-converted-enabled" VALUE="true"/>
     <PROPERTY NAME="sql.allow-no-offset" VALUE="true"/>
     <PROPERTY NAME="sql.allow-fetch-no-rows" VALUE="true"/>

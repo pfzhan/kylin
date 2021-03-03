@@ -53,7 +53,6 @@ public class ConvSqlWriter extends SqlPrettyWriter {
 
     ConvSqlWriter(SqlConverter.IConfigurer configurer) {
         super(configurer.getSqlDialect());
-
         this.configurer = configurer;
     }
 

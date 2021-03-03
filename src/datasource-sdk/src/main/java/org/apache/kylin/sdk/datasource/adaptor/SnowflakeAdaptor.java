@@ -53,6 +53,7 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
 
     @Override
     public String fixSql(String sql) {
+        sql = tryReplaceBackTick(sql);
         sql = fixSubstringFromFor(sql);
         sql = convertTrim(sql);
         sql = rmAsyncMetric(sql);
@@ -107,6 +108,10 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
                 return cacheResultSet(rs);
             }
         }
+    }
+
+    private String tryReplaceBackTick(String sql) {
+        return sql.replace("`", "\"");
     }
 
     private String fixSubstringFromFor(String sql) {
