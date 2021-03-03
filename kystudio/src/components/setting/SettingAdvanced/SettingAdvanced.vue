@@ -815,7 +815,7 @@ export default class SettingAdvanced extends Vue {
           h('a', {
             style: 'color: #0988DE',
             attrs: {
-              href: `https://docs.kyligence.io/books/v4.2/${this.$lang === 'en' ? 'en' : 'zh-cn'}/model/model_design/slowly_changing_dimension_${this.$lang === 'en' ? 'en' : 'cn'}.html`,
+              href: `https://docs.kyligence.io/books/v4.3/${this.$lang === 'en' ? 'en' : 'zh-cn'}/model/model_design/slowly_changing_dimension_${this.$lang === 'en' ? 'en' : 'cn'}.html`,
               target: '_blank'
             }
           }, this.$t('userManual')),

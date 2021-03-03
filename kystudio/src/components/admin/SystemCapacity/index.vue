@@ -2,8 +2,8 @@
   <div class="system-capacity">
     <p class="main-title">{{$t('mainTitle')}}
       <el-popover ref="systemCapacity" width="290" popper-class="system-capacity-popover" trigger="hover">
-        <span v-if="$lang === 'en'">{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.2/en/operation/license_capacity.en.html">{{$t('manual')}}</a>{{$t('capacityTip2')}}</span>
-        <span v-else>{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.2/zh-cn/operation/license_capacity.cn.html">{{$t('manual')}}</a></span>
+        <span v-if="$lang === 'en'">{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.3/en/operation/license_capacity.en.html">{{$t('manual')}}</a>{{$t('capacityTip2')}}</span>
+        <span v-else>{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.3/zh-cn/operation/license_capacity.cn.html">{{$t('manual')}}</a></span>
       </el-popover>
       <i class="icon el-icon-ksd-what" v-popover:systemCapacity></i>
     </p>
