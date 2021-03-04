@@ -27,8 +27,11 @@ package io.kyligence.kap.query.engine;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
 import io.kyligence.kap.query.util.HepUtils;
@@ -124,6 +127,10 @@ public class QueryExec {
             if (resultFields.isEmpty()) { // result fields size may be 0 because of ACL controls and should return immediately
                 QueryContext.fillEmptyResultSetMetrics();
                 return new QueryResult();
+            }
+
+            if (kylinConfig.getEmptyResultForSelectStar() && sql.toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
+                return new QueryResult(Lists.newArrayList(), resultFields);
             }
 
             QueryResultMasks.setRootRelNode(node);

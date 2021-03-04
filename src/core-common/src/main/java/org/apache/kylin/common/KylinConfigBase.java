@@ -1316,6 +1316,12 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.force-limit", "-1"));
     }
 
+    // If return empty result for select star query
+    // https://olapio.atlassian.net/browse/KE-23663
+    public boolean getEmptyResultForSelectStar() {
+        return Boolean.parseBoolean(getOptional("kylin.query.return-empty-result-on-select-star", "false"));
+    }
+
     /**
      * the threshold for query result caching
      * query result will only be cached if the result is below the threshold

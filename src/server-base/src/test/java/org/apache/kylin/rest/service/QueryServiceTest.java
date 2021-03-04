@@ -1393,4 +1393,21 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                     queryService.isACLDisabledOrAdmin("default", queryService.getExecuteAclInfo("default", "ADMIN")));
         }
     }
+
+    @Test
+    public void testQuerySelectStar() {
+        overwriteSystemProp("kylin.query.return-empty-result-on-select-star", "true");
+        String[] select_star_sqls = { "select * from TEST_KYLIN_FACT", "select * from TEST_ACCOUNT",
+                "select * from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID"
+        };
+        for (String sql : select_star_sqls) {
+            SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(sql);
+            request.setQueryId(UUID.randomUUID().toString());
+
+            final SQLResponse response = queryService.doQueryWithCache(request, false);
+            Assert.assertEquals(0, response.getResults().size());
+        }
+    }
 }

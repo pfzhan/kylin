@@ -403,6 +403,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getForceLimit", new PropertiesEntity("kylin.query.force-limit", "-1", -1));
 
+        map.put("getEmptyResultForSelectStar", new PropertiesEntity("kylin.query.return-empty-result-on-select-star", "false", false));
+
         map.put("getLargeQueryThreshold",
                 new PropertiesEntity("kylin.query.large-query-threshold", String.valueOf(1000000), 1000000L));
 
@@ -831,7 +833,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(437, methodsCount);
+        Assert.assertEquals(438, methodsCount);
     }
 
     @Test
