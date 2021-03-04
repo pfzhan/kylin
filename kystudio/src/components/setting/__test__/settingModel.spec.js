@@ -1,6 +1,7 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import SettingModel from '../SettingModel/SettingModel.vue'
+import kapPager from 'components/common/kap_pager.vue'
 import Vuex from 'vuex'
 import * as utils from '../../../util/index'
 import * as business from '../../../util/business'
@@ -65,15 +66,18 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(SettingModel, {
+const wrapper = shallowMount(SettingModel, {
   store,
-  localVue
+  localVue,
   // mocks: {
   //   kapConfirm: mockKapConfirm,
   //   handleError: mockHandleError,
   //   handleSuccess: mockHandleSuccess,
   //   handleSuccessAsync: mockHandleSuccessAsync
   // }
+  components: {
+    kapPager
+  }
 })
 
 wrapper.vm.$refs = {
@@ -101,11 +105,11 @@ describe('Component SettingModel', () => {
     // expect(wrapper.vm.settingOption.call(option)).toEqual(['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'is-base-cuboid-always-valid', 'customSettings'])
 
     expect(wrapper.vm.availableRetentionRange).toBe('')
-    wrapper.setData({activeRow: {auto_merge_time_ranges: ['HOUR']}})
-    await wrapper.update()
+    await wrapper.setData({activeRow: {auto_merge_time_ranges: ['HOUR']}})
+    // await wrapper.update()
     expect(wrapper.vm.availableRetentionRange).toBe('HOUR')
 
-    expect(wrapper.vm.optionDesc).toEqual({"Auto-merge": "The system can auto-merge segment fragments over different merge threshold. Auto-merge, like defragmentation, will optimize storage to enhance query performance.", "Retention Threshold": "Only keep the segment whose data is in past given days in cube, the old segment will be automatically dropped from head.", "Volatile Range": "'Auto-Merge' will not merge latest [Volatile Range] days cube segments, by default is 0.", "customSettings": "Besides the defined configurations, you can also add some advanced settings.<br/><i class=\"el-icon-ksd-alert\"></i>Note: It's highly recommended to use this feature with the support of Kyligence Service Team.", "is-base-cuboid-always-valid": "According to your business scenario, you can decide whether to add an index that contains dimensions and measures defined in all aggregate groups. The index can answer queries across multiple aggregate groups, but this will impact query performance. In addition to this, there are some storage and building costs by adding this index.", "kylin.engine.spark-conf.spark.executor.cores": "The number of cores to use on each executor.", "kylin.engine.spark-conf.spark.executor.instances": "The number of executors to use on each application.", "kylin.engine.spark-conf.spark.executor.memory": "The amount of memory to use per executor process.", "kylin.engine.spark-conf.spark.sql.shuffle.partitions": "The number of partitions to use when shuffling data for joins or aggregations."})
+    expect(wrapper.vm.optionDesc).toEqual({"Auto-merge": "The system could auto-merge segment fragments over different merging threshold. Auto-merge will optimize storage to enhance query performance.", "Retention Threshold": "The segments within the retention threshold would be kept. The rest would be removed automatically.", "Volatile Range": "\"Auto-Merge\" will not merge the latest segments defined in \"Volatile Range\". The default value is 0.", "customSettings": "Besides the defined configurations, you can also add some advanced settings.<br/><i class=\"el-icon-ksd-alert\"></i>Note: It's highly recommended to use this feature with the support of Kyligence Service Team.", "is-base-cuboid-always-valid": "According to your business scenario, you can decide whether to add an index that contains dimensions and measures defined in all aggregate groups. The index can answer queries across multiple aggregate groups, but this will impact query performance. In addition to this, there are some storage and building costs by adding this index.", "kylin.engine.spark-conf.spark.executor.cores": "The number of cores to use on each executor.", "kylin.engine.spark-conf.spark.executor.instances": "The number of executors to use on each application.", "kylin.engine.spark-conf.spark.executor.memory": "The amount of memory to use per executor process.", "kylin.engine.spark-conf.spark.sql.shuffle.partitions": "The number of partitions to use when shuffling data for joins or aggregations."})
 
     const options = {
       activeRow: {
@@ -122,23 +126,23 @@ describe('Component SettingModel', () => {
     expect(wrapper.vm.modelSettingTitle).toBe('Edit Model Setting')
 
     expect(wrapper.vm.isSubmit).toBeFalsy()
-    wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'Auto-merge', autoMerge: []}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'Auto-merge', autoMerge: []}})
+    // await wrapper.update()
     expect(wrapper.vm.isSubmit).toBeTruthy()
-    wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'Volatile Range', volatileRange: {volatile_range_number: ''}}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'Volatile Range', volatileRange: {volatile_range_number: ''}}})
+    // await wrapper.update()
     expect(wrapper.vm.isSubmit).toBeTruthy()
-    wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'Retention Threshold', volatileRange: {retention_range_number: null}}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'Retention Threshold', volatileRange: {retention_range_number: null}}})
+    // await wrapper.update()
     expect(wrapper.vm.isSubmit).toBeTruthy()
-    wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'spark.executor.cores'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'spark.executor.cores'}})
+    // await wrapper.update()
     expect(wrapper.vm.isSubmit).toBeTruthy()
-    wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'is-base-cuboid-always-valid', 'is-base-cuboid-always-valid': ''}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'is-base-cuboid-always-valid', 'is-base-cuboid-always-valid': ''}})
+    // await wrapper.update()
     expect(wrapper.vm.isSubmit).toBeTruthy()
-    wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'customSettings', 'customSettings': [[]]}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...wrapper.vm.modelSettingForm, settingItem: 'customSettings', 'customSettings': [[]]}})
+    // await wrapper.update()
     expect(wrapper.vm.isSubmit).toBeTruthy()
   })
   it('methods', async () => {
@@ -155,7 +159,7 @@ describe('Component SettingModel', () => {
     expect(wrapper.vm.$data.editModelSetting).toBeTruthy()
 
     await wrapper.vm.removeAutoMerge(settingValue[0], 'retention_range')
-    expect(mockKapConfirm.mock.calls[0][0]).toBe('Are you sure you want to delete the “Retention Threshold” setting?')
+    expect(mockKapConfirm.mock.calls[0][0]).toBe('Are you sure you want to delete the \"Retention Threshold\" setting?')
     expect(mockApi.mockUpdateModelConfig.mock.calls[0][1]).toEqual({"alias": "test0001", "auto_merge_enabled": null, "auto_merge_time_ranges": null, "config_last_modified": 0, "config_last_modifier": null, "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {}, "project": "learn_kylin", "retention_range": null, "volatile_range": null})
 
     await wrapper.vm.removeCustomSettingItem(settingValue[0], 'kylin.config.enginee.code')
@@ -241,7 +245,7 @@ describe('Component SettingModel', () => {
 
     wrapper.vm.addCustomSetting()
     expect(wrapper.vm.$data.modelSettingForm.customSettings.length).toBe(2)
-    expect(wrapper.vm.$data.modelSettingForm.customSettings[0]).toEqual([])
+    expect(wrapper.vm.$data.modelSettingForm.customSettings[0]).toEqual(["kylin.engine.spark-conf.spark.executor.memory", "10g"])
 
     wrapper.vm.removeCustomSetting(0)
     expect(wrapper.vm.$data.modelSettingForm.customSettings.length).toBe(1)
@@ -267,38 +271,38 @@ describe('Component SettingModel', () => {
       'is-base-cuboid-always-valid': 'false',
       customSettings: [['spark.sql.shuffle.partitions', 10]]
     }
-    wrapper.setData({modelSettingForm: {...setting, settingItem: 'Auto-merge'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...setting, settingItem: 'Auto-merge'}})
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.$data.activeRow).toEqual({"alias": "test0001", "auto_merge_enabled": true, "auto_merge_time_ranges": ["DAY", "WEEK"], "config_last_modified": 1598390155201, "config_last_modifier": "ADMIN", "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {"kylin.cube.aggrgroup.is-base-cuboid-always-valid": "true", "kylin.engine.spark-conf.spark.executor.cores": "2", "kylin.engine.spark-conf.spark.executor.memory": "10g"}, "retention_range": {"retention_range_enabled": true, "retention_range_number": 2, "retention_range_type": "WEEK"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 2, "volatile_range_type": "DAY"}})
     expect(mockApi.mockUpdateModelConfig).toBeCalled()
 
-    wrapper.setData({modelSettingForm: {...setting, settingItem: 'customSettings'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...setting, settingItem: 'customSettings'}})
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.$data.activeRow).toEqual({"alias": "test0001", "auto_merge_enabled": true, "auto_merge_time_ranges": ["DAY", "WEEK"], "config_last_modified": 1598390155201, "config_last_modifier": "ADMIN", "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {"kylin.cube.aggrgroup.is-base-cuboid-always-valid": "true", "kylin.engine.spark-conf.spark.executor.cores": "2", "kylin.engine.spark-conf.spark.executor.memory": "10g", "spark.sql.shuffle.partitions": 10}, "retention_range": {"retention_range_enabled": true, "retention_range_number": 2, "retention_range_type": "WEEK"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 2, "volatile_range_type": "DAY"}})
     expect(mockApi.mockUpdateModelConfig).toBeCalled()
 
-    wrapper.setData({modelSettingForm: {...setting, settingItem: 'Volatile Range'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...setting, settingItem: 'Volatile Range'}})
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.$data.activeRow).toEqual({"alias": "test0001", "auto_merge_enabled": true, "auto_merge_time_ranges": ["DAY", "WEEK"], "config_last_modified": 1598390155201, "config_last_modifier": "ADMIN", "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {"kylin.cube.aggrgroup.is-base-cuboid-always-valid": "true", "kylin.engine.spark-conf.spark.executor.cores": "2", "kylin.engine.spark-conf.spark.executor.memory": "10g", "spark.sql.shuffle.partitions": 10}, "retention_range": {"retention_range_enabled": true, "retention_range_number": 2, "retention_range_type": "WEEK"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 2, "volatile_range_type": "DAY"}})
     expect(mockApi.mockUpdateModelConfig).toBeCalled()
 
-    wrapper.setData({modelSettingForm: {...setting, settingItem: 'Retention Threshold'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...setting, settingItem: 'Retention Threshold'}})
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.$data.activeRow).toEqual({"alias": "test0001", "auto_merge_enabled": true, "auto_merge_time_ranges": ["DAY", "WEEK"], "config_last_modified": 1598390155201, "config_last_modifier": "ADMIN", "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {"kylin.cube.aggrgroup.is-base-cuboid-always-valid": "true", "kylin.engine.spark-conf.spark.executor.cores": "2", "kylin.engine.spark-conf.spark.executor.memory": "10g", "spark.sql.shuffle.partitions": 10}, "retention_range": {"retention_range_enabled": true, "retention_range_number": 2, "retention_range_type": "WEEK"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 2, "volatile_range_type": "DAY"}})
     expect(mockApi.mockUpdateModelConfig).toBeCalled()
 
-    wrapper.setData({modelSettingForm: {...setting, settingItem: 'spark.executor.memory'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...setting, settingItem: 'spark.executor.memory'}})
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.$data.activeRow).toEqual({"alias": "test0001", "auto_merge_enabled": true, "auto_merge_time_ranges": ["DAY", "WEEK"], "config_last_modified": 1598390155201, "config_last_modifier": "ADMIN", "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {"kylin.cube.aggrgroup.is-base-cuboid-always-valid": "true", "kylin.engine.spark-conf.spark.executor.cores": "2", "kylin.engine.spark-conf.spark.executor.memory": "10gg", "spark.sql.shuffle.partitions": 10}, "retention_range": {"retention_range_enabled": true, "retention_range_number": 2, "retention_range_type": "WEEK"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 2, "volatile_range_type": "DAY"}})
     expect(mockApi.mockUpdateModelConfig).toBeCalled()
 
-    wrapper.setData({modelSettingForm: {...setting, settingItem: 'is-base-cuboid-always-valid'}})
-    await wrapper.update()
+    await wrapper.setData({modelSettingForm: {...setting, settingItem: 'is-base-cuboid-always-valid'}})
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.$data.activeRow).toEqual({"alias": "test0001", "auto_merge_enabled": true, "auto_merge_time_ranges": ["DAY", "WEEK"], "config_last_modified": 1598390155201, "config_last_modifier": "ADMIN", "model": "15df9e90-7560-4cf3-817b-70b4104a4f66", "override_props": {"kylin.cube.aggrgroup.is-base-cuboid-always-valid": false, "kylin.engine.spark-conf.spark.executor.cores": "2", "kylin.engine.spark-conf.spark.executor.memory": "10gg", "spark.sql.shuffle.partitions": 10}, "retention_range": {"retention_range_enabled": true, "retention_range_number": 2, "retention_range_type": "WEEK"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 2, "volatile_range_type": "DAY"}})
     expect(mockApi.mockUpdateModelConfig).toBeCalled()

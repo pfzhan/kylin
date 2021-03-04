@@ -1,4 +1,4 @@
-import { createLocalVue, shallow } from 'vue-test-utils'
+import { createLocalVue, shallowMount } from '@vue/test-utils'
 import VueI18n from 'vue-i18n'
 import noData from '../nodata.vue'
 import enLocale from 'kyligence-ui/lib/locale/lang/en'
@@ -14,7 +14,7 @@ localVue.use(VueI18n)
 localVue.locale('en', enLocale)
 localVue.locale('zh-cn', zhLocale)
 
-const wrapper = shallow(noData, {
+const wrapper = shallowMount(noData, {
   localVue,
   propsData: {
     content: 'xxx'
@@ -26,23 +26,23 @@ describe('Component noData', () => {
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.name()).toBe('NoData')
     expect(wrapper.isVueInstance()).toBeTruthy()
-    expect(wrapper.html().replace(/\n/g, '')).toBe('<div class="no-data">    xxx</div>')
+    expect(wrapper.html().replace(/\n/g, '')).toBe("<div class=\"no-data\">  xxx</div>")
   })
   it('test computed', async () => {
-    wrapper.setProps({ content: 'ccc' })
+    await wrapper.setProps({ content: 'ccc' })
     expect(wrapper.vm.tips).toBe('ccc')
-    wrapper.setProps({ content: '123' })
+    await wrapper.setProps({ content: '123' })
     expect(wrapper.vm.tips).toBe('123')
-    wrapper.setProps({ content: '' })
+    await wrapper.setProps({ content: '' })
     expect(wrapper.vm.tips).toBe('No data')
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.find('div').text()).toBe('No data')
   })
   it('set props', async () => {
-    wrapper.setProps({
+    await wrapper.setProps({
       content: '暂无数据'
     })
-    await wrapper.update()
+    // await wrapper.update()
     expect(wrapper.find('div').text().trim()).toBe('暂无数据')
   })
 })

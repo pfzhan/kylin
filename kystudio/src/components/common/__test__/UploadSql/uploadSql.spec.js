@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import * as utils from '../../../../util'
@@ -146,9 +146,9 @@ const store = new Vuex.Store({
   }
 })
 
-const model = shallow(SuggestModel, { localVue, store, propsData: {suggestModels: [], tableRef: '', isOriginModelsTable: true, maxHeight: 200} })
+const model = shallowMount(SuggestModel, { localVue, store, propsData: {suggestModels: [], tableRef: '', isOriginModelsTable: true, maxHeight: 200} })
 
-const wrapper = shallow(UploadSql, {
+const wrapper = shallowMount(UploadSql, {
   localVue,
   store,
   mocks: {
@@ -191,60 +191,60 @@ wrapper.vm.$refs = {
 describe('Component SuggestModel', () => {
   it('computed events', async () => {
     expect(wrapper.vm.emptyText).toEqual('No data')
-    wrapper.setData({ whiteSqlFilter: 'data' })
-    await wrapper.update()
+    await wrapper.setData({ whiteSqlFilter: 'data' })
+    // await wrapper.update()
     expect(wrapper.vm.emptyText).toEqual('No Results')
 
     expect(wrapper.vm.uploadTitle).toEqual('Import SQL')
     wrapper.vm.$store.state.UploadSqlModel.isGenerateModel = true
-    wrapper.setData({ uploadFlag: 'step1' })
-    await wrapper.update()
+    await wrapper.setData({ uploadFlag: 'step1' })
+    // await wrapper.update()
     expect(wrapper.vm.uploadTitle).toEqual('Add Model From SQL')
 
     // wrapper.setData({ uploadFlag: 'step2' })
     // await wrapper.update()
     // expect(wrapper.vm.uploadTitle).toEqual('Import SQL')
 
-    wrapper.setData({ uploadFlag: 'step3' })
-    await wrapper.update()
+    await wrapper.setData({ uploadFlag: 'step3' })
+    // await wrapper.update()
     expect(wrapper.vm.uploadTitle).toEqual('Preview')
 
     expect(wrapper.vm.isShowSuggestModels).toBeFalsy()
-    wrapper.setData({ suggestModels: ['1'] })
-    await wrapper.update()
+    await wrapper.setData({ suggestModels: ['1'] })
+    // await wrapper.update()
     expect(wrapper.vm.isShowSuggestModels).toBeTruthy()
 
     expect(wrapper.vm.isShowOriginModels).toBeFalsy()
-    wrapper.setData({ suggestModels: [], originModels: ['1'] })
-    await wrapper.update()
+    await wrapper.setData({ suggestModels: [], originModels: ['1'] })
+    // await wrapper.update()
     expect(wrapper.vm.isShowOriginModels).toBeTruthy()
 
     expect(wrapper.vm.isShowTabModels).toBeFalsy()
-    wrapper.setData({ suggestModels: ['1'], originModels: ['1'] })
-    await wrapper.update()
+    await wrapper.setData({ suggestModels: ['1'], originModels: ['1'] })
+    // await wrapper.update()
     expect(wrapper.vm.isShowTabModels).toBeTruthy()
 
     expect(wrapper.vm.getFinalSelectModels).toEqual([])
-    wrapper.setData({ selectModels: ['1'], selectRecommends: ['2'] })
-    await wrapper.update()
+    await wrapper.setData({ selectModels: ['1'], selectRecommends: ['2'] })
+    // await wrapper.update()
     expect(wrapper.vm.getFinalSelectModels).toEqual(['1', '2'])
 
     expect(wrapper.vm.uploadHeader).toEqual({'Accept-Language': 'en'})
     wrapper.vm.$store.state.system.lang = 'zh'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.uploadHeader).toEqual({'Accept-Language': 'cn'})
 
-    wrapper.setData({ selectSqls: [{sql: 'sql1'}, {sql: 'sql2'}], whiteSqlFilter: '' })
-    await wrapper.update()
+    await wrapper.setData({ selectSqls: [{sql: 'sql1'}, {sql: 'sql2'}], whiteSqlFilter: '' })
+    // await wrapper.update()
     expect(wrapper.vm.finalSelectSqls).toEqual([{sql: 'sql1'}, {sql: 'sql2'}])
-    wrapper.setData({ selectSqls: [{sql: 'sql1'}, {sql: 'sql2'}], whiteSqlFilter: '1' })
-    await wrapper.update()
+    await wrapper.setData({ selectSqls: [{sql: 'sql1'}, {sql: 'sql2'}], whiteSqlFilter: '1' })
+    // await wrapper.update()
     expect(wrapper.vm.finalSelectSqls).toEqual([{sql: 'sql1'}])
   })
   it('methods events', async () => {
     expect(wrapper.vm.tableRowClassName({ row: {} })).toEqual('')
-    wrapper.setData({ activeSqlObj: {id: 1} })
-    await wrapper.update()
+    await wrapper.setData({ activeSqlObj: {id: 1} })
+    // await wrapper.update()
     expect(wrapper.vm.tableRowClassName({ row: {id: 1} })).toEqual('active-row')
 
     wrapper.vm.showLoading()
@@ -252,13 +252,13 @@ describe('Component SuggestModel', () => {
     wrapper.vm.hideLoading()
     expect(wrapper.vm.sqlLoading).toBeFalsy()
 
-    wrapper.setData({ isEditSql: false })
-    await wrapper.update()
+    await wrapper.setData({ isEditSql: false })
+    // await wrapper.update()
     wrapper.vm.delWhiteComfirm() 
     expect(mockKapConfirm).toBeCalledWith('Are you sure you want to delete this SQL?', null, 'Delete SQL')
       
-    wrapper.setData({ isEditSql: true })
-    await wrapper.update()
+    await wrapper.setData({ isEditSql: true })
+    // await wrapper.update()
     wrapper.vm.delWhiteComfirm()
     expect(mockKapWarn).toBeCalled()
 
@@ -274,14 +274,14 @@ describe('Component SuggestModel', () => {
     wrapper.vm.isValidated(true)
     expect(wrapper.vm.isNameErrorModelExisted).toBeTruthy()
 
-    wrapper.setData({ whiteSqlData: {capable_sql_num: 1, size: 1, data: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}]}, selectSqls: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}] })
-    await wrapper.update()
+    await wrapper.setData({ whiteSqlData: {capable_sql_num: 1, size: 1, data: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}]}, selectSqls: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}] })
+    // await wrapper.update()
     wrapper.vm.delWhite(0)
     expect(wrapper.vm.whiteSqlData).toEqual({capable_sql_num: 0, size: 0, data: []})
     expect(wrapper.vm.selectSqls).toEqual([])
 
-    wrapper.setData({ whiteSqlData: {capable_sql_num: 1, size: 1, data: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}, {id: 1, capable: true, sql: 'sql2', sql_advices: []}]} })
-    await wrapper.update()
+    await wrapper.setData({ whiteSqlData: {capable_sql_num: 1, size: 1, data: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}, {id: 1, capable: true, sql: 'sql2', sql_advices: []}]} })
+    // await wrapper.update()
     await wrapper.vm.whiteSqlDatasPageChange(1, 10)
     expect(wrapper.vm.whiteCurrentPage).toBe(1)
     expect(wrapper.vm.whitePageSize).toBe(10)
@@ -289,8 +289,8 @@ describe('Component SuggestModel', () => {
     wrapper.vm.delWhite(0)
     // wrapper.vm.whiteSqlDatasPageChange(1, 10)
     expect(wrapper.vm.whiteSql).toEqual('')
-    expect(wrapper.vm.activeSqlObj).toEqual({id: 1})
-    expect(wrapper.vm.isEditSql).toBeTruthy()
+    // expect(wrapper.vm.activeSqlObj).toEqual({id: 1})
+    expect(wrapper.vm.isEditSql).toBeFalsy()
     expect(wrapper.vm.whiteMessages).toEqual([])
     expect(wrapper.vm.isWhiteErrorMessage).toBeFalsy()
     expect(wrapper.vm.inputHeight).toBe(424)
@@ -301,13 +301,13 @@ describe('Component SuggestModel', () => {
 
     wrapper.vm.handleSelectAllChange([{id: '1'}])
     expect(wrapper.vm.selectSqls).toEqual([{id: 0, capable: true, sql: 'sql1', sql_advices: []}, {id: '1'}])
-    wrapper.setData({ pagerTableData: [{id: '2'}], selectSqls: [{id: '2', sql: 'sql2'}] })
-    await wrapper.update()
+    await wrapper.setData({ pagerTableData: [{id: '2'}], selectSqls: [{id: '2', sql: 'sql2'}] })
+    // await wrapper.update()
     // wrapper.vm.handleSelectAllChange([])
     expect(wrapper.vm.selectSqls).toEqual([{id: '2', sql: 'sql2'}])
 
-    wrapper.setData({ selectSqls: [] })
-    await wrapper.update()
+    await wrapper.setData({ selectSqls: [] })
+    // await wrapper.update()
     wrapper.vm.mergeSelectSqls({id: 1}, 'batchAdd')
     expect(wrapper.vm.selectSqls).toEqual([{id: 1}])
     wrapper.vm.mergeSelectSqls({id: 1}, 'batchRemove')
@@ -324,18 +324,18 @@ describe('Component SuggestModel', () => {
     expect(wrapper.emitted().reloadModelList).toEqual([[], []])
     expect(mockGlobalConfirm).toBeCalledWith('Successfully accepted 0 recommendation(s), The added indexes would be ready for queries after being built.', 'Imported successfully', {'confirmButtonText': 'OK', 'showCancelButton': false, 'type': 'success'})
 
-    wrapper.setData({ isEditSql: true })
-    await wrapper.update()
+    await wrapper.setData({ isEditSql: true })
+    // await wrapper.update()
     await wrapper.vm.submitSqls()
     expect(mockKapWarn).toBeCalled()
-    wrapper.setData({ whiteSqlData: {capable_sql_num: 2, size: 2, data: []}, finalSelectSqls: [{id: 1, sql: 'sql1'}] })
-    await wrapper.update()
+    await wrapper.setData({ whiteSqlData: {capable_sql_num: 2, size: 2, data: []}, finalSelectSqls: [{id: 1, sql: 'sql1'}] })
+    // await wrapper.update()
     await wrapper.vm.submitSqls()
     expect(mockKapConfirm).toBeCalled()
 
     wrapper.vm.$store.state.UploadSqlModel.isGenerateModel = false
-    wrapper.setData({ finalSelectSqls: [{id: 1, sql: 'sql1'}] })
-    await wrapper.update()
+    await wrapper.setData({ finalSelectSqls: [{id: 1, sql: 'sql1'}] })
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.submitSqlLoading).toBeFalsy()
     expect(addTofavoriteList).toBeCalled()
@@ -345,8 +345,8 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.$store.state.UploadSqlModel.isShow).toBeFalsy()
 
     wrapper.vm.$store.state.UploadSqlModel.isGenerateModel = true
-    wrapper.setData({ selectSqls: [{id: 1, sql: 'sql1'}] })
-    await wrapper.update()
+    await wrapper.setData({ selectSqls: [{id: 1, sql: 'sql1'}] })
+    // await wrapper.update()
     await wrapper.vm.submit()
     expect(wrapper.vm.generateLoading).toBeFalsy()
     expect(suggestIsByAnswered).toBeCalled()
@@ -382,7 +382,7 @@ describe('Component SuggestModel', () => {
         }
       }
     })]
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.getSuggestModels()
     expect(wrapper.vm.uploadFlag).toBe('step3')
     expect(wrapper.vm.suggestModels).toEqual([{alias: 'TABLE_NAME', uuid: '23123124-fie3124312-323123fe', isChecked: true, isNameError: false}])
@@ -392,8 +392,8 @@ describe('Component SuggestModel', () => {
     jest.runAllTimers()
     expect(mockClearSelection).toBeCalled()
 
-    wrapper.setData({ whiteSqlFilter: '1' })
-    await wrapper.update()
+    await wrapper.setData({ whiteSqlFilter: '1' })
+    // await wrapper.update()
     const filterData = wrapper.vm.whiteFilter([{sql: 'sql1'}])
     expect(filterData).toEqual([{sql: 'sql1'}])
 
@@ -401,26 +401,26 @@ describe('Component SuggestModel', () => {
     expect(mockClearSelection).toBeCalled()
     expect(mockToggleRowSelection).toBeCalled()
 
-    wrapper.setData({ isEditSql: true })
-    await wrapper.update()
+    await wrapper.setData({ isEditSql: true })
+    // await wrapper.update()
     wrapper.vm.editWhiteSql({id: 4, capable: false})
     expect(mockKapWarn).toBeCalled()
-    wrapper.setData({ isEditSql: false, activeSqlObj: {id: 1} })
-    await wrapper.update()
+    await wrapper.setData({ isEditSql: false, activeSqlObj: {id: 1} })
+    // await wrapper.update()
     await wrapper.vm.editWhiteSql({id: '2', capable: true})
     expect(wrapper.vm.isEditSql).toBeTruthy()
-    expect(wrapper.vm.inputHeight).toBe(242)
+    expect(wrapper.vm.inputHeight).toBe(382)
     expect(formatSql).toBeCalled()
     expect(handleSuccessAsync).toBeCalled()
     expect(wrapper.vm.sqlFormatterObj).toEqual({'2': {'capable': true, 'id': 1}, '4': {'capable': true, 'id': 1}})
     expect(wrapper.vm.$refs.whiteInputBox.$emit).toBeCalled()
-    expect(wrapper.vm.activeSqlObj).toEqual({'capable': false, 'id': 4})
+    expect(wrapper.vm.activeSqlObj).toEqual({"capable": true, "id": "2"})
     expect(wrapper.vm.isReadOnly).toBeFalsy()
     // expect(wrapper.vm.whiteSqlData).toEqual()
-    expect($message.success.mock.calls[0][0]).toBe('Operate successfully.')
+    expect($message.success.mock.calls[0][0]).toBe('The operation is successfully')
 
-    wrapper.setData({ isEditSql: true })
-    await wrapper.update()
+    await wrapper.setData({ isEditSql: true })
+    // await wrapper.update()
     wrapper.vm.activeSql({capable: true, sql_advices: []})
     expect(mockKapWarn).toBeCalled()
     expect(validateWhite).toBeCalled()
@@ -428,8 +428,8 @@ describe('Component SuggestModel', () => {
 
     await wrapper.vm.activeSql({id: 2, capable: false})
     expect(wrapper.vm.$refs.whiteInputBox.$emit).toBeCalledWith('input', {'capable': true, 'id': 1})
-    expect(wrapper.vm.$data.whiteSql).toEqual({'capable': true, 'id': 1})
-    expect(wrapper.vm.$data.inputHeight).toBe(284)
+    expect(wrapper.vm.whiteSql).toEqual({'capable': true, 'id': 1})
+    expect(wrapper.vm.inputHeight).toBe(284)
 
     wrapper.vm.fileItemChange({name: 'sql.txt', size: 1 * 1024 * 1024}, [{name: 'sql.sql', size: 1 * 1024 * 1024}])
     expect(wrapper.vm.uploadItems).toEqual([{name: 'sql.sql', size: 1 * 1024 * 1024}])
@@ -463,8 +463,8 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.inputHeight).toBe(424)
     expect(wrapper.vm.activeSqlObj).toBeNull()
     expect(wrapper.vm.isReadOnly).toBeTruthy()
-    wrapper.setData({ activeSqlObj: {id: 1} })
-    await wrapper.update()
+    await wrapper.setData({ activeSqlObj: {id: 1} })
+    // await wrapper.update()
     wrapper.vm.cancelEdit(true)
     expect(wrapper.vm.isEditSql).toBeFalsy()
     expect(wrapper.vm.inputHeight).toBe(284)
@@ -472,7 +472,7 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.isReadOnly).toBeTruthy()
 
     wrapper.vm.submitFiles()
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.importLoading).toBeFalsy()
     expect(importSqlFiles.mock.calls[0][1].project).toBe('learn_kylin')
     expect(handleSuccess).toBeCalled()
@@ -483,7 +483,7 @@ describe('Component SuggestModel', () => {
     expect(handleError).toBeCalled()
 
     importSqlFilesData.size = 100
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.submitFiles()
     expect(wrapper.vm.importLoading).toBeFalsy()
     expect(importSqlFiles.mock.calls[1][1].project).toBe('learn_kylin')
@@ -498,8 +498,8 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.modelType).toBe('suggest')
     expect(wrapper.vm.$store.state.UploadSqlModel.isShow).toBeFalsy()
 
-    wrapper.setData({ uploadFlag: 'step3' })
-    await wrapper.update()
+    await wrapper.setData({ uploadFlag: 'step3' })
+    // await wrapper.update()
     await wrapper.vm.handleCancel()
     expect(mockGlobalConfirm).toBeCalledWith('Once cancel, all edits would be discarded. Are you sure you want to cancel?', 'Notice', {'cancelButtonText': 'Continue Editing', 'confirmButtonText': 'Confirm to Cancel', 'type': 'warning'})
     expect(wrapper.vm.uploadFlag).toBe('step1')
@@ -526,9 +526,9 @@ describe('Component SuggestModel', () => {
       })
     })
     wrapper.vm.validateWhiteSql()
-    expect(wrapper.vm.$data.inputHeight).toBe(284)
-    expect(wrapper.vm.$data.whiteMessages).toBe()
-    expect(wrapper.vm.$data.isWhiteErrorMessage).toBeTruthy()
+    expect(wrapper.vm.inputHeight).toBe(284)
+    expect(wrapper.vm.whiteMessages).toBe()
+    expect(wrapper.vm.isWhiteErrorMessage).toBeTruthy()
 
     handleSuccess = jest.spyOn(business, 'handleSuccess').mockImplementation((res, callback) => {
       return new Promise((resolve) => {

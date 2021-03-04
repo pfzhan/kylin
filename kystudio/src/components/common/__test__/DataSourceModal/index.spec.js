@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import DataSourceModal from '../../DataSourceModal/index.vue'
 import Vuex from 'vuex'
@@ -57,7 +57,7 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(DataSourceModal, {
+const wrapper = shallowMount(DataSourceModal, {
   store,
   localVue,
   mocks: {
@@ -88,15 +88,15 @@ describe('Component DataSourceModal', () => {
   it('computed', async () => {
     expect(wrapper.vm.modalTitle).toBe('cloudHive')
     wrapper.vm.$store.state.config.platform = ''
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.modalTitle).toBe('loadhiveTables')
 
     expect(wrapper.vm.modelWidth).toBe('960px')
     wrapper.vm.$store.state.DataSourceModal.editType = 'selectSource'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.modelWidth).toBe('480px')
     wrapper.vm.$store.state.DataSourceModal.editType = 'configSource'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.modelWidth).toBe('780px')
 
     expect(wrapper.vm.confirmText).toBe('Next')
@@ -125,23 +125,23 @@ describe('Component DataSourceModal', () => {
 
     wrapper.vm.$store.state.DataSourceModal.form.samplingRows = 100
     wrapper.vm.$store.state.DataSourceModal.form.selectedTables = []
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
     expect(mockMessage).toBeCalledWith('Please select databases or tables.')
 
     wrapper.vm.$store.state.DataSourceModal.editType = 'selectSource'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
     expect(mockApi.mockUpdateProjectDatasource.mock.calls[0][1]).toEqual({"project": "xm_test", "source_type": "9"})
 
     wrapper.vm.$store.state.DataSourceModal.editType = 'configCsvStructure'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
     expect(mockApi.mockSaveCsvDataSourceInfo.mock.calls[0][1]).toEqual({"data": {"credential": "{}", "project": "xm_test", "tableData": undefined}, "type": "guide"})
     expect(mockHandleSuccessAsync).toBeCalled()
 
     wrapper.vm.$store.state.DataSourceModal.editType = 'configCsvSql'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
     expect(mockApi.mockSaveCsvDataSourceInfo.mock.calls[1][1]).toEqual({"data": {"credential": "{}", "project": "xm_test"}, "type": "expert"})
     expect(mockHandleSuccessAsync).toBeCalled()
@@ -150,12 +150,12 @@ describe('Component DataSourceModal', () => {
     expect(wrapper.vm.prevSteps).toEqual(["selectSource", "configCsvStructure"])
 
     wrapper.vm.$store.state.DataSourceModal.prevSteps = [9, 'selectSource']
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.handleCancel()
     expect(wrapper.vm.$store.state.DataSourceModal.editType).toBe('configCsvStructure')
 
     wrapper.vm.$store.state.DataSourceModal.prevSteps = []
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.handleCancel()
     expect(wrapper.vm.isLoading).toBeFalsy()
     expect(wrapper.vm.isDisabled).toBeFalsy()

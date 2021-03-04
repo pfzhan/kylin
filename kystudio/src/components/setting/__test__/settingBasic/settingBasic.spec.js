@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
@@ -89,8 +89,8 @@ const mockRoute = {
   }
 }
 const mockMessage = jest.fn().mockImplementation()
-const _EditableBlock = shallow(EditableBlock)
-const wrapper = shallow(SettingBasic, {
+// const EditableBlock = shallowMount(EditableBlock)
+const wrapper = shallowMount(SettingBasic, {
   store,
   localVue,
   mocks: {
@@ -111,7 +111,7 @@ const wrapper = shallow(SettingBasic, {
     project
   },
   components: {
-    EditableBlock: _EditableBlock
+    EditableBlock
   }
 })
 wrapper.vm.$refs = {
@@ -147,7 +147,7 @@ describe('Component SettingBasic', () => {
   it('init', async () => {
     expect(wrapper.vm.rulesAccerationDefault).toEqual({"count_enable": true, "count_value": 10, "duration_enable": false, "freq_enable": false, "freq_value": null, "max_duration": null, "min_duration": null, "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": ["ROLE_ADMIN"], "users": ["ADMIN"]})
     await wrapper.vm.$options.mounted[0].call(wrapper.vm)
-    expect(wrapper.vm.form).toEqual({"alias": "xm_test_1", "auto_merge_enabled": true, "auto_merge_time_ranges": ["WEEK", "MONTH"], "description": undefined, "frequency_time_window": "MONTH", "low_frequency_threshold": 0, "maintain_model_type": "MANUAL_MAINTAIN", "project": "xm_test_1", "push_down_enabled": true, "push_down_range_limited": undefined, "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "semi_automatic_mode": true, "storage_garbage": true, "storage_quota_size": 14293651161088, "storage_quota_tb_size": "13.00", "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
+    expect(wrapper.vm.form).toEqual({"alias": "xm_test_1", "auto_merge_enabled": true, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "description": undefined, "frequency_time_window": "MONTH", "low_frequency_threshold": 0, "maintain_model_type": "MANUAL_MAINTAIN", "project": "xm_test_1", "push_down_enabled": true, "push_down_range_limited": undefined, "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "semi_automatic_mode": true, "storage_garbage": true, "storage_quota_size": 14293651161088, "storage_quota_tb_size": "13.00", "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(wrapper.vm.$refs.acclerationRuleSettings.$el.scrollIntoView).toBeCalled()
     expect(mockApi.mockGetFavoriteRules.mock.calls[0][1]).toEqual({"project": "Kyligence"})
     expect(wrapper.vm.rulesObj).toEqual(favoriteRules)
@@ -175,22 +175,22 @@ describe('Component SettingBasic', () => {
     expect(wrapper.vm.form.auto_merge_time_ranges).toEqual(['MONTH', 'WEEK'])
 
     await wrapper.vm.handleSwitch('auto-merge', false)
-    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
+    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(wrapper.emitted()['reload-setting'].length).toBe(1)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
 
     await wrapper.vm.handleSwitch('auto-retention', false)
-    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
+    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(wrapper.emitted()['reload-setting'].length).toBe(2)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
 
     await wrapper.vm.handleSwitch('pushdown-range', 100)
-    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
+    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(wrapper.emitted()['reload-setting'].length).toBe(3)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
 
     await wrapper.vm.handleSwitch('pushdown-engine', false)
-    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
+    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(wrapper.emitted()['reload-setting'].length).toBe(4)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
 
@@ -207,7 +207,7 @@ describe('Component SettingBasic', () => {
 
     await wrapper.vm.handleSubmit('segment-settings', callbackFnc.success, callbackFnc.error)
     expect(wrapper.vm.$refs['segment-setting-form'].validate).toBeCalled()
-    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
+    expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(callbackFnc.success).toBeCalled()
     expect(wrapper.emitted()['reload-setting'].length).toBe(6)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})

@@ -416,13 +416,14 @@ export default class UserEditModal extends Vue {
         margin-top:5px;
         .msg{
           width: calc(~'100% - 20px');
+          color: @text-normal-color;
         }
       }
       i{
         margin-right:5px;
         margin-top:1px;
         &.point{
-          color:@text-disabled-color;
+          color: @text-normal-color;
           margin-top:0;
         }
       }

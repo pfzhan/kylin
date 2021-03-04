@@ -7,7 +7,8 @@ export const realizations = [{
   unauthorized_columns: [],
   unauthorized_tables: [],
   valid: true,
-  visible: true
+  visible: true,
+  snapshots: ['snapshot1', 'snapshot2']
 }]
 
 export const currentRow = {
@@ -71,6 +72,26 @@ export const extraoptions = {
     signed: true,
     tableName: null,
     writable: false
+  }, {
+    autoIncrement: false,
+    caseSensitive: false,
+    catelogName: null,
+    columnType: 5,
+    columnTypeName: "number",
+    currency: false,
+    definitelyWritable: false,
+    displaySize: 2147483647,
+    isNullable: 1,
+    label: "d_cuskey",
+    name: "d_cuskey",
+    precision: 0,
+    readOnly: false,
+    scale: 0,
+    schemaName: null,
+    searchable: false,
+    signed: true,
+    tableName: null,
+    writable: false
   }],
   duration: 662,
   engineType: "HIVE",
@@ -100,7 +121,39 @@ export const extraoptions = {
   timeout: false,
   totalScanBytes: 0,
   totalScanRows: 1000,
-  traceUrl: null
+  traceUrl: null,
+  traces: [
+    {
+      "name": "GET_ACL_INFO",
+      "group": "PREPARATION",
+      "duration": 1
+    },
+    {
+      "name": "SQL_TRANSFORMATION",
+      "group": "PREPARATION",
+      "duration": 24
+    },
+    {
+      "name": "SQL_PARSE_AND_OPTIMIZE",
+      "group": "PREPARATION",
+      "duration": 194
+    },
+    {
+      "name": "MODEL_MATCHING",
+      "group": "PREPARATION",
+      "duration": 12
+    },
+    {
+      "name": "SQL_PUSHDOWN_TRANSFORMATION",
+      "group": null,
+      "duration": 41
+    },
+    {
+      "name": "PREPARE_AND_SUBMIT_JOB",
+      "group": null,
+      "duration": 75
+    }
+  ]
 }
 
 export const queryExportData = {

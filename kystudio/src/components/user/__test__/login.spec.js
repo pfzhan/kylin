@@ -1,4 +1,4 @@
-import { shallow, createLocalVue } from 'vue-test-utils'
+import { shallowMount, createLocalVue } from '@vue/test-utils'
 import Vuex from 'vuex'
 import Login from '../login.vue'
 import VueResource from 'vue-resource'
@@ -7,6 +7,7 @@ import Vue from 'vue'
 import ElementUI from 'kyligence-ui'
 import * as util from '../../../util/business'
 import License from '../license.vue'
+import iconBtn from 'components/common/icon_button'
 
 jest.setTimeout(30000)
 
@@ -124,7 +125,7 @@ let factory = (type, store, otherMocks) => {
   }) : jest.spyOn(util, 'handleSuccess').mockImplementation((res, callback) => {
     callback({'ke.dates': '2020-04-10,2020-07-13'})
   })
-  return shallow(Login, {
+  return shallowMount(Login, {
     localVue,
     store,
     router,
@@ -134,7 +135,8 @@ let factory = (type, store, otherMocks) => {
       ...otherMocks
     },
     components: {
-      'license': License
+      'license': License,
+      kapIconButton: iconBtn
     }
   })
 }
@@ -155,13 +157,13 @@ describe('Component Login', () => {
   })
   it('dom element', async () => {
     const wrapper = await factory('', store)
-    wrapper.setData({
+    await wrapper.setData({
       user: {
         username: 'ADMIN',
         password: 'KYLIN'
       }
     })
-    await wrapper.update()
+    // await wrapper.update()
     expect(wrapper.find('.ksd-fright').findAll('li').length).toBe(2)
     const guideList = wrapper.find('.login-box').find('ul').findAll('li')
     expect(guideList.length).toBe(3)
@@ -170,21 +172,19 @@ describe('Component Login', () => {
     expect(guideList.at(2).find('a').attributes().href).toEqual('mailto:info@Kyligence.io')
     // expect(wrapper.find('.forget-pwd').attributes().style).toBe('')
     // expect(wrapper.find('.forget-pwd').text()).toBe('Forget Password')
-    const form = wrapper.find('.input_group').findAll('input')
+    const form = wrapper.find('.input_group').findAll('el-input-stub')
     expect(form.length).toBe(2)
     expect(form.at(0).attributes().placeholder).toBe('Username')
     expect(form.at(1).attributes().placeholder).toBe('Password')
-    form.at(0).element.value = 'test'
-    form.at(0).trigger('input')
-    form.at(1).element.value = '123456'
-    form.at(1).trigger('input')
-    await wrapper.update()
+    form.at(0).element.__vue__.$emit('input', 'test')
+    form.at(1).element.__vue__.$emit('input', '123456')
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.$data.user).toEqual({'password': '123456', 'username': 'test'})
     wrapper.destroy()
   })
   it('login success', async () => {
     const wrapper = await factory('', store)
-    wrapper.setData({
+    await wrapper.setData({
       user: {
         username: 'ADMIN',
         password: 'KYLIN'
@@ -198,6 +198,9 @@ describe('Component Login', () => {
         },
         loginBtn: {
           loading: false
+        },
+        applyLicenseForm: {
+          resetFields: jest.fn().mockResolvedValue(true)
         }
       },
       setCurUser: saveUser,
@@ -205,14 +208,14 @@ describe('Component Login', () => {
       loginSuccess: wrapper.vm.$data.loginSuccess,
       showLicenseCheck: false
     }
-    await wrapper.update()
+    // await wrapper.update()
     expect(wrapper.vm.$data.user).toEqual({ username: 'ADMIN', password: 'KYLIN' })
     // wrapper.vm.onLoginSubmit.call(options)
     Login.methods.onLoginSubmit.call(options)
     expect(Vue.http.headers.common['Authorization']).toBe('Basic QURNSU46S1lMSU4=')
     expect(mockLogin).toBeCalled()
     expect(mockHandleSuccess).toBeCalled()
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(saveUser).toHaveBeenCalledWith({user: data.data})
     expect(options.loginSuccess).toBe(true)
     expect(options.showLicenseCheck).toBe(true)
@@ -224,7 +227,7 @@ describe('Component Login', () => {
     // wrapper.vm.$store.state.system.serverAboutKap.code = '002'
     // await wrapper.update()
     Login.methods.loginEnd.call(options)
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.$route).toEqual({'fullPath': '/', 'hash': '', 'matched': [], 'meta': {}, 'name': null, 'params': {}, 'path': '/', 'query': {}})
     wrapper.destroy()
   })
@@ -253,21 +256,20 @@ describe('Component Login', () => {
   })
   it('close', async () => {
     const wrapper = await factory('', store)
-    wrapper.find('button[name="cancelUpdate"]').trigger('click')
+    wrapper.find('.dialog-footer').find('el-button-stub[name="cancelUpdate"]').element.__vue__.$emit('click')
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.$data.hasLicense).toBeFalsy()
     expect(wrapper.vm.$data.loadCheck).toBeFalsy()
-    await wrapper.update()
-    // console.log(wrapper.find('.updateKAPLicense').attributes().style)
-    expect(wrapper.find('.updateKAPLicense').attributes().style).toBe('display: none;')
-    expect(wrapper.find('.license-msg').findAll('button').at(1).text()).toBe('I Know')
-    wrapper.find('.license-msg').findAll('button').at(1).trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.license-msg').findAll('el-button-stub').at(0).text()).toBe('I Know')
+    wrapper.find('.license-msg').findAll('el-button-stub').at(0).element.__vue__.$emit('click')
     expect(wrapper.vm.$data.showLicenseCheck).toBe(false)
     wrapper.setData({
       loginSuccess: true
     })
     wrapper.vm.$store.state.system.serverAboutKap.code = '001'
-    await wrapper.update()
-    wrapper.find('.license-msg').findAll('button').at(1).trigger('click')
+    await wrapper.vm.$nextTick()
+    wrapper.find('.license-msg').findAll('el-button-stub').at(0).element.__vue__.$emit('click')
     expect(wrapper.vm.$data.showLicenseCheck).toBe(false)
     expect(wrapper.vm.$route).toEqual({'fullPath': '/dashboard', 'hash': '', 'matched': [], 'meta': {}, 'name': null, 'params': {}, 'path': '/dashboard', 'query': {}})
     wrapper.destroy()
@@ -284,7 +286,7 @@ describe('Component Login', () => {
       '$alert': mockAlert
     }
     wrapper.vm.apply()
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.hasLicense).toBeFalsy()
     expect(wrapper.vm.$data.applyLicense).toBeTruthy()
     expect(wrapper.vm.$data.changeDialog).toBeTruthy()
@@ -311,8 +313,14 @@ describe('Component Login', () => {
   })
   it('close apply dialog', async () => {
     const wrapper = await factory('', store)
-    expect(wrapper.find('.applyLicense').findAll('button').at(1).text()).toBe('Cancel')
-    wrapper.find('.applyLicense').findAll('button').at(1).trigger('click')
+    wrapper.vm.$refs = {
+      applyLicenseForm: {
+        resetFields: jest.fn().mockResolvedValue(true)
+      }
+    }
+    expect(wrapper.find('.applyLicense').findAll('el-button-stub').at(0).text()).toBe('Cancel')
+    wrapper.find('.applyLicense').findAll('el-button-stub').at(0).element.__vue__.$emit('click')
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.updateLicenseVisible).toBe(true)
     expect(wrapper.vm.$data.applyLicense).toBe(false)
     wrapper.destroy()
@@ -330,7 +338,7 @@ describe('Component Login', () => {
     expect(wrapper.vm.$data.hasLicense).toBeTruthy()
     expect(wrapper.vm.$data.showLicenseCheck).toBeTruthy()
     wrapper.vm.$store.state.system.serverAboutKap.code = '000'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.licenseValidSuccess(true)
     expect(wrapper.vm.hasLicense).toBeFalsy()
     expect(mockLicenseDialog).toBeCalled()
@@ -338,7 +346,7 @@ describe('Component Login', () => {
   })
   it('submit license form', async () => {
     const wrapper = await factory('', store)
-    wrapper.find('.updateKAPLicense').findAll('button').at(2).trigger('click')
+    wrapper.find('.updateKAPLicense').findAll('el-button-stub').at(1).element.__vue__.$emit('click')
     expect(wrapper.vm.loadCheck).toBeTruthy()
     wrapper.destroy()
   })

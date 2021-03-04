@@ -1,8 +1,9 @@
-import { shallow, mount } from 'vue-test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import * as business from '../../../util/business'
 import Group from '../Group/index.vue'
 import GroupEditModal from '../../common/GroupEditModal/index.vue'
+import kapPager from '../../common/kap_pager.vue'
 import Vuex from 'vuex'
 
 const mockLoadGroupUsersList = jest.fn().mockImplementation(() => {
@@ -54,7 +55,7 @@ const store = new Vuex.Store({
   }
 })
 
-const editModal = shallow(GroupEditModal, { localVue, store })
+const editModal = shallowMount(GroupEditModal, { localVue, store })
 
 const wrapper = mount(Group, {
   store,
@@ -64,7 +65,8 @@ const wrapper = mount(Group, {
     kapConfirm: kapConfirmMockHandle
   },
   components: {
-    GroupEditModal: editModal.vm
+    GroupEditModal,
+    kapPager
   }
 })
 
@@ -86,13 +88,11 @@ describe('Component Group', () => {
   })
   it('computed', async () => {
     expect(wrapper.vm.emptyText).toBe('No data')
-    wrapper.setData({filterName: 'test'})
-    await wrapper.update()
+    await wrapper.setData({filterName: 'test'})
     expect(wrapper.vm.emptyText).toBe('No Results')
   })
   it('methods event', async () => {
-    wrapper.vm.inputFilter('content')
-    await wrapper.update()
+    await wrapper.vm.inputFilter('content')
     expect(wrapper.vm.$data.filterName).toBe('content')
     expect(wrapper.vm.$data.pagination.page_size).toBe(20)
 

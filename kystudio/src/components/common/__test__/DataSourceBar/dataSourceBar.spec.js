@@ -1,15 +1,14 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import Vuex from 'vuex'
+import 'jest-canvas-mock'
 import * as utils from '../../../../util'
 import * as business from '../../../../util/business'
 import * as handlers from '../../DataSourceBar/handler'
 import DataSourceBar from '../../DataSourceBar/index.vue'
 import TreeList from '../../TreeList'
+import kapNodata from 'components/common/nodata'
 
-// jest.setTimeout(50000)
-
-// localVue.use()
 const fetchDBandTables = jest.fn().mockResolvedValue({code: '000', data: {databases: [{dbname: 'DB1', size: 3, tables: [{ name: 'TABLE1_NEW', database: 'DB1', foreign_key: [], primary_key: [], columns: [] }]}]}, msg: ''})
 const fetchDatabases = jest.fn().mockImplementation(() => {
   return new Promise((resolve, reject) => {
@@ -87,7 +86,7 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(DataSourceBar, {
+const wrapper = shallowMount(DataSourceBar, {
   localVue,
   store,
   mocks: {
@@ -101,8 +100,8 @@ const wrapper = shallow(DataSourceBar, {
     // ignoreNodeTypes: ['column']
   },
   components: {
-    TreeList
-
+    TreeList,
+    'kap-nodata': kapNodata
   }
 })
 
@@ -127,24 +126,24 @@ describe('Component DataSourceBar', async () => {
   })
   it('computed events', async () => {
     expect(wrapper.vm.emptyText).toEqual('No data')
-    wrapper.setData({ filterText: 'data' })
-    await wrapper.update()
+    await wrapper.setData({ filterText: 'data' })
+    // await wrapper.update()
     expect(wrapper.vm.emptyText).toEqual('No Results')
     expect(wrapper.vm.showAddDatasourceBtn).toBeFalsy()
     wrapper.vm.$store.state.config.platform = 'iframe'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.showAddDatasourceBtn).toBeFalsy()
 
     expect(wrapper.vm.showTreeFilter).toBeTruthy()
-    wrapper.setData({ filterText: '' })
-    await wrapper.update()
+    await wrapper.setData({ filterText: '' })
+    // await wrapper.update()
     expect(wrapper.vm.showTreeFilter).toBeTruthy()
     expect(wrapper.vm.dataSourceStyle).toEqual({})
-    wrapper.setProps({isShowFilter: false})
-    await wrapper.update()
+    await wrapper.setProps({isShowFilter: false})
+    // await wrapper.update()
     expect(wrapper.vm.showTreeFilter).toBeFalsy()
-    wrapper.setProps({ isShowDragWidthBar: true })
-    await wrapper.update()
+    await wrapper.setProps({ isShowDragWidthBar: true })
+    // await wrapper.update()
     expect(wrapper.vm.dataSourceStyle).toEqual({'width': '250px'})
     expect(wrapper.vm.databaseArray[0].type).toBe('database')
     expect(wrapper.vm.tableArray).toBeInstanceOf(Object)
@@ -154,10 +153,10 @@ describe('Component DataSourceBar', async () => {
   })
   it('methods events', async (done) => {
     wrapper.vm.freshDatasourceTitle()
-    expect(wrapper.vm.$data.datasources[0].label).toEqual('Source : Object Storage')
+    expect(wrapper.vm.$data.datasources[0].label).toEqual('Source: Object Storage')
     wrapper.vm.$store.state.config.platform = 'iframe'
-    await wrapper.update()
-    expect(wrapper.vm.$data.datasources[0].label).toEqual('Source : Object Storage')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.$data.datasources[0].label).toEqual('Source: Object Storage')
     const pagination = {
       page_offset: 0,
       isLoading: false
@@ -187,20 +186,20 @@ describe('Component DataSourceBar', async () => {
     wrapper.vm.handleDrag('item', 'nodes')
     expect(wrapper.emitted().drag).toEqual([['item', 'nodes']])
 
-    wrapper.setData({ filterText: 'content' })
-    await wrapper.update()
+    await wrapper.setData({ filterText: 'content' })
+    // await wrapper.update()
     wrapper.vm.reloadTables()
     expect(wrapper.vm.$data.filterText).toBe('content')
 
     wrapper.vm.handleClick({type: 'datasource'}, 'nodes')
     expect(wrapper.emitted().click).toBe()
-    wrapper.setProps({isShowSelected: true})
-    await wrapper.update()
+    await wrapper.setProps({isShowSelected: true})
+    // await wrapper.update()
     wrapper.vm.handleClick({type: 'table'}, 'nodes')
     expect(wrapper.vm.$data.isSwitchSource).toBeFalsy()
     expect(wrapper.emitted().click[0]).toEqual([{'type': 'table'}, 'nodes'])
-    wrapper.setProps({isShowSelected: false})
-    await wrapper.update()
+    await wrapper.setProps({isShowSelected: false})
+    // await wrapper.update()
     wrapper.vm.handleClick({type: 'column'}, 'nodes')
     expect(wrapper.emitted().click[1]).toEqual([{'type': 'column'}, 'nodes'])
 
@@ -216,7 +215,8 @@ describe('Component DataSourceBar', async () => {
       tableArray: [{ id: 1, label: 'DB1', isSelected: false }],
       isShowSelected: true,
       dataSourceSelectedLabel: 'DB1',
-      datasources: [],
+      datasources: [{children: [{ children: [{parent: {id: '9.SSB'}, dbname: 'DB1', size: 3, tables: [{id: 'table1'}]}] }]}],
+      defaultExpandedKeys: [],
       handleClick: jest.fn()
     }
     DataSourceBar.options.methods.resetSourceTableSelect.call(_options, false)
@@ -234,7 +234,7 @@ describe('Component DataSourceBar', async () => {
     expect(_options.handleClick).toBeCalled()
 
     wrapper.vm.freshAutoCompleteWords()
-    expect(wrapper.emitted()['autoComplete'][0]).toEqual([[]])
+    expect(wrapper.emitted()['autoComplete'][0]).toEqual([[{"caption": "DB1", "id": "9.DB1", "meta": "database", "scope": 1, "value": "DB1"}, {"caption": "TABLE1_NEW", "id": undefined, "meta": "table", "scope": 1, "value": "TABLE1_NEW"}, {"caption": "DB1.TABLE1_NEW", "id": undefined, "meta": "table", "scope": 1, "value": "DB1.TABLE1_NEW"}]])
     expect(wrapper.vm.$data.allWords).toBeInstanceOf(Array)
     // expect(freshTreeOrder).toBeCalled()
 
@@ -277,14 +277,14 @@ describe('Component DataSourceBar', async () => {
     wrapper.vm.importDataSource()
     expect(wrapper.find('.el-message-box')).not.toBeUndefined()
     wrapper.vm.$store.state.capacity.maintenance_mode = false
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.importDataSource()
     expect(wrapper.findAll('.el-message-box').length).toBe(0)
 
     wrapper.vm.handleLoadMore({parent: {label: 'SSB', id: 1000}})
     expect(handleSuccessAsync).toBeCalled()
-    wrapper.setData({ filterText: 's' })
-    await wrapper.update()
+    await wrapper.setData({ filterText: 's' })
+    // await wrapper.update()
     wrapper.vm.handleLoadMore({parent: {label: 'SSB', id: 1000}})
     expect(handleSuccessAsync).toBeCalled()
     // wrapper.destroy()
@@ -356,7 +356,8 @@ describe('DataSourceBar handlers', () => {
     expect(handlers.getTableObj({hideFactIcon: false, foreignKeys: [], primaryKeys: []}, { datasource: 9, label: 'P_LINEORDER' }, { root_fact: false, lookup: true, columns: [{cardinality: null, datatype: "varchar(4096)", id: "2", max_value: null, min_value: null, name: "D_DATE", null_count: null}] }, false).__data).toBeTruthy()
     wrapper.vm.$store.state.config.platform = 'iframe'
     expect(handlers.getDatasourceObj(wrapper.vm, 9)).toBeInstanceOf(Object)
-    expect(handlers.render.column.render((res) => res, { node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toEqual('div')
+    // expect(handlers.render.column.render((res) => res, { node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toEqual('div')
+    expect(handlers.render.column.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toBeInstanceOf(Object)
     expect(handlers.render.table.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {label: 'TEST', tags: ['F', 'L', 'N'], dateRange: true, isTopSet: true, isHideFactIcon: false}, store: {}})).toBeInstanceOf(Object)
     expect(handlers.render.database.render(wrapper.vm.$createElement, { node: null, data: { label: 'TEST', isDefaultDB: true }, store: {} })).toBeInstanceOf(Object)
     expect(handlers.render.datasource.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {sourceType: 9, label: 'SSB'}, store: {} })).toBeInstanceOf(Object)

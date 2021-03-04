@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import UserEditModal from '../../UserEditModal/index.vue'
 import UserEditStore from '../../UserEditModal/store'
@@ -43,7 +43,7 @@ const store = new Vuex.Store({
       return true
     },
     currentSelectedProject () {
-      return 'learn_kylin'
+      return 'ssb'
     }
   },
   actions: {
@@ -71,7 +71,7 @@ const mockFormValidate = jest.fn().mockImplementation(() => {
   return new Promise(resolve => resolve(true))
 })
 
-const wrapper = shallow(UserEditModal, {
+const wrapper = shallowMount(UserEditModal, {
   store,
   localVue,
   mocks: {
@@ -97,7 +97,7 @@ describe('Components UserEditModal', () => {
   it('init', async () => {
     UserEditStore.actions['CALL_MODAL'](root, {editType: 'new', userDetail: {authorities: [{authority: 'ALL_USERS'}]}, showCloseBtn: true, showCancelBtn: true})
     wrapper.vm.$store.state.UserEditModal.isShow = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.$data.isFormShow).toBeTruthy()
     expect(wrapper.vm.$data.editType).toBe()
     expect(mockEventListener.mock.calls[0][0]).toBe('keyup')
@@ -105,39 +105,39 @@ describe('Components UserEditModal', () => {
   it('computed', async () => {
     expect(wrapper.vm.modalWidth).toBe('440px')
     wrapper.vm.$store.state.UserEditModal.editType = 'group'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.modalWidth).toBe('660px')
     expect(wrapper.vm.modalTitle).toBe('groupMembership')
     wrapper.vm.$store.state.UserEditModal.editType = 'new'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.modalTitle).toBe('addUser')
   })
   it('methods', async () => {
     expect(wrapper.vm.isFieldShow()).toBeFalsy()
-    wrapper.vm.inputHandler('password', 123456789)
-    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': '', 'len': '', 'letter': '', 'num': 'ok'})
+    wrapper.vm.inputHandler('password', '123456789')
+    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': '', 'len': 'ok', 'letter': '', 'num': 'ok'})
     wrapper.vm.inputHandler('password', '123abc')
-    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': '', 'len': '', 'letter': 'ok', 'num': 'ok'})
+    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': '', 'len': 'error', 'letter': 'ok', 'num': 'ok'})
     wrapper.vm.inputHandler('password', '123@abc')
-    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': '', 'letter': 'ok', 'num': 'ok'})
+    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': 'error', 'letter': 'ok', 'num': 'ok'})
     wrapper.vm.inputHandler('password', '123@abcde')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': 'ok', 'letter': 'ok', 'num': 'ok'})
     wrapper.vm.inputHandler('password', '123@abcde.^')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': 'ok', 'letter': 'ok', 'num': 'ok'})
     wrapper.vm.inputHandler('password', '@abcde.^')
-    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': 'ok', 'letter': 'ok', 'num': 'error'})
+    expect(wrapper.vm.$data.pwdRuleList).toEqual({"char": "ok", "len": "ok", "letter": "ok", "num": "error"})
 
     await wrapper.vm.fetchUserGroups()
-    expect(mockApis.mockGetGroupList.mock.calls[0][1]).toEqual({'project': 'learn_kylin'})
+    expect(mockApis.mockGetGroupList.mock.calls[0][1]).toEqual(undefined)
     expect(wrapper.vm.$store.state.UserEditModal.totalGroups).toEqual([{'disabled': true, 'key': 'ALL_USERS', 'label': 'ALL_USERS'}, {'disabled': false, 'key': 'ROLE_ADMIN', 'label': 'ROLE_ADMIN'}, {'disabled': false, 'key': 'ROLE_ANALYST', 'label': 'ROLE_ANALYST'}])
 
     wrapper.vm.$store.state.UserEditModal.form.password = '123456'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.blurHandler('password')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'error', 'len': 'error', 'letter': 'error', 'num': 'error'})
 
     wrapper.vm.$store.state.UserEditModal.form.password = 'test'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.blurHandler('password')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'error', 'len': 'error', 'letter': 'error', 'num': 'error'})
     expect(wrapper.vm.$store.state.UserEditModal.form.authorities).toEqual(['ALL_USERS'])
@@ -146,7 +146,7 @@ describe('Components UserEditModal', () => {
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'error', 'len': 'error', 'letter': 'error', 'num': 'error'})
 
     wrapper.vm.$store.state.UserEditModal.form.newPassword = ''
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.blurHandler('newPassword')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'error', 'len': 'error', 'letter': 'error', 'num': 'error'})
 
@@ -159,17 +159,17 @@ describe('Components UserEditModal', () => {
     wrapper.vm.$refs.form = {
       validate: mockFormValidate
     }
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.submit()
     expect(wrapper.vm.$store.state.UserEditModal.editType).toBe('new')
     expect(mockApis.mockSaveUser.mock.calls[0][1]).toEqual({'detail': {'authorities': ['ALL_USERS', 'ROLE_ADMIN'], 'disabled': false, 'password': 'dGVzdA==', 'username': ''}, 'name': ''})
-    expect(mockMessage).toBeCalledWith({'message': 'Saved successfully.', 'type': 'success'})
+    expect(mockMessage).toBeCalledWith({'message': 'Added the user successfully.', 'type': 'success'})
 
     wrapper.vm.$store.state.UserEditModal.editType = 'password'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.submit()
     expect(mockApis.mockResetPassword.mock.calls[0][1]).toEqual({'new_password': '', 'password': '', 'username': ''})
-    expect(mockMessage).toBeCalledWith({'message': 'Saved successfully.', 'type': 'success'})
+    expect(mockMessage).toBeCalledWith({'message': 'Added the user successfully.', 'type': 'success'})
 
     wrapper.vm.handlerKeyEvent({keyCode: 13})
     expect(mockHandleError).toBeCalled()

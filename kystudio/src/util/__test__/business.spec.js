@@ -1,4 +1,4 @@
-import { createLocalVue, mount } from 'vue-test-utils'
+import { createLocalVue, mount } from '@vue/test-utils'
 import ElementUI from 'kyligence-ui'
 import { handleSuccess } from '../business'
 // import layoutFull from 'components/layout/layout_full'

@@ -1,4 +1,4 @@
-import { mount } from 'vue-test-utils'
+import { mount } from '@vue/test-utils'
 import ConfirmBtn from '../confirm_btn.vue'
 import { localVue } from '../../../../test/common/spec_common'
 

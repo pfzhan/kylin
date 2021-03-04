@@ -1,4 +1,4 @@
-import { mount, createLocalVue } from 'vue-test-utils'
+import { mount, createLocalVue } from '@vue/test-utils'
 import pager from '../pager.vue'
 import ElementUI from 'kyligence-ui'
 import VueI18n from 'vue-i18n'

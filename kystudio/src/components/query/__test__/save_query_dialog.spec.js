@@ -1,7 +1,8 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import { localVue } from '../../../../test/common/spec_common'
 import saveQueryDialog from '../save_query_dialog.vue'
+import kapEditor from '../../common/kap_editor.vue'
 import * as bussiness from '../../../util/business'
 
 const mockHandleError = jest.spyOn(bussiness, 'handleError').mockImplementation((res) => {
@@ -23,7 +24,7 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(saveQueryDialog, {
+const wrapper = shallowMount(saveQueryDialog, {
   localVue,
   store,
   propsData: {
@@ -34,6 +35,9 @@ const wrapper = shallow(saveQueryDialog, {
   mocks: {
     handleError: mockHandleError,
     $message: mockMessage
+  },
+  components: {
+    'kap-editor': kapEditor
   }
 })
 wrapper.vm.$refs = {
@@ -46,15 +50,15 @@ wrapper.vm.$refs = {
 
 describe('Component SaveQueryDialog', () => {
   it('init', async () => {
-    wrapper.setProps({ show: true })
-    await wrapper.update()
+    await wrapper.setProps({ show: true })
+    // await wrapper.update()
     expect(wrapper.vm.saveQueryFormVisible).toBeTruthy()
     expect(wrapper.vm.saveQueryMeta.project).toBe('Kyligence')
     expect(wrapper.vm.saveQueryMeta.sql).toBe('select * from SSB;')
   })
   it('methods', async () => {
-    wrapper.setData({ saveQueryMeta: {...wrapper.vm.saveQueryMeta, name: 'test' }})
-    await wrapper.update()
+    await wrapper.setData({ saveQueryMeta: {...wrapper.vm.saveQueryMeta, name: 'test' }})
+    // await wrapper.update()
     await wrapper.vm.saveQuery()
     expect(mockApi.mockSaveQuery.mock.calls[0][1]).toEqual({"description": "", "name": "", "project": "Kyligence", "sql": "select * from SSB;"})
     expect(wrapper.vm.$refs.saveQueryForm.validate).toBeCalled()
@@ -71,7 +75,7 @@ describe('Component SaveQueryDialog', () => {
       }
     })]
 
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.saveQuery()
     expect(wrapper.vm.isSubmit).toBeFalsy()
     expect(mockHandleError).toBeCalled()

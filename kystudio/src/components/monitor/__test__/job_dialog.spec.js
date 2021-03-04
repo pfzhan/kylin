@@ -1,4 +1,4 @@
-import { mount, shallow } from 'vue-test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import jobDialog from '../job_dialog'
@@ -63,7 +63,7 @@ describe('Component Job_dialog', () => {
 
     wrapper.vm.$el.querySelectorAll = jest.fn().mockReturnValue([])
     wrapper.vm.$store.state.config.platform = ''
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.downloadLogs()
     expect(wrapper.vm.hasClickDownloadLogBtn).toBeFalsy()
 
@@ -75,7 +75,7 @@ describe('Component Job_dialog', () => {
     expect(wrapper.vm.hasClickDownloadLogBtn).toBeFalsy()
 
     wrapper.setData({hasClickDownloadLogBtn: true})
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(await wrapper.vm.downloadLogs()).toBeFalsy()
   })
 })

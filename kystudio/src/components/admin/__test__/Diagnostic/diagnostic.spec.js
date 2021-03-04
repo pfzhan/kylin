@@ -1,10 +1,12 @@
 import Vuex from 'vuex'
-import { mount } from 'vue-test-utils'
+import { mount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import Diagnostic from '../../Diagnostic/index.vue'
-import KyligenceUI from 'kyligence-ui'
+import * as util from '../../../../util'
+import * as business from '../../../../util/business'
 
-localVue.use(KyligenceUI)
+const mockGetQueryString = jest.spyOn(util, 'getQueryString').mockImplementation(() => 'iframe')
+const mockPostCloudUrlMessage = jest.spyOn(business, 'postCloudUrlMessage').mockImplementation()
 
 const mockApis = {
   getDumpRemote: jest.fn().mockImplementation(() => {
@@ -35,7 +37,8 @@ const diagnosticModel = {
         error: '',
         showErrorDetail: false,
         isCheck: true,
-        running: false
+        running: false,
+        host: 'http://sandbox.com'
       }
     }
   },
@@ -75,22 +78,27 @@ const wrapper = mount(Diagnostic, {
   mocks: {
     $route: {
       name: ''
+    },
+    $router: {
+      push: jest.fn()
     }
   },
-  data: {
-    isRunning: true
+  data () {
+    return {
+      isRunning: true
+    }
   }
 })
 
 describe('Component Diagnostic', () => {
   it('init', () => {
     expect(mockApis.getServers).toBeCalled()
-    expect(wrapper.vm.$data.serverOptions).toEqual([{"label": "sandbox.com(ALL)", "value": "sandbox.com"}])
-    expect(wrapper.vm.$data.servers).toEqual(["sandbox.com"])
+    expect(wrapper.vm.serverOptions).toEqual([{"label": "sandbox.com(ALL)", "value": "sandbox.com"}])
+    expect(wrapper.vm.servers).toEqual(["sandbox.com"])
     expect(mockApis.stopInterfaceCall).toBeCalled()
   })
   it('computed', () => {
-    expect(wrapper.vm.timeRange).toEqual([{"label": "lastHour", "text": "Last one hour"}, {"label": "lastDay", "text": "Last 1 Day"}, {"label": "lastThreeDay", "text": "Last three days"}, {"label": "lastMonth", "text": "Last 1 Month"}, {"label": "custom", "text": "Customize"}])
+    expect(wrapper.vm.timeRange).toEqual([{"label": "lastHour", "text": "Last 1 Hour"}, {"label": "lastDay", "text": "Last 1 Day"}, {"label": "lastThreeDay", "text": "Last 3 Days"}, {"label": "lastMonth", "text": "Last 1 Month"}, {"label": "custom", "text": "Customize"}])
     expect(wrapper.vm.getDownloadNum).toBe('1/1')
     expect(wrapper.vm.getDateTimeValid).toBeFalsy()
     expect(wrapper.vm.showManualDownloadLayout).toBeTruthy()
@@ -104,34 +112,33 @@ describe('Component Diagnostic', () => {
     expect(wrapper.vm.setProgressColor({progress: 1, status: '000'})).toEqual({"status": "success"})
     expect(wrapper.vm.setProgressColor({progress: 1, status: '999'})).toEqual({"status": "exception"})
     wrapper.vm.onBlur()
-    expect(wrapper.vm.$data.validDateTime).toBeTruthy()
+    expect(wrapper.vm.validDateTime).toBeTruthy()
     wrapper.vm.changeTimeRange('lastHour')
-    expect(wrapper.vm.$data.dateTime.prev).not.toBe('')
-    expect(wrapper.vm.$data.dateTime.next).not.toBe('')
+    expect(wrapper.vm.dateTime.prev).not.toBe('')
+    expect(wrapper.vm.dateTime.next).not.toBe('')
     wrapper.vm.changeTimeRange('lastThreeDay')
-    expect(wrapper.vm.$data.dateTime.prev).not.toBe('')
-    expect(wrapper.vm.$data.dateTime.next).not.toBe('')
+    expect(wrapper.vm.dateTime.prev).not.toBe('')
+    expect(wrapper.vm.dateTime.next).not.toBe('')
     wrapper.vm.changeTimeRange('lastMonth')
-    expect(wrapper.vm.$data.dateTime.prev).not.toBe('')
-    expect(wrapper.vm.$data.dateTime.next).not.toBe('')
+    expect(wrapper.vm.dateTime.prev).not.toBe('')
+    expect(wrapper.vm.dateTime.next).not.toBe('')
     wrapper.vm.changeTimeRange('custom')
-    expect(wrapper.vm.$data.dateTime.prev).toBe('')
-    expect(wrapper.vm.$data.dateTime.next).not.toBe('')
+    expect(wrapper.vm.dateTime.prev).toBe('')
+    expect(wrapper.vm.dateTime.next).not.toBe('')
     wrapper.vm.changeTimeRange('')
-    expect(wrapper.vm.$data.dateTime.prev).toBe('')
-    expect(wrapper.vm.$data.dateTime.next).toBe('')
+    expect(wrapper.vm.dateTime.prev).toBe('')
+    expect(wrapper.vm.dateTime.next).toBe('')
 
     wrapper.vm.handleClose('header')
     // wrapper.vm.$nextTick(() => {
-    expect(wrapper.vm.$data.showPopoverTip).toBeTruthy()
-    expect(wrapper.vm.$data.closeFromHeader).toBeTruthy()
+    expect(wrapper.vm.showPopoverTip).toBeTruthy()
+    // expect(wrapper.vm.closeFromHeader).toBeTruthy()
     // })
-    wrapper.setData({ isRunning: false })
-    await wrapper.vm.$nextTick()
+    await wrapper.setData({ isRunning: false })
     wrapper.vm.handleClose('')
     // wrapper.vm.$nextTick(() => {
-    expect(wrapper.vm.$data.showPopoverTip).toBeTruthy()
-    expect(wrapper.vm.$data.closeFromHeader).toBeTruthy()
+    expect(wrapper.vm.showPopoverTip).toBeTruthy()
+    // expect(wrapper.vm.closeFromHeader).toBeTruthy()
     expect(mockApis.removeDiagnosticTask).toBeCalled()
     expect(mockApis.resetDumpData).toBeCalled()
     expect(mockApis.stopInterfaceCall).toBeCalled()
@@ -139,26 +146,26 @@ describe('Component Diagnostic', () => {
     // })
 
     // wrapper.vm.generateDiagnostic()
-    wrapper.setData({dateTime: {prev: new Date(), next: ''}})
-    await wrapper.vm.$nextTick()
+    await wrapper.setData({dateTime: {prev: new Date(), next: ''}})
     Diagnostic.options.methods.generateDiagnostic.call(wrapper.vm)
     // wrapper.vm.generateDiagnostic()
     expect(mockApis.resetDumpData).toBeCalled()
     // expect(mockApis.getDumpRemote).toBeCalled()
-    expect(wrapper.vm.$data.isRunning).toBeFalsy()
+    expect(wrapper.vm.isRunning).toBeFalsy()
 
     wrapper.vm.retryJob({id: 'front_2020_08_04_07_35_49_494298', host: 'sandbox.com'})
     expect(mockApis.delDumpIdList).toBeCalled()
     expect(mockApis.getDumpRemote).toBeCalled()
+    expect(wrapper.vm.isRunning).toBeFalsy()
 
     wrapper.vm.changeCheckAllType(false)
-    expect(wrapper.vm.$data.indeterminate).toBeFalsy()
+    expect(wrapper.vm.indeterminate).toBeFalsy()
     expect(mockApis.updateCheckType).toBeCalled()
 
     wrapper.vm.cancelManualDownload()
-    expect(wrapper.vm.$data.isManualDownload).toBeFalsy()
-    expect(wrapper.vm.$data.checkAll).toBeFalsy()
-    expect(wrapper.vm.$data.indeterminate).toBeFalsy()
+    expect(wrapper.vm.isManualDownload).toBeFalsy()
+    expect(wrapper.vm.checkAll).toBeFalsy()
+    expect(wrapper.vm.indeterminate).toBeFalsy()
     expect(mockApis.updateCheckType).toBeCalled()
 
     const option = {
@@ -174,10 +181,49 @@ describe('Component Diagnostic', () => {
     expect(option.$message.error).toHaveBeenCalledWith('kylinLang.common.copyfail')
 
     wrapper.vm.changeCheckItems()
-    expect(wrapper.vm.$data.indeterminate).toBeFalsy()
-    expect(wrapper.vm.$data.checkAll).toBeTruthy()
+    expect(wrapper.vm.indeterminate).toBeFalsy()
+    expect(wrapper.vm.checkAll).toBeTruthy()
 
     wrapper.vm.downloadEvent()
     expect(mockApis.downloadDump).toBeCalled()
+
+    wrapper.vm.goto('admin')
+    expect(wrapper.vm.jumpPage).toBe('admin')
+    expect(wrapper.emitted().close).toEqual([[], []])
+    expect(wrapper.vm.$router.push).toBeCalledWith('/admin/project')
+
+    await wrapper.setData({isRunning: true})
+    wrapper.vm.goto('job')
+    expect(wrapper.vm.showPopoverTip).toBeTruthy()
+    expect(wrapper.vm.popperClass).toBe('jumpLinks')
+    expect(wrapper.vm.popoverCallback).not.toEqual()
+
+    wrapper.vm.gotoEventCallback()
+    // expect(wrapper.vm.$router.push).toBeCalledWith('/monitor/job')
+    expect(mockPostCloudUrlMessage.mock.calls[0][1]).toEqual({"name": "kapJob"})
+
+    jest.spyOn(util, 'getQueryString').mockImplementation(() => 'pc')
+    wrapper.vm.gotoEventCallback()
+    expect(wrapper.vm.$router.push).toBeCalledWith('/monitor/job')
+
+    wrapper.vm.gotoWorkspaceList()
+    expect(mockPostCloudUrlMessage.mock.calls[1][1]).toEqual({"name": "Stack"})
+
+    await wrapper.setData({dateTime: {prev: new Date('2021-03-01 11:13:00'), next: new Date('2021-03-01 14:41:09')}})
+    wrapper.vm.$store._actions.GET_DUMP_REMOTE = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.generateDiagnostic()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.isShowDiagnosticProcess).toBeFalsy()
+    expect(wrapper.vm.isRunning).toBeFalsy()
+
+    wrapper.vm.$route.name = 'Job'
+    // await wrapper.setProps({jobId: '550fafd0-4043-43be-9033-d1d9033e430b'})
+    await wrapper.vm.generateDiagnostic()
+    expect(wrapper.vm.diagDumpIds).not.toEqual({})
+
+    await wrapper.setProps({jobId: '550fafd0-4043-43be-9033-d1d9033e430b'})
+    await wrapper.vm.generateDiagnostic()
+    await wrapper.vm.$nextTick()
+    expect(mockApis.getDumpRemote.mock.calls[2][1].job_id).toBe('550fafd0-4043-43be-9033-d1d9033e430b')
   })
 })

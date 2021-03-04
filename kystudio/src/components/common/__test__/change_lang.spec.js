@@ -1,12 +1,11 @@
 import Vue from 'vue'
-import { shallow, createLocalVue } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
+import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import VueResource from 'vue-resource'
 import changeLang from '../change_lang.vue'
 import * as util from '../../../util/index'
 
-const localVue = createLocalVue()
-localVue.use(Vuex)
 localVue.use(VueResource)
 // Vue.use(Vuex)
 Vue.use(VueResource)
@@ -30,7 +29,7 @@ let wrapper = null
 
 describe('Component change_lang', () => {
   beforeEach(() => {
-    wrapper = shallow(changeLang, {
+    wrapper = shallowMount(changeLang, {
       store,
       localVue,
       mocks: {

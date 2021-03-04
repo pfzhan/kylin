@@ -1,16 +1,13 @@
-import { shallow, mount } from 'vue-test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Insight from '../insight'
 import Vuex from 'vuex'
-import Vue from 'vue'
-import VueI18n from 'vue-i18n'
-import * as mockData from './mock'
+import 'jest-canvas-mock'
 import * as bussiness from '../../../util/business'
 import DataSourceBar from '../../common/DataSourceBar'
 import tab from '../../common/tab'
 import queryTab from '../query_tab'
 
-Vue.use(VueI18n)
 jest.useFakeTimers()
 
 const mockHandleSuccess = jest.spyOn(bussiness, 'handleSuccess').mockImplementation((res, callback) => {
@@ -96,18 +93,18 @@ const store = new Vuex.Store({
   }
 })
 
-const dataSourceBarComp = shallow(DataSourceBar, { localVue, store })
-const tabComp = shallow(tab)
-const queryTabComp = shallow(queryTab, { localVue, store, propsData: {tabsItem: {}, completeData: {}, tipsName: ''}, mocks: {
-  $refs: {
-    insightBox: {
-      $emit: jest.fn()
-    }
-  }
-} })
+// const dataSourceBarComp = shallowMount(DataSourceBar, { localVue, store })
+// const tabComp = shallowMount(tab)
+// const queryTabComp = shallowMount(queryTab, { localVue, store, propsData: {tabsItem: {}, completeData: {}, tipsName: ''}, mocks: {
+//   $refs: {
+//     insightBox: {
+//       $emit: jest.fn()
+//     }
+//   }
+// } })
 // queryTabComp.vm.$store.state = {}
 
-const wrapper = mount(Insight, {
+const wrapper = shallowMount(Insight, {
   localVue,
   store,
   mocks: {
@@ -117,9 +114,9 @@ const wrapper = mount(Insight, {
     kapConfirm: mockKapConfirm
   },
   components: {
-    DataSourceBar: dataSourceBarComp.vm,
-    tab: tabComp.vm,
-    queryTab: queryTabComp.vm
+    DataSourceBar,
+    tab,
+    queryTab
   }
 })
 
@@ -201,8 +198,8 @@ describe('Component Insight', () => {
       spin: true,
       title: "sqlEditor"
     }
-    wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, data]})
-    await wrapper.update()
+    await wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, data]})
+    // await wrapper.update()
     wrapper.vm.closeAllTabs()
     expect(mockApi.mockStopQueryBuild.mock.calls[0][1]).toEqual({"id": "query_1eiqct9fm"})
     expect(wrapper.vm.activeSubMenu).toBe('WorkSpace')
@@ -230,9 +227,9 @@ describe('Component Insight', () => {
     expect(wrapper.vm.savedQueryListVisible).toBeFalsy()
 
     // wrapper.vm._data.savedList = [{sql: 'select * from SSB.DATES'}]
-    // wrapper.setData({checkedQueryList: [0]})
-    // await wrapper.update()
-    wrapper.find('.saved_query_dialog .el-checkbox').trigger('click')
+    await wrapper.setData({checkedQueryList: [0], savedList: [...wrapper.vm.savedList, {sql: 'select * from SSB.DATES'}]})
+    await wrapper.setData({savedList: [...wrapper.vm.savedList, {sql: 'select * from SSB.DATES'}]})
+    // wrapper.find('.saved_query_dialog .el-checkbox').trigger('click')
     wrapper.vm.resubmit()
     expect(wrapper.vm.editableTabs.length).toBe(2)
     expect(wrapper.vm.savedQueryListVisible).toBeFalsy()
@@ -273,6 +270,8 @@ describe('Component Insight', () => {
     }
     wrapper.vm.changeTab(0, _data)
     expect(Array.isArray(wrapper.vm.editableTabs)).toBeTruthy()
+    data.index = 1
+    await wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, data]})
     wrapper.vm.changeTab(1, _data)
     expect(wrapper.vm.editableTabs[1].icon).toEqual('el-icon-ksd-good_health')
     wrapper.vm.changeTab(1, _data, 'error')

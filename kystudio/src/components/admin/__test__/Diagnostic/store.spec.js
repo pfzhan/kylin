@@ -5,13 +5,15 @@ import VueResource from 'vue-resource'
 // import * as api from '../../../../service/api'
 import * as util from '../.././../../util/business'
 import api from '../../../../service/api'
-import { timer } from 'd3'
 
 jest.setTimeout(50000)
 
 Vue.use(VueResource)
 
 jest.mock('vue-resource')
+
+const pollingTime = 1000
+let timer = {}
 
 const mockHandleError = jest.spyOn(util, 'handleError').mockRejectedValue(false)
 const mockDownloadFileByXMLHttp = jest.spyOn(util, 'downloadFileByXMLHttp').mockImplementation()
@@ -84,7 +86,7 @@ describe('Diagnostic Store', () => {
       return new Promise(resolve => resolve({code: '000', data: {data: {error: null, progress: 0.5, stage: 'DONE', status: '000', uuid: 'front_2020_08_04_07_35_49_494298'}}, msg: ''}))
     }) 
     await DiagnosticStore.actions[types.POLLING_STATUS_MSG](root, {host: 'http://sandbox.hortonworks.com:7070', id: 'front_2020_08_04_07_35_49_494298', isIframe: true})
-    expect(mockGetStatusRemote).toBeCalled()
+    expect(mockGetStatusRemote1).toBeCalled()
     expect(mockDownloadFileByXMLHttp).toBeCalled()
     const mockGetStatusRemoteError = jest.spyOn(api.system, 'getStatusRemote').mockRejectedValueOnce(false)
     await DiagnosticStore.actions[types.POLLING_STATUS_MSG](root, {host: 'http://sandbox.hortonworks.com:7070', id: 'front_2020_08_04_07_35_49_494298'})

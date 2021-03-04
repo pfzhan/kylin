@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import SettingAdvanced from '../../SettingAdvanced/SettingAdvanced.vue'
 import EditableBlock from '../../../common/EditableBlock/EditableBlock'
@@ -50,7 +50,10 @@ const mockApi = {
   mockGetSCD2Model: jest.fn().mockImplementation(() => {
     return Promise.resolve(['SCD_MODELS'])
   }),
-  mockUpdateSCD2Enable: jest.fn().mockImplementation()
+  mockUpdateSCD2Enable: jest.fn().mockImplementation(),
+  mockToggleMultiPartition: jest.fn().mockResolvedValue(true),
+  mockUpdateMultiPartitionEnable: jest.fn().mockImplementation(),
+  mockGetMultiPartitionModel: jest.fn().mockResolvedValue(['model1'])
 }
 
 const store = new Vuex.Store({
@@ -93,10 +96,13 @@ const store = new Vuex.Store({
     'UPDATE_KERBEROS_CONFIG': mockApi.mockUpdateKerberosConfig,
     'RELOAD_HIVE_DB_TABLES': mockApi.mockReloadHiveDBTables,
     'TOGGLE_ENABLE_SCD': mockApi.mockToggleEnableSCD,
-    'GET_SCD2_MODEL': mockApi.mockGetSCD2Model
+    'GET_SCD2_MODEL': mockApi.mockGetSCD2Model,
+    'TOGGLE_MULTI_PARTITION': mockApi.mockToggleMultiPartition,
+    'GET_MULTI_PARTITION_MODEL': mockApi.mockGetMultiPartitionModel
   },
   mutations: {
-    'UPDATE_SCD2_ENABLE': mockApi.mockUpdateSCD2Enable
+    'UPDATE_SCD2_ENABLE': mockApi.mockUpdateSCD2Enable,
+    'UPDATE_MULTI_PARTITION_ENABLE': mockApi.mockUpdateMultiPartitionEnable
   },
   getters: {
     'currentSelectedProject': () => {
@@ -142,19 +148,19 @@ const store = new Vuex.Store({
   }
 })
 
-const _EditableBlock = shallow(EditableBlock)
+// const EditableBlock = shallowMount(EditableBlock)
 
 const mockClearValidate = jest.fn()
 const mockMsgBox = jest.fn().mockResolvedValue(true)
 
-const wrapper = shallow(SettingAdvanced, {
+const wrapper = shallowMount(SettingAdvanced, {
   localVue,
   store,
   propsData: {
     project
   },
   components: {
-    EditableBlock: _EditableBlock
+    EditableBlock
   },
   mocks: {
     kapConfirm: mockKapConfirm,
@@ -192,11 +198,11 @@ describe('Component SettingAdvanced', () => {
   it('computed', async () => {
     expect(wrapper.vm.ifShowYarn).toBeFalsy()
     wrapper.vm.$store.state.config.platform = ''
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.ifShowYarn).toBeTruthy()
     expect('threshold' in wrapper.vm.accelerateRules).toBeTruthy()
     expect(wrapper.vm.setDefaultDBRules).toEqual({'default_database': {'message': 'Please select', 'required': true, 'trigger': 'change'}})
-    expect(wrapper.vm.emailRules).toEqual([{'message': 'Please enter email', 'required': true, 'trigger': 'blur'}, {'message': 'Please enter vaild email.', 'trigger': 'blur', 'type': 'email'}])
+    expect(wrapper.vm.emailRules).toEqual([{"message": "Please enter email", "required": true, "trigger": "blur"}, {"message": "Please enter a valid email address.", "trigger": "blur", "type": "email"}])
     expect(wrapper.vm.yarnQueueRules['yarn_queue'][0].message).toEqual(['The queue name is required', 'Incorrect format'])
     expect(wrapper.vm.userType).toBeTruthy()
     expect('principal' in wrapper.vm.kerberosRules).toBeTruthy()
@@ -204,7 +210,7 @@ describe('Component SettingAdvanced', () => {
   })
   it('methods', async () => {
     await wrapper.vm.handleSwitch()
-    expect(mockKapConfirm).toBeCalledWith('If you turn off this option, when the BI or others system are connected to Kyligence Enterprise, Kyligence Enterprise will not expose the computed columns defined in Kyligence Enterprise to it. This operation may make the system connected to Kyligence Enterprise unusable.')
+    expect(mockKapConfirm).toBeCalledWith('With this switch OFF, computed columns won\'t be exposed to the connected BI tools or other systems. It might cause the connected systems unusable. Are you sure you want to turn it off?', {"confirmButtonText": "Turn Off"})
     expect(mockApi.mockUpdateExposeCCConfig.mock.calls[0][1]).toEqual({'expose_computed_column': undefined, 'project': 'xm_test_1'})
     expect(wrapper.emitted()['reload-setting']).toEqual([[]])
     expect(mockMessage).toBeCalledWith({'message': 'Updated successfully.', 'type': 'success'})
@@ -215,7 +221,7 @@ describe('Component SettingAdvanced', () => {
     wrapper.vm.$store._actions.UPDATE_EXPOSE_CC_CONFIG = jest.fn().mockImplementation(() => {
       return Promise.reject()
     })
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleSwitch()
     expect(mockHandleError).toBeCalled()
     await wrapper.vm.handleSwitch(true)
@@ -242,7 +248,7 @@ describe('Component SettingAdvanced', () => {
         clearValidate: jest.fn()
       }
     }
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     // console.log(wrapper.vm.$refs)
     await wrapper.vm.handleSubmit('defaultDB-settings', callback.successCallback, callback.errorCallback)
     jest.runAllTimers()
@@ -250,7 +256,7 @@ describe('Component SettingAdvanced', () => {
     expect(mockValidate).toBeCalled()
     // expect(mockApi.mockUpdateDefaultDBSettings).toBeCalled()
     // expect(callback.successCallback).toBeCalled()
-    expect(wrapper.emitted()['reload-setting']).toEqual([[], [], []])
+    expect(wrapper.emitted()['reload-setting']).toEqual([[], []])
     expect(mockMessage).toBeCalledWith({'message': 'Updated successfully.', 'type': 'success'})
 
     await wrapper.vm.handleSubmit('job-alert', callback.successCallback, callback.errorCallback)
@@ -307,7 +313,7 @@ describe('Component SettingAdvanced', () => {
     expect(mockKapConfirm).toBeCalledWith('Update successfully. The configuration will take effect after refreshing the datasource cache. Please confirm whether to refresh now. </br> Note: It will take a long time to refresh the cache. If you need to configure multiple projects, it is recommended to refresh when configuring the last project.', 'Refresh DataSource', {'cancelButtonText': 'Refresh Later', 'confirmButtonText': 'Refresh Now', 'dangerouslyUseHTMLString': true, 'type': 'warning'})
     expect(mockApi.mockReloadHiveDBTables.mock.calls[0][1]).toEqual({'force': true, 'project': 'kyligence'})
     expect(callback.successCallback).toBeCalled()
-    expect(wrapper.emitted()['reload-setting'].length).toBe(8)
+    expect(wrapper.emitted()['reload-setting'].length).toBe(7)
 
     wrapper.vm.$refs = {
       'setDefaultDB': {
@@ -326,7 +332,7 @@ describe('Component SettingAdvanced', () => {
       }
     }
 
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit('defaultDB-settings', callback.successCallback, callback.errorCallback)
     expect(callback.errorCallback).toHaveBeenCalledTimes(1)
     await wrapper.vm.handleSubmit('job-alert', callback.successCallback, callback.errorCallback)
@@ -342,7 +348,7 @@ describe('Component SettingAdvanced', () => {
     expect(mockApi.mockResetProjectConfig.mock.calls[0][1]).toEqual({'project': 'kyligence', 'reset_item': 'job_notification_config'})
     expect(wrapper.vm.$refs['job-alert'].clearValidate).toBeCalled()
     expect(callback.successCallback).toBeCalled()
-    expect(wrapper.emitted()['reload-setting'].length).toBe(11)
+    expect(wrapper.emitted()['reload-setting'].length).toBe(10)
     expect(mockMessage).toBeCalledWith({'message': 'Reset successfully.', 'type': 'success'})
 
     await wrapper.vm.handleResetForm('kerberos-acc', callback.successCallback, callback.errorCallback)
@@ -351,10 +357,10 @@ describe('Component SettingAdvanced', () => {
     expect(wrapper.vm.form.file).toBeNull()
     expect(wrapper.vm.$refs['kerberos-setting-form'].clearValidate).toBeCalled()
     expect(callback.successCallback).toBeCalled()
-    expect(wrapper.emitted()['reload-setting'].length).toBe(12)
+    expect(wrapper.emitted()['reload-setting'].length).toBe(11)
 
     wrapper.vm.$store._actions.RESET_PROJECT_CONFIG = jest.fn().mockRejectedValue(false)
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.handleResetForm('job-alert', callback.successCallback, callback.errorCallback)
     expect(callback.errorCallback).toBeCalled()
     expect(mockHandleError).toBeCalled()
@@ -430,12 +436,92 @@ describe('Component SettingAdvanced', () => {
     expect(mockApi.mockToggleEnableSCD.mock.calls[0][1]).toEqual({"project": "kyligence", "scd2_enabled": true})
     expect(mockHandleSuccessAsync).toBeCalled()
 
+    wrapper.vm.$store._actions.TOGGLE_ENABLE_SCD = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.handleScdSetting(true)
+    expect(mockApi.mockToggleEnableSCD.mock.calls[0][1]).toEqual({"project": "kyligence", "scd2_enabled": true})
+    expect(wrapper.vm.form.scd2_enabled).toBeFalsy()
+    expect(mockHandleError).toBeCalled()
+
+
     await wrapper.vm.handleScdSetting(false)
     jest.runAllTimers()
     expect(mockApi.mockGetSCD2Model.mock.calls[0][1]).toEqual({"project": "kyligence"})
     expect(mockHandleSuccessAsync).toBeCalledWith(["SCD_MODELS"])
     expect(mockMsgBox.mock.calls[0][0].title).toBe('Turn On Support History table')
     expect(mockApi.mockToggleEnableSCD.mock.calls[0][1]).toEqual({"project": "kyligence", "scd2_enabled": true})
+
+    jest.clearAllTimers()
+
+
+    await wrapper.vm.handleMulPartitionSetting(true)
+    expect(mockApi.mockToggleMultiPartition.mock.calls[0][1]).toEqual({"multi_partition_enabled": true, "project": "kyligence"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(mockApi.mockUpdateMultiPartitionEnable.mock.calls).toEqual([])
+    expect(mockMsgBox.mock.calls[2][0].title).toEqual('Turn On Multilevel Partitioning')
+    expect(mockMsgBox.mock.calls[2][0].confirmButtonText).toEqual('Turn On')
+    expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+
+    await wrapper.vm.handleMulPartitionSetting(false)
+    expect(mockApi.mockGetMultiPartitionModel.mock.calls[0][1]).toEqual({"project": "kyligence"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(mockApi.mockUpdateMultiPartitionEnable.mock.calls).toEqual([])
+    expect(mockMsgBox.mock.calls[3][0].title).toEqual('Turn Off Support History table')
+    expect(mockMsgBox.mock.calls[3][0].confirmButtonText).toEqual('Turn Off')
+    expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+
+    wrapper.vm.$store._actions.GET_MULTI_PARTITION_MODEL = [jest.fn().mockResolvedValue([])]
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.handleMulPartitionSetting(false)
+    expect(mockApi.mockGetMultiPartitionModel.mock.calls[0][1]).toEqual({"project": "kyligence"})
+    expect(mockApi.mockToggleMultiPartition.mock.calls[0][1]).toEqual({"multi_partition_enabled": true, "project": "kyligence"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(mockApi.mockUpdateMultiPartitionEnable.mock.calls[0][1]).toBeTruthy()
+    expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+
+
+    wrapper.vm.$store._actions.GET_MULTI_PARTITION_MODEL = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.handleMulPartitionSetting(false)
+    expect(mockHandleError).toBeCalled()
+   
+    wrapper.vm.$msgbox = jest.fn().mockRejectedValue(false)
+    await wrapper.vm.$nextTick()
+
+    await wrapper.vm.handleScdSetting(true)
+    expect(wrapper.vm.form.scd2_enabled).toBeTruthy()
+
+    wrapper.vm.$store._actions.GET_SCD2_MODEL = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.handleScdSetting(false)
+    expect(mockHandleError).toBeCalled()
+    wrapper.vm.$store._actions.GET_SCD2_MODEL = [jest.fn().mockResolvedValue([])]
+    wrapper.vm.$store._actions.TOGGLE_ENABLE_SCD = [jest.fn().mockResolvedValue(true)]
+    await wrapper.vm.handleScdSetting(false)
+    expect(mockApi.mockUpdateSCD2Enable.mock.calls[0][1]).toBeTruthy()
+    expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+    wrapper.vm.$store._actions.TOGGLE_ENABLE_SCD = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.handleScdSetting(false)
+    expect(mockApi.mockToggleEnableSCD.mock.calls[0][1]).toEqual({"project": "kyligence", "scd2_enabled": true})
+    expect(mockHandleError).toBeCalled()
+
+
+    await wrapper.vm.handleMulPartitionSetting(true)
+    expect(wrapper.vm.form.multi_partition_enabled).toBeFalsy()
+
+    wrapper.vm.$store._actions.TOGGLE_MULTI_PARTITION = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.handleMulPartitionSetting(true)
+    expect(wrapper.vm.form.multi_partition_enabled).toBeFalsy()
+    expect(mockHandleError).toBeCalled()
+
+    await wrapper.vm.handleMulPartitionSetting(false)
+    expect(mockApi.mockGetMultiPartitionModel.mock.calls[0][1].project).toBe('kyligence')
+    // expect(wrapper.vm.form.multi_partition_enabled).toBeTruthy()
+
+    wrapper.vm.$msgbox = jest.fn().mockResolvedValue(true)
+
+    wrapper.vm.handleSuccessAsync = jest.fn().mockRejectedValue(false)
+    await wrapper.vm.handleScdSetting(false)
+    expect(mockHandleError).toBeCalled()
   })
 })
 

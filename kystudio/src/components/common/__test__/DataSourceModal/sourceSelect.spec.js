@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import SourceSelect from '../../DataSourceModal/SourceSelect/SourceSelect'
 
@@ -10,7 +10,7 @@ const mockSourceTypes = {
   CSV: 13
 }
 
-const wrapper = shallow(SourceSelect, {
+const wrapper = shallowMount(SourceSelect, {
   localVue,
   propsData: {
     sourceType: 9

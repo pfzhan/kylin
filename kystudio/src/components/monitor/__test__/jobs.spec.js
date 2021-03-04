@@ -1,10 +1,12 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import * as business from '../../../util/business'
 import JobsList from '../jobs.vue'
 import JobDialog from '../job_dialog.vue'
 import Diagnostic from '../../admin/Diagnostic/store.js'
+import kapPager from 'components/common/kap_pager.vue'
+import commonTip from 'components/common/common_tip.vue'
 
 const loadJobsList = jest.fn().mockImplementation(() => {
   return {
@@ -139,8 +141,8 @@ const store = new Vuex.Store({
   }
 })
 
-const modelJob = shallow(JobDialog, { localVue, store, propsData: {stepDetail: {}, stepId: 'stepId1', jobId: 'jobId1', targetProject: 'learn_kylin'} })
-const modelDiagnostic = shallow(Diagnostic, { localVue, store, propsData: {jobId: 'jobId1'}, mocks: {$route: {name: 'Job'}} })
+// const modelJob = shallowMount(JobDialog, { localVue, store, propsData: {stepDetail: {}, stepId: 'stepId1', jobId: 'jobId1', targetProject: 'learn_kylin'} })
+// const modelDiagnostic = shallowMount(Diagnostic, { localVue, store, propsData: {jobId: 'jobId1'}, mocks: {$route: {name: 'Job'}} })
 const mockGlobalConfirm = jest.fn().mockResolvedValue('')
 
 const mockPush = jest.fn().mockImplementation((item) => {
@@ -153,7 +155,7 @@ const mockCallGlobalDetail = jest.fn().mockImplementation(() => {
   })
 })
 
-const wrapper = shallow(JobsList, {
+const wrapper = shallowMount(JobsList, {
   localVue,
   store,
   mocks: {
@@ -169,44 +171,52 @@ const wrapper = shallow(JobsList, {
     postCloudUrlMessage: mockPostCloudUrlMessage
   },
   components: {
-    JobDialog: modelJob.vm,
-    Diagnostic: modelDiagnostic.vm
+    JobDialog,
+    Diagnostic,
+    kapPager,
+    commonTip
   }
 })
 
 jest.useFakeTimers()
 
 describe('Component Monitor', () => {
+  beforeEach(() => {
+    wrapper.vm.$refs.jobsTable = {
+      clearSelection: jest.fn(),
+      toggleRowSelection: jest.fn()
+    }
+  })
   it('computed events', async () => {
     expect(wrapper.vm.emptyText).toEqual('No data')
-    wrapper.setData({ filter: {key: 'job1', job_names: [], status: []} })
-    await wrapper.update()
+    await wrapper.setData({ filter: {...wrapper.vm.filter, key: 'job1', job_names: [], status: []} })
+    // await wrapper.update()
     expect(wrapper.vm.emptyText).toEqual('No Results')
 
     expect(wrapper.vm.isShowAdminTips).toBeTruthy()
 
-    wrapper.setData({ selectedJob: {job_status: 'PENDING'} })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {job_status: 'PENDING'} })
+    // await wrapper.update()
     expect(wrapper.vm.getJobStatusTag).toEqual('gray')
-    wrapper.setData({ selectedJob: {job_status: 'RUNNING'} })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {job_status: 'RUNNING'} })
+    // await wrapper.update()
     expect(wrapper.vm.getJobStatusTag).toEqual('')
-    wrapper.setData({ selectedJob: {job_status: 'FINISHED'} })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {job_status: 'FINISHED'} })
+    // await wrapper.update()
     expect(wrapper.vm.getJobStatusTag).toEqual('success')
-    wrapper.setData({ selectedJob: {job_status: 'ERROR'} })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {job_status: 'ERROR'} })
+    // await wrapper.update()
     expect(wrapper.vm.getJobStatusTag).toEqual('danger')
-    wrapper.setData({ selectedJob: {job_status: 'DISCARDED'} })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {job_status: 'DISCARDED'} })
+    // await wrapper.update()
     expect(wrapper.vm.getJobStatusTag).toEqual('info')
-    wrapper.setData({ selectedJob: {job_status: 'STOPPED'} })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {job_status: 'STOPPED'} })
+    // await wrapper.update()
     expect(wrapper.vm.getJobStatusTag).toEqual('')
 
-    wrapper.setData({ filter: {project: 'learn_kylin', job_names: [], status: []} })
+    wrapper.setData({ filter: {project: 'learn_kylin', key: '', job_names: [], status: []} })
     wrapper.vm.$store.state.project.isAllProject = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.filter.project).toBeUndefined()
   })
   it('methods events', async () => {
@@ -214,8 +224,8 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.$store.state.user.isShowAdminTips).toBeFalsy()
     expect(localStorage.getItem('isHideAdminTips')).toBeTruthy()
 
-    wrapper.setData({ waittingJobModels: {data: {uuid: {model_alias: 'model_alias'}}} })
-    await wrapper.update()
+    await wrapper.setData({ waittingJobModels: {data: {uuid: {model_alias: 'model_alias'}}} })
+    // await wrapper.update()
     wrapper.vm.handleCommand('uuid')
     expect(wrapper.vm.waitingJobListVisibel).toBeTruthy()
     expect(wrapper.vm.waittingJobsFilter.project).toEqual('learn_kylin')
@@ -233,15 +243,15 @@ describe('Component Monitor', () => {
     expect(isContain).toBeFalsy()
 
     wrapper.vm.$store.state.project.isAllProject = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.gotoModelList({ project: 'learn_kylin', target_subject: 'target_subject'})
     expect(clearTimeout).toBeCalled()
     expect(wrapper.vm.isPausePolling).toBeTruthy()
     expect(setProject).toBeCalled()
     expect(wrapper.vm.$route.name).toEqual('ModelList')
 
-    wrapper.setData({ filter: {page_offset: 1, job_names: ['job_names'], status: ['status']}, filterTags: ['filterTags'] })
-    await wrapper.update()
+    await wrapper.setData({ filter: {page_offset: 1, key: '', job_names: ['job_names'], status: ['status']}, filterTags: ['filterTags'] })
+    // await wrapper.update()
     wrapper.vm.handleClearAllTags()
     expect(wrapper.vm.filter.page_offset).toEqual(0)
     expect(wrapper.vm.filter.job_names).toEqual([])
@@ -256,13 +266,13 @@ describe('Component Monitor', () => {
     expect(handleSuccess).toBeCalled()
     expect(wrapper.vm.jobsList).toEqual([{id: 'job1'}])
     expect(wrapper.vm.jobTotal).toEqual(1)
-    wrapper.vm.$refs = {
-      jobsTable: {
-        toggleRowSelection: jest.fn()
-      }
-    }
-    wrapper.setData({ selectedJob: {id: 'job1', info: {}}, multipleSelection: [{id: 'job1'}] })
-    await wrapper.update()
+    // wrapper.vm.$refs = {
+    //   jobsTable: {
+    //     toggleRowSelection: jest.fn()
+    //   }
+    // }
+    await wrapper.setData({ selectedJob: {id: 'job1', info: {}}, multipleSelection: [{id: 'job1'}] })
+    // await wrapper.update()
     await wrapper.vm.getJobsList()
     expect(handleSuccess).toBeCalled()
     expect(wrapper.vm.selectedJob.details).toEqual({id: 'job1', info: {}})
@@ -284,55 +294,55 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.idsArr).toEqual([])
     expect(wrapper.vm.batchBtnsEnabled).toEqual({resume: false, discard: false, pause: false, drop: false})
 
-    wrapper.setData({ jobTotal: 20, filter: {page_size: 10, status: ['RUNNING'], job_names: []}, isSelectAllShow: false, jobsList: [{id: 'job1'}]})
-    await wrapper.update()
+    await wrapper.setData({ jobTotal: 20, filter: {page_size: 10, key: '', status: ['RUNNING'], job_names: []}, isSelectAllShow: false, jobsList: [{id: 'job1'}]})
+    // await wrapper.update()
     wrapper.vm.handleSelectAll()
     expect(wrapper.vm.isSelectAllShow).toBeTruthy()
     expect(wrapper.vm.isSelectAll).toBeFalsy()
     expect(wrapper.vm.selectedNumber).toEqual('0')
 
-    wrapper.setData({ jobTotal: 20, filter: {page_size: 10, status: ['RUNNING'], job_names: []}, multipleSelection: [{id: 'job1'}]})
-    await wrapper.update()
+    await wrapper.setData({ jobTotal: 20, filter: {page_size: 10, key: '', status: ['RUNNING'], job_names: []}, multipleSelection: [{id: 'job1'}]})
+    // await wrapper.update()
     wrapper.vm.handleSelect()
     expect(wrapper.vm.isSelectAllShow).toBeFalsy()
-    wrapper.setData({ jobTotal: 20, filter: {page_size: 1, status: ['RUNNING'], job_names: []}, multipleSelection: [{id: 'job1'}]})
-    await wrapper.update()
+    await wrapper.setData({ jobTotal: 20, filter: {page_size: 1, key: '', status: ['RUNNING'], job_names: []}, multipleSelection: [{id: 'job1'}]})
+    // await wrapper.update()
     wrapper.vm.handleSelect()
     expect(wrapper.vm.isSelectAllShow).toBeTruthy()
 
-    wrapper.setData({ jobTotal: 20, idsArr: ['job1'], jobsList: [{id: 'job1'}]})
-    await wrapper.update()
+    await wrapper.setData({ jobTotal: 20, idsArr: ['job1'], jobsList: [{id: 'job1'}]})
+    // await wrapper.update()
     wrapper.vm.selectAll()
     expect(wrapper.vm.idsArrCopy).toEqual(['job1'])
     expect(wrapper.vm.idsArr).toEqual([])
     expect(wrapper.vm.selectedNumber).toEqual('1')
 
-    wrapper.setData({ jobTotal: 20, idsArr: ['job1'], jobsList: [{id: 'job1'}] })
-    await wrapper.update()
+    await wrapper.setData({ jobTotal: 20, idsArr: ['job1'], jobsList: [{id: 'job1'}] })
+    // await wrapper.update()
     wrapper.vm.selectAllChange(1)
     expect(wrapper.vm.idsArrCopy).toEqual(['job1'])
     expect(wrapper.vm.idsArr).toEqual([])
     expect(wrapper.vm.selectedNumber).toEqual('1')
 
-    wrapper.setData({ idsArrCopy: ['job1'], jobsList: [{id: 'job1'}] })
-    await wrapper.update()
+    await wrapper.setData({ idsArrCopy: ['job1'], jobsList: [{id: 'job1'}] })
+    // await wrapper.update()
     wrapper.vm.cancelSelectAll()
     expect(wrapper.vm.idsArr).toEqual(['job1'])
     expect(wrapper.vm.selectedNumber).toEqual('20')
 
-    wrapper.setData({ idsArrCopy: ['job1'], jobsList: [{id: 'job1'}] })
-    await wrapper.update()
+    await wrapper.setData({ idsArrCopy: ['job1'], jobsList: [{id: 'job1'}] })
+    // await wrapper.update()
     wrapper.vm.selectAllChange()
     expect(wrapper.vm.idsArr).toEqual(['job1'])
     expect(wrapper.vm.selectedNumber).toEqual('20')
 
-    wrapper.setData({ multipleSelection: [{id: 'job1'}] })
-    await wrapper.update()
+    await wrapper.setData({ multipleSelection: [{id: 'job1'}] })
+    // await wrapper.update()
     const ids = wrapper.vm.getJobIds()
     expect(ids).toEqual(['job1'])
 
-    wrapper.setData({ multipleSelection: [{name: 'jobName'}] })
-    await wrapper.update()
+    await wrapper.setData({ multipleSelection: [{name: 'jobName'}] })
+    // await wrapper.update()
     const jobNames = wrapper.vm.getJobNames()
     expect(jobNames).toEqual(['jobName'])
 
@@ -372,11 +382,11 @@ describe('Component Monitor', () => {
     wrapper.vm.batchDrop()
     expect(mockApi.mockCallGlobalDetailDialog).toBeCalled()
 
-    wrapper.vm.$refs = {
-      jobsTable: {
-        clearSelection: jest.fn()
-      }
-    }
+    // wrapper.vm.$refs = {
+    //   jobsTable: {
+    //     clearSelection: jest.fn().mockResolvedValue(true)
+    //   }
+    // }
     wrapper.vm.resetSelection()
     expect(wrapper.vm.isSelectAllShow).toBeFalsy()
     expect(wrapper.vm.isSelectAll).toBeFalsy()
@@ -385,15 +395,15 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.idsArrCopy).toEqual([])
     expect(wrapper.vm.idsArr).toEqual([])
 
-    wrapper.setData({ showStep: true })
-    await wrapper.update()
+    await wrapper.setData({ showStep: true })
+    // await wrapper.update()
     wrapper.vm.currentChange(5, 10)
     expect(wrapper.vm.filter.page_offset).toEqual(5)
     expect(wrapper.vm.filter.page_size).toEqual(10)
     expect(wrapper.vm.showStep).toBeFalsy()
 
-    wrapper.setData({ showStep: true })
-    await wrapper.update()
+    await wrapper.setData({ showStep: true })
+    // await wrapper.update()
     wrapper.vm.closeIt()
     expect(wrapper.vm.showStep).toBeFalsy()
 
@@ -402,17 +412,17 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.filter.page_offset).toEqual(0)
     expect(wrapper.vm.showStep).toBeFalsy()
 
-    wrapper.setData({ showStep: true, selectedJob: {id: 'job1'} })
-    await wrapper.update()
+    await wrapper.setData({ showStep: true, selectedJob: {id: 'job1'} })
+    // await wrapper.update()
     const calssName = wrapper.vm.tableRowClassName({row: {id: 'job1'}})
     expect(calssName).toEqual('current-row2')
 
     wrapper.vm.$store.state.project.isAllProject = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.loadList()
     expect(wrapper.vm.filter.project).toBeUndefined()
     wrapper.vm.$store.state.project.isAllProject = false
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.loadList()
     expect(wrapper.vm.filter.project).toEqual('learn_kylin')
 
@@ -420,8 +430,8 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.filter.isAuto).toBeFalsy()
 
     wrapper.vm.$store.state.project.isAllProject = true
-    wrapper.setData({ isPausePolling: false })
-    await wrapper.update()
+    await wrapper.setData({ isPausePolling: false })
+    // await wrapper.update()
     wrapper.vm.refreshJobs()
     expect(wrapper.vm.filter.project).toBeUndefined()
 
@@ -435,7 +445,7 @@ describe('Component Monitor', () => {
 
     wrapper.vm.callGlobalDetail = mockCallGlobalDetail
     wrapper.vm.$store.state.project.isAllProject = false
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.resume(['job1'], 'learn_kylin', 'batch', [{id: 'job1'}], [])
     expect(mockCallGlobalDetail).toBeCalled()
     expect(resumeJob.mock.calls[0][1]).toEqual({job_ids: ['job1'], action: 'RESUME'})
@@ -456,8 +466,8 @@ describe('Component Monitor', () => {
     expect(mockCallGlobalDetail).toBeCalled()
     expect(removeJobForAll.mock.calls[0][1]).toEqual({job_ids: ['job1']})
 
-    wrapper.setData({ selectedJob: {id: 'job1'}, showStep: false })
-    await wrapper.update()
+    await wrapper.setData({ selectedJob: {id: 'job1'}, showStep: false })
+    // await wrapper.update()
     wrapper.vm.showLineSteps({id: 'job1'}, {property: 'icon'})
     expect(wrapper.vm.showStep).toBeTruthy()
     expect(wrapper.vm.selectedJob).toEqual({id: 'job1'})

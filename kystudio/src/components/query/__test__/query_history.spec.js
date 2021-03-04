@@ -1,4 +1,5 @@
-import { shallow } from 'vue-test-utils'
+
+import { mount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
@@ -61,7 +62,13 @@ const mockApi = {
     return Promise.resolve(["sandbox.hortonworks.com:7072", "hdp198.hortonworks.com:7072"])
   }),
   mockGetTableIndex: jest.fn().mockResolvedValue(true),
-  mockFetchIndexGraph: jest.fn()
+  mockFetchIndexGraph: jest.fn(),
+  mockFetchHitModelsList: jest.fn().mockImplementation(() => {
+    return Promise.resolve(['HIVE', 'CONSTANTS', 'OBJECT STORAGE', 'NATIVE'])
+  }),
+  mockFetchSubmitterList: jest.fn().mockImplementation(() => {
+    return Promise.resolve(['ADMIN'])
+  })
 }
 
 const TableIndexEditModal = {
@@ -76,7 +83,9 @@ const store = new Vuex.Store({
     GET_HISTORY_LIST: mockApi.mockGetHistoryList,
     LOAD_ONLINE_QUERY_NODES: mockApi.mockLoadOnlineQueryNodes,
     GET_TABLE_INDEX: mockApi.mockGetTableIndex,
-    FETCH_INDEX_GRAPH: mockApi.mockFetchIndexGraph
+    FETCH_INDEX_GRAPH: mockApi.mockFetchIndexGraph,
+    FETCH_HIT_MODELS_LIST: mockApi.mockFetchHitModelsList,
+    FETCH_SUBMITTER_LIST: mockApi.mockFetchSubmitterList,
   },
   getters: {
     currentSelectedProject () {
@@ -85,30 +94,21 @@ const store = new Vuex.Store({
     datasourceActions () {
       return ['editAggGroup', 'buildIndex', 'tableIndexActions']
     },
-    isAutoProject () {
-      return false
+    queryHistoryFilter () {
+      return ['filterActions']
     }
   },
   modules: {
     TableIndexEditModal
   }
 })
-const queryHistoryTableComp = shallow(queryHistoryTable, { propsData: { queryNodes: [], queryHistoryData: [] } })
-const modelAggregateComp = shallow(ModelAggregate, { localVue })
-const tableIndexComp = shallow(TableIndex, { localVue, store, propsData: {
-  modelDesc: {},
-  isHideEdit: false,
-  layoutId: '',
-  isShowTableIndexActions: true,
-  isShowBulidIndex: true
-} })
-const wrapper = shallow(queryHistory, {
+const wrapper = mount(queryHistory, {
   store,
   localVue,
   components: {
-    queryHistoryTable: queryHistoryTableComp.vm,
-    ModelAggregate: modelAggregateComp.vm,
-    TableIndex: tableIndexComp.vm
+    queryHistoryTable,
+    ModelAggregate,
+    TableIndex
   }
 })
 
@@ -117,17 +117,65 @@ describe('Component QueryHistory', () => {
     expect(mockApi.mockLoadOnlineQueryNodes).toBeCalled()
     expect(mockHandleSuccessAsync).toBeCalledWith(["sandbox.hortonworks.com:7072", "hdp198.hortonworks.com:7072"])
     expect(wrapper.vm.queryNodes).toEqual(["sandbox.hortonworks.com:7072", "hdp198.hortonworks.com:7072"])
-    expect(mockApi.mockGetHistoryList.mock.calls[0][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": undefined, "sql": "", "start_time_from": null, "start_time_to": null})
-    expect(wrapper.vm.queryHistoryData).toEqual({query_histories: queryHistorys, size: 1})
+    // expect(mockApi.mockGetHistoryList.mock.calls[0][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": undefined, "sql": "", "start_time_from": null, "start_time_to": null})
+  })
+  it('router', () => {
+    const route = {
+      to: {
+        name: 'QueryHistory'
+      },
+      from: {
+        name: 'Insight'
+      },
+      next: jest.fn().mockImplementation(func => func && func(wrapper.vm))
+    }
+    queryHistory.options.beforeRouteEnter(route.to, route.from, route.next)
+    expect(mockApi.mockGetHistoryList.mock.calls[0][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": undefined, "sql": "", "start_time_from": null, "start_time_to": null, "submitter": []})
+    const route1 = {
+      to: {
+        name: 'QueryHistory',
+        params: {
+          source: 'homepage-history'
+        }
+      },
+      from: {
+        name: 'Dashboard'
+      },
+      next: jest.fn().mockImplementation(func => func && func(wrapper.vm))
+    }
+    queryHistory.options.beforeRouteEnter(route1.to, route1.from, route1.next)
+    expect(wrapper.vm.filterDirectData.startTimeFrom).not.toBeNull()
+    expect(wrapper.vm.filterDirectData.startTimeTo).not.toBeNull()
   })
   it('methods', async () => {
-    await wrapper.vm.openIndexDialog('b3b89153-141c-4ae8-8b9a-924fb889e1e2', 1)
+    await wrapper.vm.loadHistoryList()
+    expect(wrapper.vm.queryHistoryData).toEqual({query_histories: queryHistorys, size: 1})
+    await wrapper.setData({pageSize: null, filterData: {...wrapper.vm.filterData, startTimeFrom: 1613318400000, startTimeTo: 1613923200000}})
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.loadHistoryList()
+    expect(mockApi.mockGetHistoryList.mock.calls[3][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "", "sql": null, "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
+    await wrapper.vm.openIndexDialog({modelId: 'b3b89153-141c-4ae8-8b9a-924fb889e1e2', layoutId: 1}, [])
     expect(wrapper.vm.model.uuid).toBe('b3b89153-141c-4ae8-8b9a-924fb889e1e2')
-    expect(wrapper.vm.tabelIndexLayoutId).toBe(1)
-    expect(wrapper.vm.tabelIndexVisible).toBeTruthy()
-    await wrapper.vm.openIndexDialog('b3b89153-141c-4ae8-8b9a-924fb889e1e2', '')
+    // expect(wrapper.vm.tabelIndexLayoutId).toBe(1)
+    // expect(wrapper.vm.tabelIndexVisible).toBeTruthy()
+    await wrapper.vm.openIndexDialog({modelId: 'b3b89153-141c-4ae8-8b9a-924fb889e1e2', layoutId: ''}, [{
+      indexType: "Table Index",
+      layoutExist: true,
+      layoutId: 20000040001,
+      modelAlias: "model_test",
+      modelId: "0145588a-3760-4f7f-a511-283dcaa38008",
+      partialMatchModel: false,
+      snapshots: [],
+      unauthorized_columns: [],
+      unauthorized_tables: [],
+      valid: true,
+      visible: true
+    }])
+    expect(wrapper.vm.model.uuid).toBe('b3b89153-141c-4ae8-8b9a-924fb889e1e2')
     expect(wrapper.vm.aggDetailVisible).toBeTruthy()
+    expect(wrapper.vm.aggIndexLayoutId).toBe('')
 
+    await wrapper.setData({pageSize: 20})
     wrapper.vm.loadFilterList('test')
     expect(wrapper.vm.filterData).toBe('test')
     expect(wrapper.vm.queryCurrentPage).toBe(1)

@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import AboutKap from '../about_kap.vue'
 import { localVue } from '../../../../test/common/spec_common'
@@ -14,13 +14,21 @@ const store = new Vuex.Store({
     }
   }
 })
-const wrapper = shallow(AboutKap, {
+const wrapper = shallowMount(AboutKap, {
   store,
   localVue,
   propsData: {
     about: '关于'
   }
 })
+
+delete window.location;
+Object.defineProperty(window, 'location', {
+    value: {
+        href: '',
+        hash: ''
+    }
+});
 
 describe('Component about_kap', () => {
   it('init data', async () => {
@@ -33,11 +41,11 @@ describe('Component about_kap', () => {
     expect(wrapper.vm.statement).toBeNull()
     expect(wrapper.vm.licenseRange).toBe('2020-01-12 To 2020-01-25')
     wrapper.vm.$store.state.system.serverAboutKap['ke.dates'] = ''
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.licenseRange).toBe('')
   })
   it('test methods', async () => {
     wrapper.vm.requestLicense()
-    expect(location.href).toBe('http://localhost/')
+    expect(location.href).toBe('api/system/license/info')
   })
 })

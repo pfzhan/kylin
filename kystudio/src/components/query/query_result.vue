@@ -567,7 +567,7 @@ export default class queryResult extends Vue {
     }, 500)
   }
   getStepData (steps) {
-    if (steps.length) {
+    if (steps && steps.length) {
       let renderSteps = [
         {name: 'totalDuration', duration: 0},
         {name: 'PREPARATION', duration: 0}

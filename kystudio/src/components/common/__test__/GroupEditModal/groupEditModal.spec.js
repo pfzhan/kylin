@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import GroupEditModal from '../../GroupEditModal/index.vue'
 import GroupEditStore from '../../GroupEditModal/store'
@@ -36,7 +36,7 @@ const store = new Vuex.Store({
   },
   getters: {
     currentSelectedProject () {
-      return 'learn_kylin'
+      return 'ssb'
     },
     isAdminRole () {
       return true
@@ -47,7 +47,7 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(GroupEditModal, {
+const wrapper = shallowMount(GroupEditModal, {
   localVue,
   store,
   mocks: {
@@ -60,7 +60,7 @@ describe('Component GroupEditModal', () => {
     expect(wrapper.vm.modalWidth).toBe('440px')
     expect(wrapper.vm.modalTitle).toBe('createGroup')
     wrapper.vm.$store.state.GroupEditModal.editType = 'assign'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.modalWidth).toBe('660px')
     expect(wrapper.vm.modalTitle).toBe('assignUser')
 
@@ -68,7 +68,7 @@ describe('Component GroupEditModal', () => {
 
     wrapper.vm.$store.state.GroupEditModal.isShow = true
     wrapper.vm.$store.state.GroupEditModal.form.selected_users = ['test_01']
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.$data.isFormShow).toBeTruthy()
     expect(wrapper.vm.$data.page_offset).toBe(1)
     expect(wrapper.vm.$store.state.GroupEditModal.totalUsers).toEqual([{'key': 'admin', 'value': 'admin'}, {'key': 'test_01', 'value': 'test_01'}])
@@ -78,11 +78,11 @@ describe('Component GroupEditModal', () => {
   })
   it('methods', async () => {
     wrapper.setData({page_offset: 0})
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.autoLoadMoreData([{authorities: [{authority: 'ALL_USERS'}], defaultPassword: false, disabled: false, locked: false, username: 'kylin'}], '')
-    expect(mockApis.mockLoadUserList.mock.calls[2][1]).toEqual({'name': undefined, 'page_offset': 2, 'page_size': 1000, 'project': 'learn_kylin'})
+    expect(mockApis.mockLoadUserList.mock.calls[2][1]).toEqual({'name': undefined, 'page_offset': 2, 'page_size': 1000})
     wrapper.setData({page_offset: 0})
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.autoLoadMoreData([{authorities: [{authority: 'ALL_USERS'}], defaultPassword: false, disabled: false, locked: false, username: 'kylin'}], 'user')
     expect(mockApis.mockLoadUserList).toBeCalled()
     
@@ -92,7 +92,7 @@ describe('Component GroupEditModal', () => {
     await wrapper.vm.submit()
     expect(wrapper.vm.$refs.form.validate).toBeCalled()
     expect(mockApis.mockAddUsersToGroup.mock.calls[0][1]).toEqual({'group_name': '', 'users': ['test_01']})
-    expect(mockMessage).toBeCalledWith({'message': 'Saved successfully.', 'type': 'success'})
+    expect(mockMessage).toBeCalledWith({'message': ' Added the user group successfully.', 'type': 'success'})
     expect(wrapper.vm.$data.submitLoading).toBeFalsy()
 
     wrapper.vm.$refs.form = {
@@ -112,7 +112,7 @@ describe('Component GroupEditModal', () => {
 
     wrapper.vm.queryHandler('Unassigned Users', 'test')
     jest.runAllTimers()
-    expect(mockApis.mockLoadUserList.mock.calls[6][1]).toEqual({'name': 'test', 'page_offset': 0, 'page_size': 1000, 'project': 'learn_kylin'})
+    expect(mockApis.mockLoadUserList.mock.calls[6][1]).toEqual({'name': 'test', 'page_offset': 0, 'page_size': 1000})
     expect(wrapper.vm.$store.state.GroupEditModal.totalUsers).toEqual([])
 
     wrapper.vm.queryHandler('Assigned Users', '')

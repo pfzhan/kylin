@@ -15,7 +15,7 @@
 </template>
 <script>
 import { pageCount, pageSizes } from '../../config'
-import { cacheLocalStorage } from 'util'
+import { cacheLocalStorage } from '../../util'
 export default {
   name: 'pager',
   props: {

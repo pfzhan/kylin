@@ -245,7 +245,7 @@
 
 <script>
 import { transToGmtTime, getStringLength, handleError } from '../../util/business'
-import { handleSuccessAsync } from 'util'
+import { handleSuccessAsync } from '../../util'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
@@ -491,7 +491,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   getStepData (steps) {
-    if (steps.length) {
+    if (steps && steps.length) {
       let renderSteps = [
         {name: 'totalDuration', duration: 0},
         {name: 'PREPARATION', duration: 0}

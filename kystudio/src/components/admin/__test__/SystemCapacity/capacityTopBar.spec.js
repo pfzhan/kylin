@@ -1,5 +1,5 @@
 import Vuex from 'vuex'
-import { shallow, mount } from 'vue-test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import CapacityTopBar from '../../SystemCapacity/CapacityTopBar.vue'
 import * as util from '../../../../util/business'
@@ -68,7 +68,7 @@ describe('Components CapacityTopBar', () => {
   it('init', () => {
     expect(mockApis.mockGetNodesList).toBeCalled()
     expect(wrapper.vm.$data.isNodeLoadingSuccess).toBeTruthy()
-    expect(wrapper.vm.$data.nodeList).toEqual([{host: 'sandbox.com:7070', mode: 'all'}])
+    expect(wrapper.vm.$data.nodeList).toEqual([{host: 'sandbox.com:7070', mode: 'All'}])
     expect(wrapper.vm.$data.isNodeLoading).toBeFalsy()
     expect(mockApis.mockGetSystemCapacityInfo).toBeCalled()
     expect(mockApis.mockGetNodesInfo).toBeCalled()
@@ -76,20 +76,20 @@ describe('Components CapacityTopBar', () => {
   it('computed', async () => {
     expect(wrapper.vm.getDataFails).toBeTruthy()
     wrapper.vm.$store.state.capacity.systemNodeInfo.fail = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.getDataFails).toBeFalsy()
     expect(wrapper.vm.getNodesNumColor).toBe('is-success')
     wrapper.vm.$store.state.capacity.systemNodeInfo.node_status = 'OVERCAPACITY'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.getNodesNumColor).toBe('is-danger')
     wrapper.vm.$store.state.capacity.systemNodeInfo.node_status = 'OK'
     wrapper.vm.$store.state.capacity.systemCapacityInfo.current_capacity = '10996116277760'
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.getNodesNumColor).toBe('is-warning')
 
     expect(wrapper.vm.getCapacityPrecent).toBe('100.01')
     wrapper.vm.$store.state.capacity.systemCapacityInfo.unlimited = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     expect(wrapper.vm.getCapacityPrecent).toBe(0)
 
     expect(wrapper.vm.showLoadingStatus).toBeFalsy()
@@ -98,14 +98,14 @@ describe('Components CapacityTopBar', () => {
   it('methods', async () => {
     wrapper.vm.$store.state.capacity.systemCapacityInfo.fail = true
     wrapper.vm.$store.state.capacity.systemNodeInfo.fail = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.refreshCapacityOrNodes()
     expect(mockApis.mockRefreshAllSystem).toBeCalled()
     expect(mockApis.mockGetNodesInfo).toBeCalled()
     expect(wrapper.findAll('.el-icon-ksd-restart').exists()).toBeTruthy()
 
     wrapper.vm._isDestroyed = true
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     wrapper.vm.getHANodes()
     expect(wrapper.vm.$data.isNodeLoadingSuccess).toBeTruthy()
     expect(wrapper.vm.$data.nodeList.length).toBe(1)

@@ -127,7 +127,7 @@ export default {
     },
     bindTagClick () {
       this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
-      var arealabel = this.$el.querySelectorAll('.el-select__tags > span')
+      var arealabel = this.$el.querySelectorAll('.el-select__tags span')
       if (arealabel.length) {
         arealabel[0].onclick = (e) => {
           var ev = e || window.event
@@ -148,7 +148,7 @@ export default {
       setTimeout(() => {
         let indexes = []
         const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
-        const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && item.querySelector('.el-select__tags-text').innerText)
+        const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && (item.querySelector('.el-select__tags-text').innerText || item.querySelector('.el-select__tags-text').textContent))
         tagText.forEach((element, index, self) => {
           if (self.indexOf(element) !== self.lastIndexOf(element)) {
             tags[index] && (tags[index].className += ' error-tag')

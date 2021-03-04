@@ -1,8 +1,10 @@
-import { shallow, mount } from 'vue-test-utils'
+import { mount, shallowMountMount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import * as business from '../../../util/business'
 import User from '../User/index.vue'
 import Vuex from 'vuex'
+import commonTip from '../../common/common_tip.vue'
+import kapPager from '../../common/kap_pager.vue'
 
 const mockHandleError = jest.spyOn(business, 'handleError').mockImplementation(() => {
   return new Promise((resolve, reject) => reject('error'))
@@ -80,6 +82,10 @@ let factory = (mock) => {
       kapConfirm: kapConfirmMockHandle,
       $message: mockMessage,
       ...mock
+    },
+    components: {
+      commonTip,
+      kapPager
     }
   })
 }
@@ -98,9 +104,9 @@ describe('Component User', () => {
     expect(wrapper.vm.isMoreActionShow).toBe(1)
     expect(wrapper.vm.usersList).toBeInstanceOf(Array)
     expect(wrapper.vm.emptyText).toBe('No data')
-
-    wrapper.setData({filterName: 'user'})
-    await wrapper.update()
+    await wrapper.setData({ ...wrapper.vm.$data, filterName: 'user' })
+    // wrapper.vm.filterName = 'user'
+    // await wrapper.update()
     expect(wrapper.vm.emptyText).toBe('No Results')
   })
   it('mothods', async () => {
@@ -113,7 +119,7 @@ describe('Component User', () => {
     expect(mockUserByGroupName).toBeCalled()
 
     await wrapper.vm.dropUser({username: 'xx'})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user xx?', null, 'Delete User')
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user \"xx\"?', {'confirmButtonText': 'Delete'}, 'Delete User')
     expect(mockRemoveUser).toBeCalled()
     expect(mockMessage).toBeCalled()
 
@@ -121,20 +127,15 @@ describe('Component User', () => {
       removeUser: jest.fn().mockRejectedValue(false)
     }
     await User.options.methods.dropUser.call(options, { username: 'xx' })
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user xx?', null, 'Delete User')
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user \"xx\"?', {'confirmButtonText': 'Delete'}, 'Delete User')
     expect(mockHandleError).toBeCalled()
 
-    await wrapper.vm.changeStatus({disabled: true})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to Enable the user ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
+    await wrapper.vm.changeStatus({disabled: true, username: 'xx'})
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to enable the user \"xx\"?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
     expect(mockHandleError).toBeCalled()
 
-    const options1 = {
-      ...wrapper,
-      updateStatus: jest.fn().mockRejectedValue(false),
-      $t: (content) => content
-    }
-    await User.options.methods.changeStatus.call(options1, {disabled: false})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to Enable the user ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
+    await wrapper.vm.changeStatus({disabled: false, username: 'xx'})
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to disable the user \"xx\"?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Disable', 'type': 'warning'})
     expect(mockHandleError).toBeCalled()
 
     const options3 = {

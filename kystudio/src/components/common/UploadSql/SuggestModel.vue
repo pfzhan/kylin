@@ -298,7 +298,7 @@ export default class SuggestModel extends Vue {
     this.activeRowId = row.index_id
     this.recommendDetails = [...row.computed_columns.map(it => ({...it, name: it.cc.columnName, type: 'cc'})), ...row.dimensions.map(it => ({...it.dimension, type: 'dimension'})), ...row.measures.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
     this.$nextTick(() => {
-      this.$refs.originModelDetails && this.$refs.originModelDetails.doLayout()
+      this.$refs.originModelDetails && this.$refs.originModelDetails.doLayout && this.$refs.originModelDetails.doLayout()
     })
   }
   sqlsTable (sqls) {

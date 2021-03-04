@@ -1,4 +1,4 @@
-import { shallow, mount } from 'vue-test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import DatePicker from '../date_picker.vue'
 import { localVue } from '../../../../test/common/spec_common'
 
@@ -19,8 +19,8 @@ describe('Component DatePicker', () => {
   })
   it('computed', async () => {
     expect(wrapper.vm.valueFormate).toBe('yyyy-MM-dd')
-    wrapper.setProps({ dateType: 'datetime' })
-    await wrapper.update()
+    await wrapper.setProps({ dateType: 'datetime' })
+    // await wrapper.update()
     expect(wrapper.vm.valueFormate).toBe('yyyy-MM-dd HH:mm:SS')
   })
 })

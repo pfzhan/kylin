@@ -20,6 +20,9 @@ module.exports = {
   transformIgnorePatterns: ['node_modules'],
   // 所需忽略的文件
   testPathIgnorePatterns: ['<rootDir>/src/config'],
+  // testMatch: [
+  //   '<rootDir>/src/components/query/__test__/query_result.spec.js'
+  // ],
   setupFiles: ['<rootDir>/test/setup'],
   moduleNameMapper: {
     '^vue$': 'vue/dist/vue.common.js',

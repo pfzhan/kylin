@@ -1,6 +1,7 @@
-import { mount, shallow } from 'vue-test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Setting from '../setting.vue'
+import kapEmptyData from 'components/common/EmptyData/EmptyData.vue'
 import Vuex from 'vuex'
 import * as utils from '../../../util/index'
 import * as business from '../../../util/business'
@@ -67,6 +68,9 @@ const store = new Vuex.Store({
   state: {
     project: {
       isSemiAutomatic: true
+    },
+    config: {
+      platform: 'pc'
     }
   },
   getters: {
@@ -91,7 +95,7 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(Setting, {
+const wrapper = shallowMount(Setting, {
   localVue,
   store,
   mocks: {
@@ -102,6 +106,9 @@ const wrapper = shallow(Setting, {
     $router: {
       replace: mockRouter
     }
+  },
+  components: {
+    kapEmptyData
   }
 })
 
@@ -172,7 +179,7 @@ describe('Component Setting', () => {
     expect(route.next).toBeCalled()
 
     wrapper.vm.$store._actions.FETCH_PROJECT_SETTINGS = jest.fn().mockRejectedValue(false)
-    await wrapper.update()
+    await wrapper.vm.$nextTick()
     await wrapper.vm.getCurrentSettings()
     expect(mockHandleError).toBeCalled()
 

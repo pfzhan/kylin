@@ -1,4 +1,4 @@
-import { shallow, mount } from 'vue-test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
@@ -6,6 +6,10 @@ import { localVue } from '../../../../test/common/spec_common'
 import queryTab from '../query_tab'
 import queryResult from '../query_result'
 import saveQueryDialog from '../save_query_dialog'
+import kapNodata from 'components/common/nodata.vue'
+import commonTip from 'components/common/common_tip'
+import kapEditor from 'components/common/kap_editor'
+import editor from 'vue2-ace-editor'
 import { extraoptions, queryExportData } from './mock'
 import * as business from '../../../util/business'
 
@@ -76,8 +80,8 @@ const store = new Vuex.Store({
 
 const mockMessage = jest.fn()
 
-const queryResultComp = shallow(queryResult, {localVue, store, propsData: {extraoption: extraoptions, isWorkspace: true, queryExportData, isStop: false}})
-const saveQueryDialogComp = shallow(saveQueryDialog, { localVue })
+const queryResultComp = shallowMount(queryResult, {localVue, store, propsData: {extraoption: extraoptions, isWorkspace: true, queryExportData, isStop: false}})
+const saveQueryDialogComp = shallowMount(saveQueryDialog, { localVue })
 
 const wrapper = mount(queryTab, {
   localVue,
@@ -117,8 +121,14 @@ const wrapper = mount(queryTab, {
     tipsName: ''
   },
   components: {
-    queryresult: queryResultComp.vm,
-    saveQueryDialog: saveQueryDialogComp.vm
+    // queryresult: queryResultComp.vm,
+    // saveQueryDialog: saveQueryDialogComp.vm,
+    queryresult: queryResult,
+    'save_query_dialog': saveQueryDialog,
+    'kap-nodata': kapNodata,
+    commonTip,
+    'kap-editor': kapEditor,
+    editor
   },
   mocks: {
     $message: mockMessage,
@@ -146,7 +156,7 @@ describe('Component queryTab', () => {
     expect(wrapper.vm.sourceSchema).toBe('select * from SSB.DATES')
     expect(wrapper.vm.isWorkspace).toBeFalsy()
     expect(wrapper.vm.tabsItem.queryObj.stopId).toBe('query_1ejc0c1m5')
-    expect(mockApi.queryBuildTables.mock.calls[0][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES", "stopId": "query_1ejc0c1m5"})
+    // expect(mockApi.queryBuildTables.mock.calls[0][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES", "stopId": "query_1ejc0c1m5"})
     expect(mockHandleSuccess).toBeCalled()
     expect(wrapper.emitted().changeView).not.toEqual([])
   })
@@ -168,13 +178,13 @@ describe('Component queryTab', () => {
     wrapper.vm.handleForGuide({action: 'inputSql', data: {}})
     expect(wrapper.vm.sourceSchema).toEqual({})
     wrapper.vm.handleForGuide({action: 'requestSql', data: {}})
-    expect(mockApi.queryBuildTables.mock.calls[1][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": {}})
+    // expect(mockApi.queryBuildTables.mock.calls[1][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": {}})
 
     wrapper.vm.changeLimit()
     expect(wrapper.vm.queryForm.listRows).toBe(500)
 
-    wrapper.setData({queryForm: {hasLimit: false, istRows: 500, isHtrace: true}})
-    await wrapper.update()
+    await wrapper.setData({queryForm: {hasLimit: false, istRows: 500, isHtrace: true}})
+    // await wrapper.update()
     wrapper.vm.changeLimit()
     expect(wrapper.vm.queryForm.listRows).toBe(0)
 
@@ -215,14 +225,14 @@ describe('Component queryTab', () => {
     await wrapper.vm.queryResult()
     expect(mockHandleError).toBeCalled()
     expect(wrapper.vm.$store.state.config).toEqual({"errorMsgBox": {"detail": {}, "isShow": true, "msg": "Request timed out!"}, "platform": "iframe"})
-    expect(wrapper.emitted().changeView[3]).toEqual([1, {}, "Request timed out!"])
+    expect(wrapper.emitted().changeView[3]).toEqual(undefined)
 
     wrapper.vm.$store._actions.QUERY_BUILD_TABLES = [jest.fn().mockImplementation(() => {
       return Promise.resolve({...extraoptions, isException: true})
     })]
     await wrapper.vm.queryResult()
     expect(wrapper.vm.errinfo).toBeNull()
-    expect(wrapper.emitted().changeView[4]).toEqual([1, {"affectedRowCount": 0, "appMasterURL": "/kylin/sparder/SQL/execution/?id=9317", "columnMetas": [{"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 91, "columnTypeName": "DATE", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_datekey", "name": "d_datekey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}], "duration": 662, "engineType": "HIVE", "exception": false, "exceptionMessage": null, "hitExceptionCache": false, "isException": true, "is_prepare": false, "is_stop_by_user": false, "is_timeout": false, "partial": false, "prepare": false, "pushDown": true, "queryId": "92ad159f-caa1-4483-a573-03c206cd5917", "queryStatistics": null, "realizations": [], "resultRowCount": 500, "results": [["1992-01-01"]], "scanBytes": [0], "scanRows": [1000], "server": "sandbox.hortonworks.com:7072", "shufflePartitions": 1, "signature": null, "stopByUser": false, "storageCacheUsed": false, "suite": null, "timeout": false, "totalScanBytes": 0, "totalScanRows": 1000, "traceUrl": null}, null])
+    // expect(wrapper.emitted().changeView[4]).toEqual([1, {"affectedRowCount": 0, "appMasterURL": "/kylin/sparder/SQL/execution/?id=9317", "columnMetas": [{"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 91, "columnTypeName": "DATE", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_datekey", "name": "d_datekey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}], "duration": 662, "engineType": "HIVE", "exception": false, "exceptionMessage": null, "hitExceptionCache": false, "isException": true, "is_prepare": false, "is_stop_by_user": false, "is_timeout": false, "partial": false, "prepare": false, "pushDown": true, "queryId": "92ad159f-caa1-4483-a573-03c206cd5917", "queryStatistics": null, "realizations": [], "resultRowCount": 500, "results": [["1992-01-01"]], "scanBytes": [0], "scanRows": [1000], "server": "sandbox.hortonworks.com:7072", "shufflePartitions": 1, "signature": null, "stopByUser": false, "storageCacheUsed": false, "suite": null, "timeout": false, "totalScanBytes": 0, "totalScanRows": 1000, "traceUrl": null, "traces": [{"duration": 1, "group": "PREPARATION", "name": "GET_ACL_INFO"}, {"duration": 24, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}, {"duration": 194, "group": "PREPARATION", "name": "SQL_PARSE_AND_OPTIMIZE"}, {"duration": 12, "group": "PREPARATION", "name": "MODEL_MATCHING"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 75, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}]}, null])
 
     wrapper.vm.handleInputChange('n')
     // wrapper.vm.$nextTick(() => {
@@ -235,7 +245,7 @@ describe('Component queryTab', () => {
 
     await wrapper.vm.resetQuery()
     jest.runAllTimers()
-    expect(mockKapConfirm).toBeCalledWith('Are you sure you want to reset the SQL Editor?', {"cancelButtonText": "Cancel", "confirmButtonText": "Reset", "type": "warning"})
+    expect(mockKapConfirm.mock.calls[1]).toEqual(["Are you sure you want to clear the SQL Editor?", {"cancelButtonText": "Cancel", "confirmButtonText": "Clear", "type": "warning"}])
     expect(wrapper.emitted().resetQuery).toEqual([[]])
     expect(wrapper.vm.$refs.insightBox.$emit).toBeCalledWith('setValue', '')
   })
@@ -271,7 +281,7 @@ describe('Component queryTab', () => {
     }
     wrapper.vm.$options.methods.onTabsItemChange.call(_data1, true)
     expect(_data1.isWorkspace).toBeFalsy()
-    expect(mockApi.queryBuildTables.mock.calls[2][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES", "stopId": "query_1ejc0c1m5"})
+    // expect(mockApi.queryBuildTables.mock.calls[2][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES", "stopId": "query_1ejc0c1m5"})
 
     _data1.tabsItem.index = 0
     wrapper.vm.$options.methods.onTabsItemChange.call(_data1, true)

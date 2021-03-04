@@ -1,4 +1,4 @@
-import { shallow } from 'vue-test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import * as business from '../../../../util/business'
 import Vuex from 'vuex'
@@ -35,7 +35,7 @@ const store = new Vuex.Store({
   }
 })
 
-const wrapper = shallow(SuggestModel, {
+const wrapper = shallowMount(SuggestModel, {
   localVue,
   store,
   propsData: {
@@ -55,7 +55,6 @@ const wrapper = shallow(SuggestModel, {
     }],
     tableRef: 'modelsTable',
     isOriginModelsTable: true,
-
   }
 })
 
@@ -74,8 +73,8 @@ describe('Component SuggestModel', () => {
   })
   it('computed', async () => {
     expect(wrapper.vm.modelTips).toBe('You can observe the number of new recommendations for existing models and expand to see which SQL these recommendations come from. The new recommendations have been added to the recommendation lists of the corresponding models, where you can accept the required recommendations.')
-    wrapper.setProps({isOriginModelsTable: false})
-    await wrapper.update()
+    await wrapper.setProps({isOriginModelsTable: false})
+    // await wrapper.update()
     expect(wrapper.vm.modelTips).toBe('You can select the new models you want and expand to see which SQL these models come from. Click the Submit button and the new models will be added to the model list, which you can view and edit on the model page.')
 
     expect(wrapper.vm.hasRecommendation).toBeTruthy()
@@ -88,6 +87,15 @@ describe('Component SuggestModel', () => {
         })
       }
     }
+    wrapper.vm.$refs = {
+      newModelDetails: {
+        doLayout: jest.fn().mockResolvedValue(true)
+      },
+      originModelDetails: {
+        doLayout: jest.fn().mockResolvedValue(true)
+      },
+    }
+
     wrapper.vm.handleClickEvent(event)
     expect(wrapper.vm.$data.activeRowId).toBe('')
 
@@ -105,9 +113,10 @@ describe('Component SuggestModel', () => {
     })
     expect(wrapper.vm.$data.activeRowId).toBe('70e81e2a-aaca-4885-b811-287fb462bd2f')
     expect(wrapper.vm.$data.modelDetails).toEqual([{"measure": {"function": {"expression": "SUM"}, "id": 100000, "name": "P_LINEORDER_LO_ORDERKEY_SUM"}, "name": "P_LINEORDER_LO_ORDERKEY_SUM", "type": "measure", "value": true}, {"dimension": {"column": "PART.P_PARTKEY", "id": 26, "name": "PART_0_DOT_0_P_PARTKEY", "status": "DIMENSION"}, "name": "PART_0_DOT_0_P_PARTKEY", "type": "dimension", "value": false}])
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.$refs.newModelDetails.doLayout).toBeCalled()
 
-    // console.log(wrapper.vm.$options.propsData.suggestModels, 77777)
-    wrapper.setProps({
+    await wrapper.setProps({
       suggestModels: [
         ...wrapper.vm.suggestModels,
         {
@@ -127,14 +136,14 @@ describe('Component SuggestModel', () => {
         }
       ]
     })
-    await wrapper.update()
+    // await wrapper.update()
 
     wrapper.vm.handleSelectionModel([], wrapper.vm.suggestModels[1])
     expect(wrapper.vm.$data.modelNameError).toEqual('Model with the same name already exists. Please rename it.')
     expect(wrapper.vm.$data.isNameErrorModelExisted).toBeTruthy()
     expect(wrapper.emitted().isValidated).toEqual([[true]])
 
-    wrapper.setProps({
+    await wrapper.setProps({
       suggestModels: [
         ...wrapper.vm.suggestModels,
         {
@@ -154,7 +163,7 @@ describe('Component SuggestModel', () => {
         }
       ]
     })
-    await wrapper.update()
+    // await wrapper.update()
 
     wrapper.vm.handleSelectionModel([], wrapper.vm.suggestModels[2])
     expect(wrapper.vm.$data.modelNameError).toEqual('Only supports number, letter and underline')
@@ -190,9 +199,16 @@ describe('Component SuggestModel', () => {
 
     expect(wrapper.vm.sqlsTable(['select * from SSB'])).toEqual([{sql: 'select * from SSB'}])
 
+    wrapper.vm.$refs = {
+      originModelDetails: {
+        doLayout: jest.fn().mockResolvedValue(true)
+      }
+    }
     wrapper.vm.recommendRowClick(wrapper.vm.suggestModels[0].rec_items[0])
     expect(wrapper.vm.$data.activeRowId).toBe(3)
     expect(wrapper.vm.$data.recommendDetails).toEqual([{'cc': {'columnName': 'CC'}, 'name': 'CC', 'type': 'cc'}, {'name': 'LINEORDER_AUTO_1', 'type': 'dimension'}])
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.$refs.originModelDetails.doLayout).toBeCalled()
 
     expect(wrapper.vm.renderHeaderSql(jest.fn(), {column: '', index: 0})).toEqual()
 
@@ -200,42 +216,3 @@ describe('Component SuggestModel', () => {
     expect(mockRemoveEventListener.mock.calls[0][0]).toBe('click')
   })
 })
-
-// describe('origin models', () => {
-//   it('init', () => {
-//     const wrapper1 = shallow(SuggestModel, {
-//       localVue,
-//       store,
-//       propsData: {
-//         suggestModels: [{
-//           alias: 'AUTO_MODEL_LINEORDER_1',
-//           rec_items: [{
-//             computed_columns: [{ cc: {columnName: 'CC'} }],
-//             dimensions: [{ dimension: {name: 'LINEORDER_AUTO_1'} }],
-//             measures: [],
-//             modelId: '70e81e2a-aaca-4885-b811-287fb462bd2f',
-//             project: 'xm_test_1',
-//             index_id: 3
-//           }],
-//           uuid: '70e81e2a-aaca-4885-b811-287fb46223kdws',
-//           isChecked: true,
-//           isNameError: false
-//         }],
-//         tableRef: 'originTable',
-//         isOriginModelsTable: false,
-//       }
-//     })
-
-//     wrapper1.vm.$refs = {
-//       originTable: {
-//         toggleRowSelection: jest.fn()
-//       }
-//     }
-
-//     jest.runAllTimers()
-
-//     expect(wrapper1.vm.$refs.originTable.toggleRowSelection).toBeCalled()
-
-//     jest.clearAllTimers()
-//   })
-// })
