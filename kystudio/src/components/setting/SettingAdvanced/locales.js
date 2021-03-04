@@ -69,7 +69,11 @@ export default {
     openSnapshotTitle: 'Turn On Snapshot Management',
     openManualTips: 'After turning on this option, the system will no longer automatically build, refresh, delete snapshots. You could manage them in Snapshot page under Studio.<br/>If a snapshot is being built at this time, it will show in the snapshot list after the job is completed.<br/>Do you want to continue?',
     closeSnapshotTitle: 'Turn Off Snapshot Management',
-    closeManualTips: 'After turning off, you cannot manually manage snapshots. The system will build, refresh, and delete snapshots as needed. <br/>The running jobs of building or refreshing snapshot will not be affected.<br/>Do you want to continue?'
+    closeManualTips: 'After turning off, you cannot manually manage snapshots. The system will build, refresh, and delete snapshots as needed. <br/>The running jobs of building or refreshing snapshot will not be affected.<br/>Do you want to continue?',
+    projectConfig: 'Custom Project Configuration',
+    configuration: 'Configuration',
+    deleteConfig: 'Delete Configuration',
+    confirmDeleteConfig: 'Are you sure you want to delete the custome configuration [{key}]?'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -139,6 +143,10 @@ export default {
     openSnapshotTitle: '开启管理快照',
     openManualTips: '开启该开关后系统将不再自动构建、刷新、删除快照。您可至建模中心下的快照管理页面进行手动管理。<br/>若此时有快照正在构建，任务完成后该快照将显示在快照列表中。<br/>确认要开启吗？',
     closeSnapshotTitle: '关闭管理快照',
-    closeManualTips: '关闭后您无法手动管理快照，系统将根据需要自行构建、刷新和删除快照。<br/>正在运行的构建快照和刷新快照任务将不受影响。<br/>确定关闭吗？'
+    closeManualTips: '关闭后您无法手动管理快照，系统将根据需要自行构建、刷新和删除快照。<br/>正在运行的构建快照和刷新快照任务将不受影响。<br/>确定关闭吗？',
+    projectConfig: '自定义项目配置',
+    configuration: '配置',
+    deleteConfig: '删除配置',
+    confirmDeleteConfig: '您确定要删除自定义配置 [{key}] 吗？'
   }
 }

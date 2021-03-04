@@ -150,5 +150,14 @@ export default {
   },
   getMultiPartitionModels (data) {
     return Vue.resource(apiUrl + 'models/name/multi_partition').get(data)
+  },
+  updateConfig ({project, data}) {
+    return Vue.resource(apiUrl + 'projects/' + project + '/config').update(data)
+  },
+  deleteConfig (params) {
+    return Vue.resource(apiUrl + 'projects/config/deletion').save(params)
+  },
+  getDefaultConfig () {
+    return Vue.resource(apiUrl + 'projects/default_configs').get()
   }
 }

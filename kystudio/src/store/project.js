@@ -3,6 +3,9 @@ import * as types from './types'
 import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
 import { speedProjectTypes } from 'config/index'
 import { getAvailableOptions } from '../util/specParser'
+import { fromObjToArr } from '../util'
+import { handleError } from '../util/business'
+
 export default {
   state: {
     projectList: [],
@@ -18,12 +21,20 @@ export default {
     scd2_enabled: false,
     emptySegmentEnable: false,
     projectConfig: null,
-    multi_partition_enabled: false
+    multi_partition_enabled: false,
+    allConfig: [],
+    defaultConfigList: [] // 不能操作的项目配置
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
       state.projectList = list
       state.projectTotalSize = size
+    },
+    [types.SAVE_CONFIG_LIST]: function (state, { list }) {
+      state.allConfig = list
+    },
+    [types.SAVE_DEFAULT_CONFIG_LIST]: function (state, { list }) {
+      state.defaultConfigList = list
     },
     [types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS]: function (state, result) {
       state.isSemiAutomatic = result
@@ -116,6 +127,28 @@ export default {
       return api.project.getProjectList(params).then((response) => {
         commit(types.SAVE_PROJECT_LIST, {list: response.data.data.value, size: response.data.data.total_size})
       })
+    },
+    [types.LOAD_CONFIG_BY_PROJEECT] ({ dispatch, commit }, params) {
+      return api.project.getProjectList(params).then((response) => {
+        let configObj = response.data.data.value.length ? response.data.data.value[0].override_kylin_properties : {}
+        let list = fromObjToArr(configObj)
+        commit(types.SAVE_CONFIG_LIST, {list})
+        dispatch(types.GET_DEFAULT_CONFIG)
+      })
+    },
+    [types.GET_DEFAULT_CONFIG] ({ commit }) {
+      return api.project.getDefaultConfig().then(response => {
+        let list = response.data.data
+        commit(types.SAVE_DEFAULT_CONFIG_LIST, {list})
+      }).catch((err) => {
+        handleError(err)
+      })
+    },
+    [types.UPDATE_PROJECT_CONFIG]: function ({ commit }, params) {
+      return api.project.updateConfig(params)
+    },
+    [types.DELETE_PROJECT_CONFIG]: function ({ commit }, params) {
+      return api.project.deleteConfig(params)
     },
     [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit, state }, params) {
       return new Promise((resolve, reject) => {
@@ -342,6 +375,10 @@ export default {
     },
     globalDefaultDatasource: (state, getters, rootState) => {
       return rootState.system.sourceDefault
+    },
+    configList: (state, getters, rootState) => {
+      const { allConfig, defaultConfigList } = state
+      return allConfig.filter(v => defaultConfigList.findIndex(item => item === v.key) === -1)
     }
   }
 }

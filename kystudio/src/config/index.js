@@ -131,7 +131,8 @@ export const pageRefTags = {
   recommendationsPager: 'recommendationsPager',
   subPartitionValuesPager: 'subPartitionValuesPager',
   subPartitionSegmentPager: 'subPartitionSegmentPager',
-  snapshotPager: 'snapshotPager'
+  snapshotPager: 'snapshotPager',
+  basicPorjectConfigPager: 'basicPorjectConfigPager'
 }
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
 export const permissions = {

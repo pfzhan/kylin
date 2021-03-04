@@ -256,6 +256,51 @@
         <div class="setting-desc">{{$t('noEqualDecription')}}</div>
       </div>
     </EditableBlock>
+
+    <EditableBlock 
+      :header-content="$t('projectConfig')"
+      :isEditable="false">
+      <div class="setting-item">
+        <el-button icon="el-icon-plus" @click="editConfig()">{{$t('configuration')}}</el-button>
+        <el-table
+          class="ksd-mt-10"
+          :data="convertedProperties"
+          size="medium"
+          style="width: 100%">
+          <el-table-column
+            show-overflow-tooltip
+            prop="key"
+            label="Key">
+          </el-table-column>
+          <el-table-column
+            show-overflow-tooltip
+            prop="value"
+            label="Value">
+          </el-table-column>
+          <el-table-column
+            :label="$t('kylinLang.common.action')"
+            width="100">
+            <template slot-scope="scope">
+              <common-tip :content="$t('kylinLang.common.edit')">
+                <i class="el-icon-ksd-table_edit" @click="editConfig(scope.row)"></i>
+              </common-tip>
+              <common-tip :content="$t('kylinLang.common.delete')">
+                <i class="el-icon-ksd-table_delete ksd-ml-10" @click="deleteConfig(scope.row)"></i>
+              </common-tip>
+            </template>
+          </el-table-column>
+        </el-table>
+        <kap-pager
+          class="ksd-center ksd-mt-10" ref="pager"
+          :refTag="pageRefTags.basicPorjectConfigPager"
+          layout="prev, pager, next"
+          :background="false"
+          :curPage="currentPage+1"
+          :totalSize="configList.length"
+          @handleCurrentChange="handleCurrentChange">
+        </kap-pager>
+      </div>
+    </EditableBlock>
   </div>
 </template>
 
@@ -270,6 +315,8 @@ import { kapConfirm } from 'util/business'
 import { apiUrl } from '../../../config'
 import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getSnapshotSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
+import { pageRefTags } from 'config'
+
 @Component({
   components: {
     EditableBlock
@@ -295,11 +342,16 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       toggleEnableSCD: 'TOGGLE_ENABLE_SCD',
       getSCDModels: 'GET_SCD2_MODEL',
       toggleMultiPartition: 'TOGGLE_MULTI_PARTITION',
-      getMultiPartitionModels: 'GET_MULTI_PARTITION_MODEL'
+      getMultiPartitionModels: 'GET_MULTI_PARTITION_MODEL',
+      getProjectConfigList: 'LOAD_CONFIG_BY_PROJEECT',
+      deleteProjectConfig: 'DELETE_PROJECT_CONFIG'
     }),
     ...mapMutations({
       updateSCD2Enable: 'UPDATE_SCD2_ENABLE',
       updateMultiPartitionEnable: 'UPDATE_MULTI_PARTITION_ENABLE'
+    }),
+    ...mapActions('EditProjectConfigDialog', {
+      callProjectConfigModal: 'CALL_MODAL'
     })
   },
   computed: {
@@ -307,7 +359,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       'currentSelectedProject',
       'currentProjectData',
       'isAutoProject',
-      'settingActions'
+      'settingActions',
+      'configList'
     ]),
     ...mapState({
       platform: state => state.config.platform,
@@ -318,6 +371,18 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   locales
 })
 export default class SettingAdvanced extends Vue {
+  filterData = {
+    page_offset: 0,
+    page_size: 1,
+    exact: false,
+    project: '',
+    permission: 'ADMINISTRATION'
+  }
+  currentPage = 0
+  pageSize = 10
+  convertedProperties = []
+  pageRefTags = pageRefTags
+
   dbList = []
   form = {
     project: '',
@@ -385,6 +450,12 @@ export default class SettingAdvanced extends Vue {
     const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings') || this.isFormEdited(this.form, 'yarn-name') || this.isFormEdited(this.form, 'kerberos-acc')
     this.$emit('form-changed', { advanceSetting })
   }
+
+  @Watch('configList', { deep: true })
+  onConfigListChange () {
+    this.currentPage = 0
+    this.handleCurrentChange(0, 10)
+  }
   async loadDataBases () {
     // 按单数据源来处理
     const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
@@ -401,6 +472,7 @@ export default class SettingAdvanced extends Vue {
   mounted () {
     this.loadDataBases()
     this.initForm()
+    this.getConfigList()
   }
   initForm () {
     // this.handleInit('accelerate-settings')
@@ -901,6 +973,58 @@ export default class SettingAdvanced extends Vue {
         handleError(e)
       })
     }
+  }
+  // 获取项目列表 新建，编辑，删除项目后重新拉取列表
+  async getConfigList () {
+    // 获取项目列表
+    try {
+      this.filterData.project = this.currentProjectData.name
+      await this.getProjectConfigList(this.filterData)
+      this.currentPage = 0
+      this.handleCurrentChange(0, 10)
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  editConfig (item) {
+    this.callProjectConfigModal({
+      form: {
+        key: item ? item.key : '',
+        value: item ? item.value : ''
+      },
+      editType: item ? 'edit' : 'add'
+    })
+  }
+
+  deleteConfig (item) {
+    this.$confirm(this.$t('confirmDeleteConfig', {key: item.key}), this.$t('deleteConfig'), {
+      confirmButtonText: this.$t('kylinLang.common.ok'),
+      cancelButtonText: this.$t('kylinLang.common.cancel'),
+      type: 'warning'
+    }).then(async () => {
+      try {
+        let params = {
+          project: this.currentProjectData.name,
+          config_name: item.key
+        }
+        await this.deleteProjectConfig(params)
+        // 成功提示
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.actionSuccess')
+        })
+        this.getConfigList()
+      } catch (e) {
+        handleError(e)
+      }
+    })
+  }
+
+  handleCurrentChange (currentPage, pageSize) {
+    this.currentPage = currentPage
+    this.pageSize = pageSize
+    this.convertedProperties = this.configList.slice(this.pageSize * currentPage, this.pageSize * (currentPage + 1))
   }
 }
 </script>

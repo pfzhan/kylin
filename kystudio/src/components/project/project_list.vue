@@ -22,9 +22,9 @@
       :empty-text="emptyText"
       class="project-table"
       style="width: 100%">
-      <el-table-column type="expand" :width="36" align="center">
+      <!-- <el-table-column type="expand" :width="36" align="center">
         <template slot-scope="props">
-          <el-tabs activeName="first" type="card" class="el-tabs--default">
+          <el-tabs activeName="first" type="card" class="el-tabs--default"> -->
             <!-- <el-tab-pane label="Models" name="first">
               <model_list :modelList="props.row.models"></model_list>
             </el-tab-pane>
@@ -34,15 +34,15 @@
             <!-- <el-tab-pane :label="$t('access')" name="first">
               <access_edit :accessId="props.row.uuid" :projectName="props.row.name" own='project'></access_edit>
             </el-tab-pane> -->
-            <el-tab-pane :label="$t('projectConfig')" name="first">
+            <!-- <el-tab-pane :label="$t('projectConfig')" name="first">
               <project_config :override="props.row.override_kylin_properties"></project_config>
-            </el-tab-pane>
+            </el-tab-pane> -->
             <!-- <el-tab-pane :label="$t('externalFilters')" name="fourth">
               <filter_edit :project="props.row.name" :projectId="props.row.uuid"></filter_edit>
             </el-tab-pane> -->
-          </el-tabs>
+          <!-- </el-tabs>
         </template>
-      </el-table-column>
+      </el-table-column> -->
       <el-table-column
         :label="$t('name')"
         show-overflow-tooltip
