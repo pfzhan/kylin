@@ -1208,6 +1208,13 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
+    public void deleteProjectConfig(String project, String configName) {
+        aclEvaluate.checkProjectAdminPermission(project);
+        val projectManager = getProjectManager();
+        projectManager.updateProject(project, copyForWrite -> copyForWrite.getOverrideKylinProps().remove(configName));
+    }
+
+    @Transaction(project = 0)
     public void updateJdbcConfig(String project, JdbcRequest jdbcRequest) {
         Map<String, String> overrideKylinProps = Maps.newLinkedHashMap();
         overrideKylinProps.put("kylin.source.jdbc.connection-url", jdbcRequest.getUrl());

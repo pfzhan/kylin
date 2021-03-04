@@ -613,6 +613,33 @@ public class CnMessage extends Message {
         return "最多可同时导入 %s 条 SQL";
     }
 
+    @Override
+    public String getSQL_FILE_TYPE_MISMATCH() {
+        return "sql文件的后缀必须是 'txt' 或 'sql'";
+    }
+
+    @Override
+    public String getConfigNotSupportDelete() {
+        return "该配置不支持删除。";
+    }
+
+    @Override
+    public String getConfigNotSupportEdit() {
+        return "该配置不支持编辑。";
+    }
+
+    @Override
+    public String getConfigMapEmpty() {
+        return "配置列表不能为空。";
+    }
+
+    // Query statistics
+
+    @Override
+    public String getNOT_SET_INFLUXDB() {
+        return "未设置参数 kap.metric.write-destination 为 INFLUX";
+    }
+
     //license
 
     @Override

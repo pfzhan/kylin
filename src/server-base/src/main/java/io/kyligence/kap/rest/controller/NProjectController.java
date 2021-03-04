@@ -29,7 +29,9 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_REC_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
@@ -45,6 +47,7 @@ import java.util.Set;
 
 import javax.validation.Valid;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -75,6 +78,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.metadata.favorite.AbstractAsyncTask;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
@@ -88,6 +92,7 @@ import io.kyligence.kap.rest.request.JdbcRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.ProjectConfigRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
@@ -527,8 +532,35 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateProjectConfig(@PathVariable("project") String project,
             @RequestBody Map<String, String> request) {
+        checkProjectName(project);
+        if (MapUtils.isEmpty(request)) {
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getConfigMapEmpty());
+        }
+        if (!Collections.disjoint(request.keySet(), NonCustomProjectLevelConfig.listAllConfigNames())) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportEdit());
+        }
         projectService.updateProjectConfig(project, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "deleteProjectConfig", tags = { "SM" })
+    @PostMapping(value = "/config/deletion")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteProjectConfig(@RequestBody ProjectConfigRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg("config_name", request.getConfigName());
+        if (NonCustomProjectLevelConfig.listAllConfigNames().contains(request.getConfigName())) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportDelete());
+        }
+        projectService.deleteProjectConfig(request.getProject(), request.getConfigName());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "nonCustomConfig", tags = { "SM" })
+    @GetMapping(value = "/default_configs")
+    @ResponseBody
+    public EnvelopeResponse<Set<String>> getNonCustomProjectConfigs() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs(), "");
     }
 
     @ApiOperation(value = "update jdbc config (update)", tags = { "QE" }, notes = "Add URL: {project}; ")

@@ -612,6 +612,22 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testDeleteProjectConfig() {
+        Map<String, String> testOverrideP = Maps.newLinkedHashMap();
+        testOverrideP.put("testk1", "testv1");
+
+        projectService.updateProjectConfig(PROJECT, testOverrideP);
+
+        var kylinConfigExt = projectManager.getProject(PROJECT).getConfig().getExtendedOverrides();
+        Assert.assertEquals("testv1", kylinConfigExt.get("testk1"));
+
+        projectService.deleteProjectConfig(PROJECT, "testk1");
+
+        kylinConfigExt = projectManager.getProject(PROJECT).getConfig().getExtendedOverrides();
+        Assert.assertNull(kylinConfigExt.get("testk1"));
+    }
+
+    @Test
     public void testMultiPartitionConfig() {
         val project = PROJECT;
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";

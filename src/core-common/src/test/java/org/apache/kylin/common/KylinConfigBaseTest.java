@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -805,6 +806,11 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "io.kyligence.kap.metadata.model.DefaultMultiPartitionKeyMappingProvider"));
         map.put("isGlobalDictCheckEnabled",
                 new PropertiesEntity("kylin.engine.global-dict-check-enabled", "true", true));
+
+        map.put("getNonCustomProjectConfigs", new PropertiesEntity("kylin.model.multi-partition-key-mapping-provider-class",
+                "",
+                NonCustomProjectLevelConfig.listAllConfigNames()
+                ));
     }
 
     @Before
@@ -825,7 +831,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(437, methodsCount);
+        Assert.assertEquals(438, methodsCount);
     }
 
     @Test

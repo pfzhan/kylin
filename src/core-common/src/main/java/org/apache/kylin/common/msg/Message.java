@@ -582,6 +582,28 @@ public class Message {
         return "Please enter the array parameter \"sqls\".";
     }
 
+    public String getSQL_FILE_TYPE_MISMATCH() {
+        return "The suffix of sql files must be 'txt' or 'sql'.";
+    }
+
+    public String getConfigNotSupportDelete() {
+        return "The configuration does not support deletion.";
+    }
+
+    public String getConfigNotSupportEdit() {
+        return "The configuration does not support editing.";
+    }
+
+    public String getConfigMapEmpty() {
+        return "The configuration map cannot be empty.";
+    }
+
+    // Query statistics
+
+    public String getNOT_SET_INFLUXDB() {
+        return "Not set kap.metric.write-destination to 'INFLUX'";
+    }
+
     // License
     public String getLICENSE_ERROR_PRE() {
         return "The license couldn’t be updated:\n";
