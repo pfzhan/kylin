@@ -68,15 +68,15 @@
                             <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
                           </el-col>
                           <el-col :span="4">
-                            <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{step.duration / 1000 | fixed(2)}}s</span>
+                            <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                           </el-col>
                           <el-col :span="6">
-                            <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="step.duration/props.row.query_steps[0].duration*100" color="#A6D6F6" :show-text="false"></el-progress>
+                            <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, props.row.query_steps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                           </el-col>
                         </el-row>
-                        <span slot="reference" class="duration">{{props.row.duration / 1000 | fixed(2)}}s</span>
+                        <span slot="reference" class="duration">{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
                       </el-popover>
-                      <span v-else>{{props.row.duration / 1000 | fixed(2)}}s</span>
+                      <span v-else>{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
                     </td>
                   </tr>
                   <tr class="ksd-tr" :class="{'active': props.row.hightlight_realizations}">
@@ -487,6 +487,19 @@ export default class QueryHistoryTable extends Vue {
         }
       }
       this.filterTags.splice(idx, 1)
+    }
+  }
+
+  getProgress (duration, totalDuration) {
+    const popoverWidth = this.$lang === 'en' ? 340 : 320
+    const progressWidth = (popoverWidth - 30) * 0.25 // 减去padding宽度, span为6
+    const miniWidthRat = 0.5 / progressWidth
+    const dur = Math.round(duration / 1000 * 100) / 100 // 根据精确度保留两位来计算比例
+    const stepRat = Math.round(dur / (totalDuration / 1000) * 100) / 100
+    if (stepRat < miniWidthRat) {
+      return miniWidthRat * 100
+    } else {
+      return stepRat * 100
     }
   }
 

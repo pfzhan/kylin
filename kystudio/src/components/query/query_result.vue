@@ -35,16 +35,16 @@
                   <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
                 </el-col>
                 <el-col :span="4">
-                  <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{step.duration / 1000 | fixed(2)}}s</span>
+                  <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                 </el-col>
                 <el-col :span="6">
-                  <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="step.duration/querySteps[0].duration*100" color="#A6D6F6" :show-text="false"></el-progress>
+                  <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                 </el-col>
               </el-row>
-              <span slot="reference" class="duration">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
+              <span slot="reference" class="duration">{{Math.round(extraoption.duration / 1000 * 100)/100||0.00}}s</span>
             </el-popover>
           </span>
-          <span class="text" v-else>{{(extraoption.duration/1000)|fixed(2) || 0.00}}s</span>
+          <span class="text" v-else>{{Math.round(extraoption.duration / 1000 * 100) / 100 || 0.00}}s</span>
         </p>
         <p class="resultText query-obj" :class="{'guide-queryAnswerBy': isWorkspace}">
           <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
@@ -565,6 +565,18 @@ export default class queryResult extends Vue {
     this.timer = setTimeout(() => {
       this.pageSizeChange(0)
     }, 500)
+  }
+  getProgress (duration, totalDuration) {
+    const popoverWidth = this.$lang === 'en' ? 340 : 320
+    const progressWidth = (popoverWidth - 30) * 0.25 // 减去padding宽度, span为6
+    const miniWidthRat = 0.5 / progressWidth
+    const dur = Math.round(duration / 1000 * 100) / 100 // 根据精确度保留两位来计算比例
+    const stepRat = Math.round(dur / (totalDuration / 1000) * 100) / 100
+    if (stepRat < miniWidthRat) {
+      return miniWidthRat * 100
+    } else {
+      return stepRat * 100
+    }
   }
   getStepData (steps) {
     if (steps && steps.length) {
