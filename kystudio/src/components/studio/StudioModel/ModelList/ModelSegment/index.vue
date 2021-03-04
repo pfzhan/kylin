@@ -1172,6 +1172,10 @@ export default class ModelSegment extends Vue {
   }
 }
 .build-sub-par-dialog {
+  .el-dialog__body {
+    max-height: 500px;
+    overflow: auto;
+  }
   .duplicate-tips {
     font-size: 12px;
     margin-top: 5px;

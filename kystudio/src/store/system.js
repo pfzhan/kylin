@@ -160,7 +160,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.metadata.random-admin-password.enabled', key: 'showRevertPasswordDialog', defaultValue: 'true'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.recommendation-page-size', key: 'recommendationPageSize'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.dimension-measure-name.max-length', key: 'dimMeasNameMaxLength', defaultValue: 300})
-          commit(types.GET_CONF_BY_NAME, {name: 'kylin.favorite.import-sql-max-size', key: 'favoriteImportSqlMaxSize'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.suggest-model-sql-limit', key: 'favoriteImportSqlMaxSize'})
           commit(types.GET_CONF_BY_NAME, {name: 'resource_group_enabled', key: 'resourceGroupEnabled', defaultValue: 'false'})
           resolve(response)
         }, () => {
