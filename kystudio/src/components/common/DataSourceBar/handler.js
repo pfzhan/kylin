@@ -107,11 +107,13 @@ export const render = {
           </div>
           <el-tooltip placement="top" visible-arrow={false} open-delay={300}>
             <div slot="content">
+              <span>{this.$t('kylinLang.model.columnName')}</span>: <span>{label === null ? 'NULL' : label}</span><br/>
+              <span>{this.$t('kylinLang.dataSource.dataType')}</span>: <span>{datatype === null ? 'NULL' : datatype}</span><br/>
               <span>{this.$t('kylinLang.dataSource.cardinality')}</span>: <span>{cardinality === null ? 'NULL' : cardinality}</span><br/>
               <span>{this.$t('kylinLang.dataSource.minimal')}</span>: <span>{min_value === null ? 'NULL' : min_value}</span><br/>
               <span>{this.$t('kylinLang.dataSource.maximum')}</span>: <span>{max_value === null ? 'NULL' : max_value}</span>
             </div>
-            <span><span class="column-name">{label}</span><span class="ksd-ml-5 ksd-fs-12 datatype">{datatype}</span></span>
+            <span><div></div><span class="column-name">{label}</span><span class="ksd-ml-5 ksd-fs-12 datatype">{datatype}</span></span>
           </el-tooltip>
         </div>
       )
