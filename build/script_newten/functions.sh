@@ -79,3 +79,22 @@ function restoreKAPPlusConfigs() {
         mv ${file}.plusbak ${file}
     fi
 }
+
+function checkDownloadSparkVersion() {
+    if [[ -z $1 ]];
+    then
+        echo "spark version check failed, download spark version parameter is null"
+        exit 1
+    fi
+
+    download_spark_release_version=$1
+    spark_version_pom=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=spark.version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' `
+    #convert 2.4.1-kylin-rXX to spark-newten-2.4.1-rXX
+    pom_spark_release_version=spark-newten-"`echo ${spark_version_pom}| sed "s/-kylin//g"`"
+
+    if [[ $download_spark_release_version != $pom_spark_release_version ]];
+    then
+        echo "spark version check failed, download version is ${download_spark_release_version}, but ${pom_spark_release_version} in pom file"
+        exit 1
+    fi
+}

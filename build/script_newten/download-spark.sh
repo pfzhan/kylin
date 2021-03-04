@@ -35,6 +35,8 @@ spark_pkg_name="spark-newten-2.4.1-r62"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
 spark_pkg_md5="0c7850025c421fca52daf8b07a312e3f"
 
+checkDownloadSparkVersion ${spark_pkg_name}
+
 if [ ! -f "build/${spark_pkg_file_name}" ]
 then
     echo "no binary file found"

@@ -66,7 +66,7 @@ if [[ "${PACKAGE_TIMESTAMP}" = "1" ]]; then
 fi
 export package_name="Kyligence-Enterprise-${release_version}"
 
-sh build/script_newten/package.sh $@
+sh build/script_newten/package.sh $@ || { echo "package failed!"; exit 1; }
 
 echo "Kyligence Enterprise Release Version: ${release_version}"
 
