@@ -50,6 +50,349 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.3.0 release note
+Kyligence Enterprise 4.3 provides detailed and efficient data management functionalities.  The introduction of Multi-level Partitioning provides business the ability to process data from different regions at different time. Snapshot Management enables users to control and utilize resources better. 
+
+Resource Group is designed to enable business units to isolate data access, build and query requests. Model Migration supports the incremental update of a data model.  Asynchronous Query allows users to export large data set efficiently. 
+
+Kyligence Enterprise 4.3 is fully integrated with Tableau. Export TDS makes it easierier for users to synchronize data model to Tableau.  There’s no repetitive modeling across Kyligence and Tableua anymore .  Fast Visualization have achieved new levels of speed for business to visulize the query results.
+
+Detailed and Efficient Data Management
+Multi-level Partitioning
+
+For business that operates across regions, the time to update data can be different. Kyligence Enterprise supports up to 2 level partition on demand for independent data analysis by region/defined BUs. Data can be loaded and managed based on time zones and regions separately.
+
+Snapshot Management
+
+When the size of the dimension table is increased, Kyligence Enterprise supports the building of new snapshots on demand to improve the efficiency of model building. When the source table is a partitioned table, incremental update of the partition snapshots is also supported to reduce the time needed to build large-dimensional tables.
+
+Enterprise-level Capability Improvements
+Resource Group
+
+Kyligence Enterprise provides business the flexibility to isolate or share resource groups​. Thus improves stability​.  The innovative design of this feature allows business to operate independently yet to share resource group and improve the utlization of resources.  Based on different user scenario, it is flexible for exclusive or shared resource groups by project​.
+
+Model Migration
+
+Model migration is improved to support the incremental update of model.  This feature ensures the model consistancy when migrating to different environments, backing up for disaster recovery and version control.  Model is exported as metadata file.  The UI based or open APIs make the migration smooth and easy. 
+
+Asynchronous Query
+
+Asynchronous execution of SQL queries provide a more efficient way to export data. When the result set of the query is too large or the query execution takes too long, the asynchronous query can efficiently export the query result set, helping to expand various application scenarios such as self-service data fetching.
+
+User Experience Optimization
+Export TDS
+
+Models can be exported as a TDS file. After importing into Tableau, user can directly synchronize the tables, association relationships, dimensional measures, and other information in the model.  This easy to use feature reduces repetitive modeling work in data analysis,  and improve analysis efficiency.
+
+Fast Visualization 
+
+When the query result is displayed in a table, the information display is direct but not intuitive, and fast insight cannot be achieved. Kyligence Enterprise provides fast visualization of query results where users can view query results in intuitive way and discover valuable data faster.
+
+Supported Hadoop Distributions
+Compatible Hadoop Distributions:
+
+Cloudera CDH 5.8 / 6.1 / 6.2 / 6.3
+
+Hortonworks HDP 2.4
+
+Huawei FusionInsight C70 / 6.5.1
+
+
+
+#### Kyligence Enterprise 4.2.8 release note
+
+**Enhancement**
+
+- The ShardBy column can be used for optimizing join on column with high cardinality. For more information, please refer to User Manual
+- In JDBC Preparedstatment query, replace the "?" placeholder with the actual parameter value in the query history.
+- When modifying the model loading mode or partition settings, add a prompt to clear the Segment
+- In the query history, show whether the index has been deleted, and increase the readability of the hitted index information
+
+**Bugfix**
+- When a calculated column is recommended as a dimension, if the name of the dimension is consistent with the name of the column, the recommendation will fail to be accepted
+- Recommendations  that are invalid due to garbage cleaning are still displayed on the interface
+- Fix the issue that modifying the source table or the model causes the deleted index to reappear, and supports whether to regenerate the deleted index when editing the aggregation group
+- In cluster mode, delete and recreate the same name project, query node will apply old metadata
+- Project permission is kept when project deleted in HA mode
+- Capacity chart should show selected X axis (timeline) even no data in current time period
+- When editing the table index, the column order after selecting all and saving is different from the editing page
+- The input box of the setting page is too narrow, which causes the possible incomplete display of input content
+- Occasional sampling jobs show errors, but actually succeed
+- Add interception when adding duplicate groupby columns in TopN measure 
+- Asynchronous query API does not verify project permissions
+- Asynchronous query API, delete the result file according to the time, the time format is incorrect, an unknown error code is reported
+- Asynchronous query API, after submitting the query, immediately call the return query status API failed
+- Occasionally abnormal global dictionary building results in abnormal query results
+- The query that hits the snapshot is not cached normally
+
+#### Kyligence Enterprise 4.2.7 release note
+
+**Enhancement**
+
+- Optimize the loading speed of the snapshot management page when the number of snapshots is large
+- When the system judges that the node memory required by the job can never be satisfied, terminate the job instead of waiting forever
+- Improve the use of self-service tuning, when viewing the query object in the query history, you can choose to view only the index hit by the query to help index positioning
+- Add the like_rows parameter to the row and column level permission API to support the filter condition of ‘like’
+- Add new time partition format yyyy-MM-ddTHH:mm:ss.SSSZ
+- In asynchronous query API GET DELETE method, project parameter change to URL parameter
+
+**Bugfix**
+
+- When the snapshot is built in partitions, if the different data in the partition column only differ in case, the uppercase part of the data may be lost
+- Add row-level permissions, after adding like multiple times, the dividing line will overlap with the title
+- On query history page, when there are too many filter results, the filter box is too long
+- On query history page, hover the mouse over the SQL, when the SQL is too long, it will exceed the display box
+- After deleting the dimension which is referred to by recommendations in the model, the total number of recommendations is not updated
+- When the partitioned snapshot table has more than 32 partitions, it cannot be hit by the query after the building is completed
+- When entering the maintenance mode, the hint does not appear when creating models
+- Occasionally the same substep is displayed twice after the query is submitted
+- In asynchronous query, when the user has no project authority, the error message is inconsistent with the normal query
+- Char type data desensitization value is not displayed for accuracy
+- After entering the maintenance mode, user can still modify the recommendation rules
+- Improve the operation of recovering metadata files
+- The execution in maintenance mode can not be interrupted
+- The user name is case sensitive when the user is granted access to the project
+- When creating recommendations through SQL modeling, there is a very small chance that the measures may be out of order, resulting in the failure of creating recommendations through query history.
+- When using SQL modeling, automatic model naming does not consider offline models, resulting in failure to save
+- Optimize the segment status, when a building job is running under a segment, it will be displayed as Loading status
+- Use view table for modeling, when the order of the columns in the view table changes, the recommendations may fail to be accepted after reloading the table
+- Duplicate references to the same index cause performance degradation
+- When deleting items in batch, the metadata is not deleted cleanly
+- When modifying column types and deleting columns in the same source table at the same time, the building jobs may fail when reloading the table
+- When smart recommendation is enabled and there are too many models in the project, optimize the loading speed of the model page
+- There are timeout queries not terminated in time
+- A count_constant measure will be created in a model by default, and extra count_constant measure cannot be added manually, in case the model fails to be saved
+- The occasional query result is empty due to concurrency
+- When parquet.filter.columnindex.enabled is true, the query result is inconsistent with the pushdown query
+
+
+#### Kyligence Enterprise 4.2.6 release note
+
+**Enhancement**
+
+- Public API for getting Index list
+- Public query history API
+- Query API, add whether it is a return item of partial hit segment
+- Building jobs support yarn-cluster mode execution
+- Support ESCAPE syntax
+- Optimize the performance of some SQL issued by PowerBI
+- For some interfaces containing the project name in the request path, correct the forwarding logic
+- Improve the convenience of setting up fact tables when creating models
+- ADMIN user project-level authority, set table-level authority restriction, the interface shows that the table access authority is correct, but the query or operation authority is not restricted
+- Columns in loading more  can’t be automatically predicted during query input
+- Optimize the home page experience, add explanations for less clear concepts and more
+- Optimize the license capacity return code when exceeding the capacity
+- When modifying the type of the column used as the join key, partition column, and model filter condition, since it has no effect on the model itself, the table will not be BROKEN after reloading
+- The cell length in the query result is too long
+- The health API is changed from synchronous to asynchronous to prevent failure by timeout
+- When the stored data is too small, optimize the expansion rate display to prevent interference with normal use
+- Optimize the display of cardinal products of joint dimensions, and use number formatting to enhance readability
+
+**Bugfix**
+
+- When upgrading from version 4.1 to 4.2, the environment is unavailable due to limited license capacity
+- Inconsistent metadata causes the node epoch to be released
+- Query history API, it cannot be called for some projects
+- Jobs in the running state will report an error when restarting them
+- The job status is discard. The discard api is called on the job, and the call is still successful
+- The job status is pending, use api to restart this task, the call is still successful
+- Management user, without model table permissions, but can set mapping rules
+- Manual garbage cleanup, no metadata cleanup of recommended tables
+- The project name and model name in the completion index interface are case sensitive
+- Among multiple segments, when one of the segment indexes is full, if the completion index interface is executed, the jobid is returned, and the index building job is executed
+- During the full build, if there is already a building job, modify the aggregate index and click Build to save. At this time, no new job will be generated and there will be no prompt
+- Use the yarn-cluster mode to submit the building job, and the model that contains count distinct measures fails to build
+- Use yarn-cluster mode to submit the build job, and the relevant logs are missing in the diagnosis package
+- Build Snapshot optimization, change the normal column of the source table to the partition column, the refresh snapshot job fails after modifying the partition column
+- Building Snapshot optimization, when  deleting the column and then getting the partition column, an unknown error code is displayed
+- Building snapshot optimization, the project admin user has set no permissions for a certain table, and this table can still be seen on the snapshot page
+- Building snapshot optimization, set partition column API, users without table-level permissions can still be called successfully
+- Building snapshot optimization, set partition column API, query user should not have permission to call the interface
+- After the SQL with response timeout was manually stopped, the corresponding Spark job was not cancelled, resulting in slow subsequent queries
+- Building snapshot optimization, when adding a snapshot, the selected table does not appear in the partition column setting, but the selected table snapshot is refreshed
+- Building Snapshot optimization, editing partition column report error
+- Interactive optimization on the new homepage. When there is no model available, click one key to accelerate, and click the close button in the upper right corner of the pop-up window, it jumps to the model page
+- Interactive optimization of the new homepage, the first time you click the query history "go to view", the filter results are inconsistent with the filter conditions
+- Interactive optimization on new homepage, lack of information prompts after querying historical copy
+- The query result page is inconsistent with the design
+- On model Segments list page, with more blank space displayed between storage size and operation
+- The multi-active job nodes function, the service status is displayed incorrectly, and there is no text prompt
+- Job operation API behavior is inconsistent with the front end
+
+#### Kyligence Enterprise 4.2.5 release note
+
+**Enhancement**
+
+- Support encryption between Spark cluster nodes, please refer to the user manual for more details
+- Support visualization of query results, please refer to the user manual for more details
+- Support the visualization of the query execution steps and duration to help locate and optimize the slow query, please refer to the user manual for more details
+- The cartesian generated by a single query can easily lead to the instability of query nodes, which supports breaker for protection, please refer to the user manual for more details
+- Add the index ID corresponding to the recommendations in the response of Approve Model Recommendation in batch API, please refer to the user manual for more details
+- Optimize queries that contain a large number of unions
+- Provide information about recommendations in the diagnostic package to improve operation and maintenance capabilities, please refer to the user manual for more details
+- In multi-active job nodes, optimize epoch update mechanism, to prevent the overdue of partial projects
+- Improve the generation speed of diagnostic packages when infuxDB is not configured
+- Add log for timing in fetch_file_status
+- Optimize query results to be 20 times larger than the original file size
+
+**Bugfix**
+
+- When using COUNT_DISTINCT, TOPN, PERCENTTILE_APPROX metrics, the column type is incorrectly used as the function return type, causing the query to fail
+- When calling the Approve Model Recommendation in batch API, when the same table is used two times in the same model, or there are columns with the same name in different tables, the calling fails
+- Correct the kylin.storage.columnar.spark-conf.spark.yarn.am.memory configuration name in the kylin.properties configuration file
+- When refreshing the segment, delete the index under the segment, the job is discarded, the job details is still in the running state
+- The placeholder copywriting for setting partition column type  is incorrect
+- After adding duplicate TOPN measures, the error message is not obvious
+- When upgrading to version 4.2.5, if you have logged in as the Admin user before the upgrade, and the upgrade is performed in a very short time, the upgrade will occasionally fail. The upgrade from version 4.2.5 will not have this problem
+- Optimizing English copywriting of importing model function
+- Optimize the system's automatic naming rules of the dimensions of the same name to prevent the use flow from being affected
+- Occasionally the status of the job is inconsistent with the sub-step status
+- The total number of user groups obtained in the user group management page is incorrect
+- The project administrator cannot modify the User Rule in the Recommendation Settings
+- When importing SQL for modeling, if a column is not in the table loaded into the system, there is an error in the error copywriting
+- Unsampled and no snapshot dimension tables are not normally calculated into the data volume
+- When initializing the Admin user, if the random password is not enabled, the login may fail
+- Black dots obscured texts when hovering in IE browser
+- When importing the model in IE browser, the interface display is misplaced
+- Some special characters are not supported when searched on the model edit page.
+- When batch adding dimensions, the cardinality value alignment of the fact table and the dimension table are inconsistent
+- When adding a duplicate table index, the error message is not clear
+
+#### Kyligence Enterprise 4.2.4 release note
+
+**Enhancement**
+
+- Support SQL Hint to specify model priority in a query
+- Optimize the default configuration of thread pools that match Olapcontext concurrently
+- Support deriving the partition conditions on dimension tables when the relationships among tables contain the partition column, which will reduce the scanned partitions and building cost
+- Compatible with the new version of Tableau SQL syntax problem (left join-> inner join) to ensure queries can be answered by index
+- Optimize the model matching logic for sum ( cast( then column else column)) query
+  **Usability**
+- Support viewing data type, cardinality, and other information in the query page
+- Optimize text related to empty segments to improve comprehensibility
+- Optimize keyword description of the search box on the data source page
+- Provide the service period expiration reminder of the formal license
+- Improve user interaction when computed columns whose type are Varchar are not supported in measures
+  **Automated Integration**
+- Support exporting TDS through Rest APIs
+- Support building the lacking indexes into selected segments
+- Support prioritizing jobs when submitting through Rest APIs
+
+**Bugfix**
+
+- After column-level permissions are defined, the query fails when the corresponding column is used for aggregating query
+- If you upgrade to version 4.2.2.3044 ~ 4.2.3.3048 from a historical version, recommendations are not visible on the model page
+- When an unauthorized user calls the API for approving model recommendation in batch, the request succeeds
+- When the model name contains uppercase letters, the Approve Model Recommendations in Batch API does not take effect if the parameter filter_by_models is set to true
+- The process of generating recommendations by SQL modeling may fail if there exist indexes that can be merged in the same batch of generated recommendations, and the indexes can be reused
+- When the dimensions in the two aggregated groups differ only in order, there will be multiple indexes with dimensions in a different order, and such indexes cannot be deleted or built
+- When a query does not contain any dimensions, SQL modeling fails
+- The mail notification feature on the project setting page doesn’t take effect.
+- The Kyligence service status cannot be returned in time when the ZooKeeper environment is unstable.
+- The Job node does not support queries, but the query page still shows the query running process
+- Leading and trailing whitespaces from the configurations are not trimmed, which may cause the parameter not to take effect
+- The building job will be retried by considering the shortage of resources if the Spark application is killed by YARN, which may cause the job will not be switched to an error status.
+- When defining model dimensions, the unselected columns will also be checked for the name duplication
+- The refreshing segments status is not updated as expected when deleted the model indexes
+- The model containing the Warning state Segment cannot be set offline
+- When a user group is created, the user group of the same name is checked with case sensitive
+- In IE11 browser, the button on the index overview page cannot be displayed completely
+- After clearing the indexes in the Segment with the warning status, the Segment remains in warning status
+- When upgrading Kyligence, the status of the Grafana application is not checked and thrown error exceptions
+
+#### Kyligence Enterprise 4.2.3 release note
+
+**Enhancement**
+
+- The query history is saved for up to 30 days and 1,000,000 entries by default
+- Make index and snapshot usage times independent of smart recommendation
+- The floor function does not support day and week parameters when querying
+- Remove the extra metadata of the snapshot in the Segment
+- Support NVL function, no need to manually open the configuration
+- Task monitoring page, optimize the error message of illegal state switching
+
+**Bug**
+
+- User groups with spaces at the beginning and end of the interface can be called
+- The computed column cannot be selected as the GROUP BY when selecting the GROUP BY column of the TopN measure column in TopN measure
+- dump.hprof file will only be created during the first OOM, which affects diagnosis
+- On Task details page, English is still displayed in Chinese mode
+- On Data source and analysis page, single table on top, leading to database collapse
+- The /api/system/backup interface does not have verification permission
+- After failing to detect the Spark environment, the document path prompted is the historical version
+- Updating snapshot of build task  takes too long
+- When columns are added to the source table and reload it, the deleted custom indexes will be restored
+- The query actually hits the index and snapshot, but only the index is shown in the log Summary
+- In the query editor, the clear button is inconsistent with the text in the pop-up box
+- When creating a project, it prompts "The added project is in AI augmented mode", but the actual project does not start smart recommendation by default
+- When creating a joint dimension, an extra prompt appears
+- When the service status is not obtained, the node information at the top is lost
+- The duration of query history should be limited in size range, and the end time should be greater than the start time
+- The system capacity node list is displayed abnormally in IE 11 browser
+- Using IE11 browser, the screen flickers when exporting metadata
+- The log will print Create admin user finished.
+- In the query editor, the clear button is inconsistent with the text in the pop-up box
+- In the English interface, the amount of used data in the dashboard is not fully displayed
+- Using Project ADMIN authority user, editing table row and column level authority do not take effect
+- The SQL statement that hits the model, due to insufficient environmental resources, changed to push down
+- When loading the data source, click the Enter key and proceed to the next step. The data source is added abnormally
+- After using the upgrade tool to upgrade KE3 metadata to KE4, the model status in the ready state is warning and the expectation is offline
+- When the error message contains <>, it will be converted into an HTML tag and returned incomplete error messages
+- substring supports functions as parameter input
+- When enabling SUM(expression), it may fail to parse SQL and generate the model
+- Tasks in the Pending state, the kylin.log log cannot be obtained in the task diagnosis package
+- In the read-write separation environment, the flat table is stored in the write cluster
+- Query via API, Limit is not effective
+- When no user/user group is selected, you can still click the submit button to submit successfully
+- The "original_size" in the metadata table_exd and the "ori_snapshot_size" in the data flow are not deleted after the garbage cleanup
+- When editing an aggregate group, there is no need to automatically add COUNT_ALL measure, if count(constant) already exists
+- OBIEE BIP generates case when SQL with dynamic parameter, query error
+- Revise the status definition and status processing of the maintenance mode
+- The diagnostic package command line uses the includeMeta parameter to report an error
+- KE4.1 upgrade to KE4.2, the upgrade will fail if session sharing is not configured
+- Add interface for batch modification of user project permissions
+- On the single instance mode, after restarting, push down and report an error
+- When using Tableau to open the tds file exported by the model, the data type of some of the measures corresponding to the column is invalid
+- In the asynchronous query API, , submit query should not return MISSING status
+- The interface information is not refreshed immediately after the license is updated
+- The executeAs parameter does not take effect on the data mask and column-level access control for associated row values
+- Hit the snapshot of the model many times during query, but the query history is not displayed normally
+
+#### Kyligence Enterprise 4.2.2 release note
+
+**Enhancement**
+
+- Support to manage snapshots manually
+  - Support the same table to be used as a fact table and a dimension table in different models
+    - Please note that when querying a dimension table separately (that is, a typical query scenario where a query can hit both the fact table and the dimension table), the snapshot is preferred to be used to answer the query
+  - When the snapshot management is turned on, the system will no longer automatically build, refresh, and delete snapshots
+- Optimize homepage display, graphically display intelligent recommendation related statistics, and support to optimize history queries instantly on homepage
+- Optimize the SQL generated from Tableau LOD expression, providing configuration (false by default) so that specific SQLs can hit the aggregate index
+- Support more optional parameters in model suggestion API to enrich the integration ability. For more details
+- Supports query SQL with dimension or measure aliases longer than 128 characters
+- Support async query with custom encoding format, file format, and file name
+- If the query is divided into many OlapContexts, the query time may be longer
+- When calling the model optimization API, add a new parameter to confirm whether SQLs are directly converted to indexes
+- Optimize copywriting when adding empty segments
+
+**Bug**
+
+- When a large amount of metadata is updated concurrently, Kyligence Enterprise service may be automatically shut down
+- When the original query is the same as the corrected query by Kyligence Enterprise, the query statement is not printed in log files
+- The query is not cancelled when Spark gets data timeout
+- When configuring row-level permissions for integer fields, the validity check was not performed, causing the query to fail
+- The building job is stuck due to unreasonable configuration of Kerberos ticket life cycle and refresh interval
+- When adjusting the Rowkey order of the fields, the column cannot be topped after being searched
+- Add error message when the full load is triggered repeatedly
+- Use Internet Explorer browser (version 11) to delete the model, the deletion fails
+- Add error copy when the user group name is repeated
+- Optimize the error message when the grammatical check fails in a computed column
+- The expired test license still work in Kyligence Enterprise
+- The query results of left join and right join that hit the same index are inconsistent
+- Queries over 10s are recorded in Influxdb in the range of 5 to 10s.
+- When generating recommendations by importing SQLs, if there are columns that were deleted after reloading the source table in the model hit by SQLs, generating recommendations may fail
+
+
 #### Kyligence Enterprise 4.2.1 release note
 
 **Enhancement**
