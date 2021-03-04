@@ -3909,8 +3909,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "can’t refresh some segments, as they are being built at the moment. Please try again later.");
+        thrown.expectMessage(MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         val loadingRange = new NDataLoadingRange();
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
