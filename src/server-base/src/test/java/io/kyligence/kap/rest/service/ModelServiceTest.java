@@ -2919,7 +2919,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             ModelService.checkCCName("LOCAL");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("The computed column's name:[LOCAL] is a sql keyword, please choose another name.",
+            Assert.assertEquals("The computed column name \"LOCAL\" is a SQL keyword. Please choose another name.",
                     e.getMessage());
         }
 
@@ -2928,7 +2928,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             ModelService.checkCCName("MSCK");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("The computed column's name:[MSCK] is a sql keyword, please choose another name.",
+            Assert.assertEquals("The computed column name \"MSCK\" is a SQL keyword. Please choose another name.",
                     e.getMessage());
         }
 

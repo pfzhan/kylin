@@ -257,7 +257,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
             Assert.assertEquals(
-                    "Can’t find the query corresponding to this ID in the current project. Please check and try again.",
+                    "Can’t find the query by this query ID in this project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -269,7 +269,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
             Assert.assertEquals(
-                    "Can’t find the query corresponding to this ID in the current project. Please check and try again.",
+                    "Can’t find the query by this query ID in this project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -295,7 +295,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
             Assert.assertEquals(
-                    "Can’t find the query corresponding to this ID in the current project. Please check and try again.",
+                    "Can’t find the query by this query ID in this project. Please check and try again.",
                     e.getMessage());
         }
     }

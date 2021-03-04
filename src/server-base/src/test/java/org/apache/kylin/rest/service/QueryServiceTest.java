@@ -374,7 +374,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("SQL should not be empty.", e.getMessage());
+            Assert.assertEquals("SQL can’t be empty. Please check and try again.", e.getMessage());
         }
     }
 
@@ -887,7 +887,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             queryService.saveQuery("admin", "default", query);
         } catch (Exception ex) {
             Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals("Duplicate query name 'test'", ex.getMessage());
+            Assert.assertEquals("Query named \"test\" already exists. Please check and try again.", ex.getMessage());
         }
 
         queryRecord = queryService.getSavedQueries("admin", "default");

@@ -394,17 +394,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getNOT_SUPPORTED_SQL() {
-        return "不支持的 SQL";
+        return "该 SQL 暂不支持。请尝试不同的 SQL。";
     }
 
     @Override
     public String getDUPLICATE_QUERY_NAME() {
-        return "查询名称重复 '%s'";
+        return "名为 \"%s\" 的查询已存在。请检查后重试。";
     }
 
     @Override
     public String getNULL_EMPTY_SQL() {
-        return "SQL不能为空";
+        return "SQL 不能为空。请检查后重试。";
     }
 
     // Access
@@ -478,22 +478,22 @@ public class CnMessage extends Message {
     // Async Query
     @Override
     public String getQUERY_RESULT_NOT_FOUND() {
-        return "无法在当前项目下找到对应该 ID 的查询。请检查后重试。";
+        return "该项目下无法找到该 Query ID 对应的异步查询。请检查后重试。";
     }
 
     @Override
     public String getQUERY_RESULT_FILE_NOT_FOUND() {
-        return "查询结果文件不存在";
+        return "无法找到查询结果文件。请检查后重试。";
     }
 
     @Override
     public String getQUERY_EXCEPTION_FILE_NOT_FOUND() {
-        return "查询异常文件不存在";
+        return "无法获取失败异步查询的查询状态。请检查后重试。";
     }
 
     @Override
     public String getCLEAN_FOLDER_FAIL() {
-        return "清理文件夹失败";
+        return "当前无法清理文件夹。请确保相关 HDFS 文件可以正常访问。";
     }
 
     @Override
@@ -764,7 +764,7 @@ public class CnMessage extends Message {
     //Query
     @Override
     public String getINVALID_USER_TAG() {
-        return "user_defined_tag 必须小于等于 256.";
+        return "无法添加标签，因为长度超出了256 个字符。请修改。";
     }
 
     @Override
@@ -941,7 +941,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getQUERY_TOO_MANY_RUNNING() {
-        return "并发查询请求太多。";
+        return "查询请求数量超过上限，无法提交。请稍后再试，或联系项目管理员修改设置。";
     }
 
     @Override
@@ -1046,7 +1046,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD() {
-        return "计算列[%s]的名称是 SQL 关键字，请使用其他名称。";
+        return "可计算列 \"%s\" 的名称是 SQL 关键字。请使用其他名称。";
     }
 
     @Override
@@ -1192,47 +1192,47 @@ public class CnMessage extends Message {
 
     @Override
     public String getUNEXPECTED_TOKEN() {
-        return "语法错误：在 '%s' 列，'%s' 行出现无法辨识的 token：“%s”。";
+        return "以下内容存在语法错误（%s 列，%s 行）：\"%s\" 。请修改。";
     }
 
     @Override
     public String getBAD_SQL_REASON() {
-        return "语法错误：“%s”。";
+        return "SQL 存在语法错误：%s";
     }
 
     @Override
     public String getBAD_SQL_SUGGEST() {
-        return "请修正 SQL。";
+        return "请修改。";
     }
 
     @Override
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
-        return "无法找到表 “%s” 。请检查后重试。";
+        return "无法找到表 \"%s\" 。请检查后重试。";
     }
 
     @Override
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
-        return "请在数据源中导入表 “%s”。如果该表已经存在，请在查询中使用数据库名.表名的形式进行引用。";
+        return "请在数据源中导入表 \"%s\"。如果该表已经存在，请在查询中以\"数据库名.表名\"的形式进行引用。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_REASON() {
-        return "列 “%s” 不存在。";
+        return "无法找到列 \"%s\"。请检查此列是否在源表中存在。若存在，可尝试重载表；若不存在，请联系管理员添加。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST() {
-        return "请在数据源中添加列“%s”。";
+        return "无法找到列 \"%s\"。请检查此列是否在源表中存在。若存在，可尝试重载表；若不存在，请联系管理员添加。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
-        return "在表 “%s” 中没有找到列 “%s”。";
+        return "无法找到列 \"%s\"。请检查此列是否在源表中存在。若存在，可尝试重载表；若不存在，请联系管理员添加。";
     }
 
     @Override
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION() {
-        return "请将列 “%s” 添加到数据源表 “%s”。";
+        return "无法找到列 \"%s\"。请检查此列是否在源表中存在。若存在，可尝试重载表；若不存在，请联系管理员添加。";
     }
 
     @Override
@@ -1247,17 +1247,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getQUERY_ROW_NUM_OVER_THRESHOLD() {
-        return "查询失败。查询结果行数超过最大值:{%s}。请添加过滤条件或联系管理员调整最大查询结果行数。";
+        return "查询失败，查询结果行数超过最大值 \"%s\"。请添加过滤条件或联系管理员调整最大查询结果行数。";
     }
 
     @Override
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
-        return String.format(Locale.ROOT, "可计算列%s的表达式%s与可计算列%s相同。", newCCName, newCCExpression, existedCCName);
+        return String.format(Locale.ROOT, "可计算列 \"%s\" 的表达式 \"%s\" 与可计算列 \"%s\" 相同。请修改。", newCCName, newCCExpression, existedCCName);
     }
 
     @Override
     public String getCC_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT, "可计算列“%s”已存在。", ccName);
+        return String.format(Locale.ROOT, "可计算列 \"%s\" 已存在。请修改。", ccName);
     }
 
     @Override
@@ -1267,12 +1267,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getDIMENSION_CONFLICT(String dimensionName) {
-        return String.format(Locale.ROOT, "维度%s已存在。", dimensionName);
+        return String.format(Locale.ROOT, "维度 \"%s\" 已存在。请修改。", dimensionName);
     }
 
     @Override
     public String getMEASURE_CONFLICT(String measureName) {
-        return String.format(Locale.ROOT, "度量%s已存在。", measureName);
+        return String.format(Locale.ROOT, "度量 \"%s\" 已存在。请修改。", measureName);
     }
 
     @Override

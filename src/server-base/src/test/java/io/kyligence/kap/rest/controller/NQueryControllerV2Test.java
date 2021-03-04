@@ -126,7 +126,7 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("999")).andExpect(MockMvcResultMatchers
-                        .jsonPath("$.msg").value("user_defined_tag must be not greater than 256."));
+                        .jsonPath("$.msg").value("Can’t add the tag, as the length exceeds the maximum 256 characters. Please modify it."));
 
         Mockito.verify(nQueryControllerV2, Mockito.times(0)).query(Mockito.any());
     }

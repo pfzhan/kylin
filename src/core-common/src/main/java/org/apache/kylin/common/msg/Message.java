@@ -471,23 +471,23 @@ public class Message {
     }
 
     public String getNOT_SUPPORTED_SQL() {
-        return "Not Supported SQL.";
+        return "This SQL is not supported at the moment. Please try a different SQL.";
     }
 
     public String getQUERY_TOO_MANY_RUNNING() {
-        return "Too many concurrent query requests.";
+        return "Can’t submit query at the moment as there are too many ongoing queries. Please try again later, or contact project admin to adjust configuration.";
     }
 
     public String getEXPORT_RESULT_NOT_ALLOWED() {
-        return "Current user is not allowed to export query result.";
+        return "Don’t have permission to export the query result. Please contact admin if needed.";
     }
 
     public String getDUPLICATE_QUERY_NAME() {
-        return "Duplicate query name '%s'";
+        return "Query named \"%s\" already exists. Please check and try again.";
     }
 
     public String getNULL_EMPTY_SQL() {
-        return "SQL should not be empty.";
+        return "SQL can’t be empty. Please check and try again.";
     }
 
     // Access
@@ -521,19 +521,19 @@ public class Message {
 
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
-        return "Can’t find the query corresponding to this ID in the current project. Please check and try again.";
+        return "Can’t find the query by this query ID in this project. Please check and try again.";
     }
 
     public String getQUERY_RESULT_FILE_NOT_FOUND() {
-        return "The query result file does not exist.";
+        return "Can’t find the file of query results. Please check and try again.";
     }
 
     public String getQUERY_EXCEPTION_FILE_NOT_FOUND() {
-        return "The query exception file does not exist.";
+        return "Can’t get the query status for the failed async query. Please check and try again.";
     }
 
     public String getCLEAN_FOLDER_FAIL() {
-        return "Failed to clean folder.";
+        return "Can’t clean file folder at the moment. Please ensure that the related file on HDFS could be accessed.";
     }
 
     public String getASYNC_QUERY_TIME_FORMAT_ERROR() {
@@ -720,7 +720,7 @@ public class Message {
 
     //Query
     public String getINVALID_USER_TAG() {
-        return "user_defined_tag must be not greater than 256.";
+        return "Can’t add the tag, as the length exceeds the maximum 256 characters. Please modify it.";
     }
 
     public String getINVALID_ID() {
@@ -918,7 +918,7 @@ public class Message {
     }
 
     public String getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD() {
-        return "The computed column's name:[%s] is a sql keyword, please choose another name.";
+        return "The computed column name \"%s\" is a SQL keyword. Please choose another name.";
     }
 
     public String getINVALID_COMPUTER_COLUMN_NAME() {
@@ -1024,39 +1024,39 @@ public class Message {
     }
 
     public String getUNEXPECTED_TOKEN() {
-        return "Syntax error: encountered unexpected token:\" %s\". At line %s, column %s.";
+        return "Syntax error occurred at line %s, column %s: \"%s\". Please modify it.";
     }
 
     public String getBAD_SQL_REASON() {
-        return "Syntax error:\"%s\".";
+        return "The SQL has syntax error: %s ";
     }
 
     public String getBAD_SQL_SUGGEST() {
-        return "Please correct the SQL.";
+        return "Please modify it.";
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
-        return "Can’t find the table \"%s\". Please check and try again.";
+        return "Can’t find table \"%s\". Please check and try again.";
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
-        return "Please add table %s to data source. If this table does exist, mention it as DATABASE.TABLE.";
+        return "Please add table \"%s\" to data source. If this table does exist, mention it as \"DATABASE.TABLE\".";
     }
 
     public String getBAD_SQL_COLUMN_NOT_FOUND_REASON() {
-        return "Column '%s' not found in any table.";
+        return "Can’t find column \"%s\". Please check if it exists in the source table. If exists, please try reloading the table; if not exist, please contact admin to add it.";
     }
 
     public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST() {
-        return "Please add column %s to data source.";
+        return "Can’t find column \"%s\". Please check if it exists in the source table. If exists, please try reloading the table; if not exist, please contact admin to add it.";
     }
 
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
-        return "The table\"%s\" doesn't include the column \"%s\".";
+        return "Can’t find column \"%s\". Please check if it exists in the source table. If exists, please try reloading the table; if not exist, please contact admin to add it.";
     }
 
     public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGESTION() {
-        return "Please add column %s to table %s in data source.";
+        return "Can’t find column \"%s\". Please check if it exists in the source table. If exists, please try reloading the table; if not exist, please contact admin to add it.";
     }
 
     public String getPROJECT_NUM_OVER_THRESHOLD() {
@@ -1068,17 +1068,17 @@ public class Message {
     }
 
     public String getQUERY_ROW_NUM_OVER_THRESHOLD() {
-        return "Failed to get query result. The row number of query result exceeds the maximum: {%s}. Please add more filters or contact the administrator to adjust the maximum row number of query result.";
+        return "Can’t get query result. The rows of query result exceeds the maximum limit \"%s\". Please add filters, or contact admin to adjust the maximum limit.";
     }
 
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
         return String.format(Locale.ROOT,
-                "The expression %s of the computed column %s is the same as the computed column %s.", newCCExpression,
+                "The expression \"%s\" of computed column \"%s\" is same as computed column \"%s\". Please modify it.", newCCExpression,
                 newCCName, existedCCName);
     }
 
     public String getCC_NAME_CONFLICT(String ccName) {
-        return String.format(Locale.ROOT, "Computed column \"%s\" already exists.", ccName);
+        return String.format(Locale.ROOT, "Computed column \"%s\" already exists. Please modify it.", ccName);
     }
 
     public String get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() {
@@ -1086,11 +1086,11 @@ public class Message {
     }
 
     public String getDIMENSION_CONFLICT(String dimensionName) {
-        return String.format(Locale.ROOT, "Dimension %s already exists.", dimensionName);
+        return String.format(Locale.ROOT, "Dimension \"%s\" already exists. Please modify it.", dimensionName);
     }
 
     public String getMEASURE_CONFLICT(String measureName) {
-        return String.format(Locale.ROOT, "Measure %s already exists.", measureName);
+        return String.format(Locale.ROOT, "Measure \"%s\" already exists. Please modify it.", measureName);
     }
 
     public String getJOB_NODE_INVALID(String url) {

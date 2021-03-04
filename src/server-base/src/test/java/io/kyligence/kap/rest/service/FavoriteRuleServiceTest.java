@@ -174,7 +174,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         var response = favoriteRuleService.sqlValidate(PROJECT, sql);
         Assert.assertFalse(response.isCapable());
         Assert.assertTrue(Lists.newArrayList(response.getSqlAdvices()).get(0).getIncapableReason()
-                .contains("Can’t find the table \"TEST_KYLIN\""));
+                .contains("Can’t find table \"TEST_KYLIN\". Please check and try again."));
     }
 
     @Test

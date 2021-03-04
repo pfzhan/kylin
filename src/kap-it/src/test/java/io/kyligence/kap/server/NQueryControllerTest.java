@@ -107,7 +107,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
-                .andExpect(jsonPath("$.msg").value("user_defined_tag must be not greater than 256."));
+                .andExpect(jsonPath("$.msg").value("Can’t add the tag, as the length exceeds the maximum 256 characters. Please modify it."));
     }
 
     @Test
