@@ -102,10 +102,10 @@
           </template>
         </span>
         <div class="setting-input">
-          <el-form ref="job-alert" :model="form" size="small">
+          <el-form ref="job-alert" :model="form" :rules="emailRules" size="small">
             <div class="item-value" v-for="(email, index) in form.job_notification_emails" :key="index">
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
-              <el-form-item :prop="`job_notification_emails.${index}`" :rules="emailRules">
+              <el-form-item :prop="`job_notification_emails.${index}`">
                 <el-input v-model="form.job_notification_emails[index]" :placeholder="$t('pleaseInputEmail')"></el-input><el-button
                  icon="el-icon-ksd-add_2" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button><el-button
                   icon="el-icon-minus" class="ksd-ml-5" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
@@ -355,10 +355,13 @@ export default class SettingAdvanced extends Vue {
     }
   }
   get emailRules () {
-    return [
-      { required: true, message: this.$t('pleaseInputEmail'), trigger: 'blur' },
-      { type: 'email', message: this.$t('pleaseInputVaildEmail'), trigger: 'blur' }
-    ]
+    const rules = this.form.job_notification_emails.reduce((t, e, index) => {
+      return Object.assign(t, {[`job_notification_emails.${index}`]: [
+        { required: true, message: this.$t('pleaseInputEmail'), trigger: 'blur' },
+        { type: 'email', message: this.$t('pleaseInputVaildEmail'), trigger: 'blur' }
+      ]})
+    }, {})
+    return rules
   }
   get yarnQueueRules () {
     return {
