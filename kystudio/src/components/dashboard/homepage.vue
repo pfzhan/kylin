@@ -12,7 +12,7 @@
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('datasource')}}</div>
               <div class="content" v-html="$t('datasourceDesc', {database_size: infoData.database_size, table_size: infoData.table_size})"></div>
-              <div class="card-link ky-a-like" @click="gotoDatasource">{{$t('manageDatasource')}}</div>
+              <div class="card-link ky-a-like" @click="gotoDatasource('create')">{{$t('manageDatasource')}}</div>
             </div>
           </div>
           <div class="card ksd-fright clearfix">
@@ -37,7 +37,7 @@
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('dataProfile')}}</div>
               <div class="content">{{$t('dataProfileDesc')}}</div>
-              <div class="card-link ky-a-like" @click="gotoDatasource">{{$t('viewDetail')}}</div>
+              <div class="card-link ky-a-like" @click="gotoDatasource('load')">{{$t('viewDetail')}}</div>
             </div>
           </div>
         </div>
@@ -339,9 +339,10 @@ export default class Homepage extends Vue {
       this.$router.push({path: '/setting', query: {moveTo: 'index-suggest-setting'}})
     }
   }
-  gotoDatasource () {
+  gotoDatasource (type) {
     if (this.platform === 'iframe') {
-      postCloudUrlMessage(this.$route, { name: 'datasource-create' })
+      let routeName = type === 'create' ? 'datasource-create' : 'datasource-sync'
+      postCloudUrlMessage(this.$route, { name: routeName })
     } else {
       this.$router.push({path: '/studio/source'})
     }
