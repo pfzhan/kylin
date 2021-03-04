@@ -525,10 +525,10 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         val layout_10001 = 10001L;
         val layout_1 = 1L;
 
-        val sql = "select cal_dt, sum(price) from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id ";
+        val sql = "select cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id ";
 
         val sql1_date = sql
-                + "where cal_dt = DATE '2012-01-01' and test_account.ACCOUNT_SELLER_LEVEL = 1 group by cal_dt";
+                + "where cal_dt = DATE '2012-01-01' and test_account.ACCOUNT_SELLER_LEVEL = 1 ";
         expectedRanges.add(segmentRange1);
         assertPrunedSegmentsRange(project, sql1_date, dfId, expectedRanges, layout_20000000001, null);
     }
