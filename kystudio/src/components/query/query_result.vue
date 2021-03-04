@@ -10,7 +10,7 @@
     </el-alert>
     <div class="resultTipsLine">
       <div class="resultTips">
-        <p class="resultText">
+        <p class="resultText" v-if="extraoption.queryId">
           <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text">{{extraoption.queryId}}</span>
           <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL && insightActions.includes('viewAppMasterURL')">

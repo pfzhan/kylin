@@ -100,6 +100,59 @@ import { kapConfirm, hasRole, handleSuccess, handleError } from '../../util/busi
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import { insightKeyword } from '../../config'
 @Component({
+  beforeRouteLeave (to, from, next) {
+    if (this.$store.state.config.platform === 'iframe') {
+      next()
+    } else {
+      let isQueryLoading = false
+      for (let i = this.editableTabs.length - 1; i > 0; i--) {
+        if (this.editableTabs[i].icon === 'el-icon-loading') {
+          isQueryLoading = true
+          break
+        }
+      }
+      if (isQueryLoading) {
+        next(false)
+        setTimeout(() => {
+          kapConfirm(this.$t('willStopQuery'), {
+            confirmButtonText: this.$t('kylinLang.common.ok'),
+            cancelButtonText: this.$t('kylinLang.common.cancel'),
+            type: 'warning'
+          }, this.$t('kylinLang.common.notice')).then(() => {
+            this.editableTabs.forEach(item => {
+              if (item.icon === 'el-icon-loading') {
+                item.queryObj.stopId && this.stop({id: item.queryObj.stopId})
+                const extraoption = {
+                  queryId: null,
+                  isException: true,
+                  is_stop_by_user: true,
+                  exceptionMessage: 'Stopped by user.',
+                  results: null,
+                  traces: []
+                }
+                const errorInfo = 'Stopped by user.'
+                item.icon = 'el-icon-ksd-error_01'
+                item.spin = false
+                item.extraoption = extraoption
+                item.queryErrorInfo = errorInfo
+                item.isStop = true
+                this.editableTabs[0].extraoption = extraoption
+                this.editableTabs[0].queryErrorInfo = errorInfo
+                this.editableTabs[0].cancelQuery = true
+                this.editableTabs[0].isStop = true
+              }
+            })
+            this.saveTabs({tabs: {[this.currentSelectedProject]: this.editableTabs}})
+            next()
+          }).catch(() => {
+            next(false)
+          })
+        })
+      } else {
+        next()
+      }
+    }
+  },
   methods: {
     ...mapActions({
       getSavedQueries: 'GET_SAVE_QUERIES',
@@ -134,7 +187,8 @@ import { insightKeyword } from '../../config'
       closeAll: 'Close All',
       delSqlTitle: 'Delete SQL',
       confirmDel: 'Are you sure you want to delete {queryName}?',
-      runQuery: 'Run Query'
+      runQuery: 'Run Query',
+      willStopQuery: 'The currently running query would be stopped when leaving the page. Are you sure you want to leave?'
     },
     'zh-cn': {
       dialogHiveTreeNoData: '请点击数据源来加载源表',
@@ -145,7 +199,8 @@ import { insightKeyword } from '../../config'
       closeAll: '关闭全部',
       delSqlTitle: '删除查询语句',
       confirmDel: '确认删除 {queryName} 吗？',
-      runQuery: '查询'
+      runQuery: '查询',
+      willStopQuery: '有查询任务正在执行，离开后查询将停止。是否确定离开？'
     }
   }
 })

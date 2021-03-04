@@ -325,11 +325,12 @@ export default class QueryTab extends Vue {
       this.errinfo = this.tabsItem.queryErrorInfo
       this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
       this.isWorkspace = this.tabsItem.name === 'WorkSpace'
-      if (this.tabsItem.queryObj && this.tabsItem.index) {
-        this.queryResult(this.tabsItem.queryObj)
-      } else {
-        this.resetResult()
-      }
+      // if (this.tabsItem.queryObj && this.tabsItem.index) {
+      //   this.queryResult(this.tabsItem.queryObj)
+      // } else {
+      //   this.resetResult()
+      // }
+      this.resetResult()
     }
   }
 
