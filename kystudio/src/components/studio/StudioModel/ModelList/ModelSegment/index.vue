@@ -573,7 +573,14 @@ export default class ModelSegment extends Vue {
   async loadSubPartitions () {
     try {
       const res = await this.fetchSubPartitions(Object.assign({}, {project: this.currentSelectedProject}, this.subSegmentfilter))
-      const { value } = await handleSuccessAsync(res)
+      const result = await handleSuccessAsync(res)
+      let value = result.value || []
+      if (result.total_size > this.subSegmentfilter.page_size) {
+        this.subSegmentfilter.page_size = result.total_size
+        const resAgain = await this.fetchSubPartitions(Object.assign({}, {project: this.currentSelectedProject}, this.subSegmentfilter))
+        const response = await handleSuccessAsync(resAgain)
+        value = response.value
+      }
       this.subPartitionSegmentList = value
       this.subBuildedPartitionValues = this.subPartitionSegmentList.map((p) => {
         return p.values[0]
