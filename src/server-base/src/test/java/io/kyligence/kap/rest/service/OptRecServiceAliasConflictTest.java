@@ -134,8 +134,8 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
     }
 
     @Test
-    public void testCCRecNameNoConflictWithExistingDimension() throws IOException {
-        List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16);
+    public void testCCRecNameWithExistingDimension() throws IOException {
+        List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16, 23);
         prepare(addLayoutId);
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         modelManager.updateDataModel(getDefaultUUID(), copyForWrite -> {
@@ -150,17 +150,19 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         nameMap.put(-8, "CC_AUTO__1611234685746_1");
 
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
+        optRecService.approve(getProject(), recRequest);
 
-        try {
-            optRecService.approve(getProject(), recRequest);
-            Assert.fail();
-        } catch (Exception e) {
-            KylinException rootCause = (KylinException) Throwables.getRootCause(e);
-            Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
-            Assert.assertEquals("The name already exists. Please rename and try again.\n"
-                    + "{\"CC_AUTO__1611234685746_1\":[-8,10]}", rootCause.getMessage());
-        }
+        NDataModel dataModel = getModel();
+        List<Integer> dimensionList = Lists.newArrayList(dataModel.getEffectiveDimensions().keySet());
+        List<Integer> measureList = Lists.newArrayList(dataModel.getEffectiveMeasures().keySet().asList());
+        dimensionList.sort(Integer::compareTo);
+        measureList.sort(Integer::compareTo);
+        List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
+        allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
 
+        Assert.assertEquals("[0, 1, 3, 8, 10, 11, 12, 13, 18, 20]", dimensionList.toString());
+        Assert.assertEquals("[100000, 100001, 100002]", measureList.toString());
+        Assert.assertEquals(5, allLayouts.size());
     }
 
     @Test
@@ -261,6 +263,8 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         nameMap.put(-15, "V_REVENUE");
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
         optRecService.approve(getProject(), recRequest);
+
+        // assert
         NDataModel dataModel = getModel();
         List<Integer> dimensionList = Lists.newArrayList(dataModel.getEffectiveDimensions().keySet());
         List<Integer> measureList = Lists.newArrayList(dataModel.getEffectiveMeasures().keySet().asList());
@@ -268,7 +272,6 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         measureList.sort(Integer::compareTo);
         Assert.assertEquals(Lists.newArrayList(0, 1, 3, 8, 10, 11, 12, 13, 18), dimensionList);
         Assert.assertEquals(Lists.newArrayList(100000, 100001, 100002), measureList);
-
         List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
         allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
         Assert.assertEquals(4, allLayouts.size());
@@ -300,25 +303,26 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
     }
 
     @Test
-    public void testNameConflictBetweenCCRecAndDimRec() throws IOException {
-        List<Integer> addLayoutId = Lists.newArrayList(27);
+    public void testNoNameConflictBetweenCCRecAndDimRec() throws IOException {
+        List<Integer> addLayoutId = Lists.newArrayList(23, 27);
         prepare(addLayoutId);
         Map<Integer, String> nameMap = Maps.newHashMap();
         nameMap.put(-10, "COMPUTEDCOL005");
         nameMap.put(-25, "computedCol005".toUpperCase(Locale.ROOT));
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
+        optRecService.approve(getProject(), recRequest);
 
-        try {
-            optRecService.approve(getProject(), recRequest);
-            Assert.fail();
-        } catch (Exception e) {
-            KylinException rootCause = (KylinException) Throwables.getRootCause(e);
-            Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
-            Assert.assertEquals(
-                    "The name already exists. Please rename and try again.\n" + "{\"COMPUTEDCOL005\":[-25,-10]}",
-                    rootCause.getMessage());
-        }
-
+        // assert
+        NDataModel dataModel = getModel();
+        List<Integer> dimensionList = Lists.newArrayList(dataModel.getEffectiveDimensions().keySet());
+        List<Integer> measureList = Lists.newArrayList(dataModel.getEffectiveMeasures().keySet().asList());
+        dimensionList.sort(Integer::compareTo);
+        measureList.sort(Integer::compareTo);
+        List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
+        allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
+        Assert.assertEquals("[10, 13, 19]", dimensionList.toString());
+        Assert.assertEquals("[100000]", measureList.toString());
+        Assert.assertEquals(2, allLayouts.size());
     }
 
     @Test
@@ -368,7 +372,7 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
     }
 
     @Test
-    public void testCCNameConflictWithExistingColumn() throws IOException {
+    public void testCCNameNotConflictWithExistingColumn() throws IOException {
         List<Integer> addLayoutId = Lists.newArrayList(6, 7, 13, 16);
         prepare(addLayoutId);
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
@@ -377,6 +381,11 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
             column.setName("CC_AUTO__1611234685746_1");
         });
 
+        NDataModel model = getModel();
+        List<Integer> existingDimensions = Lists.newArrayList(model.getEffectiveDimensions().keySet());
+        existingDimensions.sort(Integer::compareTo);
+        Assert.assertEquals("[10, 13]", existingDimensions.toString());
+        Assert.assertEquals(1, model.getEffectiveMeasures().size());
         Assert.assertEquals("CC_AUTO__1611234685746_1",
                 modelManager.getDataModelDesc(getDefaultUUID()).getAllNamedColumns().get(5).getName());
 
@@ -384,17 +393,19 @@ public class OptRecServiceAliasConflictTest extends OptRecV2TestBase {
         nameMap.put(-8, "CC_AUTO__1611234685746_1");
 
         OptRecRequest recRequest = buildOptRecRequest(addLayoutId, nameMap);
+        optRecService.approve(getProject(), recRequest);
 
-        try {
-            optRecService.approve(getProject(), recRequest);
-            Assert.fail();
-        } catch (Exception e) {
-            KylinException rootCause = (KylinException) Throwables.getRootCause(e);
-            Assert.assertEquals(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION.toErrorCode(), rootCause.getErrorCode());
-            Assert.assertEquals(
-                    "The name already exists. Please rename and try again.\n" + "{\"CC_AUTO__1611234685746_1\":[5,-8]}",
-                    rootCause.getMessage());
-        }
+        NDataModel dataModel = getModel();
+        List<Integer> dimensionList = Lists.newArrayList(dataModel.getEffectiveDimensions().keySet());
+        List<Integer> measureList = Lists.newArrayList(dataModel.getEffectiveMeasures().keySet().asList());
+        dimensionList.sort(Integer::compareTo);
+        measureList.sort(Integer::compareTo);
+        List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
+        allLayouts.sort(Comparator.comparing(LayoutEntity::getId));
+
+        Assert.assertEquals("[0, 1, 3, 8, 10, 11, 12, 13, 18]", dimensionList.toString());
+        Assert.assertEquals("[100000, 100001, 100002]", measureList.toString());
+        Assert.assertEquals(4, allLayouts.size());
     }
 
     @Test

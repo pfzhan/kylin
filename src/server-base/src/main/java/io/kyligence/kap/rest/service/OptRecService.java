@@ -121,108 +121,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             this.project = project;
             this.userDefinedRecNameMap = userDefinedRecNameMap;
             this.recommendation = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
-            checkCCRecConflictWithColumn(userDefinedRecNameMap);
-            checkUserDefinedRecNames(userDefinedRecNameMap);
-        }
-
-        private void checkCCRecConflictWithColumn(Map<Integer, String> userDefinedRecNameMap) {
-            Map<String, Set<Integer>> checkedTableColumnMap = Maps.newHashMap();
-
-            userDefinedRecNameMap.forEach((id, name) -> {
-                if (id >= 0) {
-                    return;
-                }
-                RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
-                if (rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                    checkedTableColumnMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
-                    checkedTableColumnMap.get(name.toUpperCase(Locale.ROOT)).add(id);
-                }
-            });
-
-            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
-
-            String factTableName = model.getRootFactTableName().split("\\.").length < 2 ? model.getRootFactTableName()
-                    : model.getRootFactTableName().split("\\.")[1];
-
-            model.getAllNamedColumns().forEach(column -> {
-                if (!column.isExist()) {
-                    return;
-                }
-                String[] tableAndColumn = column.getAliasDotColumn().split("\\.");
-
-                if (!tableAndColumn[0].equalsIgnoreCase(factTableName)) {
-                    return;
-                }
-                if (checkedTableColumnMap.containsKey(tableAndColumn[1].toUpperCase(Locale.ROOT))) {
-                    checkedTableColumnMap.get(tableAndColumn[1]).add(column.getId());
-                }
-
-            });
-
-            checkedTableColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
-            if (!checkedTableColumnMap.isEmpty()) {
-                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
-                                + JsonUtil.writeValueAsStringQuietly(checkedTableColumnMap));
-            }
-        }
-
-        private void checkUserDefinedRecNames(Map<Integer, String> userDefinedRecNameMap) {
-            Map<String, Set<Integer>> checkedColumnMap = Maps.newHashMap();
-            Map<String, Set<Integer>> checkedMeasureMap = Maps.newHashMap();
-
-            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
-            model.getAllNamedColumns().forEach(column -> {
-                if (!column.isExist()) {
-                    return;
-                }
-                checkedColumnMap.putIfAbsent(column.getName(), Sets.newHashSet());
-                checkedColumnMap.get(column.getName()).add(column.getId());
-            });
-            model.getAllMeasures().forEach(measure -> {
-                if (measure.isTomb()) {
-                    return;
-                }
-                checkedMeasureMap.putIfAbsent(measure.getName(), Sets.newHashSet());
-                checkedMeasureMap.get(measure.getName()).add(measure.getId());
-            });
-
-            userDefinedRecNameMap.forEach((id, name) -> {
-                if (id >= 0) {
-                    return;
-                }
-                RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
-                if (rawRecItem.getType() == RawRecItem.RawRecType.DIMENSION
-                        || rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                    checkedColumnMap.putIfAbsent(name, Sets.newHashSet());
-                    Set<Integer> idSet = checkedColumnMap.get(name);
-                    idSet.remove(rawRecItem.getDependIDs()[0]);
-                    idSet.add(id);
-                }
-                if (rawRecItem.getType() == RawRecItem.RawRecType.MEASURE) {
-                    checkedMeasureMap.putIfAbsent(name, Sets.newHashSet());
-                    checkedMeasureMap.get(name).add(id);
-                }
-            });
-            checkedColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
-            checkedMeasureMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
-            Map<String, Set<Integer>> conflictMap = Maps.newHashMap();
-            checkedColumnMap.forEach((name, idSet) -> {
-                conflictMap.putIfAbsent(name, Sets.newHashSet());
-                conflictMap.get(name).addAll(idSet);
-            });
-            checkedMeasureMap.forEach((name, idSet) -> {
-                conflictMap.putIfAbsent(name, Sets.newHashSet());
-                conflictMap.get(name).addAll(idSet);
-            });
-            conflictMap.entrySet().removeIf(entry -> entry.getValue().stream().allMatch(id -> id >= 0));
-            if (!conflictMap.isEmpty()) {
-                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
-                                + JsonUtil.writeValueAsStringQuietly(conflictMap));
-            }
+            RecNameChecker.checkCCRecConflictWithColumn(recommendation, project, userDefinedRecNameMap);
+            RecNameChecker.checkUserDefinedRecNames(recommendation, project, userDefinedRecNameMap);
         }
 
         public List<RawRecItem> approveRawRecItems(List<Integer> recItemIds, boolean isAdd) {
@@ -557,6 +457,127 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 NDataModel.Measure measure = (NDataModel.Measure) obj;
                 log.info("Write RawRecItem({}) to model as Measure with id({}), name({}) ", //
                         recItem.getId(), measure.getId(), measure.getName());
+            }
+        }
+    }
+
+    static class RecNameChecker {
+
+        /**
+         * check whether computed column conflict with column of fact table
+         */
+        private static void checkCCRecConflictWithColumn(OptRecV2 recommendation, String project,
+                Map<Integer, String> userDefinedRecNameMap) {
+            Map<String, Set<Integer>> checkedTableColumnMap = Maps.newHashMap();
+
+            userDefinedRecNameMap.forEach((id, name) -> {
+                if (id >= 0) {
+                    return;
+                }
+                RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
+                if (rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                    checkedTableColumnMap.putIfAbsent(name.toUpperCase(Locale.ROOT), Sets.newHashSet());
+                    checkedTableColumnMap.get(name.toUpperCase(Locale.ROOT)).add(id);
+                }
+            });
+
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
+
+            String factTableName = model.getRootFactTableName().split("\\.").length < 2 //
+                    ? model.getRootFactTableName() //
+                    : model.getRootFactTableName().split("\\.")[1];
+
+            model.getAllNamedColumns().forEach(column -> {
+                if (!column.isExist()) {
+                    return;
+                }
+
+                String[] tableAndColumn = column.getAliasDotColumn().split("\\.");
+                if (!tableAndColumn[0].equalsIgnoreCase(factTableName)) {
+                    return;
+                }
+                if (checkedTableColumnMap.containsKey(tableAndColumn[1].toUpperCase(Locale.ROOT))) {
+                    checkedTableColumnMap.get(tableAndColumn[1]).add(column.getId());
+                }
+
+            });
+
+            checkedTableColumnMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            if (!checkedTableColumnMap.isEmpty()) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
+                                + JsonUtil.writeValueAsStringQuietly(checkedTableColumnMap));
+            }
+        }
+
+        /**
+         * check user defined name conflict with existing dimension & measure
+         */
+        private static void checkUserDefinedRecNames(OptRecV2 recommendation, String project,
+                Map<Integer, String> userDefinedRecNameMap) {
+            Map<String, Set<Integer>> checkedDimensionMap = Maps.newHashMap();
+            Map<String, Set<Integer>> checkedMeasureMap = Maps.newHashMap();
+            Map<String, Set<Integer>> checkedCCMap = Maps.newHashMap();
+
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
+            model.getAllNamedColumns().forEach(column -> {
+                if (column.isDimension()) {
+                    checkedDimensionMap.putIfAbsent(column.getName(), Sets.newHashSet());
+                    checkedDimensionMap.get(column.getName()).add(column.getId());
+                }
+            });
+            model.getAllMeasures().forEach(measure -> {
+                if (measure.isTomb()) {
+                    return;
+                }
+                checkedMeasureMap.putIfAbsent(measure.getName(), Sets.newHashSet());
+                checkedMeasureMap.get(measure.getName()).add(measure.getId());
+            });
+
+            userDefinedRecNameMap.forEach((id, name) -> {
+                if (id >= 0) {
+                    return;
+                }
+                RawRecItem rawRecItem = recommendation.getRawRecItemMap().get(-id);
+                if (rawRecItem.getType() == RawRecItem.RawRecType.DIMENSION) {
+                    checkedDimensionMap.putIfAbsent(name, Sets.newHashSet());
+                    Set<Integer> idSet = checkedDimensionMap.get(name);
+                    idSet.remove(rawRecItem.getDependIDs()[0]);
+                    idSet.add(id);
+                }
+                if (rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                    checkedCCMap.putIfAbsent(name, Sets.newHashSet());
+                    Set<Integer> idSet = checkedCCMap.get(name);
+                    idSet.add(id);
+                }
+                if (rawRecItem.getType() == RawRecItem.RawRecType.MEASURE) {
+                    checkedMeasureMap.putIfAbsent(name, Sets.newHashSet());
+                    checkedMeasureMap.get(name).add(id);
+                }
+            });
+            checkedDimensionMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            checkedMeasureMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            checkedCCMap.entrySet().removeIf(entry -> entry.getValue().size() < 2);
+            Map<String, Set<Integer>> conflictMap = Maps.newHashMap();
+            checkedDimensionMap.forEach((name, idSet) -> {
+                conflictMap.putIfAbsent(name, Sets.newHashSet());
+                conflictMap.get(name).addAll(idSet);
+            });
+            checkedMeasureMap.forEach((name, idSet) -> {
+                conflictMap.putIfAbsent(name, Sets.newHashSet());
+                conflictMap.get(name).addAll(idSet);
+            });
+            checkedCCMap.forEach((name, idSet) -> {
+                conflictMap.putIfAbsent(name, Sets.newHashSet());
+                conflictMap.get(name).addAll(idSet);
+            });
+            conflictMap.entrySet().removeIf(entry -> entry.getValue().stream().allMatch(id -> id >= 0));
+            if (!conflictMap.isEmpty()) {
+                throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                        MsgPicker.getMsg().get_ALIAS_CONFLICT_OF_APPROVING_RECOMMENDATION() + "\n"
+                                + JsonUtil.writeValueAsStringQuietly(conflictMap));
             }
         }
     }
