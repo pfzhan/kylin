@@ -28,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
@@ -49,6 +50,14 @@ public final class FileUtils {
             }
         }
         return null;
+    }
+
+    public static Map<String, String> readFromPropertiesFile(File file) {
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            return readFromPropertiesFile(fileInputStream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static Map<String, String> readFromPropertiesFile(InputStream inputStream) {

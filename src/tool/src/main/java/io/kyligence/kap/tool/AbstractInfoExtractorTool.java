@@ -77,7 +77,12 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.tool.constant.DiagSubTaskEnum;
+import io.kyligence.kap.tool.constant.SensitiveConfigKeysConstant;
 import io.kyligence.kap.tool.constant.StageEnum;
+import io.kyligence.kap.tool.obf.KylinConfObfuscator;
+import io.kyligence.kap.tool.obf.MappingRecorder;
+import io.kyligence.kap.tool.obf.ObfLevel;
+import io.kyligence.kap.tool.obf.ResultRecorder;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
@@ -128,6 +133,12 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     @SuppressWarnings("static-access")
     static final Option OPTION_DIAGID = OptionBuilder.getInstance().withArgName("diagId").hasArg().isRequired(false)
             .withDescription("Specify whether diag from web").create("diagId");
+
+    static final Option OPTION_OBF_LEVEL = OptionBuilder.getInstance().withArgName("obfLevel").hasArg()
+            .isRequired(false)
+            .withDescription("specify obfuscate level of the diagnostic package: \nRAW means no obfuscate,\n"
+                    + "OBF means obfuscate,\nDefault obfuscate level is OBF.")
+            .create("obfLevel");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";
     private static final String[] COMMIT_SHA1_FILES = { "commit_SHA1", "commit.sha1" };
@@ -181,6 +192,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         options.addOption(OPTION_START_TIME);
         options.addOption(OPTION_END_TIME);
         options.addOption(OPTION_DIAGID);
+        options.addOption(OPTION_OBF_LEVEL);
 
         packageType = DEFAULT_PACKAGE_TYPE;
 
@@ -198,6 +210,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     /**
      * extract the diagnosis package content.
+     *
      * @param optionsHelper
      * @param exportDir
      * @throws Exception
@@ -251,6 +264,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         mainTaskComplete = false;
         executeExtract(optionsHelper, exportDir);
         mainTaskComplete = true;
+        obfDiag(optionsHelper, exportDir);
         // compress to zip package
         if (shouldCompress) {
             stage = StageEnum.COMPRESS;
@@ -270,6 +284,25 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         if (isDiagFromWeb(optionsHelper)) {
             reportDiagProgressImmediately(optionsHelper.getOptionValue(OPTION_DIAGID));
             ExecutorServiceUtil.forceShutdown(timerExecutorService);
+        }
+    }
+
+    String getObfMappingPath() {
+        return KylinConfig.getKylinHome() + "/logs/obfuscation-mapping.json";
+    }
+
+    protected void obfDiag(OptionsHelper optionsHelper, File rootDir) throws IOException {
+        logger.info("Start obf diag file.");
+        ObfLevel obfLevel = ObfLevel.valueOf(kylinConfig.getDiagObfLevel());
+        if (optionsHelper.hasOption(OPTION_OBF_LEVEL)) {
+            obfLevel = ObfLevel.valueOf(optionsHelper.getOptionValue(OPTION_OBF_LEVEL));
+        }
+        logger.info("Obf level is {}.", obfLevel);
+        try (MappingRecorder recorder = new MappingRecorder(null)) {
+            ResultRecorder resultRecorder = new ResultRecorder();
+            KylinConfObfuscator kylinConfObfuscator = new KylinConfObfuscator(obfLevel, recorder, resultRecorder);
+            kylinConfObfuscator.obfuscate(new File(rootDir, SensitiveConfigKeysConstant.CONF_DIR),
+                    file -> (file.isFile() && file.getName().startsWith(SensitiveConfigKeysConstant.KYLIN_PROPERTIES)));
         }
     }
 

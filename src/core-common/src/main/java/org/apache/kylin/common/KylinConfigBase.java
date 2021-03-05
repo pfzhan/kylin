@@ -44,7 +44,6 @@ package org.apache.kylin.common;
 
 import static java.lang.Math.toIntExact;
 
-import io.kyligence.kap.common.util.SizeConvertUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -67,9 +66,6 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
-import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -87,10 +83,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.common.util.SizeConvertUtil;
+import io.kyligence.kap.common.util.Unsafe;
 import lombok.val;
 
 /**
@@ -2472,6 +2472,7 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean skipFreshAlluxio() {
         return Boolean.parseBoolean(getOptional("kylin.build.skip-fresh-alluxio", FALSE));
     }
+
     public Set<String> getNonCustomProjectConfigs() {
         String configs = getOptional("kylin.server.non-custom-project-configs");
         if (StringUtils.isEmpty(configs)) {
@@ -2481,4 +2482,7 @@ public abstract class KylinConfigBase implements Serializable {
         }
     }
 
+    public String getDiagObfLevel() {
+        return getOptional("kylin.diag.obf.level", "OBF").toUpperCase(Locale.ROOT);
+    }
 }
