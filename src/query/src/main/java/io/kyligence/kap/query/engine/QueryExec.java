@@ -129,7 +129,8 @@ public class QueryExec {
                 return new QueryResult();
             }
 
-            if (kylinConfig.getEmptyResultForSelectStar() && sql.toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")) {
+            if (kylinConfig.getEmptyResultForSelectStar() && sql.toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")
+                    && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 return new QueryResult(Lists.newArrayList(), resultFields);
             }
 
