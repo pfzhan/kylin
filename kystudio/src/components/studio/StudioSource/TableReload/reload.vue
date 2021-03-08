@@ -247,10 +247,10 @@ export default class ReloadTableModal extends Vue {
       })
       if (type && type === 'refreshIndex') {
         this.reloadLoading1 = false
-        message = `${this.openSample ? this.$t('reloadSuccess', {tableName: this.tableName}) + this.$t('sampleSuccess') + (this.$lang === 'zh-cn' ? this.$t('and') : '') + this.$t('structureSuccess') + this.$t('concludingRemarks') : this.$t('reloadSuccess', {tableName: this.tableName}) + this.$t('structureSuccess') + this.$t('concludingRemarks')}`
+        message = `${this.openSample ? this.$t('reloadSuccess', {tableName: this.tableName}) + (this.$lang === 'zh-cn' ? this.$t('kylinLang.common.dot') : '') + this.$t('sampleSuccess') + (this.$lang === 'zh-cn' ? this.$t('and') : '') + this.$t('structureSuccess') + this.$t('concludingRemarks') : this.$t('reloadSuccess', {tableName: this.tableName}) + (this.$lang === 'zh-cn' ? this.$t('kylinLang.common.dot') : '') + this.$t('structureSuccess') + this.$t('concludingRemarks') + this.$t('kylinLang.common.dot')}`
       } else {
         this.reloadLoading = false
-        message = this.$t('reloadSuccess', {tableName: this.tableName}) + (this.openSample ? this.$t('sampleSuccess') + this.$t('concludingRemarks') : '')
+        message = this.$t('reloadSuccess', {tableName: this.tableName}) + (this.openSample ? (this.$lang === 'zh-cn' ? this.$t('kylinLang.common.dot') : '') + this.$t('sampleSuccess') + this.$t('concludingRemarks') : '') + this.$t('kylinLang.common.dot')
       }
       this.$message({
         message,
