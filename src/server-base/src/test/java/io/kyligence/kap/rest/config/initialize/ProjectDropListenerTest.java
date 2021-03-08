@@ -27,6 +27,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -34,22 +35,40 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.val;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ MetricsGroup.class, UserGroupInformation.class })
 public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
-
     @Before
-    public void setup() {
+    public void setup() throws IOException {
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         createTestMetadata();
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+
+        PrometheusMetricsGroup prometheusMetricsGroup = new PrometheusMetricsGroup(new SimpleMeterRegistry());
+        ReflectionTestUtils.getField(prometheusMetricsGroup, "meterRegistry");
+        PowerMockito.mockStatic(MetricsGroup.class);
     }
 
     @After

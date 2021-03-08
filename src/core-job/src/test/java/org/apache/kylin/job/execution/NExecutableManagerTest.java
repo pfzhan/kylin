@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -606,4 +607,55 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(appIds.contains("test2"));
 
     }
+
+    @Test
+    public void testGetLastSuccessExecByModel() {
+        String modelId = "1";
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setTargetSubject(modelId);
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, Collections.emptyMap(), null, null);
+
+        modelId = "2";
+        executable = new SucceedTestExecutable();
+        executable.setTargetSubject(modelId);
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, Collections.emptyMap(), null, null);
+
+        AbstractExecutable result = manager.getLastSuccessExecByModel(modelId);
+        Assert.assertEquals(result.getTargetSubject(), modelId);
+
+        result = manager.getLastSuccessExecByModel("3");
+        Assert.assertNull(result);
+
+    }
+
+    @Test
+    public void testGetMaxDurationRunningExecByModel() {
+        String modelId = "1";
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setTargetSubject(modelId);
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+
+        modelId = "2";
+        executable = new SucceedTestExecutable();
+        executable.setTargetSubject(modelId);
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+
+        AbstractExecutable result = manager.getMaxDurationRunningExecByModel(modelId);
+        Assert.assertEquals(result.getTargetSubject(), modelId);
+
+        result = manager.getMaxDurationRunningExecByModel("3");
+        Assert.assertNull(result);
+    }
+
+
 }

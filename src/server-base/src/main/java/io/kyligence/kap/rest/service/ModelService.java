@@ -1020,9 +1020,10 @@ public class ModelService extends BasicService {
     public void dropModel(String modelId, String project) {
         aclEvaluate.checkProjectWritePermission(project);
         checkModelPermission(project, modelId);
+        val modelName = getModelById(modelId, project).getAlias();
         dropModel(modelId, project, false);
         UnitOfWorkContext context = UnitOfWork.get();
-        context.doAfterUnit(() -> ModelDropAddListener.onDelete(project, modelId));
+        context.doAfterUnit(() -> ModelDropAddListener.onDelete(project, modelId, modelName));
     }
 
     void dropModel(String modelId, String project, boolean ignoreType) {

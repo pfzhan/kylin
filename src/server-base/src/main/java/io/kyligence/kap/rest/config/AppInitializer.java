@@ -23,20 +23,11 @@
  */
 package io.kyligence.kap.rest.config;
 
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -45,12 +36,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
 
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.MetricsController;
-import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
@@ -59,17 +47,15 @@ import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.config.initialize.CacheCleanListner;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
-import io.kyligence.kap.rest.config.initialize.CacheCleanListner;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
@@ -106,11 +92,6 @@ public class AppInitializer {
 
     @Autowired
     HostInfoFetcher hostInfoFetcher;
-
-    private static final ScheduledExecutorService METRICS_SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(2,
-            new NamedThreadFactory("MetricsChecker"));
-
-    private static final Set<String> allControlledProjects = Collections.synchronizedSet(new HashSet<>());
 
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
@@ -200,48 +181,8 @@ public class AppInitializer {
                     new Date(System.currentTimeMillis() + kylinConfig.getGuardianHACheckInitDelay() * Constant.SECOND),
                     kylinConfig.getGuardianHACheckInterval() * Constant.SECOND);
         }
-
-        registerMetrics();
     }
 
-    /**
-     * register all metrics
-     */
-    private void registerMetrics() {
-        String host = clusterManager.getLocalServer();
-
-        log.info("Register global metrics...");
-        MetricsRegistry.registerGlobalMetrics(KylinConfig.getInstanceFromEnv(), host);
-
-        log.info("Register host metrics...");
-        MetricsRegistry.registerHostMetrics(host);
-
-        METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
-            Set<String> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
-                    .stream().map(ProjectInstance::getName).collect(Collectors.toSet());
-
-            Sets.SetView<String> newProjects = Sets.difference(allProjects, allControlledProjects);
-            for (String newProject : newProjects) {
-                log.info("Register project metrics for {}", newProject);
-                MetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
-            }
-
-            Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);
-
-            for (String outDatedProject : outDatedProjects) {
-                log.info("Remove project metrics for {}", outDatedProject);
-                MetricsGroup.removeProjectMetrics(outDatedProject);
-                MetricsRegistry.removeProjectFromStorageSizeMap(outDatedProject);
-            }
-
-            allControlledProjects.clear();
-            allControlledProjects.addAll(allProjects);
-
-        }, 1, 1, TimeUnit.MINUTES);
-
-        METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(MetricsRegistry::refreshTotalStorageSize,
-                0, 10, TimeUnit.MINUTES);
-    }
 
     private void postInit() {
         AddressUtil.setHostInfoFetcher(hostInfoFetcher);

@@ -37,6 +37,15 @@ server:
 
 management:
   context-path: "/api"
+  security:
+    enabled: false
+
+endpoints:
+  enabled: true
+  prometheus:
+    enabled: true
+  health:
+    enabled: true
 
 spring:
   http:

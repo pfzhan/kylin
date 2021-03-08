@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,7 +53,6 @@ import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 @ContextConfiguration(classes = IntegrationConfig.class)
 @WebAppConfiguration
 @EnableWebMvc
-@SpringBootTest
 @WithMockUser(username = "ADMIN", roles = "ADMIN")
 @AutoConfigureMockMvc
 @ActiveProfiles("testing")

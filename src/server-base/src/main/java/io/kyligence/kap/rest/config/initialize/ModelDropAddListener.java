@@ -25,8 +25,12 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.Maps;
@@ -35,6 +39,8 @@ import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.util.ModelUtils;
@@ -43,9 +49,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ModelDropAddListener {
 
-    public static void onDelete(String project, String modelId) {
+    public static void onDelete(String project, String modelId, String modelName) {
         log.debug("delete model {} in project {}", modelId, project);
         MetricsGroup.removeModelMetrics(project, modelId);
+        PrometheusMetricsGroup.removeModelMetrics(project, modelName);
     }
 
     public static void onAdd(String project, String modelId, String modelAlias) {
@@ -102,6 +109,22 @@ public class ModelDropAddListener {
         MetricsGroup.newCounter(MetricsName.MODEL_BUILD_DURATION, MetricsCategory.PROJECT, project, tags);
         MetricsGroup.newCounter(MetricsName.MODEL_WAIT_DURATION, MetricsCategory.PROJECT, project, tags);
         MetricsGroup.newHistogram(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT, project, tags);
+
+        // add prometheus metrics
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+
+        JobTypeEnum[] jobTypeEnums = JobTypeEnum.getTypesForPrometheus();
+        PrometheusMetricsGroup.newModelGauge(PrometheusMetricsNameEnum.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD,
+                project, modelAlias, executableManager, manager -> {
+                    AbstractExecutable lastSuccessJob = manager.getLastSuccessExecByModel(modelId, jobTypeEnums);
+                    AbstractExecutable currentRunningJob = manager.getMaxDurationRunningExecByModel(modelId, jobTypeEnums);
+                    if (Objects.isNull(lastSuccessJob) || Objects.isNull(currentRunningJob)
+                            || lastSuccessJob.getDuration() <= 0) {
+                        return 0.0;
+                    }
+                    return (currentRunningJob.getDuration() - lastSuccessJob.getDuration()) / (double) lastSuccessJob.getDuration();
+                });
     }
 
     abstract static class GaugeWrapper implements Gauge<Long> {

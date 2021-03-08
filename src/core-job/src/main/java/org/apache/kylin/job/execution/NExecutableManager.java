@@ -41,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -63,6 +64,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -339,13 +341,29 @@ public class NExecutableManager {
     }
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-            JobTypeEnum jobType) {
+            JobTypeEnum... jobTypes) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
                 .filter(e -> predicate.test(e.getStatus())) //
-                .filter(e -> jobType == null || jobType == e.getJobType()) //
+                .filter(e -> Array.isEmpty(jobTypes) || Lists.newArrayList(jobTypes).contains(e.getJobType())) //
                 .collect(Collectors.toList());
+    }
+
+    public AbstractExecutable getLastSuccessExecByModel(String modelId, JobTypeEnum... jobTypes) {
+        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId, state -> ExecutableState.SUCCEED == state, jobTypes);
+        if (CollectionUtils.isEmpty(executables)) {
+            return null;
+        }
+        return executables.stream().max(Comparator.comparingLong(AbstractExecutable::getEndTime)).orElse(null);
+    }
+
+    public AbstractExecutable getMaxDurationRunningExecByModel(String modelId, JobTypeEnum... jobTypes) {
+        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId, state -> ExecutableState.RUNNING == state, jobTypes);
+        if (CollectionUtils.isEmpty(executables)) {
+            return null;
+        }
+        return executables.stream().max(Comparator.comparingLong(AbstractExecutable::getDuration)).orElse(null);
     }
 
     public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,

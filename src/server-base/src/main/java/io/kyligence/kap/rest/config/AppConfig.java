@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import io.kyligence.kap.common.util.DefaultHostInfoFetcher;
 import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.rest.interceptor.ReloadAuthoritiesInterceptor;
+import io.micrometer.core.instrument.config.MeterFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -186,5 +187,10 @@ public class AppConfig extends WebMvcConfigurerAdapter {
     public void addInterceptors(InterceptorRegistry registry) {
         super.addInterceptors(registry);
         registry.addInterceptor(getReloadAuthoritiesInterceptor());
+    }
+
+    @Bean
+    MeterFilter excludeNonKylinMetrics() {
+        return MeterFilter.deny(id -> !id.getName().startsWith("kylin"));
     }
 }

@@ -45,5 +45,11 @@ package org.apache.kylin.job.execution;
 public enum JobTypeEnum {
     INDEX_REFRESH, INDEX_MERGE, INDEX_BUILD, INC_BUILD, SNAPSHOT_BUILD, SNAPSHOT_REFRESH,
 
-    SUB_PARTITION_BUILD, SUB_PARTITION_REFRESH, TABLE_SAMPLING
+    SUB_PARTITION_BUILD, SUB_PARTITION_REFRESH, TABLE_SAMPLING;
+
+    public static JobTypeEnum[] getTypesForPrometheus() {
+        // exclude snapshot and sampling
+        return new JobTypeEnum[] { INDEX_REFRESH, INDEX_MERGE, INDEX_BUILD, INC_BUILD, SUB_PARTITION_BUILD,
+                SUB_PARTITION_REFRESH };
+    }
 }

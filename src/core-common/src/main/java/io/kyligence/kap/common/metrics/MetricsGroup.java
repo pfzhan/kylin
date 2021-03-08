@@ -53,7 +53,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricSet;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
@@ -237,11 +236,15 @@ public class MetricsGroup {
         }
     }
 
-    @VisibleForTesting
     public static Counter getCounter(MetricsName name, MetricsCategory category, String entity,
             Map<String, String> tags) {
         final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
         return counters.get(metricName);
+    }
+
+    public static <T> Gauge<T> getGauge(MetricsName name, MetricsCategory category, String entity, Map<String, String> tags) {
+        final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
+        return MetricsController.getDefaultMetricRegistry().getGauges().get(metricName);
     }
 
     public static boolean registerProjectMetrics(final String projectName, final String host) {

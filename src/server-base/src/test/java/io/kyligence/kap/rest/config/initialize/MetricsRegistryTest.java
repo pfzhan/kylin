@@ -25,9 +25,15 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.job.execution.BaseTestExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.rest.util.SpringContext;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,13 +48,20 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, MetricsGroup.class, UserGroupInformation.class })
 public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
+
+    private MeterRegistry meterRegistry;
 
     private String project = "default";
 
@@ -70,9 +83,13 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
                 "totalStorageSizeMap");
         totalStorageSizeMap.put(project, 1L);
 
+        PrometheusMetricsGroup prometheusMetricsGroup = new PrometheusMetricsGroup(new SimpleMeterRegistry());
+        meterRegistry = (MeterRegistry) ReflectionTestUtils.getField(prometheusMetricsGroup,
+                "meterRegistry");
+
+        PowerMockito.mockStatic(MetricsGroup.class);
         PowerMockito.mockStatic(MetricsGroup.class);
         PowerMockito.mockStatic(SpringContext.class);
-
     }
 
     @Test
@@ -97,4 +114,38 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(totalStorageSizeMap.size(), 0);
     }
 
+    @Test
+    public void testRegisterMicrometerGlobalMetrics() {
+        MetricsRegistry.registerMicrometerGlobalMetrics();
+        List<Meter> meters = meterRegistry.getMeters();
+        Assert.assertEquals(1, meters.size());
+    }
+
+    @Test
+    public void testRegisterMicrometerProjectMetrics() {
+        MetricsRegistry.registerMicrometerProjectMetrics(getTestConfig(), project);
+        List<Meter> meters = meterRegistry.getMeters();
+        Assert.assertEquals(2, meters.size());
+    }
+
+    @Test
+    public void testRegisterMicrometerJobMetrics() {
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+
+        String modelId = "1";
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setTargetSubject(modelId);
+        executable.setProject("default");
+        executableManager.addJob(executable);
+        executableManager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+
+        MetricsRegistry.registerMicrometerJobMetrics(executableManager, project,
+                PrometheusMetricsNameEnum.JOB_RUNNING_DURATION_MAX, ExecutableState.RUNNING);
+        List<Meter> meters = meterRegistry.getMeters();
+        Assert.assertEquals(1, meters.size());
+
+        thrown.expect(IllegalStateException.class);
+        MetricsRegistry.registerMicrometerJobMetrics(executableManager, project,
+                PrometheusMetricsNameEnum.QUERY_SLOW_TIMES, ExecutableState.SUCCEED);
+    }
 }

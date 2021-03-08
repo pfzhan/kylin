@@ -31,6 +31,7 @@ import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.ToDoubleFunction;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -48,6 +49,8 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
@@ -140,13 +143,13 @@ public class MetricsRegistry {
                 host, () -> {
                     LoadDesc loadDesc = LoadCounter.getLoadDesc();
                     return loadDesc.getLoad();
-                });
+        });
 
         MetricsGroup.newGauge(MetricsName.CPU_CORES, MetricsCategory.HOST,
                 host, () -> {
                     LoadDesc loadDesc = LoadCounter.getLoadDesc();
                     return loadDesc.getCoreNum();
-                });
+        });
 
     }
 
@@ -228,5 +231,44 @@ public class MetricsRegistry {
 
     static void registerModelMetrics(String project, String modelId, String modelAlias) {
         ModelDropAddListener.onAdd(project, modelId, modelAlias);
+    }
+
+    public static void registerMicrometerGlobalMetrics() {
+        PrometheusMetricsGroup.newJvmGcPauseMetric();
+    }
+
+    public static void registerMicrometerProjectMetrics(KylinConfig config, String project) {
+        val counterMetrics = PrometheusMetricsNameEnum.listProjectMetricsFromCounter();
+        counterMetrics.forEach(metricName -> PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(metricName, project));
+
+        val metricsWithoutHostTag = PrometheusMetricsNameEnum.listProjectMetricsFromGaugeWithoutHostTag();
+        metricsWithoutHostTag.forEach(metricName -> PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(metricName, project));
+
+        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        registerMicrometerJobMetrics(executableManager, project, PrometheusMetricsNameEnum.JOB_WAIT_DURATION_MAX, ExecutableState.READY);
+        registerMicrometerJobMetrics(executableManager, project, PrometheusMetricsNameEnum.JOB_RUNNING_DURATION_MAX, ExecutableState.RUNNING);
+    }
+
+    public static void registerMicrometerJobMetrics(NExecutableManager executableManager, String project,
+            PrometheusMetricsNameEnum metricsName, ExecutableState state) {
+        ToDoubleFunction<AbstractExecutable> function;
+        switch (metricsName) {
+            case JOB_WAIT_DURATION_MAX:
+                function = AbstractExecutable::getWaitTime;
+                break;
+            case JOB_RUNNING_DURATION_MAX:
+                function = AbstractExecutable::getDuration;
+                break;
+            default:
+                throw new IllegalStateException("Invalid metric name: " + metricsName.getValue());
+        }
+
+        PrometheusMetricsGroup.newProjectGauge(metricsName, project, executableManager, manager -> {
+            List<AbstractExecutable> specificStatusJob = manager.getExecutablesByStatus(state);
+            return specificStatusJob.stream()
+                    .mapToDouble(function)
+                    .max()
+                    .orElse(0);
+        });
     }
 }
