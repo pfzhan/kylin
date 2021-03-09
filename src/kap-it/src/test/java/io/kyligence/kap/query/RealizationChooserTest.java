@@ -55,6 +55,7 @@ import org.junit.Test;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
@@ -496,12 +497,20 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         val sql1_date = sql
                 + "where cal_dt = DATE '2012-01-01' and test_account.ACCOUNT_SELLER_LEVEL = 1 ";
         expectedRanges.add(segmentRange1);
-        assertPrunedSegmentsRange(project, sql1_date, dfId, expectedRanges, layout_20000000001, null);
+        assertPrunedSegmentsRange(
+                project, sql1_date, dfId, expectedRanges, layout_20000000001, null,
+                "AND(=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01), =(DEFAULT.TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL, 1))");
+    }
+
+    private void assertPrunedSegmentsRange(String project, String sql, String dfId,
+                                           List<Pair<String, String>> expectedRanges, long expectedLayoutId,
+                                           Map<String, List<Long>> expectedPartitions) throws SQLException {
+        assertPrunedSegmentsRange(project, sql, dfId, expectedRanges, expectedLayoutId, expectedPartitions, null);
     }
 
     private void assertPrunedSegmentsRange(String project, String sql, String dfId,
             List<Pair<String, String>> expectedRanges, long expectedLayoutId,
-            Map<String, List<Long>> expectedPartitions) throws SQLException {
+            Map<String, List<Long>> expectedPartitions, String expectedFilterCond) throws SQLException {
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(proposeContext);
         smartMaster.runUtWithContext(null);
@@ -540,6 +549,11 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 continue;
             Assert.assertEquals(expectedPartitions.size(), prunedPartitions.size());
             Assert.assertEquals(expectedPartitions.get(segment.getId()), prunedPartitions.get(segment.getId()));
+        }
+
+        if (expectedFilterCond != null) {
+            Assert.assertEquals(expectedFilterCond,
+                    context.getExpandedFilterConditions().stream().map(f -> f.toString()).collect(Collectors.joining(",")));
         }
     }
 

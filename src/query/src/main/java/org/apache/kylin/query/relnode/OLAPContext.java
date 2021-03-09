@@ -466,7 +466,7 @@ public class OLAPContext {
         for (TableScan tableScan : sorted) {
             if (tableScan == table) {
                 return new RexInputRef(
-                        table.getRowType().getFieldList().get(columnIdx).getName(),
+                        table.getTableName() + "." + table.getRowType().getFieldList().get(columnIdx).getName(),
                         offset + columnIdx,
                         table.getRowType().getFieldList().get(columnIdx).getType());
             }
