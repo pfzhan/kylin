@@ -103,7 +103,7 @@ public class KylinConfigExt extends KylinConfig {
         // overrides > env > properties
         final Map<String, Object> all = Maps.newHashMap();
         all.putAll((Map) properties);
-        all.putAll(System.getenv());
+        all.putAll(STATIC_SYSTEM_ENV);
         all.putAll(overrides);
         return new StrSubstitutor(all);
     }

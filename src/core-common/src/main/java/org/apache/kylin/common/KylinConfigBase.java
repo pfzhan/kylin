@@ -64,6 +64,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -119,6 +120,8 @@ public abstract class KylinConfigBase implements Serializable {
     public static final String DIAG_ID_PREFIX = "front_";
 
     private static final String LOOPBACK = "127.0.0.1";
+
+    protected static final Map<String, String> STATIC_SYSTEM_ENV = new ConcurrentHashMap<>(System.getenv());
 
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
@@ -216,7 +219,7 @@ public abstract class KylinConfigBase implements Serializable {
         // env > properties
         final Map<String, Object> all = Maps.newHashMap();
         all.putAll((Map) properties);
-        all.putAll(System.getenv());
+        all.putAll(STATIC_SYSTEM_ENV);
 
         return new StrSubstitutor(all);
     }

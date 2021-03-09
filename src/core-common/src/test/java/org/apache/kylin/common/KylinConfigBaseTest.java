@@ -42,15 +42,28 @@
 
 package org.apache.kylin.common;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -63,6 +76,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.ProcessUtils;
+
+import static org.junit.Assert.assertEquals;
 
 public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
@@ -895,5 +910,163 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         TimeZoneUtils.setDefaultTimeZone(config);
         ZoneId zoneId1 = TimeZone.getDefault().toZoneId();
         Assert.assertEquals(zoneId, zoneId1);
+    }
+
+    @Test(timeout = 5000)
+    public void testMultipleUpdateEnvironment() {
+        EnvironmentUpdateUtils.put("test.environment1", "test.value1");
+        EnvironmentUpdateUtils.put("test.environment2", "test.value2");
+        assertEquals("Environment was not set propertly", "test.value1", System.getenv("test.environment1"));
+        assertEquals("Environment was not set propertly", "test.value2", System.getenv("test.environment2"));
+    }
+
+    @Test
+    public void testConcurrentRequests() throws InterruptedException {
+        int timeoutSecond = 5;
+        int concurThread = 10;
+        int exceptionCount = 0;
+        List<ListenableFuture<Object>> pendingTasks = new ArrayList<>();
+        final ExecutorService callbackExecutor = Executors.newFixedThreadPool(concurThread,
+                new ThreadFactoryBuilder().setDaemon(false).setNameFormat("CallbackExecutor").build());
+        ListeningExecutorService taskExecutorService =
+                MoreExecutors.listeningDecorator(callbackExecutor);
+        while(concurThread > 0){
+            ListenableFuture<Object> runningTaskFuture =
+                    taskExecutorService.submit(new EnvironmentRequest());
+            pendingTasks.add(runningTaskFuture);
+            concurThread--;
+        }
+
+        // no concurrent exception
+        KylinConfig.getInstanceFromEnv().getOptional("test.environment.concurrent");
+
+        //waiting for all threads submitted to thread pool
+        for (ListenableFuture<Object> future : pendingTasks) {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                exceptionCount++;
+            }
+        }
+
+        //stop accepting new threads and shutdown threadpool
+        taskExecutorService.shutdown();
+        try {
+            if(!taskExecutorService.awaitTermination(timeoutSecond, TimeUnit.SECONDS)) {
+                taskExecutorService.shutdownNow();
+            }
+        } catch (InterruptedException ie) {
+            taskExecutorService.shutdownNow();
+        }
+
+        assertEquals(0, exceptionCount);
+    }
+
+    private class EnvironmentRequest implements Callable<Object> {
+
+        @Override
+        public Object call() throws Exception {
+            EnvironmentUpdateUtils.put("test.environment.concurrent"
+                    +Thread.currentThread().getId(), "test.evironment.concurrent");
+            return null;
+        }
+    }
+}
+
+class EnvironmentUpdateUtils {
+
+    /**
+     * Allows dynamic update to the environment variables. After calling put,
+     * System.getenv(key) will then return value.
+     *
+     * @param key   System environment variable
+     * @param value Value to assign to system environment variable
+     */
+    public synchronized static void put(String key, String value) {
+        Map<String, String> environment = new HashMap<String, String>(System.getenv());
+        environment.put(key, value);
+        if (!Shell.WINDOWS) {
+            updateEnvironment(environment);
+        } else {
+            updateEnvironmentOnWindows(environment);
+        }
+    }
+
+    /**
+     * Allows dynamic update to a collection of environment variables. After
+     * calling putAll, System.getenv(key) will then return value for each entry
+     * in the map
+     *
+     * @param additionalEnvironment Collection where the key is the System
+     *                              environment variable and the value is the value to assign the system
+     *                              environment variable
+     */
+    public synchronized static void putAll(Map<String, String> additionalEnvironment) {
+        Map<String, String> environment = new HashMap<>(System.getenv());
+        environment.putAll(additionalEnvironment);
+        if (!Shell.WINDOWS) {
+            updateEnvironment(environment);
+        } else {
+            updateEnvironmentOnWindows(environment);
+        }
+    }
+
+    /**
+     * Finds and modifies internal storage for system environment variables using
+     * reflection
+     *
+     * @param environment Collection where the key is the System
+     *                    environment variable and the value is the value to assign the system
+     *                    environment variable
+     */
+    @SuppressWarnings("unchecked")
+    private static void updateEnvironment(Map<String, String> environment) {
+        final Map<String, String> currentEnv = System.getenv();
+        copyMapValuesToPrivateField(currentEnv.getClass(), currentEnv, "m", environment);
+    }
+
+    /**
+     * Finds and modifies internal storage for system environment variables using reflection. This
+     * method works only on windows. Note that the actual env is not modified, rather the copy of env
+     * which the JVM creates at the beginning of execution is.
+     *
+     * @param environment Collection where the key is the System
+     *                    environment variable and the value is the value to assign the system
+     *                    environment variable
+     */
+    @SuppressWarnings("unchecked")
+    private static void updateEnvironmentOnWindows(Map<String, String> environment) {
+        try {
+            Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+            copyMapValuesToPrivateField(processEnvironmentClass, null, "theEnvironment", environment);
+            copyMapValuesToPrivateField(processEnvironmentClass, null, "theCaseInsensitiveEnvironment",
+                    environment);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Failed to update Environment variables", e);
+        }
+    }
+
+    /**
+     * Copies the given map values to the field specified by {@code fieldName}
+     *
+     * @param klass        The {@code Class} of the object
+     * @param object       The object to modify or null if the field is static
+     * @param fieldName    The name of the field to set
+     * @param newMapValues The values to replace the current map.
+     */
+    @SuppressWarnings("unchecked")
+    private static void copyMapValuesToPrivateField(Class<?> klass, Object object, String fieldName,
+                                                    Map<String, String> newMapValues) {
+        try {
+            Field field = klass.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Map<String, String> currentMap = (Map<String, String>) field.get(object);
+            currentMap.clear();
+            currentMap.putAll(newMapValues);
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException("Failed to update Environment variables", e);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Failed to update Environment variables", e);
+        }
     }
 }
