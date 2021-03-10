@@ -50,6 +50,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -212,6 +213,30 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, getProject());
         Assert.assertTrue(indexPlanManager.listAllIndexPlans().stream()
                 .anyMatch(indexPlan -> !indexPlan.getOverrideProps().isEmpty()));
+    }
+
+    @Test
+    public void testGetCompressedModelMetadataWithIndentJson() throws Exception {
+        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
+                Collections.singletonList("1af229fb-bb2c-42c5-9663-2bd92b50a861"), true, false, false);
+        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
+        Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(
+                new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+
+        Assert.assertFalse(rawResourceMap.isEmpty());
+
+        Assert.assertTrue(rawResourceMap.keySet().stream().anyMatch(path -> path.contains("/model_desc")));
+        Assert.assertTrue(rawResourceMap.keySet().stream().anyMatch(path -> path.contains("/index_plan")));
+        Assert.assertTrue(rawResourceMap.keySet().stream().anyMatch(path -> path.contains("/table")));
+
+        for (Map.Entry<String, RawResource> entry : rawResourceMap.entrySet()) {
+            String path = entry.getKey();
+            if (path.endsWith(".json")) {
+                RawResource rawResource = entry.getValue();
+                String jsonString = IOUtils.toString(rawResource.getByteSource().openStream(), StandardCharsets.UTF_8).trim();
+                Assert.assertEquals(JsonUtil.readValueAsTree(jsonString).toPrettyString(), jsonString);
+            }
+        }
     }
 
     @Test

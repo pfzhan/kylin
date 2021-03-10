@@ -245,11 +245,11 @@ public class MetaStoreService extends BasicService {
                 }
 
                 newResourceStore.putResourceWithoutCheck(modelDesc.getResourcePath(),
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(modelDesc)), modelDesc.getLastModified(),
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(modelDesc)), modelDesc.getLastModified(),
                         modelDesc.getMvcc());
 
                 newResourceStore.putResourceWithoutCheck(copyIndexPlan.getResourcePath(),
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(copyIndexPlan)),
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(copyIndexPlan)),
                         copyIndexPlan.getLastModified(), copyIndexPlan.getMvcc());
 
                 // Broken model can't use getAllTables method, will be intercepted in BrokenEntityProxy
