@@ -191,14 +191,6 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
         Assert.assertEquals(35, rawResourceMap.size());
 
-        // export recommendations
-        byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, true, false,
-                false);
-        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
-        rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
-        Assert.assertTrue(
-                rawResourceMap.keySet().stream().anyMatch(path -> path.startsWith("/" + getProject() + "/rec")));
-
         // export over props
         byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(), modelIdList, false, true,
                 false);
@@ -243,7 +235,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertEquals(4, rawRecItems1.size());
         // export recommendations
         val byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
-                Collections.singletonList("1af229fb-bb2c-42c5-9663-2bd92b50a861"), true, false, false);
+                Lists.newArrayList("1af229fb-bb2c-42c5-9663-2bd92b50a861", "7212bf0c-0716-4cef-b623-69c161981262"), true, false, false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         val rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
 
@@ -253,6 +245,10 @@ public class MetaStoreServiceTest extends ServiceTestBase {
 
         val arrayNode = JsonUtil.readValue(rawResource.getByteSource().openStream(), ArrayNode.class);
         Assert.assertEquals(4, arrayNode.size());
+
+        recPath = "/" + getProject() + "/rec/7212bf0c-0716-4cef-b623-69c161981262.json";
+        rawResource = rawResourceMap.get(recPath);
+        Assert.assertNull(rawResource);
     }
 
     @Test

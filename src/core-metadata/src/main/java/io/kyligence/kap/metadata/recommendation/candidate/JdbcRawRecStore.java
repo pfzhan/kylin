@@ -36,6 +36,7 @@ import static org.mybatis.dynamic.sql.SqlBuilder.min;
 import static org.mybatis.dynamic.sql.SqlBuilder.select;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -569,6 +570,9 @@ public class JdbcRawRecStore {
     }
 
     public List<RawRecItem> list(Collection<Integer> rawRecIds) {
+        if (rawRecIds.isEmpty()) {
+            return Collections.emptyList();
+        }
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);

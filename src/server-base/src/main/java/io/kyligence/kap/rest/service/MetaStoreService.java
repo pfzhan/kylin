@@ -295,9 +295,13 @@ public class MetaStoreService extends BasicService {
                         optRecV2.getRemovalLayoutRefs().keySet()) //
                 .flatMap(Collection::stream) //
                 .filter(dependId -> dependId < 0) //
-                .filter(dependId -> !optRecV2.getBrokenLayoutRefIds().contains(dependId)) //
                 .map(dependId -> -dependId) //
+                .filter(dependId -> !optRecV2.getBrokenLayoutRefIds().contains(dependId)) //
                 .collect(Collectors.toSet());
+
+        if (rawRecIds.isEmpty()) {
+            return;
+        }
 
         List<RawRecItem> rawRecItems = jdbcRawRecStore.list(rawRecIds).stream()
                 .sorted(Comparator.comparingInt(RawRecItem::getId)).collect(Collectors.toList());
@@ -686,6 +690,7 @@ public class MetaStoreService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance.isExpertMode()) {
+            optRecService.updateRecommendationCount(project, targetModelId);
             logger.info("Skip import recommendations because project {} is expert mode.", project);
             return;
         }
