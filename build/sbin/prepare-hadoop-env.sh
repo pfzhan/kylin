@@ -95,11 +95,11 @@ then
     fi
 fi
 
-function is_hdp_3_1() {
-    hadoop_common_file="`find ${hdp_hadoop_path}/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
+function is_hdp_3_x() {
+    hadoop_common_file=$(find ${hdp_hadoop_path}/ -maxdepth 1 -name hadoop-common-*.jar -not -name "*test*" | tail -1)
     hdp_version=${hadoop_common_file##*/}
 
-    if [[ "${hdp_version}" == hadoop-common-3.1* ]]; then
+    if [[ "${hdp_version}" == hadoop-common-3.* ]]; then
         echo 1
         return 1
     fi
