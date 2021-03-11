@@ -8,10 +8,10 @@
     @close="handlerClose">
     <el-form :model="form" :rules="rules" ref="form">
       <el-form-item :label="$t('config')" prop="key">
-        <el-input auto-complete="off" :disabled="editType === 'edit'" :placeholder="$t('keyPlaceholder')" @input="value => handlerInput('key', value)" :value="form.key"></el-input>
+        <el-input auto-complete="off" :disabled="editType === 'edit'" :placeholder="$t('keyPlaceholder')" @input="value => handlerInput('key', value.trim())" :value="form.key"></el-input>
       </el-form-item>
       <el-form-item :label="$t('value')" prop="value">
-        <el-input auto-complete="off" :placeholder="$t('valuePlaceholder')" @input="value => handlerInput('value', value)" :value="form.value"></el-input>
+        <el-input auto-complete="off" :placeholder="$t('valuePlaceholder')" @input="value => handlerInput('value', value)" :value="form.value.trim()"></el-input>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
@@ -171,7 +171,7 @@ export default class EditProjectConfigDialog extends Vue {
       let filterData = {
         page_offset: 0,
         page_size: 1,
-        exact: false,
+        exact: true,
         project: this.currentProjectData.name,
         permission: 'ADMINISTRATION'
       }

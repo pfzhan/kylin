@@ -257,7 +257,7 @@
       </div>
     </EditableBlock>
 
-    <EditableBlock 
+    <EditableBlock
       :header-content="$t('projectConfig')"
       :isEditable="false">
       <div class="setting-item">
@@ -374,7 +374,7 @@ export default class SettingAdvanced extends Vue {
   filterData = {
     page_offset: 0,
     page_size: 1,
-    exact: false,
+    exact: true,
     project: '',
     permission: 'ADMINISTRATION'
   }
