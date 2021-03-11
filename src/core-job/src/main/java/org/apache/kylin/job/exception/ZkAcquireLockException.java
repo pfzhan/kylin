@@ -43,23 +43,7 @@
 package org.apache.kylin.job.exception;
 
 public class ZkAcquireLockException extends RuntimeException {
-    public ZkAcquireLockException() {
-    }
-
-    public ZkAcquireLockException(String message) {
-        super(message);
-    }
-
     public ZkAcquireLockException(String message, Throwable cause) {
         super(message, cause);
-    }
-
-    public ZkAcquireLockException(Throwable cause) {
-        super(cause);
-    }
-
-    public ZkAcquireLockException(String message, Throwable cause, boolean enableSuppression,
-            boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

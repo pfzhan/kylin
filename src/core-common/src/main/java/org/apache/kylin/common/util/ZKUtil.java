@@ -44,12 +44,10 @@ package org.apache.kylin.common.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -59,7 +57,6 @@ import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.shaded.curator.org.apache.curator.RetryPolicy;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
@@ -120,10 +117,6 @@ public class ZKUtil {
 
         RetryPolicy retryPolicy = getRetryPolicy(config);
         return getZookeeperClient(config, retryPolicy, listener);
-    }
-
-    public static CuratorFramework getZookeeperClient(KylinConfig config) throws Exception {
-        return getZookeeperClient(config, null);
     }
 
     private static CuratorFramework getZookeeperClient(final KylinConfig config, final RetryPolicy retryPolicy,
@@ -201,71 +194,5 @@ public class ZKUtil {
             zkString += zkRoot;
         }
         return CuratorFrameworkFactory.newClient(zkString, 120000, 15000, retryPolicy);
-    }
-
-    public static void cleanZkPath(String path, KylinConfig kylinConfig) throws Exception {
-        CuratorFramework zkClient = getZookeeperClient(kylinConfig);
-
-        try {
-            zkClient.delete().deletingChildrenIfNeeded().forPath(path);
-        } catch (Exception e) {
-            logger.warn("Failed to delete zookeeper path: {}", path);
-            throw e;
-        }
-    }
-
-    public static void createPath(String path, KylinConfig kylinConfig) throws Exception {
-        try {
-            CuratorFramework zkClient = getZookeeperClient(kylinConfig);
-
-            if (zkClient.checkExists().forPath(path) == null) {
-                zkClient.create().creatingParentsIfNeeded().forPath(path);
-            }
-        } catch (Exception e) {
-            logger.error("Failed to create path: {}", path);
-            throw e;
-        }
-    }
-
-    public static boolean hasChild(String path, KylinConfig kylinConfig) throws Exception {
-        CuratorFramework zkClient = getZookeeperClient(kylinConfig);
-
-        try {
-            if (zkClient.checkExists().forPath(path) == null) {
-                return false;
-            }
-
-            List<String> children = zkClient.getChildren().forPath(path);
-
-            return CollectionUtils.isNotEmpty(children);
-        } catch (Exception e) {
-            logger.warn("Failed to get zookeeper children: {}", path);
-            throw e;
-        }
-    }
-
-    public static List<String> getChildren(CuratorFramework client, String path) throws Exception {
-        if (client.checkExists().forPath(path) == null) {
-            return Lists.newArrayList();
-        }
-
-        List<String> children = client.getChildren().forPath(path);
-
-        return children == null ? Lists.newArrayList() : children;
-    }
-
-    public static final class PathConstants {
-        private PathConstants() {
-
-        }
-
-        /**
-         *  /suite_id/resource_group_id/job_engines
-         */
-        public static final String JOB_ENGINE_SUB_PATH = "/%s%sjob_engines/%s_%s";
-
-        public static final String JOB_LEADER_SUB_PATH = "/%s%sjob_engine/leader";
-
-        public static final String JOB_ENGINE_ROOT_PATH = "/%s%sjob_engines";
     }
 }

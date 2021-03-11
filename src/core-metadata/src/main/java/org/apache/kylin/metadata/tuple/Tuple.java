@@ -96,14 +96,6 @@ public class Tuple implements ITuple {
         return info;
     }
 
-    public String getFieldName(TblColRef col) {
-        return info.getFieldName(col);
-    }
-
-    public TblColRef getFieldColumn(String fieldName) {
-        return info.getColumn(fieldName);
-    }
-
     public Object getValue(String fieldName) {
         int index = info.getFieldIndex(fieldName);
         return values[index];
@@ -118,17 +110,9 @@ public class Tuple implements ITuple {
         return info.getDataTypeName(idx);
     }
 
-    public void setDimensionValue(String fieldName, String fieldValue) {
-        setDimensionValue(info.getFieldIndex(fieldName), fieldValue);
-    }
-
     public void setDimensionValue(int idx, String fieldValue) {
         Object objectValue = convertOptiqCellValue(fieldValue, getDataTypeName(idx));
         values[idx] = objectValue;
-    }
-
-    public void setMeasureValue(String fieldName, Object fieldValue) {
-        setMeasureValue(info.getFieldIndex(fieldName), fieldValue);
     }
 
     public void setMeasureValue(int idx, Object fieldValue) {
@@ -179,10 +163,6 @@ public class Tuple implements ITuple {
         }
     }
 
-    public boolean hasColumn(TblColRef column) {
-        return info.hasColumn(column);
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -193,19 +173,6 @@ public class Tuple implements ITuple {
             sb.append(",");
         }
         return sb.toString();
-    }
-
-    public static long getTs(ITuple row, TblColRef partitionCol) {
-        //ts column type differentiate
-        if (partitionCol.getDatatype().equals("date")) {
-            return epicDaysToMillis(Integer.parseInt(row.getValue(partitionCol).toString()));
-        } else {
-            return Long.parseLong(row.getValue(partitionCol).toString());
-        }
-    }
-
-    private static long epicDaysToMillis(int days) {
-        return (long) days * (1000 * 3600 * 24);
     }
 
     public static Object convertOptiqCellValue(String strValue, String dataTypeName) {

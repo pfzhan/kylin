@@ -42,22 +42,7 @@
 package org.apache.kylin.job.exception;
 
 public class ZkPeekLockException extends RuntimeException {
-    public ZkPeekLockException() {
-    }
-
-    public ZkPeekLockException(String message) {
-        super(message);
-    }
-
     public ZkPeekLockException(String message, Throwable cause) {
         super(message, cause);
-    }
-
-    public ZkPeekLockException(Throwable cause) {
-        super(cause);
-    }
-
-    public ZkPeekLockException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

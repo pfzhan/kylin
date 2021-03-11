@@ -43,8 +43,6 @@
 package org.apache.kylin.job.exception;
 
 public class ZkPeekLockInterruptException extends RuntimeException {
-    public ZkPeekLockInterruptException() {
-    }
 
     public ZkPeekLockInterruptException(String message) {
         super(message);
@@ -52,14 +50,5 @@ public class ZkPeekLockInterruptException extends RuntimeException {
 
     public ZkPeekLockInterruptException(String message, Throwable cause) {
         super(message, cause);
-    }
-
-    public ZkPeekLockInterruptException(Throwable cause) {
-        super(cause);
-    }
-
-    public ZkPeekLockInterruptException(String message, Throwable cause, boolean enableSuppression,
-            boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

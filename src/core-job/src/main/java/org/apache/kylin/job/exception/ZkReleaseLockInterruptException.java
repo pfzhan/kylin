@@ -43,8 +43,6 @@
 package org.apache.kylin.job.exception;
 
 public class ZkReleaseLockInterruptException extends RuntimeException {
-    public ZkReleaseLockInterruptException() {
-    }
 
     public ZkReleaseLockInterruptException(String message) {
         super(message);
@@ -52,14 +50,5 @@ public class ZkReleaseLockInterruptException extends RuntimeException {
 
     public ZkReleaseLockInterruptException(String message, Throwable cause) {
         super(message, cause);
-    }
-
-    public ZkReleaseLockInterruptException(Throwable cause) {
-        super(cause);
-    }
-
-    public ZkReleaseLockInterruptException(String message, Throwable cause, boolean enableSuppression,
-                                           boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
     }
 }
