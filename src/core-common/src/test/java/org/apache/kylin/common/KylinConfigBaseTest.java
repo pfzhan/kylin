@@ -828,7 +828,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getNonCustomProjectConfigs",
                 new PropertiesEntity("kylin.model.multi-partition-key-mapping-provider-class", "",
                         NonCustomProjectLevelConfig.listAllConfigNames()));
-        map.put("getDiagObfLevel", new PropertiesEntity("kylin.diag.obf.level", "OBF", "OBF"));
     }
 
     @Before
@@ -849,7 +848,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(439, methodsCount);
+        Assert.assertEquals(438, methodsCount);
     }
 
     @Test

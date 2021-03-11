@@ -38,10 +38,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.tool.constant.SensitiveConfigKeysConstant;
-import io.kyligence.kap.tool.obf.KylinConfObfuscatorTest;
-import io.kyligence.kap.tool.util.ZipFileUtil;
-import lombok.val;
 
 public class DiagClientToolTest extends NLocalFileMetadataTestCase {
 
@@ -54,7 +50,6 @@ public class DiagClientToolTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
-        KylinConfObfuscatorTest.prepare();
     }
 
     @After
@@ -121,25 +116,6 @@ public class DiagClientToolTest extends NLocalFileMetadataTestCase {
         String notExistDirFileName = notExistDir.listFiles()[0].listFiles()[0].getName();
         Assert.assertTrue(existDirFileName.endsWith(".zip"));
         Assert.assertTrue(notExistDirFileName.endsWith(".zip"));
-    }
-
-    @Test
-    public void testObf() throws IOException {
-        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
-        FileUtils.forceMkdir(mainDir);
-
-        DiagClientTool diagClientTool = new DiagClientTool();
-
-        diagClientTool.execute(new String[] { "-destDir", mainDir.getAbsolutePath() });
-        File zipFile = mainDir.listFiles()[0].listFiles()[0];
-        File exportFile = new File(mainDir, "output");
-        FileUtils.forceMkdir(exportFile);
-        ZipFileUtil.decompressZipFile(zipFile.getAbsolutePath(), exportFile.getAbsolutePath());
-        File baseDiagFile = exportFile.listFiles()[0];
-        val properties = io.kyligence.kap.common.util.FileUtils
-                .readFromPropertiesFile(new File(baseDiagFile, "conf/kylin.properties"));
-        Assert.assertTrue(properties.containsValue(SensitiveConfigKeysConstant.HIDDEN));
-
     }
 
 }

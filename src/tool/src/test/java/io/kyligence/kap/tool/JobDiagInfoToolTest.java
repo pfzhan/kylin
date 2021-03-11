@@ -43,9 +43,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.tool.constant.SensitiveConfigKeysConstant;
-import io.kyligence.kap.tool.obf.KylinConfObfuscatorTest;
-import io.kyligence.kap.tool.util.ZipFileUtil;
 import lombok.val;
 
 public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
@@ -62,7 +59,6 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
-        KylinConfObfuscatorTest.prepare();
     }
 
     @After
@@ -171,24 +167,6 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         });
         new JobDiagInfoTool().execute(
                 new String[] { "-job", "9462fee8-e6cd-4d18-a5fc-b598a3c5edb5", "-destDir", mainDir.getAbsolutePath() });
-
-    }
-
-    @Test
-    public void testObf() throws IOException {
-        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
-        FileUtils.forceMkdir(mainDir);
-
-        new JobDiagInfoTool().execute(
-                new String[] { "-job", "dd5a6451-0743-4b32-b84d-2ddc8052429f", "-destDir", mainDir.getAbsolutePath() });
-        File zipFile = mainDir.listFiles()[0].listFiles()[0];
-        File exportFile = new File(mainDir, "output");
-        FileUtils.forceMkdir(exportFile);
-        ZipFileUtil.decompressZipFile(zipFile.getAbsolutePath(), exportFile.getAbsolutePath());
-        File baseDiagFile = exportFile.listFiles()[0];
-        val properties = io.kyligence.kap.common.util.FileUtils
-                .readFromPropertiesFile(new File(baseDiagFile, "conf/kylin.properties"));
-        Assert.assertTrue(properties.containsValue(SensitiveConfigKeysConstant.HIDDEN));
 
     }
 
