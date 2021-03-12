@@ -24,15 +24,19 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDaoTest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -47,6 +51,8 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -68,6 +74,15 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
 import lombok.var;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -678,5 +693,65 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertFalse(queryHistories.get(0).getNativeQueryRealizations().get(0).isValid());
         Assert.assertFalse(queryHistories.get(0).getNativeQueryRealizations().get(1).isLayoutExist());
+    }
+
+    @Test
+    public void testDownloadQueryHistories() throws Exception {
+        // prepare query history to RDBMS
+        RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
+        queryHistoryDAO.deleteAllQueryHistory();
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+
+        // prepare request and response
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class));
+
+        queryHistoryService.downloadQueryHistories(request, response, ZoneOffset.ofHours(8), 8, false);
+        assertEquals("\uFEFFStart Time, Duration, Query ID, SQL Statement, Answered by, Query Status, Query Node, Submitter\n"
+                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",,SUCCEEDED,,ADMIN\n"
+                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",,SUCCEEDED,,ADMIN\n",
+                baos.toString(StandardCharsets.UTF_8.name()));
+    }
+
+    @Test
+    public void testDownloadQueryHistoriesSql() throws Exception {
+        // prepare query history to RDBMS
+        RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
+        queryHistoryDAO.deleteAllQueryHistory();
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+
+        // prepare request and response
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class));
+
+        queryHistoryService.downloadQueryHistories(request, response, null, null, true);
+        assertEquals("\uFEFF\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\"\n"
+                + "\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\"\n", baos.toString(StandardCharsets.UTF_8.name()));
     }
 }

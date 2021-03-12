@@ -1470,4 +1470,8 @@ public class Message {
     public String getExceedMaxAllowedPacket() {
         return "The result packet of MySQL exceeds the limit. Please contact the admin to adjust the value of “max_allowed_packet“ as 256M in MySQL. ";
     }
+
+    public String getQUERY_HISTORY_COLUMN_META() {
+        return "Start Time, Duration, Query ID, SQL Statement, Answered by, Query Status, Query Node, Submitter\n";
+    }
 }

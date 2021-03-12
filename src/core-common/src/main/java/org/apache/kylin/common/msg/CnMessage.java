@@ -1649,4 +1649,9 @@ public class CnMessage extends Message {
     public String getExceedMaxAllowedPacket() {
         return "MySQL 元数据库返回结果超过配置限制。请联系管理员在 MySQL 中将配置 “max_allowed_packet” 调整至 256M。";
     }
+
+    @Override
+    public String getQUERY_HISTORY_COLUMN_META() {
+        return "查询开始时间, 查询耗时, 查询 ID, SQL 语句, 查询对象, 查询状态, 查询节点, 查询用户\n";
+    }
 }

@@ -25,12 +25,17 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,6 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -81,10 +87,14 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryService.class);
     public static final String DELETED_MODEL = "Deleted Model";
+    public static final byte[] CSV_UTF8_BOM = new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF};
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -96,21 +106,49 @@ public class QueryHistoryService extends BasicService {
     public static final String WEEK = "week";
     public static final String DAY = "day";
 
+    public static final int BATCH_SIZE = 1000;
+
+    public void downloadQueryHistories(QueryHistoryRequest request, HttpServletResponse response, ZoneOffset zoneOffset,
+                                       Integer timeZoneOffsetHour, boolean onlySql) {
+        processRequestParams(request);
+        if (haveSpaces(request.getSql())) {
+            return;
+        }
+        splitModels(request);
+        QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
+
+        try (ServletOutputStream outputStream = response.getOutputStream()) {
+            outputStream.write(CSV_UTF8_BOM);
+            if (!onlySql) {
+                outputStream.write(MsgPicker.getMsg().getQUERY_HISTORY_COLUMN_META().getBytes(StandardCharsets.UTF_8));
+            }
+
+            long needDownloadSize = Math.min(queryHistoryDao.getQueryHistoriesSize(request, request.getProject()),
+                    KylinConfig.getInstanceFromEnv().getQueryHistoryDownloadMaxSize());
+            int batchCount = 0;
+            while (batchCount * BATCH_SIZE < needDownloadSize) {
+                List<QueryHistory> queryHistories = queryHistoryDao.getQueryHistoriesByConditions(request, BATCH_SIZE, batchCount);
+                for (QueryHistory queryHistory : queryHistories) {
+                    if (onlySql) {
+                        outputStream.write(("\"" + queryHistory.getSql().replaceAll("\n|\r", " ") + "\"\n")
+                                .getBytes(StandardCharsets.UTF_8));
+                    } else {
+                        outputStream.write((QueryHistoryUtil.getDownloadData(queryHistory, zoneOffset,
+                                timeZoneOffsetHour) + "\n").getBytes(StandardCharsets.UTF_8));
+                    }
+                }
+                batchCount++;
+            }
+        } catch (IOException e) {
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
+        }
+    }
+
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int page) {
-        Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
-        aclEvaluate.checkProjectReadPermission(request.getProject());
-        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
+        processRequestParams(request);
 
         HashMap<String, Object> data = new HashMap<>();
         List<QueryHistory> queryHistories = Lists.newArrayList();
-
-        if (request.getSql() == null) {
-            request.setSql("");
-        }
-
-        if (request.getSql() != null) {
-            request.setSql(request.getSql().trim());
-        }
 
         if (haveSpaces(request.getSql())) {
             data.put("query_histories", queryHistories);
@@ -118,16 +156,9 @@ public class QueryHistoryService extends BasicService {
             return data;
         }
 
-        request.setUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-        if (aclEvaluate.hasProjectAdminPermission(
-                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
-            request.setAdmin(true);
-        }
+        splitModels(request);
 
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
-                .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
-        splitModels(request, modelAliasMap);
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
         queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page);
 
         queryHistories.forEach(query -> {
@@ -137,7 +168,7 @@ public class QueryHistoryService extends BasicService {
                     && StringUtils.isEmpty(query.getQueryRealizations())) {
                 return;
             }
-            query.setNativeQueryRealizations(parseQueryRealizationInfo(query, modelAliasMap, request.getProject()));
+            query.setNativeQueryRealizations(parseQueryRealizationInfo(query, request.getProject()));
         });
 
         data.put("query_histories", queryHistories);
@@ -145,8 +176,28 @@ public class QueryHistoryService extends BasicService {
         return data;
     }
 
-    private List<NativeQueryRealization> parseQueryRealizationInfo(QueryHistory query,
-            Map<String, String> noBrokenModels, String project) {
+    private void processRequestParams(QueryHistoryRequest request) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
+        aclEvaluate.checkProjectReadPermission(request.getProject());
+
+        request.setUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        if (aclEvaluate.hasProjectAdminPermission(
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
+            request.setAdmin(true);
+        }
+
+        if (request.getSql() == null) {
+            request.setSql("");
+        }
+
+        if (request.getSql() != null) {
+            request.setSql(request.getSql().trim());
+        }
+    }
+
+    private List<NativeQueryRealization> parseQueryRealizationInfo(QueryHistory query, String project) {
+        val noBrokenModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .listUnderliningDataModels().stream().collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
 
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -180,7 +231,10 @@ public class QueryHistoryService extends BasicService {
                 .anyMatch(index -> index.getId() == layoutId);
     }
 
-    private void splitModels(QueryHistoryRequest request, Map<String, String> modelAliasMap) {
+    private void splitModels(QueryHistoryRequest request) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
+                .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
         List<String> realizations = request.getRealizations();
         if (realizations != null && !realizations.isEmpty() && !realizations.contains("modelName")) {
             List<String> modelNames = Lists.newArrayList(realizations);

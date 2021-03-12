@@ -719,7 +719,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, statistics.getMeanDuration(), 0.1);
     }
 
-    private QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project) {
+    public static QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project) {
         QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
         queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
         queryMetrics.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
@@ -739,7 +739,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryMetrics.setQueryStatus("SUCCEEDED");
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
 
-        QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
+        QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001",
                 "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea", Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
         realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
         realizationMetrics.setDuration(4591L);

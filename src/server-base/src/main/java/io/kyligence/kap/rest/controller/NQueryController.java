@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
@@ -34,6 +35,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -109,6 +111,7 @@ public class NQueryController extends NBasicController {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NQueryController.class);
     private static final Pattern queryNamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
+    public static final String CN = "zh-cn";
 
     @Autowired
     @Qualifier("kapQueryService")
@@ -191,7 +194,69 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(savedQueries, offset, limit), "");
     }
 
-    @ApiOperation(value = "getQueryHistories", tags = { "QE" }, notes = "Update Param: start_time_from, start_time_to, latency_from, latency_to")
+    @ApiOperation(value = "downloadQueryHistories", tags = {"QE"})
+    @GetMapping(value = "/download_query_histories")
+    @ResponseBody
+    public EnvelopeResponse<String> downloadQueryHistories(@RequestParam(value = "project") String project,
+           @RequestParam(value = "timezone_offset_hour") Integer timeZoneOffsetHour,
+           @RequestParam(value = "language") String language,
+           @RequestParam(value = "start_time_from", required = false) String startTimeFrom,
+           @RequestParam(value = "start_time_to", required = false) String startTimeTo,
+           @RequestParam(value = "latency_from", required = false) String latencyFrom,
+           @RequestParam(value = "latency_to", required = false) String latencyTo,
+           @RequestParam(value = "query_status", required = false) List<String> queryStatus,
+           @RequestParam(value = "sql", required = false) String sql,
+           @RequestParam(value = "realization", required = false) List<String> realizations,
+           @RequestParam(value = "server", required = false) String server,
+           @RequestParam(value = "submitter", required = false) List<String> submitter,
+           HttpServletResponse response) {
+        ZoneOffset zoneOffset;
+        try {
+            zoneOffset = ZoneOffset.ofHours(timeZoneOffsetHour);
+        } catch (Exception e) {
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
+        }
+        if (CN.equals(language)) {
+            MsgPicker.setMsg("cn");
+        }
+        checkProjectName(project);
+        QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
+                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
+        checkGetQueryHistoriesParam(request);
+        response.setContentType("text/csv;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"query-history.csv\"");
+        queryHistoryService.downloadQueryHistories(request, response, zoneOffset, timeZoneOffsetHour, false);
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "downloadQueryHistoriesSql", tags = {"QE"})
+    @GetMapping(value = "/download_query_histories_sql")
+    @ResponseBody
+    public EnvelopeResponse<String> downloadQueryHistoriesSql(@RequestParam(value = "project") String project,
+           @RequestParam(value = "start_time_from", required = false) String startTimeFrom,
+           @RequestParam(value = "start_time_to", required = false) String startTimeTo,
+           @RequestParam(value = "latency_from", required = false) String latencyFrom,
+           @RequestParam(value = "latency_to", required = false) String latencyTo,
+           @RequestParam(value = "query_status", required = false) List<String> queryStatus,
+           @RequestParam(value = "sql", required = false) String sql,
+           @RequestParam(value = "realization", required = false) List<String> realizations,
+           @RequestParam(value = "server", required = false) String server,
+           @RequestParam(value = "submitter", required = false) List<String> submitter, HttpServletResponse response) {
+        checkProjectName(project);
+        QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
+                latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
+        checkGetQueryHistoriesParam(request);
+        response.setContentType("text/csv;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"sql.txt\"");
+        queryHistoryService.downloadQueryHistories(request, response, null, null, true);
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "getQueryHistories", tags = { "QE" })
     @GetMapping(value = "/history_queries")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getQueryHistories(@RequestParam(value = "project") String project,
