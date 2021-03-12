@@ -47,8 +47,8 @@ class OptIntersectCountSuite extends SparderBaseFunSuite with SharedSparkSession
     ).repartition(1)
 
     val data = df.groupBy(col("age")).agg(new Column(OptIntersectCount(col("id").expr, col("tag").expr)
-      .toAggregateExpression())
-      .alias("intersect_count"))
+        .toAggregateExpression())
+        .alias("intersect_count"))
     val ret = data.select(col("age"), explode('intersect_count)).collect.map(rows => {
       s"${rows.get(0).toString}, ${rows.get(1).toString}, ${dser(rows.get(2).asInstanceOf[Array[Byte]])}"
     }).mkString("|")

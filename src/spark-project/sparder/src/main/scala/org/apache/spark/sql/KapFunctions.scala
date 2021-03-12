@@ -28,26 +28,24 @@ import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.{CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
-import org.apache.spark.sql.types.{ArrayType, BinaryType, DoubleType, LongType}
-import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, Percentile, PreciseCountDistinct}
+import org.apache.spark.sql.types.{ArrayType, BinaryType, LongType}
+import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCountDistinct}
 
 object KapFunctions {
-
-
   private def withAggregateFunction(func: AggregateFunction,
                                     isDistinct: Boolean = false): Column = {
     Column(func.toAggregateExpression(isDistinct))
   }
 
-  def k_add_months(startDate: Column, numMonths: Column): Column = {
+  def kap_add_months(startDate: Column, numMonths: Column): Column = {
     Column(KapAddMonths(startDate.expr, numMonths.expr))
   }
 
-  def k_subtract_months(date0: Column, date1: Column): Column = {
+  def kap_subtract_months(date0: Column, date1: Column): Column = {
     Column(KapSubtractMonths(date0.expr, date1.expr))
   }
 
-  def k_day_of_week(date: Column): Column = Column(KapDayOfWeek(date.expr))
+  def kap_day_of_week(date: Column): Column = Column(KapDayOfWeek(date.expr))
 
   def k_like(left: Column, right: Column, escapeChar: Char = '\\'): Column = Column(Like(left.expr, right.expr, escapeChar))
 
@@ -66,9 +64,6 @@ object KapFunctions {
 
   def in(value: Expression, list: Seq[Expression]): Column = Column(In(value, list))
 
-  def k_percentile(head: Column, column: Column, precision: Int): Column =
-    Column(Percentile(head.expr, precision, Some(column.expr), DoubleType).toAggregateExpression())
-
   def precise_count_distinct(column: Column): Column =
     Column(PreciseCountDistinct(column.expr, LongType).toAggregateExpression())
 
@@ -78,7 +73,7 @@ object KapFunctions {
   def approx_count_distinct(column: Column, precision: Int): Column =
     Column(ApproxCountDistinct(column.expr, precision).toAggregateExpression())
 
-  def k_truncate(column: Column, scale: Int): Column = {
+  def kap_truncate(column: Column, scale: Int): Column = {
     Column(TRUNCATE(column.expr, Literal(scale)))
   }
 
@@ -87,7 +82,7 @@ object KapFunctions {
     val expressions = columns.map(_.expr)
     Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
       k_lit(IntersectCount.RAW_STRING).expr, LongType, separator, upperBound).toAggregateExpression()
-    )
+     )
   }
 
   def intersect_value(separator: String, upperBound: Int, columns: Column*): Column = {

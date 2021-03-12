@@ -133,7 +133,7 @@ object ExpressionConverter {
           case "WEEK" => weekofyear(k_lit(inputAsTS))
           case "DOY" => dayofyear(k_lit(inputAsTS))
           case "DAY" => dayofmonth(k_lit(inputAsTS))
-          case "DOW" => k_day_of_week(k_lit(inputAsTS))
+          case "DOW" => kap_day_of_week(k_lit(inputAsTS))
           case "HOUR" => hour(k_lit(inputAsTS))
           case "MINUTE" => minute(k_lit(inputAsTS))
           case "SECOND" => second(k_lit(inputAsTS))
@@ -184,7 +184,7 @@ object ExpressionConverter {
               k_lit(children.head),
               children.apply(1).asInstanceOf[Int])
           case "truncate" =>
-            k_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
+            kap_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
           case "cot" =>
             k_lit(1).divide(tan(k_lit(children.head)))
           // null handling funcs
