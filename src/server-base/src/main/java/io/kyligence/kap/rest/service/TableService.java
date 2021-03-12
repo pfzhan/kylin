@@ -41,6 +41,7 @@ import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1536,7 +1537,13 @@ public class TableService extends BasicService {
     private ReloadTableContext calcReloadContext(String project, String tableIdentity, boolean failFast)
             throws Exception {
         val context = new ReloadTableContext();
-        val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
+        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
+        val tableMeta = ugi.doAs(new PrivilegedExceptionAction<Pair<TableDesc, TableExtDesc>>() {
+            @Override
+            public Pair<TableDesc, TableExtDesc> run() throws Exception {
+                return extractTableMeta(new String[] { tableIdentity }, project).get(0);
+            }
+        });
         val newTableDesc = new TableDesc(tableMeta.getFirst());
         context.setTableDesc(newTableDesc);
         context.setTableExtDesc(tableMeta.getSecond());

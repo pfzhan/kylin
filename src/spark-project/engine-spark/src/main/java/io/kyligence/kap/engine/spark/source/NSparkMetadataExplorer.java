@@ -91,7 +91,8 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
             tables = dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
 
-            if (config.getKerberosProjectLevelEnable() && UserGroupInformation.isSecurityEnabled()) {
+            if (config.getTableAccessFilterEnable() && config.getKerberosProjectLevelEnable()
+                    && UserGroupInformation.isSecurityEnabled()) {
                 List<String> accessTables = Lists.newArrayList();
                 for (String table : tables) {
                     val tableName = database + "." + table;

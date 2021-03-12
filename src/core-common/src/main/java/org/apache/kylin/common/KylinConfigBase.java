@@ -2027,6 +2027,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.kerberos.project-level-enabled", FALSE));
     }
 
+    public boolean getTableAccessFilterEnable() {
+        return Boolean.parseBoolean(getOptional("kylin.source.hive.table-access-filter-enabled", "false"));
+    }
+
     private double safeParseDouble(String value, double defaultValue) {
         double result = defaultValue;
         if (StringUtils.isEmpty(value)) {
