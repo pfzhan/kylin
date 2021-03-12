@@ -63,10 +63,6 @@ public class ProposerProvider {
         return new IndexPlanShrinkProposer(proposeContext);
     }
 
-    public AbstractProposer getModelShrinkProposer() {
-        return new ModelShrinkProposer(proposeContext);
-    }
-
     public AbstractProposer getModelRenameProposer() {
         return new ModelRenameProposer(proposeContext);
     }
