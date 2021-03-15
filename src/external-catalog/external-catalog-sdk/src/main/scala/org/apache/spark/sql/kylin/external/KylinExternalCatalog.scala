@@ -23,29 +23,31 @@
  */
 package org.apache.spark.sql.kylin.external
 
+import java.util.Locale
+
 import io.kyligence.api.catalog.{FieldSchema, IExternalCatalog, Table}
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.catalyst.catalog.{CatalogDatabase, CatalogTable, CatalogTableType, InMemoryCatalog}
+import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
+import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.util.StringUtils
 import org.apache.spark.sql.kylin.external.HasKeExternal.getSparkSQLDataType
 import org.apache.spark.sql.types.{HIVE_TYPE_STRING, StructField, StructType}
 
-import java.util.Locale
-
 
 class KylinExternalCatalog(
-    conf: SparkConf = new SparkConf,
-    hadoopConfig: Configuration = new Configuration,
-    val keExternalCatalog: IExternalCatalog)
+                            conf: SparkConf = new SparkConf,
+                            hadoopConfig: Configuration = new Configuration,
+                            val keExternalCatalog: IExternalCatalog)
   extends InMemoryCatalog(conf, hadoopConfig) with Logging with HasKeExternal {
 
   override def createDatabase(
-      dbDefinition: CatalogDatabase,
-      ignoreIfExists: Boolean): Unit = {
+                               dbDefinition: CatalogDatabase,
+                               ignoreIfExists: Boolean): Unit = {
     super.createDatabase(dbDefinition, ignoreIfExists)
   }
+
   override def getDatabase(db: String): CatalogDatabase = {
     getExternalDatabase(db).getOrElse(super.getDatabase(db))
   }
@@ -60,6 +62,12 @@ class KylinExternalCatalog(
 
   override def tableExists(db: String, table: String): Boolean = {
     tableExistsInExternal(db, table) || super.tableExists(db, table)
+  }
+
+  override def listPartitions(db: String,
+                              table: String,
+                              partialSpec: Option[TablePartitionSpec] = None): Seq[CatalogTablePartition] = {
+    listPartitionsInExternal(db, table)
   }
 
   override def listTables(db: String): Seq[String] = {
@@ -90,7 +98,7 @@ class KylinExternalCatalog(
 
 object KylinExternalCatalog {
 
-  def fromExternalFormat(format: String) : String = {
+  def fromExternalFormat(format: String): String = {
     Enum.valueOf(classOf[Table.Format], format) match {
       case Table.Format.JSON => "org.apache.spark.sql.json"
       case Table.Format.CSV => "com.databricks.spark.csv"
@@ -99,7 +107,8 @@ object KylinExternalCatalog {
       case _ => throw new UnsupportedOperationException(format)
     }
   }
-  def toExternalFormate(provider: String) : Table.Format = {
+
+  def toExternalFormate(provider: String): Table.Format = {
     provider.toLowerCase(Locale.ROOT) match {
       case "org.apache.spark.sql.json" | "json" => Table.Format.JSON
       case "com.databricks.spark.csv" | "csv" => Table.Format.CSV
@@ -122,6 +131,7 @@ object KylinExternalCatalog {
   def verifyColumnDataType(schema: StructType): Unit = {
     schema.foreach(col => getSparkSQLDataType(toExternalColumn(col)))
   }
+
   def toExternalType(tableType: CatalogTableType): Table.Type = {
     tableType match {
       case CatalogTableType.VIEW => Table.Type.VIEW

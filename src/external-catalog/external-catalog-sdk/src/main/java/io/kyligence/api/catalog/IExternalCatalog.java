@@ -78,6 +78,15 @@ public interface IExternalCatalog {
      * @return the table data or if throwException is false a null value.
      * @throws ApiException
      */
-    Dataset<Row> getTableData(SparkSession session, String dbName, String tableName, boolean throwException) throws ApiException;
+    Dataset<Row> getTableData(SparkSession session, String dbName, String tableName, boolean throwException)
+            throws ApiException;
 
+    /**
+     * List the metadata of all partitions that belong to the specified table, assuming it exists.
+     *
+     * @param dbName database name
+     * @param tablePattern table name
+     *
+     */
+    List<Partition> listPartitions(String dbName, String tablePattern) throws ApiException;
 }

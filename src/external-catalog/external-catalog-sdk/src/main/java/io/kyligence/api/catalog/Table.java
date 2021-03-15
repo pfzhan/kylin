@@ -23,11 +23,11 @@
  */
 package io.kyligence.api.catalog;
 
-import io.kyligence.api.annotation.InterfaceStability.Evolving;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.kyligence.api.annotation.InterfaceStability.Evolving;
 
 @Evolving
 public class Table {
@@ -55,6 +55,7 @@ public class Table {
         }
     }
 
+    private List<FieldSchema> partitionColumnNames; // required
     private final String tableName; // required
     private final String dbName; // required
     private String owner; // required
@@ -62,7 +63,7 @@ public class Table {
     private int lastAccessTime; // required
     private String format;
     private final StorageDescriptor sd; // required
-    private List<FieldSchema> fields; // required
+    private List<FieldSchema> fields; // required fields can not contain partition col
     private final Map<String, String> parameters; // required
     private String viewText;
     private String tableType;
@@ -74,9 +75,14 @@ public class Table {
         this.parameters = new HashMap<>();
     }
 
+    public List<FieldSchema> getPartitionColumnNames() {
+        return partitionColumnNames;
+    }
+
     public String getTableName() {
         return tableName;
     }
+
     public String getDbName() {
         return dbName;
     }
@@ -99,6 +105,10 @@ public class Table {
 
     public int getLastAccessTime() {
         return lastAccessTime;
+    }
+
+    public void setPartitionColumnNames(List<FieldSchema> partitionColumnNames) {
+        this.partitionColumnNames = partitionColumnNames;
     }
 
     public void setLastAccessTime(int lastAccessTime) {

@@ -29,7 +29,8 @@ import io.kyligence.api.ApiException
 import io.kyligence.api.catalog.{FieldSchema, IExternalCatalog => KeExternalCatalog}
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.catalog.{CatalogDatabase, CatalogStorageFormat, CatalogTable, CatalogTableType}
+import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
+import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.parser.{CatalystSqlParser, ParseException}
 import org.apache.spark.sql.types._
 
@@ -59,6 +60,17 @@ trait HasKeExternal extends LogEx {
           dbObj.getDescription,
           new URI(dbObj.getLocationUri),
           dbObj.getParameters.asScala.toMap)
+      }
+    }
+
+  protected def listPartitionsInExternal(db: String,
+                                         table: String,
+                                         partialSpec: Option[TablePartitionSpec] = None): Seq[CatalogTablePartition] =
+    withClient("listPartitionsInExternal") {
+      Option(keExternalCatalog.listPartitions(db, table)) match {
+        case Some(partitions) =>
+          partitions.asScala.map(par => CatalogTablePartition(par.getPartitions.asScala.toMap, CatalogStorageFormat.empty))
+        case None => Seq.empty
       }
     }
 
@@ -105,10 +117,18 @@ trait HasKeExternal extends LogEx {
           val filteredProperties = properties.filterNot {
             case (key, _) => excludedTableProperties.contains(key)
           }
+
+          val partitionColumnNames: Seq[FieldSchema] = if (table.getPartitionColumnNames == null) {
+            Seq.empty
+          } else {
+            table.getPartitionColumnNames.asScala
+          }
           CatalogTable(
             identifier = TableIdentifier(table.getTableName, Option(table.getDbName)),
             tableType = CatalogTableType.EXTERNAL,
-            schema = StructType(table.getFields.asScala.map(HasKeExternal.fromExternalColumn)),
+            schema = StructType(table.getFields.asScala.map(HasKeExternal.fromExternalColumn)
+              ++ partitionColumnNames.map(HasKeExternal.fromExternalColumn)),
+            partitionColumnNames = partitionColumnNames.map(_.getName),
             storage = CatalogStorageFormat(
               locationUri = None,
               inputFormat = Some(KYLIN_FORMAT),

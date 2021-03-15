@@ -53,6 +53,7 @@ import org.apache.spark.sql.SparkSession;
 import com.clearspring.analytics.util.Lists;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -60,6 +61,7 @@ import io.kyligence.api.ApiException;
 import io.kyligence.api.catalog.Database;
 import io.kyligence.api.catalog.FieldSchema;
 import io.kyligence.api.catalog.IExternalCatalog;
+import io.kyligence.api.catalog.Partition;
 import io.kyligence.api.catalog.Table;
 import lombok.extern.slf4j.Slf4j;
 
@@ -141,8 +143,15 @@ public class FileCatalog implements IExternalCatalog {
                 List<FieldSchema> schemas = Arrays.stream(tableDesc.getColumns())
                         .map(columnDesc -> new FieldSchema(columnDesc.getName(), columnDesc.getDatatype(), ""))
                         .collect(Collectors.toList());
+
                 Path path = toAbsolutePath(fileSystem,
                         new Path(String.format(Locale.ROOT, "%s/%s.csv", meta, tableDesc.getIdentity())));
+                if (tableUpperCaseName.equals("SUPPLIER")) {
+                    tableObj.setPartitionColumnNames(Arrays.asList(new FieldSchema("S_CITY", "varchar(10)", "")));
+                    tableObj.setFields(
+                            schemas.stream().filter(i -> !i.getName().equals("S_CITY")).collect(Collectors.toList()));
+                }
+
                 tableObj.setFields(schemas);
                 tableObj.getSd().setPath(path.toUri().toString());
 
@@ -259,6 +268,17 @@ public class FileCatalog implements IExternalCatalog {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    @Override
+    public List<Partition> listPartitions(String dbName, String tablePattern) throws ApiException {
+        if (tablePattern.equals("supplier")) {
+            return Arrays.asList(new Partition(ImmutableMap.of("S_CITY", "shanghai")),
+                    new Partition(ImmutableMap.of("S_CITY", "beijing")),
+                    new Partition(ImmutableMap.of("S_CITY", "shenzhen")));
+        } else {
+            return Arrays.asList();
         }
     }
 }
