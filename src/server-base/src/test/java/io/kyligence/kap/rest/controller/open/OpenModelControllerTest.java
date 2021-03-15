@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -643,6 +644,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         mockGetModelName(modelName, project, modelId);
         PartitionColumnRequest request = new PartitionColumnRequest();
+        request.setMultiPartitionDesc(new MultiPartitionDesc());
         request.setProject("multi_level_partition");
         Mockito.doReturn(null).when(nModelController).updatePartitionSemantic(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/partition", modelName)

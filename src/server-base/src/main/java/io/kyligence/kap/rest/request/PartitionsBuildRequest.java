@@ -45,4 +45,7 @@ public class PartitionsBuildRequest implements ProjectInsensitiveRequest {
     @JsonProperty("parallel_build_by_segment")
     private boolean parallelBuildBySegment = false;
 
+    @JsonProperty("build_all_sub_partitions")
+    private boolean buildAllSubPartitions = false;
+
 }

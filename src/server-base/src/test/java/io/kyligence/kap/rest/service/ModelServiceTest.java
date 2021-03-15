@@ -4811,7 +4811,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
         val project = "default";
 
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), project);
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         val model = dataflow.getModel();
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
@@ -4823,31 +4824,39 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val segmentTimeRequests = Lists.<SegmentTimeRequest> newArrayList();
         segmentTimeRequests.add(new SegmentTimeRequest("1630425600000", "1630512000000"));
 
-        IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
+        IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
                 "1633104000000", model.getPartitionDesc(), model.getMultiPartitionDesc(), segmentTimeRequests, true,
                 buildPartitions);
-        val jobInfo = modelService.incrementBuildSegmentsManually(inrcParams);
+        val jobInfo = modelService.incrementBuildSegmentsManually(incrParams);
 
         Assert.assertEquals(2, jobInfo.getJobs().size());
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
-        val executables = getRunningExecutables(getProject(), modelId);
-        val job = executables.get(0);
+        val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(2, executables.size());
+        val job = executableManager.getJob(jobInfo.getJobs().get(0).getJobId());
         Assert.assertEquals(3, job.getTargetPartitions().size());
         Set<JobBucket> buckets = ExecutableParams.getBuckets(job.getParam(NBatchConstants.P_BUCKETS));
         Assert.assertEquals(45, buckets.size());
         NDataSegment segment = dataflowManager.getDataflow(modelId).getSegment(job.getTargetSegments().get(0));
         Assert.assertEquals(44, segment.getMaxBucketId());
 
+        // build all partition values
+        IncrementBuildSegmentParams incrParams2 = new IncrementBuildSegmentParams(project, modelId, "1633104000000",
+                "1633190400000", model.getPartitionDesc(), model.getMultiPartitionDesc(), null, true, null)
+                        .withBuildAllSubPartitions(true);
+        val jobInfo2 = modelService.incrementBuildSegmentsManually(incrParams2);
+        Assert.assertEquals(1, jobInfo2.getJobs().size());
+        Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
+        val job2 = executableManager.getJob(jobInfo2.getJobs().get(0).getJobId());
+        Assert.assertEquals(4, job2.getTargetPartitions().size()); // usa,un,cn,Austria
+
         // change multi partition desc will clean all segments
-        IncrementBuildSegmentParams inrcParams2 = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
+        IncrementBuildSegmentParams incrParams3 = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
                 "1633104000000", model.getPartitionDesc(), null, null, true, null);
-        val jobInfo3 = modelService.incrementBuildSegmentsManually(inrcParams2);
-        val executables2 = getRunningExecutables(getProject(), modelId);
+        val jobInfo3 = modelService.incrementBuildSegmentsManually(incrParams3);
         val newModel = dataflowManager.getDataflow(modelId).getModel();
-        Assert.assertEquals(3, executables2.size());
         Assert.assertEquals(1, jobInfo3.getJobs().size());
-        Assert.assertTrue(!newModel.isMultiPartitionModel());
+        Assert.assertFalse(newModel.isMultiPartitionModel());
     }
 
     @Test
@@ -5015,7 +5024,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         buildPartitions.add(new String[] { "Austria" });
         val multiPartition1 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         Assert.assertEquals(3, multiPartition1.getPartitions().size());
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false);
+        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false);
         val multiPartition2 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         // add two new partitions
         Assert.assertEquals(5, multiPartition2.getPartitions().size());
@@ -5023,13 +5032,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, jobs1.size());
 
         val segmentId2 = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true);
+        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false);
         val jobs2 = getRunningExecutables(getProject(), modelId);
         Assert.assertEquals(4, jobs2.size());
 
         val segmentId3 = "d2edf0c5-5eb2-4968-9ad5-09efbf659324";
         try {
-            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true);
+            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true, false);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5047,7 +5056,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             buildPartitions2.add(new String[] { "AMERICA" });
             buildPartitions2.add(new String[] { "MOROCCO" });
             buildPartitions2.add(new String[] { "INDONESIA" });
-            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true);
+            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true, false);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5056,6 +5065,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     e.getMessage());
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
+
+        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, null, false, true);
+        val jobs4 = getRunningExecutables(getProject(), modelId);
+        Assert.assertEquals(3, jobs4.get(0).getTargetPartitions().size());
     }
 
     @Test

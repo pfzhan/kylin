@@ -2349,7 +2349,8 @@ public class ModelService extends BasicService {
                         endFormat, params.getPartitionDesc(), params.getMultiPartitionDesc(), format,
                         params.getSegmentHoles(), params.isNeedBuild(), params.getMultiPartitionValues())
                                 .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                                .withPriority(params.getPriority())),
+                                .withPriority(params.getPriority())
+                                .withBuildAllSubPartitions(params.isBuildAllSubPartitions())),
                 project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
@@ -2385,12 +2386,14 @@ public class ModelService extends BasicService {
             res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                     hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true, allPartitions)
                             .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                            .withPriority(params.getPriority())));
+                            .withPriority(params.getPriority())
+                            .withBuildAllSubPartitions(params.isBuildAllSubPartitions())));
         }
         res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
                 params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                        .withPriority(params.getPriority())));
+                        .withPriority(params.getPriority())
+                        .withBuildAllSubPartitions(params.isBuildAllSubPartitions())));
         return res;
     }
 
@@ -3847,7 +3850,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public JobInfoResponse buildSegmentPartitionByValue(String project, String modelId, String segmentId,
-            List<String[]> partitionValues, boolean parallelBuild) {
+            List<String[]> partitionValues, boolean parallelBuild, boolean buildAllPartitions) {
         aclEvaluate.checkProjectOperationPermission(project);
         checkModelPermission(project, modelId);
         checkSegmentsExistById(modelId, project, new String[] { segmentId });
@@ -3859,6 +3862,19 @@ public class ModelService extends BasicService {
         if (!duplicatePartitions.isEmpty()) {
             throw new KylinException(FAILED_CREATE_JOB,
                     MsgPicker.getMsg().getADD_JOB_CHECK_MULTI_PARTITION_DUPLICATE());
+        }
+        if (buildAllPartitions) {
+            List<Long> oldPartitionIds = segment.getMultiPartitions().stream().map(SegmentPartition::getPartitionId)
+                    .collect(Collectors.toList());
+            NDataModel model = getModelById(modelId, project);
+            List<String[]> oldPartitions = model.getMultiPartitionDesc().getPartitionValuesById(oldPartitionIds);
+            List<String[]> allPartitions = model.getMultiPartitionDesc().getPartitions().stream()
+                    .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
+            List<String[]> diffPartitions = MultiPartitionUtil.findDiffValues(allPartitions, oldPartitions);
+            if(partitionValues == null) {
+                partitionValues = Lists.newArrayList();
+            }
+            partitionValues.addAll(diffPartitions);
         }
         dfm.appendPartitions(df.getId(), segment.getId(), partitionValues);
         Set<Long> targetPartitions = getDataModelManager(project).getDataModelDesc(modelId).getMultiPartitionDesc()

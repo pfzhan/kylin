@@ -861,15 +861,16 @@ public class NModelController extends NBasicController {
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
 
-        IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(buildSegmentsRequest.getProject(),
+        IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getMultiPartitionDesc(),
                 buildSegmentsRequest.getSegmentHoles(), buildSegmentsRequest.isBuildAllIndexes(),
                 buildSegmentsRequest.getSubPartitionValues())
                         .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables())
-                        .withPriority(buildSegmentsRequest.getPriority());
+                        .withPriority(buildSegmentsRequest.getPriority())
+                        .withBuildAllSubPartitions(buildSegmentsRequest.isBuildAllSubPartitions());
 
-        JobInfoResponse response = modelService.incrementBuildSegmentsManually(inrcParams);
+        JobInfoResponse response = modelService.incrementBuildSegmentsManually(incrParams);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -958,7 +959,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg("segment_id", param.getSegmentId());
         checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
         val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
-                param.getSubPartitionValues(), param.isParallelBuildBySegment());
+                param.getSubPartitionValues(), param.isParallelBuildBySegment(), param.isBuildAllSubPartitions());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

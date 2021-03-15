@@ -25,10 +25,16 @@ package io.kyligence.kap.rest.service.params;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,6 +51,7 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
     private List<SegmentTimeRequest> segmentHoles;
     private String partitionColFormat;
     private List<String[]> multiPartitionValues;
+    private boolean buildAllSubPartitions;
 
     public IncrementBuildSegmentParams(String project, String modelId, String start, String end,
             String partitionColFormat, boolean needBuild, List<String[]> multiPartitionValues) {
@@ -90,5 +97,30 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
     public IncrementBuildSegmentParams withPriority(int priority) {
         this.priority = priority;
         return this;
+    }
+
+    public IncrementBuildSegmentParams withBuildAllSubPartitions(boolean buildAllSubPartitions) {
+        this.buildAllSubPartitions = buildAllSubPartitions;
+        return this;
+    }
+
+    public List<String[]> getMultiPartitionValues() {
+        List<String[]> mixedMultiPartitionValues = this.multiPartitionValues;
+        if (this.buildAllSubPartitions) {
+            NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDesc(modelId);
+            MultiPartitionDesc modelMultiPartitionDesc = model.getMultiPartitionDesc();
+            List<String[]> allPartitionValues = Lists.newArrayList();
+            if (modelMultiPartitionDesc != null) { // in case model multiPartitionDesc has been changed to null
+                allPartitionValues = modelMultiPartitionDesc.getPartitions().stream()
+                        .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
+            }
+            if (mixedMultiPartitionValues != null) {
+                mixedMultiPartitionValues.addAll(allPartitionValues);
+            } else {
+                mixedMultiPartitionValues = allPartitionValues;
+            }
+        }
+        return mixedMultiPartitionValues;
     }
 }

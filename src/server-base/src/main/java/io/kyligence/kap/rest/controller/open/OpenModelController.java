@@ -616,13 +616,15 @@ public class OpenModelController extends NBasicController {
         return modelController.addMultiPartitionValues(modelId, request);
     }
 
-    @ApiOperation(value = "update partition for multi partition", tags = { "DW" })
+    @ApiOperation(value = "update partition for multi partition and single partition", tags = { "DW" })
     @PutMapping(value = "/{model_name:.+}/partition")
     @ResponseBody
     public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model_name") String modelAlias,
             @RequestBody PartitionColumnRequest param) throws Exception {
         String projectName = checkProjectName(param.getProject());
-        checkProjectMLP(projectName);
+        if (param.getMultiPartitionDesc() != null) {
+            checkProjectMLP(projectName);
+        }
         param.setProject(projectName);
         val modelId = getModel(modelAlias, param.getProject()).getId();
         return modelController.updatePartitionSemantic(modelId, param);

@@ -32,6 +32,8 @@ import org.apache.kylin.common.util.Pair;
 import com.google.common.collect.Lists;
 
 public class MultiPartitionUtil {
+    private MultiPartitionUtil() {
+    }
 
     public static boolean isSameValue(String[] values1, String[] values2) {
         if (values1.length != values2.length) {
@@ -74,6 +76,16 @@ public class MultiPartitionUtil {
 
     public static List<String[]> findAbsentValues(List<String[]> originValues, List<String[]> addValues) {
         return partitionValues(originValues, addValues).getSecond();
+    }
+
+    public static List<String[]> findDiffValues(List<String[]> allValues, List<String[]> presentValues) {
+        List<String[]> diffValues = Lists.newArrayList();
+        for (String[] value : allValues) {
+            if (presentValues.stream().noneMatch(v -> isSameValue(v, value))) {
+                diffValues.add(value);
+            }
+        }
+        return diffValues;
     }
 
     public static List<String[]> cloneList(List<String[]> list) {

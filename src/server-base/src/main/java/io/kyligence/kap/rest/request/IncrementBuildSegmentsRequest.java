@@ -64,4 +64,7 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
     private MultiPartitionDesc multiPartitionDesc;
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    @JsonProperty("build_all_sub_partitions")
+    private boolean buildAllSubPartitions = false;
 }
