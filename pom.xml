@@ -1086,6 +1086,12 @@
                 <groupId>org.springframework.security.extensions</groupId>
                 <artifactId>spring-security-saml2-core</artifactId>
                 <version>${spring.framework.security.extensions.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.velocity</groupId>
+                        <artifactId>velocity-engine-core</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
