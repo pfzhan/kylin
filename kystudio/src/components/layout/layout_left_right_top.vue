@@ -162,7 +162,13 @@
             <!-- </el-col> -->
             <el-col :span="24" class="main-content">
               <transition :name="isAnimation ? 'slide' : null" v-bind:css="isAnimation">
-                <router-view v-on:addProject="addProject"></router-view>
+                <router-view v-on:addProject="addProject" v-if="isShowRouterView"></router-view>
+                <div v-else class="blank-content">
+                  <i class="el-icon-ksd-alert_1"></i>
+                  <p class="text">
+                    {{$t('noAuthorityText')}}
+                  </p>
+                </div>
               </transition>
             </el-col>
           </div>
@@ -387,7 +393,8 @@ let MessageBox = ElementUI.MessageBox
       systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
       onlyQueryNode: 'There\'s no active job node now. Metadata related operations are temporarily unavailable.',
       viewDetails: 'View Details',
-      quotaSetting: 'Storage Setting'
+      quotaSetting: 'Storage Setting',
+      noAuthorityText: 'No project found. Please contact your administrator to create a project.'
     },
     'zh-cn': {
       contactSales: '联系销售',
@@ -425,7 +432,8 @@ let MessageBox = ElementUI.MessageBox
       systemUprade: '系统已进入维护模式，元数据相关操作暂不可用。',
       onlyQueryNode: '系统中暂无活跃的任务节点，元数据相关操作暂不可用。',
       viewDetails: '查看详情',
-      quotaSetting: '存储配额设置'
+      quotaSetting: '存储配额设置',
+      noAuthorityText: '当前暂无项目。请联系管理员新建项目。'
     }
   }
 })
@@ -885,6 +893,9 @@ export default class LayoutLeftRightTop extends Vue {
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
   }
+  get isShowRouterView () {
+    return this.isAdmin || (!this.isAdmin && !this.highlightType)
+  }
   get hasPermissionWithoutQuery () {
     return this.hasSomeProjectPermission()
   }
@@ -1018,7 +1029,7 @@ export default class LayoutLeftRightTop extends Vue {
     return !this.$store.state.project.selected_project && !this.$store.state.project.allProject.length ? 'primary' : ''
   }
   noProjectTips () {
-    if (this.highlightType && this.licenseDates['ke.dates'] && this.currentUser) {
+    if (this.highlightType && this.licenseDates['ke.dates'] && this.currentUser && this.isAdmin) {
       MessageBox.alert(this.$t('noProject'), this.$t('kylinLang.common.notice'), {
         confirmButtonText: this.$t('kylinLang.common.ok'),
         type: 'info'
@@ -1197,6 +1208,26 @@ export default class LayoutLeftRightTop extends Vue {
         box-sizing: border-box;
         background: white;
         position: relative;
+        .blank-content {
+            padding-top: 270px;
+            color: @text-placeholder-color;
+            width: 410px;
+            margin: 0 auto;
+            text-align: center;
+            &.en {
+              width: 380px;
+            }
+            i {
+              font-size: 60px;
+            }
+            .text {
+              font-size: 14px;
+              font-weight: 400;
+              line-height: 20px;
+              margin-top: 15px;
+              text-align: center;
+            }
+        }
       }
     }
     .linsencebox {
