@@ -60,7 +60,8 @@ export default {
     duplicatePartitionValueTip: 'Some values are not valid, as they are duplicated, or have been built.',
     removeDuplicateValue: 'Clear invalid values',
     multilevelPartition: 'Subpartition Column',
-    multilevelPartitionDesc: 'A column from the selected table could be chosen. The models under this project could be partitioned by this column in addition to time partitioning. '
+    multilevelPartitionDesc: 'A column from the selected table could be chosen. The models under this project could be partitioned by this column in addition to time partitioning. ',
+    selectAllSubPartitions: 'All Subpartition Values'
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
@@ -123,6 +124,7 @@ export default {
     duplicatePartitionValueTip: '存在无效的输入值，可能因为该值重复或已被构建。',
     removeDuplicateValue: '清空无效的值',
     multilevelPartition: '子分区列',
-    multilevelPartitionDesc: '可选择表上的一列作为子分区，对模型进行分区管理。'
+    multilevelPartitionDesc: '可选择表上的一列作为子分区，对模型进行分区管理。',
+    selectAllSubPartitions: '全部子分区值'
   }
 }

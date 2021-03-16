@@ -357,6 +357,8 @@
           :remote-method="filterPartitions"
           :selectedlabels="addedPartitionValues"
           :placeholder="$t('multiPartitionPlaceholder')"
+          :datamap="{label: 'label', value: 'value'}"
+          :selectGroupOne="subPartitionGroupOne"
           @duplicateTags="checkDuplicateValue"
           @refreshData="refreshPartitionValues"
           @removeTag="removeSelectedMultiPartition"
@@ -494,6 +496,7 @@ export default class ModelSegment extends Vue {
   partitionValuesLabels = []
   partitionOptions = []
   partition_values = []
+  subPartitionGroupOne = []
   removeSelectedMultiPartition = []
   isMultipleBuild = false
   selectedSubPartitionSegments = []
@@ -501,6 +504,7 @@ export default class ModelSegment extends Vue {
   buildSubParValueLoading = false
   duplicateValueError = false
   mergeError = false
+  timestamp = Date.now().toString(32)
 
   get getDetails () {
     let notices = [
@@ -534,8 +538,15 @@ export default class ModelSegment extends Vue {
   async buildSubParValue () {
     this.buildSubParValueLoading = true
     try {
-      const partitionValuesArr = split_array(this.partition_values, 1)
-      await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, sub_partition_values: partitionValuesArr, parallel_build_by_segment: this.isMultipleBuild })
+      let build_all_sub_partitions = false
+      const partitionValues = JSON.parse(JSON.stringify(this.partition_values))
+      if (this.partition_values.includes(`select_all_${this.timestamp}`)) {
+        const index = this.partition_values.indexOf(`select_all_${this.timestamp}`)
+        build_all_sub_partitions = true
+        index >= 0 && partitionValues.splice(index, 1)
+      }
+      const partitionValuesArr = split_array(partitionValues, 1)
+      await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, sub_partition_values: partitionValuesArr, build_all_sub_partitions, parallel_build_by_segment: this.isMultipleBuild })
       this.buildSubParValueLoading = false
       this.buildSubParValueVisible = false
       this.$message({
@@ -552,6 +563,7 @@ export default class ModelSegment extends Vue {
       this.isMultipleBuild = false
       this.addedPartitionValues = []
       this.partition_values = []
+      this.subPartitionGroupOne = []
       this.loadSubPartitions()
     } catch (e) {
       handleError(e)
@@ -632,7 +644,8 @@ export default class ModelSegment extends Vue {
       this.partitionValuesLabels = this.modelSubPartitionValues.filter((v1) => {
         return !this.subBuildedPartitionValues.includes(v1)
       })
-      this.partitionOptions = this.partitionValuesLabels.slice(0, 50)
+      this.partitionValuesLabels.length && (this.subPartitionGroupOne = [{label: this.$t('selectAllSubPartitions'), value: `select_all_${this.timestamp}`}])
+      this.partitionOptions = this.partitionValuesLabels.slice(0, 50).map(it => ({label: it, value: it}))
       this.buildSubParValueVisible = true
     } catch (e) {
       handleError(e)
@@ -644,6 +657,7 @@ export default class ModelSegment extends Vue {
     this.addedPartitionValues = []
     this.partition_values = []
     this.isMultipleBuild = false
+    this.subPartitionGroupOne = []
   }
   handleSelectionChange (rows) {
     this.selectedSubPartitionSegments = rows
@@ -1010,7 +1024,8 @@ export default class ModelSegment extends Vue {
   }
 
   filterPartitions (query) {
-    this.partitionOptions = this.partitionValuesLabels.filter(item => item.indexOf(query) >= 0).slice(0, 50)
+    this.subPartitionGroupOne = query ? [] : this.partitionValuesLabels.length ? [{label: this.$t('selectAllSubPartitions'), value: `select_all_${this.timestamp}`}] : []
+    this.partitionOptions = this.partitionValuesLabels.filter(item => item.indexOf(query) >= 0).slice(0, 50).map(it => ({label: it, value: it}))
   }
 
   // 跳转至job页面
@@ -1189,6 +1204,9 @@ export default class ModelSegment extends Vue {
     .clear-value-btn {
       cursor: pointer;
       color: @text-normal-color;
+      &:hover {
+        color: @base-color;
+      }
     }
   }
   .select-sub-partition.error-border {

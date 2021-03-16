@@ -198,7 +198,7 @@
             </table>
           </div>
           <div v-if="displaySubPartition">
-            <div class="ksd-title-label-small ksd-mt-10">{{$t('multiPartitionValue')}}</div>
+            <div class="ksd-title-label-small ksd-mt-15">{{$t('multiPartitionValue')}}</div>
             <p class="sub-partition-alert"><i class="icon el-icon-ksd-alert ksd-mr-5"></i>{{$t('subPartitionAlert')}}</p>
             <arealabel
               ref="selectSubPartition"
@@ -213,6 +213,8 @@
               :labels="subPartitionOptions"
               :placeholder="$t('multiPartitionPlaceholder')"
               :remote-method="filterPartitions"
+              :datamap="{label: 'label', value: 'value'}"
+              :selectGroupOne="subPartitionGroupOne"
               @duplicateTags="checkDuplicateValue"
               @refreshData="refreshPartitionValues"
               @removeTag="removeSelectedMultiPartition">
@@ -358,7 +360,9 @@
     isMultipleBuild = false
     duplicateValueError = false
     subPartitionOptions = []
+    subPartitionGroupOne = []
     dateErrorMsg = ''
+    timestamp = Date.now().toString(32)
 
     @Watch('buildType')
     changeBuildType (newVal, oldVal) {
@@ -633,7 +637,8 @@
             this.modelSubPartitionValues = data.map((p) => {
               return p.partition_value[0]
             })
-            this.subPartitionOptions = this.modelSubPartitionValues.slice(0, 50)
+            this.modelSubPartitionValues.length && (this.subPartitionGroupOne = [{label: this.$t('selectAllSubPartitions'), value: `select_all_${this.timestamp}`}])
+            this.subPartitionOptions = this.modelSubPartitionValues.slice(0, 50).map(it => ({label: it, value: it}))
           } catch (e) {
             handleError(e)
           }
@@ -704,6 +709,7 @@
       this.showDetail = false
       this.isWillAddIndex = false
       this.multiPartitionValues = []
+      this.subPartitionGroupOne = []
       this.dateErrorMsg = ''
       this.resetError()
       this.hideModal()
@@ -712,7 +718,7 @@
         this.resetModalForm()
       }, 200)
     }
-    _buildModel ({start, end, modelId, modelName, isBuild, partition_desc, multi_partition_desc, multi_partition_values, segment_holes}) {
+    _buildModel ({start, end, modelId, modelName, isBuild, partition_desc, multi_partition_desc, multi_partition_values, build_all_sub_partitions, segment_holes}) {
       const partitionValuesArr = split_array(multi_partition_values, 1)
       this.buildModel({
         model_id: modelId,
@@ -725,6 +731,7 @@
           segment_holes: segment_holes || [],
           // parallel_build_by_segment: this.isMultipleBuild,
           multi_partition_desc,
+          build_all_sub_partitions,
           project: this.currentSelectedProject
         }
       }).then(() => {
@@ -808,8 +815,15 @@
             const isChangePatition = this.prevPartitionMeta.table && (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format)
             const isChangeBuildType = !this.prevPartitionMeta.table && this.isHaveSegment
             const multi_partition_desc = this.partitionMeta.multiPartition ? {columns: [this.partitionMeta.table + '.' + this.partitionMeta.multiPartition]} : null
+            let build_all_sub_partitions = false
+            const partitionValues = JSON.parse(JSON.stringify(this.multiPartitionValues))
+            if (this.multiPartitionValues.includes(`select_all_${this.timestamp}`)) {
+              const index = this.multiPartitionValues.indexOf(`select_all_${this.timestamp}`)
+              build_all_sub_partitions = true
+              index >= 0 && partitionValues.splice(index, 1)
+            }
             if (isChangePatition || isChangeBuildType) {
-              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues})
+              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
             } else {
               let res
               try {
@@ -857,19 +871,19 @@
                           return {start: seg.date_range_start, end: seg.date_range_end}
                         })
                         try {
-                          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues, segment_holes: selectSegmentHoles})
+                          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions, segment_holes: selectSegmentHoles})
                         } catch (e) {
                           handleError(e)
                         }
                       }
                     })
-                    this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues})
+                    this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
                   } catch (e) {
                     this.btnLoading = false
                     handleError(e)
                   }
                 } else {
-                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: this.multiPartitionValues})
+                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
                 }
               }
             }
@@ -1015,7 +1029,12 @@
     }
 
     filterPartitions (query) {
-      this.subPartitionOptions = this.modelSubPartitionValues.filter(item => item.indexOf(query) >= 0).slice(0, 50)
+      if (query) {
+        this.subPartitionGroupOne = []
+      } else if (this.modelSubPartitionValues.length) {
+        this.subPartitionGroupOne = [{label: this.$t('selectAllSubPartitions'), value: `select_all_${this.timestamp}`}]
+      }
+      this.subPartitionOptions = this.modelSubPartitionValues.filter(item => item.indexOf(query) >= 0).slice(0, 50).map(it => ({label: it, value: it}))
     }
 
     jumpToJobs () {
@@ -1101,6 +1120,9 @@
       .clear-value-btn {
         cursor: pointer;
         color: @text-normal-color;
+        &:hover {
+          color: @base-color;
+        }
       }
     }
     .sub-partition-alert {

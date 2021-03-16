@@ -15,12 +15,17 @@
     :popper-class="changeable"
     :placeholder="placeholder"
     :duplicate-remove="duplicateremove">
-    <el-option
-      v-for="(item, index) in baseLabel"
-      :key="index"
-      :label="item.label"
-      :value="item.value" >
-    </el-option>
+    <el-option-group v-if="selectGroupOne.length">
+      <el-option v-for="item in selectGroupOne" :key="item.value" :label="item.label" :value="item.value"></el-option>
+    </el-option-group>
+    <el-option-group>
+      <el-option
+        v-for="(item, index) in baseLabel"
+        :key="index"
+        :label="item.label"
+        :value="item.value" >
+      </el-option>
+    </el-option-group>
   </el-select>
   </div>
 </template>
@@ -43,6 +48,12 @@ export default {
     duplicateremove: Boolean,
     isSignSameValue: Boolean,
     remoteMethod: Function,
+    selectGroupOne: {
+      type: Array,
+      default () {
+        return []
+      }
+    },
     remoteSearch: {
       type: Boolean,
       default: true

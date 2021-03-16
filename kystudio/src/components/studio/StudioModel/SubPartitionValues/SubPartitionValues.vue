@@ -49,7 +49,7 @@
       :close-on-click-modal="false"
       :before-close="handleClose">
       <span slot="title" class="ksd-title-label">{{$t('addSubParValueTitle')}}</span>
-      <div class="ksd-title-label-small ksd-mb-10">{{$t('addSubParValueDesc')}}</div>
+      <div class="ksd-mb-10"><i class="icon el-icon-ksd-alert ksd-mr-5"></i>{{$t('addSubParValueDesc')}}</div>
       <div :class="['arealabel-block', {'error-border': duplicateValueError}]">
         <arealabel
           ref="selectSubPartition"
@@ -323,6 +323,9 @@ export default class subPartitionValues extends Vue {
     .clear-value-btn {
       cursor: pointer;
       color: @text-normal-color;
+      &:hover {
+        color: @base-color;
+      }
     }
   }
   .select-sub-partition.error-border {
@@ -338,6 +341,9 @@ export default class subPartitionValues extends Vue {
     .el-input__inner {
       border: none;
     }
+  }
+  .icon {
+    color: @text-disabled-color;
   }
 }
 .delete-sub-par-value-dialog {
