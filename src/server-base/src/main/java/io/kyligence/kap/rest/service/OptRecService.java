@@ -45,6 +45,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.model.FuzzyKeySearcher;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -86,7 +87,6 @@ import io.kyligence.kap.rest.response.OptRecLayoutResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OptRecResponse;
 import lombok.Getter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -823,7 +823,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         });
 
         Set<Integer> brokenRecs = Sets.newHashSet();
-        List<OptRecLayoutResponse> recList = getRecLayoutResponses(project, modelId, OptRecService.ALL, brokenRecs);
+        List<OptRecLayoutResponse> recList = getRecLayoutResponses(project, modelId, key, OptRecService.ALL,
+                brokenRecs);
         if (userDefinedTypes.size() != RawRecItem.IndexRecType.values().length) {
             recList.removeIf(resp -> !userDefinedTypes.isEmpty() && !userDefinedTypes.contains(resp.getType()));
         }
@@ -850,7 +851,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     private OptRecLayoutsResponse getOptRecLayoutsResponseInner(String project, String modelId, String recActionType) {
         OptRecLayoutsResponse layoutsResponse = new OptRecLayoutsResponse();
-        List<OptRecLayoutResponse> responses = getRecLayoutResponses(project, modelId, recActionType,
+        List<OptRecLayoutResponse> responses = getRecLayoutResponses(project, modelId, null, recActionType,
                 layoutsResponse.getBrokenRecs());
         layoutsResponse.getLayouts().addAll(responses);
         layoutsResponse.setSize(layoutsResponse.getLayouts().size());
@@ -881,18 +882,19 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             // do nothing
         }
 
-        return layoutRefMap.entrySet().stream().filter(entry -> {
-            val recId = entry.getKey();
-            val layoutRef = entry.getValue();
-            return !layoutRef.isBroken() && !layoutRef.isExisted() && recId < 0;
-        }).map(entry -> {
-            val recId = entry.getKey();
-            return optRecV2.getRawRecItemMap().get(-recId);
-        }).collect(Collectors.toList());
+        List<RawRecItem> result = Lists.newArrayList();
+        layoutRefMap.forEach((recId, layoutRef) -> {
+            if (layoutRef.isBroken() || layoutRef.isExcluded() || layoutRef.isExisted() || recId >= 0) {
+                return;
+            }
+            result.add(optRecV2.getRawRecItemMap().get(-recId));
+        });
+
+        return result;
     }
 
-    private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String recActionType,
-            Set<Integer> brokenRecCollector) {
+    private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String key,
+            String recActionType, Set<Integer> brokenRecCollector) {
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
         if (recActionType.equalsIgnoreCase(RecActionType.ALL.name())) {
@@ -906,7 +908,34 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         brokenRecCollector.addAll(optRecV2.getBrokenLayoutRefIds());
-        return convertToV2RecResponse(project, modelId, rawRecItems);
+        List<RawRecItem> filterRecItems = Lists.newArrayList();
+        if (!StringUtils.isBlank(key)) {
+            Set<String> ccFullNames = FuzzyKeySearcher.searchComputedColumns(optRecV2.getModel(), key);
+            Set<Integer> columnRefs = FuzzyKeySearcher.searchColumnRefs(optRecV2, ccFullNames, key);
+            Set<Integer> ccRefIds = FuzzyKeySearcher.searchCCRecRefs(optRecV2, key);
+            Set<Integer> dependRefs = Sets.newHashSet(ccRefIds);
+            dependRefs.addAll(columnRefs);
+            Set<Integer> relatedRecIds = FuzzyKeySearcher.searchDependRefIds(optRecV2, dependRefs, key);
+
+            rawRecItems.forEach(recItem -> {
+                if (recItem.isRemoveLayoutRec()) {
+                    final long id = RawRecUtil.getLayout(recItem).getId();
+                    if (String.valueOf(id).equalsIgnoreCase(key.trim())) {
+                        filterRecItems.add(recItem);
+                        return;
+                    }
+                }
+                for (int dependID : recItem.getDependIDs()) {
+                    if (relatedRecIds.contains(dependID)) {
+                        filterRecItems.add(recItem);
+                        return;
+                    }
+                }
+            });
+        } else {
+            filterRecItems.addAll(rawRecItems);
+        }
+        return convertToV2RecResponse(project, modelId, filterRecItems);
     }
 
     /**

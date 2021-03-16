@@ -56,6 +56,7 @@ public abstract class RecommendationRef implements IKeep {
     private boolean isBroken;
     private boolean existed;
     private boolean crossModel;
+    private boolean isExcluded;
     private Object entity;
     private List<RecommendationRef> dependencies = Lists.newArrayList();
 

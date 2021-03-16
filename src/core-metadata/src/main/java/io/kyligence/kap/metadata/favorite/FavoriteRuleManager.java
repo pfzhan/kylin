@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.favorite;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -138,6 +139,13 @@ public class FavoriteRuleManager {
 
         return blacklist.getConds().stream().map(cond -> ((FavoriteRule.SQLCondition) cond).getSqlPattern())
                 .collect(Collectors.toSet());
+    }
+
+    public Set<String> getExcludedTables() {
+        FavoriteRule rule = getByName(FavoriteRule.EXCLUDED_TABLES_RULE);
+        FavoriteRule favoriteRule = FavoriteRule.getDefaultRule(rule, FavoriteRule.EXCLUDED_TABLES_RULE);
+        FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
+        return Arrays.stream(condition.getRightThreshold().split(",")).collect(Collectors.toSet());
     }
 
     public void delete(FavoriteRule favoriteRule) {

@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 
 public class OptRecV2CCTest extends OptRecV2TestBase {
@@ -46,7 +47,8 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
                 .addMeasureDep(ImmutableMap.of(-2, Lists.newArrayList(18), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-3, Lists.newArrayList(-1, 100000, -2))).addCCDep(ImmutableMap.of());
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
 
     }
 
@@ -59,8 +61,8 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
                 .addLayDep(ImmutableMap.of(-9, Lists.newArrayList(-1, 100000, -8)))
                 .addCCDep(ImmutableMap.of(-7, ImmutableList.of(10, 17))).setCCProperties(false, true);
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
-
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
@@ -72,8 +74,8 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
                 .addLayDep(ImmutableMap.of(-6, Lists.newArrayList(-1, 100000, -5)))
                 .addCCDep(ImmutableMap.of(-4, ImmutableList.of(10, 13)));
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
-
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
@@ -85,7 +87,8 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
                 .addLayDep(ImmutableMap.of(-12, Lists.newArrayList(-1, 100000, -11)))
                 .addCCDep(ImmutableMap.of(27, ImmutableList.of(27))).setCCProperties(true, false);
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
 
     }
 }

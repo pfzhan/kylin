@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -71,6 +72,11 @@ public class ComputedColumnProposer extends AbstractModelProposer {
 
         // pre-init to construct join-tree
         initModel(dataModel);
+        if (modelContext.getChecker() == null) {
+            Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
+            ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, dataModel);
+            modelContext.setChecker(checker);
+        }
         Set<String> ccSuggestions = collectLatentCCSuggestions(modelContext, dataModel);
         transferStatusOfNeedUpdateCC(ccSuggestions);
         List<ComputedColumnDesc> newValidCCList = transferToComputedColumn(dataModel, ccSuggestions);
@@ -90,6 +96,7 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
             ctx.fixModel(dataModel, matchingAlias);
             Set<TblColRef> innerColumns = collectInnerColumns(ctx);
+            innerColumns.removeIf(col -> !col.isInnerColumn());
             ccSuggestions.addAll(translateToSuggestions(innerColumns, matchingAlias));
             ctx.unfixModel();
         }
@@ -209,14 +216,15 @@ public class ComputedColumnProposer extends AbstractModelProposer {
     protected Set<String> translateToSuggestions(Set<TblColRef> innerColumns, Map<String, String> matchingAlias) {
         Set<String> candidates = Sets.newHashSet();
         for (TblColRef col : innerColumns) {
-            if (col.isInnerColumn()) {
-                String parserDesc = col.getParserDescription();
-                parserDesc = matchingAlias.entrySet().stream()
-                        .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
-                        .reduce(Function.identity(), Function::andThen).apply(parserDesc);
-                log.trace(parserDesc);
-                candidates.add(parserDesc);
+            if (modelContext.getChecker().isCCDependsLookupTable(col)) {
+                continue;
             }
+            String parserDesc = col.getParserDescription();
+            parserDesc = matchingAlias.entrySet().stream()
+                    .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
+                    .reduce(Function.identity(), Function::andThen).apply(parserDesc);
+            log.trace(parserDesc);
+            candidates.add(parserDesc);
         }
         return candidates;
     }
@@ -327,7 +335,7 @@ public class ComputedColumnProposer extends AbstractModelProposer {
                     try {
                         candidates.add(CalciteParser.transformDoubleQuote(col.getExpressionInSourceDB()));
                     } catch (Exception e) {
-                        log.warn("fail to acquire formatted cc from expr %s", col.getExpressionInSourceDB());
+                        log.warn("fail to acquire formatted cc from expr {}", col.getExpressionInSourceDB());
                     }
                 }
             }

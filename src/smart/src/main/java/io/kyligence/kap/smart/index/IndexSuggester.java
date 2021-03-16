@@ -227,6 +227,7 @@ class IndexSuggester {
 
     private List<Integer> suggestTableIndexDimensions(OLAPContext context) {
         // 1. determine filter columns and non-filter columns
+        Set<TblColRef> filterColumns = Sets.newHashSet(context.filterColumns);
         Set<TblColRef> nonFilterColumnSet = new HashSet<>(context.allColumns);
         nonFilterColumnSet.addAll(context.getSubqueryJoinParticipants());
 
@@ -235,15 +236,20 @@ class IndexSuggester {
         if (nonFilterColumnSet.isEmpty() && context.filterColumns.isEmpty()) {
             Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
                     "Cannot suggest any columns in table index.");
-            final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
+            NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().stream().filter(column -> {
+                TblColRef tblColRef = model.getEffectiveCols().get(column.getId());
+                return tblColRef.getTable().equalsIgnoreCase(model.getRootFactTableName());
+            }).findFirst().get();
+
             nonFilterColumnSet.add(model.getEffectiveCols().get(namedColumn.getId()));
             // set extra-column as dimension in model
             namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
         }
         nonFilterColumnSet.removeAll(context.filterColumns);
+        replaceDimOfLookupTableWithFK(context, filterColumns, nonFilterColumnSet);
 
         // 3. sort filter columns and non-filter columns
-        List<TblColRef> sortedDims = sortDimensionColumns(context.filterColumns, nonFilterColumnSet);
+        List<TblColRef> sortedDims = sortDimensionColumns(filterColumns, nonFilterColumnSet);
 
         // 4. generate dimension ids
         return generateDimensionIds(sortedDims, model.getEffectiveCols().inverse());
@@ -251,15 +257,35 @@ class IndexSuggester {
 
     private List<Integer> suggestAggIndexDimensions(OLAPContext context) {
         // 1. determine filter columns and non-filter columns
+        Set<TblColRef> filterColumns = Sets.newHashSet(context.filterColumns);
         Set<TblColRef> nonFilterColumnSet = new HashSet<>(context.getGroupByColumns());
         nonFilterColumnSet.addAll(context.getSubqueryJoinParticipants());
         nonFilterColumnSet.removeAll(context.filterColumns);
+        replaceDimOfLookupTableWithFK(context, filterColumns, nonFilterColumnSet);
 
         // 2. sort filter columns and non-filter columns
-        List<TblColRef> sortedDims = sortDimensionColumns(context.filterColumns, nonFilterColumnSet);
+        List<TblColRef> sortedDims = sortDimensionColumns(filterColumns, nonFilterColumnSet);
 
         // 3. generate dimension ids
         return generateDimensionIds(sortedDims, model.getEffectiveDimensions().inverse());
+    }
+
+    private void replaceDimOfLookupTableWithFK(OLAPContext context, Set<TblColRef> filterColumns,
+            Set<TblColRef> nonFilterColumnSet) {
+        Set<String> excludedLookupTables = modelContext.getChecker().getExcludedLookupTables();
+        filterColumns.removeIf(tblColRef -> excludedLookupTables.contains(tblColRef.getTableWithSchema()));
+        nonFilterColumnSet.removeIf(tblColRef -> excludedLookupTables.contains(tblColRef.getTableWithSchema()));
+        context.joins.forEach(join -> {
+            for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
+                TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
+                String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
+                if (excludedLookupTables.contains(derivedTable)) {
+                    if (!filterColumns.contains(foreignKeyColumn)) {
+                        nonFilterColumnSet.add(foreignKeyColumn);
+                    }
+                }
+            }
+        });
     }
 
     private List<TblColRef> sortDimensionColumns(Collection<TblColRef> filterColumnsCollection,
@@ -295,6 +321,9 @@ class IndexSuggester {
 
         ctx.aggregations.forEach(aggFunc -> {
             Integer measureId = aggFuncIdMap.get(aggFunc);
+            if (modelContext.getChecker().isMeasureOnLookupTable(aggFunc)) {
+                return;
+            }
             if (measureId != null) {
                 measureIds.add(measureId);
             } else if (CollectionUtils.isNotEmpty(aggFunc.getParameters())) {

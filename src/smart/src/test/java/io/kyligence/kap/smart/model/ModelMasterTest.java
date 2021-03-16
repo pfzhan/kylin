@@ -79,6 +79,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
             Assert.assertEquals("COUNT_ALL", allMeasures.get(0).getName());
         }
 
+        dataModel = modelMaster.proposeComputedColumn(dataModel);
         dataModel = modelMaster.proposeJoins(dataModel);
         {
             val joins = dataModel.getJoinTables();
@@ -142,6 +143,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
 
         // propose model without partition column
         NDataModel dataModel = modelMaster.proposeInitialModel();
+        dataModel = modelMaster.proposeComputedColumn(dataModel);
         dataModel = modelMaster.proposeJoins(dataModel);
         dataModel = modelMaster.proposePartition(dataModel);
         dataModel = modelMaster.proposeScope(dataModel);
@@ -227,6 +229,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
         ModelMaster modelMaster = new ModelMaster(mdCtx);
         // propose model
         NDataModel dataModel = modelMaster.proposeInitialModel();
+        dataModel = modelMaster.proposeComputedColumn(dataModel);
         dataModel = modelMaster.proposeJoins(dataModel);
         dataModel = modelMaster.proposePartition(dataModel);
         dataModel = modelMaster.proposeScope(dataModel);

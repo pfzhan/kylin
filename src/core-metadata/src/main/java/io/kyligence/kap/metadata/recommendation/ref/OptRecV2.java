@@ -38,6 +38,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -51,6 +52,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
@@ -88,7 +90,7 @@ public class OptRecV2 {
     private final Map<Integer, LayoutRef> additionalLayoutRefs = Maps.newHashMap();
     private final Map<Integer, LayoutRef> removalLayoutRefs = Maps.newHashMap();
     private final Map<Integer, RawRecItem> rawRecItemMap = Maps.newHashMap();
-    private final Set<Integer> brokenLayoutRefIds;
+    private final Set<Integer> brokenLayoutRefIds = Sets.newHashSet();
 
     @Getter(lazy = true)
     private final List<LayoutEntity> layouts = getAllLayouts();
@@ -96,19 +98,26 @@ public class OptRecV2 {
     private final NDataModel model = initModel();
     @Getter(lazy = true)
     private final Map<String, ComputedColumnDesc> projectCCMap = initAllCCMap();
+    private final ExcludedLookupChecker checker;
+    private final boolean needLog;
 
-    public OptRecV2(String project, String uuid) {
+    public OptRecV2(String project, String uuid, boolean needLog) {
+        this.needLog = needLog;
         this.config = KylinConfig.getInstanceFromEnv();
         this.uuid = uuid;
         this.project = project;
 
         uniqueFlagToRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
         uniqueFlagToRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
-        initRecommendation();
-        brokenLayoutRefIds = filterBrokenLayoutRefs();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(config, project).getExcludedTables();
+        checker = new ExcludedLookupChecker(excludedTables, getModel());
+        if (!getModel().isBroken()) {
+            initModelColumnRefs(getModel());
+            initModelMeasureRefs(getModel());
+        }
     }
 
-    private void initRecommendation() {
+    public void initRecommendation() {
         log.info("Start to initialize recommendation({}/{}}", project, getUuid());
 
         NDataModel model = getModel();
@@ -117,15 +126,29 @@ public class OptRecV2 {
             RawRecManager.getInstance(project).discardRecItemsOfBrokenModel(model.getUuid());
             return;
         }
-        initModelColumnRefs(getModel());
-        initModelMeasureRefs(getModel());
+
         initLayoutRefs(queryBestLayoutRecItems());
         initLayoutRefs(queryImportedRawRecItems());
         initRemovalLayoutRefs(queryBestRemovalLayoutRecItems());
 
         autoNameForMeasure();
-
+        brokenLayoutRefIds.addAll(filterBrokenLayoutRefs());
         log.info("Initialize recommendation({}/{}) successfully.", project, uuid);
+    }
+
+    public List<RawRecItem> filterExcludedRecPatterns(List<RawRecItem> rawRecItems) {
+        log.info("Start to initialize recommendation patterns({}/{}}", project, getUuid());
+        NDataModel model = getModel();
+        if (model.isBroken()) {
+            log.warn("Discard all related recommendations for model({}/{}) is broken.", project, uuid);
+            RawRecManager.getInstance(project).discardRecItemsOfBrokenModel(model.getUuid());
+            return Lists.newArrayList();
+        }
+        List<RawRecItem> reserved = Lists.newArrayList();
+        initLayoutRefs(rawRecItems);
+        brokenLayoutRefIds.addAll(filterBrokenLayoutRefs());
+        log.info("Initialize recommendation patterns({}/{}) successfully.", project, uuid);
+        return reserved;
     }
 
     private void autoNameForMeasure() {
@@ -180,12 +203,15 @@ public class OptRecV2 {
             int id = column.getId();
             String columnName = column.getAliasDotColumn();
             String content = ccNameToExpressionMap.getOrDefault(columnName, columnName);
-            String datatype = model.getEffectiveCols().get(column.getId()).getDatatype();
-            RecommendationRef columnRef = new ModelColumnRef(column, datatype, content);
+            TblColRef tblColRef = model.getEffectiveCols().get(column.getId());
+            RecommendationRef columnRef = new ModelColumnRef(column, tblColRef.getDatatype(), content);
+            if (checker.isColRefDependsLookupTable(tblColRef)) {
+                columnRef.setExcluded(true);
+            }
             columnRefs.put(id, columnRef);
 
             if (column.isDimension()) {
-                dimensionRefs.put(id, new DimensionRef(columnRef, id, datatype, true));
+                dimensionRefs.put(id, new DimensionRef(columnRef, id, tblColRef.getDatatype(), true));
             }
         }
     }
@@ -201,6 +227,9 @@ public class OptRecV2 {
             MeasureRef measureRef = new MeasureRef(measure, measure.getId(), true);
             measure.getFunction().getParameters().stream().filter(ParameterDesc::isColumnType).forEach(p -> {
                 int id = model.getColumnIdByColumnName(p.getValue());
+                if (checker.isColRefDependsLookupTable(p.getColRef())) {
+                    measureRef.setExcluded(true);
+                }
                 measureRef.getDependencies().add(columnRefs.get(id));
             });
             measureRefs.put(measure.getId(), measureRef);
@@ -345,6 +374,9 @@ public class OptRecV2 {
                 if (ref.isBroken()) {
                     logDependencyLost(rawRecItem, dependId);
                     return BrokenRefProxy.getProxy(LayoutRef.class, layoutRef.getId());
+                }
+                if (ref.isExcluded()) {
+                    layoutRef.setExcluded(true);
                 }
                 layoutRef.getDependencies().add(ref);
                 continue;
@@ -623,12 +655,16 @@ public class OptRecV2 {
             RecommendationRef e = columnRefs.get(dependId);
             if (e.isBroken()) {
                 return TranslatedState.BROKEN;
+            } else if (e.isExcluded()) {
+                ref.setExcluded(true);
             }
             ref.getDependencies().add(e);
         } else if (ccRefs.containsKey(dependId)) {
             RecommendationRef e = ccRefs.get(dependId);
             if (e.isBroken()) {
                 return TranslatedState.BROKEN;
+            } else if (e.isExcluded()) {
+                ref.setExcluded(true);
             }
             ref.getDependencies().add(e);
         } else {

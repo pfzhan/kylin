@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,7 +56,8 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
                 .addMeasureDep(ImmutableMap.of(-2, Lists.newArrayList(3), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-3, Lists.newArrayList(-1, 100000, -2))).addCCDep(ImmutableMap.of());
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     /**
@@ -69,7 +71,8 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
                 .addMeasureDep(ImmutableMap.of(-5, Lists.newArrayList(5), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-6, Lists.newArrayList(-4, 100000, -5))).addCCDep(ImmutableMap.of());
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
@@ -79,7 +82,8 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
                 .addMeasureDep(ImmutableMap.of(-8, Lists.newArrayList(26), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-9, Lists.newArrayList(-7, 100000, -8))).addCCDep(ImmutableMap.of());
 
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
@@ -89,8 +93,9 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
                 .addMeasureDep(ImmutableMap.of(-12, Lists.newArrayList(-10), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-13, Lists.newArrayList(-11, 100000, -12)))
                 .addCCDep(ImmutableMap.of(-10, ImmutableList.of(5, 3)));
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
 
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
@@ -101,8 +106,9 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
                 .addDimDep(ImmutableMap.of(-16, 1, -15, 17, -17, 13))
                 .addMeasureDep(ImmutableMap.of(100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-18, Lists.newArrayList(-16, -17, -15))).addCCDep(ImmutableMap.of());
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
 
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
@@ -115,21 +121,22 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
                 .addLayDep(ImmutableMap.of(-3, Lists.newArrayList(-1, 100000, -2), -28,
                         Lists.newArrayList(-27, -1, 100000, -2)))
                 .addCCDep(ImmutableMap.of());
-        checkAllDependency(depBuilder.builder(), new OptRecV2(getProject(), getDefaultUUID()));
 
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        checkAllDependency(depBuilder.builder(), optRecV2);
     }
 
     @Test
     public void testInitErrorForColumnOnModelMissing() throws IOException {
         prepareEnv(Lists.newArrayList(29));
-        OptRecV2 optRecV2 = new OptRecV2(getProject(), getDefaultUUID());
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
         Assert.assertTrue(optRecV2.getBrokenLayoutRefIds().contains(29));
     }
 
     @Test
     public void testInitErrorForMeasureOnModelMissing() throws IOException {
         prepareEnv(Lists.newArrayList(31));
-        OptRecV2 optRecV2 = new OptRecV2(getProject(), getDefaultUUID());
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
         Assert.assertTrue(optRecV2.getBrokenLayoutRefIds().contains(31));
     }
 

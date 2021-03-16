@@ -67,4 +67,8 @@ public class FavoriteRuleUpdateRequest implements Serializable, ProjectInsensiti
     private boolean recommendationEnable;
     @JsonProperty("recommendations_value")
     private String recommendationsValue;
+    @JsonProperty("excluded_tables_enable")
+    private boolean excludeTablesEnable;
+    @JsonProperty("excluded_tables")
+    private String excludedTables;
 }

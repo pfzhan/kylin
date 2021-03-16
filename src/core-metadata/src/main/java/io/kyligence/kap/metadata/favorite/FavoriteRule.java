@@ -50,6 +50,7 @@ public class FavoriteRule extends RootPersistentEntity {
     public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
     public static final String REC_SELECT_RULE_NAME = "recommendations";
     public static final String BLACKLIST_NAME = "blacklist";
+    public static final String EXCLUDED_TABLES_RULE = "excluded_tables";
 
     public FavoriteRule(List<AbstractCondition> conds, String name, boolean isEnabled) {
         this.conds = conds;
@@ -136,6 +137,7 @@ public class FavoriteRule extends RootPersistentEntity {
             return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, true) : rule;
         case FREQUENCY_RULE_NAME:
         case DURATION_RULE_NAME:
+        case EXCLUDED_TABLES_RULE:
             return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, false) : rule;
         default:
             return rule;
@@ -156,6 +158,8 @@ public class FavoriteRule extends RootPersistentEntity {
             return new Condition("0", "180");
         case REC_SELECT_RULE_NAME:
             return new Condition(null, "20");
+        case EXCLUDED_TABLES_RULE:
+            return new Condition(null, "");
         default:
             return null;
         }

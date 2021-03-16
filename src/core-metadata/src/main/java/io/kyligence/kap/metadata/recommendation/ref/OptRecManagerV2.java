@@ -24,9 +24,19 @@
 
 package io.kyligence.kap.metadata.recommendation.ref;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -35,63 +45,32 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.Singletons;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class OptRecManagerV2 {
-
-    private static class CCConflictHandlerV2 extends ComputedColumnUtil.BasicCCConflictHandler {
-        @Override
-        public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                ComputedColumnDesc newCC) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(newCC.getExpression(), newCC.getColumnName(),
-                            existingCC.getColumnName()));
-        }
-
-        @Override
-        public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,
-                ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
-            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
-                    MsgPicker.getMsg().getCC_NAME_CONFLICT(newCC.getColumnName()));
-        }
-    }
 
     public static OptRecManagerV2 getInstance(String project) {
         return Singletons.getInstance(project, OptRecManagerV2.class);
     }
 
-    private final KylinConfig config;
     private final String project;
 
     OptRecManagerV2(String project) {
-        this.config = KylinConfig.getInstanceFromEnv();
         this.project = project;
     }
 
     public OptRecV2 loadOptRecV2(String uuid) {
         Preconditions.checkState(StringUtils.isNotEmpty(uuid));
-        OptRecV2 optRecV2 = new OptRecV2(project, uuid);
+        OptRecV2 optRecV2 = new OptRecV2(project, uuid, true);
+        optRecV2.initRecommendation();
         List<Integer> brokenLayoutIds = Lists.newArrayList(optRecV2.getBrokenLayoutRefIds());
         if (!brokenLayoutIds.isEmpty()) {
             log.debug("recognized broken index ids: {}", brokenLayoutIds);

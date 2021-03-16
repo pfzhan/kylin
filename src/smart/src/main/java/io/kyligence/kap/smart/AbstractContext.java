@@ -42,6 +42,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
@@ -139,10 +140,6 @@ public abstract class AbstractContext implements IKeep {
         return models;
     }
 
-    public void setGlobalInfo(Set<String> allModels) {
-        extraMeta.addModels(allModels);
-    }
-
     @Getter
     public static class ModelContext implements IKeep {
         @Setter
@@ -171,11 +168,13 @@ public abstract class AbstractContext implements IKeep {
         private boolean snapshotSelected;
 
         private final AbstractContext proposeContext;
-        private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
+        private final Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
         @Setter
         private boolean needUpdateCC = false;
         @Getter(lazy = true)
         private final Map<String, String> uniqueContentToFlag = loadUniqueContentToFlag();
+        @Setter
+        private ExcludedLookupChecker checker;
 
         private Map<String, String> loadUniqueContentToFlag() {
             Map<String, String> result = Maps.newHashMap();
@@ -226,15 +225,11 @@ public abstract class AbstractContext implements IKeep {
         }
     }
 
+    @Getter
+    @Setter
     public static class ExtraMetaInfo {
-        private Set<String> allModel = Sets.newHashSet();
 
-        public void addModels(Set<String> models) {
-            allModel.addAll(models);
-        }
-
-        public Set<String> getAllModels() {
-            return allModel;
-        }
+        private Set<String> excludedTables = Sets.newHashSet();
+        private Set<String> allModels = Sets.newHashSet();
     }
 }

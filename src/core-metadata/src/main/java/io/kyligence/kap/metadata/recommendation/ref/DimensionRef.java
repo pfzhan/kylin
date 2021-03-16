@@ -47,6 +47,7 @@ public class DimensionRef extends RecommendationRef {
         this.setDataType(dataType);
         this.setExisted(existed);
         this.setEntity(columnRef.getEntity());
+        this.setExcluded(columnRef.isExcluded());
     }
 
     public void init() {

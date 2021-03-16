@@ -57,6 +57,7 @@ import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -88,6 +89,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         val project = context.getProject();
         val sqls = context.getSqlArray();
         val resourceStore = ResourceStore.getKylinMetaStore(config);
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(config, project);
+        Set<String> excludedTableSet = ruleManager.getExcludedTables();
 
         List<String> resources = Lists.newArrayList();
         NDataflowManager.getInstance(config, project).listDataModelsByStatus(RealizationStatusEnum.ONLINE)
@@ -113,8 +116,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             val jobTmpDir = runner.prepareEnv(jobId);
 
             val contextParamsFile = jobTmpDir + "/context_params.json";
-            JsonUtil.writeValue(new File(contextParamsFile),
-                    new ContextParams(project, context.isCanCreateNewModel(), Lists.newArrayList(sqls), allModelNames));
+            JsonUtil.writeValue(new File(contextParamsFile), new ContextParams(project, context.isCanCreateNewModel(),
+                    Lists.newArrayList(sqls), allModelNames, excludedTableSet));
             params.put("contextParams", contextParamsFile);
 
             val contextOutputFile = jobTmpDir + "/context_output.json";
@@ -193,7 +196,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             val context = (AbstractContext) contextConstructor.newInstance(KylinConfig.getInstanceFromEnv(), project,
                     sqls.toArray(new String[0]));
             Unsafe.setProperty("needCheckCC", "true");
-            context.setGlobalInfo(contextParams.getAllModels());
+            context.getExtraMeta().setAllModels(contextParams.getAllModels());
+            context.getExtraMeta().setExcludedTables(contextParams.getExcludedTables());
             context.setCanCreateNewModel(contextParams.isCanCreateNewModel());
             new SmartMaster(context).runWithContext(null);
             val output = ContextOutput.from(context);
@@ -213,6 +217,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         private List<String> sqls = Lists.newArrayList();
 
         private Set<String> allModels = Sets.newHashSet();
+
+        private Set<String> excludedTables = Sets.newHashSet();
     }
 
     public interface RunnerFactoryBuilder {

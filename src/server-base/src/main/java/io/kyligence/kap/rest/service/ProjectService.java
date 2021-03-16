@@ -84,7 +84,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
@@ -98,6 +97,7 @@ import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -129,6 +129,7 @@ import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
+import lombok.Setter;
 import lombok.val;
 
 @Component("projectService")
@@ -153,13 +154,21 @@ public class ProjectService extends BasicService {
     @Autowired
     RawRecService rawRecService;
 
+    @Autowired
+    OptRecService optRecService;
+
+    @Setter
+    @Autowired
+    private List<ModelUpdateListener> updateListeners = Lists.newArrayList();
+
     private static final String DEFAULT_VAL = "default";
 
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
 
     private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
             FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
-            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.REC_SELECT_RULE_NAME);
+            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.REC_SELECT_RULE_NAME,
+            FavoriteRule.EXCLUDED_TABLES_RULE);
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = -1)
@@ -970,6 +979,11 @@ public class ProjectService extends BasicService {
             String upperBound = conds.get(0).getRightThreshold();
             result.put("recommendations_value", StringUtils.isEmpty(upperBound) ? null : Long.parseLong(upperBound));
             break;
+        case FavoriteRule.EXCLUDED_TABLES_RULE:
+            result.put("excluded_tables_enable", rule.isEnabled());
+            String excludedTables = conds.get(0).getRightThreshold();
+            result.put("excluded_tables", excludedTables);
+            break;
         default:
             break;
         }
@@ -986,6 +1000,10 @@ public class ProjectService extends BasicService {
     public void updateRegularRule(String project, FavoriteRuleUpdateRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         favoriteRuleNames.forEach(ruleName -> updateSingleRule(project, ruleName, request));
+
+        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
+            updateListeners.forEach(listener -> listener.onUpdate(project, model.getUuid()));
+        });
     }
 
     private void updateSingleRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {
@@ -1018,6 +1036,10 @@ public class ProjectService extends BasicService {
         case FavoriteRule.REC_SELECT_RULE_NAME:
             isEnabled = request.isRecommendationEnable();
             conds.add(new FavoriteRule.Condition(null, request.getRecommendationsValue()));
+            break;
+        case FavoriteRule.EXCLUDED_TABLES_RULE:
+            isEnabled = request.isExcludeTablesEnable();
+            conds.add(new FavoriteRule.Condition(null, request.getExcludedTables()));
             break;
         default:
             break;
@@ -1085,10 +1107,6 @@ public class ProjectService extends BasicService {
         }
     }
 
-    public boolean isProjectWriteLocked(String project) {
-        return TransactionLock.isWriteLocked(project);
-    }
-
     private void resetJobNotificationConfig(String project) {
         Set<String> toBeRemovedProps = Sets.newHashSet();
         toBeRemovedProps.add("kylin.job.notification-on-empty-data-load");
@@ -1109,6 +1127,7 @@ public class ProjectService extends BasicService {
         val submitterList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_RULE_NAME));
         val groupList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_GROUP_RULE_NAME));
         val recList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.REC_SELECT_RULE_NAME));
+        val excludedTableList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.EXCLUDED_TABLES_RULE));
 
         getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.FREQUENCY_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(countList, true, FavoriteRule.COUNT_RULE_NAME);
@@ -1116,6 +1135,11 @@ public class ProjectService extends BasicService {
         getFavoriteRuleManager(project).updateRule(submitterList, true, FavoriteRule.SUBMITTER_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(groupList, true, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(recList, true, FavoriteRule.REC_SELECT_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(excludedTableList, false, FavoriteRule.EXCLUDED_TABLES_RULE);
+
+        NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModels().forEach(model -> {
+            updateListeners.forEach(listener -> listener.onUpdate(project, model.getUuid()));
+        });
     }
 
     private void resetGarbageCleanupConfig(String project) {

@@ -209,7 +209,8 @@ public class JdbcRawRecStore {
         }
     }
 
-    public List<RawRecItem> chooseTopNCandidates(String project, String model, int topN, RawRecItem.RawRecState state) {
+    public List<RawRecItem> chooseTopNCandidates(String project, String model, int topN, int offset,
+            RawRecItem.RawRecState state) {
         int semanticVersion = getSemanticVersion(project, model);
         if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
             log.debug("model({}/{}) does not exist.", project, model);
@@ -227,7 +228,7 @@ public class JdbcRawRecStore {
                     .and(table.state, isEqualTo(state)) //
                     .and(table.recSource, isNotEqualTo(RawRecItem.IMPORTED)) //
                     .orderBy(table.cost.descending(), table.hitCount.descending(), table.id.descending()) //
-                    .limit(topN) //
+                    .limit(topN).offset(offset) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
             log.info("Query topN({}) recommendations for adding to model({}/{}, semanticVersion: {}) takes {} ms.", //

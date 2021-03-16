@@ -29,7 +29,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_TA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan.UpdateRuleImpact;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,11 +58,11 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.rest.model.FuzzyKeySearcher;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -82,6 +81,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexPlan.UpdateRuleImpact;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -89,7 +89,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -545,33 +544,18 @@ public class IndexPlanService extends BasicService {
                     orderBy, desc, sources);
         }
 
-        String trimmedKey = key.trim();
-        val matchCCs = model.getComputedColumnDescs().stream()
-                .filter(cc -> containsIgnoreCase(cc.getFullName(), trimmedKey)
-                        || containsIgnoreCase(cc.getInnerExpression(), trimmedKey))
-                .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
-        val matchDimensions = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .filter(c -> containsIgnoreCase(c.getAliasDotColumn(), trimmedKey)
-                        || containsIgnoreCase(c.getName(), trimmedKey) || matchCCs.contains(c.getAliasDotColumn()))
-                .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
-        val matchMeasures = model.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .filter(m -> containsIgnoreCase(m.getName(), trimmedKey) || m.getFunction().getParameters().stream()
-                        .anyMatch(p -> p.getType().equals(FunctionDesc.PARAMETER_TYPE_COLUMN)
-                                && (containsIgnoreCase(p.getValue(), trimmedKey) || matchCCs.contains(p.getValue()))))
-                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
+        Set<String> ccFullNameSet = FuzzyKeySearcher.searchComputedColumns(model, key.trim());
+        Set<Integer> matchDimensions = FuzzyKeySearcher.searchDimensions(model, ccFullNameSet, key.trim());
+        Set<Integer> matchMeasures = FuzzyKeySearcher.searchMeasures(model, ccFullNameSet, key.trim());
 
         return sortAndFilterLayouts(layouts.stream().filter(index -> {
-            val cols = Sets.newHashSet(index.getColOrder());
-            return String.valueOf(index.getId()).equals(trimmedKey)
-                    || !Sets.intersection(matchDimensions, cols).isEmpty()
-                    || !Sets.intersection(matchMeasures, cols).isEmpty();
+            Set<Integer> colOrderSet = Sets.newHashSet(index.getColOrder());
+            return String.valueOf(index.getId()).equals(key.trim())
+                    || !Sets.intersection(matchDimensions, colOrderSet).isEmpty()
+                    || !Sets.intersection(matchMeasures, colOrderSet).isEmpty();
         }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(), layoutsByRunningJobs))
                 .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())), orderBy,
                 desc, sources);
-    }
-
-    private boolean containsIgnoreCase(String s1, String s2) {
-        return s1.toUpperCase(Locale.ROOT).contains(s2.toUpperCase(Locale.ROOT));
     }
 
     public IndexGraphResponse getIndexGraph(String project, String modelId, int maxSize) {

@@ -174,9 +174,11 @@ public class QueryScopeProposer extends AbstractModelProposer {
             allColumns.addAll(allTableColumns);
 
             // set status for all columns and put them into candidate named columns
+            Map<String, TblColRef> fKAsDimensionMap = collectFKAsDimensionMap(ctx);
             allColumns.forEach(tblColRef -> {
                 ColumnStatus status;
-                boolean canTreatAsDim = canTblColRefTreatAsDimension(ctx, tblColRef);
+                boolean canTreatAsDim = canTblColRefTreatAsDimension(fKAsDimensionMap, tblColRef)
+                        || canTblColRefTreatAsDimension(ctx, tblColRef);
                 boolean isNewDimension = canTreatAsDim;
                 if (candidateNamedColumns.containsKey(tblColRef.getIdentity())) {
                     NamedColumn namedColumn = candidateNamedColumns.get(tblColRef.getIdentity());
@@ -216,13 +218,15 @@ public class QueryScopeProposer extends AbstractModelProposer {
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {
-
             ctx.aggregations.forEach(agg -> {
                 Set<String> paramNames = Sets.newHashSet();
                 agg.getParameters().forEach(parameterDesc -> {
                     paramNames.add(parameterDesc.getColRef().getIdentity().replaceAll("\\.", "_"));
                 });
                 boolean isNewMeasure = false;
+                if (modelContext.getChecker().isMeasureOnLookupTable(agg)) {
+                    throw new IllegalArgumentException("Unsupported measure on dimension table, " + agg.toString());
+                }
                 if (!candidateMeasures.containsKey(agg)) {
                     FunctionDesc fun = copyFunctionDesc(agg);
                     String name = String.format(Locale.ROOT, "%s_%s", fun.getExpression(),
@@ -304,6 +308,9 @@ public class QueryScopeProposer extends AbstractModelProposer {
         }
 
         private boolean canTblColRefTreatAsDimension(OLAPContext ctx, TblColRef tblColRef) {
+            if (modelContext.getChecker().isColRefDependsLookupTable(tblColRef)) {
+                return false;
+            }
             if (ctx.getSQLDigest().isRawQuery) {
                 return ctx.allColumns.contains(tblColRef);
             } else {
@@ -311,6 +318,27 @@ public class QueryScopeProposer extends AbstractModelProposer {
                         || ctx.getSubqueryJoinParticipants().contains(tblColRef)
                         || dimensionAsMeasureColumns.contains(tblColRef);
             }
+        }
+
+        private boolean canTblColRefTreatAsDimension(Map<String, TblColRef> fKAsDimensionMap, TblColRef tblColRef) {
+            return fKAsDimensionMap.containsKey(tblColRef.getCanonicalName());
+        }
+
+        private Map<String, TblColRef> collectFKAsDimensionMap(OLAPContext ctx) {
+            Map<String, TblColRef> fKAsDimensionMap = Maps.newHashMap();
+            ctx.joins.forEach(join -> {
+                Set<String> excludedLookupTables = modelContext.getChecker().getExcludedLookupTables();
+                for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
+                    TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
+                    String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
+                    if (excludedLookupTables.contains(derivedTable)) {
+                        if (!excludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())) {
+                            fKAsDimensionMap.putIfAbsent(foreignKeyColumn.getCanonicalName(), foreignKeyColumn);
+                        }
+                    }
+                }
+            });
+            return fKAsDimensionMap;
         }
 
         protected NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {

@@ -35,6 +35,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 
 public class OptRecV2DisplayStateTest extends OptRecV2TestBase {
@@ -47,7 +48,7 @@ public class OptRecV2DisplayStateTest extends OptRecV2TestBase {
     @Test
     public void testAddLayoutDisplay() throws Exception {
         prepareEnv(Lists.newArrayList(3, 14));
-        OptRecV2 recommendation = new OptRecV2(getProject(), getDefaultUUID());
+        OptRecV2 recommendation = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
         Map<Integer, LayoutRef> addRef = recommendation.getAdditionalLayoutRefs();
         Assert.assertEquals(2, addRef.size());
         addRef.forEach((k, ref) -> {
@@ -60,8 +61,8 @@ public class OptRecV2DisplayStateTest extends OptRecV2TestBase {
     public void testRemLayoutDisplay() throws Exception {
         // at present, all removal layout recommendation will display
         prepareEnv(Lists.newArrayList(15, 16));
-        OptRecV2 recommendation = new OptRecV2(getProject(), getDefaultUUID());
-
+        OptRecV2 recommendation = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
+        recommendation.initRecommendation();
         Map<Integer, LayoutRef> removeRef = recommendation.getRemovalLayoutRefs();
         Assert.assertEquals(4, removeRef.size());
         removeRef.forEach((k, ref) -> {

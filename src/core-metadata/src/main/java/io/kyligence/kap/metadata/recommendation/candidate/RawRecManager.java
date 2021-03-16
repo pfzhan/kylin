@@ -34,11 +34,14 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -109,7 +112,7 @@ public class RawRecManager {
     }
 
     public List<RawRecItem> displayTopNRecItems(String project, String model, int limit) {
-        return jdbcRawRecStore.chooseTopNCandidates(project, model, limit, RawRecItem.RawRecState.RECOMMENDED);
+        return jdbcRawRecStore.chooseTopNCandidates(project, model, limit, 0, RawRecItem.RawRecState.RECOMMENDED);
     }
 
     public List<RawRecItem> queryImportedRawRecItems(String project, String model) {
@@ -120,8 +123,25 @@ public class RawRecManager {
         long current = System.currentTimeMillis();
         RawRecManager rawRecManager = RawRecManager.getInstance(project);
         rawRecManager.clearExistingCandidates(project, model);
-        List<RawRecItem> topNCandidates = jdbcRawRecStore.chooseTopNCandidates(project, model, topN,
-                RawRecItem.RawRecState.INITIAL);
+        OptRecV2 optRecV2 = new OptRecV2(project, model, false);
+        List<RawRecItem> topNCandidates = Lists.newArrayList();
+        int offset = 0;
+        while (topNCandidates.size() < topN) {
+            List<RawRecItem> rawRecItems = jdbcRawRecStore.chooseTopNCandidates(project, model, topN, offset,
+                    RawRecItem.RawRecState.INITIAL);
+            if (CollectionUtils.isEmpty(rawRecItems)) {
+                break;
+            }
+            optRecV2.filterExcludedRecPatterns(rawRecItems);
+            rawRecItems.forEach(recItem -> {
+                LayoutRef layoutRef = optRecV2.getAdditionalLayoutRefs().get(-recItem.getId());
+                if (layoutRef.isExcluded()) {
+                    return;
+                }
+                topNCandidates.add(optRecV2.getRawRecItemMap().get(recItem.getId()));
+            });
+            offset++;
+        }
         topNCandidates.forEach(rawRecItem -> {
             rawRecItem.setUpdateTime(current);
             rawRecItem.setRecSource(RawRecItem.QUERY_HISTORY);
@@ -202,7 +222,8 @@ public class RawRecManager {
         return jdbcRawRecStore.getMaxId();
     }
 
-    public RawRecItem getRawRecItemByUniqueFlag(String project, String modelId, String uniqueFlag, Integer semanticVersion) {
+    public RawRecItem getRawRecItemByUniqueFlag(String project, String modelId, String uniqueFlag,
+            Integer semanticVersion) {
         return jdbcRawRecStore.queryByUniqueFlag(project, modelId, uniqueFlag, semanticVersion);
     }
 
