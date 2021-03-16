@@ -82,26 +82,26 @@
                   <tr class="ksd-tr" :class="{'active': props.row.hightlight_realizations}">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 3px 10px;">
-                      <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
-                        <span v-for="(item, index) in props.row.realizations" :key="item.modelId">
+                      <div v-if="props.row.realizations && getRealizations(props.row.realizations).length" class="realization-tags">
+                        <span v-for="(item, index) in getRealizations(props.row.realizations)" :key="item.modelId">
                           <template v-if="'visible' in item && !item.visible">
-                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span class="split" v-if="index < getRealizations(props.row.realizations).length-1">,</span>
                           </template>
                           <template v-else>
-                            <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid && item.indexType !== 'Table Snapshot', 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                            <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < getRealizations(props.row.realizations).length-1">,</span>
                           </template>
                         </span>
                       </div>
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
                   </tr>
-                  <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length && getLayoutIds(props.row.realizations)">
+                  <tr class="ksd-tr" v-if="props.row.realizations && getRealizations(props.row.realizations).length">
                     <th class="label">{{$t('kylinLang.query.index_id')}}</th>
                     <td>
                       <p>
-                        <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId" @click="openLayoutDetails(item)">
+                        <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in getRealizations(props.row.realizations)" :key="item.layoutId" @click="openLayoutDetails(item)">
                           <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                            <span>{{`${item.layoutId}${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                            <span>{{`${item.layoutId}${index !== getRealizations(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                           </el-tooltip>
                         </span>
                       </p>
@@ -409,8 +409,21 @@ export default class QueryHistoryTable extends Vue {
     this.initFilterData()
   }
 
+  get isHasFilterValue () {
+    return this.filterData.sql || this.filterData.startTimeFrom || this.filterData.startTimeTo || this.filterData.latencyFrom || this.filterData.latencyTo || this.filterData.realization.length || this.filterData.query_status.length || this.filterData.server.length || this.filterData.submitter.length
+  }
+
+  get emptyText () {
+    return this.isHasFilterValue ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+
   get allHitModels () {
     return [{text: this.$t('allModels'), value: 'modelName', icon: 'el-icon-ksd-cube'}]
+  }
+
+  // 排除击中 snapshot 的查询对象
+  getRealizations (row) {
+    return row.filter(item => item.indexType !== 'Table Snapshot' && item.layoutId !== null)
   }
 
   dateRangeChange () {
@@ -543,14 +556,6 @@ export default class QueryHistoryTable extends Vue {
     }
   }
 
-  get isHasFilterValue () {
-    return this.filterData.sql || this.filterData.startTimeFrom || this.filterData.startTimeTo || this.filterData.latencyFrom || this.filterData.latencyTo || this.filterData.realization.length || this.filterData.query_status.length || this.filterData.server.length || this.filterData.submitter.length
-  }
-
-  get emptyText () {
-    return this.isHasFilterValue ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
-  }
-
   // 控制是否显示查看更多
   checkIsShowMore (arr) {
     let str = ''
@@ -672,19 +677,19 @@ export default class QueryHistoryTable extends Vue {
   //     }
   //   })
   // }
-  getLayoutIds (realizations) {
-    if (realizations && realizations.length) {
-      let filterIds = []
-      for (let i of realizations) {
-        if (i.layoutId !== -1 && i.layoutId !== null) {
-          filterIds.push(i.layoutId)
-        }
-      }
-      return filterIds.join(', ')
-    } else {
-      return ''
-    }
-  }
+  // getLayoutIds (realizations) {
+  //   if (realizations && realizations.length) {
+  //     let filterIds = []
+  //     for (let i of realizations) {
+  //       if (i.layoutId !== -1 && i.layoutId !== null) {
+  //         filterIds.push(i.layoutId)
+  //       }
+  //     }
+  //     return filterIds.join(', ')
+  //   } else {
+  //     return ''
+  //   }
+  // }
   getSnapshots (realizations) {
     if (realizations && realizations.length) {
       let filterSnapshot = []
@@ -718,7 +723,6 @@ export default class QueryHistoryTable extends Vue {
   }
 
   openIndexDialog (realization, rows) {
-    if (!realization.valid || realization.indexType === 'Table Snapshot') return
     this.$emit('openIndexDialog', realization, rows)
   }
   renderColumn (h) {
