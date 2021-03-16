@@ -217,7 +217,9 @@ exports.default = {
     indexAmount: 'Index',
     indexAmountTip: 'Indexes in this segment / Total indexes',
     buildSuccess: 'Submitted successfully. You may go to the job page to ',
-    toJoblist: 'check details'
+    toJoblist: 'check details',
+    queryNode: 'Query node',
+    jobNode: 'Job node'
   },
   model: {
     generateModel: 'From SQL',
@@ -521,7 +523,8 @@ exports.default = {
     bothSystemAndNodeAlert: 'The amount of data volume used {capacity} and nodes used {nodes} exceeds license\'s limit.Build index and load data is unavailable. Please contact Kyligence, or try deleting some segments and stopping some nodes.',
     capacityOverPrecent: 'The amount of data volume used {capacity} has reached 80% of the license limit. To ensure the availability of build index and data load, please contact Kyligence, or try deleting some segments.',
     overThirtyDays: 'Can\'t fetch data volume used for over 30 days. Build index and load data is unavailable. Please contact Kyligence for support.',
-    noJobNodes: 'There is no active Job node. The build jobs and metadata operations cannot be submitted temporarily. ',
+    noJobNodes: 'There is no active job node. The build jobs and metadata operations cannot be submitted temporarily. ',
+    noQueryNodes: 'There is no active query node. The query service is temporarily unavailable.',
     failAndOverCapacityTip: 'The amount of capacity used (data volume {capacity}) exceeds the license\'s limit. Meanwhile, can\'t fetch some project\'s capacity. Please try refreshing on the top bar, or contact Kyligence.',
     failAndOverNodesTip: 'The amount of capacity used (nodes {nodes}) exceeds the license\'s limit. Meanwhile, can\'t fetch some project\'s capacity. Please try refreshing on the top bar, or contact Kyligence.',
     bothOverAndFailFetch: 'The amount of capacity used (data volume {capacity}，nodes {nodes}) exceeds the license\'s limit. Meanwhile, can\'t fetch some project\'s capacity. Please try refreshing on the top bar, or contact Kyligence.',

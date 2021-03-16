@@ -216,7 +216,9 @@ exports.default = {
     indexAmount: '索引数',
     indexAmountTip: 'Segment 中包含的索引数/模型索引总数',
     buildSuccess: '已提交，您可以到任务页',
-    toJoblist: '查看进度'
+    toJoblist: '查看进度',
+    queryNode: '查询节点',
+    jobNode: '任务节点'
   },
   model: {
     generateModel: 'SQL 建模',
@@ -517,7 +519,8 @@ exports.default = {
     bothSystemAndNodeAlert: '当前已使用数据量 {capacity} 和节点数 {nodes} 均超过许可证上限。系统无法进行构建或数据加载任务。请联系 Kyligence 销售人员，或尝试删除一些 Segment并停止部分节点以解除限制。',
     capacityOverPrecent: '当前已使用数据量 {capacity} 已达许可证上限的 80%。为防止容量超额后无法进行构建或数据加载任务，请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。',
     overThirtyDays: '已使用数据量无法获取已超过 30 天。系统无法进行构建任务和数据加载任务。请联系 Kyligence 销售人员。',
-    noJobNodes: '暂无活跃的 Job 节点，构建任务与元数据操作将暂时无法提交',
+    noJobNodes: '暂无活跃的任务节点，构建任务与元数据操作将暂时无法提交。',
+    noQueryNodes: '暂无活跃查询节点，无法提供查询服务。',
     failAndOverCapacityTip: '当前已使用容量（数据量 {capacity}）超过许可证上限且部分项目容量获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员。',
     failAndOverNodesTip: '当前已使用容量（节点数 {nodes}）超过许可证上限且部分项目容量获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员。',
     bothOverAndFailFetch: '当前已使用容量（数据量 {capacity}，节点数 {nodes}）超过许可证上限且部分项目容量获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员。',

@@ -302,6 +302,8 @@ export default {
           return { flag: 0, status: 'overCapacity', target: _types, text: _types.includes('systemCapacity') && _types.includes('nodes') ? 'bothSystemAndNodeAlert' : _types.includes('systemCapacity') ? 'systemCapacityOverAlert' : 'nodeOverAlert', query: { capacity, nodes }, detailPath: '/admin/systemcapacity' }
         } else if (getters.isOnlyQueryNode) {
           return { flag: 0, status: 'noAllNodes', text: 'noJobNodes', detailPath: '/admin/systemcapacity' }
+        } else if (getters.isOnlyJobNode) {
+          return { flag: 0, status: 'noAllNodes', text: 'noQueryNodes', detailPath: '/admin/systemcapacity' }
         } else if (state.systemCapacityInfo.current_capacity / state.systemCapacityInfo.capacity * 100 > 80) {
           return { flag: 2, status: 'warning', text: 'capacityOverPrecent', query: { capacity }, detailPath: '/admin/systemcapacity' }
         } else {
@@ -324,6 +326,9 @@ export default {
   getters: {
     isOnlyQueryNode (state) {
       return state.nodeList.length && state.nodeList.filter(it => it.mode === 'query').length === state.nodeList.length
+    },
+    isOnlyJobNode (state) {
+      return state.nodeList.length && state.nodeList.filter(it => it.mode === 'job').length === state.nodeList.length
     }
   }
 }

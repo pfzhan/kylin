@@ -35,7 +35,7 @@
       </div>
       <div class="nodes" v-if="showNodeDetails && isNodeLoadingSuccess && !isNodeLoading">
         <!-- <p class="error-text" v-if="!nodeList.filter(it => it.mode === 'all').length">{{$t('noNodesTip1')}}</p> -->
-        <ul class="node-details" v-if="nodeList.length > 0"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
+        <ul class="node-details" v-if="nodeList.length > 0"><li class="node-list" v-for="(node, index) in nodeList" :key="index">{{`${node.host}(${node.mode === 'All' ? 'All' : $t(`kylinLang.common.${node.mode.toLocaleLowerCase()}Node`)})`}}</li></ul>
         <div class="node-details nodata" v-else>{{$t('kylinLang.common.noData')}}</div>
       </div>
     </el-popover>

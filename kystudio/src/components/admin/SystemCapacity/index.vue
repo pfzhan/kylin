@@ -97,7 +97,7 @@
               <el-table-column prop="host" :label="$t('node')"></el-table-column>
               <el-table-column :label="$t('type')" width="80">
                 <template slot-scope="scope">
-                  <span>{{scope.row.mode.replace(/^(\w)(\w+)$/, (v, $1, $2) => `${$1.toLocaleUpperCase()}${$2}`)}}</span>
+                  <span>{{scope.row.mode === 'all' ? 'All' : $t(`kylinLang.common.${scope.row.mode}Node`)}}</span>
                 </template>
               </el-table-column>
             </el-table>

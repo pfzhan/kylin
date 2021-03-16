@@ -392,7 +392,7 @@ let MessageBox = ElementUI.MessageBox
       disableAddProject: 'Can not create project in edit mode',
       systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
       onlyQueryNode: 'There\'s no active job node now. Metadata related operations are temporarily unavailable.',
-      viewDetails: 'View Details',
+      viewDetails: 'View details',
       quotaSetting: 'Storage Setting',
       noAuthorityText: 'No project found. Please contact your administrator to create a project.'
     },
