@@ -29,8 +29,8 @@
           <div :class="['upload-rules', {'check-rules': showUploadRules}]">
             <ul class="rule-list">
               <li :class="['rule-item', item.status === 'success' ? 'is-success' : item.status === 'error' ? 'is-error' : null]" v-for="item in uploadRules" :key="item.type"><span v-if="item.status === 'default'">•</span><i class="el-icon-ksd-accept" v-else-if="item.status === 'success'"></i><i v-else class="el-icon-ksd-close"></i> {{item.query ? $t(item.text, item.query()): $t(item.text)}}</li>
-              <p class="rule-info"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('uploadSizeTip')}}</p>
             </ul>
+            <p class="rule-info"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('uploadSizeTip')}}</p>
           </div>
         </el-upload>
       </div>
@@ -1154,7 +1154,6 @@ export default class UploadSqlModel extends Vue {
           }
         }
         .upload-rules {
-          text-align: left;
           max-width: 300px;
           margin: auto;
           background-color: #FAFAFA;
@@ -1165,6 +1164,10 @@ export default class UploadSqlModel extends Vue {
           line-height: 20px;
           &.check-rules {
             background-color: transparent;
+          }
+          .rule-list {
+            display: inline-block;
+            text-align: left;
           }
           .rule-item {
             &.is-success {
@@ -1177,6 +1180,7 @@ export default class UploadSqlModel extends Vue {
           .rule-info {
             margin-top: 10px;
             margin-left: -7px;
+            text-align: left;
           }
         }
       }
