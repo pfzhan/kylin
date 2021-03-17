@@ -189,7 +189,8 @@ import $ from 'jquery'
       sameColumn: 'Column has been defined as a measure by the same function',
       selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.',
       createCCMeasureTips: 'This column’s type is Varchar. It couldn’t be referenced by the selected function {expression}.',
-      duplicateColumns: 'Same Statement'
+      duplicateColumns: 'Same Statement',
+      noProvideDecimalType: 'PERCENTILE function does not support columns with {datatype} data type.'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -210,7 +211,8 @@ import $ from 'jquery'
       sameColumn: '该列已被相同函数定义为度量',
       selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。',
       createCCMeasureTips: '该列的类型为 Varchar，不能被已选择的函数类型 {expression} 引用。',
-      duplicateColumns: '重复定义'
+      duplicateColumns: '重复定义',
+      noProvideDecimalType: 'PERCENTILE 函数不支持 {datatype} 类型的列。'
     }
   }
 })
@@ -297,7 +299,7 @@ export default class AddMeasure extends Vue {
       if (this.measure.expression === 'SUM(column)' || this.measure.expression === 'TOP_N') {
         return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
       } else if (this.measure.expression === 'PERCENTILE_APPROX') {
-        return this.ccGroups.filter(item => item.datatype.indexOf('VARCHAR') === -1)
+        return this.ccGroups.filter(item => measurePercenDataType.includes(item.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
       } else {
         return this.ccGroups
       }
@@ -489,6 +491,9 @@ export default class AddMeasure extends Vue {
     // this.isEdit = false
     if (cc.datatype === 'VARCHAR' && (this.measure.expression === 'SUM(column)' || this.measure.expression === 'PERCENTILE_APPROX')) {
       this.$refs.ccEditForm && (this.$refs.ccEditForm.errorMsg = this.$t('createCCMeasureTips', {expression: this.measure.expression}))
+      this.ccValidateError = true
+    } else if ((cc.datatype.indexOf('DECIMAL') > -1 || cc.datatype === 'DOUBLE') && this.measure.expression === 'PERCENTILE_APPROX') {
+      this.$refs.ccEditForm && (this.$refs.ccEditForm.errorMsg = this.$t('noProvideDecimalType', {datatype: cc.datatype.match(/^(\w+)\(?/)[1].toLocaleLowerCase()}))
       this.ccValidateError = true
     } else {
       this.ccValidateError = false
