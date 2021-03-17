@@ -2973,6 +2973,7 @@ public class ModelService extends BasicService {
         val affectedLayoutSet = getAffectedLayouts(project, modelId, affectedSet);
         if (affectedLayoutSet.size() > 0)
             indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
+        indexPlanService.clearShardColIfNotDim(project, modelId);
 
         var newModel = modelManager.getDataModelDesc(modelId);
 

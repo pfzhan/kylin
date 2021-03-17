@@ -86,6 +86,7 @@ import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -559,6 +560,40 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         thrown.expectMessage("The measure GMV_SUM is referenced by indexes. Please try again after "
                 + "deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic(getProject(), request);
+    }
+
+    @Test
+    public void testRemoveCCInShardCol() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        // ensure model has an agg group
+        NAggregationGroup newAggregationGroup = new NAggregationGroup();
+        newAggregationGroup.setIncludes(new Integer[] { 0 });
+        newAggregationGroup.setMeasures(new Integer[] { 100000 });
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        newAggregationGroup.setSelectRule(selectRule);
+        indexPlanService.updateRuleBasedCuboid(getProject(),
+                UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
+
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        val indexList = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .map(index -> new Long(index.getId())).collect(Collectors.toSet());
+        indexPlanService.removeIndexes(getProject(), modelId, indexList);
+
+        val shardReq = new AggShardByColumnsRequest();
+        shardReq.setModelId(modelId);
+        shardReq.setProject(getProject());
+        shardReq.setShardByColumns(Lists.newArrayList("TEST_KYLIN_FACT.NEST5"));
+        indexPlanService.updateShardByColumns(getProject(), shardReq);
+
+        var request = newSemanticRequest(modelId);
+        request.getComputedColumnDescs().removeIf(c -> ("NEST5").equals(c.getColumnName()));
+        modelService.updateDataModelSemantic(getProject(), request);
+
+       Assert.assertEquals(indexPlanService.getShardByColumns(getProject(), modelId).getShardByColumns().size(), 0);
     }
 
     @Test

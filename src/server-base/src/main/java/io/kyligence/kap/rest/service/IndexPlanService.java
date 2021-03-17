@@ -900,4 +900,21 @@ public class IndexPlanService extends BasicService {
         });
     }
 
+    @Transaction(project = 0)
+    public void clearShardColIfNotDim(String project, String modelId) {
+        aclEvaluate.checkProjectWritePermission(project);
+
+        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val dimensions = indexPlan.getModel().getEffectiveDimensions();
+
+        val oldShardCols = indexPlan.getAggShardByColumns();
+        val effectiveShardCol = oldShardCols.stream().filter(colId -> dimensions.containsKey(colId)).collect(Collectors.toList());
+                
+        if(effectiveShardCol.size() < oldShardCols.size()){
+            indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
+                copyForWrite.setAggShardByColumns(effectiveShardCol);
+            }); 
+        }
+    }
 }
