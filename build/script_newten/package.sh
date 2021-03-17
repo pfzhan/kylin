@@ -50,6 +50,25 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.3.1 release note
+
+**Enhancement**
+
+- Project-level Kerberos configuration, the table permissions are not scanned by default, the table permissions are checked when the table is loaded
+- Increase the CPU utilization of query nodes. When pressure test is token in a laboratory environment, the utilization has increased from 60% to 80%.
+- Optimize the display of the time bar when the time of query substep is too short
+- Optimize the prompts when switching to other pages as performing queries on the analysis page
+
+**Bugfix**
+
+- When multiple instances have the same working directory, concurrent execution of check-env fails
+- Email verification prompt did not change when switching between Chinese and English
+- Can't set Project ACL for a group which has the same name of an Admin user
+- The maximum supported number displayed on the SQL modeling page does not match the back-end configuration
+- In multi-level partitioning models, when the sub-partition value exceeds 2000, it cannot be displayed correctly
+- Storage monitoring metrics always access HDFS, resulting in waste of TCO
+- Query page hover display frame is too long
+
 #### Kyligence Enterprise 4.3.0 release note
 Kyligence Enterprise 4.3 provides detailed and efficient data management functionalities.  The introduction of Multi-level Partitioning provides business the ability to process data from different regions at different time. Snapshot Management enables users to control and utilize resources better. 
 
