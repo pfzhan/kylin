@@ -1015,7 +1015,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof RuntimeException);
-            Assert.assertTrue(e.getCause().getMessage().contains("KE-10007007(Duplicated Column Name)"));
+            Assert.assertTrue(e.getCause().getMessage().contains("KE-010007007(Duplicated Column Name)"));
         }
 
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "DEAL_YEAR");
@@ -1040,7 +1040,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof RuntimeException);
-            Assert.assertTrue(e.getCause().getMessage().contains("KE-10007008(Ongoing Jobs)"));
+            Assert.assertTrue(e.getCause().getMessage().contains("KE-010007008(Ongoing Jobs)"));
         }
     }
 

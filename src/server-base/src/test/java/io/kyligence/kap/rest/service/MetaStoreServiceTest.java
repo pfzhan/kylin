@@ -1270,7 +1270,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("KE-10002016(Failed to import model):Can’t import the model.\n"
+                        .contains("KE-010002016(Failed to import model):Can’t import the model.\n"
                                 + "Can’t overwrite the model \"ssb_model_1\", as it doesn’t exist. Please re-select and try again.\n"
                                 + "Can’t overwrite the model \"ssb_model_2\", as it doesn’t exist. Please re-select and try again.");
             }
@@ -1301,7 +1301,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("KE-10002009(Model Metadata File Error):Can’t import the model.\n"
+                        .contains("KE-010002009(Model Metadata File Error):Can’t import the model.\n"
                                 + "Model name 'conflict_filter_condition_model' is duplicated, could not be created.\n"
                                 + "Model name 'model_column_update' is duplicated, could not be created.");
             }
@@ -1336,7 +1336,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             @Override
             public boolean matches(Object item) {
                 return ((Exception) item).getMessage()
-                        .contains("KE-10002016(Failed to import model):Can’t import the model.\n"
+                        .contains("KE-010002016(Failed to import model):Can’t import the model.\n"
                                 + "The model name \"ssb_model@_test\" is invalid. Please use letters, numbers and underlines only.\n"
                                 + "The model name \"#ssb_model_test\" is invalid. Please use letters, numbers and underlines only.\n"
                                 + "The model name \"ssb_model_test \" is invalid. Please use letters, numbers and underlines only.");

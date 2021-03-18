@@ -227,7 +227,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         } catch (Exception e) {
             Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
             Assert.assertTrue(e.getCause() instanceof KylinTimeoutException);
-            Assert.assertEquals("KE-00000002", ((KylinTimeoutException) e.getCause()).getErrorCode().getCodeString());
+            Assert.assertEquals("KE-000000002", ((KylinTimeoutException) e.getCause()).getErrorCode().getCodeString());
             Assert.assertEquals("The query exceeds the set time limit of 300s. Current step: Realization chooser. ",
                     e.getCause().getMessage());
             Thread.interrupted();

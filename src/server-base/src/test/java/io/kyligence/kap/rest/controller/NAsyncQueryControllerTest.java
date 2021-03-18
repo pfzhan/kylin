@@ -439,7 +439,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .param("older_than", "2011-11/11 11:11:11")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))).andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR(),
@@ -665,7 +665,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
@@ -679,7 +679,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
@@ -693,7 +693,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
@@ -707,7 +707,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
@@ -721,7 +721,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),
@@ -735,7 +735,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(result -> {
                     Assert.assertTrue(result.getResolvedException() instanceof NAsyncQueryIllegalParamException);
-                    Assert.assertEquals("KE-20040001",
+                    Assert.assertEquals("KE-020040001",
                             ((NAsyncQueryIllegalParamException) result.getResolvedException()).getErrorCode()
                                     .getCodeString());
                     Assert.assertEquals(MsgPicker.getMsg().getASYNC_QUERY_PROJECT_NAME_EMPTY(),

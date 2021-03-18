@@ -140,7 +140,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
-        String errorMsg = "KE-10000005(Empty Parameter):You should select at least one table or database to load!!";
+        String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
         Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
@@ -177,7 +177,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
-        String errorMsg = "KE-10000005(Empty Parameter):You should select at least one table or database to load!!";
+        String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
         Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
@@ -246,7 +246,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, Sets.newHashSet(), sortBy,
                 isReversed);
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        String errorMsg = "KE-10000003(Invalid Parameter):No field called 'UNKNOWN'.";
+        String errorMsg = "KE-010000003(Invalid Parameter):No field called 'UNKNOWN'.";
         Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
     }
 
