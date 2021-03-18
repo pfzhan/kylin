@@ -30,7 +30,7 @@
             <ul class="rule-list">
               <li :class="['rule-item', item.status === 'success' ? 'is-success' : item.status === 'error' ? 'is-error' : null]" v-for="item in uploadRules" :key="item.type"><span v-if="item.status === 'default'">•</span><i class="el-icon-ksd-accept" v-else-if="item.status === 'success'"></i><i v-else class="el-icon-ksd-close"></i> {{item.query ? $t(item.text, item.query()): $t(item.text)}}</li>
             </ul>
-            <p class="rule-info"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('uploadSizeTip')}}</p>
+            <p class="rule-info"><span class="icon el-icon-ksd-info ksd-mr-5"></span><span class="tip-text">{{$t('uploadSizeTip')}}</span></p>
           </div>
         </el-upload>
       </div>
@@ -1181,6 +1181,14 @@ export default class UploadSqlModel extends Vue {
             margin-top: 10px;
             margin-left: -7px;
             text-align: left;
+            .icon {
+              display: inline-block;
+            }
+            .tip-text {
+              display: inline-block;
+              width: calc(~'100% - 20px');
+              vertical-align: top;
+            }
           }
         }
       }
