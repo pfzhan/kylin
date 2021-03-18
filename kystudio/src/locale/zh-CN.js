@@ -482,6 +482,7 @@ exports.default = {
     systemcapacity: '系统容量'
   },
   user: {
+    usernameLength: '最多支持 180 个字符。',
     tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)',
     noStartWithPeriod: '不支持使用 . 开头',
     noStartWithSpace: '不支持首尾有空字符',

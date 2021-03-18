@@ -486,6 +486,7 @@ exports.default = {
     systemcapacity: 'Capacity'
   },
   user: {
+    usernameLength: '180 characters at maximum.',
     tip_password_unsafe: 'The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:"<>?[];\',./`).',
     noStartWithPeriod: 'Not support starting with symbol (.)',
     noStartWithSpace: 'Not support starting or ending with blank space',
