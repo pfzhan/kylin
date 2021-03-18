@@ -2500,4 +2500,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getDiagObfLevel() {
         return getOptional("kylin.diag.obf.level", "OBF").toUpperCase(Locale.ROOT);
     }
+
+    public boolean isDimensionRangeFilterEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.dimension-range-filter-enabled", TRUE));
+    }
 }
