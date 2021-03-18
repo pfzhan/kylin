@@ -31,6 +31,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_PA
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_USER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PASSWORD;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SHORT_PASSWORD;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
@@ -451,16 +452,19 @@ public class NUserController extends NBasicController {
             throw new KylinException(EMPTY_USER_NAME, msg.getEMPTY_USER_NAME());
         }
         if (username.startsWith(".")) {
-            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_START_WITH_DOT());
+            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_START_WITH_DOT());
         }
         if (!username.equals(username.trim())) {
-            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+        }
+        if (username.length() > 180) {
+            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_LEGTHN());
         }
         if (Pattern.compile("[^\\x00-\\xff]").matcher(username).find()) {
-            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(username).find()) {
-            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
+            throw new KylinException(INVALID_USER_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
         }
     }
 

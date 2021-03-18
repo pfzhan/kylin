@@ -1161,6 +1161,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getINVALID_NAME_LEGTHN() {
+        return "用户名长度需要小于180字符，请检查后重新提交。";
+    }
+
+    @Override
     public String getINVALID_NAME_CONTAINS_OTHER_CHARACTER() {
         return "用户名/用户组中仅支持英文字符";
     }

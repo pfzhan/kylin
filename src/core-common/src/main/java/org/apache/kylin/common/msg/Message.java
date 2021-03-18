@@ -997,6 +997,10 @@ public class Message {
         return "User / group names cannot start or end with a space.";
     }
 
+    public String getINVALID_NAME_LEGTHN() {
+        return "Username length should be less than 180 length, please check and resubmit.";
+    }
+
     public String getINVALID_NAME_CONTAINS_OTHER_CHARACTER() {
         return "Only alphanumeric characters can be used in user / group names";
     }

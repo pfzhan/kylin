@@ -216,9 +216,37 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         val user = new ManagedUser();
         user.setUsername("");
         user.setPassword("p1234sgw$");
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Username should not be empty.");
-        nUserController.createUser(user);
+
+        assertKylinExeption(() -> {
+            nUserController.createUser(user);
+        }, "Username should not be empty.");
+
+        user.setUsername(".abc");
+        assertKylinExeption(() -> {
+            nUserController.createUser(user);
+        }, "The user / group names cannot start with a period");
+
+        user.setUsername(" abc ");
+        assertKylinExeption(() -> {
+            nUserController.createUser(user);
+        }, "User / group names cannot start or end with a space");
+
+        user.setUsername(" abc ");
+        assertKylinExeption(() -> {
+            nUserController.createUser(user);
+        }, "User / group names cannot start or end with a space");
+
+        user.setUsername("useraaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab");
+        assertKylinExeption(() -> {
+            nUserController.createUser(user);
+        }, "Username length should be less than 180 length, please check and resubmit.");
+
+        user.setUsername("<1qaz>");
+        assertKylinExeption(() -> {
+            nUserController.createUser(user);
+        }, "The user / group names cannot contain the following symbols:");
     }
 
     @Test
