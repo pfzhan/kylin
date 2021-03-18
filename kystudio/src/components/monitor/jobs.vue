@@ -121,12 +121,12 @@
             </template>
           </el-table-column>
           <el-table-column
-            width="110"
+            width="140"
             sortable="custom"
-            prop="duration"
-            :label="$t('duration')">
+            prop="total_duration"
+            :label="$t('totalDuration')">
             <template slot-scope="scope">
-              {{scope.row.duration/60/1000 | number(2) }}  mins
+              {{scope.row.total_duration/60/1000 | number(2) }}  mins
             </template>
           </el-table-column>
           <el-table-column
@@ -426,7 +426,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       discardJobWarning: 'Are you sure you want to discard the following job(s)? Discarding the highlighted job(s) might result in gaps between segments. The query results would be empty for those data ranges. Please note that the discarded jobs couldn’t be recovered.',
       discardJobTitle: 'Discard Job',
       jobName: 'Job Name',
-      duration: 'Duration',
+      duration: 'Excuting',
+      totalDuration: 'Total Duration',
       waiting: 'Waiting',
       noSelectJobs: 'Please select at least one job.',
       selectedJobs: '{selectedNumber} jobs have been selected. ',
@@ -521,7 +522,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       discardJobWarning: '确认要终止以下任务吗？终止高亮部分任务将导致模型 Segment 不连续，此时查询对应数据范围时结果将为空。请注意：终止操作无法撤销。',
       discardJobTitle: '终止任务',
       jobName: '任务名',
-      duration: '持续时间',
+      duration: '执行时间',
+      totalDuration: '总耗时',
       waiting: '等待时间',
       noSelectJobs: '请选择至少一个任务。',
       selectedJobs: '目前已选择当页 {selectedNumber} 条任务。',
