@@ -2489,4 +2489,7 @@ public abstract class KylinConfigBase implements Serializable {
         }
     }
 
+    public String getDiagObfLevel() {
+        return getOptional("kylin.diag.obf.level", "OBF").toUpperCase(Locale.ROOT);
+    }
 }
