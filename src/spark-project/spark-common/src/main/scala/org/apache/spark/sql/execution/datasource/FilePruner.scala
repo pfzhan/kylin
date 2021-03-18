@@ -25,12 +25,12 @@ package org.apache.spark.sql.execution.datasource
 import java.sql.{Date, Timestamp}
 
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager, DimensionRangeInfo}
 import io.kyligence.kap.metadata.project.NProjectManager
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
-import org.apache.kylin.metadata.model.PartitionDesc
+import org.apache.kylin.metadata.model.{PartitionDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
@@ -213,14 +213,22 @@ class FilePruner(val session: SparkSession,
 
     require(isResolved)
     val timePartitionFilters = getSpecFilter(dataFilters, timePartitionColumn)
+    val dimFilters = getDimFilter(dataFilters, timePartitionColumn, shardByColumn)
     logInfoIf(timePartitionFilters.nonEmpty)(s"Applying time partition filters: ${timePartitionFilters.mkString(",")}")
 
     // segment pruning
     val project = dataflow.getProject
     val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig
-    var selected = afterPruning("pruning segment", timePartitionFilters, prunedSegmentDirs) {
+    var selected = afterPruning("pruning segment with time partition", timePartitionFilters, prunedSegmentDirs) {
       pruneSegments
     }
+
+    if (projectKylinConfig.isDimensionRangeFilterEnabled()) {
+      selected = afterPruning("pruning segment with dimension range", dimFilters, selected) {
+        pruneSegmentsDimRange
+      }
+    }
+
     QueryContext.current().record("seg_pruning")
     QueryContext.current().getMetrics.setSegCount(selected.size)
 
@@ -301,6 +309,10 @@ class FilePruner(val session: SparkSession,
     dataFilters.filter(_.references.subsetOf(AttributeSet(col)))
   }
 
+  private def getDimFilter(dataFilters: Seq[Expression], timeCol: Attribute, shardCol: Attribute): Seq[Expression] = {
+    dataFilters.filterNot(_.references.subsetOf(AttributeSet(Seq(timeCol, shardCol).filter(_ != null))))
+  }
+
   private def pruneSegments(filters: Seq[Expression],
                             segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
 
@@ -325,6 +337,32 @@ class FilePruner(val session: SparkSession,
               case Trivial(true) => true
               case Trivial(false) => false
             }
+          }
+        }
+      }
+    }
+    filteredStatuses
+  }
+
+  private def pruneSegmentsDimRange(filters: Seq[Expression],
+                                    segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
+    val filteredStatuses = if (filters.isEmpty) {
+      segDirs
+    } else {
+      val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
+              .flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
+
+      reducedFilter.references.distinct.toList
+      segDirs.filter {
+        e => {
+          val dimRange = dataflow.getSegment(e.segmentID).getDimensionRangeInfoMap
+          if (dimRange != null && !dimRange.isEmpty) {
+            SegDimFilters(dimRange, dataflow.getIndexPlan.getEffectiveDimCols).foldFilter(reducedFilter) match {
+              case Trivial(true) => true
+              case Trivial(false) => false
+            }
+          } else {
+            true
           }
         }
       }
@@ -553,6 +591,85 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
         // - StringEndsWith
         // - StringContains
         // - EqualNullSafe
+        Trivial(true)
+    }
+  }
+}
+
+case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], dimCols: java.util.Map[Integer, TblColRef]) extends Logging {
+
+  private def insurance(id: String, value: Any)
+                       (func: String => Filter): Filter = {
+    if (dimRange.containsKey(id) && dimCols.containsKey(id.toInt)) {
+      func(value.toString)
+    } else {
+      Trivial(true)
+    }
+  }
+
+  /**
+   * Recursively fold provided filters to trivial,
+   * blocks are always non-empty.
+   */
+  def foldFilter(filter: Filter): Filter = {
+    filter match {
+      case EqualTo(id, value: Any) =>
+        insurance(id, value) {
+          ts => {
+            val dataType = dimCols.get(id.toInt).getType
+            Trivial(dataType.compare(ts, dimRange.get(id).getMin) >= 0
+                    && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
+          }
+        }
+      case In(id, values: Array[Any]) =>
+        val satisfied = values.map(v => insurance(id, v) {
+          ts => {
+            val dataType = dimCols.get(id.toInt).getType
+            Trivial(dataType.compare(ts, dimRange.get(id).getMin) >= 0
+                    && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
+          }
+        }).exists(_.equals(Trivial(true)))
+        Trivial(satisfied)
+
+      case IsNull(_) =>
+        Trivial(true)
+      case IsNotNull(_) =>
+        Trivial(true)
+      case GreaterThan(id, value: Any) =>
+        insurance(id, value) {
+          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMax) < 0)
+        }
+      case GreaterThanOrEqual(id, value: Any) =>
+        insurance(id, value) {
+          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMax) <= 0)
+        }
+      case LessThan(id, value: Any) =>
+        insurance(id, value) {
+          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMin) > 0)
+        }
+      case LessThanOrEqual(id, value: Any) =>
+        insurance(id, value) {
+          ts => Trivial(dimCols.get(id.toInt).getType.compare(ts, dimRange.get(id).getMin) >= 0)
+        }
+      case And(left: Filter, right: Filter) =>
+        And(foldFilter(left), foldFilter(right)) match {
+          case And(Trivial(false), _) => Trivial(false)
+          case And(_, Trivial(false)) => Trivial(false)
+          case And(Trivial(true), right) => right
+          case And(left, Trivial(true)) => left
+          case other => other
+        }
+      case Or(left: Filter, right: Filter) =>
+        Or(foldFilter(left), foldFilter(right)) match {
+          case Or(Trivial(true), _) => Trivial(true)
+          case Or(_, Trivial(true)) => Trivial(true)
+          case Or(Trivial(false), right) => right
+          case Or(left, Trivial(false)) => left
+          case other => other
+        }
+      case trivial: Trivial =>
+        trivial
+      case _ =>
         Trivial(true)
     }
   }
