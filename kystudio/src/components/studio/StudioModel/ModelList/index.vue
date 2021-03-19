@@ -546,7 +546,8 @@ function getDefaultFilters (that) {
       downloadModelsMetadataBlob: 'DOWNLOAD_MODELS_METADATA_BLOB',
       getAvailableModelOwners: 'GET_AVAILABLE_MODEL_OWNERS',
       updateModelOwner: 'UPDATE_MODEL_OWNER',
-      refreshAccelerationTag: 'ACCELERATE_TAG'
+      refreshAccelerationTag: 'ACCELERATE_TAG',
+      getFavoriteRules: 'GET_FAVORITE_RULES'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -613,7 +614,12 @@ function getDefaultFilters (that) {
     TableIndexEdit,
     ModelOverview
   },
-  locales
+  locales,
+  provide () {
+    return {
+      getFavoriteRules: this.getFavoriteRulesContext
+    }
+  }
 })
 export default class ModelList extends Vue {
   pageRefTags = pageRefTags
@@ -952,7 +958,7 @@ export default class ModelList extends Vue {
       modelDesc.tabTypes = 'second'
       this.$nextTick(() => {
         // this.$set(this, 'showRecommand', true)
-        this.$refs.modelAggregateItem.switchIndexValue = 1
+        this.$refs.modelAggregateItem && (this.$refs.modelAggregateItem.switchIndexValue = 1)
         setTimeout(() => {
           this.scrollViewArea(scope.$index)
         }, 200)
@@ -974,7 +980,7 @@ export default class ModelList extends Vue {
       modelDesc.tabTypes = 'second'
       this.$nextTick(() => {
         // this.$set(this, 'showRecommand', true)
-        this.$refs.modelAggregateItem.switchIndexValue = 1
+        this.$refs.modelAggregateItem && (this.$refs.modelAggregateItem.switchIndexValue = 1)
         setTimeout(() => {
           this.scrollViewArea(scope.$index)
         }, 200)
@@ -1389,6 +1395,17 @@ export default class ModelList extends Vue {
     this.showExportTDSDialog = false
     this.exportTDSType = 'AGG_INDEX_COL'
     this.exportTDSConnectionType = 'TABLEAU_ODBC_TDS'
+  }
+
+  async getFavoriteRulesContext () {
+    try {
+      const results = await this.getFavoriteRules({project: this.currentSelectedProject})
+      const res = await handleSuccessAsync(results)
+      return res
+    } catch (err) {
+      handleError(err)
+      return {}
+    }
   }
 }
 </script>

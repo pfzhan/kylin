@@ -67,9 +67,14 @@ export default {
     suggestionTip1: 'Up to',
     suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated every day by default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.3/en/acceleration/" target="_blank">user manual</a> for details.',
     emptySegmentEnable: 'Creating Reserved Segments',
-    emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index. Please note that queries would be answered by the pushdown engine (if turned on) when they hit empty segments.',
-    overTimeLimitTip: 'The upper limit of the duration range can\'t exceed 3600 seconds',
-    prevGreaterThanNext: 'The upper limit of the duration range should be greater than the lower limit'
+    emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index (reserved segment). Please note that queries would be answered by pushdown engine when they hit reserved segments.',
+    overTimeLimitTip: 'The upper limit of the latency range can\'t exceed 3600 seconds',
+    prevGreaterThanNext: 'The upper limit of the latency range should be greater than the lower limit',
+    excludeRule: 'Exclude Rule',
+    excludeRuleTip: 'Columns in the following tables will not be included in the recommendations. Suitable for AS-IS analysis. ',
+    moreDetails: 'More Info',
+    excludeRuleDetailMsg1: 'If the data of certain columns in a dimension table change frequently, the table can be added into the exclude list, and aggregate indexes containing these columns should be deleted.',
+    excludeRuleDetailMsg2: 'Then the foreign key in fact table will be included in the recommended index, replacing columns in the following tables. After building the indexes, queries for these tables can be retrieved through the foreign key.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -139,8 +144,13 @@ export default {
     suggestionTip1: '每次最多生成',
     suggestionTip2: '条类型为新增索引的优化建议。默认每天更新一次，此更新频率可进行配置，详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.3/zh-cn/acceleration/" target="_blank">查看手册</a>。',
     emptySegmentEnable: '支持创建保留 Segment',
-    emptySegmentEnableDesc: '该选项开启后，您可以在 Segment 列表页面直接创建一个不包含任何索引的 Segment。请注意，查询命中空的 Segment 时，如果同时开启了查询下压引擎，将会通过下压查询回答。',
-    overTimeLimitTip: '耗时范围的上限不超过 3600 秒',
-    prevGreaterThanNext: '耗时范围的上限应大于下限'
+    emptySegmentEnableDesc: '该选项开启后，您可以在 Segment 列表页面直接创建一个不包含任何索引的 Segment (保留 segment)。请注意，查询命中保留 Segment 时将会通过下压查询回答。',
+    overTimeLimitTip: '延迟范围的上限不超过 3600 秒',
+    prevGreaterThanNext: '延迟范围的上限应大于下限',
+    excludeRule: '屏蔽设置',
+    excludeRuleTip: '以下表中的列将不被推荐到优化建议中，适用于 AS-IS 分析场景。',
+    moreDetails: '更多信息',
+    excludeRuleDetailMsg1: '维度表中的部分列若数据经常发生变化，则可将这些表添加到屏蔽设置中，并删除现有包含这些列的聚合索引。',
+    excludeRuleDetailMsg2: '设置生效后，事实表中的外键将代替以下表中的列被推荐到优化建议中，构建后可通过外键衍生查询以下表中的列。'
   }
 }

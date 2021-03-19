@@ -5,14 +5,17 @@
     </div>
     <div class="detail-content">
       <p class="title-tip">{{$t('recommendationsTip1')}}<span v-if="$lang !== 'en'&&datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span><a href="javascript:void();" v-if="datasourceActions.includes('acceRuleSettingActions')" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en' && datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span></p>
-      <div class="ksd-mb-10 ksd-mt-10 ksd-fs-12" >
+      <div class="ksd-fleft ksd-mb-10 ksd-mt-10 ksd-fs-12" >
         <el-button size="mini" :disabled="!selectedList.length" type="primary" @click="betchAccept" icon="el-icon-ksd-accept">{{$t('accept')}}</el-button><el-button plain size="mini" :disabled="!selectedList.length" @click="betchDelete" icon="el-icon-ksd-table_delete">{{$t('delete')}}</el-button>
+      </div>
+      <div class="search-contain ksd-fright ksd-mt-10">
+        <el-input class="search-input" v-model.trim="recommendationsList.key" size="small" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
       </div>
       <el-table
         nested
         border
         :data="recommendationsList.list"
-        class="recommendations-table"
+        class="recommendations-table clearfix"
         size="medium"
         max-height="350"
         v-loading="loadingRecommends"
@@ -333,7 +336,8 @@ import filterElements from '../../../../../../filter/index'
       buildIndex: 'Build Index',
       batchBuildSubTitle: 'Please choose which data ranges you\'d like to build with the added indexes.',
       onlyStartLetters: 'Only supports starting with a letter',
-      usedInOtherModel: 'Can\'t rename this computed column, as it\'s been used in other models.'
+      usedInOtherModel: 'Can\'t rename this computed column, as it\'s been used in other models.',
+      searchContentOrIndexId: 'Search index content or ID'
     },
     'zh-cn': {
       recommendations: '优化建议',
@@ -399,7 +403,8 @@ import filterElements from '../../../../../../filter/index'
       buildIndex: '构建索引',
       batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
       onlyStartLetters: '仅支持字母开头',
-      usedInOtherModel: '该可计算列已在其他模型中使用，不可修改名称。'
+      usedInOtherModel: '该可计算列已在其他模型中使用，不可修改名称。',
+      searchContentOrIndexId: '搜索索引内容或 ID'
     }
   }
 })
@@ -414,6 +419,7 @@ export default class IndexList extends Vue {
     totalSize: 0,
     sort_by: '',
     reverse: false,
+    key: '',
     page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || 10
   }
   typeList = ['ADD_AGG_INDEX', 'REMOVE_AGG_INDEX', 'ADD_TABLE_INDEX', 'REMOVE_TABLE_INDEX']
@@ -565,7 +571,7 @@ export default class IndexList extends Vue {
 
   // 获取优化建议
   getRecommendations (type) {
-    const { page_offset, page_size, reverse, sort_by } = this.recommendationsList
+    const { page_offset, page_size, reverse, sort_by, key } = this.recommendationsList
     this.loadingRecommends = true
     this.getAllRecommendations({
       project: this.currentProject,
@@ -574,6 +580,7 @@ export default class IndexList extends Vue {
       page_size,
       type: this.checkedStatus.join(','),
       reverse,
+      key,
       sort_by
     }).then(async (res) => {
       const data = await handleSuccessAsync(res)
@@ -855,6 +862,12 @@ export default class IndexList extends Vue {
       const data = await handleSuccessAsync(res)
       this.modelDesc.recommendations_count = data.size
     })
+  }
+
+  // 搜索优化建议
+  searchRecommendation () {
+    this.recommendationsList.page_offset = 0
+    this.getRecommendations()
   }
 }
 </script>

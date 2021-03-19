@@ -105,7 +105,10 @@ export default {
     cardinalityMultiple: 'The Product of Cardinality: ',
     noIncludesTip: 'No included dimensions.',
     buildIndexTip: 'Successfully saved the aggregate index(es). The building job can\'t be submitted at the moment, as there exists an ongoing building job for this model. Please try submitting the building job until the current one is completed or manually stop it.',
-    disabledConstantMeasureTip: 'Can\'t modify the default measure.'
+    disabledConstantMeasureTip: 'Can\'t modify the default measure.',
+    excludeTableCheckbox: 'Display columns excluded from recommendations',
+    excludeTableCheckboxTip: 'Exclude Rules can be modified in project setting',
+    excludedTableIconTip: 'Excluded from recommendations'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -213,6 +216,9 @@ export default {
     cardinalityMultiple: '基数乘积：',
     noIncludesTip: '当前没有添加包含维度。',
     buildIndexTip: '聚合索引保存成功，当前无法提交构建任务。请等待该模型的构建任务完成或手动停止该任务后再提交。',
-    disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。'
+    disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。',
+    excludeTableCheckbox: '显示在优化建议中被屏蔽的列',
+    excludeTableCheckboxTip: '可在项目设置中配置',
+    excludedTableIconTip: '被优化建议屏蔽的列'
   }
 }

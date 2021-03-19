@@ -310,6 +310,44 @@
               </div>
             </div>
         </div>
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('excludeRule')}}</span>
+            <el-switch size="small" v-model="rulesObj.excluded_tables_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+          </div>
+          <div class="conds-content clearfix">
+              <div class="ksd-mt-10 ksd-fs-14">
+                <div class="exclude-rule-msg">
+                  <p class="tips">{{$t('excludeRuleTip')}}<span class="review-details" @click="showExcludeRuleDetails = !showExcludeRuleDetails">{{$t('moreDetails')}}<i :class="['arrow', showExcludeRuleDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02']"></i></span></p>
+                  <div class="details" v-if="showExcludeRuleDetails">
+                    <ol>
+                      <li><i class="point">•</i>{{$t('excludeRuleDetailMsg1')}}</li>
+                      <li><i class="point">•</i>{{$t('excludeRuleDetailMsg2')}}</li>
+                    </ol>
+                  </div>
+                </div>
+                <el-form-item class="exclude_rule-form" prop="excluded_tables" style="display: inline-block;">
+                  <el-select
+                    class="exclude_rule-select"
+                    v-model="rulesObj.excluded_tables"
+                    multiple
+                    filterable
+                    remote
+                    :remote-method="filterExcludeTables"
+                    :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                    :loading="loading">
+                    <el-option
+                      v-for="item in excludeRuleOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value">
+                      <span>{{item.label}}<i v-if="item.fact" class="el-icon-ksd-fact_table ksd-ml-5"></i></span>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </div>
+            </div>
+        </div>
       </el-form>
     </EditableBlock>
   </div>
@@ -321,7 +359,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleError, handleSuccess, handleSuccessAsync, objectClone } from '../../../util'
+import { handleError, handleSuccess, handleSuccessAsync, objectClone, ArrayFlat } from '../../../util'
 import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
@@ -350,7 +388,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       resetConfig: 'RESET_PROJECT_CONFIG',
       getFavoriteRules: 'GET_FAVORITE_RULES',
       getUserAndGroups: 'GET_USER_AND_GROUPS',
-      updateFavoriteRules: 'UPDATE_FAVORITE_RULES'
+      updateFavoriteRules: 'UPDATE_FAVORITE_RULES',
+      fetchDBandTables: 'FETCH_DB_AND_TABLES'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -386,11 +425,23 @@ export default class SettingBasic extends Vue {
     min_duration: 0,
     max_duration: 0,
     recommendation_enable: true,
-    recommendations_value: 20
+    recommendations_value: 20,
+    excluded_tables_enable: false,
+    excluded_tables: []
   }
   rulesAccerationDefault = {}
   durationError = false
   durationErrorMsg = ''
+  showExcludeRuleDetails = false
+  excludeRuleOptions = []
+  dbInfoFilter = {
+    project_name: '',
+    source_type: 9,
+    page_offset: 0,
+    page_size: 10,
+    table: ''
+  }
+  filterExcludeTablesTimer = null
   created () {
     this.rulesAccerationDefault = {...this.rulesObj}
   }
@@ -462,6 +513,7 @@ export default class SettingBasic extends Vue {
     this.initForm()
     if (this.$store.state.project.isSemiAutomatic) {
       this.getAccelerationRules()
+      this.getDbAndTablesInfo()
     }
     if ('moveTo' in this.$route.query && this.$route.query.moveTo === 'index-suggest-setting') {
       this.$refs.acclerationRuleSettings && this.$refs.acclerationRuleSettings.$el.scrollIntoView && this.$refs.acclerationRuleSettings.$el.scrollIntoView()
@@ -674,8 +726,8 @@ export default class SettingBasic extends Vue {
     if (this.currentSelectedProject) {
       this.getFavoriteRules({project: this.currentSelectedProject}).then((res) => {
         handleSuccess(res, (data) => {
-          this.rulesObj = {...data}
-          this.rulesAccerationDefault = {...data}
+          this.rulesObj = {...data, excluded_tables: data.excluded_tables ? data.excluded_tables.split(',') : []}
+          this.rulesAccerationDefault = {...data, excluded_tables: data.excluded_tables ? data.excluded_tables.split(',') : []}
         })
       }).catch((res) => {
         handleError(res)
@@ -714,6 +766,7 @@ export default class SettingBasic extends Vue {
       let submitData = objectClone(this.rulesObj)
       submitData.min_duration = +submitData.min_duration
       submitData.max_duration = +submitData.max_duration
+      submitData.excluded_tables = submitData.excluded_tables.join(',')
       // 换成次数字段了，不需要除于 100
       // submitData.freqValue = submitData.freqValue / 100
       this.updateFavoriteRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
@@ -730,6 +783,29 @@ export default class SettingBasic extends Vue {
 
   changeDurationEnable (val) {
     !val && (this.durationError = val)
+  }
+
+  // 获取 database 和 tables 信息（显示前 50 条记录）
+  async getDbAndTablesInfo () {
+    try {
+      this.dbInfoFilter.project_name = this.currentSelectedProject
+      const response = await this.fetchDBandTables(this.dbInfoFilter)
+      const results = await handleSuccessAsync(response)
+      const { databases } = results
+      let dbList = databases ? ArrayFlat(databases.map(item => item.tables)) : []
+      dbList.length && (this.excludeRuleOptions = dbList.map(it => ({label: `${it.database}.${it.name}`, value: `${it.database}.${it.name}`, fact: it.root_fact})).slice(0, 50))
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  // 过滤 db 或 table
+  filterExcludeTables (name) {
+    clearTimeout(this.filterExcludeTablesTimer)
+    this.filterExcludeTablesTimer = setTimeout(() => {
+      this.dbInfoFilter.table = name
+      this.getDbAndTablesInfo()
+    }, 500)
   }
 }
 </script>
@@ -797,6 +873,39 @@ export default class SettingBasic extends Vue {
       // padding-bottom: 15px;
       // border-bottom: 1px solid @line-split-color;
     }
+    .exclude-rule-msg {
+      font-size: 12px;
+      .tips {
+        .review-details {
+          color: @base-color;
+          cursor: pointer;
+          position: relative;
+          .arrow {
+            transform: rotate(90deg);
+            font-size: 10px;
+            margin-left: 5px;
+          }
+        }
+      }
+      .details {
+        background: @base-background-color-1;
+        padding: 10px 10px;
+        margin-top: 5px;
+        box-sizing: border-box;
+        .point {
+          font-style: inherit;
+          margin-right: 5px;
+        }
+      }
+    }
+    .exclude_rule-form {
+      width: 100%;
+      .exclude_rule-select {
+        width: 100%;
+        margin-top: 10px;
+      }
+    }
+    
   }
   .rule-setting-input {
     display: inline-block;

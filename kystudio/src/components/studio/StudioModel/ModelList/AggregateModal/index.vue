@@ -425,7 +425,8 @@
       <div class="action-layout">
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
         <div class="filter-dimension">
-          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:240px" :placeholder="$t('pleaseFilterNameOrColumn')"></el-input>
+          <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-model="displayExcludedTables" @change="changeExcludedTables" v-if="showExcludedTableCheckBox">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
+          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:240px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table" @scroll="scrollEvent">
@@ -442,7 +443,7 @@
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
             <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
             <el-col :span="6"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
-            <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 20}">{{item.column}}</span></el-col>
+            <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 40}">{{item.column}}</span><el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(item.column) && displayExcludedTables"></i></el-tooltip></el-col>
             <el-col :span="3">{{item.type}}</el-col>
             <el-col :span="2">
               <template v-if="item.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
@@ -488,7 +489,7 @@
       <div class="action-measure-layout">
         <p class="alert">{{$t('editMeasuresTip')}}</p>
         <div class="filter-measure">
-          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:240px" :placeholder="$t('pleaseFilterName')"></el-input>
+          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table measure-table">
@@ -525,12 +526,17 @@ import locales from './locales'
 import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone, ArrayFlat, getQueryString } from 'util'
+import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone, ArrayFlat } from 'util'
 import { handleSuccess, postCloudUrlMessage } from 'util/business'
 
 vuex.registerModule(['modals', 'AggregateModal'], store)
 
 @Component({
+  inject: {
+    getFavoriteRules: {
+      default: () => {}
+    }
+  },
   computed: {
     ...mapState('AggregateModal', {
       form: state => state.form,
@@ -619,6 +625,8 @@ export default class AggregateModal extends Vue {
   pageOffset = 0
   pageSize = 50
   generateDeletedIndexes = true
+  favoriteRules = {}
+  displayExcludedTables = false
 
   @Watch('$lang')
   changeCurrentLang (newVal, oldVal) {
@@ -655,6 +663,24 @@ export default class AggregateModal extends Vue {
   }
   get getSelectedMeasures () {
     return this.selectedMeasures
+  }
+
+  // 是否展示屏蔽表 checkbox
+  get showExcludedTableCheckBox () {
+    const { simplified_dimensions, simplified_tables } = this.model
+    if (this.favoriteRules.excluded_tables) {
+      const excludedTables = this.favoriteRules.excluded_tables.split(',')
+      const dimensionIncludeTables = [...new Set(simplified_dimensions.map(it => it.column.split('.')[0]))]
+      const currentExcludeTables = simplified_tables.filter(item => item.table && excludedTables.includes(item.table)).map(it => it.table.split('.')[1])
+      return dimensionIncludeTables.filter(it => currentExcludeTables.includes(it)).length > 0
+    } else {
+      return false
+    }
+  }
+
+  // 是否为屏蔽表的 column
+  isExistExcludeTable (col) {
+    return this.favoriteRules.excluded_tables && this.favoriteRules.excluded_tables.split(',').map(it => it.split('.')[1] && it.split('.')[1]).includes(col.split('.')[0])
   }
 
   getMultipleCardinality (aggregateIdx, jointRowIdx) {
@@ -821,6 +847,7 @@ export default class AggregateModal extends Vue {
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
+      this.getFavoriteRulesContext()
       this.groupsDim = this.form.aggregateArray.map((agg) => {
         return agg.dimCap
       })
@@ -1088,16 +1115,6 @@ export default class AggregateModal extends Vue {
       }
     })
   }
-
-  // 跳转至job页面
-  jumpToJobs () {
-    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
-      postCloudUrlMessage(this.$route, { name: 'kapJob' })
-    } else {
-      this.$router.push('/monitor/job')
-    }
-  }
-
   async handleSubmit (isCatchUp) {
     // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
     if (isCatchUp && this.model.segments.length > 0 && !this.model.partition_desc || !isCatchUp) {
@@ -1458,7 +1475,13 @@ export default class AggregateModal extends Vue {
 
   getDimensionList () {
     const selectedItems = this.selectedIncludeDimension.map(it => it.label)
-    const filterData = this.backUpDimensions.filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: selectedItems.includes(it.label)}))
+    const filterData = this.backUpDimensions.filter(it => {
+      if (this.displayExcludedTables) {
+        return it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1
+      } else {
+        return (it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1) && !this.isExistExcludeTable(it.column)
+      }
+    }).map(it => ({...it, isCheck: selectedItems.includes(it.label)}))
     const labels = filterData.map(it => it.label)
     const dataList = [...this.selectedIncludeDimension.filter(it => labels.includes(it.label)), ...filterData.filter(it => !it.isCheck)]
     this.includeDimensions = dataList.slice(0, (this.pageOffset + 1) * this.pageSize)
@@ -1632,6 +1655,24 @@ export default class AggregateModal extends Vue {
     const constantMeasure = this.measureList.filter(it => it.expression === 'COUNT' && it.parameter_value && it.parameter_value[0].type === 'constant')
     !constantMeasure.length && !measures.includes('COUNT_ALL') && measures.unshift('COUNT_ALL')
     this.$set(this.form.aggregateArray[aggregateIdx], 'measures', measures)
+  }
+
+  async getFavoriteRulesContext () {
+    this.favoriteRules = await this.getFavoriteRules()
+  }
+
+  // 是否显示被屏蔽的列
+  changeExcludedTables () {
+    this.getDimensionList()
+  }
+
+  // 跳转至job页面
+  jumpToJobs () {
+    if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
+    }
   }
 
   updated () {
@@ -2191,6 +2232,7 @@ export default class AggregateModal extends Vue {
         text-align: left;
         font-size: 12px;
         font-weight: bold;
+        position: relative;
       }
       .el-checkbox {
         cursor: pointer;
@@ -2198,6 +2240,11 @@ export default class AggregateModal extends Vue {
       .text {
         white-space: pre-wrap;
       }
+    }
+    .excluded_table-icon {
+      position: absolute;
+      right: 10px;
+      line-height: 32px;
     }
   }
 }

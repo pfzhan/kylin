@@ -17,6 +17,7 @@
             :show-background="false"
             show-icon>
           </el-alert>
+          <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
           <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
         </div>
        <div class="ky-simple-table">
@@ -31,7 +32,7 @@
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="(col, index) in searchAllColumns" :key="col.fullName" class="table-row">
                   <el-col :span="1"><el-checkbox size="small" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
-                  <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}</el-col>
+                  <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}<el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(col.fullName) && displayExcludedTables"></i></el-tooltip></el-col>
                   <el-col :span="3" class="cardinality-item">
                     <template v-if="col.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
                     <template v-else>{{ col.cardinality }}</template>
@@ -87,6 +88,11 @@
   vuex.registerModule(['modals', 'TableIndexEditModal'], store)
 
   @Component({
+    inject: {
+      getFavoriteRules: {
+        default: () => {}
+      }
+    },
     computed: {
       ...mapGetters([
         'currentSelectedProject'
@@ -116,6 +122,9 @@
     btnLoading = false
     openShared = false
     searchColumn = ''
+    allColumns = []
+    currentPager = 1
+    pagerSize = 50
     pager = 0
     tableIndexMetaStr = JSON.stringify({
       id: '',
@@ -132,6 +141,8 @@
     }
     cloneMeta = ''
     isSelectAllTableIndex = false
+    favoriteRules = {}
+    displayExcludedTables = false
 
     @Watch('searchColumn')
     changeSearchColumn (val) {
@@ -141,6 +152,16 @@
 
     get getSelectedColumns () {
       return this.allColumns.filter(it => it.isUsed)
+    }
+
+    get showExcludedTableCheckBox () {
+      if (this.favoriteRules.excluded_tables) {
+        const currentTables = [...new Set(this.allColumns.map(it => it.fullName.split('.')[0]))]
+        const excludesTables = this.favoriteRules.excluded_tables.split(',').map(item => item.split('.')[1])
+        return currentTables.filter(it => excludesTables.includes(it)).length
+      } else {
+        return false
+      }
     }
     topRow (col) {
       let index = this.getRowIndex(col, 'fullName')
@@ -227,19 +248,25 @@
       changeObjectArrProperty(this.allColumns, '*', 'isShared', false)
       t.isShared = !shardStatus
     }
-    currentPager = 1
-    pagerSize = 50
     scrollLoad () {
       if (this.searchAllColumns && this.searchAllColumns.length !== this.filterResult.length) {
         this.currentPager += 1
       }
+    }
+    // 是否为屏蔽表的 column
+    isExistExcludeTable (col) {
+      return this.favoriteRules.excluded_tables && this.favoriteRules.excluded_tables.split(',').map(it => it.split('.')[1] && it.split('.')[1]).includes(col.split('.')[0])
     }
     get filterResult () {
       if (!this.isShow) {
         return []
       }
       return this.allColumns.filter((col) => {
-        return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0
+        if (this.displayExcludedTables) {
+          return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0
+        } else {
+          return (!this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0) && !this.isExistExcludeTable(col.fullName)
+        }
       })
     }
     get searchAllColumns () {
@@ -248,7 +275,6 @@
       }
       return this.filterResult.slice(0, this.pagerSize * this.currentPager)
     }
-    allColumns = []
     getAllColumns () {
       this.allColumns = []
       // let result = []
@@ -304,6 +330,7 @@
           }
           Object.assign(this.tableIndexMeta, this.tableIndexDesc)
         }
+        this.getFavoriteRulesContext()
         this.getAllColumns()
         this.cloneMeta = JSON.stringify(this.allColumns)
       } else {
@@ -461,6 +488,11 @@
         this.$router.push('/monitor/job')
       }
     }
+
+    // 获取优化建议配置参数
+    async getFavoriteRulesContext () {
+      this.favoriteRules = await this.getFavoriteRules()
+    }
   }
 </script>
 <style lang="less">
@@ -547,6 +579,7 @@
     }
     .ky-simple-table {
       .el-col {
+        position: relative;
         &:first-child {
           text-overflow: initial;
         }
@@ -578,6 +611,11 @@
             color: @text-disabled-color;
           }
         }
+      }
+      .excluded_table-icon {
+        position: absolute;
+        right: 10px;
+        line-height: 32px;
       }
     }
   }
