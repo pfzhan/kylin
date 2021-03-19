@@ -449,7 +449,7 @@ public class JobService extends BasicService {
         for (int i = 0; i < tasks.size(); ++i) {
             AbstractExecutable task = tasks.get(i);
             executableStepList
-                    .add(parseToExecutableStep(task, i, getExecutableManager(project).getOutput(task.getId())));
+                    .add(parseToExecutableStep(task, getExecutableManager(project).getOutput(task.getId())));
         }
         if (executable.getStatus() == ExecutableState.DISCARDED) {
             executableStepList
@@ -459,11 +459,11 @@ public class JobService extends BasicService {
 
     }
 
-    private ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, int i, Output stepOutput) {
+    private ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(task.getId());
         result.setName(task.getName());
-        result.setSequenceID(i);
+        result.setSequenceID(task.getStepId());
 
         if (stepOutput == null) {
             logger.warn("Cannot found output for task: id={}", task.getId());

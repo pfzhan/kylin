@@ -96,6 +96,7 @@ public class ExecutableOutputPO implements Serializable {
     private long byteSize;
 
     public void addStartTime(long time) {
+        //when ready -> suicidal/discarded, the start time is 0
         if (startTime == 0) {
             startTime = time;
         }

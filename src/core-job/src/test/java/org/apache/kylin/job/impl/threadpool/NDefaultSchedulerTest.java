@@ -169,44 +169,83 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
     }
 
+    private void assertJobTime(final AbstractExecutable job) {
+        assertJobTime(job, 0);
+    }
+
+    private void assertJobTime(final AbstractExecutable job, long deltaTime) {
+
+        if (!(job instanceof DefaultChainedExecutable)) {
+            return;
+
+        }
+        DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
+
+        long lastExecutableEndTime = chainedExecutable.getOutput().getCreateTime();
+        long totalWaitTime = 0L;
+        long totalDuration = 0L;
+        for (AbstractExecutable task : chainedExecutable.getTasks()) {
+
+            //the task has not started
+            if (task.getOutput().getStartTime() == 0) {
+                Assert.assertEquals(0, task.getWaitTime());
+                continue;
+            }
+
+            //test final state time legal
+            if (task.getStatus().isFinalState()) {
+                Assert.assertTrue(task.getStartTime() > 0L);
+                Assert.assertTrue(task.getEndTime() > 0L);
+            }
+
+            Assert.assertEquals(task.getOutput().getStartTime() - lastExecutableEndTime, task.getWaitTime());
+
+            lastExecutableEndTime = task.getOutput().getEndTime();
+
+            totalWaitTime += task.getWaitTime();
+            totalDuration += task.getDuration();
+        }
+
+        Assert.assertEquals(chainedExecutable.getWaitTime(), totalWaitTime);
+        Assert.assertEquals(chainedExecutable.getDuration(), totalDuration, deltaTime);
+        Assert.assertEquals(chainedExecutable.getTotalDurationTime(),
+                chainedExecutable.getWaitTime() + chainedExecutable.getDuration(), deltaTime);
+    }
+
     private void assertTimeSucceed(long createTime, String id) {
         AbstractExecutable job = executableManager.getJob(id);
         assertJobRun(createTime, job);
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         if (job instanceof DefaultChainedExecutable) {
             DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
-            for (AbstractExecutable task : chainedExecutable.getTasks()) {
-                assertJobRun(createTime, job);
-                Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
-            }
+            Assert.assertTrue(chainedExecutable.getTasks().stream().allMatch(task -> ExecutableState.SUCCEED == executableManager.getOutput(task.getId()).getState()));
         }
+
+        assertJobTime(job);
     }
 
     private void assertTimeError(long createTime, String id) {
         AbstractExecutable job = executableManager.getJob(id);
         assertJobRun(createTime, job);
         Assert.assertEquals(ExecutableState.ERROR, executableManager.getOutput(job.getId()).getState());
-        boolean hasError = false;
+
         if (job instanceof DefaultChainedExecutable) {
             DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
-            for (AbstractExecutable task : chainedExecutable.getTasks()) {
-                Assert.assertEquals(createTime, task.getCreateTime());
-                Assert.assertTrue(task.getDuration() >= 0L);
-                Assert.assertTrue(task.getDuration() >= 0L);
-                if (task.getStatus() == ExecutableState.ERROR) {
-                    hasError = true;
-                }
-            }
+            Assert.assertTrue(chainedExecutable.getTasks().stream()
+                    .anyMatch(task -> ExecutableState.ERROR == executableManager.getOutput(task.getId()).getState()));
         }
-        Assert.assertTrue(hasError);
+
+        assertJobTime(job);
     }
 
     private void assertTimeSuicide(long createTime, String id) {
         assertTimeFinalState(createTime, id, ExecutableState.SUICIDAL);
+        assertJobTime(executableManager.getJob(id));
     }
 
     private void assertTimeDiscard(long createTime, String id) {
         assertTimeFinalState(createTime, id, ExecutableState.DISCARDED);
+        assertJobTime(executableManager.getJob(id));
     }
 
     private void assertTimeFinalState(long createTime, String id, ExecutableState state) {
@@ -225,20 +264,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertNotNull(job);
         Assert.assertEquals(createTime, job.getCreateTime());
         Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
-        Assert.assertTrue(job.getDuration() > 0L);
-        Assert.assertTrue(job.getWaitTime() >= 0L);
-        if (job instanceof DefaultChainedExecutable) {
-            DefaultChainedExecutable chainedExecutable = (DefaultChainedExecutable) job;
-            for (AbstractExecutable task : chainedExecutable.getTasks()) {
-                if (task.getStatus().isFinalState()) {
-                    Assert.assertTrue(task.getStartTime() > 0L);
-                    Assert.assertTrue(task.getEndTime() > 0L);
-                }
-                Assert.assertEquals(createTime, task.getCreateTime());
-                Assert.assertTrue(task.getDuration() >= 0L);
-                Assert.assertTrue(task.getWaitTime() >= 0L);
-            }
-        }
+        assertJobTime(job, 100);
     }
 
     private void assertTimeLegal(String id) {
@@ -402,6 +428,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             DefaultChainedExecutable job1 = (DefaultChainedExecutable) getManager().getJob(job.getId());
             return job1.getTasks().get(0).getStatus().isFinalState();
         });
+        assertTimeDiscard(createTime, job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(1, killProcessCount.get());
@@ -432,6 +459,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             AbstractExecutable job1 = executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
         });
+        assertTimeSuicide(job.getCreateTime(), job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -465,6 +493,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             AbstractExecutable job1 = executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
         });
+        assertTimeSuicide(job.getCreateTime(), job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -507,6 +536,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             final AbstractExecutable job1 = executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
         });
+        assertTimeSuicide(job.getCreateTime(), job.getId());
         testJobStopped(job.getId());
         assertMemoryRestore(currMem);
     }
@@ -1128,7 +1158,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long task2Duration3 = stopJob.getTasks().get(1).getDuration();
         long totalPendingDuration3 = stopJob.getWaitTime();
         long task1PendingDuration3 = stopJob.getTasks().get(0).getWaitTime();
-        long task2PendingDuration3 = stopJob.getTasks().get(1).getWaitTime();
 
         Assert.assertTrue(context2.getRecord().getDuration() < totalDuration3);
         val stepType = context1.getStepRecords().get(0).getState();
@@ -1140,7 +1169,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(0 < task2Duration3);
         Assert.assertTrue(context2.getRecord().getWaitTime() <= totalPendingDuration3);
         Assert.assertTrue(context2.getStepRecords().get(0).getWaitTime() <= task1PendingDuration3);
-        Assert.assertEquals(0, task2PendingDuration3);
 
         assertTimeRunning(createTime, job.getId());
         waitForJobFinish(job.getId());
@@ -1186,14 +1214,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long task1Duration = stopJob.getTasks().get(0).getDuration();
         long task2Duration = stopJob.getTasks().get(1).getDuration();
         long totalPendingDuration = stopJob.getWaitTime();
-        long task1PendingDuration = stopJob.getTasks().get(0).getWaitTime();
-        long task2PendingDuration = stopJob.getTasks().get(1).getWaitTime();
         Assert.assertTrue(totalDuration > 0);
         Assert.assertTrue(task1Duration > 0);
         Assert.assertEquals(0, task2Duration);
         Assert.assertTrue(totalPendingDuration >= 0);
-        Assert.assertEquals(0, task1PendingDuration);
-        Assert.assertEquals(0, task2PendingDuration);
 
         //restart
         restartJobWithLock(job.getId());
@@ -1206,12 +1230,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long newCreateTime = stopJob.getCreateTime();
         Assert.assertTrue(newCreateTime > createTime);
         assertTimeLegal(job.getId());
-        long totalDuration3 = stopJob.getDuration();
-        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
-        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
-        Assert.assertEquals(0, totalDuration3, 100);
-        Assert.assertEquals(0, task1Duration3, 100);
-        Assert.assertEquals(0, task2Duration3, 100);
 
         getConditionFactory().until(() -> executableManager.getJob(job.getId()).getStatus() == ExecutableState.RUNNING);
         assertTimeRunning(newCreateTime, job.getId());
@@ -1285,12 +1303,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         long newCreateTime = stopJob.getCreateTime();
         Assert.assertTrue(newCreateTime > createTime);
         assertTimeLegal(job.getId());
-        long totalDuration3 = stopJob.getDuration();
-        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
-        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
-        Assert.assertEquals(0, totalDuration3, 200);
-        Assert.assertEquals(0, task1Duration3, 200);
-        Assert.assertEquals(0, task2Duration3, 200);
+        
         AtomicBoolean ended = new AtomicBoolean(false);
         getConditionFactory().until(() -> {
             if (executableManager.getJob(job.getId()).getStatus() == ExecutableState.SUCCEED) {
@@ -1526,8 +1539,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(context.getStepRecords().get(0).getDuration() > 0);
         Assert.assertEquals(0, context.getStepRecords().get(1).getDuration());
         Assert.assertTrue(context.getRecord().getWaitTime() >= 0);
-        Assert.assertEquals(0, context.getStepRecords().get(0).getWaitTime());
-        Assert.assertEquals(0, context.getStepRecords().get(1).getWaitTime());
     }
 
     private void assertErrorPending(ExecutableDurationContext context1, ExecutableDurationContext context2) {
@@ -1700,21 +1711,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val stopJob = (DefaultChainedExecutable) executableManager.getJob(job.getId());
         long newCreateTime = stopJob.getCreateTime();
         assertTimeLegal(job.getId());
-        long totalDuration3 = stopJob.getDuration();
-        long task1Duration3 = stopJob.getTasks().get(0).getDuration();
-        long task2Duration3 = stopJob.getTasks().get(1).getDuration();
-        long totalPendingDuration3 = stopJob.getWaitTime();
-        long task1PendingDuration3 = stopJob.getTasks().get(0).getWaitTime();
-        long task2PendingDuration3 = stopJob.getTasks().get(1).getWaitTime();
         Assert.assertEquals(ExecutableState.READY, stopJob.getStatus());
         Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(0).getStatus());
         Assert.assertEquals(ExecutableState.READY, stopJob.getTasks().get(1).getStatus());
-        Assert.assertEquals(0, totalDuration3, 100);
-        Assert.assertEquals(0, task1Duration3, 100);
-        Assert.assertEquals(0, task2Duration3, 100);
-        Assert.assertTrue(totalPendingDuration3 > 0);
-        Assert.assertEquals(0, task1PendingDuration3);
-        Assert.assertEquals(0, task2PendingDuration3);
 
         AtomicBoolean ended = new AtomicBoolean(false);
         getConditionFactory().until(() -> {

@@ -46,6 +46,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -212,6 +213,23 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     }
 
+    @Override
+    public long getWaitTime() {
+        return subTasks.stream().map(AbstractExecutable::getWaitTime).mapToLong(Long::longValue).sum();
+    }
+
+    @Override
+    public long getDuration() {
+        return subTasks.stream().map(AbstractExecutable::getDuration).mapToLong(Long::longValue).sum();
+    }
+
+    Optional<AbstractExecutable> getSubTaskByStepId(int stepId) {
+        if (stepId < 0 || stepId >= subTasks.size()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(subTasks.get(stepId));
+    }
+
     protected void onExecuteDiscardHook(String jobId) {
         // Hook method, default action is doing nothing
     }
@@ -264,8 +282,11 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     public void addTask(AbstractExecutable executable) {
-        executable.setId(getId() + "_" + String.format(Locale.ROOT, "%02d", subTasks.size()));
+        int stepId = subTasks.size();
+
+        executable.setId(getId() + "_" + String.format(Locale.ROOT, "%02d", stepId));
         executable.setParent(this);
+        executable.setStepId(stepId);
         this.subTasks.add(executable);
     }
 

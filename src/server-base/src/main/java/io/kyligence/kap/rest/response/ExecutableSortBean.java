@@ -48,6 +48,8 @@ public class ExecutableSortBean implements Comparable<ExecutableSortBean> {
 
     private long duration;
 
+    private long totalDuration;
+
     private AbstractExecutable executable;
 
     public static ExecutableSortBean create(AbstractExecutable abstractExecutable) {
@@ -60,6 +62,7 @@ public class ExecutableSortBean implements Comparable<ExecutableSortBean> {
         sortBean.setLastModified(AbstractExecutable.getLastModified(output));
         sortBean.setCreateTime(AbstractExecutable.getCreateTime(output));
         sortBean.setDuration(AbstractExecutable.getDuration(output));
+        sortBean.setTotalDuration(abstractExecutable.getTotalDurationTime());
 
         sortBean.setExecutable(abstractExecutable);
         return sortBean;

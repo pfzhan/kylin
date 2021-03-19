@@ -57,6 +57,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private long lastModified;
     @JsonProperty("duration")
     private long duration;
+    @JsonProperty("total_duration")
+    private long totalDuration;
     @JsonProperty("exec_start_time")
     private long execStartTime;
     @JsonManagedReference
@@ -102,6 +104,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setExecStartTime(abstractExecutable.getStartTime());
         executableResponse.setCreateTime(abstractExecutable.getCreateTime());
         executableResponse.setDuration(abstractExecutable.getDuration());
+        executableResponse.setTotalDuration(abstractExecutable.getTotalDurationTime());
         executableResponse.setLastModified(abstractExecutable.getLastModified());
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());

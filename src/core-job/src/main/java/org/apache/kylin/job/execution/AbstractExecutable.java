@@ -163,6 +163,10 @@ public abstract class AbstractExecutable implements Executable {
     @Setter
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
+    @Getter
+    @Setter
+    private int stepId = -1;
+
     public String getTargetModelAlias() {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
         NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
@@ -602,37 +606,42 @@ public abstract class AbstractExecutable implements Executable {
         return getEndTime(getOutput());
     }
 
-    public final long getDuration() {
+    public long getDuration() {
         return getDuration(getOutput());
     }
 
     public static long getDuration(Output output) {
-        return getDuration(output.getStartTime(), output.getEndTime(), output.getWaitTime());
-    }
-
-    public static long getDuration(long startTime, long endTime, long interruptTime) {
-        if (startTime == 0) {
+        if (output.getStartTime() == 0) {
             return 0;
         }
-        if (endTime == 0) {
-            return System.currentTimeMillis() - startTime - interruptTime;
-        } else {
-            return endTime - startTime - interruptTime;
-        }
+
+        return output.getEndTime() == 0 ? System.currentTimeMillis() - output.getStartTime()
+                : output.getEndTime() - output.getStartTime();
     }
 
-    public final long getWaitTime() {
+    public long getWaitTime() {
         Output output = getOutput();
-        long pendingDuration = 0L;
-        if (this instanceof DefaultChainedExecutable) {
-            long startTime = output.getStartTime();
-            if (startTime == 0) {
-                return System.currentTimeMillis() - output.getCreateTime();
-            }
-            pendingDuration += (startTime - output.getCreateTime());
+        long startTime = output.getStartTime();
+
+        //the job/task are not started
+        if(startTime == 0){
+            return 0;
         }
-        pendingDuration += output.getWaitTime();
-        return pendingDuration;
+
+        long lastTaskEndTime = output.getCreateTime();
+
+        if (getParent() instanceof DefaultChainedExecutable) {
+            val parentExecutable = (DefaultChainedExecutable) getParent();
+            val lastExecutable = parentExecutable.getSubTaskByStepId(getStepId() - 1);
+
+            lastTaskEndTime = lastExecutable.map(AbstractExecutable::getEndTime).orElse(parentExecutable.getOutput().getCreateTime());
+        }
+
+        return startTime - lastTaskEndTime;
+    }
+
+    public long getTotalDurationTime(){
+        return getDuration() + getWaitTime();
     }
 
     public final Set<String> getDependentFiles() {

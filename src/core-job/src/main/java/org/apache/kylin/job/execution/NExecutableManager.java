@@ -774,13 +774,23 @@ public class NExecutableManager {
 
     private void updateJobStatus(ExecutableOutputPO jobOutput, ExecutableState oldStatus, ExecutableState newStatus) {
         long time = System.currentTimeMillis();
+
         if (oldStatus == ExecutableState.RUNNING) {
             jobOutput.addEndTime(time);
-        } else if (newStatus == ExecutableState.RUNNING) {
+            return;
+        }
+
+        switch (newStatus) {
+        case RUNNING:
             jobOutput.addStartTime(time);
-        } else if (newStatus == ExecutableState.SUICIDAL || newStatus == ExecutableState.DISCARDED) {
+            break;
+        case SUICIDAL:
+        case DISCARDED:
             jobOutput.addStartTime(time);
             jobOutput.addEndTime(time);
+            break;
+        default:
+            break;
         }
     }
 
