@@ -2189,7 +2189,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getExternalCatalogClass() {
-        return getOptional("kylin.use.external.calatog", "");
+        return getOptional("kylin.use.external.catalog", "");
     }
 
     public Boolean isSparderAsync() {

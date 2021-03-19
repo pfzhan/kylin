@@ -31,93 +31,103 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{CatalogDatabase, CatalogStorageFormat, CatalogTable, CatalogTableType}
 import org.apache.spark.sql.catalyst.parser.{CatalystSqlParser, ParseException}
-import org.apache.spark.sql.types.{DataType, HIVE_TYPE_STRING, Metadata, MetadataBuilder, StructField, StructType}
+import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
 
-trait HasKeExternal {
+trait HasKeExternal extends LogEx {
   val KYLIN_FORMAT = "KYLIN_EXTERNAL"
+
   def keExternalCatalog: KeExternalCatalog
 
-  protected def withClient[T](body: => T): T = {
+  protected def withClient[T](action: String)(body: => T): T = {
     try {
-      body
+      logTime(action, info = true) {
+        body
+      }
     } catch {
       case apiException: ApiException => throw new RuntimeException(apiException)
       case e: Throwable => throw e
     }
   }
 
-  protected def getExternalDatabase(db: String): Option[CatalogDatabase] = withClient {
-    Option(keExternalCatalog.getDatabase(db)).map{ dbObj =>
-      CatalogDatabase(
-        dbObj.getName,
-        dbObj.getDescription,
-        new URI(dbObj.getLocationUri),
-        dbObj.getParameters.asScala.toMap) }
-  }
-
-  protected def databaseExistsInExternal(db: String): Boolean = withClient {
-    return keExternalCatalog.getDatabase(db) != null
-  }
-
-  protected def listExternalDatabases(): Seq[String] = withClient {
-    keExternalCatalog.getDatabases(".*").asScala.sorted
-  }
-
-  protected def tableExistsInExternal(db: String, table: String): Boolean = withClient{
-    if (keExternalCatalog.getDatabase(db) != null) {
-      keExternalCatalog.getTable(db, table, false) != null
-    } else {
-      false
-    }
-  }
-
-  protected def listExternalTables(db: String, pattern: String): Seq[String] = withClient{
-    if (keExternalCatalog.getDatabase(db) != null) {
-      keExternalCatalog.getTables(db, pattern).asScala.sorted
-    } else {
-      Nil
-    }
-  }
-
-  protected def getExternalTable(db: String, tableName: String): Option[CatalogTable] = withClient{
-    Option(keExternalCatalog.getTable(db, tableName, false))
-      .map { table =>
-        val properties = Option(table.getParameters).map(_.asScala.toMap).orNull
-
-        val excludedTableProperties = Set(
-          // The property value of "comment" is moved to the dedicated field "comment"
-          "comment",
-          // createVersion
-          HasKeExternal.CREATED_SPARK_VERSION
-        )
-        val filteredProperties = properties.filterNot {
-          case (key, _) => excludedTableProperties.contains(key)
-        }
-        CatalogTable(
-          identifier = TableIdentifier(table.getTableName, Option(table.getDbName)),
-          tableType = CatalogTableType.EXTERNAL,
-          schema = StructType(table.getFields.asScala.map(HasKeExternal.fromExternalColumn)),
-          storage = CatalogStorageFormat(
-            locationUri = None,
-            inputFormat = Some(KYLIN_FORMAT),
-            outputFormat = Some(KYLIN_FORMAT),
-            serde = None,
-            compressed = false,
-            properties = Map()
-          ),
-          provider = None,
-          owner = Option(table.getOwner).getOrElse(""),
-          createTime = table.getCreateTime.toLong * 1000,
-          lastAccessTime = table.getLastAccessTime.toLong * 1000,
-          createVersion = properties.getOrElse(HasKeExternal.CREATED_SPARK_VERSION, "unknown external version"),
-          comment = properties.get("comment"),
-          viewText = None,
-          properties = filteredProperties
-        )
+  protected def getExternalDatabase(db: String): Option[CatalogDatabase] =
+    withClient("getExternalDatabase") {
+      Option(keExternalCatalog.getDatabase(db)).map { dbObj =>
+        CatalogDatabase(
+          dbObj.getName,
+          dbObj.getDescription,
+          new URI(dbObj.getLocationUri),
+          dbObj.getParameters.asScala.toMap)
       }
-  }
+    }
+
+  protected def databaseExistsInExternal(db: String): Boolean =
+    withClient("databaseExistsInExternal") {
+      return keExternalCatalog.getDatabase(db) != null
+    }
+
+  protected def listExternalDatabases(): Seq[String] =
+    withClient("listExternalDatabases") {
+      keExternalCatalog.getDatabases(".*").asScala.sorted
+    }
+
+  protected def tableExistsInExternal(db: String, table: String): Boolean =
+    withClient("tableExistsInExternal") {
+      if (keExternalCatalog.getDatabase(db) != null) {
+        keExternalCatalog.getTable(db, table, false) != null
+      } else {
+        false
+      }
+    }
+
+  protected def listExternalTables(db: String, pattern: String): Seq[String] =
+    withClient("listExternalTables") {
+      if (keExternalCatalog.getDatabase(db) != null) {
+        keExternalCatalog.getTables(db, pattern).asScala.sorted
+      } else {
+        Nil
+      }
+    }
+
+  protected def getExternalTable(db: String, tableName: String): Option[CatalogTable] =
+    withClient("getExternalTable") {
+      Option(keExternalCatalog.getTable(db, tableName, false))
+        .map { table =>
+          val properties = Option(table.getParameters).map(_.asScala.toMap).orNull
+
+          val excludedTableProperties = Set(
+            // The property value of "comment" is moved to the dedicated field "comment"
+            "comment",
+            // createVersion
+            HasKeExternal.CREATED_SPARK_VERSION
+          )
+          val filteredProperties = properties.filterNot {
+            case (key, _) => excludedTableProperties.contains(key)
+          }
+          CatalogTable(
+            identifier = TableIdentifier(table.getTableName, Option(table.getDbName)),
+            tableType = CatalogTableType.EXTERNAL,
+            schema = StructType(table.getFields.asScala.map(HasKeExternal.fromExternalColumn)),
+            storage = CatalogStorageFormat(
+              locationUri = None,
+              inputFormat = Some(KYLIN_FORMAT),
+              outputFormat = Some(KYLIN_FORMAT),
+              serde = None,
+              compressed = false,
+              properties = Map()
+            ),
+            provider = None,
+            owner = Option(table.getOwner).getOrElse(""),
+            createTime = table.getCreateTime.toLong * 1000,
+            lastAccessTime = table.getLastAccessTime.toLong * 1000,
+            createVersion = properties.getOrElse(HasKeExternal.CREATED_SPARK_VERSION, "unknown external version"),
+            comment = properties.get("comment"),
+            viewText = None,
+            properties = filteredProperties
+          )
+        }
+    }
 }
 
 object HasKeExternal {

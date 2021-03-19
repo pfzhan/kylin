@@ -23,17 +23,19 @@
  */
 package io.kyligence.kap.engine.spark.mockup.external;
 
-import com.clearspring.analytics.util.Lists;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.api.ApiException;
-import io.kyligence.api.catalog.Database;
-import io.kyligence.api.catalog.FieldSchema;
-import io.kyligence.api.catalog.IExternalCatalog;
-import io.kyligence.api.catalog.Table;
-import lombok.extern.slf4j.Slf4j;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -42,21 +44,24 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.clearspring.analytics.util.Lists;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.api.ApiException;
+import io.kyligence.api.catalog.Database;
+import io.kyligence.api.catalog.FieldSchema;
+import io.kyligence.api.catalog.IExternalCatalog;
+import io.kyligence.api.catalog.Table;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * A simple (ephemeral) implementation of the external catalog.
@@ -69,15 +74,17 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FileCatalog implements IExternalCatalog {
 
-     private void init(Configuration hadoopConfig) {
+    private static final SecureRandom RNG = new SecureRandom();
+
+    private void init(Configuration hadoopConfig) {
         try {
             FileSystem fileSystem = FileSystem.get(hadoopConfig);
             KylinConfigExt ext = KylinConfigExt.createInstance(KylinConfig.getInstanceFromEnv(), Maps.newHashMap());
 
             Preconditions.checkArgument(!Strings.isNullOrEmpty(ext.getExternalCatalogClass()));
             String meta = ext.getOptional("kylin.NSparkDataSource.data.dir", null);
-            readDatabases(fileSystem, meta)
-                    .forEach((database, tables) -> initDatabase(fileSystem, meta, database, Lists.newArrayList(tables)));
+            readDatabases(fileSystem, meta).forEach(
+                    (database, tables) -> initDatabase(fileSystem, meta, database, Lists.newArrayList(tables)));
         } catch (Exception e) {
             log.error("Failed to initialize FileCatalog", e);
             throw new IllegalStateException(e);
@@ -87,8 +94,7 @@ public class FileCatalog implements IExternalCatalog {
     private Map<String, Set<String>> readDatabases(FileSystem fileSystem, String meta) throws IOException {
         Path tableDescPath = new Path(meta + "/tableDesc");
         Map<String, Set<String>> databases = Maps.newHashMap();
-        Preconditions.checkArgument(fileSystem.exists(tableDescPath),
-                "%s doesn't exists",
+        Preconditions.checkArgument(fileSystem.exists(tableDescPath), "%s doesn't exists",
                 tableDescPath.toUri().getRawPath());
         RemoteIterator<LocatedFileStatus> it = fileSystem.listFiles(tableDescPath, false);
         while (it.hasNext()) {
@@ -111,11 +117,7 @@ public class FileCatalog implements IExternalCatalog {
         return databases;
     }
 
-    private void initDatabase(
-            FileSystem fileSystem,
-            String meta,
-            String database,
-            List<String> tables) {
+    private void initDatabase(FileSystem fileSystem, String meta, String database, List<String> tables) {
 
         String dbUpperCaseName = database.toUpperCase(Locale.ROOT);
 
@@ -125,21 +127,22 @@ public class FileCatalog implements IExternalCatalog {
         }
 
         try {
-            for (String table: tables) {
+            for (String table : tables) {
 
                 String tableUpperCaseName = table.toUpperCase(Locale.ROOT);
                 if (catalog.get(dbUpperCaseName).tables.containsKey(tableUpperCaseName))
                     continue;
 
-                Path tableDescPath = new Path(String.format(Locale.ROOT, "%s/tableDesc/%s.%s.json", meta, database, table));
+                Path tableDescPath = new Path(
+                        String.format(Locale.ROOT, "%s/tableDesc/%s.%s.json", meta, database, table));
                 TableDesc tableDesc = JsonUtil.readValue(fileSystem.open(tableDescPath), TableDesc.class);
 
                 Table tableObj = new Table(tableUpperCaseName, dbUpperCaseName);
                 List<FieldSchema> schemas = Arrays.stream(tableDesc.getColumns())
                         .map(columnDesc -> new FieldSchema(columnDesc.getName(), columnDesc.getDatatype(), ""))
                         .collect(Collectors.toList());
-                Path path =
-                        toAbsolutePath(fileSystem, new Path(String.format(Locale.ROOT, "%s/%s.csv", meta, tableDesc.getIdentity())));
+                Path path = toAbsolutePath(fileSystem,
+                        new Path(String.format(Locale.ROOT, "%s/%s.csv", meta, tableDesc.getIdentity())));
                 tableObj.setFields(schemas);
                 tableObj.getSd().setPath(path.toUri().toString());
 
@@ -149,7 +152,6 @@ public class FileCatalog implements IExternalCatalog {
             throw new IllegalStateException(e);
         }
     }
-
 
     // Database name -> description
     private Map<String, DatabaseDesc> catalog = Maps.newHashMap();
@@ -164,21 +166,23 @@ public class FileCatalog implements IExternalCatalog {
     }
 
     private void requireDbExists(String db) throws ApiException {
+        trySleepQuietly("requireDbExists");
         if (!catalog.containsKey(db.toUpperCase(Locale.ROOT))) {
             throw new ApiException(); // Error NoSuchDatabaseException
         }
     }
 
     private void requireTableExists(String db, String table) throws ApiException {
+        trySleepQuietly("requireTableExists");
         requireDbExists(db);
-        if(!catalog.get(db.toUpperCase(Locale.ROOT)).tables.containsKey(table.toUpperCase(Locale.ROOT))) {
+        if (!catalog.get(db.toUpperCase(Locale.ROOT)).tables.containsKey(table.toUpperCase(Locale.ROOT))) {
             throw new ApiException(); // Error NoSuchTableException
         }
     }
 
     static Path toAbsolutePath(FileSystem fileSystem, Path path) throws IOException {
 
-        if(path.isAbsolute())
+        if (path.isAbsolute())
             return path;
 
         try {
@@ -202,6 +206,7 @@ public class FileCatalog implements IExternalCatalog {
 
     @Override
     public Database getDatabase(String databaseName) throws ApiException {
+        trySleepQuietly("getDatabase");
         DatabaseDesc desc = catalog.get(databaseName.toUpperCase(Locale.ROOT));
         if (desc == null)
             return null;
@@ -211,10 +216,11 @@ public class FileCatalog implements IExternalCatalog {
     @Override
     public Table getTable(String dbName, String tableName, boolean throwException) throws ApiException {
         try {
+            trySleepQuietly("getTable");
             requireTableExists(dbName, tableName);
             return catalog.get(dbName.toUpperCase(Locale.ROOT)).tables.get(tableName.toUpperCase(Locale.ROOT));
         } catch (ApiException e) {
-            if(throwException) {
+            if (throwException) {
                 throw e;
             }
         }
@@ -223,24 +229,36 @@ public class FileCatalog implements IExternalCatalog {
 
     @Override
     public List<String> getTables(String dbName, String tablePattern) throws ApiException {
+        trySleepQuietly("getTables");
         requireDbExists(dbName);
         //TODO: support pattern
         return new ArrayList<>(catalog.get(dbName.toUpperCase(Locale.ROOT)).tables.keySet());
     }
 
     @Override
-    public Dataset<Row> getTableData(
-            SparkSession session,
-            String dbName,
-            String tableName,
-            boolean throwException) throws ApiException {
+    public Dataset<Row> getTableData(SparkSession session, String dbName, String tableName, boolean throwException)
+            throws ApiException {
+        trySleepQuietly("getTableData");
         Table table = getTable(dbName, tableName, throwException);
         if (table == null || table.getSd().getPath() == null)
             return null;
-        String schema = table.getFields()
-                .stream()
-                .map(s->s.getName() + " " + s.getType())
+        String schema = table.getFields().stream().map(s -> s.getName() + " " + s.getType())
                 .collect(Collectors.joining(","));
         return session.read().schema(schema).csv(table.getSd().getPath());
+    }
+
+    private void trySleepQuietly(String method) {
+        KylinConfigExt ext = KylinConfigExt.createInstance(KylinConfig.getInstanceFromEnv(), Maps.newHashMap());
+        int sleepInterval = (int) TimeUtil
+                .timeStringAs(ext.getOptional("kylin.external.catalog.mockup.sleep-interval", "0s"), TimeUnit.SECONDS);
+        if (sleepInterval != 0) {
+            int sleepTime = RNG.nextInt(sleepInterval);
+            log.debug("Sleep {} s for {}", sleepTime, method);
+            try {
+                Thread.sleep(sleepTime * 1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }

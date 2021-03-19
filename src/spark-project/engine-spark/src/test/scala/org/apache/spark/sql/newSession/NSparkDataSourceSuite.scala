@@ -67,6 +67,7 @@ class NSparkDataSourceSuite extends SparkFunSuite with SQLTestUtils with WithKyl
   }
 
   test("testGetTable") {
+    overwriteSystemProp("kylin.external.catalog.mockup.sleep-interval", "1s")
     val tableMgr = NTableMetadataManager.getInstance(kylinConf, project)
     val fact = tableMgr.getTableDesc(DEFAULT_TABLE)
     val colDescs = fact.getColumns
@@ -115,7 +116,7 @@ class NSparkDataSourceSuite extends SparkFunSuite with SQLTestUtils with WithKyl
       .foreach(field => assert(null != model.findColumn(model.getColumnNameByColumnId(Integer.parseInt(field.name)))))
 
     val cols = dataflow.getIndexPlan.getEffectiveDimCols.keySet.asScala.toList
-              .map( id => new ColumnName(String.valueOf(id)))
+      .map(id => new ColumnName(String.valueOf(id)))
     assertResult(10)(ds.select(cols: _*).take(10).length)
   }
 }
