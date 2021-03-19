@@ -177,7 +177,7 @@ public class ComputedColumnDesc implements Serializable {
 
     public static void simpleParserCheck(final String expr, final Set<String> aliasSet) {
 
-        SqlNode sqlNode = CalciteParser.getExpNode(expr);
+        SqlNode sqlNode = CalciteParser.getReadonlyExpNode(expr);
 
         SqlVisitor<Object> sqlVisitor = new SqlBasicVisitor<Object>() {
             @Override

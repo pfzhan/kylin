@@ -1073,22 +1073,24 @@ public class ModelService extends BasicService {
         purgeModel(modelId, project);
     }
 
-    @Transaction(project = 2)
     public void cloneModel(String modelId, String newModelName, String project) {
         aclEvaluate.checkProjectWritePermission(project);
         checkAliasExist("", newModelName, project);
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        NDataModel dataModelDesc = getModelById(modelId, project);
-        //copyForWrite nDataModel do init,but can not set new modelname
-        NDataModel nDataModel = semanticUpdater.deepCopyModel(dataModelDesc);
-        nDataModel.setUuid(UUID.randomUUID().toString());
-        nDataModel.setAlias(newModelName);
-        nDataModel.setLastModified(System.currentTimeMillis());
-        nDataModel.setRecommendationsCount(0);
-        nDataModel.setMvcc(-1);
-        changeModelOwner(nDataModel);
-        val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
-        cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid(), RealizationStatusEnum.OFFLINE);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModelManager dataModelManager = getDataModelManager(project);
+            NDataModel dataModelDesc = getModelById(modelId, project);
+            //copyForWrite nDataModel do init,but can not set new modelname
+            NDataModel nDataModel = semanticUpdater.deepCopyModel(dataModelDesc);
+            nDataModel.setUuid(UUID.randomUUID().toString());
+            nDataModel.setAlias(newModelName);
+            nDataModel.setLastModified(System.currentTimeMillis());
+            nDataModel.setRecommendationsCount(0);
+            nDataModel.setMvcc(-1);
+            changeModelOwner(nDataModel);
+            val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
+            cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid(), RealizationStatusEnum.OFFLINE);
+            return null;
+        }, project);
     }
 
     private void cloneIndexPlan(String modelId, String project, String owner, String newModelId,
@@ -3872,7 +3874,7 @@ public class ModelService extends BasicService {
             List<String[]> allPartitions = model.getMultiPartitionDesc().getPartitions().stream()
                     .map(MultiPartitionDesc.PartitionInfo::getValues).collect(Collectors.toList());
             List<String[]> diffPartitions = MultiPartitionUtil.findDiffValues(allPartitions, oldPartitions);
-            if(partitionValues == null) {
+            if (partitionValues == null) {
                 partitionValues = Lists.newArrayList();
             }
             partitionValues.addAll(diffPartitions);

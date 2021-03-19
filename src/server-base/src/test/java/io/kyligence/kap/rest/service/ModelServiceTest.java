@@ -44,6 +44,7 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.is;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -1055,8 +1056,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCloneModelExceptionName() {
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
+        thrown.expectCause(is(KylinException.class));
+        thrown.expectMessageInTransaction("Can’t find model named \"nmodel_basic2222\". Please check and try again.");
         modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
     }
 

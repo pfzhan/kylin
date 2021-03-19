@@ -108,7 +108,7 @@ public class ComputedColumnUtil {
         }
 
         public static List<Pair<String, String>> getExprIdentifiers(String expr) {
-            SqlNode exprNode = CalciteParser.getExpNode(expr);
+            SqlNode exprNode = CalciteParser.getReadonlyExpNode(expr);
             ExprIdentifierFinder id = new ExprIdentifierFinder();
             exprNode.accept(id);
             return id.getIdentifiers();
@@ -315,7 +315,7 @@ public class ComputedColumnUtil {
         if (expr == null) {
             return Sets.newHashSet();
         }
-        SqlNode sqlNode = CalciteParser.getExpNode(expr);
+        SqlNode sqlNode = CalciteParser.getReadonlyExpNode(expr);
 
         final Set<String> s = Sets.newHashSet();
         SqlVisitor sqlVisitor = new SqlBasicVisitor() {
@@ -363,8 +363,8 @@ public class ComputedColumnUtil {
             return false;
         }
 
-        return ExpressionComparator.isNodeEqual(CalciteParser.getExpNode(newCC.getExpression()),
-                CalciteParser.getExpNode(existingCC.getExpression()), aliasMapping, AliasDeduce.NO_OP);
+        return ExpressionComparator.isNodeEqual(CalciteParser.getReadonlyExpNode(newCC.getExpression()),
+                CalciteParser.getReadonlyExpNode(existingCC.getExpression()), aliasMapping, AliasDeduce.NO_OP);
     }
 
     private static boolean isSameAliasTable(ComputedColumnDesc existingCC, ComputedColumnDesc newCC,

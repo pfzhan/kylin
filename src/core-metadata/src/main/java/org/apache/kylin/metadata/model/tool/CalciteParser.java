@@ -42,12 +42,16 @@
 
 package org.apache.kylin.metadata.model.tool;
 
+
+import static org.apache.calcite.sql.SqlDialect.EMPTY_CONTEXT;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
@@ -67,7 +71,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import static org.apache.calcite.sql.SqlDialect.EMPTY_CONTEXT;
+import io.kyligence.kap.guava20.shaded.common.cache.Cache;
+import io.kyligence.kap.guava20.shaded.common.cache.CacheBuilder;
 
 public class CalciteParser {
 
@@ -76,6 +81,9 @@ public class CalciteParser {
 
     private static final String SQL_PREFIX = "select ";
     private static final String SQL_SUFFIX = " from t";
+    private static final Cache<String, SqlNode> expCache = CacheBuilder.newBuilder().maximumSize(10000)
+            .expireAfterWrite(10, TimeUnit.MINUTES).build();
+
 
     public static SqlNode parse(String sql) throws SqlParseException {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -102,6 +110,15 @@ public class CalciteParser {
         Preconditions.checkArgument(selectList.size() == 1,
                 "Expression is invalid because size of select list exceeds one");
         return selectList.get(0);
+    }
+
+    public static SqlNode getReadonlyExpNode(String expr){
+        SqlNode sqlNode = expCache.getIfPresent(expr);
+        if (sqlNode == null) {
+            sqlNode = getExpNode(expr);
+            expCache.put(expr, sqlNode);
+        }
+        return sqlNode;
     }
 
     public static SqlNode getExpNode(String expr) {
