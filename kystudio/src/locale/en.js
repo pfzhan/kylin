@@ -368,6 +368,7 @@ exports.default = {
     visualization: 'Visualization',
     grid: 'Grid',
     export: 'Export',
+    exportSql: 'Export SQL',
     status: 'Status:',
     startTime: 'Start Time:',
     duration: 'Duration',

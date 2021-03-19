@@ -1,6 +1,13 @@
 <template>
   <div id="queryHistory">
-    <query_history_table :queryHistoryData="queryHistoryData.query_histories" :filterDirectData="filterDirectData" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
+    <query_history_table
+      :queryHistoryData="queryHistoryData.query_histories"
+      :queryHistoryTotalSize="queryHistoryData.size"
+      :filterDirectData="filterDirectData"
+      :queryNodes="queryNodes"
+      v-on:openIndexDialog="openIndexDialog"
+      v-on:loadFilterList="loadFilterList"
+      v-on:exportHistory="exportHistory"></query_history_table>
     <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('indexOverview')"
@@ -39,6 +46,26 @@
         :is-hide-edit="true">
       </TableIndex>
     </el-dialog>
+
+    <el-dialog class="export-sql-dialog"
+      width="480px"
+      :title="exportTitle"
+      :close-on-click-modal="false"
+      :append-to-body="true"
+      :visible.sync="exportSqlDialogVisible"
+      :close-on-press-escape="false">
+      <el-alert show-icon class="ksd-mb-10" :closable="false" type="warning" v-if="queryHistoryData.size>maxExportLength">
+        <span slot="title">{{$t('exportHistoryTips')}}<a class="ky-a-like" :href="$t('manualUrl')" target="_blank">{{$t('userManual')}}</a>{{$t('exportHistoryTips2')}}</span>
+      </el-alert>
+      <div>{{exportMsg}}</div>
+      <span slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button size="medium" @click="exportSqlDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <span class="ksd-ml-10" @click="exportSqlDialogVisible = false">
+          <a class="el-button el-button--primary el-button--medium" v-if="!isExportSqlOnly" download :href="apiUrl + 'query/download_query_histories' + exportUrl()">{{$t('kylinLang.query.export')}}</a>
+          <a class="el-button el-button--primary el-button--medium" v-else download :href="apiUrl + 'query/download_query_histories_sql' + exportUrl()">{{$t('kylinLang.query.export')}}</a>
+        </span>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -50,7 +77,7 @@ import { handleSuccessAsync } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
 import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
-import { pageRefTags } from 'config'
+import { pageRefTags, maxExportLength, apiUrl } from 'config'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -82,15 +109,33 @@ import { pageRefTags } from 'config'
   },
   locales: {
     'en': {
-      indexOverview: 'Index Overview'
+      indexOverview: 'Index Overview',
+      exportHistoryTitle: 'Export Query History',
+      exportSqlTitle: 'Export SQL',
+      exportHistoryTips: '1000,000 query histories could be exported at a time. Please use API if you want to export more. Check ',
+      userManual: 'user manual',
+      manualUrl: 'https://docs.kyligence.io/books/v4.3/en/query/history.en.html',
+      exportHistoryTips2: ' for details.',
+      exportSqlConfirm: '{historyTotal} SQL(s) will be exported as a .txt file. Are you sure you want to export?',
+      exportHistoryConfirm: '{historyTotal} query historie(s) will be exported as a .csv file. Are you sure you want to export?'
     },
     'zh-cn': {
-      indexOverview: '索引总览'
+      indexOverview: '索引总览',
+      exportHistoryTitle: '导出查询历史',
+      exportSqlTitle: '导出 SQL',
+      exportHistoryTips: '单次导出上限为 1000,000 条。如若需要导出更多，请使用 API。详情请参考',
+      userManual: '用户手册',
+      manualUrl: 'https://docs.kyligence.io/books/v4.3/zh-cn/query/history.cn.html',
+      exportHistoryTips2: '。',
+      exportSqlConfirm: '{historyTotal} 条 SQL 将以 .txt 格式导出。确定要导出吗？',
+      exportHistoryConfirm: '{historyTotal} 条查询历史 将以 .csv 格式导出。确定要导出吗？'
     }
   }
 })
 export default class QueryHistory extends Vue {
   pageRefTags = pageRefTags
+  maxExportLength = maxExportLength
+  apiUrl = apiUrl
   aggDetailVisible = false
   tabelIndexVisible = false
   tabelIndexLayoutId = ''
@@ -104,7 +149,7 @@ export default class QueryHistory extends Vue {
     latencyTo: null,
     realization: [],
     submitter: [],
-    accelerateStatus: [],
+    server: '',
     sql: '',
     query_status: []
   }
@@ -117,6 +162,48 @@ export default class QueryHistory extends Vue {
   }
   queryNodes = []
   pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || 20
+  isExportSqlOnly = false
+  exportSqlDialogVisible = false
+
+  get exportMsg () {
+    // 最多导出10万条查询历史
+    const totalSize = this.queryHistoryData.size > this.maxExportLength ? this.maxExportLength : this.queryHistoryData.size
+    return this.isExportSqlOnly ? this.$t('exportSqlConfirm', {historyTotal: totalSize}) : this.$t('exportHistoryConfirm', {historyTotal: totalSize})
+  }
+
+  get exportTitle () {
+    return this.isExportSqlOnly ? this.$t('exportSqlTitle') : this.$t('exportHistoryTitle')
+  }
+
+  exportUrl () {
+    // 后端无法解析 5.5 时区，所以传分钟回去
+    let timezone = -(new Date().getTimezoneOffset()) / 60
+    let exportInfo = {
+      project: this.currentSelectedProject,
+      start_time_from: this.filterData.startTimeFrom || '',
+      start_time_to: this.filterData.startTimeTo || '',
+      latency_from: this.filterData.latencyFrom || '',
+      latency_to: this.filterData.latencyTo || '',
+      realization: this.filterData.realization.join(','),
+      submitter: this.filterData.submitter.join(','),
+      server: this.filterData.server,
+      sql: this.filterData.sql,
+      query_status: this.filterData.query_status.join(','),
+      timezone_offset_hour: timezone,
+      language: this.$lang
+    }
+    let arr = []
+    for (let prop in exportInfo) {
+      arr.push(prop + '=' + exportInfo[prop])
+    }
+    return '?' + arr.join('&')
+  }
+
+  exportHistory (isExportSqlOnly) {
+    this.isExportSqlOnly = isExportSqlOnly
+    this.exportSqlDialogVisible = true
+  }
+
   async openIndexDialog ({indexType, modelId, modelAlias, layoutId}, totalList) {
     this.model.uuid = modelId
     let aggLayoutId = totalList.filter(it => it.modelAlias === modelAlias && it.layoutId).map(item => item.layoutId).join(',')
@@ -165,5 +252,13 @@ export default class QueryHistory extends Vue {
 @import '../../assets/styles/variables.less';
 #queryHistory {
   padding: 0 20px 50px 20px;
+}
+.export-sql-dialog .dialog-footer{
+  a {
+    color: @fff;
+    &:hover {
+      text-decoration: none;
+    }
+  }
 }
 </style>

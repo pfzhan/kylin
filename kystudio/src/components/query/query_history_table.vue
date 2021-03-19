@@ -1,8 +1,27 @@
 <template>
   <div id="queryHistoryTable">
+    <div class="ksd-title-label ksd-mb-10">{{$t('kylinLang.menu.queryhistory')}}</div>
     <div class="clearfix ksd-mb-10">
-      <div class="btn-group ksd-fleft">
-        <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.queryhistory')}}</div>
+      <div class="btn-group ksd-fleft export-btn">
+        <el-dropdown
+          split-button
+          plain
+          class="ksd-fleft"
+          :class="{'is-disabled': !queryHistoryTotalSize}"
+          type="primary"
+          size="medium"
+          id="exportSql"
+          placement="bottom-start"
+          @click="exportHistory(false)">
+          {{$t('kylinLang.query.export')}}
+          <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+            <el-dropdown-item
+              :disabled="!queryHistoryTotalSize"
+              @click="exportHistory(true)">
+              {{$t('kylinLang.query.exportSql')}}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
         <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" @clear="onSqlFilterChange()" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
@@ -71,7 +90,7 @@
                             <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                           </el-col>
                           <el-col :span="6">
-                            <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, props.row.query_steps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
+                            <el-progress v-if="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, props.row.query_steps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                           </el-col>
                         </el-row>
                         <span slot="reference" class="duration">{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
@@ -239,7 +258,7 @@
         width="110">
       </el-table-column>
     </el-table>
-    <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
+      <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
   </div>
 </template>
 
@@ -256,7 +275,7 @@ import sqlFormatter from 'sql-formatter'
 import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDetails'
 @Component({
   name: 'QueryHistoryTable',
-  props: ['queryHistoryData', 'queryNodes', 'filterDirectData'],
+  props: ['queryHistoryData', 'queryHistoryTotalSize', 'queryNodes', 'filterDirectData'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
@@ -373,7 +392,7 @@ export default class QueryHistoryTable extends Vue {
     realization: [],
     submitter: [],
     server: [],
-    sql: null,
+    sql: '',
     query_status: []
   }
   timer = null
@@ -712,6 +731,11 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
 
+  exportHistory (isExportSqlOnly) {
+    if (!this.queryHistoryTotalSize) return
+    this.$emit('exportHistory', isExportSqlOnly)
+  }
+
   filterList () {
     this.toggleExpandId = []
     this.$emit('loadFilterList', {...this.filterData, server: this.filterData.server.join('')})
@@ -1018,6 +1042,13 @@ export default class QueryHistoryTable extends Vue {
     }
     .searchInput {
       width: 400px;
+    }
+    .export-btn .is-disabled .el-button-group .el-button{
+      color: @text-disabled-color;
+      cursor: not-allowed;
+      background-image: none;
+      background-color: @line-border-color4;
+      border-color: @line-border-color3;
     }
     .history-table {
       th .el-dropdown {

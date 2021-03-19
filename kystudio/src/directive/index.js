@@ -55,7 +55,7 @@ Vue.directive('number2', {
       setTimeout(() => {
         if (binding.value) {
           let newVal = ('' + binding.value).replace(/[^\d]/g, '')
-          el.__vue__.$emit('input', +newVal || '')
+          el.__vue__.$emit('input', newVal || '')
         }
       }, 0)
     }

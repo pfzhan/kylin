@@ -365,6 +365,7 @@ exports.default = {
     visualization: '可视化',
     grid: '表格',
     export: '导出',
+    exportSql: '仅导出 SQL',
     status: '状态：',
     startTime: '开始时间：',
     duration: '查询耗时',

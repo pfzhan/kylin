@@ -1,6 +1,6 @@
 <template>
   <el-dialog class="config-edit-modal" width="420px"
-    :title="$t(modalTitle)"
+    :title="modalTitle"
     :visible="isShow"
     limited-area
     :close-on-click-modal="false"
