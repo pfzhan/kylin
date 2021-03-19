@@ -457,7 +457,7 @@
       if (isLoadData && this.modelInstance.segments.length > 0 && (!this.modelInstance.partition_desc || this.modelInstance.partition_desc && !this.modelInstance.partition_desc.partition_date_column) || !isLoadData) {
         this.tableIndexMeta.load_data = isLoadData
       }
-      if (status && status !== 'EMPTY' && (status === 'ONLINE' || status === 'BUILDING')) {
+      if (status && status !== 'EMPTY' && status === 'ONLINE') {
         kapConfirm(this.$t('cofirmEditTableIndex'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
           this.confirmSubmit(isLoadData)
         })
