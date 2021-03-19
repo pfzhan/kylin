@@ -24,11 +24,16 @@
 
 package io.kyligence.kap.query.util;
 
+import io.kyligence.kap.query.optrule.CountDistinctCaseWhenFunctionRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
-import io.kyligence.kap.query.optrule.KapSumExprRules;
+import io.kyligence.kap.query.optrule.KapSumCastTransposeRule;
+import io.kyligence.kap.query.optrule.KapSumTransCastToThenRule;
+import io.kyligence.kap.query.optrule.SumBasicOperatorRule;
+import io.kyligence.kap.query.optrule.SumCaseWhenFunctionRule;
+import io.kyligence.kap.query.optrule.SumConstantConvertRule;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -43,6 +48,8 @@ import io.kyligence.kap.query.optrule.JoinFilterRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinProjectTransposeRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
+
+import java.util.Collection;
 
 /**
  * Hep planner help utils
@@ -66,20 +73,26 @@ public class HepUtils {
             // Merge Rule
             KapProjectMergeRule.INSTANCE, FilterMergeRule.INSTANCE, ProjectRemoveRule.INSTANCE);
 
-    public static final ImmutableList<RelOptRule> SumExprRule = ImmutableList.of(
-            KapSumExprRules.CASE_WHEN_FUNCTION_RULE,
-            KapSumExprRules.SUM_BASIC_OPERATOR_RULE,
-            KapSumExprRules.SUM_CONSTANT_CONVERT_RULE_NEW,
-            KapSumExprRules.SUM_TRANS_CAST_TO_THEN_RULE,
-            KapSumExprRules.SUM_CAST_TRANSPOSE_RULE,
+    public static final ImmutableList<RelOptRule> SumExprRules = ImmutableList.of(
+            SumCaseWhenFunctionRule.INSTANCE,
+            SumBasicOperatorRule.INSTANCE,
+            SumConstantConvertRule.INSTANCE,
+            KapSumTransCastToThenRule.INSTANCE,
+            KapSumCastTransposeRule.INSTANCE,
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE,
             KapJoinRule.EQUAL_NULL_SAFE_INSTANT
     );
+
+    public static final ImmutableList<RelOptRule> CountDistinctExprRules = ImmutableList.of(
+            CountDistinctCaseWhenFunctionRule.INSTANCE
+    );
+
+
     private HepUtils() {
     }
 
-    public static RelNode runRuleCollection(RelNode rel, ImmutableList<RelOptRule> ruleCollection) {
+    public static RelNode runRuleCollection(RelNode rel, Collection<RelOptRule> ruleCollection) {
         HepProgram program = HepProgram.builder().addRuleCollection(ruleCollection).build();
         HepPlanner planner = new HepPlanner(program, null, true, null, RelOptCostImpl.FACTORY);
         planner.setRoot(rel);

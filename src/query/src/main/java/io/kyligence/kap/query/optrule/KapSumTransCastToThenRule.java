@@ -27,6 +27,8 @@ package io.kyligence.kap.query.optrule;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import io.kyligence.kap.query.relnode.KapProjectRel;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -35,8 +37,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -56,15 +56,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.query.util.SumExpressionUtil;
+import io.kyligence.kap.query.util.AggExpressionUtil;
 
 public class KapSumTransCastToThenRule extends RelOptRule {
 
     private static final Logger logger = LoggerFactory.getLogger(KapSumTransCastToThenRule.class);
 
     public static final KapSumTransCastToThenRule INSTANCE = new KapSumTransCastToThenRule(
-            operand(LogicalAggregate.class,
-                    operand(LogicalProject.class, null, KapSumTransCastToThenRule::existCastCase, any())),
+            operand(KapAggregateRel.class, operand(KapProjectRel.class, null,
+                    KapSumTransCastToThenRule::existCastCase, any())),
             RelFactories.LOGICAL_BUILDER, "KapSumTransCastToThenRule");
 
     public static boolean existCastCase(Project logicalProject) {
@@ -207,7 +207,7 @@ public class KapSumTransCastToThenRule extends RelOptRule {
     }
 
     private CastInfo getCastInfoForSum(AggregateCall call, List<CastInfo> castInfos) {
-        if (!SumExpressionUtil.isSum(call.getAggregation().getKind())) {
+        if (!AggExpressionUtil.isSum(call.getAggregation().getKind())) {
             return null;
         }
         int input = call.getArgList().get(0);
@@ -220,7 +220,7 @@ public class KapSumTransCastToThenRule extends RelOptRule {
     }
 
     private boolean checkAggNeedToRewrite(AggregateCall call, List<Integer> castIndexs) {
-        return SumExpressionUtil.isSum(call.getAggregation().getKind())
+        return AggExpressionUtil.isSum(call.getAggregation().getKind())
                 && castIndexs.contains(call.getArgList().get(0));
     }
 

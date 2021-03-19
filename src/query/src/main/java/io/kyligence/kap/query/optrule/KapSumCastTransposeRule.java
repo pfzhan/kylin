@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.relnode.KapProjectRel;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -40,8 +41,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -63,14 +62,14 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapAggregateRel;
-import io.kyligence.kap.query.util.SumExpressionUtil;
+import io.kyligence.kap.query.util.AggExpressionUtil;
 
 public class KapSumCastTransposeRule extends RelOptRule {
     private static final Logger logger = LoggerFactory.getLogger(KapSumCastTransposeRule.class);
 
     public static final KapSumCastTransposeRule INSTANCE = new KapSumCastTransposeRule(
-            operand(LogicalAggregate.class,
-                    operand(LogicalProject.class, null, KapSumCastTransposeRule::needSumCastTranspose, any())),
+            operand(KapAggregateRel.class,
+                    operand(KapProjectRel.class, null, KapSumCastTransposeRule::needSumCastTranspose, any())),
             RelFactories.LOGICAL_BUILDER, "KapSumTransCastToThenRule");
 
     public KapSumCastTransposeRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
@@ -97,7 +96,7 @@ public class KapSumCastTransposeRule extends RelOptRule {
         Project originalProject = call.rel(1);
 
         for (AggregateCall aggCall : originalAgg.getAggCallList()) {
-            if (SumExpressionUtil.isSum(aggCall.getAggregation().kind)) {
+            if (AggExpressionUtil.isSum(aggCall.getAggregation().kind)) {
                 int index = aggCall.getArgList().get(0);
                 RexNode value = originalProject.getProjects().get(index);
                 if (containCast(value)) {
@@ -127,8 +126,8 @@ public class KapSumCastTransposeRule extends RelOptRule {
         // #0 Set base input
         relBuilder.push(oldProject.getInput());
 
-        List<SumExpressionUtil.AggExpression> aggExpressions = oldAgg.getAggCallList().stream()
-                .map(call -> new SumExpressionUtil.AggExpression(call)).collect(Collectors.toList());
+        List<AggExpressionUtil.AggExpression> aggExpressions = oldAgg.getAggCallList().stream()
+                .map(call -> new AggExpressionUtil.AggExpression(call)).collect(Collectors.toList());
 
         // #1 Build bottom project
         List<RexNode> bottomProjectList = buildBottomProject(oldProject, aggExpressions);
@@ -149,16 +148,16 @@ public class KapSumCastTransposeRule extends RelOptRule {
         return relNode;
     }
 
-    private List<RexNode> buildBottomProject(Project oldProject, List<SumExpressionUtil.AggExpression> aggExpressions) {
+    private List<RexNode> buildBottomProject(Project oldProject, List<AggExpressionUtil.AggExpression> aggExpressions) {
         List<RexNode> bottomProjectList = Lists.newArrayList();
         bottomProjectList.addAll(oldProject.getChildExps());
 
         RelDataTypeSystem typeSystem = new KylinRelDataTypeSystem();
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(typeSystem);
 
-        for (SumExpressionUtil.AggExpression aggExpression : aggExpressions) {
+        for (AggExpressionUtil.AggExpression aggExpression : aggExpressions) {
             AggregateCall aggCall = aggExpression.getAggCall();
-            if (SumExpressionUtil.isSum(aggCall.getAggregation().kind)) {
+            if (AggExpressionUtil.isSum(aggCall.getAggregation().kind)) {
                 int index = aggCall.getArgList().get(0);
                 RexNode value = oldProject.getProjects().get(index);
                 if (containCast(value)) {
@@ -176,12 +175,12 @@ public class KapSumCastTransposeRule extends RelOptRule {
     }
 
     private List<AggregateCall> buildBottomAggregate(RelBuilder relBuilder,
-            List<SumExpressionUtil.AggExpression> aggExpressions, int bottomAggOffset) {
+                                                     List<AggExpressionUtil.AggExpression> aggExpressions, int bottomAggOffset) {
         List<AggregateCall> bottomAggCalls = Lists.newArrayList();
 
-        for (SumExpressionUtil.AggExpression aggExpression : aggExpressions) {
+        for (AggExpressionUtil.AggExpression aggExpression : aggExpressions) {
             AggregateCall aggCall = aggExpression.getAggCall();
-            if (SumExpressionUtil.isSum(aggCall.getAggregation().kind)) {
+            if (AggExpressionUtil.isSum(aggCall.getAggregation().kind)) {
                 AggregateCall oldAggCall = aggExpression.getAggCall();
                 bottomAggCalls.add(AggregateCall.create(SqlStdOperatorTable.SUM, false, false,
                         aggExpression.getAggCall().getArgList(), -1, bottomAggOffset, relBuilder.peek(),
@@ -195,7 +194,7 @@ public class KapSumCastTransposeRule extends RelOptRule {
     }
 
     private List<RexNode> buildTopProject(RelBuilder relBuilder, Project oldProject, Aggregate oldAgg,
-            List<SumExpressionUtil.AggExpression> aggExpressions) {
+            List<AggExpressionUtil.AggExpression> aggExpressions) {
         List<RexNode> topProjectList = Lists.newArrayList();
         RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
@@ -205,9 +204,9 @@ public class KapSumCastTransposeRule extends RelOptRule {
             topProjectList.add(relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(), i));
         }
 
-        for (SumExpressionUtil.AggExpression aggExpression : aggExpressions) {
+        for (AggExpressionUtil.AggExpression aggExpression : aggExpressions) {
             AggregateCall aggCall = aggExpression.getAggCall();
-            if (SumExpressionUtil.isSum(aggCall.getAggregation().kind)) {
+            if (AggExpressionUtil.isSum(aggCall.getAggregation().kind)) {
                 int index = aggCall.getArgList().get(0);
                 RexNode value = oldProject.getProjects().get(index);
                 if (containCast(value)) {

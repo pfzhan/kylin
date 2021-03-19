@@ -29,6 +29,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.util.QueryParams;
@@ -102,6 +104,10 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
         }
     }
 
+    protected DiffRepository getDiffRepo() {
+        throw new NotImplementedException("getDiffRepo");
+    }
+
     protected Pair<String, String> readOneSQL(KylinConfig config, String project, String folder, String file)
             throws IOException {
         final String queryFolder = IT_SQL_KAP_DIR + folder;
@@ -129,38 +135,37 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
         }).collect(Collectors.toList());
     }
 
-    void checkDiff(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff) {
+    void checkDiff(RelNode relBefore, RelNode relAfter, String prefix) {
         String before = Strings.isNullOrEmpty(prefix) ? "planBefore" : prefix + ".planBefore";
         String beforeExpected = "${" + before + "}";
         final String planBefore = NL + RelOptUtil.toString(relBefore);
-        diff.assertEquals(before, beforeExpected, planBefore);
+        getDiffRepo().assertEquals(before, beforeExpected, planBefore);
 
         String after = Strings.isNullOrEmpty(prefix) ? "planAfter" : prefix + ".planAfter";
         String afterExpected = "${" + after + "}";
         final String planAfter = NL + RelOptUtil.toString(relAfter);
-        diff.assertEquals(after, afterExpected, planAfter);
+        getDiffRepo().assertEquals(after, afterExpected, planAfter);
     }
 
-    protected void checkSQL(String project, String sql, String prefix, StringOutput StrOut, DiffRepository diff) {
+    protected void checkSQL(String project, String sql, String prefix, StringOutput StrOut, Collection<RelOptRule> rules) {
         RelNode relBefore = toCalcitePlan(project, sql, KylinConfig.getInstanceFromEnv());
         Assert.assertThat(relBefore, notNullValue());
-        RelNode relAfter = HepUtils.runRuleCollection(relBefore, HepUtils.SumExprRule);
+        RelNode relAfter = HepUtils.runRuleCollection(relBefore, rules);
         Assert.assertThat(relAfter, notNullValue());
         logger.debug("check plan for {}.sql: {}{}", prefix, NL, sql);
 
         if (StrOut != null) {
             StrOut.output(relBefore, relAfter, prefix);
         } else {
-            checkDiff(relBefore, relAfter, prefix, diff);
+            checkDiff(relBefore, relAfter, prefix);
         }
     }
 
-    protected void checkPlanning(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff) {
-        checkPlanning(relBefore, relAfter, prefix, diff, false);
+    protected void checkPlanning(RelNode relBefore, RelNode relAfter, String prefix) {
+        checkPlanning(relBefore, relAfter, prefix, false);
     }
 
-    protected void checkPlanning(RelNode relBefore, RelNode relAfter, String prefix, DiffRepository diff,
-            boolean unchanged) {
+    protected void checkPlanning(RelNode relBefore, RelNode relAfter, String prefix, boolean unchanged) {
         assertThat(relBefore, notNullValue());
         assertThat(relAfter, notNullValue());
         final String planBefore = NL + RelOptUtil.toString(relBefore);
@@ -169,7 +174,7 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
         if (unchanged) {
             assertThat(planAfter, is(planBefore));
         } else {
-            checkDiff(relBefore, relAfter, prefix, diff);
+            checkDiff(relBefore, relAfter, prefix);
         }
     }
 

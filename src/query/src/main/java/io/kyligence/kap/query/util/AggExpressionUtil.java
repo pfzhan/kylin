@@ -55,9 +55,9 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.exception.SumExprUnSupportException;
 
-public class SumExpressionUtil {
+public class AggExpressionUtil {
 
-    private SumExpressionUtil() {
+    private AggExpressionUtil() {
         throw new IllegalStateException("Utility class");
     }
 
@@ -93,6 +93,7 @@ public class SumExpressionUtil {
         private RelDataType type;
 
         private boolean isSumCase = false;
+        private boolean isCountDistinctCase = false;
         private List<RexNode> conditions;
         private int[] bottomProjConditionsInput;
         private int[] bottomAggConditionsInput;
@@ -142,6 +143,14 @@ public class SumExpressionUtil {
 
         public boolean isSumCase() {
             return isSumCase;
+        }
+
+        public boolean isCountDistinctCase() {
+            return isCountDistinctCase;
+        }
+
+        public void setCountDistinctCase(boolean countDistinctCase) {
+            isCountDistinctCase = countDistinctCase;
         }
 
         public void setConditionsList(List<RexNode> conditionsList) {
@@ -293,6 +302,12 @@ public class SumExpressionUtil {
         return false;
     }
 
+    public static boolean hasCountDistinctCaseWhen(AggregateCall call, RexNode expression) {
+        return call.getAggregation().getKind() == SqlKind.COUNT
+                && call.isDistinct()
+                && expression.getKind() == SqlKind.CASE;
+    }
+
     public static boolean isSum(SqlKind kind) {
         return SqlKind.SUM == kind || SqlKind.SUM0 == kind;
     }
@@ -321,6 +336,17 @@ public class SumExpressionUtil {
             aggExpression.setExpression(expression);
             if (hasSumCaseWhen(call, expression)) {
                 aggExpression.setSumCase();
+                List<RexNode> conditions = extractCaseWhenConditions(expression);
+                aggExpression.setConditionsList(conditions);
+                List<RexNode> valuesList = extractCaseThenElseValues(expression);
+                aggExpression.setValuesList(valuesList);
+                // Default values, not applicable for SumCaseWhenFunctionRule
+                aggExpression.bottomProjInput = sourceInput;
+                aggExpression.bottomAggInput = newArray(1);
+                aggExpression.topProjInput = newArray(1);
+                aggExpression.topAggInput = newArray(1);
+            } else if (hasCountDistinctCaseWhen(call, expression)) {
+                aggExpression.setCountDistinctCase(true);
                 List<RexNode> conditions = extractCaseWhenConditions(expression);
                 aggExpression.setConditionsList(conditions);
                 List<RexNode> valuesList = extractCaseThenElseValues(expression);
@@ -471,7 +497,7 @@ public class SumExpressionUtil {
     }
 
     public static int[] generateAdjustments(int[] src, int[] dst) {
-        SumExpressionUtil.assertCondition(src.length == dst.length, "Failed to generate adjustments");
+        AggExpressionUtil.assertCondition(src.length == dst.length, "Failed to generate adjustments");
         int maxRange = Arrays.stream(src).max().orElse(0);
         int[] adjustments = new int[maxRange + 1];
         for (int i = 0; i < src.length; i++) {

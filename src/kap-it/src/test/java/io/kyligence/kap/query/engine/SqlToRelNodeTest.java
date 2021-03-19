@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.query.engine;
 
-import static io.kyligence.kap.common.util.NLocalFileMetadataTestCase.staticCreateTestMetadata;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Set;

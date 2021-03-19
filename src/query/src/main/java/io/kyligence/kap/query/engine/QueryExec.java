@@ -25,7 +25,9 @@
 package io.kyligence.kap.query.engine;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -169,8 +171,16 @@ public class QueryExec {
 
     @VisibleForTesting
     public RelNode postOptimize(RelNode node) {
+        Collection<RelOptRule> postOptRules = new HashSet<>();
         if (kylinConfig.isConvertSumExpressionEnabled()) {
-            node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
+            postOptRules.addAll(HepUtils.SumExprRules);
+        }
+        if (kylinConfig.isConvertCountDistinctExpressionEnabled()) {
+            postOptRules.addAll(HepUtils.CountDistinctExprRules);
+        }
+
+        if (!postOptRules.isEmpty()) {
+            node = HepUtils.runRuleCollection(node, postOptRules);
         }
         return node;
     }

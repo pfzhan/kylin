@@ -404,6 +404,30 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
     }
 
     @Test
+    public void testDimensionAsMeasure_CountDistinctComplexExpr() throws Exception {
+        val sql1 = new String[] { "select cal_dt, price, item_count from test_kylin_fact group by cal_dt, price, item_count" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
+        val smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
+        val model = modelManager
+                .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        modelManager.updateDataModelDesc(model);
+
+        buildAllCubes(getTestConfig(), "newten");
+
+        val sql2 = "select count(distinct (case when cal_dt > date'2013-01-01' then price else item_count end)) from test_kylin_fact";
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(new Pair<>("count_distinct_complex_expr", sql2));
+        populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+
+    }
+
+    @Test
     public void testMatchJoinWithFiter() {
         try {
             final List<String> filters = ImmutableList.of(" b.SITE_NAME is not null",

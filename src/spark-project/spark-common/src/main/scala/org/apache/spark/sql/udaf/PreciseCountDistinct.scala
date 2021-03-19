@@ -83,7 +83,7 @@ sealed abstract class BasicPreciseCountDistinct(
 
   override def deserialize(bytes: Array[Byte]): Roaring64NavigableMap = {
     val bitMap = new Roaring64NavigableMap()
-    if (bytes.nonEmpty) {
+    if (bytes != null && bytes.nonEmpty) {
       bitMap.deserialize(new KryoDataInput(new Input(bytes)))
     }
     bitMap

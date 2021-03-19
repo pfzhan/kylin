@@ -326,7 +326,7 @@ public class RealizationChooser {
             if (inf instanceof CapabilityResult.DimensionAsMeasure) {
                 FunctionDesc functionDesc = ((CapabilityResult.DimensionAsMeasure) inf).getMeasureFunction();
                 functionDesc.setDimensionAsMetric(true);
-                addToContextGroupBy(functionDesc.getColRefs(), olapContext);
+                addToContextGroupBy(functionDesc.getSourceColRefs(), olapContext);
                 olapContext.resetSQLDigest();
                 olapContext.getSQLDigest();
                 logger.info("Adjust DimensionAsMeasure for {}", functionDesc);
@@ -342,7 +342,7 @@ public class RealizationChooser {
         }
     }
 
-    private static void addToContextGroupBy(List<TblColRef> colRefs, OLAPContext context) {
+    private static void addToContextGroupBy(Collection<TblColRef> colRefs, OLAPContext context) {
         for (TblColRef col : colRefs) {
             if (!col.isInnerColumn() && context.belongToContextTables(col))
                 context.getGroupByColumns().add(col);

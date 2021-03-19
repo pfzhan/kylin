@@ -1281,6 +1281,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.convert-sum-expression-enabled", FALSE));
     }
 
+    public boolean isConvertCountDistinctExpressionEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.convert-count-distinct-expression-enabled", FALSE));
+    }
+
     public long getQueryMemoryLimitDuringCollect() {
         return Long.parseLong(getOptional("kylin.query.memory-limit-during-collect-mb", "-1"));
     }

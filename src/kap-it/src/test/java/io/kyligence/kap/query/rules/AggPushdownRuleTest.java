@@ -69,6 +69,11 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         cleanupTestMetadata();
     }
 
+    @Override
+    protected DiffRepository getDiffRepo() {
+        return diff;
+    }
+
     @Test
     //Test property kylin.query.calcite.aggregate-pushdown-enabled
     //Test with VolcanoPlanner for all rules
@@ -82,7 +87,7 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         for (Pair<String, String> pair : queries) {
             RelNode relBefore = toCalcitePlan(project, pair.getSecond(), configBefore);
             RelNode relAfter = toCalcitePlan(project, pair.getSecond(), configAfter);
-            checkPlanning(relBefore, relAfter, pair.getFirst(), diff);
+            checkPlanning(relBefore, relAfter, pair.getFirst());
         }
     }
 
@@ -101,7 +106,7 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         for (Pair<String, String> pair : queries) {
             RelNode relBefore = toCalcitePlan(project, pair.getSecond(), config);
             RelNode relAfter = toCalcitePlan(project, pair.getSecond(), config, null, rulesToAdd);
-            checkPlanning(relBefore, relAfter, pair.getFirst(), diff);
+            checkPlanning(relBefore, relAfter, pair.getFirst());
         }
     }
 
@@ -118,7 +123,7 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         RelNode relBefore = optimizeSQL(relRoot, rulesDefault);
         RelNode relAfter = optimizeSQL(relRoot, rules);
 
-        checkPlanning(relBefore, relAfter, query.getFirst(), diff);
+        checkPlanning(relBefore, relAfter, query.getFirst());
     }
 
     @Test
@@ -133,7 +138,7 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         RelNode relBefore = optimizeSQL(relRoot, rulesDefault);
         RelNode relAfter = optimizeSQL(relRoot, rules);
 
-        checkPlanning(relBefore, relAfter, query.getFirst(), diff);
+        checkPlanning(relBefore, relAfter, query.getFirst());
     }
 
     @Test
@@ -151,7 +156,7 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         RelNode relBefore = optimizeSQL(relRoot, rulesBefore);
         RelNode relAfter = optimizeSQL(relRoot, rules);
 
-        checkPlanning(relBefore, relAfter, query.getFirst(), diff);
+        checkPlanning(relBefore, relAfter, query.getFirst());
     }
 
     @Test
@@ -170,6 +175,6 @@ public class AggPushdownRuleTest extends CalciteRuleTestBase {
         RelNode relBefore = optimizeSQL(relRoot, rulesBefore);
         RelNode relAfter = optimizeSQL(relRoot, rules);
 
-        checkPlanning(relBefore, relAfter, query.getFirst(), diff);
+        checkPlanning(relBefore, relAfter, query.getFirst());
     }
 }

@@ -91,6 +91,9 @@ public class CognosParenthesesEscapeTransformerTest {
             if (f.getCanonicalPath().contains("sql_parentheses_escape")) {
                 continue;
             }
+            if (f.getCanonicalPath().contains("sql_count_distinct_expr")) {
+                continue;
+            }
             // KAP#16063 CognosParenthesesEscapeTransformer wrongly removes
             // parentheses for sql in sql_except directory
             // exclude sql_except directory from the test until the issue is fixed

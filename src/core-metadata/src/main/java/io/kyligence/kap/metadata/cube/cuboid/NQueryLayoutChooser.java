@@ -271,9 +271,8 @@ public class NQueryLayoutChooser {
             // calcite can do aggregation from columns on-the-fly
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
-            List<TblColRef> neededCols = functionDesc.getColRefs();
             val leftUnmatchedCols = Sets
-                    .newHashSet(CollectionUtils.subtract(neededCols, indexEntity.getDimensionSet()));
+                    .newHashSet(CollectionUtils.subtract(functionDesc.getSourceColRefs(), indexEntity.getDimensionSet()));
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
                 goThruDerivedDims(indexEntity, model, needDeriveCollector, leftUnmatchedCols);
             }

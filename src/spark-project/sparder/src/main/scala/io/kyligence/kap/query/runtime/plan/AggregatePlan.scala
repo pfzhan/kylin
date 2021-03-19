@@ -40,8 +40,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udaf.SingleValueAgg
 import org.apache.spark.sql.util.SparderTypeUtil
-
 import java.util.Locale
+
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -191,6 +191,8 @@ object AggregatePlan extends LogEx {
               col(argNames.head).cast(
                 SparderTypeUtil.convertSqlTypeToSparkType(inputType)))
               .alias(aggName)
+          case FunctionDesc.FUNC_COUNT_DISTINCT if call.getAggregation.getName == "BITMAP_COUNT" =>
+            KapFunctions.precise_count_distinct(col(argNames.head)).alias(aggName)
           case FunctionDesc.FUNC_COUNT_DISTINCT =>
             countDistinct(argNames.head, argNames.drop(1): _*)
               .alias(aggName)

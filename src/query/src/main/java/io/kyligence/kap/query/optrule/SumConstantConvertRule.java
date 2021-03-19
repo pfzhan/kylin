@@ -37,8 +37,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -56,9 +54,11 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.exception.SumExprUnSupportException;
 import io.kyligence.kap.query.relnode.ContextUtil;
-import io.kyligence.kap.query.util.SumExpressionUtil;
-import io.kyligence.kap.query.util.SumExpressionUtil.AggExpression;
-import io.kyligence.kap.query.util.SumExpressionUtil.GroupExpression;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import io.kyligence.kap.query.relnode.KapProjectRel;
+import io.kyligence.kap.query.util.AggExpressionUtil;
+import io.kyligence.kap.query.util.AggExpressionUtil.AggExpression;
+import io.kyligence.kap.query.util.AggExpressionUtil.GroupExpression;
 
 /**
  * sql: select sum(3) from KYLIN_SALES;
@@ -81,8 +81,8 @@ public class SumConstantConvertRule extends RelOptRule {
     private static final Logger logger = LoggerFactory.getLogger(SumConstantConvertRule.class);
 
     public static final SumConstantConvertRule INSTANCE = new SumConstantConvertRule(
-            operand(LogicalAggregate.class, operand(LogicalProject.class, null,
-                    input -> !SumExpressionUtil.hasAggInput(input), RelOptRule.any())),
+            operand(KapAggregateRel.class, operand(KapProjectRel.class, null,
+                    input -> !AggExpressionUtil.hasAggInput(input), RelOptRule.any())),
             RelFactories.LOGICAL_BUILDER, "SumConstantConvertRule");
 
     public SumConstantConvertRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
@@ -95,7 +95,7 @@ public class SumConstantConvertRule extends RelOptRule {
         Project oldProject = ruleCall.rel(1);
         try {
             boolean matches = false;
-            for (AggExpression sumExpr : SumExpressionUtil.collectSumExpressions(oldAgg, oldProject)) {
+            for (AggExpression sumExpr : AggExpressionUtil.collectSumExpressions(oldAgg, oldProject)) {
                 if (sumExpr.isSumConst()) {
                     matches = true;
                 }
@@ -116,8 +116,8 @@ public class SumConstantConvertRule extends RelOptRule {
 
             ContextUtil.dumpCalcitePlan("old plan", oldAgg, logger);
 
-            List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(oldAgg, oldProject);
-            Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups = SumExpressionUtil
+            List<AggExpression> aggExpressions = AggExpressionUtil.collectSumExpressions(oldAgg, oldProject);
+            Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups = AggExpressionUtil
                     .collectGroupExprAndGroup(oldAgg, oldProject);
             List<GroupExpression> groupExpressions = groups.getFirst();
             ImmutableList<ImmutableBitSet> newGroupSets = groups.getSecond();
@@ -130,7 +130,7 @@ public class SumConstantConvertRule extends RelOptRule {
 
             // #2 Build bottom aggregate
             ImmutableBitSet.Builder groupSetBuilder = ImmutableBitSet.builder();
-            for (SumExpressionUtil.GroupExpression group : groupExpressions) {
+            for (AggExpressionUtil.GroupExpression group : groupExpressions) {
                 for (int i = 0; i < group.getBottomAggInput().length; i++) {
                     groupSetBuilder.set(group.getBottomAggInput()[i]);
                 }
@@ -219,7 +219,7 @@ public class SumConstantConvertRule extends RelOptRule {
         List<RexNode> topProjectList = Lists.newArrayList();
 
         for (GroupExpression groupExpr : groupExpressions) {
-            int[] aggAdjustments = SumExpressionUtil.generateAdjustments(groupExpr.getBottomProjInput(),
+            int[] aggAdjustments = AggExpressionUtil.generateAdjustments(groupExpr.getBottomProjInput(),
                     groupExpr.getTopProjInput());
             RexNode projectExpr = groupExpr.getExpression()
                     .accept(new RelOptUtil.RexInputConverter(relBuilder.getRexBuilder(),

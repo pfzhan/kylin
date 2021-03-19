@@ -44,11 +44,14 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -154,6 +157,7 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_COUNT = "COUNT";
     public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
     public static final String FUNC_BITMAP_UUID = "BITMAP_UUID";
+    public static final String FUNC_BITMAP_COUNT = "BITMAP_COUNT";
     public static final String FUNC_INTERSECT_COUNT = "INTERSECT_COUNT";
     public static final String FUNC_INTERSECT_VALUE = "INTERSECT_VALUE";
     public static final String FUNC_INTERSECT_BITMAP_UUID = "INTERSECT_BITMAP_UUID";
@@ -301,6 +305,14 @@ public class FunctionDesc implements Serializable {
 
         return parameters.stream().filter(ParameterDesc::isColumnType).map(ParameterDesc::getColRef)
                 .collect(Collectors.toList());
+    }
+
+    public Collection<TblColRef> getSourceColRefs() {
+        Set<TblColRef> neededCols = new HashSet<>();
+        for (TblColRef colRef : getColRefs()) {
+            neededCols.addAll(colRef.getSourceColumns());
+        }
+        return neededCols;
     }
 
     public ColumnDesc newFakeRewriteColumn(String rewriteFiledName, TableDesc sourceTable) {

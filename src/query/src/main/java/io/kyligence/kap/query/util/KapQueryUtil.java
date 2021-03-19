@@ -33,9 +33,12 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
@@ -198,30 +201,36 @@ public class KapQueryUtil {
         return true;
     }
 
-    public static boolean isSumCaseExpr(AggregateCall aggregateCall, Project inputProject) {
-        if (aggregateCall.getArgList().size() != 1) {
+    public static boolean isCast(RexNode rexNode) {
+        if (!(rexNode instanceof RexCall)) {
             return false;
         }
-
-        int input = aggregateCall.getArgList().get(0);
-        RexNode expression = inputProject.getChildExps().get(input);
-        return SumExpressionUtil.hasSumCaseWhen(aggregateCall, expression);
+        return SqlKind.CAST == rexNode.getKind();
     }
 
-    public static boolean isApplicableWithSumCaseRule(AggregateCall aggregateCall) {
-        SqlKind aggFunction = aggregateCall.getAggregation().getKind();
-
-        if (aggFunction == SqlKind.COUNT && !aggregateCall.isDistinct()) {
-            return true;
+    public static boolean isPlainTableColumn(int colIdx, RelNode relNode) {
+        if (relNode instanceof HepRelVertex) {
+            relNode = ((HepRelVertex) relNode).getCurrentRel();
         }
-
-        if (aggFunction == SqlKind.SUM
-                || aggFunction == SqlKind.SUM0
-                || aggFunction == SqlKind.MAX
-                || aggFunction == SqlKind.MIN) {
+        if (relNode instanceof TableScan) {
             return true;
+        } else if (relNode instanceof Join) {
+            Join join = (Join) relNode;
+            int offset = 0;
+            for (RelNode input : join.getInputs()) {
+                if (colIdx >= offset && colIdx < input.getRowType().getFieldCount()) {
+                    return isPlainTableColumn(colIdx - offset, input);
+                }
+                offset += input.getRowType().getFieldCount();
+            }
+        } else if (relNode instanceof Project) {
+            RexNode inputRex = ((Project) relNode).getProjects().get(colIdx);
+            if (inputRex instanceof RexInputRef) {
+                return isPlainTableColumn(((RexInputRef) inputRex).getIndex(), ((Project) relNode).getInput());
+            }
+        } else if (relNode instanceof Filter) {
+            return isPlainTableColumn(colIdx, relNode);
         }
-
         return false;
     }
 
@@ -240,14 +249,11 @@ public class KapQueryUtil {
         return false;
     }
 
-    public static boolean isCast(RexNode rexNode) {
-        if (!(rexNode instanceof RexCall)) {
-            return false;
-        }
-        return SqlKind.CAST == rexNode.getKind();
+    public static boolean isNotNullLiteral(RexNode node) {
+        return !isNullLiteral(node);
     }
 
-    public static boolean isNotNullLiteral(RexNode node) {
-        return !(node instanceof RexLiteral && ((RexLiteral) node).isNull());
+    public static boolean isNullLiteral(RexNode node) {
+        return node instanceof RexLiteral && ((RexLiteral) node).isNull();
     }
 }
