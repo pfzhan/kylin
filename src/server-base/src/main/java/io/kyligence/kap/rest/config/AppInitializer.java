@@ -38,7 +38,6 @@ import org.springframework.scheduling.TaskScheduler;
 
 import io.kyligence.kap.common.constant.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
@@ -49,7 +48,6 @@ import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.CacheCleanListner;
@@ -76,9 +74,6 @@ public class AppInitializer {
     TaskScheduler taskScheduler;
 
     @Autowired
-    ClusterManager clusterManager;
-
-    @Autowired
     QueryCacheManager queryCacheManager;
 
     @Autowired
@@ -100,9 +95,6 @@ public class AppInitializer {
         NCircuitBreaker.start(KapConfig.wrap(kylinConfig));
 
         boolean isJob = kylinConfig.isJobNode();
-
-        //start the embedded metrics reporters
-        MetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
         if (isJob) {
             // restore from metadata, should not delete
