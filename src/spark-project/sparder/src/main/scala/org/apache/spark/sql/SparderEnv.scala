@@ -28,6 +28,7 @@ import java.lang.{Boolean => JBoolean, String => JString}
 import java.security.PrivilegedAction
 import java.util.concurrent.atomic.AtomicReference
 
+import io.kyligence.kap.common.util.DefaultHostInfoFetcher
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.KylinConfig
@@ -140,6 +141,9 @@ object SparderEnv extends Logging {
           override def run(): Unit = {
             var startSparkSucceed = false
 
+            val hostInfoFetcher = new DefaultHostInfoFetcher
+            val appName = "sparder-" + UserGroupInformation.getCurrentUser.getShortUserName + "-" + hostInfoFetcher.getHostname
+
             try {
               val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
                                 ("true").equals(System.getProperty("spark.local"))
@@ -156,7 +160,7 @@ object SparderEnv extends Logging {
                     .getOrCreateKylinSession()
                 case _ =>
                   SparkSession.builder
-                    .appName("sparder-sql-context")
+                    .appName(appName)
                     .master("yarn-client")
                     //if user defined other master in kylin.properties,
                     // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
