@@ -28,8 +28,8 @@
       </div>
     </div>
     <div class="filter-tags" v-show="filterTags.length">
-      <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：'}}{{['query_status', 'realization'].includes(item.key) ? $t(item.label) : item.label}}</el-tag></div>
-      <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
+      <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：'}}{{['query_status', 'realization'].includes(item.key) ? $t(item.label) : item.label}}</el-tag><span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span></div>
+      <span class="filter-queries-size">{{$t('filteredTotalSize', {totalSize: queryHistoryTotalSize})}}</span>
     </div>
     <el-table
       :data="queryHistoryData"
@@ -332,7 +332,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       searchSubmitter: 'Search by submitter',
       aggDetailTitle: 'Aggregate Detail',
       tabelDetailTitle: 'Table Index Detail',
-      unExistLayoutTip: 'This index has been deleted'
+      unExistLayoutTip: 'This index has been deleted',
+      filteredTotalSize: '{totalSize} result(s)'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -367,7 +368,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       searchSubmitter: '请搜索用户名',
       aggDetailTitle: '聚合索引详情',
       tabelDetailTitle: '明细索引详情',
-      unExistLayoutTip: '该索引已被删除'
+      unExistLayoutTip: '该索引已被删除',
+      filteredTotalSize: '{totalSize} 条结果'
     }
   },
   filters: {
@@ -1327,19 +1329,27 @@ export default class QueryHistoryTable extends Vue {
     background: @background-disabled-color;
     .filter-tags-layout {
       display: inline-block;
-      width: calc(~'100% - 80px')
+      width: calc(~'100% - 80px');
+      .clear-all-filters {
+        color: @base-color;
+        margin-left: 10px;
+        position: relative;
+        top: 2px;
+        display: inline-block;
+        cursor: pointer;
+        font-size: 14px;
+      }
     }
     .el-tag {
       margin-left: 5px;
       margin-top: 5px;
     }
-    .clear-all-filters {
+    .filter-queries-size {
       position: absolute;
       top: 8px;
       right: 10px;
       font-size: 14px;
-      color: @base-color;
-      cursor: pointer;
+      color: @text-title-color;
     }
   }
   .filter-realization, .filter-submitter {

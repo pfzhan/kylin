@@ -57,7 +57,7 @@
       <el-alert show-icon class="ksd-mb-10" :closable="false" type="warning" v-if="queryHistoryData.size>maxExportLength">
         <span slot="title">{{$t('exportHistoryTips')}}<a class="ky-a-like" :href="$t('manualUrl')" target="_blank">{{$t('userManual')}}</a>{{$t('exportHistoryTips2')}}</span>
       </el-alert>
-      <div>{{exportMsg}}</div>
+      <div v-html="exportMsg"></div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
         <el-button size="medium" @click="exportSqlDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <span class="ksd-ml-10" @click="exportSqlDialogVisible = false">
@@ -116,8 +116,8 @@ import { pageRefTags, maxExportLength, apiUrl } from 'config'
       userManual: 'user manual',
       manualUrl: 'https://docs.kyligence.io/books/v4.3/en/query/history.en.html',
       exportHistoryTips2: ' for details.',
-      exportSqlConfirm: '{historyTotal} SQL(s) will be exported as a .txt file. Are you sure you want to export?',
-      exportHistoryConfirm: '{historyTotal} query historie(s) will be exported as a .csv file. Are you sure you want to export?'
+      exportSqlConfirm: '<b>{historyTotal}</b> SQL(s) will be exported as a .txt file. Are you sure you want to export?',
+      exportHistoryConfirm: '<b>{historyTotal}</b> query historie(s) will be exported as a .csv file. Are you sure you want to export?'
     },
     'zh-cn': {
       indexOverview: '索引总览',
@@ -127,8 +127,8 @@ import { pageRefTags, maxExportLength, apiUrl } from 'config'
       userManual: '用户手册',
       manualUrl: 'https://docs.kyligence.io/books/v4.3/zh-cn/query/history.cn.html',
       exportHistoryTips2: '。',
-      exportSqlConfirm: '{historyTotal} 条 SQL 将以 .txt 格式导出。确定要导出吗？',
-      exportHistoryConfirm: '{historyTotal} 条查询历史 将以 .csv 格式导出。确定要导出吗？'
+      exportSqlConfirm: '<b>{historyTotal}</b> 条 SQL 将以 .txt 格式导出。确定要导出吗？',
+      exportHistoryConfirm: '<b>{historyTotal}</b> 条查询历史将以 .csv 格式导出。确定要导出吗？'
     }
   }
 })
