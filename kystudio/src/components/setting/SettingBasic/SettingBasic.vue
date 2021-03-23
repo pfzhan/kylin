@@ -343,6 +343,7 @@
                       :value="item.value">
                       <span>{{item.label}}<i v-if="item.fact" class="el-icon-ksd-fact_table ksd-ml-5"></i></span>
                     </el-option>
+                    <p class="limit-excluded-tables-msg" v-if="showIimitExcludedTableMsg">{{$t('limitExcludedTablesTip')}}</p>
                   </el-select>
                 </el-form-item>
               </div>
@@ -442,6 +443,7 @@ export default class SettingBasic extends Vue {
     table: ''
   }
   filterExcludeTablesTimer = null
+  showIimitExcludedTableMsg = false
   created () {
     this.rulesAccerationDefault = {...this.rulesObj}
   }
@@ -582,7 +584,9 @@ export default class SettingBasic extends Vue {
               needConcelReject: true,
               submitText: this.$t('confirmOpen')
             })
-            await this.updateProjectGeneralInfo(submitData); break
+            await this.updateProjectGeneralInfo(submitData)
+            this.getAccelerationRules()
+            break
           }
         }
         case 'segment-settings': {
@@ -793,7 +797,10 @@ export default class SettingBasic extends Vue {
       const results = await handleSuccessAsync(response)
       const { databases } = results
       let dbList = databases ? ArrayFlat(databases.map(item => item.tables)) : []
-      dbList.length && (this.excludeRuleOptions = dbList.map(it => ({label: `${it.database}.${it.name}`, value: `${it.database}.${it.name}`, fact: it.root_fact})).slice(0, 50))
+      if (dbList.length) {
+        this.excludeRuleOptions = dbList.map(it => ({label: `${it.database}.${it.name}`, value: `${it.database}.${it.name}`, fact: it.root_fact})).slice(0, 50)
+        this.showIimitExcludedTableMsg = this.excludeRuleOptions.length > 50
+      }
     } catch (e) {
       handleError(e)
     }
@@ -905,7 +912,6 @@ export default class SettingBasic extends Vue {
         margin-top: 10px;
       }
     }
-    
   }
   .rule-setting-input {
     display: inline-block;
@@ -926,6 +932,13 @@ export default class SettingBasic extends Vue {
     color: #ff0000;
     font-size: 12px;
   }
+}
+.limit-excluded-tables-msg {
+  height: 32px;
+  color: @text-normal-color;
+  line-height: 32px;
+  text-align: center;
+  font-size: 12px;
 }
 
 </style>

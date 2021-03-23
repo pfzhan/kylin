@@ -74,7 +74,8 @@ export default {
     excludeRuleTip: 'Columns in the following tables will not be included in the recommendations. Suitable for AS-IS analysis. ',
     moreDetails: 'More Info',
     excludeRuleDetailMsg1: 'If the data of certain columns in a dimension table change frequently, the table can be added into the exclude list, and aggregate indexes containing these columns should be deleted.',
-    excludeRuleDetailMsg2: 'Then the foreign key in fact table will be included in the recommended index, replacing columns in the following tables. After building the indexes, queries for these tables can be retrieved through the foreign key.'
+    excludeRuleDetailMsg2: 'Then the foreign key in fact table will be included in the recommended index, replacing columns in the following tables. After building the indexes, queries for these tables can be retrieved through the foreign key.',
+    limitExcludedTablesTip: 'Only 50 tables would be displayed. Please enter keyword to search.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -151,6 +152,7 @@ export default {
     excludeRuleTip: '以下表中的列将不被推荐到优化建议中，适用于 AS-IS 分析场景。',
     moreDetails: '更多信息',
     excludeRuleDetailMsg1: '维度表中的部分列若数据经常发生变化，则可将这些表添加到屏蔽设置中，并删除现有包含这些列的聚合索引。',
-    excludeRuleDetailMsg2: '设置生效后，事实表中的外键将代替以下表中的列被推荐到优化建议中，构建后可通过外键衍生查询以下表中的列。'
+    excludeRuleDetailMsg2: '设置生效后，事实表中的外键将代替以下表中的列被推荐到优化建议中，构建后可通过外键衍生查询以下表中的列。',
+    limitExcludedTablesTip: '默认仅展示 50 张表。请输入关键词进行搜索。'
   }
 }
