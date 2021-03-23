@@ -29,7 +29,7 @@ import java.util.{Map => JMap}
 import com.google.common.collect.Maps
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, DimensionRangeInfo}
+import io.kyligence.kap.metadata.cube.model.LayoutEntity
 import org.apache.hadoop.fs._
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
@@ -168,14 +168,6 @@ object ResourceDetectUtils extends Logging {
 
 
   def readDetectItems(path: Path): JMap[String, String] = readResourcePathsAs[JMap[String, String]](path)
-
-  def readSegDimRangeInfo(path: Path): java.util.Map[String, DimensionRangeInfo] = {
-    if (HadoopUtil.getWorkingFileSystem().exists(path)) {
-      readResourcePathsAs[java.util.Map[String, DimensionRangeInfo]](path)
-    } else {
-      null
-    }
-  }
 
   def readResourcePathsAs[T](path: Path): T = {
     log.info(s"Read resource paths form $path")

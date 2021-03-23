@@ -282,39 +282,6 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testDimRangePruning() throws Exception {
-        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
-
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-
-        val lessThanEquality = base + "where TEST_ORDER.ORDER_ID <= 2";
-        val in = base + "where TEST_ORDER.ORDER_ID in (4998, 4999)";
-        val lessThan = base + "where TEST_ORDER.ORDER_ID < 2";
-        val and = base + "where PRICE < -99 AND TEST_ORDER.ORDER_ID = 1";
-        val or = base + "where TEST_ORDER.ORDER_ID = 1 or TEST_ORDER.ORDER_ID = 2 ";
-        val notSupported0 = base + "where SELLER_ID <> 10000233";
-        val notSupported1 = base + "where SELLER_ID > 10000233";
-
-        assertResultsAndScanFiles(lessThanEquality, 3);
-        assertResultsAndScanFiles(in, 3);
-        assertResultsAndScanFiles(lessThan, 3);
-        assertResultsAndScanFiles(and, 3);
-        assertResultsAndScanFiles(or, 3);
-        assertResultsAndScanFiles(notSupported0, 3);
-        assertResultsAndScanFiles(notSupported1, 3);
-
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("", lessThanEquality));
-        query.add(Pair.newPair("", in));
-        query.add(Pair.newPair("", lessThan));
-        query.add(Pair.newPair("", and));
-        query.add(Pair.newPair("", or));
-        query.add(Pair.newPair("", notSupported0));
-        query.add(Pair.newPair("", notSupported1));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
-    }
-
-    @Test
     public void testPruningWithChineseCharacter() throws Exception {
         overwriteSystemProp("kylin.storage.columnar.shard-rowcount", "1");
         fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());

@@ -78,9 +78,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("timeRange")
     private TimeRange timeRange;
 
-    @JsonProperty("dimension_range_info_map")
-    private Map<String, DimensionRangeInfo> dimensionRangeInfoMap = Maps.newHashMap();
-
     @JsonProperty("parameters")
     private Map<String, String> parameters;
 
@@ -226,10 +223,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         return null;
     }
 
-    public Map<String, DimensionRangeInfo> getDimensionRangeInfoMap() {
-        return dimensionRangeInfoMap;
-    }
-
     @Override
     public TimeRange getTSRange() {
         if (timeRange != null) {
@@ -244,11 +237,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public void setSegmentRange(SegmentRange segmentRange) {
         checkIsNotCachedAndShared();
         this.segmentRange = segmentRange;
-    }
-
-    public void setDimensionRangeInfoMap(Map<String, DimensionRangeInfo> dimensionRangeInfoMap) {
-        checkIsNotCachedAndShared();
-        this.dimensionRangeInfoMap = dimensionRangeInfoMap;
     }
 
     public void setTimeRange(TimeRange timeRange) {

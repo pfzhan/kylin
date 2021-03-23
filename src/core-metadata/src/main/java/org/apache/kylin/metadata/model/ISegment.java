@@ -43,9 +43,6 @@
 
 package org.apache.kylin.metadata.model;
 
-import java.util.Map;
-
-import io.kyligence.kap.metadata.cube.model.DimensionRangeInfo;
 import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 
@@ -60,8 +57,6 @@ public interface ISegment extends Comparable<ISegment> {
     public boolean isOffsetCube();
     
     public SegmentRange getSegRange();
-
-    public Map<String, DimensionRangeInfo> getDimensionRangeInfoMap();
 
     public SegmentRange.KafkaOffsetPartitionedSegmentRange getKSRange();
     
