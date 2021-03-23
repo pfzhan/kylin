@@ -117,6 +117,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         private final NDataModel dataModel;
         private final AbstractContext.ModelContext modelContext;
+        private boolean needSuggestDimensions;
 
         protected ScopeBuilder(NDataModel dataModel, AbstractContext.ModelContext modelContext) {
             this.dataModel = dataModel;
@@ -172,6 +173,9 @@ public class QueryScopeProposer extends AbstractModelProposer {
             // use TreeSet can get a steady test result in different circumstances
             Set<TblColRef> allColumns = new TreeSet<>(Comparator.comparing(TblColRef::getIdentity));
             allColumns.addAll(allTableColumns);
+            if (needSuggestDimensions) {
+                return;
+            }
 
             // set status for all columns and put them into candidate named columns
             Map<String, TblColRef> fKAsDimensionMap = collectFKAsDimensionMap(ctx);
@@ -218,15 +222,19 @@ public class QueryScopeProposer extends AbstractModelProposer {
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {
+            for (FunctionDesc agg : ctx.aggregations) {
+                if (modelContext.getChecker().isMeasureOnLookupTable(agg)) {
+                    needSuggestDimensions = true;
+                    log.debug("Unsupported measure on dimension table, {}", agg.toString());
+                    return;
+                }
+            }
             ctx.aggregations.forEach(agg -> {
                 Set<String> paramNames = Sets.newHashSet();
                 agg.getParameters().forEach(parameterDesc -> {
                     paramNames.add(parameterDesc.getColRef().getIdentity().replaceAll("\\.", "_"));
                 });
                 boolean isNewMeasure = false;
-                if (modelContext.getChecker().isMeasureOnLookupTable(agg)) {
-                    throw new IllegalArgumentException("Unsupported measure on dimension table, " + agg.toString());
-                }
                 if (!candidateMeasures.containsKey(agg)) {
                     FunctionDesc fun = copyFunctionDesc(agg);
                     String name = String.format(Locale.ROOT, "%s_%s", fun.getExpression(),
@@ -326,15 +334,15 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         private Map<String, TblColRef> collectFKAsDimensionMap(OLAPContext ctx) {
             Map<String, TblColRef> fKAsDimensionMap = Maps.newHashMap();
+            Set<String> usingExcludedLookupTables = modelContext.getChecker()
+                    .getUsedExcludedLookupTable(ctx.allColumns);
             ctx.joins.forEach(join -> {
-                Set<String> excludedLookupTables = modelContext.getChecker().getExcludedLookupTables();
                 for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
                     TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
                     String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
-                    if (excludedLookupTables.contains(derivedTable)) {
-                        if (!excludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())) {
-                            fKAsDimensionMap.putIfAbsent(foreignKeyColumn.getCanonicalName(), foreignKeyColumn);
-                        }
+                    if (usingExcludedLookupTables.contains(derivedTable)
+                            && !usingExcludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())) {
+                        fKAsDimensionMap.putIfAbsent(foreignKeyColumn.getCanonicalName(), foreignKeyColumn);
                     }
                 }
             });

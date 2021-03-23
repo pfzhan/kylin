@@ -1039,7 +1039,8 @@ public class ProjectService extends BasicService {
             break;
         case FavoriteRule.EXCLUDED_TABLES_RULE:
             isEnabled = request.isExcludeTablesEnable();
-            conds.add(new FavoriteRule.Condition(null, request.getExcludedTables()));
+            conds.add(new FavoriteRule.Condition(null,
+                    request.getExcludedTables() == null ? "" : request.getExcludedTables()));
             break;
         default:
             break;

@@ -272,17 +272,16 @@ class IndexSuggester {
 
     private void replaceDimOfLookupTableWithFK(OLAPContext context, Set<TblColRef> filterColumns,
             Set<TblColRef> nonFilterColumnSet) {
-        Set<String> excludedLookupTables = modelContext.getChecker().getExcludedLookupTables();
-        filterColumns.removeIf(tblColRef -> excludedLookupTables.contains(tblColRef.getTableWithSchema()));
-        nonFilterColumnSet.removeIf(tblColRef -> excludedLookupTables.contains(tblColRef.getTableWithSchema()));
+        Set<String> usingExcludedLookupTables = modelContext.getChecker()
+                .getUsedExcludedLookupTable(context.allColumns);
+        filterColumns.removeIf(tblColRef -> usingExcludedLookupTables.contains(tblColRef.getTableWithSchema()));
+        nonFilterColumnSet.removeIf(tblColRef -> usingExcludedLookupTables.contains(tblColRef.getTableWithSchema()));
         context.joins.forEach(join -> {
             for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
                 TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
                 String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
-                if (excludedLookupTables.contains(derivedTable)) {
-                    if (!filterColumns.contains(foreignKeyColumn)) {
-                        nonFilterColumnSet.add(foreignKeyColumn);
-                    }
+                if (usingExcludedLookupTables.contains(derivedTable) && !filterColumns.contains(foreignKeyColumn)) {
+                    nonFilterColumnSet.add(foreignKeyColumn);
                 }
             }
         });

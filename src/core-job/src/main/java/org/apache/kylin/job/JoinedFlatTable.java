@@ -108,8 +108,12 @@ public class JoinedFlatTable {
         final String sep = getSepBySingleLineTag(singleLine);
 
         StringBuilder subSql = new StringBuilder();
-        for (Map.Entry<Integer, TblColRef> tableRefEntry : modelDesc.getEffectiveCols().entrySet()) {
-            TblColRef col = tableRefEntry.getValue();
+        if (modelDesc.getEffectiveCols().isEmpty()) {
+            subSql.append("1");
+            return subSql.toString();
+        }
+
+        modelDesc.getEffectiveCols().forEach((id, col) -> {
             if (!col.getColumnDesc().isComputedColumn()) {
                 if (subSql.length() > 0) {
                     subSql.append(",").append(sep);
@@ -118,8 +122,7 @@ public class JoinedFlatTable {
                 String colName = colName(col);
                 subSql.append(quotedColExpressionInSourceDB(modelDesc, col)).append(" as ").append(quote(colName));
             }
-        }
-
+        });
         return subSql.toString();
     }
 

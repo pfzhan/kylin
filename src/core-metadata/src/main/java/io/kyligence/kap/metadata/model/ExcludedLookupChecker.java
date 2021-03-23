@@ -121,4 +121,13 @@ public class ExcludedLookupChecker {
         return false;
     }
 
+    public Set<String> getUsedExcludedLookupTable(Set<TblColRef> colRefs) {
+        Set<String> usedExcludedLookupTables = Sets.newHashSet();
+        for (TblColRef column : colRefs) {
+            if (excludedLookupTables.contains(column.getTableWithSchema())) {
+                usedExcludedLookupTables.add(column.getTableWithSchema());
+            }
+        }
+        return usedExcludedLookupTables;
+    }
 }

@@ -144,6 +144,9 @@ public class FavoriteRuleManager {
     public Set<String> getExcludedTables() {
         FavoriteRule rule = getByName(FavoriteRule.EXCLUDED_TABLES_RULE);
         FavoriteRule favoriteRule = FavoriteRule.getDefaultRule(rule, FavoriteRule.EXCLUDED_TABLES_RULE);
+        if (!favoriteRule.isEnabled()) {
+            return Sets.newHashSet();
+        }
         FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
         return Arrays.stream(condition.getRightThreshold().split(",")).collect(Collectors.toSet());
     }

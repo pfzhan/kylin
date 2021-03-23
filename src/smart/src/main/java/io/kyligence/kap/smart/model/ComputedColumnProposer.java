@@ -214,11 +214,11 @@ public class ComputedColumnProposer extends AbstractModelProposer {
     }
 
     protected Set<String> translateToSuggestions(Set<TblColRef> innerColumns, Map<String, String> matchingAlias) {
+        if (isAnyCCExpDependsOnLookupTable(innerColumns)) {
+            return Sets.newHashSet();
+        }
         Set<String> candidates = Sets.newHashSet();
         for (TblColRef col : innerColumns) {
-            if (modelContext.getChecker().isCCDependsLookupTable(col)) {
-                continue;
-            }
             String parserDesc = col.getParserDescription();
             parserDesc = matchingAlias.entrySet().stream()
                     .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
@@ -227,6 +227,17 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             candidates.add(parserDesc);
         }
         return candidates;
+    }
+
+    private boolean isAnyCCExpDependsOnLookupTable(Set<TblColRef> innerColumns) {
+        boolean dependsOnLookupTable = false;
+        for (TblColRef col : innerColumns) {
+            if (modelContext.getChecker().isCCDependsLookupTable(col)) {
+                dependsOnLookupTable = true;
+                break;
+            }
+        }
+        return dependsOnLookupTable;
     }
 
     private Collection<TblColRef> getFilterInnerColumns(OLAPContext context) {
