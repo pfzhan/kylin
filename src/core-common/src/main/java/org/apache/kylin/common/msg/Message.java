@@ -1472,6 +1472,6 @@ public class Message {
     }
 
     public String getQUERY_HISTORY_COLUMN_META() {
-        return "Start Time, Duration, Query ID, SQL Statement, Answered by, Query Status, Query Node, Submitter\n";
+        return "Start Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n";
     }
 }

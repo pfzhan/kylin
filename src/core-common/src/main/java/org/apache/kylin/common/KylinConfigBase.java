@@ -2188,6 +2188,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.query.query-history-download-max-size", "100000"));
     }
 
+    public int getQueryHistoryDownloadBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.query.query-history-download-batch-size", "20000"));
+    }
+
     public long getAsyncQueryResultRetainDays() {
         return TimeUtil.timeStringAs(this.getOptional("kylin.query.async.result-retain-days", "7d"), TimeUnit.DAYS);
     }

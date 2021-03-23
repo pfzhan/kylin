@@ -106,8 +106,6 @@ public class QueryHistoryService extends BasicService {
     public static final String WEEK = "week";
     public static final String DAY = "day";
 
-    public static final int BATCH_SIZE = 1000;
-
     public void downloadQueryHistories(QueryHistoryRequest request, HttpServletResponse response, ZoneOffset zoneOffset,
                                        Integer timeZoneOffsetHour, boolean onlySql) {
         processRequestParams(request);
@@ -116,21 +114,28 @@ public class QueryHistoryService extends BasicService {
         }
         splitModels(request);
         QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
+        val noBrokenModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
+                .listUnderliningDataModels().stream().collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
+        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
 
         try (ServletOutputStream outputStream = response.getOutputStream()) {
-            outputStream.write(CSV_UTF8_BOM);
             if (!onlySql) {
+                outputStream.write(CSV_UTF8_BOM);
                 outputStream.write(MsgPicker.getMsg().getQUERY_HISTORY_COLUMN_META().getBytes(StandardCharsets.UTF_8));
             }
 
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             long needDownloadSize = Math.min(queryHistoryDao.getQueryHistoriesSize(request, request.getProject()),
-                    KylinConfig.getInstanceFromEnv().getQueryHistoryDownloadMaxSize());
+                    kylinConfig.getQueryHistoryDownloadMaxSize());
             int batchCount = 0;
-            while (batchCount * BATCH_SIZE < needDownloadSize) {
-                List<QueryHistory> queryHistories = queryHistoryDao.getQueryHistoriesByConditions(request, BATCH_SIZE, batchCount);
+            int batchSize = kylinConfig.getQueryHistoryDownloadBatchSize();
+            while (batchCount * batchSize < needDownloadSize) {
+                List<QueryHistory> queryHistories = queryHistoryDao.getQueryHistoriesByConditions(request, batchSize,
+                        batchCount);
                 for (QueryHistory queryHistory : queryHistories) {
+                    fillingModelAlias(noBrokenModels, dataModelManager, queryHistory);
                     if (onlySql) {
-                        outputStream.write(("\"" + queryHistory.getSql().replaceAll("\n|\r", " ") + "\"\n")
+                        outputStream.write((queryHistory.getSql().replaceAll("\n|\r", " ") + ";\n")
                                 .getBytes(StandardCharsets.UTF_8));
                     } else {
                         outputStream.write((QueryHistoryUtil.getDownloadData(queryHistory, zoneOffset,
@@ -142,6 +147,29 @@ public class QueryHistoryService extends BasicService {
         } catch (IOException e) {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
         }
+    }
+
+    private void fillingModelAlias(Map<String, String> noBrokenModels, NDataModelManager dataModelManager,
+            QueryHistory queryHistory) {
+        QueryHistoryInfo queryHistoryInfo = queryHistory.getQueryHistoryInfo();
+        if ((queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
+                || queryHistoryInfo.getRealizationMetrics().isEmpty())
+                && StringUtils.isEmpty(queryHistory.getQueryRealizations())) {
+            return;
+        }
+        List<NativeQueryRealization> realizations = queryHistory.transformRealizations();
+
+        realizations.forEach(realization -> {
+            NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
+            if (noBrokenModels.containsValue(realization.getModelId())) {
+                realization.setModelAlias(nDataModel.getAlias());
+            } else {
+                val modelAlias = nDataModel == null ? DELETED_MODEL
+                        : String.format(Locale.ROOT, "%s broken", nDataModel.getAlias());
+                realization.setModelAlias(modelAlias);
+            }
+        });
+        queryHistory.setNativeQueryRealizations(realizations);
     }
 
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int page) {

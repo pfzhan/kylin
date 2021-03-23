@@ -700,8 +700,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         // prepare query history to RDBMS
         RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         queryHistoryDAO.deleteAllQueryHistory();
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, false));
 
         // prepare request and response
         QueryHistoryRequest request = new QueryHistoryRequest();
@@ -720,9 +721,10 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         }).when(servletOutputStream).write(any(byte[].class));
 
         queryHistoryService.downloadQueryHistories(request, response, ZoneOffset.ofHours(8), 8, false);
-        assertEquals("\uFEFFStart Time, Duration, Query ID, SQL Statement, Answered by, Query Status, Query Node, Submitter\n"
-                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",,SUCCEEDED,,ADMIN\n"
-                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",,SUCCEEDED,,ADMIN\n",
+        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n"
+                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN\n",
                 baos.toString(StandardCharsets.UTF_8.name()));
     }
 
@@ -731,8 +733,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         // prepare query history to RDBMS
         RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         queryHistoryDAO.deleteAllQueryHistory();
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
 
         // prepare request and response
         QueryHistoryRequest request = new QueryHistoryRequest();
@@ -751,7 +753,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         }).when(servletOutputStream).write(any(byte[].class));
 
         queryHistoryService.downloadQueryHistories(request, response, null, null, true);
-        assertEquals("\uFEFF\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\"\n"
-                + "\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\"\n", baos.toString(StandardCharsets.UTF_8.name()));
+        assertEquals(
+                "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
+                        + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n",
+                baos.toString(StandardCharsets.UTF_8.name()));
     }
 }

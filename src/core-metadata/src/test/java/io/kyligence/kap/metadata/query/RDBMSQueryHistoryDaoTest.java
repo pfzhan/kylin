@@ -88,7 +88,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     public void testInsert() {
         List<QueryMetrics> queryMetricsList = Lists.newArrayList();
         for (int i = 0; i < 100; i++) {
-            queryMetricsList.add(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+            queryMetricsList.add(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         }
         queryHistoryDAO.insert(queryMetricsList);
         List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(0, 200, "default");
@@ -97,10 +97,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoriesfilterByIsIndexHit() throws Exception {
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, false, "otherProject"));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, false, "otherProject", true));
 
         // filter all
         QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
@@ -129,13 +129,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetQueryHistoriesfilterByQueryTime() throws Exception {
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 1L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 1L, false, PROJECT, true));
         // 2021-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1611933912000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1611933912000L, 1L, false, PROJECT, true));
 
         QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
         queryHistoryRequest.setProject(PROJECT);
@@ -149,10 +149,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoriesfilterByDuration() throws Exception {
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1000L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 2000L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 3000L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 4000L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1000L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 2000L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 3000L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 4000L, false, PROJECT, true));
 
         QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
         queryHistoryRequest.setProject(PROJECT);
@@ -171,19 +171,19 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoriesfilterBySql() throws Exception {
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics1.setSql("select 2 LIMIT 500\n");
         queryHistoryDAO.insert(queryMetrics1);
 
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics2.setSql("select 1 LIMIT 500\n");
         queryHistoryDAO.insert(queryMetrics2);
 
-        QueryMetrics queryMetrics3 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics3.setSql("select count(*) from KYLIN_SALES group by BUYER_ID LIMIT 500");
         queryHistoryDAO.insert(queryMetrics3);
 
-        QueryMetrics queryMetrics4 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics4 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics4.setSql("select count(*) from KYLIN_SALES");
         queryHistoryDAO.insert(queryMetrics4);
 
@@ -225,8 +225,8 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void getQueryHistoriesById() {
-        Assert.assertEquals(1, queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT)));
-        Assert.assertEquals(1, queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT)));
+        Assert.assertEquals(1, queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true)));
+        Assert.assertEquals(1, queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true)));
         List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(0, 10, "default");
         Assert.assertEquals(2, queryHistoryList.size());
         Assert.assertEquals("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", queryHistoryList.get(0).getQueryId());
@@ -240,14 +240,14 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryHistoryRequest.setUsername(ADMIN);
         queryHistoryRequest.setProject(PROJECT);
 
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         long queryHistoriesSize = queryHistoryDAO.getQueryHistoriesSize(queryHistoryRequest, PROJECT);
         Assert.assertEquals(2, queryHistoriesSize);
 
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         queryHistoriesSize = queryHistoryDAO.getQueryHistoriesSize(queryHistoryRequest, PROJECT);
         Assert.assertEquals(5, queryHistoriesSize);
     }
@@ -255,13 +255,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetQueryCountByTime() throws Exception {
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 1L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 1L, false, PROJECT, true));
         // 2021-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1611933912000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1611933912000L, 1L, false, PROJECT, true));
 
         // filter from 2020-01-26 23:25:11 to 2020-01-31 23:25:13
         List<QueryStatistics> dayQueryStatistics = queryHistoryDAO.getQueryCountByTime(1580052311000L, 1580484313000L,
@@ -308,13 +308,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetAvgDurationByTime() throws Exception {
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT, true));
         // 2021-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1611933912000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1611933912000L, 1L, false, PROJECT, true));
 
         // filter from 2020-01-26 23:25:11 to 2020-01-31 23:25:13
         List<QueryStatistics> dayQueryStatistics = queryHistoryDAO.getAvgDurationByTime(1580052311000L, 1580484313000L,
@@ -361,13 +361,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDeleteQueryHistoriesIfRetainTimeReached() throws Exception {
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT, true));
         // 2030-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, PROJECT, true));
 
         // before delete
         List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(0, 100, PROJECT);
@@ -385,13 +385,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.query.queryhistory.max-size", "2");
 
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT, true));
         // 2030-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, PROJECT, true));
 
         // before delete
         List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(0, 100, PROJECT);
@@ -413,13 +413,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.query.queryhistory.project-max-size", "2");
 
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT, true));
         // 2030-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, PROJECT, true));
 
         // before delete
         List<QueryHistory> queryHistoryList = queryHistoryDAO.getAllQueryHistories();
@@ -438,10 +438,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDropProjectMeasurement() throws Exception {
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, "other"));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, "other", true));
 
         // before delete
         List<QueryHistory> queryHistoryList = queryHistoryDAO.getAllQueryHistories();
@@ -456,10 +456,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDeleteQueryHistoryForProject() throws Exception {
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
-        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, "other"));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT, true));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, "other", true));
 
         // before delete
         List<QueryHistory> queryHistoryList = queryHistoryDAO.getAllQueryHistories();
@@ -474,10 +474,10 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateQueryHistoryInfo() throws Exception {
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
-        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT);
-        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT, true);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT, true);
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other", true);
         queryHistoryDAO.insert(queryMetrics1);
         queryHistoryDAO.insert(queryMetrics2);
         queryHistoryDAO.insert(queryMetrics3);
@@ -522,13 +522,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testNonAdminUserGetQueryHistories() throws Exception {
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics1.setSubmitter(ADMIN);
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT, true);
         queryMetrics2.setSubmitter(ADMIN);
-        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT, true);
         queryMetrics3.setSubmitter(NORMAL_USER);
-        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other", true);
         queryMetrics4.setSubmitter(NORMAL_USER);
         queryHistoryDAO.insert(queryMetrics1);
         queryHistoryDAO.insert(queryMetrics2);
@@ -558,17 +558,17 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryHistoryFilter() throws Exception {
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics1.setSubmitter(ADMIN);
         queryMetrics1.setEngineType("RDBMS");
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT, true);
         queryMetrics2.setSubmitter(NORMAL_USER);
         queryMetrics2.setEngineType("HIVE");
 
-        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, true, PROJECT);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, true, PROJECT, true);
         queryMetrics3.setSubmitter(NORMAL_USER);
 
-        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other", true);
         queryMetrics4.setSubmitter(NORMAL_USER);
         queryHistoryDAO.insert(queryMetrics1);
         queryHistoryDAO.insert(queryMetrics2);
@@ -610,13 +610,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistorySubmitters() throws Exception {
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics1.setSubmitter(ADMIN);
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT, true);
         queryMetrics2.setSubmitter(ADMIN);
-        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT, true);
         queryMetrics3.setSubmitter(NORMAL_USER);
-        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other", true);
         queryMetrics4.setSubmitter(NORMAL_USER);
         queryHistoryDAO.insert(queryMetrics1);
         queryHistoryDAO.insert(queryMetrics2);
@@ -635,17 +635,17 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoryModelNames() throws Exception {
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics1.setSubmitter(ADMIN);
         queryMetrics1.setEngineType("RDBMS");
         queryMetrics1.setQueryHistoryInfo(new QueryHistoryInfo());
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT, true);
         queryMetrics2.setSubmitter(ADMIN);
         queryMetrics2.setEngineType("HIVE");
         queryMetrics2.setQueryHistoryInfo(new QueryHistoryInfo());
-        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT);
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580484312000L, 3L, false, PROJECT, true);
         queryMetrics3.setSubmitter(NORMAL_USER);
-        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other");
+        QueryMetrics queryMetrics4 = createQueryMetrics(1895930712000L, 1L, false, "other", true);
         queryMetrics4.setSubmitter(NORMAL_USER);
         queryMetrics4.setEngineType("CONSTANTS");
         queryMetrics4.setQueryHistoryInfo(new QueryHistoryInfo());
@@ -669,9 +669,9 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     @Test
     public void testReadWriteJsonForQueryHistory() throws Exception {
         // write
-        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
         queryMetrics1.setQueryHistoryInfo(new QueryHistoryInfo(true, 3, true));
-        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT, true);
         queryMetrics2.setQueryHistoryInfo(new QueryHistoryInfo(false, 5, false));
         queryHistoryDAO.insert(queryMetrics1);
         queryHistoryDAO.insert(queryMetrics2);
@@ -699,13 +699,13 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetQueryCountAndAvgDuration() throws Exception {
         // 2020-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1000L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1000L, true, PROJECT, true));
         // 2020-01-30 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2000L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2000L, false, PROJECT, true));
         // 2020-01-31 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3000L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3000L, false, PROJECT, true));
         // 2030-01-29 23:25:12
-        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 4000L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 4000L, false, PROJECT, true));
 
         // happy pass
         QueryStatistics statistics = queryHistoryDAO.getQueryCountAndAvgDuration(1580311512000L, 1580484312000L,
@@ -719,7 +719,8 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, statistics.getMeanDuration(), 0.1);
     }
 
-    public static QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project) {
+    public static QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project,
+            boolean hitModel) {
         QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
         queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
         queryMetrics.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
@@ -739,21 +740,26 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryMetrics.setQueryStatus("SUCCEEDED");
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
 
-        QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001",
-                "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea", Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
-        realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
-        realizationMetrics.setDuration(4591L);
-        realizationMetrics.setQueryTime(1586405449387L);
-        realizationMetrics.setProjectName(project);
-        realizationMetrics.setModelId("82fa7671-a935-45f5-8779-85703601f49a.json");
+        if (hitModel) {
+            QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001",
+                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea",
+                    Lists.newArrayList("[DEFAULT.TEST_ACCOUNT]"));
+            realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
+            realizationMetrics.setDuration(4591L);
+            realizationMetrics.setQueryTime(1586405449387L);
+            realizationMetrics.setProjectName(project);
+            realizationMetrics.setModelId("82fa7671-a935-45f5-8779-85703601f49a.json");
 
-        realizationMetrics.setSnapshots(
-                Lists.newArrayList(new String[] { "DEFAULT.TEST_KYLIN_ACCOUNT", "DEFAULT.TEST_COUNTRY" }));
+            realizationMetrics.setSnapshots(
+                    Lists.newArrayList(new String[] { "DEFAULT.TEST_KYLIN_ACCOUNT", "DEFAULT.TEST_COUNTRY" }));
 
-        List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
-        realizationMetricsList.add(realizationMetrics);
-        realizationMetricsList.add(realizationMetrics);
-        queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
+            List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
+            realizationMetricsList.add(realizationMetrics);
+            realizationMetricsList.add(realizationMetrics);
+            queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
+        } else {
+            queryMetrics.setEngineType(QueryHistory.EngineType.CONSTANTS.toString());
+        }
         queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
         return queryMetrics;
     }

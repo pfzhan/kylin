@@ -24,24 +24,41 @@
 
 package io.kyligence.kap.metadata.query.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import org.apache.commons.lang3.StringUtils;
-
 import java.text.SimpleDateFormat;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
 
 public class QueryHistoryUtil {
 
     public static String getDownloadData(QueryHistory queryHistory, ZoneOffset zoneOffset, int zoneOffsetOfHours) {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault(Locale.Category.FORMAT));
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                Locale.getDefault(Locale.Category.FORMAT));
         simpleDateFormat.setTimeZone(TimeZone.getTimeZone(zoneOffset));
         String sign = zoneOffsetOfHours > 0 ? "+" : "";
-        String formatQueryTime = simpleDateFormat.format(queryHistory.getQueryTime()) + " GMT" + sign + zoneOffsetOfHours;
-        return StringUtils.join(Lists.newArrayList(formatQueryTime, queryHistory.getDuration() + "ms", queryHistory.getQueryId(),
-                "\"" + queryHistory.getSql().replaceAll("\"", "\"\"") + "\"", queryHistory.getEngineType(), queryHistory.getQueryStatus(),
-                queryHistory.getHostName(), queryHistory.getQuerySubmitter()), ',').replaceAll("\n|\r", " ");
+        String formatQueryTime = simpleDateFormat.format(queryHistory.getQueryTime()) + " GMT" + sign
+                + zoneOffsetOfHours;
+
+        String answerBy;
+        if (queryHistory.getNativeQueryRealizations() != null && !queryHistory.getNativeQueryRealizations().isEmpty()) {
+            answerBy = "\"[" + StringUtils.join(queryHistory.getNativeQueryRealizations().stream()
+                    .map(NativeQueryRealization::getModelAlias).collect(Collectors.toList()), ',') + "]\"";
+        } else {
+            answerBy = queryHistory.getEngineType();
+        }
+
+        return StringUtils.join(
+                Lists.newArrayList(formatQueryTime, queryHistory.getDuration() + "ms", queryHistory.getQueryId(),
+                        "\"" + queryHistory.getSql().replaceAll("\"", "\"\"") + "\"", answerBy,
+                        queryHistory.getQueryStatus(), queryHistory.getHostName(), queryHistory.getQuerySubmitter()),
+                ',').replaceAll("\n|\r", " ");
     }
 }
