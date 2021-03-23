@@ -95,7 +95,7 @@
               :empty-text="$t('kylinLang.common.noData')"
             >
               <el-table-column prop="host" :label="$t('node')"></el-table-column>
-              <el-table-column :label="$t('type')" width="80">
+              <el-table-column :label="$t('type')" width="100">
                 <template slot-scope="scope">
                   <span>{{scope.row.mode === 'all' ? 'All' : $t(`kylinLang.common.${scope.row.mode}Node`)}}</span>
                 </template>

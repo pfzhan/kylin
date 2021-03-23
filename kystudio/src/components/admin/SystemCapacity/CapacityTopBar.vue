@@ -84,6 +84,7 @@
       }),
       ...mapGetters([
         'isOnlyQueryNode',
+        'isOnlyJobNode',
         'isAdminRole'
       ])
     },
@@ -108,7 +109,7 @@
     }
 
     get getNodesNumColor () {
-      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode) {
+      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode || this.isOnlyJobNode) {
         return 'is-danger'
       } else if (this.getCapacityPrecent >= 80) {
         return 'is-warning'
