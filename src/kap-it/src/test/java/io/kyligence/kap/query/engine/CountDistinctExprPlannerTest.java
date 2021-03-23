@@ -86,4 +86,11 @@ public class CountDistinctExprPlannerTest extends CalciteRuleTestBase {
         queries.forEach(e -> checkSQL(defaultProject, e.getSecond(), e.getFirst(), null, HepUtils.SumExprRules, HepUtils.CountDistinctExprRules));
     }
 
+    @Test
+    public void testSimpleCountDistinctExpr() throws IOException {
+        String SQL = "SELECT COUNT(DISTINCT CASE WHEN LSTG_FORMAT_NAME='FP-NON GTC' THEN PRICE ELSE null END) "
+                + "FROM TEST_KYLIN_FACT";
+        checkSQL(defaultProject, SQL, null, null, HepUtils.CountDistinctExprRules);
+    }
+
 }

@@ -794,7 +794,7 @@ public class QueryService extends BasicService {
         QueryContext.current().setAclInfo(getExecuteAclInfo(project, executeAs));
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
-        return new QueryExec(project, projectKylinConfig);
+        return new QueryExec(project, projectKylinConfig, true);
     }
 
     protected QueryContext.AclInfo getExecuteAclInfo(String project) {

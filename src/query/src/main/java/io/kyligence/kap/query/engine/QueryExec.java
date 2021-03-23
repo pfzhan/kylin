@@ -27,7 +27,7 @@ package io.kyligence.kap.query.engine;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -58,13 +58,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.ReadFsSwitch;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.query.engine.exec.QueryPlanExec;
 import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
@@ -83,8 +83,9 @@ public class QueryExec {
     private final SQLConverter sqlConverter;
     private final QueryOptimizer queryOptimizer;
     private final SimpleDataContext dataContext;
+    private final boolean allowAlternativeQueryPlan;
 
-    public QueryExec(String project, KylinConfig kylinConfig) {
+    public QueryExec(String project, KylinConfig kylinConfig, boolean allowAlternativeQueryPlan) {
         this.kylinConfig = kylinConfig;
         config = KECalciteConfig.fromKapConfig(kylinConfig);
         schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
@@ -96,6 +97,11 @@ public class QueryExec {
         dataContext = createDataContext(rootSchema);
         planner.setExecutor(new RexExecutorImpl(dataContext));
         queryOptimizer = new QueryOptimizer(planner);
+        this.allowAlternativeQueryPlan = allowAlternativeQueryPlan;
+    }
+
+    public QueryExec(String project, KylinConfig kylinConfig) {
+        this(project, kylinConfig, false);
     }
 
     public void plannerRemoveRules(List<RelOptRule> rules) {
@@ -169,9 +175,11 @@ public class QueryExec {
         return queryOptimizer.optimize(relRoot).rel;
     }
 
-    @VisibleForTesting
-    public RelNode postOptimize(RelNode node) {
-        Collection<RelOptRule> postOptRules = new HashSet<>();
+    /**
+     * Apply post optimization rules and produce a list of alternative transformed nodes
+     */
+    private List<RelNode> postOptimize(RelNode node) {
+        Collection<RelOptRule> postOptRules = new LinkedHashSet<>();
         if (kylinConfig.isConvertSumExpressionEnabled()) {
             postOptRules.addAll(HepUtils.SumExprRules);
         }
@@ -180,9 +188,14 @@ public class QueryExec {
         }
 
         if (!postOptRules.isEmpty()) {
-            node = HepUtils.runRuleCollection(node, postOptRules);
+            RelNode transformed = HepUtils.runRuleCollection(node, postOptRules, false);
+            if (transformed != node && allowAlternativeQueryPlan) {
+                return Lists.newArrayList(transformed, node);
+            } else {
+                return Lists.newArrayList(transformed);
+            }
         }
-        return node;
+        return Lists.newArrayList(node);
     }
 
     @VisibleForTesting
@@ -248,21 +261,28 @@ public class QueryExec {
 
     /**
      * execute query plan physically
-     * @param rel
+     * @param rels list of alternative relNodes to execute.
+     *             relNodes will be executed one by one and return on the first successful execution
      * @return
      */
-    private List<List<String>> executeQueryPlan(RelNode rel) {
-        QueryPlanExec planExec;
-
-        boolean routeToCalcite = routeToCalciteEngine(rel);
+    private List<List<String>> executeQueryPlan(List<RelNode> rels) {
+        boolean routeToCalcite = routeToCalciteEngine(rels.get(0));
         dataContext.setContentQuery(routeToCalcite);
         if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()
                 && KapConfig.wrap(kylinConfig).runConstantQueryLocally() && routeToCalcite) {
-            planExec = new CalciteQueryPlanExec(); // if sparder is not enabled, or the sql can run locally, use the calcite engine
+            return new CalciteQueryPlanExec().execute(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
-            planExec = new SparderQueryPlanExec();
+            NoRealizationFoundException lastException = null;
+            for (RelNode rel : rels) {
+                try {
+                    return new SparderQueryPlanExec().execute(rel, dataContext);
+                } catch (NoRealizationFoundException e) {
+                    lastException = e;
+                }
+            }
+            assert lastException != null;
+            throw lastException;
         }
-        return planExec.execute(rel, dataContext);
     }
 
     private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig,

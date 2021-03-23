@@ -85,7 +85,10 @@ public class HepUtils {
     );
 
     public static final ImmutableList<RelOptRule> CountDistinctExprRules = ImmutableList.of(
-            CountDistinctCaseWhenFunctionRule.INSTANCE
+            CountDistinctCaseWhenFunctionRule.INSTANCE,
+            KapProjectRule.INSTANCE,
+            KapAggregateRule.INSTANCE,
+            KapJoinRule.EQUAL_NULL_SAFE_INSTANT
     );
 
 
@@ -93,9 +96,20 @@ public class HepUtils {
     }
 
     public static RelNode runRuleCollection(RelNode rel, Collection<RelOptRule> ruleCollection) {
+        return runRuleCollection(rel, ruleCollection, true);
+    }
+
+    public static RelNode runRuleCollection(
+            RelNode rel, Collection<RelOptRule> ruleCollection, boolean alwaysGenerateNewRelNodes) {
         HepProgram program = HepProgram.builder().addRuleCollection(ruleCollection).build();
         HepPlanner planner = new HepPlanner(program, null, true, null, RelOptCostImpl.FACTORY);
         planner.setRoot(rel);
-        return planner.findBestExp();
+        if (alwaysGenerateNewRelNodes) {
+            return planner.findBestExp();
+        } else {
+            long ts = planner.getRelMetadataTimestamp(rel);
+            RelNode transformed = planner.findBestExp();
+            return ts != planner.getRelMetadataTimestamp(rel) ? transformed : rel;
+        }
     }
 }

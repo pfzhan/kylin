@@ -650,7 +650,7 @@ public class NExecAndComp {
         String prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
             QueryExec queryExec = new QueryExec(prj,
-                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
+                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig(), true);
             if (parameters != null) {
                 for (int i = 0; i < parameters.size(); i++) {
                     queryExec.setPrepareParam(i, parameters.get(i));
@@ -674,7 +674,7 @@ public class NExecAndComp {
         String prevRunLocalConf = Unsafe.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
             QueryExec queryExec = new QueryExec(prj,
-                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
+                    NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig(), true);
             return queryExec.executeQuery(sql);
         } finally {
             if (prevRunLocalConf != null) {
@@ -703,6 +703,6 @@ public class NExecAndComp {
 
     public static List<List<String>> queryCubeWithJDBC(String prj, String sql) throws Exception {
         //      SparderEnv.skipCompute();
-        return new QueryExec(prj, KylinConfig.getInstanceFromEnv()).executeQuery(sql).getRows();
+        return new QueryExec(prj, KylinConfig.getInstanceFromEnv(), true).executeQuery(sql).getRows();
     }
 }
