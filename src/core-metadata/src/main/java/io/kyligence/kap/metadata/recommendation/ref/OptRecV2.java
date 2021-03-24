@@ -457,9 +457,15 @@ public class OptRecV2 {
             return;
         } else if (getProjectCCMap().containsKey(cc.getInnerExpression())) {
             ComputedColumnDesc existCC = getProjectCCMap().get(cc.getInnerExpression());
-            ccRef = new CCRef(existCC, negRecItemId);
-            ccRef.setExisted(false);
-            ccRef.setCrossModel(true);
+            if (existCC.getTableIdentity().equalsIgnoreCase(cc.getTableIdentity())) {
+                ccRef = new CCRef(existCC, negRecItemId);
+                ccRef.setExisted(false);
+                ccRef.setCrossModel(true);
+            } else {
+                ccRef = new CCRef(cc, negRecItemId);
+                ccRef.setExisted(false);
+                ccRef.setCrossModel(false);
+            }
         }
 
         int[] dependIds = rawRecItem.getDependIDs();

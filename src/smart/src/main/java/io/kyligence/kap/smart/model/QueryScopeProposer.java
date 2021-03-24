@@ -85,6 +85,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             try {
                 Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
                 ctx.fixModel(dataModel, matchingAlias);
+                scopeBuilder.resetSkipSuggestDimensions();
                 scopeBuilder.injectCandidateMeasure(ctx);
                 scopeBuilder.injectAllTableColumns(ctx);
                 scopeBuilder.injectCandidateColumns(ctx);
@@ -117,7 +118,11 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         private final NDataModel dataModel;
         private final AbstractContext.ModelContext modelContext;
-        private boolean needSuggestDimensions;
+        private boolean skipSuggestDimensions;
+
+        public void resetSkipSuggestDimensions() {
+            skipSuggestDimensions = false;
+        }
 
         protected ScopeBuilder(NDataModel dataModel, AbstractContext.ModelContext modelContext) {
             this.dataModel = dataModel;
@@ -173,7 +178,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             // use TreeSet can get a steady test result in different circumstances
             Set<TblColRef> allColumns = new TreeSet<>(Comparator.comparing(TblColRef::getIdentity));
             allColumns.addAll(allTableColumns);
-            if (needSuggestDimensions) {
+            if (skipSuggestDimensions) {
                 return;
             }
 
@@ -224,7 +229,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
         private void injectCandidateMeasure(OLAPContext ctx) {
             for (FunctionDesc agg : ctx.aggregations) {
                 if (modelContext.getChecker().isMeasureOnLookupTable(agg)) {
-                    needSuggestDimensions = true;
+                    skipSuggestDimensions = true;
                     log.debug("Unsupported measure on dimension table, {}", agg.toString());
                     return;
                 }
