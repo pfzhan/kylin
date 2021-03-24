@@ -149,7 +149,7 @@
       }),
       handleCommand (val) {
         if (val === 'aboutkap') {
-          this.getAboutKap(() => {}, (res) => {
+          this.getAboutKap().catch((res) => {
             handleError(res)
           })
           this.aboutKapVisible = true
@@ -207,14 +207,14 @@
         this.loadCheck = false
         this.updateLicenseVisible = false
       },
-      dropHelp (s) {
-        if (s) {
-          this.getStatus()
-        }
-      },
-      resetLoginKybotForm () {
-        this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
-      },
+      // dropHelp (s) {
+      //   if (s) {
+      //     this.getStatus()
+      //   }
+      // },
+      // resetLoginKybotForm () {
+      //   this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
+      // },
       closeLoginForm () {
         this.kyBotUploadVisible = false
       },
@@ -223,20 +223,20 @@
         this.infoKybotVisible = true
       },
       // 检测登录
-      checkLogin (callback) {
-        this.getKybotAccount().then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            if (!data) {
-              this.kyBotUploadVisible = true
-              this.isopend = false
-            } else {
-              callback() // off -> on 先检测登录状态 没有登录则弹登录 ； 否则直接开启
-            }
-          }, (errResp) => {
-            handleError(errResp)
-          })
-        })
-      },
+      // checkLogin (callback) {
+      //   this.getKybotAccount().then((res) => {
+      //     handleSuccess(res, (data, code, status, msg) => {
+      //       if (!data) {
+      //         this.kyBotUploadVisible = true
+      //         this.isopend = false
+      //       } else {
+      //         callback() // off -> on 先检测登录状态 没有登录则弹登录 ； 否则直接开启
+      //       }
+      //     }, (errResp) => {
+      //       handleError(errResp)
+      //     })
+      //   })
+      // },
       licenseForm: function () {
         this.loadCheck = true
         this.$refs['licenseEnter'].$emit('licenseFormValid')

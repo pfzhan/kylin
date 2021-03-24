@@ -20,9 +20,10 @@ module.exports = {
   transformIgnorePatterns: ['node_modules'],
   // 所需忽略的文件
   testPathIgnorePatterns: ['<rootDir>/src/config'],
-  // testMatch: [
-  //   '<rootDir>/src/components/query/__test__/query_result.spec.js'
-  // ],
+  testMatch: [
+    '<rootDir>/src/**/__test__/**/*.spec.js',
+    // '<rootDir>/src/components/project/__test__/project_list.spec.js'
+  ],
   setupFiles: ['<rootDir>/test/setup'],
   moduleNameMapper: {
     '^vue$': 'vue/dist/vue.common.js',
@@ -45,6 +46,7 @@ module.exports = {
     'src/directive/*.{js,vue}',
     'src/util/*.{js,vue}',
     'src/components/**/*.{js,vue}',
+    'src/components/common/__test__/slider.spec.js',
     '!src/**/__test__/**/*.js',
     '!src/components/dome.vue',
     '!**/node_modules/**',
@@ -72,7 +74,8 @@ module.exports = {
     '!src/components/common/manage_card.vue',
     '!src/components/common/kap_collapse.vue',
     '!src/components/common/common_popover.vue',
-    '!src/components/studio/Acceleration/*.{js, vue}',
+    '!src/components/studio/Acceleration/*.vue',
+    '!src/components/studio/Acceleration/acceleration_table.vue',
     '!src/components/monitor/admin.vue',
     '!src/components/monitor/cluster.vue',
   ],
@@ -81,10 +84,10 @@ module.exports = {
   // 自定义覆盖率标准
   coverageThreshold: {
     'global': {
-      'branches': 3,
-      'functions': 3,
-      'lines': 3,
-      'statements': 3
+      'branches': 25,
+      'functions': 25,
+      'lines': 25,
+      'statements': 25
     }
   },
   forceCoverageMatch: ['src/**/__test__/**/*.spec.js']

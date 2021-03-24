@@ -50,17 +50,17 @@ export const project = {
 
 export const favoriteRules = {
   count_enable: true,
-  count_value: 10,
+  count_value: 0,
   duration_enable: false,
-  freq_enable: false,
-  freq_value: null,
-  max_duration: null,
-  min_duration: null,
+  excluded_tables: [],
+  excluded_tables_enable: false,
+  max_duration: 0,
+  min_duration: 0,
   recommendation_enable: true,
   recommendations_value: 20,
   submitter_enable: true,
-  user_groups: ["ROLE_ADMIN"],
-  users: ["ADMIN"]
+  user_groups: [],
+  users: []
 }
 
 export const groupAndUser = {

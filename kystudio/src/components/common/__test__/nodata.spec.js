@@ -24,8 +24,6 @@ const wrapper = shallowMount(noData, {
 describe('Component noData', () => {
   it('default component config', () => {
     expect(wrapper.exists()).toBe(true)
-    expect(wrapper.name()).toBe('NoData')
-    expect(wrapper.isVueInstance()).toBeTruthy()
     expect(wrapper.html().replace(/\n/g, '')).toBe("<div class=\"no-data\">  xxx</div>")
   })
   it('test computed', async () => {

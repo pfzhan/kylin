@@ -78,7 +78,7 @@ const _refs = {
   }
 }
 
-const wrapper = mount(queryResult, {
+const wrapper = shallowMount(queryResult, {
   localVue,
   store,
   propsData: {
@@ -174,7 +174,7 @@ describe('Component queryResult', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.noModelRangeTips).toBe('The query is out of the data range for serving queries. Please add segments accordingly.')
 
-    expect(wrapper.vm.querySteps).toEqual([{"duration": 347, "name": "totalDuration"}, {"duration": 231, "name": "PREPARATION"}, {"duration": 1, "group": "PREPARATION", "name": "GET_ACL_INFO"}, {"duration": 24, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}, {"duration": 194, "group": "PREPARATION", "name": "SQL_PARSE_AND_OPTIMIZE"}, {"duration": 12, "group": "PREPARATION", "name": "MODEL_MATCHING"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 75, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}])
+    expect(wrapper.vm.querySteps).toEqual([{"duration": 274, "name": "totalDuration"}, {"duration": 208, "name": "PREPARATION"}, {"duration": 18, "group": "PREPARATION", "name": "GET_ACL_INFO"}, {"duration": 24, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}, {"duration": 154, "group": "PREPARATION", "name": "SQL_PARSE_AND_OPTIMIZE"}, {"duration": 12, "group": "PREPARATION", "name": "MODEL_MATCHING"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 25, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}])
 
     const extra4 = JSON.parse(JSON.stringify(extraoptions))
     extra4.traces = [
@@ -186,16 +186,21 @@ describe('Component queryResult', () => {
       {
         "name": "PREPARE_AND_SUBMIT_JOB",
         "group": null,
-        "duration": 75
+        "duration": 15
+      },
+      {
+        "name": "SQL_TRANSFORMATION",
+        "group": "PREPARATION",
+        "duration": 44
       }
     ]
     await wrapper.setProps({extraoption: extra4})
-    expect(wrapper.vm.querySteps).toEqual([{"duration": 116, "name": "totalDuration"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 75, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}])
+    expect(wrapper.vm.querySteps).toEqual([{"duration": 100, "name": "totalDuration"}, {"duration": 44, "name": "PREPARATION"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 15, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}, {"duration": 44, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}])
 
-    const extra5 = JSON.parse(JSON.stringify(extraoptions))
-    extra5.traces = []
-    await wrapper.setProps({extraoption: extra5})
-    expect(wrapper.vm.querySteps).toEqual([])
+    // const extra5 = JSON.parse(JSON.stringify(extraoptions))
+    // extra5.traces = []
+    // await wrapper.setProps({extraoption: extra5})
+    expect(wrapper.vm.getStepData([])).toEqual([])
   })
   it('methods', async () => {
     wrapper.vm.transDataForGrid()

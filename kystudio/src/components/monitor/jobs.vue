@@ -340,8 +340,8 @@ import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
 import { pageRefTags } from '../../config'
-import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from 'util/business'
-import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from 'util/index'
+import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from '../../util/business'
+import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from '../../util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
 @Component({
   methods: {
@@ -1344,7 +1344,7 @@ export default class JobsList extends Vue {
       handleSuccess(res, (data) => {
         this.outputDetail = data.cmd_output
       })
-    }, (resError) => {
+    }).catch((resError) => {
       this.outputDetail = this.$t('cmdOutput')
     })
   }

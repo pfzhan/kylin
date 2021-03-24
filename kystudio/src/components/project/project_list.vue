@@ -296,7 +296,10 @@ export default {
         await this.updateProjectOwner(this.projectOwner)
         this.changeLoading = false
         this.changeOwnerVisible = false
-        this.$message.success(this.$t('changeProSuccess', this.projectOwner))
+        this.$message({
+          type: 'success',
+          message: this.$t('changeProSuccess', this.projectOwner)
+        })
         this.loadProjects(this.filterData)
       } catch (e) {
         this.$message({ showClose: true, duration: 0, message: e.body.msg, type: 'error' })

@@ -126,7 +126,7 @@ export const extraoptions = {
     {
       "name": "GET_ACL_INFO",
       "group": "PREPARATION",
-      "duration": 1
+      "duration": 18
     },
     {
       "name": "SQL_TRANSFORMATION",
@@ -136,7 +136,7 @@ export const extraoptions = {
     {
       "name": "SQL_PARSE_AND_OPTIMIZE",
       "group": "PREPARATION",
-      "duration": 194
+      "duration": 154
     },
     {
       "name": "MODEL_MATCHING",
@@ -151,7 +151,7 @@ export const extraoptions = {
     {
       "name": "PREPARE_AND_SUBMIT_JOB",
       "group": null,
-      "duration": 75
+      "duration": 25
     }
   ]
 }

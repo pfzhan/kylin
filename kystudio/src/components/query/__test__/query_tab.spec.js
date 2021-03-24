@@ -83,7 +83,7 @@ const mockMessage = jest.fn()
 const queryResultComp = shallowMount(queryResult, {localVue, store, propsData: {extraoption: extraoptions, isWorkspace: true, queryExportData, isStop: false}})
 const saveQueryDialogComp = shallowMount(saveQueryDialog, { localVue })
 
-const wrapper = mount(queryTab, {
+const wrapper = shallowMount(queryTab, {
   localVue,
   store,
   propsData: {

@@ -12,7 +12,6 @@ const wrapper = shallowMount(commonTip, {
 describe('Component commonTip', () => {
   it('default component commonTip', () => {
     expect(wrapper.exists()).toBe(true)
-    expect(wrapper.name()).toBe('common_tip')
     expect(wrapper.find('el-tooltip-stub').exists()).toBeTruthy()
   })
   it('set tips', async () => {

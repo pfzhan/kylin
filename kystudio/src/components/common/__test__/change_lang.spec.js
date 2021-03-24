@@ -41,7 +41,6 @@ describe('Component change_lang', () => {
     wrapper.destroy()
   })
   it('init', () => {
-    expect(wrapper.name()).toBe('changelang')
     expect(wrapper.vm.defaultLang).toBe('en')
     localStorage.setItem('kystudio_lang', 'zh-cn')
     wrapper.setData({ lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : wrapper.vm.defaultLang })

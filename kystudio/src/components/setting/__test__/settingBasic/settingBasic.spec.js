@@ -145,7 +145,7 @@ wrapper.vm.$refs = {
 
 describe('Component SettingBasic', () => {
   it('init', async () => {
-    expect(wrapper.vm.rulesAccerationDefault).toEqual({"count_enable": true, "count_value": 10, "duration_enable": false, "freq_enable": false, "freq_value": null, "max_duration": null, "min_duration": null, "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": ["ROLE_ADMIN"], "users": ["ADMIN"]})
+    expect(wrapper.vm.rulesAccerationDefault).toEqual({"count_enable": true, "count_value": 0, "duration_enable": false, "excluded_tables": [], "excluded_tables_enable": false, "max_duration": 0, "min_duration": 0, "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": [], "users": []})
     await wrapper.vm.$options.mounted[0].call(wrapper.vm)
     expect(wrapper.vm.form).toEqual({"alias": "xm_test_1", "auto_merge_enabled": true, "auto_merge_time_ranges": ["WEEK", "MONTH"], "create_empty_segment_enabled": undefined, "description": undefined, "frequency_time_window": "MONTH", "low_frequency_threshold": 0, "maintain_model_type": "MANUAL_MAINTAIN", "project": "xm_test_1", "push_down_enabled": true, "push_down_range_limited": undefined, "retention_range": {"retention_range_enabled": false, "retention_range_number": "1", "retention_range_type": "MONTH"}, "semi_automatic_mode": true, "storage_garbage": true, "storage_quota_size": 14293651161088, "storage_quota_tb_size": "13.00", "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": "0", "volatile_range_type": "DAY"}})
     expect(wrapper.vm.$refs.acclerationRuleSettings.$el.scrollIntoView).toBeCalled()
@@ -282,7 +282,7 @@ describe('Component SettingBasic', () => {
     expect(wrapper.vm.filterUsers).toEqual(["ADMIN", "ANALYST", "fanfan", "gaoyuan"])
 
     wrapper.vm.saveAcclerationRule()
-    expect(mockApi.mockUpdateFavoriteRules.mock.calls[0][1]).toEqual({"count_enable": true, "count_value": 10, "duration_enable": false, "freq_enable": false, "freq_value": null, "max_duration": 0, "min_duration": 0, "project": "Kyligence", "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": ["ROLE_ADMIN"], "users": ["ADMIN"]})
+    expect(mockApi.mockUpdateFavoriteRules.mock.calls[0][1]).toEqual({"count_enable": true, "count_value": 0, "duration_enable": false, "excluded_tables": "", "excluded_tables_enable": false, "max_duration": 0, "min_duration": 0, "project": "Kyligence", "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": [], "users": []})
     expect(mockHandleSuccess).toBeCalled()
     expect(wrapper.vm.rulesAccerationDefault === wrapper.vm.rulesObj).toBeFalsy()
 

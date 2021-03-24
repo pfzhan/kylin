@@ -41,7 +41,7 @@ const queryHistorys = [{
   query_id: "b3b89153-141c-4ae8-8b9a-924fb889e1e2",
   query_status: "SUCCEEDED",
   query_time: 1600410798490,
-  realizations: null,
+  realizations: [],
   result_row_count: 500,
   server: ['sandbox.hortonworks.com:7072'],
   sql_limit: "select * from SSB.DATES_VIEW LIMIT 500",
@@ -130,7 +130,7 @@ describe('Component QueryHistory', () => {
       next: jest.fn().mockImplementation(func => func && func(wrapper.vm))
     }
     queryHistory.options.beforeRouteEnter(route.to, route.from, route.next)
-    expect(mockApi.mockGetHistoryList.mock.calls[0][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": undefined, "sql": "", "start_time_from": null, "start_time_to": null, "submitter": []})
+    expect(mockApi.mockGetHistoryList.mock.calls[0][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "", "sql": "", "start_time_from": null, "start_time_to": null, "submitter": []})
     const route1 = {
       to: {
         name: 'QueryHistory',
@@ -153,7 +153,7 @@ describe('Component QueryHistory', () => {
     await wrapper.setData({pageSize: null, filterData: {...wrapper.vm.filterData, startTimeFrom: 1613318400000, startTimeTo: 1613923200000}})
     await wrapper.vm.$nextTick()
     await wrapper.vm.loadHistoryList()
-    expect(mockApi.mockGetHistoryList.mock.calls[3][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "", "sql": null, "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
+    expect(mockApi.mockGetHistoryList.mock.calls[3][1]).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
     await wrapper.vm.openIndexDialog({modelId: 'b3b89153-141c-4ae8-8b9a-924fb889e1e2', layoutId: 1}, [])
     expect(wrapper.vm.model.uuid).toBe('b3b89153-141c-4ae8-8b9a-924fb889e1e2')
     // expect(wrapper.vm.tabelIndexLayoutId).toBe(1)
@@ -176,10 +176,16 @@ describe('Component QueryHistory', () => {
     expect(wrapper.vm.aggIndexLayoutId).toBe('')
 
     await wrapper.setData({pageSize: 20})
-    wrapper.vm.loadFilterList('test')
-    expect(wrapper.vm.filterData).toBe('test')
+    wrapper.vm.loadFilterList({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "sandbox.com", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
+    expect(wrapper.vm.filterData).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "sandbox.com", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
     expect(wrapper.vm.queryCurrentPage).toBe(1)
     expect(wrapper.vm.pageSize).toBe(20)
     expect(mockApi.mockGetHistoryList).toBeCalled()
+
+    wrapper.vm.exportHistory(true)
+    expect(wrapper.vm.isExportSqlOnly).toBeTruthy()
+    expect(wrapper.vm.exportSqlDialogVisible).toBeTruthy()
+
+    expect(wrapper.vm.exportUrl()).toBe('?project=Kyligence&start_time_from=&start_time_to=&latency_from=&latency_to=&realization=&submitter=&server=sandbox.com&sql=&query_status=&timezone_offset_hour=8&language=en')
   })
 })

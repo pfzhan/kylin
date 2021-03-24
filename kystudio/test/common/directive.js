@@ -148,11 +148,11 @@ export function createDirectives (Vue) {
   // 只适用kyligence-ui里带focus method的组件和原生dom元素
   Vue.directive('focus', {
     inserted: function (el) {
-      el.__vue__ ? el.__vue__.focus() : el.focus()
+      el.__vue__ && el.__vue__.focus ? el.__vue__.focus() : el.focus()
     },
     update: function (el, binding) {
       if (binding.value && !binding.oldValue) {
-        el.__vue__ ? el.__vue__.focus() : el.focus()
+        el.__vue__  && el.__vue__.focus? el.__vue__.focus() : el.focus()
       }
     }
   })

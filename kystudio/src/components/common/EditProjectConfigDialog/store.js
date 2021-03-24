@@ -45,16 +45,6 @@ export default {
         }
       }
     },
-    [types.SET_MODAL] (state, payload) {
-      for (const key of Object.keys(payload)) {
-        if (key === 'form') {
-          state.form.key = payload.form.key
-          state.form.value = payload.form.value
-        } else {
-          state[key] = payload[key]
-        }
-      }
-    },
     [types.SHOW_MODAL] (state) {
       state.isShow = true
     },

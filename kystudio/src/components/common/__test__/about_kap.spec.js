@@ -32,7 +32,6 @@ Object.defineProperty(window, 'location', {
 
 describe('Component about_kap', () => {
   it('init data', async () => {
-    expect(wrapper.name()).toBe('about_kap')
     expect(wrapper.vm.aboutKap).toBe('关于')
   })
   it('test computed function', async () => {

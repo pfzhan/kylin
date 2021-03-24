@@ -14,7 +14,7 @@ const mockHandleSuccess = jest.spyOn(bussiness, 'handleSuccess').mockImplementat
   callback && callback(res)
 })
 const mockHandleError = jest.spyOn(bussiness, 'handleError').mockRejectedValue(false)
-const mockKapConfirm = jest.spyOn(bussiness, 'kapConfirm').mockResolvedValue(true)
+let mockKapConfirm = jest.spyOn(bussiness, 'kapConfirm').mockResolvedValue(true)
 const mockMessage = jest.fn().mockImplementation()
 
 const mockApi = {
@@ -119,6 +119,10 @@ const wrapper = shallowMount(Insight, {
     queryTab
   }
 })
+
+const route = {
+  next: jest.fn().mockImplementation(func => func && func(wrapper.vm))
+}
 
 describe('Component Insight', () => {
   it('init', () => {
@@ -225,13 +229,17 @@ describe('Component Insight', () => {
 
     wrapper.vm.cancelResubmit()
     expect(wrapper.vm.savedQueryListVisible).toBeFalsy()
-
+    
     // wrapper.vm._data.savedList = [{sql: 'select * from SSB.DATES'}]
     await wrapper.setData({checkedQueryList: [0], savedList: [...wrapper.vm.savedList, {sql: 'select * from SSB.DATES'}]})
     await wrapper.setData({savedList: [...wrapper.vm.savedList, {sql: 'select * from SSB.DATES'}]})
     // wrapper.find('.saved_query_dialog .el-checkbox').trigger('click')
     wrapper.vm.resubmit()
     expect(wrapper.vm.editableTabs.length).toBe(2)
+    expect(wrapper.vm.savedQueryListVisible).toBeFalsy()
+
+    await wrapper.setData({checkedQueryList: []})
+    wrapper.vm.resubmit()
     expect(wrapper.vm.savedQueryListVisible).toBeFalsy()
 
     const _data = {
@@ -276,6 +284,8 @@ describe('Component Insight', () => {
     expect(wrapper.vm.editableTabs[1].icon).toEqual('el-icon-ksd-good_health')
     wrapper.vm.changeTab(1, _data, 'error')
     expect(wrapper.vm.editableTabs[1].icon).toEqual('el-icon-ksd-error_01')
+    wrapper.vm.changeTab(2, _data, 'error')
+    expect(wrapper.vm.editableTabs[2].icon).toEqual('el-icon-loading')
 
     wrapper.vm.$store._actions.GET_SAVE_QUERIES = [jest.fn().mockImplementation(() => {
       return {
@@ -299,5 +309,35 @@ describe('Component Insight', () => {
     })]
     wrapper.vm.loadSavedQuerySize()
     expect(wrapper.vm.savedSize).toBe(0)
+
+    wrapper.vm.cacheTabs(false)
+    expect(mockApi.mockSetQueryTabs).toBeCalled()
+    wrapper.vm.cacheTabs(true)
+    expect(mockApi.mockSetQueryTabs.mock.calls[10][1]).toEqual({"tabs": {"Kyligence": [{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}]}})
+  })
+  it('router', async () => {
+    const _data1 = [{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "el-icon-loading", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}]
+    await wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, ..._data1]})
+    await wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, route.to, route.from, route.next)
+    jest.runAllTimers()
+    expect(mockKapConfirm).toBeCalledWith('The currently running query would be stopped when leaving the page. Are you sure you want to leave?', {"cancelButtonText": "Cancel", "confirmButtonText": "OK", "type": "warning"}, 'Notification')
+    expect(mockApi.mockSetQueryTabs).toBeCalled()
+    expect(route.next).toBeCalled()
+
+    jest.spyOn(bussiness, 'kapConfirm').mockRejectedValue(false)
+    await wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, route.to, route.from, route.next)
+    jest.runAllTimers()
+    expect(route.next).toBeCalled()
+
+    await wrapper.setData({editableTabs: []})
+    await wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, route.to, route.from, route.next)
+    expect(route.next).toBeCalled()
+
+    wrapper.vm.$store.state.config.platform = 'iframe'
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, route.to, route.from, route.next)
+    expect(route.next).toBeCalled()
+
+    jest.clearAllTimers()
   })
 })
