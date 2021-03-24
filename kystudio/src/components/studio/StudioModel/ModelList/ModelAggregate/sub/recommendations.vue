@@ -77,12 +77,12 @@
         </el-table-column>
         <el-table-column
           width="175"
-          prop="create_time"
+          prop="last_modified"
           :label="$t('th_updateDate')"
           sortable
           show-overflow-tooltip>
           <template slot-scope="scope">
-            {{transToGmtTime(scope.row.create_time)}}
+            {{transToGmtTime(scope.row.last_modified)}}
           </template>
         </el-table-column>
         <el-table-column
