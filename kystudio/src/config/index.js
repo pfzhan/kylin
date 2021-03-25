@@ -8,7 +8,7 @@ let regexApiUrl
 let pageCount = 10
 let pageSizes = [10, 20, 30, 50, 100]
 
-let maxExportLength = 1000000 // 出厂最低配置下，10万行导出在 10秒以内
+let maxExportLength = 100000 // 出厂最低配置下，10万行导出在 10秒以内
 
 let speedInfoTimer = 6000
 
