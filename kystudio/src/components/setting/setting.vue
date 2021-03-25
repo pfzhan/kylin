@@ -98,6 +98,8 @@ export default class Setting extends Vue {
           this.$confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.notice'), {
             confirmButtonText: window.kapVm.$t('kylinLang.common.exit'),
             cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
+            closeOnClickModal: false,
+            closeOnPressEscape: false,
             type: 'warning'
           }).then(() => {
             if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
