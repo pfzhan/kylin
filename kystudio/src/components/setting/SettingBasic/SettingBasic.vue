@@ -799,7 +799,7 @@ export default class SettingBasic extends Vue {
       let dbList = databases ? ArrayFlat(databases.map(item => item.tables)) : []
       if (dbList.length) {
         this.excludeRuleOptions = dbList.map(it => ({label: `${it.database}.${it.name}`, value: `${it.database}.${it.name}`, fact: it.root_fact})).slice(0, 50)
-        this.showIimitExcludedTableMsg = this.excludeRuleOptions.length > 50
+        this.showIimitExcludedTableMsg = dbList.length > 50
       }
     } catch (e) {
       handleError(e)
