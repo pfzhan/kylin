@@ -32,7 +32,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -43,7 +42,6 @@ import org.springframework.context.event.EventListener;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -105,7 +103,5 @@ public class MetricsConfig {
 
         METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(MetricsRegistry::refreshTotalStorageSize,
                 0, 10, TimeUnit.MINUTES);
-
-        MetricsController.startReporters(KapConfig.wrap(KylinConfig.getInstanceFromEnv()));
     }
 }

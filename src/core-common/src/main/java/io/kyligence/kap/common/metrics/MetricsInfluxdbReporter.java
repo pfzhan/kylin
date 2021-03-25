@@ -176,7 +176,6 @@ public class MetricsInfluxdbReporter implements MetricsReporter {
     public void startReporter(int pollingPeriodInSeconds) {
         synchronized (this) {
             if (initialized.get() && !running.get()) {
-                underlying.report();
                 underlying.start(pollingPeriodInSeconds, TimeUnit.SECONDS);
                 running.set(true);
                 logger.info("ke.metrics influxdb reporter started");
