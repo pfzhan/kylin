@@ -92,6 +92,7 @@ import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.comm
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.var;
 import lombok.experimental.Delegate;
 
 /**
@@ -623,18 +624,30 @@ public abstract class AbstractExecutable implements Executable {
         Output output = getOutput();
         long startTime = output.getStartTime();
 
-        //the job/task are not started
-        if(startTime == 0){
+        long lastTaskEndTime = output.getCreateTime();
+        var lastTaskStatus = getStatus();
+
+        int stepId = getStepId();
+
+        // get end_time of last task
+        if (getParent() instanceof DefaultChainedExecutable) {
+            val parentExecutable = (DefaultChainedExecutable) getParent();
+            val lastExecutable = parentExecutable.getSubTaskByStepId(stepId - 1);
+
+            lastTaskEndTime = lastExecutable.map(AbstractExecutable::getEndTime)
+                    .orElse(parentExecutable.getOutput().getCreateTime());
+
+            lastTaskStatus = lastExecutable.map(AbstractExecutable::getStatus).orElse(parentExecutable.getStatus());
+        }
+
+        //if last task is not end, wait_time is 0
+        if (stepId > 0 && (lastTaskEndTime == 0 || lastTaskStatus != ExecutableState.SUCCEED)) {
             return 0;
         }
 
-        long lastTaskEndTime = output.getCreateTime();
-
-        if (getParent() instanceof DefaultChainedExecutable) {
-            val parentExecutable = (DefaultChainedExecutable) getParent();
-            val lastExecutable = parentExecutable.getSubTaskByStepId(getStepId() - 1);
-
-            lastTaskEndTime = lastExecutable.map(AbstractExecutable::getEndTime).orElse(parentExecutable.getOutput().getCreateTime());
+        //the job/task is not started, use the current time
+        if (startTime == 0) {
+            startTime = System.currentTimeMillis();
         }
 
         return startTime - lastTaskEndTime;
