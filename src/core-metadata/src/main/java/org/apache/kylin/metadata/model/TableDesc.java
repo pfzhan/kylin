@@ -285,7 +285,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
         for (ColumnDesc c : columns) {
             // return first matched column
-            if (name.equalsIgnoreCase(c.getName())) {
+            if (name.equalsIgnoreCase(c.getOriginalName())) {
                 return c;
             }
         }

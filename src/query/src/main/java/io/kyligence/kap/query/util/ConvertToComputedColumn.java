@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -93,10 +94,14 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.guava20.shaded.common.cache.CacheBuilder;
+import io.kyligence.kap.guava20.shaded.common.cache.CacheLoader;
+import io.kyligence.kap.guava20.shaded.common.cache.LoadingCache;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -107,6 +112,14 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     private static Map<String, String> calciteExtrasProperties = KylinConfig.getInstanceFromEnv()
             .getCalciteExtrasProperties();
+
+    private static final LoadingCache<String, String> transformExpressions = CacheBuilder.newBuilder()
+            .maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build(new CacheLoader<String, String>() {
+                @Override
+                public String load(String cc) {
+                    return new EscapeTransformer().transform(cc, null, null);
+                }
+            });
 
     @Override
     public String transform(String originSql, String project, String defaultSchema) {
@@ -300,9 +313,10 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
         for (ComputedColumnDesc cc : computedColumns) {
             List<SqlNode> matchedNodes = Lists.newArrayList();
-            matchedNodes.addAll(getMatchedNodes(selectOrOrderby, replaceCcName ? cc.getFullName() : cc.getExpression(), queryAliasMatchInfo));
+            matchedNodes.addAll(getMatchedNodes(selectOrOrderby, replaceCcName ? cc.getFullName() : cc.getExpression(),
+                    queryAliasMatchInfo));
 
-            String transformedExpression = new EscapeTransformer().transform(cc.getExpression(), null, null);
+            String transformedExpression = transformExpr(cc.getExpression());
             if (!transformedExpression.equals(cc.getExpression())) {
                 matchedNodes.addAll(getMatchedNodes(selectOrOrderby, transformedExpression, queryAliasMatchInfo));
             }
@@ -329,6 +343,11 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         return toBeReplacedExp;
     }
 
+    @SneakyThrows
+    private static String transformExpr(String expression) {
+        return transformExpressions.get(expression);
+    }
+
     private static String getCalciteConformance() {
         try {
             return calciteExtrasProperties.get("conformance");
@@ -343,7 +362,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return Collections.emptyList();
         }
         ArrayList<SqlNode> matchedNodes = new ArrayList<>();
-        SqlNode ccExpressionNode = CalciteParser.getExpNode(ccExp);
+        SqlNode ccExpressionNode = CalciteParser.getReadonlyExpNode(ccExp);
 
         List<SqlNode> inputNodes = new LinkedList<>();
         if ("LENIENT".equals(getCalciteConformance())) {

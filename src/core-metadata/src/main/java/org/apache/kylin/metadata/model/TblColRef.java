@@ -234,6 +234,10 @@ public class TblColRef implements Serializable {
         this.identity = null;
     }
 
+    public String getOriginalName() {
+        return column.getOriginalName();
+    }
+
     public String getName() {
         return column.getName();
     }

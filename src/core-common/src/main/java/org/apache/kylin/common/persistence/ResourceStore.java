@@ -69,7 +69,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteSource;
@@ -396,9 +395,10 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
         if (!resPath.startsWith("/"))
             resPath = "/" + resPath;
 
-        Preconditions.checkArgument(!resPath.contains("//"),
-                String.format(Locale.ROOT, "input resPath contains consequent slash: %s", resPath));
-
+        if (resPath.contains("//")) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, "input resPath contains consequent slash: %s", resPath));
+        }
         return resPath;
     }
 

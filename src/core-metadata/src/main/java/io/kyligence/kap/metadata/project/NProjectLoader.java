@@ -94,7 +94,8 @@ public class NProjectLoader {
 
     public Set<IRealization> listAllRealizations(String project) {
         ProjectBundle prjCache = load(project);
-        return Collections.unmodifiableSet(prjCache.realizationsByTable.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
+        return Collections.unmodifiableSet(
+                prjCache.realizationsByTable.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
     }
 
     public Set<IRealization> getRealizationsByTable(String project, String table) {
@@ -111,10 +112,10 @@ public class NProjectLoader {
         for (IRealization r : realizations) {
             if (!r.isReady())
                 continue;
-
+            NDataModel model = r.getModel();
             for (MeasureDesc m : r.getMeasures()) {
                 FunctionDesc func = m.getFunction();
-                if (belongToFactTable(table, r.getModel()) && (!onlyRewriteMeasure || func.needRewrite())) {
+                if (belongToFactTable(table, model) && (!onlyRewriteMeasure || func.needRewrite())) {
                     result.add(m);
                 }
             }
@@ -142,6 +143,8 @@ public class NProjectLoader {
         if (pi == null)
             throw new IllegalArgumentException("Project '" + project + "' does not exist.");
 
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
+        Map<String, TableDesc> projectAllTables = metaMgr.getAllTablesMap();
         NRealizationRegistry registry = NRealizationRegistry.getInstance(mgr.getConfig(), project);
         pi.getRealizationEntries().forEach(entry -> {
             IRealization realization = registry.getRealization(entry.getType(), entry.getRealization());
@@ -150,7 +153,7 @@ public class NProjectLoader {
                 return;
             }
 
-            if (sanityCheck(realization, project)) {
+            if (sanityCheck(realization, projectAllTables)) {
                 mapTableToRealization(projectBundle, realization);
             }
         });
@@ -159,7 +162,7 @@ public class NProjectLoader {
     }
 
     // check all columns reported by realization does exists
-    private boolean sanityCheck(IRealization realization, String project) {
+    private boolean sanityCheck(IRealization realization, Map<String, TableDesc> projectAllTables) {
         if (realization == null)
             return false;
 
@@ -172,9 +175,8 @@ public class NProjectLoader {
             // cuboid which only contains measure on (*) should return true
         }
 
-        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
         for (TblColRef col : allColumns) {
-            TableDesc table = metaMgr.getTableDesc(col.getTable());
+            TableDesc table = projectAllTables.get(col.getTable());
             if (table == null) {
                 logger.error("Realization '{}' reports column '{}', but its table is not found by MetadataManager.",
                         realization.getCanonicalName(), col.getCanonicalName());
@@ -182,7 +184,7 @@ public class NProjectLoader {
             }
 
             if (!col.getColumnDesc().isComputedColumn()) {
-                ColumnDesc foundCol = table.findColumnByName(col.getName());
+                ColumnDesc foundCol = table.findColumnByName(col.getOriginalName());
                 if (!col.getColumnDesc().equals(foundCol)) {
                     logger.error(
                             "Realization '{}' reports column '{}', but it is not equal to '{}' according to MetadataManager.",

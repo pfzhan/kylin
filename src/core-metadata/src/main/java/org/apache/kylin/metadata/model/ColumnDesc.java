@@ -175,6 +175,11 @@ public class ColumnDesc implements Serializable {
             zeroBasedIndex = Integer.parseInt(id) - 1;
     }
 
+    //avoid calling getName(toUpperCase) frequently
+    public String getOriginalName(){
+        return name;
+    }
+
     public String getName() {
         return (name == null) ? null : name.toUpperCase(Locale.ROOT);
     }
