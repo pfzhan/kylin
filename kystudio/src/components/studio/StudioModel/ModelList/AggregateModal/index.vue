@@ -443,7 +443,7 @@
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
             <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
             <el-col :span="6"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
-            <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 40}">{{item.column}}</span><el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(item.column) && displayExcludedTables"></i></el-tooltip></el-col>
+            <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 40}">{{item.column}}</span><el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(item) && displayExcludedTables"></i></el-tooltip></el-col>
             <el-col :span="3">{{item.type}}</el-col>
             <el-col :span="2">
               <template v-if="item.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
@@ -532,11 +532,6 @@ import { handleSuccess, postCloudUrlMessage } from 'util/business'
 vuex.registerModule(['modals', 'AggregateModal'], store)
 
 @Component({
-  inject: {
-    getFavoriteRules: {
-      default: () => {}
-    }
-  },
   computed: {
     ...mapState('AggregateModal', {
       form: state => state.form,
@@ -625,7 +620,6 @@ export default class AggregateModal extends Vue {
   pageOffset = 0
   pageSize = 50
   generateDeletedIndexes = true
-  favoriteRules = {}
   displayExcludedTables = false
 
   @Watch('$lang')
@@ -667,20 +661,12 @@ export default class AggregateModal extends Vue {
 
   // 是否展示屏蔽表 checkbox
   get showExcludedTableCheckBox () {
-    const { simplified_dimensions, simplified_tables } = this.model
-    if (this.favoriteRules.excluded_tables) {
-      const excludedTables = this.favoriteRules.excluded_tables.split(',')
-      const dimensionIncludeTables = [...new Set(simplified_dimensions.map(it => it.column.split('.')[0]))]
-      const currentExcludeTables = simplified_tables.filter(item => item.table && excludedTables.includes(item.table)).map(it => it.table.split('.')[1])
-      return dimensionIncludeTables.filter(it => currentExcludeTables.includes(it)).length > 0
-    } else {
-      return false
-    }
+    return this.backUpDimensions.length ? this.backUpDimensions.filter(it => typeof it.depend_lookup_table !== 'undefined' && it.depend_lookup_table).length > 0 : false
   }
 
   // 是否为屏蔽表的 column
   isExistExcludeTable (col) {
-    return this.favoriteRules.excluded_tables && this.favoriteRules.excluded_tables.split(',').map(it => it.split('.')[1] && it.split('.')[1]).includes(col.split('.')[0])
+    return typeof col.depend_lookup_table !== 'undefined' ? col.depend_lookup_table : false
   }
 
   getMultipleCardinality (aggregateIdx, jointRowIdx) {
@@ -847,7 +833,6 @@ export default class AggregateModal extends Vue {
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
-      this.getFavoriteRulesContext()
       this.groupsDim = this.form.aggregateArray.map((agg) => {
         return agg.dimCap
       })
@@ -1479,7 +1464,7 @@ export default class AggregateModal extends Vue {
       if (this.displayExcludedTables) {
         return it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1
       } else {
-        return (it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1) && !this.isExistExcludeTable(it.column)
+        return (it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1) && !this.isExistExcludeTable(it)
       }
     }).map(it => ({...it, isCheck: selectedItems.includes(it.label)}))
     const labels = filterData.map(it => it.label)
@@ -1655,10 +1640,6 @@ export default class AggregateModal extends Vue {
     const constantMeasure = this.measureList.filter(it => it.expression === 'COUNT' && it.parameter_value && it.parameter_value[0].type === 'constant')
     !constantMeasure.length && !measures.includes('COUNT_ALL') && measures.unshift('COUNT_ALL')
     this.$set(this.form.aggregateArray[aggregateIdx], 'measures', measures)
-  }
-
-  async getFavoriteRulesContext () {
-    this.favoriteRules = await this.getFavoriteRules()
   }
 
   // 是否显示被屏蔽的列

@@ -32,7 +32,7 @@
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="(col, index) in searchAllColumns" :key="col.fullName" class="table-row">
                   <el-col :span="1"><el-checkbox size="small" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
-                  <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}<el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(col.fullName) && displayExcludedTables"></i></el-tooltip></el-col>
+                  <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}<el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(col) && displayExcludedTables"></i></el-tooltip></el-col>
                   <el-col :span="3" class="cardinality-item">
                     <template v-if="col.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
                     <template v-else>{{ col.cardinality }}</template>
@@ -88,11 +88,6 @@
   vuex.registerModule(['modals', 'TableIndexEditModal'], store)
 
   @Component({
-    inject: {
-      getFavoriteRules: {
-        default: () => {}
-      }
-    },
     computed: {
       ...mapGetters([
         'currentSelectedProject'
@@ -141,7 +136,6 @@
     }
     cloneMeta = ''
     isSelectAllTableIndex = false
-    favoriteRules = {}
     displayExcludedTables = false
 
     @Watch('searchColumn')
@@ -155,13 +149,7 @@
     }
 
     get showExcludedTableCheckBox () {
-      if (this.favoriteRules.excluded_tables) {
-        const currentTables = [...new Set(this.allColumns.map(it => it.fullName.split('.')[0]))]
-        const excludesTables = this.favoriteRules.excluded_tables.split(',').map(item => item.split('.')[1])
-        return currentTables.filter(it => excludesTables.includes(it)).length
-      } else {
-        return false
-      }
+      return this.allColumns.length ? this.allColumns.filter(it => typeof it.depend_lookup_table !== 'undefined' && it.depend_lookup_table).length > 0 : false
     }
     topRow (col) {
       let index = this.getRowIndex(col, 'fullName')
@@ -255,7 +243,7 @@
     }
     // 是否为屏蔽表的 column
     isExistExcludeTable (col) {
-      return this.favoriteRules.excluded_tables && this.favoriteRules.excluded_tables.split(',').map(it => it.split('.')[1] && it.split('.')[1]).includes(col.split('.')[0])
+      return typeof col.depend_lookup_table !== 'undefined' ? col.depend_lookup_table : false
     }
     get filterResult () {
       if (!this.isShow) {
@@ -265,7 +253,7 @@
         if (this.displayExcludedTables) {
           return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0
         } else {
-          return (!this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0) && !this.isExistExcludeTable(col.fullName)
+          return (!this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0) && !this.isExistExcludeTable(col)
         }
       })
     }
@@ -279,7 +267,7 @@
       this.allColumns = []
       // let result = []
       let result = this.modelInstance.selected_columns.map((c) => {
-        return { fullName: c.column, cardinality: c.cardinality }
+        return { fullName: c.column, cardinality: c.cardinality, depend_lookup_table: typeof c.depend_lookup_table !== 'undefined' ? c.depend_lookup_table : true }
       })
       // let modelUsedTables = this.modelInstance && this.modelInstance.getTableColumns() || []
       // modelUsedTables.forEach((col) => {
@@ -289,7 +277,7 @@
         // result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
         const selected = this.tableIndexMeta.sort_by_columns.map(item => {
           const index = result.findIndex(it => it.fullName === item)
-          return {fullName: item, cardinality: result[index].cardinality}
+          return {fullName: item, cardinality: result[index].cardinality, depend_lookup_table: result[index].depend_lookup_table}
         })
         const unSort = result.filter(item => !this.tableIndexMeta.sort_by_columns.includes(item.fullName))
         result = [...selected, ...unSort]
@@ -300,7 +288,7 @@
       //   result.push(col.tableAlias + '.' + col.columnName)
       // })
       result.forEach((ctx, index) => {
-        let obj = {fullName: ctx.fullName, cardinality: ctx.cardinality, isSorted: false, isUsed: false, isShared: false, colorful: false}
+        let obj = {fullName: ctx.fullName, cardinality: ctx.cardinality, depend_lookup_table: ctx.depend_lookup_table, isSorted: false, isUsed: false, isShared: false, colorful: false}
         if (this.tableIndexMeta.sort_by_columns.indexOf(ctx.fullName) >= 0) {
           obj.isSorted = true
         }
@@ -330,7 +318,6 @@
           }
           Object.assign(this.tableIndexMeta, this.tableIndexDesc)
         }
-        this.getFavoriteRulesContext()
         this.getAllColumns()
         this.cloneMeta = JSON.stringify(this.allColumns)
       } else {
@@ -487,11 +474,6 @@
       } else {
         this.$router.push('/monitor/job')
       }
-    }
-
-    // 获取优化建议配置参数
-    async getFavoriteRulesContext () {
-      this.favoriteRules = await this.getFavoriteRules()
     }
   }
 </script>
