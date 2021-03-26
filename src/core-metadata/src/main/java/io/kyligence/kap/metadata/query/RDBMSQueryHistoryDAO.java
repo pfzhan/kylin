@@ -156,6 +156,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         return jdbcQueryHisStore.queryQueryHistoriesByConditions(request, limit, page * limit);
     }
 
+    public List<QueryHistory> getQueryHistoriesByConditionsWithOffset(QueryHistoryRequest request, int limit, int offset) {
+        return jdbcQueryHisStore.queryQueryHistoriesByConditions(request, limit, offset);
+    }
+
     public long getQueryHistoriesSize(QueryHistoryRequest request, String project) {
         return jdbcQueryHisStore.queryQueryHistoriesSize(request).getCount();
     }

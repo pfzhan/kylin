@@ -125,13 +125,13 @@ public class QueryHistoryService extends BasicService {
             }
 
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            long needDownloadSize = Math.min(queryHistoryDao.getQueryHistoriesSize(request, request.getProject()),
+            int needDownload = Math.min((int) queryHistoryDao.getQueryHistoriesSize(request, request.getProject()),
                     kylinConfig.getQueryHistoryDownloadMaxSize());
-            int batchCount = 0;
-            int batchSize = kylinConfig.getQueryHistoryDownloadBatchSize();
-            while (batchCount * batchSize < needDownloadSize) {
-                List<QueryHistory> queryHistories = queryHistoryDao.getQueryHistoriesByConditions(request, batchSize,
-                        batchCount);
+            int hadDownload = 0;
+            while (hadDownload < needDownload) {
+                int batchSize = Math.min(kylinConfig.getQueryHistoryDownloadBatchSize(), needDownload - hadDownload);
+                List<QueryHistory> queryHistories = queryHistoryDao.getQueryHistoriesByConditionsWithOffset(request,
+                        batchSize, hadDownload);
                 for (QueryHistory queryHistory : queryHistories) {
                     fillingModelAlias(noBrokenModels, dataModelManager, queryHistory);
                     if (onlySql) {
@@ -142,7 +142,7 @@ public class QueryHistoryService extends BasicService {
                                 timeZoneOffsetHour) + "\n").getBytes(StandardCharsets.UTF_8));
                     }
                 }
-                batchCount++;
+                hadDownload = hadDownload + queryHistories.size();
             }
         } catch (IOException e) {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());

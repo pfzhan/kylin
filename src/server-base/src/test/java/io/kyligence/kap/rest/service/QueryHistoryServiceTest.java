@@ -124,6 +124,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
+        RDBMSQueryHistoryDAO.getInstance().deleteAllQueryHistory();
         cleanupTestMetadata();
     }
 
@@ -757,5 +758,128 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
                 "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
                         + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n",
                 baos.toString(StandardCharsets.UTF_8.name()));
+    }
+
+    @Test
+    public void testDownloadQueryHistoriesSize() throws Exception {
+        // prepare query history to RDBMS
+        RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
+        queryHistoryDAO.deleteAllQueryHistory();
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311522001L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311532002L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311542003L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311552004L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311562005L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311572006L, 1L, true, PROJECT, false));
+
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+
+        overwriteSystemProp("kylin.query.query-history-download-batch-size", "2");
+        overwriteSystemProp("kylin.query.query-history-download-max-size", "5");
+
+        HttpServletResponse response1 = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream1 = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos1 = new ByteArrayOutputStream();
+        when(response1.getOutputStream()).thenReturn(servletOutputStream1);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos1.write((byte[]) arguments[0]);
+                return null;
+            }
+        }).when(servletOutputStream1).write(any(byte[].class));
+        queryHistoryService.downloadQueryHistories(request, response1, ZoneOffset.ofHours(8), 8, false);
+        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n"
+                + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:26:02 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:25:52 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:25:42 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:25:32 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN\n",
+                baos1.toString(StandardCharsets.UTF_8.name()));
+
+        overwriteSystemProp("kylin.query.query-history-download-batch-size", "3");
+        overwriteSystemProp("kylin.query.query-history-download-max-size", "2");
+        HttpServletResponse response2 = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream2 = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+        when(response2.getOutputStream()).thenReturn(servletOutputStream2);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos2.write((byte[]) arguments[0]);
+                return null;
+            }
+        }).when(servletOutputStream2).write(any(byte[].class));
+
+        queryHistoryService.downloadQueryHistories(request, response2, ZoneOffset.ofHours(8), 8, false);
+        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n"
+                + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
+                + "2020-01-29 23:26:02 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n",
+                baos2.toString(StandardCharsets.UTF_8.name()));
+    }
+
+    @Test
+    public void testDownloadQueryHistoriesSqlSize() throws Exception {
+        // prepare query history to RDBMS
+        RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
+        queryHistoryDAO.deleteAllQueryHistory();
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311522001L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311532002L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311542003L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311552004L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311562005L, 1L, true, PROJECT, false));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311572006L, 1L, true, PROJECT, false));
+
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+
+        overwriteSystemProp("kylin.query.query-history-download-batch-size", "2");
+        overwriteSystemProp("kylin.query.query-history-download-max-size", "5");
+        HttpServletResponse response1 = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream1 = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos1 = new ByteArrayOutputStream();
+        when(response1.getOutputStream()).thenReturn(servletOutputStream1);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos1.write((byte[]) arguments[0]);
+                return null;
+            }
+        }).when(servletOutputStream1).write(any(byte[].class));
+        queryHistoryService.downloadQueryHistories(request, response1, ZoneOffset.ofHours(8), 8, true);
+        assertEquals(
+                "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
+                        + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
+                        + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
+                        + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
+                        + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n",
+                baos1.toString(StandardCharsets.UTF_8.name()));
+
+        overwriteSystemProp("kylin.query.query-history-download-batch-size", "2");
+        overwriteSystemProp("kylin.query.query-history-download-max-size", "2");
+        HttpServletResponse response2 = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream2 = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+        when(response2.getOutputStream()).thenReturn(servletOutputStream2);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos2.write((byte[]) arguments[0]);
+                return null;
+            }
+        }).when(servletOutputStream2).write(any(byte[].class));
+
+        queryHistoryService.downloadQueryHistories(request, response2, ZoneOffset.ofHours(8), 8, true);
+        assertEquals(
+                "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n"
+                        + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n",
+                baos2.toString(StandardCharsets.UTF_8.name()));
     }
 }

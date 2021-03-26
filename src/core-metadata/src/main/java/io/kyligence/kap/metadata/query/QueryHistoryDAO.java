@@ -30,6 +30,8 @@ public interface QueryHistoryDAO {
 
     List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int page);
 
+    List<QueryHistory> getQueryHistoriesByConditionsWithOffset(QueryHistoryRequest request, int limit, int offset);
+
     QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime, String project);
 
     QueryStatistics getQueryCountByRange(long startTime, long endTime, String project);
