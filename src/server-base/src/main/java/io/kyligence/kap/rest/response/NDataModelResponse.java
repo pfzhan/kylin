@@ -28,8 +28,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -44,6 +46,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
@@ -127,22 +131,28 @@ public class NDataModelResponse extends NDataModel {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
 
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(getConfig(), getProject()).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, this);
         List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
         for (NamedColumn col : getAllNamedColumns()) {
             if (col.isDimension()) {
-                dimList.add(transColumnToDim(col, tableMetadata));
+                dimList.add(transColumnToDim(checker, col, tableMetadata));
             }
         }
 
         return dimList;
     }
 
-    public SimplifiedNamedColumn transColumnToDim(NamedColumn col, NTableMetadataManager tableMetadata) {
+    public SimplifiedNamedColumn transColumnToDim(ExcludedLookupChecker checker, NamedColumn col,
+            NTableMetadataManager tableMetadata) {
         SimplifiedNamedColumn simplifiedDimension = new SimplifiedNamedColumn(col);
 
         TblColRef colRef = findColumnByAlias(simplifiedDimension.getAliasDotColumn());
         if (colRef == null || tableMetadata == null) {
             return simplifiedDimension;
+        }
+        if (checker.isColRefDependsLookupTable(colRef)) {
+            simplifiedDimension.setDependLookupTable(true);
         }
         TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
         if (tableExt != null) {
@@ -161,7 +171,7 @@ public class NDataModelResponse extends NDataModel {
                 simplifiedDimension.setMinLengthValue(columnStats.getMinLengthValue());
 
                 ArrayList<String> simple = Lists.newArrayList();
-                tableExt.getSampleRows().stream()
+                tableExt.getSampleRows()
                         .forEach(row -> simple.add(row[tableExt.getAllColumnStats().indexOf(columnStats)]));
                 simplifiedDimension.setSimple(simple);
             }
@@ -239,6 +249,10 @@ public class NDataModelResponse extends NDataModel {
             this.name = namedColumn.getName();
         }
 
+        @HashCodeExclude
+        @JsonProperty("depend_lookup_table")
+        private boolean dependLookupTable;
+
         @JsonProperty("cardinality")
         private Long cardinality;
 
@@ -287,11 +301,16 @@ public class NDataModelResponse extends NDataModel {
         if (!isBroken()) {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(getConfig(), getProject()).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, this);
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
             TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());
             if (simplifiedNamedColumn.getStatus() == ColumnStatus.DIMENSION && colRef != null
                     && tableMetadata != null) {
+                if (checker.isColRefDependsLookupTable(colRef)) {
+                    simplifiedNamedColumn.setDependLookupTable(true);
+                }
                 TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
                 TableExtDesc.ColumnStats columnStats = Objects.isNull(tableExt) ? null
                         : tableExt.getColumnStatsByName(colRef.getName());
