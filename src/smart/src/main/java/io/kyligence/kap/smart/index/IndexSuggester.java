@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -57,6 +58,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -76,6 +78,7 @@ class IndexSuggester {
     private static final String COLUMN_NOT_FOUND_PTN = "The model [%s] matches this query, but the dimension [%s] is missing. ";
     private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
     private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
+    private static final String COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE = "Computed column depends on excluded lookup table, stop the process of generate index.";
 
     private final AbstractContext proposeContext;
     private final AbstractContext.ModelContext modelContext;
@@ -272,10 +275,24 @@ class IndexSuggester {
 
     private void replaceDimOfLookupTableWithFK(OLAPContext context, Set<TblColRef> filterColumns,
             Set<TblColRef> nonFilterColumnSet) {
-        Set<String> usingExcludedLookupTables = modelContext.getChecker()
-                .getUsedExcludedLookupTable(context.allColumns);
-        filterColumns.removeIf(tblColRef -> usingExcludedLookupTables.contains(tblColRef.getTableWithSchema()));
-        nonFilterColumnSet.removeIf(tblColRef -> usingExcludedLookupTables.contains(tblColRef.getTableWithSchema()));
+        ExcludedLookupChecker checker = modelContext.getChecker();
+        AtomicBoolean isAnyCCDependsLookupTable = new AtomicBoolean();
+        filterColumns.removeIf(tblColRef -> {
+            if (tblColRef.getColumnDesc().isComputedColumn()) {
+                isAnyCCDependsLookupTable.set(true);
+            }
+            return checker.isColRefDependsLookupTable(tblColRef);
+        });
+        nonFilterColumnSet.removeIf(tblColRef -> {
+            if (tblColRef.getColumnDesc().isComputedColumn()) {
+                isAnyCCDependsLookupTable.set(true);
+            }
+            return checker.isColRefDependsLookupTable(tblColRef);
+        });
+        if (isAnyCCDependsLookupTable.get()) {
+            throw new IllegalStateException(COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE);
+        }
+        Set<String> usingExcludedLookupTables = checker.getUsedExcludedLookupTable(context.allColumns);
         context.joins.forEach(join -> {
             for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
                 TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];

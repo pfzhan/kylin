@@ -830,7 +830,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         // user not exists
         ownerChangeRequest1.setOwner("nonUser");
-        thrown.expectMessage("This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.");
+        thrown.expectMessage(
+                "This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.");
         projectService.updateProjectOwner(project, ownerChangeRequest1);
 
         // empty admin users, throw exception
@@ -840,7 +841,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         OwnerChangeRequest ownerChangeRequest2 = new OwnerChangeRequest();
         ownerChangeRequest2.setOwner(owner);
 
-        thrown.expectMessage("This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.");
+        thrown.expectMessage(
+                "This user can’t be set as the project’s owner. Please select system admin, or the admin of this project.");
         projectService.updateProjectOwner(project, ownerChangeRequest2);
     }
 
@@ -877,6 +879,23 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(10L, favoriteRuleResponse.get("max_duration"));
         Assert.assertEquals(true, favoriteRuleResponse.get("recommendation_enable"));
         Assert.assertEquals(30L, favoriteRuleResponse.get("recommendations_value"));
+        Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
+        Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
+
+        // check excluded_tables
+        request.setExcludeTablesEnable(true);
+        request.setExcludedTables("a.a,b.b,c.c");
+        projectService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Assert.assertEquals(true, favoriteRuleResponse.get("excluded_tables_enable"));
+        Assert.assertEquals("a.a,b.b,c.c", favoriteRuleResponse.get("excluded_tables"));
+        // check excluded_tables
+        request.setExcludeTablesEnable(false);
+        request.setExcludedTables(null);
+        projectService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Assert.assertEquals(false, favoriteRuleResponse.get("excluded_tables_enable"));
+        Assert.assertEquals("", favoriteRuleResponse.get("excluded_tables"));
 
         // check user_groups
         request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
@@ -920,6 +939,9 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
         Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
+
+        Assert.assertEquals(false, favoriteRules.get("excluded_tables_enable"));
+        Assert.assertEquals("", favoriteRules.get("excluded_tables"));
     }
 
     @Test

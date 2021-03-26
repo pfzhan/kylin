@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.favorite;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -148,7 +149,8 @@ public class FavoriteRuleManager {
             return Sets.newHashSet();
         }
         FavoriteRule.Condition condition = (FavoriteRule.Condition) favoriteRule.getConds().get(0);
-        return Arrays.stream(condition.getRightThreshold().split(",")).collect(Collectors.toSet());
+        return Arrays.stream(condition.getRightThreshold().split(",")) //
+                .map(table -> table.toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
     }
 
     public void delete(FavoriteRule favoriteRule) {

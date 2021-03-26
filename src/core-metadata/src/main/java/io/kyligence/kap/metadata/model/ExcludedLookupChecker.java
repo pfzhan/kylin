@@ -121,6 +121,10 @@ public class ExcludedLookupChecker {
         return false;
     }
 
+    /**
+     * For computed column is very difficult to get the excluded lookup table, so handle
+     * it in the step of IndexSuggester#replaceDimOfLookupTableWithFK.
+     */
     public Set<String> getUsedExcludedLookupTable(Set<TblColRef> colRefs) {
         Set<String> usedExcludedLookupTables = Sets.newHashSet();
         for (TblColRef column : colRefs) {
