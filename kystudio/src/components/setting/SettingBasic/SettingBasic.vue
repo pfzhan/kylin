@@ -334,7 +334,7 @@
                     filterable
                     remote
                     :remote-method="filterExcludeTables"
-                    :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                    :placeholder="rulesObj.excluded_tables.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')"
                     :loading="loading">
                     <el-option
                       v-for="item in excludeRuleOptions"
