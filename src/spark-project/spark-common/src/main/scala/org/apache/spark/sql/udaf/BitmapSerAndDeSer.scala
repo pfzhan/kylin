@@ -24,48 +24,54 @@
 
 package org.apache.spark.sql.udaf
 
-import com.esotericsoftware.kryo.KryoException
-import com.esotericsoftware.kryo.io.{Input, KryoDataInput, KryoDataOutput, Output}
+import java.nio.{BufferOverflowException, ByteBuffer}
 import org.apache.spark.internal.Logging
 import org.roaringbitmap.longlong.Roaring64NavigableMap
 
+import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
+
 
 class BitmapSerAndDeSer extends Logging {
-  private var array: Array[Byte] = _
-  private var output: Output = _
 
   def serialize(buffer: Roaring64NavigableMap): Array[Byte] = {
-    try {
-      if (array == null) {
-        array = new Array[Byte](1024 * 1024)
-        output = new Output(array)
+    buffer.runOptimize()
+    serialize(buffer, 1024 * 1024)
+  }
+
+  @tailrec
+  final def serialize(buffer: Roaring64NavigableMap, capacity: Int): Array[Byte] = {
+    Try {
+      val byteBuffer = ByteBuffer.allocate(capacity)
+      buffer.serialize(byteBuffer)
+      byteBuffer.flip()
+      if( byteBuffer.limit() == byteBuffer.capacity()) {
+        byteBuffer.array()
+      } else {
+        val result = new Array[Byte](byteBuffer.limit())
+        byteBuffer.get(result, 0, byteBuffer.limit())
+        result
       }
-      buffer.runOptimize()
-      output.clear()
-      val dos = new KryoDataOutput(output)
-      buffer.serialize(dos)
-      val i = output.position()
-      output.close()
-      array.slice(0, i)
-    } catch {
-      case th: KryoException if th.getMessage.contains("Buffer overflow") =>
-        logInfo(s"Resize buffer size to ${array.length * 2}")
-        array = new Array[Byte](array.length * 2)
-        output.setBuffer(array)
-        serialize(buffer)
-      case th =>
-        throw th
+    } match {
+      case Success(value) => value
+      case Failure(e: BufferOverflowException ) =>
+        logInfo(s"Resize buffer size to ${capacity * 2}")
+        serialize(buffer, capacity * 2)
+      case Failure(e) => throw e
     }
   }
 
   def deserialize(bytes: Array[Byte]): Roaring64NavigableMap = {
     val bitMap = new Roaring64NavigableMap()
     if (bytes.nonEmpty) {
-      bitMap.deserialize(new KryoDataInput(new Input(bytes)))
+      bitMap.deserialize(ByteBuffer.wrap(bytes))
     }
     bitMap
   }
 }
+
+// TODO: remove BitmapSerAndDeSerObj and use BitmapSerAndDeSer eventually
+object BitmapSerAndDeSerObj extends  BitmapSerAndDeSer
 
 object BitmapSerAndDeSer {
   private val serAndDeSer: ThreadLocal[BitmapSerAndDeSer] = new ThreadLocal[BitmapSerAndDeSer]() {

@@ -64,9 +64,9 @@
         <kafka.version>2.1.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>2.4.1-kylin-r64</spark.version>
+        <spark.version>2.4.1-kylin-r65</spark.version>
 
-        <roaring.version>0.7.36-kylin-r2</roaring.version>
+        <roaring.version>0.9.2-kylin-r3</roaring.version>
 
         <kryo.version>4.0.0</kryo.version>
 
@@ -226,7 +226,7 @@
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
-        <parquet.version>1.12.0-kylin-r5</parquet.version>
+        <parquet.version>1.12.0-kylin-r6</parquet.version>
         <jackson.version>2.10.5</jackson.version>
         <jackson.databind.version>2.10.5.1</jackson.databind.version>
         <hadoop2.version>2.7.1.100</hadoop2.version>
@@ -886,6 +886,11 @@
             <dependency>
                 <groupId>org.roaringbitmap</groupId>
                 <artifactId>RoaringBitmap</artifactId>
+                <version>${roaring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.roaringbitmap</groupId>
+                <artifactId>shims</artifactId>
                 <version>${roaring.version}</version>
             </dependency>
             <dependency>

@@ -91,6 +91,7 @@ import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1139,6 +1140,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    @Ignore
     public void testRefreshSparkTable() throws Exception {
         CliCommandExecutor command = new CliCommandExecutor();
         String warehousePath = KapConfig.getKylinHomeAtBestEffort() + "/spark-warehouse";

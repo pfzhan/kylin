@@ -29,7 +29,7 @@ import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.{CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.types.{ArrayType, BinaryType, LongType}
-import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCountDistinct}
+import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCardinality, PreciseCountDistinct, PreciseCountDistinctAndArray, PreciseCountDistinctAndValue, ReusePreciseCountDistinct}
 
 object KapFunctions {
   private def withAggregateFunction(func: AggregateFunction,
@@ -144,7 +144,12 @@ object KapFunctions {
     FunctionEntity(expression[DictEncode]("DICTENCODE")),
     FunctionEntity(expression[SplitPart]("split_part")),
     FunctionEntity(expression[FloorDateTime]("floor_datetime")),
-    FunctionEntity(expression[CeilDateTime]("ceil_datetime")))
+    FunctionEntity(expression[CeilDateTime]("ceil_datetime")),
+    FunctionEntity(expression[ReusePreciseCountDistinct]("bitmap_or")),
+    FunctionEntity(expression[PreciseCardinality]("bitmap_cardinality")),
+    FunctionEntity(expression[PreciseCountDistinctAndValue]("bitmap_and_value")),
+    FunctionEntity(expression[PreciseCountDistinctAndArray]("bitmap_and_ids"))
+  )
 }
 
 case class FunctionEntity(name: FunctionIdentifier,

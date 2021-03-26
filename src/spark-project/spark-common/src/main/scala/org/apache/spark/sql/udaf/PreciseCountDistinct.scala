@@ -24,12 +24,12 @@
 
 package org.apache.spark.sql.udaf
 
-import com.esotericsoftware.kryo.KryoException
-import com.esotericsoftware.kryo.io.{Input, KryoDataInput, KryoDataOutput, Output}
-import org.apache.spark.internal.Logging
+import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.expressions.{Expression, _}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
+import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
 import org.roaringbitmap.longlong.Roaring64NavigableMap
 
@@ -37,10 +37,10 @@ import org.roaringbitmap.longlong.Roaring64NavigableMap
 @ExpressionDescription(usage = "PreciseCountDistinct(expr)")
 @SerialVersionUID(1)
 sealed abstract class BasicPreciseCountDistinct(
-  child: Expression,
-  mutableAggBufferOffset: Int = 0,
-  inputAggBufferOffset: Int = 0)
-  extends TypedImperativeAggregate[Roaring64NavigableMap] with Serializable with Logging {
+    child: Expression,
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
+  extends TypedImperativeAggregate[Roaring64NavigableMap] with Serializable with LogEx {
 
 
   override def children: Seq[Expression] = child :: Nil
@@ -50,43 +50,27 @@ sealed abstract class BasicPreciseCountDistinct(
   override def createAggregationBuffer(): Roaring64NavigableMap = new Roaring64NavigableMap()
 
   override def merge(buffer: Roaring64NavigableMap, input: Roaring64NavigableMap): Roaring64NavigableMap = {
-    buffer.or(input)
+    buffer.naivelazyor(input)
     buffer
   }
 
-  var array: Array[Byte] = _
-  var output: Output = _
-
   override def serialize(buffer: Roaring64NavigableMap): Array[Byte] = {
-    try {
-      if (array == null) {
-        array = new Array[Byte](1024 * 1024)
-        output = new Output(array)
-      }
+    if (buffer.isInstanceOf[PlaceHolderBitmap]) {
+       Array.empty[Byte]
+    } else {
+      buffer.repairAfterLazy()
       buffer.runOptimize()
-      output.clear()
-      val dos = new KryoDataOutput(output)
-      buffer.serialize(dos)
-      val i = output.position()
-      output.close()
-      array.slice(0, i)
-    } catch {
-      case th: KryoException if th.getMessage.contains("Buffer overflow") =>
-        logWarning(s"Resize buffer size to ${array.length * 2}")
-        array = new Array[Byte](array.length * 2)
-        output.setBuffer(array)
-        serialize(buffer)
-      case th =>
-        throw th
+      val size : Int = buffer.serializedSizeInBytes().asInstanceOf[Int]
+      BitmapSerAndDeSerObj.serialize(buffer, size)
     }
   }
 
   override def deserialize(bytes: Array[Byte]): Roaring64NavigableMap = {
-    val bitMap = new Roaring64NavigableMap()
     if (bytes != null && bytes.nonEmpty) {
-      bitMap.deserialize(new KryoDataInput(new Input(bytes)))
+      BitmapSerAndDeSerObj.deserialize(bytes)
+    } else {
+      new PlaceHolderBitmap
     }
-    bitMap
   }
 
   override val prettyName: String = "precise_count_distinct"
@@ -94,9 +78,9 @@ sealed abstract class BasicPreciseCountDistinct(
 
 @SerialVersionUID(1)
 case class EncodePreciseCountDistinct(
-  child: Expression,
-  mutableAggBufferOffset: Int = 0,
-  inputAggBufferOffset: Int = 0)
+    child: Expression,
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
   extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
 
   def this(child: Expression) = this(child, 0, 0)
@@ -124,9 +108,9 @@ case class EncodePreciseCountDistinct(
 
 @SerialVersionUID(1)
 case class ReusePreciseCountDistinct(
-  child: Expression,
-  mutableAggBufferOffset: Int = 0,
-  inputAggBufferOffset: Int = 0)
+    child: Expression,
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
   extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
 
   def this(child: Expression) = this(child, 0, 0)
@@ -135,7 +119,7 @@ case class ReusePreciseCountDistinct(
 
   override def update(buffer: Roaring64NavigableMap, input: InternalRow): Roaring64NavigableMap = {
     val colValue = child.eval(input)
-    buffer.or(deserialize(colValue.asInstanceOf[Array[Byte]]))
+    buffer.naivelazyor(deserialize(colValue.asInstanceOf[Array[Byte]]))
     buffer
   }
 
@@ -148,28 +132,31 @@ case class ReusePreciseCountDistinct(
 
   override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
     copy(inputAggBufferOffset = newInputAggBufferOffset)
+  override val prettyName: String = "bitmap_or"
 }
 
 @SerialVersionUID(1)
 case class PreciseCountDistinct(
-  child: Expression,
-  dataType: DataType,
-  mutableAggBufferOffset: Int = 0,
-  inputAggBufferOffset: Int = 0)
+    child: Expression,
+    dataType: DataType,
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
   extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
 
   def this(child: Expression, dataType: DataType) = this(child, dataType, 0, 0)
 
   override def update(buffer: Roaring64NavigableMap, input: InternalRow): Roaring64NavigableMap = {
     val colValue = child.eval(input)
-    buffer.or(deserialize(colValue.asInstanceOf[Array[Byte]]))
+    buffer.naivelazyor(deserialize(colValue.asInstanceOf[Array[Byte]]))
     buffer
   }
 
   override def eval(buffer: Roaring64NavigableMap): Any = {
+    buffer.repairAfterLazy()
     dataType match {
       case LongType => buffer.getLongCardinality
       case BinaryType => serialize(buffer)
+      case _ => throw new UnsupportedOperationException("Unsupported data type in count distinct")
     }
   }
 
@@ -180,3 +167,131 @@ case class PreciseCountDistinct(
     copy(inputAggBufferOffset = newInputAggBufferOffset)
 }
 
+@SerialVersionUID(1)
+sealed abstract class PreciseCountDistinctAnd(
+    child: Expression,
+    dataType: DataType,
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
+  extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
+
+  var needDeserialize = true
+
+  def this(child: Expression, dataType: DataType) = this(child, dataType, 0, 0)
+
+  override def createAggregationBuffer(): Roaring64NavigableMap = new PlaceHolderBitmap
+
+  override def update(buffer: Roaring64NavigableMap, input: InternalRow): Roaring64NavigableMap = {
+    val colValue = child.eval(input)
+    if (buffer.isInstanceOf[PlaceHolderBitmap]) {
+      deserialize(colValue.asInstanceOf[Array[Byte]])
+    } else {
+      if (!buffer.isEmpty) {
+        buffer.and(deserialize(colValue.asInstanceOf[Array[Byte]]))
+      }  else {
+        needDeserialize = false
+      }
+      buffer
+    }
+  }
+  
+  override def deserialize(bytes: Array[Byte]): Roaring64NavigableMap = {
+    if(needDeserialize) {
+      super.deserialize(bytes)
+    } else {
+      new Roaring64NavigableMap
+    }
+  }
+
+  override def merge(buffer: Roaring64NavigableMap, input: Roaring64NavigableMap): Roaring64NavigableMap = {
+    if (buffer.isInstanceOf[PlaceHolderBitmap]) {
+      input
+    } else {
+      if (input.isInstanceOf[PlaceHolderBitmap]) {
+        buffer
+      } else {
+        if (!buffer.isEmpty) {
+          buffer.and(input)
+        } else {
+          needDeserialize = false
+        }
+        buffer
+      }
+    }
+  }
+
+  override def eval(buffer: Roaring64NavigableMap): Any = {
+    dataType match {
+      case LongType => buffer.getLongCardinality
+      case BinaryType => serialize(buffer)
+      case ArrayType(LongType, false) =>
+
+        val cardinality = buffer.getIntCardinality
+        if (cardinality > 10000000) {
+          throw new UnsupportedOperationException("Unsupported data type in count distinct")
+        }
+        val longs = new Array[Long](cardinality)
+        var id = 0
+        val iterator = buffer.iterator()
+        while(iterator.hasNext) {
+          longs(id) = iterator.next()
+          id += 1
+        }
+        new GenericArrayData(longs)
+      case _ => throw new UnsupportedOperationException("Unsupported data type in count distinct")
+    }
+  }
+}
+
+class PlaceHolderBitmap extends Roaring64NavigableMap
+
+@SerialVersionUID(1)
+case class PreciseCountDistinctAndValue(
+    child: Expression,
+    dataType: DataType = LongType,
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
+  extends PreciseCountDistinctAnd(child, dataType, mutableAggBufferOffset, inputAggBufferOffset) {
+
+  def this(child: Expression) = this(child, LongType, 0, 0)
+
+  override def withNewMutableAggBufferOffset(newMutableAggBufferOffset: Int): ImperativeAggregate =
+    copy(mutableAggBufferOffset = newMutableAggBufferOffset)
+
+  override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
+    copy(inputAggBufferOffset = newInputAggBufferOffset)
+
+  override val prettyName: String = "bitmap_and_value"
+}
+
+@SerialVersionUID(1)
+case class PreciseCountDistinctAndArray(
+    child: Expression,
+    dataType: DataType = ArrayType(LongType, containsNull = false),
+    mutableAggBufferOffset: Int = 0,
+    inputAggBufferOffset: Int = 0)
+  extends PreciseCountDistinctAnd(child, dataType, mutableAggBufferOffset, inputAggBufferOffset) {
+
+  def this(child: Expression) = this(child, ArrayType(LongType, containsNull = false), 0, 0)
+
+  override def withNewMutableAggBufferOffset(newMutableAggBufferOffset: Int): ImperativeAggregate =
+    copy(mutableAggBufferOffset = newMutableAggBufferOffset)
+
+  override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
+    copy(inputAggBufferOffset = newInputAggBufferOffset)
+
+  override val prettyName: String = "bitmap_and_ids"
+}
+
+case class PreciseCardinality(override val child: Expression)
+  extends UnaryExpression with ExpectsInputTypes with CodegenFallback {
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType)
+  override def dataType: DataType = LongType
+  override def prettyName: String = "bitmap_cardinality"
+
+  override def nullSafeEval(input: Any): Long = {
+    val data = input.asInstanceOf[Array[Byte]]
+    BitmapSerAndDeSerObj.deserialize(data).getLongCardinality
+  }
+}

@@ -24,20 +24,30 @@
 
 package org.apache.spark.sql
 
-import java.nio.ByteBuffer
-
-import org.apache.kylin.measure.bitmap.RoaringBitmapCounter
-import org.apache.kylin.measure.hllc.HLLCounter
-import org.apache.spark.sql.catalyst.util.stackTraceToString
-import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite, SparderQueryTest}
+import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.udaf.BitmapSerAndDeSer
+import org.apache.spark.sql.types.{BinaryType, StringType, StructField, StructType}
+import org.apache.spark.sql.udaf.{BitmapSerAndDeSer, BitmapSerAndDeSerObj}
+import org.apache.spark.sql.udf.UdfManager
+import org.roaringbitmap.longlong.Roaring64NavigableMap
+import org.scalatest.concurrent.TimeLimits
+import org.scalatest.time.{Millis, Span}
 
 // scalastyle:off
-class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
+class CountDistinctTest
+  extends SparderBaseFunSuite
+    with SharedSparkSession
+    with KapQueryUtils
+    with TimeLimits {
 
   import testImplicits._
+
+  override def beforeAll() {
+    super.beforeAll()
+
+    UdfManager.create(spark)
+  }
 
   test("test precise_count_distinct without grouping keys") {
     val array1: Array[Byte] = getBitmapArray(1, 2)
@@ -92,46 +102,6 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
       Array(6L, 3L, 5L)
     )
   }
-
-  private def getBitmapArray(values: Long*): Array[Byte] = {
-    val buffer = ByteBuffer.allocate(1024)
-    val count = new RoaringBitmapCounter
-    values.foreach(count.add)
-    count.write(buffer)
-    buffer.array()
-  }
-
-  private def getHllcArray(values: Int*): Array[Byte] = {
-    val buffer = ByteBuffer.allocate(1024 * 1024)
-    val hllc = new HLLCounter(14)
-    values.foreach(hllc.add)
-    hllc.writeRegisters(buffer)
-    buffer.array()
-  }
-
-  protected def checkAnswer(df: => DataFrame,
-                            expectedAnswer: Seq[Row]): Unit = {
-    val analyzedDF = try df
-    catch {
-      case ae: AnalysisException =>
-        if (ae.plan.isDefined) {
-          fail(s"""
-               |Failed to analyze query: $ae
-               |${ae.plan.get}
-               |
-               |${stackTraceToString(ae)}
-               |""".stripMargin)
-        } else {
-          throw ae
-        }
-    }
-
-    SparderQueryTest.checkAnswerBySeq(analyzedDF, expectedAnswer) match {
-      case Some(errorMessage) => fail(errorMessage)
-      case None               =>
-    }
-  }
-
   private def checkBitmapAnswer(df: => DataFrame,
                                 expectedAnswer: Array[Long]): Unit = {
     val result = df.collect().map(row => BitmapSerAndDeSer.get().deserialize(row.getAs[Array[Byte]](0)).getLongCardinality)
@@ -164,4 +134,92 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
     )
   }
 
+  test("using sql without exception") {
+    val array1: Array[Byte] = getBitmapArray(1L, 2L, 234556L, 234556234556L)
+
+    val df = Seq(array1).toDF("col1").coalesce(1)
+    df.createOrReplaceTempView("t")
+
+    spark.sql("select bitmap_and_value(col1) from t")
+    spark.sql("select bitmap_and_ids(col1) as ids from t")
+    spark.sql("select explode(ids) from (select bitmap_and_ids(col1) as ids from t)")
+  }
+
+  test("test bitmap_and_ids") {
+    val expected = Seq(Row(1L), Row(2L), Row(234556L), Row(234556234556L))
+    val array1: Array[Byte] = getBitmapArray(1L, 2L, 234556L, 234556234556L)
+    val df0 = Seq(array1).toDF("col1").coalesce(1)
+    df0.createOrReplaceTempView("t")
+    checkAnswer(
+      spark.sql("select explode(ids) from (select bitmap_and_ids(col1) as ids from t)"),
+      expected)
+  }
+
+  test("why we need PlaceHolderBitmap") {
+    val array1: Array[Byte] = getBitmapArray(1, 2)
+    val array2: Array[Byte] = getBitmapArray(1, 3, 5)
+    val array3: Array[Byte] = getBitmapArray(1, 4)
+    val array4: Array[Byte] = getBitmapArray(1, 6, 5)
+
+    val schema = StructType(Seq(
+      StructField("col1", StringType),
+      StructField("col2", BinaryType)))
+
+    val data = Seq(
+      Row("a": String, array1),
+      Row("b": String, array2),
+      Row("c": String, array3),
+      Row("d": String, array4))
+
+    val df1 =  spark.createDataFrame(spark.sparkContext.parallelize(data,4), schema)
+
+    df1.createOrReplaceTempView("t")
+    val sql2 = "select bitmap_and_value(col2) as ids from t where col1 = 'a'"
+
+    val expected = Seq(Row(2L))
+    checkAnswer(spark.sql(sql2), expected)
+  }
+
+  test("test bitmap_or") {
+    val expected = Seq(Row("a", 4), Row("b", 3))
+    val array1: Array[Byte] = getBitmapArray(1, 2)
+    val array2: Array[Byte] = getBitmapArray(1, 3, 5)
+
+    val df0 = Seq(("a": String, array1),
+      ("b": String, array2),
+      ("a": String, array2)).toDF("col1", "col2").coalesce(1)
+
+
+    df0.createOrReplaceTempView("t")
+    val SQL = "select col1, bitmap_cardinality(bitmap_or(col2)) as col2 from t group by col1"
+    checkAnswer(spark.sql(SQL), expected)
+  }
+
+  test("test bitmap_and_value") {
+    val expected = Seq(Row("a", 1), Row("b", 3))
+    val array1: Array[Byte] = getBitmapArray(1, 2)
+    val array2: Array[Byte] = getBitmapArray(1, 3, 5)
+
+    val df0 = Seq(("a": String, array1),
+      ("b": String, array2),
+      ("a": String, array2)).toDF("col1", "col2").coalesce(1)
+
+
+    df0.createOrReplaceTempView("t")
+    val SQL = "select col1, bitmap_and_value(col2) as col2 from t group by col1"
+    checkAnswer(spark.sql(SQL), expected)
+  }
+
+  test("test BitmapSerAndDeSerObj serialize should not overflow") {
+    // BitmapSerAndDeSerObj.serialize may loop infinitely
+    failAfter(Span(10000, Millis)) {
+      val bitmap = new Roaring64NavigableMap
+      bitmap.add(1L, 2L, 234556L, 234556234556L)
+      val array = BitmapSerAndDeSerObj.serialize(bitmap, 1)
+      assert(array.length > 1)
+      val de_bitmap = BitmapSerAndDeSerObj.deserialize(array)
+      assertResult(4L)(de_bitmap.getLongCardinality)
+      assert(de_bitmap.contains(234556234556L))
+    }
+  }
 }
