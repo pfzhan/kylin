@@ -437,6 +437,14 @@ public class Message {
         return "This project don't support multilevel partitioning, and multilevel partitioning can’t be used. Please turn it on in project setting and try again.";
     }
 
+    public String getTABLE_PARAM_EMPTY(){
+        return "Can’t find the table. Please check and try again";
+    }
+
+    public String getTABLE_DESC_NOT_FOUND() {
+        return "Cannot find table descriptor '%s'.";
+    }
+
     // Table
     public String getTABLE_NOT_FOUND() {
         return "Can’t find table \"%s\". Please check and try again.";

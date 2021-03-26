@@ -1125,6 +1125,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getTABLE_PARAM_EMPTY(){
+        return "无法找到该表，请检查后重试。";
+    }
+
+    @Override
     public String getILLEGAL_JOB_STATE() {
         return "选择的任务状态无效，状态必须是 “PENDING“, “RUNNING“, “FINISHED“, “ERROR” 或 “DISCARDED“。请检查后重试。";
     }

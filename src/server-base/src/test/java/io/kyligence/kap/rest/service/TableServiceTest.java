@@ -394,6 +394,11 @@ public class TableServiceTest extends CSVSourceTestCase {
         List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default");
         Assert.assertEquals(2, result.size());
 
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("Can’t find the table. Please check and try again");
+        String[] emptyTables = new String[] { "" };
+        tableService.extractTableMeta(emptyTables, "default");
+
     }
 
     @Test

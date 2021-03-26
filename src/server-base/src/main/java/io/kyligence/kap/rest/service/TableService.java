@@ -315,6 +315,8 @@ public class TableService extends BasicService {
         SetMultimap<String, String> databaseTables = LinkedHashMultimap.create();
         for (String fullTableName : tables) {
             String[] parts = HadoopUtil.parseHiveTableName(fullTableName.toUpperCase(Locale.ROOT));
+            Preconditions.checkArgument(!parts[1].isEmpty() && !parts[0].isEmpty(),
+                    MsgPicker.getMsg().getTABLE_PARAM_EMPTY());
             databaseTables.put(parts[0], parts[1]);
         }
         // load all tables first  Pair<TableDesc, TableExtDesc>
@@ -344,7 +346,7 @@ public class TableService extends BasicService {
                     .join(errorList.stream().map(error -> error.getFirst().getKey() + "." + error.getFirst().getValue())
                             .collect(Collectors.toList()), ",");
             String errorMessage = String.format(Locale.ROOT, MsgPicker.getMsg().getHIVETABLE_NOT_FOUND(), errorTables);
-            throw new RuntimeException(errorMessage);
+            throw new KylinException(RELOAD_TABLE_FAILED, errorMessage);
         }
         return results.stream().map(pair -> (Pair<TableDesc, TableExtDesc>) pair.getSecond())
                 .collect(Collectors.toList());
