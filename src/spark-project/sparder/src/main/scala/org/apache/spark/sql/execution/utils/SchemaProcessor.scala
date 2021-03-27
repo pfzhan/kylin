@@ -26,13 +26,14 @@ package org.apache.spark.sql.execution.utils
 import java.util
 
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow, NDataflowManager}
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.kylin.common.util.ImmutableBitSet
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.{ColumnDesc, FunctionDesc}
 import org.apache.spark.sql.{LayoutEntityConverter, SparkSession}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.util.SparderConstants.COLUMN_NAME_SEPARATOR
 import org.apache.spark.sql.util.{SparderConstants, SparderTypeUtil}
 
 import scala.collection.JavaConverters._
@@ -155,7 +156,7 @@ object SchemaProcessor {
 
   def buildFactTableSortNames(sourceSchema: StructType): Array[String] = {
     sourceSchema.fieldNames
-      .filter(name => name.startsWith("F__") || name.startsWith("R__"))
+      .filter(name => name.startsWith("F" + COLUMN_NAME_SEPARATOR) || name.startsWith("R" + COLUMN_NAME_SEPARATOR))
       .map(name => (factTableSchemaNameToColumnId(name), name))
       .sortBy(_._1)
       .map(_._2)
