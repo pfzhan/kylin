@@ -25,6 +25,7 @@
 package io.kyligence.kap.newten.semi;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -337,7 +338,8 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         // prepare an origin model
         AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
-                new String[] { "select sum(buyer_id+ 1) from test_kylin_fact inner join test_order "
+                new String[] { "select sum(buyer_id+ 1), sum(price * item_count) "
+                        + "from test_kylin_fact inner join test_order "
                         + " on test_kylin_fact.order_id = test_order.order_id " });
         SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(null);
@@ -349,17 +351,23 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         Assert.assertEquals(1, modelContexts.size());
         String modelID = modelContexts.get(0).getTargetModel().getUuid();
         NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
-        Assert.assertEquals(18, modelBeforeGenerateRecItems.getAllNamedColumns().size());
-        Assert.assertEquals(2, modelBeforeGenerateRecItems.getAllMeasures().size());
+        Assert.assertEquals(19, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(3, modelBeforeGenerateRecItems.getAllMeasures().size());
         List<ComputedColumnDesc> ccList = modelBeforeGenerateRecItems.getComputedColumnDescs();
-        Assert.assertEquals(1, ccList.size());
-        Assert.assertEquals("`TEST_ORDER`.`BUYER_ID` + 1", ccList.get(0).getInnerExpression());
+        ccList.sort(Comparator.comparing(ComputedColumnDesc::getInnerExpression));
+        Assert.assertEquals(2, ccList.size());
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`",
+                ccList.get(0).getInnerExpression());
+        Assert.assertEquals("`TEST_ORDER`.`BUYER_ID` + 1", ccList.get(1).getInnerExpression());
 
         // change to semi-auto
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
-        String[] sqls = { "select lstg_format_name, buyer_id+ 1 from test_kylin_fact inner join test_order "
-                + "on test_kylin_fact.order_id = test_order.order_id group by lstg_format_name, buyer_id + 1" };
+        String[] sqls = {
+                "select lstg_format_name, buyer_id+ 1 from test_kylin_fact inner join test_order "
+                        + "on test_kylin_fact.order_id = test_order.order_id group by lstg_format_name, buyer_id + 1",
+                "select lstg_format_name, price * item_count from test_kylin_fact inner join test_order "
+                        + "on test_kylin_fact.order_id = test_order.order_id group by lstg_format_name, price * item_count" };
 
         // exclude the lookup table then validate
         String excludedLookupTable = "DEFAULT.TEST_ORDER";
@@ -368,9 +376,14 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         Assert.assertEquals(1, lookupTables.size());
         Assert.assertTrue(lookupTables.contains(excludedLookupTable.toUpperCase(Locale.ROOT)));
 
-        AbstractContext context1 = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
+        AbstractContext context1 = ProposerJob.genOptRec(getTestConfig(), getProject(), new String[] { sqls[0] });
         Map<String, AccelerateInfo> accelerateInfoMap = context1.getAccelerateInfoMap();
         accelerateInfoMap.forEach((k, v) -> Assert.assertTrue(v.isNotSucceed()));
+
+        AbstractContext context2 = ProposerJob.genOptRec(getTestConfig(), getProject(), new String[] { sqls[1] });
+        AbstractContext.ModelContext modelContext = context2.getModelContexts().get(0);
+        Assert.assertEquals(2, modelContext.getDimensionRecItemMap().size());
+        Assert.assertEquals(1, modelContext.getIndexRexItemMap().size());
     }
 
     @Test

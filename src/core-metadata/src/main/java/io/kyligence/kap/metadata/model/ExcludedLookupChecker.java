@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -51,6 +52,9 @@ public class ExcludedLookupChecker {
             }
             excludedLookupTables.add(table);
         });
+        if (model.isBroken() || CollectionUtils.isEmpty(model.getJoinTables())) {
+            return;
+        }
 
         model.getJoinTables().forEach(join -> {
             joinTableAliasMap.putIfAbsent(join.getTable(), Sets.newHashSet());

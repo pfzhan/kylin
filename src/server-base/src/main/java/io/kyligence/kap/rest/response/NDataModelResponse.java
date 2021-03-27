@@ -43,6 +43,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
@@ -131,7 +132,7 @@ public class NDataModelResponse extends NDataModel {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
 
-        Set<String> excludedTables = FavoriteRuleManager.getInstance(getConfig(), getProject()).getExcludedTables();
+        Set<String> excludedTables = loadExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, this);
         List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
         for (NamedColumn col : getAllNamedColumns()) {
@@ -301,7 +302,7 @@ public class NDataModelResponse extends NDataModel {
         if (!isBroken()) {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
-        Set<String> excludedTables = FavoriteRuleManager.getInstance(getConfig(), getProject()).getExcludedTables();
+        Set<String> excludedTables = loadExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, this);
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
@@ -323,5 +324,17 @@ public class NDataModelResponse extends NDataModel {
         }
 
         return selectedColumns;
+    }
+
+    private Set<String> loadExcludedTables() {
+        FavoriteRuleManager favoriteRuleManager = null;
+        if (!isBroken()) {
+            favoriteRuleManager = FavoriteRuleManager.getInstance(getConfig(), getProject());
+        }
+        Set<String> excludedTables = Sets.newHashSet();
+        if (favoriteRuleManager != null) {
+            excludedTables.addAll(favoriteRuleManager.getExcludedTables());
+        }
+        return excludedTables;
     }
 }

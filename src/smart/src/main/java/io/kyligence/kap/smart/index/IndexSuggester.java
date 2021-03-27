@@ -278,16 +278,18 @@ class IndexSuggester {
         ExcludedLookupChecker checker = modelContext.getChecker();
         AtomicBoolean isAnyCCDependsLookupTable = new AtomicBoolean();
         filterColumns.removeIf(tblColRef -> {
-            if (tblColRef.getColumnDesc().isComputedColumn()) {
+            boolean dependsLookupTable = checker.isColRefDependsLookupTable(tblColRef);
+            if (tblColRef.getColumnDesc().isComputedColumn() && dependsLookupTable) {
                 isAnyCCDependsLookupTable.set(true);
             }
-            return checker.isColRefDependsLookupTable(tblColRef);
+            return dependsLookupTable;
         });
         nonFilterColumnSet.removeIf(tblColRef -> {
-            if (tblColRef.getColumnDesc().isComputedColumn()) {
+            boolean dependsLookupTable = checker.isColRefDependsLookupTable(tblColRef);
+            if (tblColRef.getColumnDesc().isComputedColumn() && dependsLookupTable) {
                 isAnyCCDependsLookupTable.set(true);
             }
-            return checker.isColRefDependsLookupTable(tblColRef);
+            return dependsLookupTable;
         });
         if (isAnyCCDependsLookupTable.get()) {
             throw new IllegalStateException(COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE);
