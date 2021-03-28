@@ -571,6 +571,34 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testTotalDurationResponse() throws Exception {
+        NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
+                .getInstanceByProject();
+        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
+        SucceedChainedTestExecutable job1 = Mockito.spy(SucceedChainedTestExecutable.class);
+        job1.setProject(getProject());
+        job1.setName("sparkjob1");
+        job1.setTargetSubject("model1");
+        Mockito.when(job1.getWaitTime()).thenReturn(10L);
+        Mockito.when(job1.getDuration()).thenReturn(20L);
+        Mockito.when(job1.getTotalDurationTime()).thenReturn(31L);
+
+        Mockito.when(manager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong()))
+                .thenReturn(Collections.singletonList(job1));
+
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), Lists.newArrayList(), 4, "", "", "default", "", true);
+        List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
+
+        Assert.assertEquals(jobs.size(), 1);
+
+        ExecutableResponse executableResponse = jobs.get(0);
+
+        Assert.assertEquals(executableResponse.getTotalDuration(), 30);
+
+    }
+
     @Ignore
     @Test
     public void testGetJobStats() throws ParseException {
