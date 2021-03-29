@@ -9,7 +9,7 @@
       </ul>
     </div>
 
-    <div class="login-box">
+    <div class="login-box" v-if="!accessForbidden">
       <el-row :gutter="0">
         <el-col :span="12">
           <div class="grid-content login-msg">
@@ -48,7 +48,10 @@
         </el-col>
       </el-row>
     </div>
-
+    <div class="accessForbidden-con" v-if="accessForbidden">
+      <i class="el-icon-ksd-sad"></i>
+      <p class="text">{{$t('accessForbidden')}}</p>
+    </div>
     <p class="login-footer">&copy;{{new Date().getFullYear()}} <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
 
     <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-click-modal="false" width="480px">
@@ -112,6 +115,7 @@ export default {
   name: 'login',
   data () {
     return {
+      accessForbidden: false,
       user: {
         username: '' || localStorage.getItem('username'),
         password: ''
@@ -337,6 +341,8 @@ export default {
   },
   created () {
     this.checkLicense()
+    // 这里是为了拦截 用户单独打开KC 中嵌套的KE 页面，KC 中的KE 页面的url 都会包含secret_ke_index.html
+    this.accessForbidden = window.location.href.includes('secret_ke_index.html') && this.$store.state.config.platform !== 'cloud'
   },
   computed: {
     rules () {
@@ -396,7 +402,8 @@ export default {
       manual: 'Manual',
       contactUs: 'Contact Us',
       enterpriseName: 'Only Chinese characters, letters, digits and space are supported. The maximum is 50 characters.',
-      emailLength: 'The maximum is 50 characters'
+      emailLength: 'The maximum is 50 characters',
+      accessForbidden: 'Access denied'
     },
     'zh-cn': {
       welcome: '欢迎使用Kyligence Enterprise',
@@ -430,7 +437,8 @@ export default {
       manual: '用户手册',
       contactUs: '联系我们',
       enterpriseName: '支持中英文、数字、空格，最大值为 50 个字符',
-      emailLength: '最大值为 50 个字符'
+      emailLength: '最大值为 50 个字符',
+      accessForbidden: '禁止访问'
     }
   }
 }
@@ -568,6 +576,21 @@ export default {
       .el-button {
         width: 320px;
       }
+    }
+  }
+  .accessForbidden-con {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    .el-icon-ksd-sad {
+      font-size: 40px;
+    }
+    .text {
+      margin-top: 17px;
+      font-size: 22px;
+      color: @text-title-color;
     }
   }
   .license-msg {
