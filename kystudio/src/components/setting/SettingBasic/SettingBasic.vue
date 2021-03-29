@@ -586,6 +586,7 @@ export default class SettingBasic extends Vue {
             })
             await this.updateProjectGeneralInfo(submitData)
             this.getAccelerationRules()
+            this.getDbAndTablesInfo() // 开启智能推荐模式，拉取数据源表
             break
           }
         }
