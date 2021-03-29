@@ -978,7 +978,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             int size = getOptRecLayoutsResponseInner(project, modelId, OptRecService.ALL).getSize();
             NDataModel dataModel = mgr.getDataModelDesc(modelId);
-            if (dataModel != null && dataModel.getRecommendationsCount() != size) {
+            if (dataModel != null && !dataModel.isBroken() && dataModel.getRecommendationsCount() != size) {
                 mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
             }
             return null;
