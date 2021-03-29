@@ -65,7 +65,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
@@ -86,12 +85,9 @@ import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1145,17 +1141,11 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    @Ignore
     public void testRefreshSparkTable() throws Exception {
         CliCommandExecutor command = new CliCommandExecutor();
-        String warehousePath = KapConfig.getKylinHomeAtBestEffort() + "/spark-warehouse";
-        val ss = SparkSession.builder().appName("local").master("local[2]")
-                .config(StaticSQLConf.WAREHOUSE_PATH().key(), warehousePath).enableHiveSupport().getOrCreate();
-        SparderEnv.setSparkSession(ss);
-        // need to use  derby in memory instead of in real file to avoid conflicting with other hiveContext
-        ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
-                "jdbc:derby:memory:db;create=true");
-        warehousePath = warehousePath + "/test_kylin_refresh/";
+        String warehousePath = getTestConfig().exportToProperties()
+                .getProperty("kylin.storage.columnar.spark-conf.spark.sql.warehouse.dir").substring(5)
+                + "/test_kylin_refresh/";
         PushDownUtil.trySimplePushDownExecute("drop table if exists test_kylin_refresh", null);
         PushDownUtil.trySimplePushDownExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
         PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('a')", null);
