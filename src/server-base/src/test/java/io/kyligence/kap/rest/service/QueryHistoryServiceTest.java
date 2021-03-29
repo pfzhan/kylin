@@ -118,6 +118,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(queryHistoryService, "modelService", modelService);
         ReflectionTestUtils.setField(queryHistoryService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(queryHistoryService, "asyncTaskService", new AsyncTaskService());
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
     }

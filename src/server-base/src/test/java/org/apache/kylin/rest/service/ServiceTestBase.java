@@ -58,6 +58,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -133,6 +134,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
     @Configuration
     @ComponentScan("io.kyligence.kap.rest")
     @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
+    @EnableAsync
     public static class SpringConfig {
 
     }

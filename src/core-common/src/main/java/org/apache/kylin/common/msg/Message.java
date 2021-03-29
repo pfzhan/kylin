@@ -1600,4 +1600,8 @@ public class Message {
     public String getSPARK_FAILURE() {
         return "Can't complete the operation. Please check the Spark environment and try again. ";
     }
+
+    public String getDOWNLOAD_QUERY_HISTORY_TIMEOUT() {
+        return "Export SQL timeout, please try again later.";
+    }
 }

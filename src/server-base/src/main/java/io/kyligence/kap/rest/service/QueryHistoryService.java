@@ -25,14 +25,9 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -43,11 +38,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -72,6 +70,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -87,9 +86,6 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger("query");
@@ -100,6 +96,9 @@ public class QueryHistoryService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     @Autowired
+    private AsyncTaskService asyncTaskService;
+
+    @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
 
@@ -107,69 +106,18 @@ public class QueryHistoryService extends BasicService {
     public static final String DAY = "day";
 
     public void downloadQueryHistories(QueryHistoryRequest request, HttpServletResponse response, ZoneOffset zoneOffset,
-                                       Integer timeZoneOffsetHour, boolean onlySql) {
+            Integer timeZoneOffsetHour, boolean onlySql) throws Exception {
         processRequestParams(request);
         if (haveSpaces(request.getSql())) {
             return;
         }
         splitModels(request);
-        QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
-        val noBrokenModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
-                .listUnderliningDataModels().stream().collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
-        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
 
-        try (ServletOutputStream outputStream = response.getOutputStream()) {
-            if (!onlySql) {
-                outputStream.write(CSV_UTF8_BOM);
-                outputStream.write(MsgPicker.getMsg().getQUERY_HISTORY_COLUMN_META().getBytes(StandardCharsets.UTF_8));
-            }
-
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            int needDownload = Math.min((int) queryHistoryDao.getQueryHistoriesSize(request, request.getProject()),
-                    kylinConfig.getQueryHistoryDownloadMaxSize());
-            int hadDownload = 0;
-            while (hadDownload < needDownload) {
-                int batchSize = Math.min(kylinConfig.getQueryHistoryDownloadBatchSize(), needDownload - hadDownload);
-                List<QueryHistory> queryHistories = queryHistoryDao.getQueryHistoriesByConditionsWithOffset(request,
-                        batchSize, hadDownload);
-                for (QueryHistory queryHistory : queryHistories) {
-                    fillingModelAlias(noBrokenModels, dataModelManager, queryHistory);
-                    if (onlySql) {
-                        outputStream.write((queryHistory.getSql().replaceAll("\n|\r", " ") + ";\n")
-                                .getBytes(StandardCharsets.UTF_8));
-                    } else {
-                        outputStream.write((QueryHistoryUtil.getDownloadData(queryHistory, zoneOffset,
-                                timeZoneOffsetHour) + "\n").getBytes(StandardCharsets.UTF_8));
-                    }
-                }
-                hadDownload = hadDownload + queryHistories.size();
-            }
-        } catch (IOException e) {
-            throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
-        }
-    }
-
-    private void fillingModelAlias(Map<String, String> noBrokenModels, NDataModelManager dataModelManager,
-            QueryHistory queryHistory) {
-        QueryHistoryInfo queryHistoryInfo = queryHistory.getQueryHistoryInfo();
-        if ((queryHistoryInfo == null || queryHistoryInfo.getRealizationMetrics() == null
-                || queryHistoryInfo.getRealizationMetrics().isEmpty())
-                && StringUtils.isEmpty(queryHistory.getQueryRealizations())) {
-            return;
-        }
-        List<NativeQueryRealization> realizations = queryHistory.transformRealizations();
-
-        realizations.forEach(realization -> {
-            NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
-            if (noBrokenModels.containsValue(realization.getModelId())) {
-                realization.setModelAlias(nDataModel.getFusionModelAlias());
-            } else {
-                val modelAlias = nDataModel == null ? DELETED_MODEL
-                        : String.format(Locale.ROOT, "%s broken", nDataModel.getAlias());
-                realization.setModelAlias(modelAlias);
-            }
-        });
-        queryHistory.setNativeQueryRealizations(realizations);
+        Future<Long> future = asyncTaskService.runDownloadQueryHistory(request, response, zoneOffset,
+                timeZoneOffsetHour, getQueryHistoryDao(), onlySql);
+        Long timeCost = future.get(KylinConfig.getInstanceFromEnv().getQueryHistoryDownloadTimeoutSeconds(),
+                TimeUnit.SECONDS);
+        logger.info("download query history cost {}s", timeCost);
     }
 
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int page) {

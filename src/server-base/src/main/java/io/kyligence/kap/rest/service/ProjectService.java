@@ -714,6 +714,8 @@ public class ProjectService extends BasicService {
 
         response.setQueryHistoryDownloadMaxSize(config.getQueryHistoryDownloadMaxSize());
 
+        response.setQueryHistoryDownloadMaxSize(config.getQueryHistoryDownloadMaxSize());
+
         if (SecondStorageUtil.isGlobalEnable()) {
             response.setSecondStorageEnabled(SecondStorageUtil.isProjectEnable(project));
             response.setSecondStorageNodes(SecondStorageUtil.listProjectNodes(project));

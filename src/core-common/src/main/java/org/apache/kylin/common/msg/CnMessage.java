@@ -1800,4 +1800,9 @@ public class CnMessage extends Message {
     public String getSPARK_FAILURE() {
         return "无法完成操作，请检查 Spark 环境后重试。";
     }
+
+    @Override
+    public String getDOWNLOAD_QUERY_HISTORY_TIMEOUT() {
+        return "导出超时，请稍后重试。";
+    }
 }

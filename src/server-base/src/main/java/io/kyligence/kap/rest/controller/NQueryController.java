@@ -41,6 +41,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -52,6 +53,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -239,8 +241,16 @@ public class NQueryController extends NBasicController {
         checkGetQueryHistoriesParam(request);
         response.setContentType("text/csv;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=\"query-history.csv\"");
-        queryHistoryService.downloadQueryHistories(request, response, zoneOffset, timeZoneOffsetHour, false);
+        String name = "\"query-history-" + System.currentTimeMillis() + ".csv\"";
+        response.setHeader("Content-Disposition", "attachment; filename=" + name);
+        try {
+            queryHistoryService.downloadQueryHistories(request, response, zoneOffset,
+                    timeZoneOffsetHour, false);
+        } catch (TimeoutException e) {
+            throw new KylinTimeoutException(MsgPicker.getMsg().getDOWNLOAD_QUERY_HISTORY_TIMEOUT());
+        } catch (Exception e) {
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
+        }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -264,8 +274,15 @@ public class NQueryController extends NBasicController {
         checkGetQueryHistoriesParam(request);
         response.setContentType("text/csv;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        response.setHeader("Content-Disposition", "attachment; filename=\"sql.txt\"");
-        queryHistoryService.downloadQueryHistories(request, response, null, null, true);
+        String name = "\"sql-" + System.currentTimeMillis() + ".txt\"";
+        response.setHeader("Content-Disposition", "attachment; filename=" + name);
+        try {
+            queryHistoryService.downloadQueryHistories(request, response, null, null, true);
+        } catch (TimeoutException e) {
+            throw new KylinTimeoutException(MsgPicker.getMsg().getDOWNLOAD_QUERY_HISTORY_TIMEOUT());
+        } catch (Exception e) {
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
+        }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
