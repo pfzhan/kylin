@@ -1555,6 +1555,7 @@ public class ModelService extends BasicService {
                     copyForWrite.setApprovedAdditionalRecs(copyForWrite.getApprovedAdditionalRecs() + 1);
                 }
             });
+            optRecService.updateRecommendationCount(project, modelRequest.getUuid());
         }
     }
 
