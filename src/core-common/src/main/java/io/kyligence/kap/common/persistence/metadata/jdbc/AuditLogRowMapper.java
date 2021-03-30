@@ -26,6 +26,8 @@ package io.kyligence.kap.common.persistence.metadata.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import lombok.SneakyThrows;
+import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.jdbc.core.RowMapper;
 
 import com.google.common.io.ByteStreams;
@@ -34,11 +36,12 @@ import io.kyligence.kap.common.persistence.AuditLog;
 import lombok.val;
 
 public class AuditLogRowMapper implements RowMapper<AuditLog> {
+    @SneakyThrows
     @Override
     public AuditLog mapRow(ResultSet rs, int rowNum) throws SQLException {
         val id = rs.getLong(1);
         val resPath = rs.getString(2);
-        val content = rs.getBytes(3);
+        val content = CompressionUtils.decompress(rs.getBytes(3));
         Long ts = rs.getLong(4);
         if (rs.wasNull()) {
             ts = null;

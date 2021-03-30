@@ -26,7 +26,9 @@ package io.kyligence.kap.common.persistence.metadata.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import lombok.SneakyThrows;
 import org.apache.kylin.common.persistence.RawResource;
+import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.jdbc.core.RowMapper;
 
 import com.google.common.io.ByteStreams;
@@ -34,10 +36,11 @@ import com.google.common.io.ByteStreams;
 import lombok.val;
 
 public class RawResourceRowMapper implements RowMapper<RawResource> {
+    @SneakyThrows
     @Override
     public RawResource mapRow(ResultSet rs, int rowNum) throws SQLException {
         val resPath = rs.getString(1);
-        val content = rs.getBytes(2);
+        val content = CompressionUtils.decompress(rs.getBytes(2));
         val ts = rs.getLong(3);
         val mvcc = rs.getLong(4);
         return new RawResource(resPath, ByteStreams.asByteSource(content), ts, mvcc);

@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -152,7 +153,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
                                 ResourceCreateOrUpdateEvent createEvent = (ResourceCreateOrUpdateEvent) e;
                                 try {
                                     return new Object[] { createEvent.getResPath(),
-                                            createEvent.getCreatedOrUpdated().getByteSource().read(),
+                                            CompressionUtils
+                                                    .compress(createEvent.getCreatedOrUpdated().getByteSource().read()),
                                             createEvent.getCreatedOrUpdated().getTimestamp(),
                                             createEvent.getCreatedOrUpdated().getMvcc(), unitId, operator, instance };
                                 } catch (IOException ignore) {
@@ -172,8 +174,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 .batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), auditLogs.stream().map(x -> {
                     try {
                         val bs = Objects.isNull(x.getByteSource()) ? null : x.getByteSource().read();
-                        return new Object[] { x.getResPath(), bs, x.getTimestamp(), x.getMvcc(), x.getUnitId(),
-                                x.getOperator(), x.getInstance() };
+                        return new Object[] { x.getResPath(), CompressionUtils.compress(bs), x.getTimestamp(),
+                                x.getMvcc(), x.getUnitId(), x.getOperator(), x.getInstance() };
                     } catch (IOException e) {
                         return null;
                     }

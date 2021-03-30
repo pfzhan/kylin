@@ -25,6 +25,9 @@ package io.kyligence.kap.common.persistence;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -32,6 +35,7 @@ import java.util.stream.IntStream;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.CompressionUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,6 +47,9 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -161,6 +168,50 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
             store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), 1);
             return 0;
         }, "p1");
+    }
+
+    @Test
+    public void testBatchUpdate() throws Exception {
+        val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
+        List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
+                new RawResource("/p1/test", ByteStreams.asByteSource("test content".getBytes(StandardCharsets.UTF_8)),
+                        System.currentTimeMillis(), 0)));
+        val unitMessages = new UnitMessages(events);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            metadataStore.batchUpdate(unitMessages, false, "/p1/test", -1);
+            return null;
+        }, "p1");
+
+        String content = new String(metadataStore.load("/p1/test").getByteSource().read());
+        Assert.assertEquals("test content", content);
+
+        val dataSource = new DriverManagerDataSource();
+        val url = getTestConfig().getMetadataUrl();
+        val tableName = url.getIdentifier();
+        dataSource.setUrl(url.getParameter("url"));
+        dataSource.setDriverClassName(url.getParameter("driverClassName"));
+        dataSource.setUsername(url.getParameter("username"));
+        dataSource.setPassword(url.getParameter("password"));
+        val jdbcTemplate = new JdbcTemplate(dataSource);
+
+        byte[] contents = jdbcTemplate.queryForObject(
+                "select META_TABLE_CONTENT from " + tableName + " where META_TABLE_KEY = '/p1/test'",
+                (rs, rowNum) -> rs.getBytes(1));
+
+        Assert.assertTrue(CompressionUtils.isCompressed(contents));
+        byte[] gzip = "GZIP".getBytes(StandardCharsets.UTF_8);
+        Assert.assertArrayEquals(gzip, Arrays.copyOf(contents, gzip.length));
+        Assert.assertArrayEquals("test content".getBytes(StandardCharsets.UTF_8),
+                CompressionUtils.decompress(contents));
+
+        byte[] auditLogContents = jdbcTemplate.queryForObject(
+                "select meta_content from " + tableName + "_audit_log where meta_key = '/p1/test'",
+                (rs, rowNum) -> rs.getBytes(1));
+
+        Assert.assertTrue(CompressionUtils.isCompressed(auditLogContents));
+        Assert.assertArrayEquals(gzip, Arrays.copyOf(auditLogContents, gzip.length));
+        Assert.assertArrayEquals("test content".getBytes(StandardCharsets.UTF_8),
+                CompressionUtils.decompress(auditLogContents));
     }
 
 }

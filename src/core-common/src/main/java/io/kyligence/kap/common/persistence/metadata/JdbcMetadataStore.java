@@ -47,6 +47,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -207,7 +208,7 @@ public class JdbcMetadataStore extends MetadataStore {
         return jdbcTemplate.update(sql, ps -> {
             ps.setString(1, path);
             try {
-                ps.setBytes(2, bs.read());
+                ps.setBytes(2, CompressionUtils.compress(bs.read()));
             } catch (IOException e) {
                 log.error("exception: ", e);
                 throw new SQLException(e);
@@ -220,7 +221,7 @@ public class JdbcMetadataStore extends MetadataStore {
     private int update(String sql, ByteSource bs, long ts, long mvcc, String path, long oldMvcc) {
         return jdbcTemplate.update(sql, ps -> {
             try {
-                ps.setBytes(1, bs.read());
+                ps.setBytes(1, CompressionUtils.compress(bs.read()));
             } catch (IOException e) {
                 log.error("exception: ", e);
                 throw new SQLException(e);
