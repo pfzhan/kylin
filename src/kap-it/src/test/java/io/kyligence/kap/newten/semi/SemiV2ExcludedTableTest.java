@@ -69,6 +69,7 @@ import io.kyligence.kap.utils.AccelerationContextUtil;
 
 public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
 
+    private static final String MEASURE_ON_EXCLUDED_LOOKUP_TABLE = "Unsupported measure on dimension table, stop the process of generate index. ";
     private RawRecService rawRecService;
     private NDataModelManager modelManager;
     private ProjectService projectService;
@@ -293,6 +294,47 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         AbstractContext context1 = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
         Map<String, AccelerateInfo> accelerateInfoMap = context1.getAccelerateInfoMap();
         accelerateInfoMap.forEach((k, v) -> Assert.assertTrue(v.isNotSucceed()));
+    }
+
+    @Test
+    public void testMeasureOnlyOnLookupTable() {
+        // prepare an origin model
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price, test_kylin_fact.order_id from test_kylin_fact inner join test_order "
+                        + " on test_kylin_fact.order_id = test_order.order_id" });
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+
+        // assert origin model
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(17, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeGenerateRecItems.getAllMeasures().size());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        String[] sqls = { "select price, sum(buyer_id)"
+                + "from test_kylin_fact inner join test_order on test_kylin_fact.order_id = test_order.order_id "
+                + "group by price" };
+
+        // exclude the lookup table then validate  => foreign key in the index
+        String excludedLookupTable = "DEFAULT.TEST_ORDER";
+        mockExcludeTableRule(excludedLookupTable);
+        Set<String> lookupTables = favoriteRuleManager.getExcludedTables();
+        Assert.assertEquals(1, lookupTables.size());
+        Assert.assertTrue(lookupTables.contains(excludedLookupTable.toUpperCase(Locale.ROOT)));
+
+        AbstractContext context1 = ProposerJob.genOptRec(getTestConfig(), getProject(), sqls);
+        Map<String, AccelerateInfo> accelerateInfoMap = context1.getAccelerateInfoMap();
+        accelerateInfoMap.forEach((k, v) -> {
+            Assert.assertTrue(v.isPending());
+            Assert.assertTrue(v.getPendingMsg().contains(MEASURE_ON_EXCLUDED_LOOKUP_TABLE));
+        });
     }
 
     @Test

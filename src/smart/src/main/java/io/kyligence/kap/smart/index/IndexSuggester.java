@@ -79,6 +79,7 @@ class IndexSuggester {
     private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
     private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
     private static final String COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE = "Computed column depends on excluded lookup table, stop the process of generate index.";
+    private static final String MEASURE_ON_EXCLUDED_LOOKUP_TABLE = "Unsupported measure on dimension table, stop the process of generate index. ";
 
     private final AbstractContext proposeContext;
     private final AbstractContext.ModelContext modelContext;
@@ -292,7 +293,7 @@ class IndexSuggester {
             return dependsLookupTable;
         });
         if (isAnyCCDependsLookupTable.get()) {
-            throw new IllegalStateException(COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE);
+            throw new PendingException(COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE);
         }
         Set<String> usingExcludedLookupTables = checker.getUsedExcludedLookupTable(context.allColumns);
         context.joins.forEach(join -> {
@@ -340,7 +341,7 @@ class IndexSuggester {
         ctx.aggregations.forEach(aggFunc -> {
             Integer measureId = aggFuncIdMap.get(aggFunc);
             if (modelContext.getChecker().isMeasureOnLookupTable(aggFunc)) {
-                return;
+                throw new PendingException(MEASURE_ON_EXCLUDED_LOOKUP_TABLE + aggFunc);
             }
             if (measureId != null) {
                 measureIds.add(measureId);
