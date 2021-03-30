@@ -336,7 +336,7 @@ public class Message {
     }
 
     public String getUSER_AUTH_FAILED() {
-        return "Invalid username or password.";
+        return "Invalid username or password. Please check and try again.";
     }
 
     public String getINVALID_EXECUTE_AS_USER() {

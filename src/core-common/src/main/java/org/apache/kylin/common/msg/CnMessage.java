@@ -559,7 +559,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getUSER_AUTH_FAILED() {
-        return "用户名或密码错误。";
+        return "用户名或密码错误。请检查后重试。";
     }
 
     @Override

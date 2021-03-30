@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.naming.InvalidNameException;
 import javax.naming.directory.SearchControls;
 import javax.naming.ldap.LdapName;
 
@@ -46,11 +45,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.ldap.NameNotFoundException;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.support.LdapUtils;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 
 import com.google.common.cache.CacheBuilder;
@@ -168,27 +168,37 @@ public class LdapUserGroupService extends NUserGroupService {
             Set<String> ldapUserDNs = getAllGroupMembers(name);
 
             for (String u : ldapUserDNs) {
+                String username = null;
                 try {
-                    String username = LdapUtils.getStringValue(new LdapName(u), ldapUserIDAttr);
-                    if (userService.userExists(username)) {//guard groups may have ou or groups
-                        try {
-                            ManagedUser ldapUser = new ManagedUser(username, SKIPPED_LDAP, false,
-                                    Lists.<GrantedAuthority> newArrayList());
-                            ldapUserService.completeUserInfoInternal(ldapUser);
-                            members.add(ldapUser);
-                        } catch (UsernameNotFoundException e) {//user maybe not exist because 'userService' is the cache
-                            logger.warn(String.format(Locale.ROOT, "User %s not found.", username), e);
-                        }
+                    username = LdapUtils.getStringValue(new LdapName(u), ldapUserIDAttr);
+                } catch (Exception e) {
+                    logger.warn("Can not get username from dn {} by user id attr {}", u, ldapUserIDAttr);
+                    try {
+                        AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapUserIDAttr).get()
+                                .toString();
+                        username = ldapTemplate.lookup(u, attributesMapper);
+                        logger.info("Get dn {} username {} by ldap lookup", u, username);
+                    } catch (NameNotFoundException ex) {
+                        logger.info("Can not find user by dn {}", u, ex);
                     }
-                } catch (InvalidNameException ie) {
-                    logger.error("Can not get LDAP group's member: {}", u, ie);
+                }
+
+                if (userService.userExists(username)) {//guard groups may have ou or groups
+                    ManagedUser ldapUser = new ManagedUser(username, SKIPPED_LDAP, false,
+                            Lists.<GrantedAuthority> newArrayList());
+                    try {
+                        ldapUserService.completeUserInfoInternal(ldapUser);
+                        members.add(ldapUser);
+                    } catch (IncorrectResultSizeDataAccessException e) {
+                        logger.warn("Get group {} member {} by user id attr {} exception",
+                                name, ldapUser.getUsername(), ldapUserIDAttr, e);
+                    }
                 }
             }
             ldapGroupsMembersCache.put(name, Collections.unmodifiableList(members));
         }
         return members;
     }
-
 
     private Set<String> getAllGroupMembers(String name) {
         String ldapGroupSearchBase = KylinConfig.getInstanceFromEnv().getLDAPGroupSearchBase();

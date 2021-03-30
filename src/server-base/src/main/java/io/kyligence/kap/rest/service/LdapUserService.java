@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -135,8 +136,12 @@ public class LdapUserService implements UserService {
             Set<String> ldapUsers = getAllUsers();
             for (String user : ldapUsers) {
                 ManagedUser ldapUser = new ManagedUser(user, SKIPPED_LDAP, false, Lists.newArrayList());
-                completeUserInfoInternal(ldapUser);
-                allUsers.add(ldapUser);
+                try {
+                    completeUserInfoInternal(ldapUser);
+                    allUsers.add(ldapUser);
+                } catch (IncorrectResultSizeDataAccessException e) {
+                    logger.warn("Complete user {} info exception", ldapUser.getUsername(), e);
+                }
             }
             ldapUsersCache.put(LDAP_USERS, Preconditions.checkNotNull(allUsers,
                     "Failed to load users from ldap server, something went wrong."));
