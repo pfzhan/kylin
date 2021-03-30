@@ -91,7 +91,16 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private static final String COMMA = ",";
     private static final String DRIVER_OPS = "spark.driver.extraJavaOptions";
+    private static final String AM_OPS = "spark.yarn.am.extraJavaOptions";
+    private static final String EXECUTOR_OPS = "spark.executor.extraJavaOptions";
+    private static final String KYLIN_AM_OPS = "kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions";
+    private static final String KYLIN_EXECUTOR_OPS = "kylin.engine.spark-conf.spark.executor.extraJavaOptions";
+    private static final String KRB5CONF_PROPS = "java.security.krb5.conf";
+    private static final String HADOOP_CONF_PATH = "./__spark_conf__/__hadoop_conf__/";
     private static final String APP_JAR_NAME = "__app__.jar";
+    private static final String EMPTY = "";
+    private static final String EQUALS = "=";
+    private static final String SPACE = " ";
 
     protected static final String SPARK_MASTER = "spark.master";
     protected static final String YARN_CLUSTER = "yarn-cluster";
@@ -211,7 +220,7 @@ public class NSparkExecutable extends AbstractExecutable {
             return runLocalMode(argsPath);
         } else {
             return runSparkSubmit(hadoopConf, jars, kylinJobJar,
-                    "-className " + getSparkSubmitClassName() + " " + argsPath);
+                    "-className " + getSparkSubmitClassName() + SPACE + argsPath);
         }
     }
 
@@ -343,9 +352,26 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private Map<String, String> getSparkConf() {
         KylinConfig config = getConfig();
-        Map<String, String> sparkConf = getSparkConfigOverride(config);
+        final Map<String, String> sparkConf = getSparkConfigOverride(config);
         // spark.master is sure here.
         this.isYarnCluster = YARN_CLUSTER.equals(sparkConf.get(SPARK_MASTER));
+
+        // Workaround when there is no underlying file: /etc/krb5.conf
+        String krb5Conf = KapConfig.wrap(config).getKerberosKrb5Conf();
+        ConfMap confMap = new ConfMap() {
+            @Override
+            public String get(String key) {
+                return sparkConf.get(key);
+            }
+
+            @Override
+            public void set(String key, String value) {
+                sparkConf.put(key, value);
+            }
+        };
+        wrapKrb5Conf(AM_OPS, krb5Conf, confMap);
+        wrapKrb5Conf(EXECUTOR_OPS, krb5Conf, confMap);
+
         overrideDriverOps(config, sparkConf);
         return sparkConf;
     }
@@ -396,6 +422,25 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append(String.format(Locale.ROOT, " -Dspark.driver.local.logDir=%s ", //
                 KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
         sparkConfigOverride.put(DRIVER_OPS, sb.toString().trim());
+    }
+
+    private void wrapKrb5Conf(String key, String value, ConfMap confMap) {
+        // 'spark.yarn.am.extraJavaOptions', 'krb5.conf'
+        String extraOps = confMap.get(key);
+        if (Objects.isNull(extraOps)) {
+            extraOps = EMPTY;
+        }
+        if (extraOps.contains(KRB5CONF_PROPS)) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder("-D");
+        sb.append(KRB5CONF_PROPS);
+        sb.append(EQUALS);
+        sb.append(HADOOP_CONF_PATH);
+        sb.append(value);
+        sb.append(SPACE);
+        sb.append(extraOps);
+        confMap.set(key, sb.toString());
     }
 
     protected String generateSparkCmd(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
@@ -489,7 +534,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     protected void appendSparkConf(StringBuilder sb, String key, String value) {
         // Multiple parameters in "--conf" need to be enclosed in single quotes
-        sb.append(" --conf '").append(key).append("=").append(value).append("' ");
+        sb.append(" --conf '").append(key).append(EQUALS).append(value).append("' ");
     }
 
     private ExecuteResult runLocalMode(String appArgs) {
@@ -517,10 +562,25 @@ public class NSparkExecutable extends AbstractExecutable {
             throw new RuntimeException("Missing metaUrl");
         }
 
-        File tmpDir = File.createTempFile("kylin_job_meta", "");
+        File tmpDir = File.createTempFile("kylin_job_meta", EMPTY);
         FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
-        Properties props = config.exportToProperties();
+        String krb5Conf = KapConfig.wrap(config).getKerberosKrb5Conf();
+        final Properties props = config.exportToProperties();
+        ConfMap confMap = new ConfMap() {
+            @Override
+            public String get(String key) {
+                return props.getProperty(key);
+            }
+
+            @Override
+            public void set(String key, String value) {
+                props.setProperty(key, value);
+            }
+        };
+        wrapKrb5Conf(KYLIN_AM_OPS, krb5Conf, confMap);
+        wrapKrb5Conf(KYLIN_EXECUTOR_OPS, krb5Conf, confMap);
+
         props.setProperty("kylin.metadata.url", metaDumpUrl);
 
         if (kylinPropsOnly) {
@@ -580,5 +640,11 @@ public class NSparkExecutable extends AbstractExecutable {
 
     public void mergerMetadata(MetadataMerger merger) {
         throw new UnsupportedOperationException();
+    }
+
+    private interface ConfMap {
+        String get(String key);
+
+        void set(String key, String value);
     }
 }
