@@ -67,7 +67,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -118,6 +118,14 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set(StaticSQLConf.WAREHOUSE_PATH().key(),
                 TempMetadataBuilder.TEMP_TEST_METADATA + "/spark-warehouse");
+
+        sparkConf.set("spark.sql.legacy.parquet.int96RebaseModeInWrite", "LEGACY");
+        sparkConf.set("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "LEGACY");
+        sparkConf.set("spark.sql.legacy.parquet.int96RebaseModeInRead", "CORRECTED");
+        sparkConf.set("spark.sql.legacy.parquet.datetimeRebaseModeInRead", "CORRECTED");
+        sparkConf.set("spark.sql.legacy.timeParserPolicy", "LEGACY");
+        sparkConf.set("spark.sql.parquet.mergeSchema", "true");
+        sparkConf.set("spark.sql.legacy.allowNegativeScaleOfDecimal", "true");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);

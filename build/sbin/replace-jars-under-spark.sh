@@ -107,7 +107,7 @@ function cdp_replace_jars() {
 
     if [[ $(is_cdh_6_x) == 1 ]]; then
         cdh6_jars=$(find ${cdh_mapreduce_path}/../../jars -maxdepth 1 \
-        -name "woodstox-core-*.jar" -o -name "commons-configuration2-*.jar" -o -name "re2j-*.jar" )
+        -name "woodstox-core-*.jar" -o -name "stax2-*.jar" -o -name "commons-configuration2-*.jar" -o -name "re2j-*.jar" )
     fi
 }
 
@@ -189,10 +189,8 @@ if [[ $(is_cdh_6_x) == 1 ]]; then
     cp ${SPARK_HOME}/hadoop3/cdh6.1/*.jar ${SPARK_HOME}/jars
 fi
 
-if [[ $(is_fi_c90) == 1 ]]; then
-    find ${SPARK_HOME}/jars -name "hive-exec-*.jar" -exec rm -f {} \;
-    cp ${SPARK_HOME}/hadoop3/cdh6.1/*.jar ${SPARK_HOME}/jars
-fi
+find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
+find ${SPARK_HOME}/jars -name "hadoop-*2.7.*.jar" -exec rm -f {} \;
 
 for jar_file in ${jar_list}
 do

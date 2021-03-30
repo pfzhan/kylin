@@ -34,7 +34,7 @@ import javax.servlet.ServletResponse;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.Assert;
 import org.junit.Test;
-import org.spark_project.jetty.servlet.DefaultServlet;
+import org.sparkproject.jetty.servlet.DefaultServlet;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;

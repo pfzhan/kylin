@@ -21,12 +21,10 @@
  */
 package org.apache.spark.sql.common
 
-import java.io.File
 import java.sql.Types
 import java.util.{List, TimeZone}
 
 import io.kyligence.kap.metadata.query.StructField
-import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.sideBySide

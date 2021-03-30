@@ -19,15 +19,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-package io.kyligence.kap.engine.spark.smarter
+package org.apache.spark.tracker
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
-import io.kyligence.kap.engine.spark.smarter.ResourceState.ResourceState
+import io.kyligence.kap.engine.spark.smarter.{BuildAppStatusStore, BuildListener}
 import io.kyligence.kap.engine.spark.utils.SparkUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.tracker.ResourceState.ResourceState
 import org.apache.spark.util.Utils
 
 import scala.collection.JavaConverters._

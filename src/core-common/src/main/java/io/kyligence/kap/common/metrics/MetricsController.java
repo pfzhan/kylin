@@ -26,12 +26,12 @@ package io.kyligence.kap.common.metrics;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.codahale.metrics.jmx.JmxReporter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 
 public class MetricsController {

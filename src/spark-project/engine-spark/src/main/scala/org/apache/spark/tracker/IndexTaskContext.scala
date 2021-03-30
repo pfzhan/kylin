@@ -21,8 +21,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.newSession
+package org.apache.spark.tracker
 
-class V2Build  extends  OnlyBuildTest {
-  override protected def storageType: Integer = 2
-}
+import io.kyligence.kap.engine.spark.job.BuildLayoutWithUpdate
+import io.kyligence.kap.metadata.cube.model.NDataSegment
+import org.apache.kylin.common.KylinConfig
+
+import scala.collection.mutable.ListBuffer
+
+case class IndexTaskContext(config: KylinConfig,
+                            seg: NDataSegment,
+                            project: String,
+                            buildLayoutWithUpdate: BuildLayoutWithUpdate,
+                            runningIndex: ListBuffer[Long])

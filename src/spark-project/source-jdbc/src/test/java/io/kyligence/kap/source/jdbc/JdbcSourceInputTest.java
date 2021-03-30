@@ -25,7 +25,6 @@ package io.kyligence.kap.source.jdbc;
 
 import java.sql.SQLException;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -40,6 +39,7 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class JdbcSourceInputTest extends JdbcTestBase {
     private static SparkSession ss;

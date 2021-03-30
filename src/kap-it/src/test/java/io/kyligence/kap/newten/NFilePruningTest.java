@@ -41,6 +41,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.KylinFileSourceScanExec;
 import org.apache.spark.sql.execution.SparkPlan;
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
 import org.junit.Assert;
@@ -48,7 +49,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.collect.Lists;
 
@@ -65,7 +66,7 @@ import lombok.val;
 import scala.runtime.AbstractFunction1;
 
 @RunWith(TimeZoneTestRunner.class)
-public class NFilePruningTest extends NLocalWithSparkSessionTest {
+public class NFilePruningTest extends NLocalWithSparkSessionTest implements AdaptiveSparkPlanHelper {
 
     private final String base = "select count(*)  FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
 
@@ -278,7 +279,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         assertResultsAndScanFiles(dfId, decimal1, 52, false, Lists.newArrayList());
 
         // calcite will treat short as int. So pruning will not work.
-        assertResultsAndScanFiles(dfId, short0, 25, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, short0, 3, false, Lists.newArrayList());
         assertResultsAndScanFiles(dfId, short1, 25, false, Lists.newArrayList());
 
         assertResultsAndScanFiles(dfId, string0, 3, false, Lists.newArrayList());
@@ -512,7 +513,9 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
             return numScanFiles;
         }
         df.collect();
-        val actualNum = findFileSourceScanExec(df.queryExecution().sparkPlan()).metrics().get("numFiles").get().value();
+
+        val actualNum = findFileSourceScanExec(df.queryExecution().executedPlan()).metrics().get("numFiles").get()
+                .value();
         Assert.assertEquals(numScanFiles, actualNum);
         val segmentIds = context.storageContext.getPrunedSegments();
         assertPrunedSegmentRange(modelId, segmentIds, expectedRanges);
@@ -520,10 +523,10 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     }
 
     private KylinFileSourceScanExec findFileSourceScanExec(SparkPlan plan) {
-        return (KylinFileSourceScanExec) plan.find(new AbstractFunction1<SparkPlan, Object>() {
+        return (KylinFileSourceScanExec) find(plan, new AbstractFunction1<SparkPlan, Object>() {
             @Override
-            public Object apply(SparkPlan p) {
-                return p instanceof KylinFileSourceScanExec;
+            public Object apply(SparkPlan v1) {
+                return v1 instanceof KylinFileSourceScanExec;
             }
         }).get();
     }

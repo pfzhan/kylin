@@ -37,7 +37,7 @@ import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.scalatest.BeforeAndAfterAll
 
 //noinspection ScalaStyle
-class QuerySensitiveDataMaskDFTest extends org.scalatest.FunSuite with BeforeAndAfterAll {
+class QuerySensitiveDataMaskDFTest extends org.scalatest.funsuite.AnyFunSuite with BeforeAndAfterAll {
 
   private var mask: QuerySensitiveDataMask = _
   private var ss: SparkSession = _

@@ -217,6 +217,7 @@ public class NExecAndComp {
                     SparderQueryTest.compareColumnTypeWithCalcite(cubeColumns, sparkResult.schema());
                 }
                 List<Row> sparkRows = sparkResult.collectAsList();
+                logger.error("OCC on compare query ({}) :{}", joinType, query);
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).collectAsList();
                 if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {
                     logger.error("Failed on compare query ({}) :{}", joinType, query);

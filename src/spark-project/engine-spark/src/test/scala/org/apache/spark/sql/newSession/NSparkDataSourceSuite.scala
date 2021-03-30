@@ -23,28 +23,28 @@
  */
 package org.apache.spark.sql.newSession
 
+import java.util.Locale
+
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
-
-import scala.collection.JavaConverters._
 import io.kyligence.kap.engine.spark.source.NSparkDataSource
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflowManager}
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.kylin.source.SourceFactory
-import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.ColumnName
 import org.apache.spark.sql.test.SQLTestUtils
 import org.apache.spark.sql.util.SparderTypeUtil
+import org.junit.Ignore
 
-import java.util.Locale
+import scala.collection.JavaConverters._
 
 
 /**
  * Equivalence [[io.kyligence.kap.engine.spark.mockup.CsvSourceTest]]
  */
-class NSparkDataSourceSuite extends SparkFunSuite with SQLTestUtils with WithKylinExternalCatalog {
+class NSparkDataSourceSuite extends SQLTestUtils with WithKylinExternalCatalog {
 
   private val DEFAULT_TABLE = "DEFAULT.TEST_KYLIN_FACT"
   private val project = "default"

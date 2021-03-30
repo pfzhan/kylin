@@ -1,16 +1,14 @@
 package io.kyligence.kap.engine.spark.streaming.util;
 
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.codahale.metrics.JmxReporter;
-
+import com.codahale.metrics.jmx.JmxReporter;
 import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsInfluxdbReporter;
 import io.kyligence.kap.common.metrics.MetricsReporter;
 import lombok.val;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetricsManager {
 

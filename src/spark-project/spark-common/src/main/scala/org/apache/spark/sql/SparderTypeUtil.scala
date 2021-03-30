@@ -24,9 +24,10 @@
 
 package org.apache.spark.sql.util
 
-import java.lang.{Boolean, Byte, Double, Float, Long, Short}
+import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float => JFloat, Long => JLong, Short => JShort}
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp, Types}
+import java.time.ZoneId
 import java.util.regex.Pattern
 import java.util.{GregorianCalendar, TimeZone}
 
@@ -97,7 +98,7 @@ object SparderTypeUtil extends Logging {
   def toSparkType(dataTp: DataType, isSum: Boolean = false): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
       // org.apache.spark.sql.catalyst.expressions.aggregate.Sum#resultType
-      case "decimal"|"numeric" =>
+      case "decimal" | "numeric" =>
         if (isSum) {
           val i = dataTp.getPrecision + 10
           DecimalType(Math.min(DecimalType.MAX_PRECISION, i), dataTp.getScale)
@@ -190,14 +191,14 @@ object SparderTypeUtil extends Logging {
         getValueFromNlsString(s)
       case g: GregorianCalendar =>
         if (literal.getTypeName.getName.equals("DATE")) {
-          new Date(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000)
+          new Date(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString), ZoneId.systemDefault()).get / 1000)
         } else {
-          new Timestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000)
+          new Timestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString), ZoneId.systemDefault()).get / 1000)
         }
       case range: TimeUnitRange =>
         // Extract(x from y) in where clause
         range.name
-      case b: Boolean =>
+      case b: JBoolean =>
         b
       case b: BigDecimal =>
         literal.getType.getSqlTypeName match {
@@ -214,17 +215,17 @@ object SparderTypeUtil extends Logging {
           case _ =>
             b
         }
-      case b: Float =>
+      case b: JFloat =>
         b
-      case b: Double =>
+      case b: JDouble =>
         b
       case b: Integer =>
         b
-      case b: Byte =>
+      case b: JByte =>
         b
-      case b: Short =>
+      case b: JShort =>
         b
-      case b: Long =>
+      case b: JLong =>
         b
       case _ =>
         literal.getValue.toString
@@ -339,7 +340,7 @@ object SparderTypeUtil extends Logging {
               val time = DateFormat.stringToDate(string).getTime
               if (toCalcite) {
                 //current date is local timezone, org.apache.calcite.avatica.util.AbstractCursor.DateFromNumberAccessor need to utc
-                DateTimeUtils.stringToDate(UTF8String.fromString(string)).get
+                DateTimeUtils.stringToDate(UTF8String.fromString(string), ZoneId.systemDefault()).get
               } else {
                 // ms to s
                 time / 1000
@@ -357,7 +358,7 @@ object SparderTypeUtil extends Logging {
             var ts = s.asInstanceOf[Timestamp].toString
             if (toCalcite) {
               // current ts is local timezone ,org.apache.calcite.avatica.util.AbstractCursor.TimeFromNumberAccessor need to utc
-              DateTimeUtils.stringToTimestamp(UTF8String.fromString(ts), TimeZone.getTimeZone("UTC")).get / 1000
+              DateTimeUtils.stringToTimestamp(UTF8String.fromString(ts), TimeZone.getTimeZone("UTC").toZoneId).get / 1000
             } else {
               // ms to s
               s.asInstanceOf[Timestamp].getTime / 1000

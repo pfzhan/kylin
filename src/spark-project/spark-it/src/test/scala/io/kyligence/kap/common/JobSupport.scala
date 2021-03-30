@@ -224,7 +224,6 @@ trait JobSupport
       Sets.newLinkedHashSet(layouts),
       prj)
     val seg1 = checkSourceBytesSize(segment)
-    checkDataSkew(segment)
 
     start = SegmentRange.dateToLong("2012-06-01")
     end = SegmentRange.dateToLong("2013-01-01")
@@ -233,7 +232,6 @@ trait JobSupport
       Sets.newLinkedHashSet(layouts),
       prj)
     val seg2 = checkSourceBytesSize(segment)
-    checkDataSkew(segment)
 
     start = SegmentRange.dateToLong("2013-01-01")
     end = SegmentRange.dateToLong("2013-06-01")
@@ -242,7 +240,6 @@ trait JobSupport
       Sets.newLinkedHashSet(layouts),
       prj)
     val seg3 = checkSourceBytesSize(segment)
-    checkDataSkew(segment)
 
     start = SegmentRange.dateToLong("2013-06-01")
     end = SegmentRange.dateToLong("2015-01-01")
@@ -251,8 +248,6 @@ trait JobSupport
       Sets.newLinkedHashSet(layouts),
       prj)
     val seg4 = checkSourceBytesSize(segment)
-    checkDataSkew(segment)
-
 
     /**
      * Round2. Merge two segments
@@ -401,14 +396,6 @@ trait JobSupport
     dataSegment.getSourceBytesSize
   }
 
-  def checkDataSkew(nDataSegment: NDataSegment): Unit = {
-    if (!NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, nDataSegment.getProject)
-      .getDataflow(nDataSegment.getDataflow.getId)
-      .getSegment(nDataSegment.getId).isEncodingDataSkew) {
-      throw new RuntimeException(s"Encoding data skew should be true, but now is false!")
-    }
-  }
-
   def checkOrder(sparkSession: SparkSession, dfName: String, project: String): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, project)
@@ -426,9 +413,11 @@ trait JobSupport
         val afterSort = beforeSort.sort(beforeSort.schema.names.map(col): _*)
         val str = SparderQueryTest.checkAnswer(beforeSort, afterSort, true)
         if (str != null) {
+          // scalastyle:off println
           beforeSort.collect().foreach(println)
           println("==========================")
           afterSort.collect().foreach(println)
+          // scalastyle:on println
           dumpMetadata()
           throw new RuntimeException(s"Check order failed : dfName: $dfName, layoutId: ${nCuboidLayout.getId}")
         }

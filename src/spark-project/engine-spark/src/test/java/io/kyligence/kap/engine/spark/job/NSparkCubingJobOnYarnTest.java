@@ -40,7 +40,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;

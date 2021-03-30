@@ -103,7 +103,8 @@ public class NSparkExecutable extends AbstractExecutable {
     private static final String SPACE = " ";
 
     protected static final String SPARK_MASTER = "spark.master";
-    protected static final String YARN_CLUSTER = "yarn-cluster";
+    protected static final String DEPLOY_MODE = "spark.submit.deployMode";
+    protected static final String YARN_CLUSTER = "cluster";
 
     private volatile boolean isYarnCluster = false;
 
@@ -354,7 +355,7 @@ public class NSparkExecutable extends AbstractExecutable {
         KylinConfig config = getConfig();
         final Map<String, String> sparkConf = getSparkConfigOverride(config);
         // spark.master is sure here.
-        this.isYarnCluster = YARN_CLUSTER.equals(sparkConf.get(SPARK_MASTER));
+        this.isYarnCluster = YARN_CLUSTER.equals(sparkConf.get(DEPLOY_MODE));
 
         // Workaround when there is no underlying file: /etc/krb5.conf
         String krb5Conf = KapConfig.wrap(config).getKerberosKrb5Conf();
@@ -456,7 +457,8 @@ public class NSparkExecutable extends AbstractExecutable {
         wrapClasspathConf(sb, kylinJobJar);
 
         // extra jars
-        if (sparkConf.containsKey("spark.sql.hive.metastore.jars")) {
+        if (sparkConf.containsKey("spark.sql.hive.metastore.jars")
+            && !sparkConf.get("spark.sql.hive.metastore.jars").contains("builtin")) {
             jars = jars + COMMA + sparkConf.get("spark.sql.hive.metastore.jars");
         }
         final KylinConfig config = getConfig();
@@ -493,8 +495,8 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append("--jars %s %s %s ");
 
         // Three parameters at most per line.
-        String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, // 
-                KylinConfigBase.getSparkHome(), getId(), jars, // 
+        String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, //
+                KylinConfigBase.getSparkHome(), getId(), jars, //
                 kylinJobJar, appArgs);
         logger.info("spark submit cmd: {}", cmd);
         return cmd;
@@ -512,7 +514,7 @@ public class NSparkExecutable extends AbstractExecutable {
         // https://issues.apache.org/jira/browse/SPARK-16784
         final String localLog4j = config.getLogSparkDriverPropertiesFile();
         final String log4jName = Paths.get(localLog4j).getFileName().toString();
-        if (isYarnCluster) {
+        if (isYarnCluster || config.getSparkMaster().startsWith("k8s")) {
             // Direct file name.
             sb.append(String.format(Locale.ROOT, " -Dlog4j.configuration=%s ", log4jName));
         } else {

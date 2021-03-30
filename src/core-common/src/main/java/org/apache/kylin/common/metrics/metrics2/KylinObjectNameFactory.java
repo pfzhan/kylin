@@ -43,15 +43,13 @@
 
 package org.apache.kylin.common.metrics.metrics2;
 
-import java.util.Hashtable;
-
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-
+import com.codahale.metrics.jmx.ObjectNameFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.ObjectNameFactory;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import java.util.Hashtable;
 
 public class KylinObjectNameFactory implements ObjectNameFactory {
 

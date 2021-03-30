@@ -36,8 +36,10 @@ import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
 import org.apache.spark.unsafe.types.UTF8String
+import java.time.ZoneId
 
 object NonEquiJoinConditionBuilder {
+
   import org.apache.calcite.sql.SqlKind._
   import org.apache.spark.sql.functions._
 
@@ -52,7 +54,8 @@ object NonEquiJoinConditionBuilder {
       case SqlTypeName.DATE =>
         return DateTimeUtils.stringToTime(literal.toString)
       case SqlTypeName.TIMESTAMP =>
-        return DateTimeUtils.toJavaTimestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).head)
+        return DateTimeUtils.toJavaTimestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString),
+          ZoneId.systemDefault()).head)
       case _ =>
     }
     literal

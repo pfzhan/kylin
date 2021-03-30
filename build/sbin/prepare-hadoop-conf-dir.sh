@@ -37,6 +37,8 @@ function fetchCloudHadoopConf() {
     CLOUD_HADOOP_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.cloud.hadoop-conf-dir`
     checkAndCopyFile $CLOUD_HADOOP_CONF_DIR/core-site.xml
     checkAndCopyFile $CLOUD_HADOOP_CONF_DIR/hive-site.xml
+    checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
+    checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
 }
 
 function fetchKylinHadoopConf() {
@@ -68,6 +70,8 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/yarn-site.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/mapred-site.xml
         checkAndCopyFIHiveSite
+        checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
+        checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
 
         # don't find topology.map in FI
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py
@@ -88,6 +92,8 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile /etc/hadoop/conf/yarn-site.xml
         checkAndCopyFile /etc/hive/conf/hive-site.xml
         checkAndCopyFile /etc/hadoop/conf/mapred-site.xml
+        checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
+        checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
 
         checkAndCopyFile /etc/hadoop/conf/topology.py
         checkAndCopyFile /etc/hadoop/conf/topology.map

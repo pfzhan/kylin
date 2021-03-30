@@ -45,9 +45,9 @@ package org.apache.kylin.common.metrics.metrics2;
 
 import java.util.concurrent.TimeUnit;
 
+import com.codahale.metrics.jmx.JmxReporter;
 import org.apache.kylin.common.KylinConfig;
 
-import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 
 /**

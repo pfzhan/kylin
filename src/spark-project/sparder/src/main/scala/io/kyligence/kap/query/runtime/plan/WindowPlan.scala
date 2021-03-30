@@ -181,11 +181,10 @@ object WindowPlan extends Logging {
                 case 1 => lead(columnsAndConstants.apply(args.head), 1)
                 case 2 => lead(columnsAndConstants.apply(args.head),
                   constantMap.apply(args(1)).asInstanceOf[Number].intValue())
-                case 3 => {
+                case 3 =>
                   lead(columnsAndConstants.apply(args.head),
                     constantMap.apply(args(1)).asInstanceOf[Number].intValue(),
                     constantValue(rel, constantMap, args(2), visitor))
-                }
               }
 
             case "LAG" =>

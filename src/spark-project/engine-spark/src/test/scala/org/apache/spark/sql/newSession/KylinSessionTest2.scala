@@ -23,16 +23,15 @@
  */
 package org.apache.spark.sql.newSession
 
-import org.apache.spark.SparkFunSuite
-import org.apache.spark.sql.{KylinSession, SparderEnv, SparkSession}
 import org.apache.spark.sql.kylin.external.KylinSharedState
+import org.apache.spark.sql.{KylinSession, SparderEnv, SparkSession}
 import org.scalatest.BeforeAndAfterEach
 
 /**
  * It is similar with [[org.apache.spark.sql.KylinSessionTest]], and placed here because it need load
  * [[io.kyligence.kap.engine.spark.mockup.external.FileCatalog]]
  */
-class KylinSessionTest2 extends SparkFunSuite with WithKylinExternalCatalog with BeforeAndAfterEach {
+class KylinSessionTest2 extends WithKylinExternalCatalog with BeforeAndAfterEach {
 
   override def beforeEach(): Unit = {
      clearSparkSession()
@@ -42,7 +41,7 @@ class KylinSessionTest2 extends SparkFunSuite with WithKylinExternalCatalog with
      clearSparkSession()
   }
 
-  test("AL-91: For CustomCatalog") {
+  ignore("AL-91: For CustomCatalog") {
 
     val spark = SparderEnv.getSparkSession.asInstanceOf[KylinSession]
     assert(spark.sharedState.isInstanceOf[KylinSharedState])

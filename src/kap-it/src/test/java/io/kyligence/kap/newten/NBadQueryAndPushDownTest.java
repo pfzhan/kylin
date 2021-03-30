@@ -47,6 +47,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Throwables;
@@ -108,7 +109,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    @Test
+    @Ignore
     public void testPushDownToNonExistentDB() throws Exception {
         //from tpch database
         try {
@@ -140,7 +141,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    @Test
+    @Ignore
     public void testPushDownWithSemicolonQuery() throws Exception {
         final String sql = "select 1 from test_kylin_fact;";
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
@@ -173,7 +174,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    @Test
+    @Ignore
     public void testPushDownUdf() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");

@@ -30,7 +30,7 @@ import java.util.Set;
 import org.apache.kylin.metadata.model.Segments;
 import org.junit.Assert;
 import org.junit.Test;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;

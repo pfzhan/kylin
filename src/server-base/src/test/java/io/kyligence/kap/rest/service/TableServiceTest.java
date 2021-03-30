@@ -62,6 +62,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -184,6 +185,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
+        FileUtils.deleteQuietly(new File("../server-base/metastore_db"));
     }
 
     @Test

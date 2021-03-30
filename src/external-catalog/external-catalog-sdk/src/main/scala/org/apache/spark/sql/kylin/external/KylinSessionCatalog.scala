@@ -28,16 +28,16 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
-import org.apache.spark.sql.catalyst.catalog.{ExternalCatalog, ExternalCatalogWithListener, FunctionResourceLoader, GlobalTempViewManager, SessionCatalog}
+import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.parser.ParserInterface
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
-import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.connector.catalog.CatalogManager
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 class KylinSessionCatalog(
     externalCatalogBuilder: () => ExternalCatalog,
     globalTempViewManagerBuilder: () => GlobalTempViewManager,
     functionRegistry: FunctionRegistry,
-    conf: SQLConf,
     hadoopConf: Configuration,
     parser: ParserInterface,
     functionResourceLoader: FunctionResourceLoader,
@@ -46,7 +46,6 @@ class KylinSessionCatalog(
     externalCatalogBuilder,
     globalTempViewManagerBuilder,
     functionRegistry,
-    conf,
     hadoopConf,
     parser,
     functionResourceLoader) {
@@ -55,14 +54,16 @@ class KylinSessionCatalog(
       externalCatalog.asInstanceOf[ExternalCatalogWithListener].unwrapped.asInstanceOf[HasKeExternal].keExternalCatalog
   }
 
-  override def lookupRelation(name: TableIdentifier): LogicalPlan = {
-      val db = formatDatabaseName(name.database.getOrElse(currentDb))
-      val table = formatTableName(name.table)
-      val data = keExternalCatalog.getTableData(session, db, table, false)
-      if (data != null) {
-          SubqueryAlias(table, data.logicalPlan)
-      } else {
-          super.lookupRelation(name)
-      }
+  private def getRelationFromExternal(name: TableIdentifier): Option[LogicalPlan] = {
+    val db = formatDatabaseName(name.database.getOrElse(currentDb))
+    val table = formatTableName(name.table)
+    val multiParts = Seq(CatalogManager.SESSION_CATALOG_NAME, db, table)
+
+    Option(keExternalCatalog.getTableData(session, db, table, false))
+      .map(df => SubqueryAlias(multiParts, df.logicalPlan))
+  }
+
+  override def getRelation(metadata: CatalogTable, options: CaseInsensitiveStringMap): LogicalPlan = {
+    getRelationFromExternal(metadata.identifier).getOrElse(super.getRelation(metadata, options))
   }
 }

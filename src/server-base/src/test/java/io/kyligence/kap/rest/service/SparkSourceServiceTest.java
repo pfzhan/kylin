@@ -156,12 +156,12 @@ public class SparkSourceServiceTest extends ServiceTestBase {
 
     @Test
     public void testExportTables() throws IOException {
-        String expectedTableStructure = "CREATE EXTERNAL TABLE `default`.`hive_bigints`(`id` BIGINT) "
-                + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' "
-                + "WITH SERDEPROPERTIES (   'serialization.format' = '1' ) STORED AS   "
-                + "INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'   "
-                + "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat' "
-                + "LOCATION 'file:/tmp/parquet_data' ";
+        String expectedTableStructure = "CREATE EXTERNAL TABLE `default`.`hive_bigints`(   `id` BIGINT) "
+            + "ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' "
+            + "WITH SERDEPROPERTIES (   'serialization.format' = '1') STORED AS   "
+            + "INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'   "
+            + "OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat' "
+            + "LOCATION 'file:/tmp/parquet_data' ";
         sparkSourceService.executeSQL(
                 "CREATE EXTERNAL TABLE hive_bigints(id bigint)  STORED AS PARQUET LOCATION '/tmp/parquet_data'");
 

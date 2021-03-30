@@ -24,9 +24,9 @@
 
 package org.apache.spark.sql.udf
 
-import org.apache.spark.sql.catalyst.util.DateTimeUtils._
+import org.apache.spark.sql.catalyst.util.DateTimeConstants._
+import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
 import org.apache.spark.sql.catalyst.util.KapDateTimeUtils._
-import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 
 import java.util.Locale
 
@@ -35,7 +35,7 @@ object TimestampDiffImpl {
   // TimestampType -> DateType
   def evaluate(unit: String, timestamp: Long, date: Int): Long = {
     val before = timestamp / MICROS_PER_MILLIS
-    val after = DateTimeUtils.daysToMillis(date)
+    val after = KapDateTimeUtils.daysToMillis(date)
     convertDuration(unit, before, after)
   }
 
@@ -48,14 +48,14 @@ object TimestampDiffImpl {
 
   // DateType -> DateType
   def evaluate(unit: String, date1: Int, date2: Int): Long = {
-    val before = DateTimeUtils.daysToMillis(date1)
-    val after = DateTimeUtils.daysToMillis(date2)
+    val before = KapDateTimeUtils.daysToMillis(date1)
+    val after = KapDateTimeUtils.daysToMillis(date2)
     convertDuration(unit, before, after)
   }
 
   // DateType -> TimestampType
   def evaluate(unit: String, date: Int, timestamp: Long): Long = {
-    val before = DateTimeUtils.daysToMillis(date)
+    val before = KapDateTimeUtils.daysToMillis(date)
     val after = timestamp / MICROS_PER_MILLIS
     convertDuration(unit, before, after)
   }

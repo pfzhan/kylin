@@ -22,13 +22,10 @@
 
 package org.apache.spark.sql.execution
 
-import java.util
-
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.{Ascending, Attribute, Expression, SortOrder}
-import org.apache.spark.sql.catalyst.plans.physical.{HashPartitioning, Partitioning, UnknownPartitioning}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
 import org.apache.spark.sql.catalyst.{InternalRow, TableIdentifier}
 import org.apache.spark.sql.execution.datasource.{FilePruner, ShardSpec}
 import org.apache.spark.sql.execution.datasources._
@@ -39,16 +36,18 @@ import scala.collection.mutable.ArrayBuffer
 
 // scalastyle:off
 class KylinFileSourceScanExec(
-    @transient override val relation: HadoopFsRelation,
-    override val output: Seq[Attribute],
-    override val requiredSchema: StructType,
-    override val partitionFilters: Seq[Expression],
-    val optionalShardSpec: Option[ShardSpec],
-    override val dataFilters: Seq[Expression],
-    override val tableIdentifier: Option[TableIdentifier]) extends LayoutFileSourceScanExec(
-  relation, output, requiredSchema, partitionFilters, None, dataFilters, tableIdentifier) {
+     @transient relation: HadoopFsRelation,
+     output: Seq[Attribute],
+     requiredSchema: StructType,
+     partitionFilters: Seq[Expression],
+     val optionalShardSpec: Option[ShardSpec],
+     optionalNumCoalescedBuckets: Option[Int],
+     dataFilters: Seq[Expression],
+     tableIdentifier: Option[TableIdentifier],
+     disableBucketedScan: Boolean = false) extends LayoutFileSourceScanExec(
+  relation, output, requiredSchema, partitionFilters, None, optionalNumCoalescedBuckets, dataFilters, tableIdentifier, disableBucketedScan) {
 
-  @transient private lazy val selectedPartitions: Seq[PartitionDirectory] = {
+  @transient override lazy val selectedPartitions: Array[PartitionDirectory] = {
     val optimizerMetadataTimeNs = relation.location.metadataOpsTimeNs.getOrElse(0L)
     val startTime = System.nanoTime()
     val ret = relation.location.listFiles(partitionFilters, dataFilters)
@@ -61,10 +60,10 @@ class KylinFileSourceScanExec(
     SQLMetrics.postDriverMetricUpdates(sparkContext, executionId,
       metrics("numFiles") :: metrics("metadataTime") :: Nil)
 
-    ret
+    ret.toArray
   }
 
-  private lazy val inputRDD: RDD[InternalRow] = {
+  override lazy val inputRDD: RDD[InternalRow] = {
     val readFile: (PartitionedFile) => Iterator[InternalRow] =
       relation.fileFormat.buildReaderWithPartitionValues(
         sparkSession = relation.sparkSession,
@@ -87,57 +86,24 @@ class KylinFileSourceScanExec(
     inputRDD :: Nil
   }
 
-  override lazy val (outputPartitioning, outputOrdering): (Partitioning, Seq[SortOrder]) = {
-    val shardSpec = if (KylinConfig.getInstanceFromEnv.isShardingJoinOptEnabled) {
-      optionalShardSpec
-    } else {
-      None
-    }
-
-    shardSpec match {
-      case Some(spec) =>
-
-        def toAttribute(colName: String): Option[Attribute] =
-          output.find(_.name == colName)
-
-        val shardCols = spec.shardColumnNames.flatMap(toAttribute)
-        val partitioning = if (shardCols.size == spec.shardColumnNames.size) {
-          HashPartitioning(shardCols, spec.numShards)
-        } else {
-          UnknownPartitioning(0)
-        }
-
-        val sortColumns = spec.sortColumnNames.map(toAttribute).takeWhile(_.isDefined).map(_.get)
-        val sortOrder = if (sortColumns.nonEmpty) {
-          sortColumns.map(SortOrder(_, Ascending))
-        } else {
-          Nil
-        }
-
-        (partitioning, sortOrder)
-      case _ =>
-        (UnknownPartitioning(0), Nil)
-    }
-  }
-
   /**
-    * Copied from org.apache.spark.sql.execution.FileSourceScanExec#createBucketedReadRDD
-    *
-    * Create an RDD for sharding reads.
-    * The non-sharding variant of this function is [[createNonShardingReadRDD]].
-    *
-    * The algorithm is pretty simple: each RDD partition being returned should include all the files
-    * with the same shard id from all the given Hive partitions.
-    *
-    * @param shardSpec the sharding spec.
-    * @param readFile a function to read each (part of a) file.
-    * @param selectedPartitions Hive-style partition that are part of the read.
-    * @param fsRelation [[HadoopFsRelation]] associated with the read.
-    */
+   * Copied from org.apache.spark.sql.execution.FileSourceScanExec#createBucketedReadRDD
+   *
+   * Create an RDD for sharding reads.
+   * The non-sharding variant of this function is [[createNonShardingReadRDD]].
+   *
+   * The algorithm is pretty simple: each RDD partition being returned should include all the files
+   * with the same shard id from all the given Hive partitions.
+   *
+   * @param shardSpec          the sharding spec.
+   * @param readFile           a function to read each (part of a) file.
+   * @param selectedPartitions Hive-style partition that are part of the read.
+   * @param fsRelation         [[HadoopFsRelation]] associated with the read.
+   */
   private def createShardingReadRDD(shardSpec: ShardSpec,
-                                     readFile: (PartitionedFile) => Iterator[InternalRow],
-                                     selectedPartitions: Seq[PartitionDirectory],
-                                     fsRelation: HadoopFsRelation): RDD[InternalRow] = {
+                                    readFile: (PartitionedFile) => Iterator[InternalRow],
+                                    selectedPartitions: Seq[PartitionDirectory],
+                                    fsRelation: HadoopFsRelation): RDD[InternalRow] = {
     logInfo(s"Planning with ${shardSpec.numShards} shards")
     val filesToPartitionId =
       selectedPartitions.flatMap { p =>
@@ -150,25 +116,25 @@ class KylinFileSourceScanExec(
       }
 
     val filePartitions = Seq.tabulate(shardSpec.numShards) { shardId =>
-      FilePartition(shardId, filesToPartitionId.getOrElse(shardId, Nil))
+      FilePartition(shardId, filesToPartitionId.getOrElse(shardId, Nil).toArray)
     }
 
     new FileScanRDD(fsRelation.sparkSession, readFile, filePartitions)
   }
 
   /**
-    * Copied from org.apache.spark.sql.execution.FileSourceScanExec#createNonBucketedReadRDD, no hacking.
-    *
-    * Create an RDD for non-sharding reads.
-    * The sharding variant of this function is [[createShardingReadRDD]].
-    *
-    * @param readFile a function to read each (part of a) file.
-    * @param selectedPartitions Hive-style partition that are part of the read.
-    * @param fsRelation [[HadoopFsRelation]] associated with the read.
-    */
+   * Copied from org.apache.spark.sql.execution.FileSourceScanExec#createNonBucketedReadRDD, no hacking.
+   *
+   * Create an RDD for non-sharding reads.
+   * The sharding variant of this function is [[createShardingReadRDD]].
+   *
+   * @param readFile           a function to read each (part of a) file.
+   * @param selectedPartitions Hive-style partition that are part of the read.
+   * @param fsRelation         [[HadoopFsRelation]] associated with the read.
+   */
   private def createNonShardingReadRDD(readFile: (PartitionedFile) => Iterator[InternalRow],
-                                        selectedPartitions: Seq[PartitionDirectory],
-                                        fsRelation: HadoopFsRelation): RDD[InternalRow] = {
+                                       selectedPartitions: Seq[PartitionDirectory],
+                                       fsRelation: HadoopFsRelation): RDD[InternalRow] = {
     val defaultMaxSplitBytes =
       fsRelation.sparkSession.sessionState.conf.filesMaxPartitionBytes
     val openCostInBytes = fsRelation.sparkSession.sessionState.conf.filesOpenCostInBytes
@@ -206,7 +172,7 @@ class KylinFileSourceScanExec(
         val newPartition =
           FilePartition(
             partitions.size,
-            currentFiles.toArray.toSeq) // Copy to a new Array.
+            currentFiles.toArray) // Copy to a new Array.
         partitions += newPartition
       }
       currentFiles.clear()

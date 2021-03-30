@@ -42,8 +42,8 @@
 
 package io.kyligence.kap.query.pushdown;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.spark.sql.SparderEnv;
@@ -55,7 +55,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class MemoryLimitOnCollectTest extends NLocalFileMetadataTestCase {
 
@@ -65,8 +67,7 @@ public class MemoryLimitOnCollectTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         createTestMetadata();
         ss = SparkSession.builder().appName("local").master("local[1]")
-                .config("spark.sql.driver.maxMemoryUsageDuringCollect", "2m")
-                .getOrCreate();
+                .config("spark.sql.driver.maxMemoryUsageDuringCollect", "2m").getOrCreate();
         SparderEnv.setSparkSession(ss);
         StructType schema = new StructType();
         schema = schema.add("TRANS_ID", DataTypes.LongType, false);
@@ -91,7 +92,6 @@ public class MemoryLimitOnCollectTest extends NLocalFileMetadataTestCase {
         ss.stop();
         cleanupTestMetadata();
     }
-
 
     @Test
     public void testPushDownRunnerSpark() {

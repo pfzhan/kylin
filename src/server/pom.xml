@@ -49,6 +49,29 @@
     </parent>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml -->
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-xml_2.12</artifactId>
+            <version>1.0.5</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.json4s/json4s-jackson -->
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_2.12</artifactId>
+            <version>3.7.0-M5</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.module/jackson-module-scala -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-scala_2.12</artifactId>
+            <version>2.10.0</version>
+            <scope>compile</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
@@ -172,25 +195,25 @@
         <!-- spark -->
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.11</artifactId>
+            <artifactId>spark-core_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_2.11</artifactId>
+            <artifactId>spark-sql_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-hive_2.11</artifactId>
+            <artifactId>spark-hive_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-yarn_2.11</artifactId>
+            <artifactId>spark-yarn_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
 

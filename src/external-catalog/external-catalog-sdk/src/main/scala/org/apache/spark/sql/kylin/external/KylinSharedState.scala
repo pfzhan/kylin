@@ -28,7 +28,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.catalog.{CatalogDatabase, CatalogUtils, ExternalCatalogEvent, ExternalCatalogEventListener, ExternalCatalogWithListener, SessionCatalog}
+import org.apache.spark.sql.catalyst.catalog._
+import org.apache.spark.sql.internal.StaticSQLConf.WAREHOUSE_PATH
 import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionState, SharedState}
 import org.apache.spark.util.Utils
 
@@ -36,7 +37,7 @@ import scala.util.control.NonFatal
 
 class KylinSharedState (
     sc: SparkContext,
-    private val externalCatalogClass: String) extends SharedState(sc) {
+    private val externalCatalogClass: String) extends SharedState(sc, Map.empty) {
   override lazy val externalCatalog: ExternalCatalogWithListener = {
     val exteranl =
       KylinSharedState.instantiateExteranlCatalog(externalCatalogClass, sc.hadoopConfiguration)
@@ -45,7 +46,7 @@ class KylinSharedState (
     val defaultDbDefinition = CatalogDatabase(
       SessionCatalog.DEFAULT_DATABASE,
       "default database",
-      CatalogUtils.stringToURI(warehousePath),
+      CatalogUtils.stringToURI(conf.get(WAREHOUSE_PATH)),
       Map())
 
     // Create a default database in internal MemorySession Catalog even IExternalCatalog instance has one.
@@ -70,7 +71,7 @@ class KylinSharedState (
 class KylinSessionStateBuilder(
     session: SparkSession,
     state: Option[SessionState])
-  extends BaseSessionStateBuilder(session, state) {
+  extends BaseSessionStateBuilder(session, state, Map.empty) {
 
   override def build(): SessionState = {
     require(session.sharedState.isInstanceOf[KylinSharedState])
@@ -82,7 +83,6 @@ class KylinSessionStateBuilder(
       () => session.sharedState.externalCatalog,
       () => session.sharedState.globalTempViewManager,
       functionRegistry,
-      conf,
       SessionState.newHadoopConf(session.sparkContext.hadoopConfiguration, conf),
       sqlParser,
       resourceLoader,

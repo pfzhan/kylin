@@ -54,6 +54,8 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
           return
         }
       }
+
+      logInfo(s"handleResourceLack --> ${rl.throwable.getCause}")
       val buildEnv = KylinBuildEnv.get()
       // if killed, job failed without retry
       val jobStepId = buildEnv.buildJobInfos.getJobStepId

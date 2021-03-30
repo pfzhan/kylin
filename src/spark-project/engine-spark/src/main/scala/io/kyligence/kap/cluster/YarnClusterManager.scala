@@ -160,7 +160,7 @@ object YarnClusterManager {
     try {
       body(yarnClient)
     } finally {
-      yarnClient.close();
+      yarnClient.close()
     }
   }
 

@@ -39,10 +39,10 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -62,7 +62,8 @@ public class DictionaryBuilderHelper {
      *  #3 After the last build, the number of individual buckets in the existing dictionary is greater
      *  than the threshold multiplied by KylinConfigBase.getGlobalDictV2BucketOverheadFactor
      */
-    public static int calculateBucketSize(NDataSegment seg, TblColRef col, Dataset<Row> afterDistinct) throws IOException {
+    public static int calculateBucketSize(NDataSegment seg, TblColRef col, Dataset<Row> afterDistinct)
+            throws IOException {
         NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
         int bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig().getGlobalDictV2MinHashPartitions());
@@ -110,8 +111,8 @@ public class DictionaryBuilderHelper {
                     Math.max(peakBucketSize, bucketPartitionSize));
 
             if (resizeBucketSize != bucketPartitionSize) {
-                logger.info("Start building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
-                        bucketPartitionSize, resizeBucketSize);
+                logger.info("Start building a global dictionary column for {}, need resize from {} to {} ",
+                        col.getName(), bucketPartitionSize, resizeBucketSize);
                 resize(col, seg, resizeBucketSize, afterDistinct.sparkSession());
                 logger.info("End building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
                         bucketPartitionSize, resizeBucketSize);

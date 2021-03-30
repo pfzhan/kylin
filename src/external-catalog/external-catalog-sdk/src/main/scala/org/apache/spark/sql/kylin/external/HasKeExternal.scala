@@ -158,7 +158,7 @@ object HasKeExternal {
   def fromExternalColumn(hc: FieldSchema): StructField = {
     val columnType = getSparkSQLDataType(hc)
     val metadata = if (hc.getType != columnType.catalogString) {
-      new MetadataBuilder().putString(HIVE_TYPE_STRING, hc.getType).build()
+      new MetadataBuilder().putString("HIVE_TYPE_STRING", hc.getType).build()
     } else {
       Metadata.empty
     }

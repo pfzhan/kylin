@@ -24,10 +24,10 @@
 
 package org.apache.spark.memory
 
+import org.apache.spark.api.plugin.ExecutorPlugin
 import org.apache.spark.internal.Logging
 import org.apache.spark.rpc.{RpcAddress, RpcEnv}
-import org.apache.spark.util.RpcUtils
-import org.apache.spark.{ExecutorPlugin, SparkConf, SparkEnv}
+import org.apache.spark.{SparkConf, SparkEnv}
 
 class MonitorExecutorExtension extends ExecutorPlugin with Logging {
 
@@ -37,7 +37,7 @@ class MonitorExecutorExtension extends ExecutorPlugin with Logging {
 
   val sparkConf: SparkConf = env.conf
 
-  override def init(): Unit = {
+   def init(): Unit = {
 
     initMonitorEnv()
 

@@ -26,6 +26,7 @@ import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.spark.sql.DataFrame
 
+// scalastyle:off
 object LimitPlan {
   def limit(inputs: java.util.List[DataFrame],
     rel: KapLimitRel,

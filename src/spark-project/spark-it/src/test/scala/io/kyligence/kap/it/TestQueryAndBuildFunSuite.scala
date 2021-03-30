@@ -22,24 +22,23 @@
 
 package io.kyligence.kap.it
 
+import java.io.File
+import java.util.TimeZone
+
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
+import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.realization.RealizationStatusEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
-import java.io.File
-import java.util.TimeZone
-
-import io.kyligence.kap.metadata.cube.model.NDataflowManager.NDataflowUpdater
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
-import io.kyligence.kap.metadata.model.NDataModel
-import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
@@ -51,6 +50,7 @@ class TestQueryAndBuildFunSuite
     with QuerySupport
     with CompareSupport
     with SSSource
+    with AdaptiveSparkPlanHelper
     with Logging {
 
   override val DEFAULT_PROJECT = "default"
@@ -264,7 +264,7 @@ class TestQueryAndBuildFunSuite
   }
 
   private def getFileSourceScanExec(df: DataFrame) = {
-    df.queryExecution.sparkPlan.collectFirst {
+    collectFirst(df.queryExecution.executedPlan) {
       case p: KylinFileSourceScanExec => p
       case p: LayoutFileSourceScanExec => p
     }.get

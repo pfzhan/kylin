@@ -79,6 +79,13 @@ trait SharedSparkSession
       .config("spark.memory.fraction", "0.1")
       .config("fs.file.impl", classOf[DebugFilesystem].getCanonicalName)
       .config("spark.sql.adaptive.enabled", "true")
+      .config("spark.sql.legacy.parquet.int96RebaseModeInWrite", "LEGACY")
+      .config("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "LEGACY")
+      .config("spark.sql.legacy.parquet.int96RebaseModeInRead", "CORRECTED")
+      .config("spark.sql.legacy.parquet.datetimeRebaseModeInRead", "CORRECTED")
+      .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
+      .config("spark.sql.parquet.mergeSchema", "true")
+      .config("spark.sql.legacy.allowNegativeScaleOfDecimal", "true")
       .config(conf)
       .getOrCreate
     _jsc = new JavaSparkContext(_spark.sparkContext)

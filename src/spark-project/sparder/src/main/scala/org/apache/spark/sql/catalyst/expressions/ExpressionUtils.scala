@@ -99,7 +99,9 @@ object ExpressionUtils {
           df.arguments(),
           df.examples(),
           df.note(),
-          df.since())
+          null,
+          df.since(),
+          null)
       } else {
         // This exists for the backward compatibility with old `ExpressionDescription`s defining
         // the extended description in `extended()`.

@@ -29,6 +29,7 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.spark.sql.catalyst.expressions.{And, Expression, GreaterThanOrEqual}
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.sql.execution.{FilterExec, SparkPlan}
 import org.junit.Assert
 
@@ -36,7 +37,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.Set
 
 
-class TestInferFilters extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
+class TestInferFilters extends SparderBaseFunSuite with AdaptiveSparkPlanHelper with SharedSparkSession with LocalMetadata {
 
 
   private val PROJECT = "infer_filter"
@@ -78,7 +79,7 @@ class TestInferFilters extends SparderBaseFunSuite with SharedSparkSession with 
 
   private def getFilterPlan(plan: SparkPlan): Set[SparkPlan] = {
     val filterPlanSet: Set[SparkPlan] = Set.empty[SparkPlan]
-    plan.foreach {
+    foreach(plan) {
       case node: FilterExec =>
         splitConjunctivePredicates(node.condition).find { p =>
           p.isInstanceOf[GreaterThanOrEqual]

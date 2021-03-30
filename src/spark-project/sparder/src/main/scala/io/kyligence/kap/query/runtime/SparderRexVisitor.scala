@@ -27,6 +27,7 @@ package io.kyligence.kap.query.runtime
 
 import java.math.BigDecimal
 import java.sql.Timestamp
+import java.time.ZoneId
 
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.`type`.RelDataType
@@ -37,7 +38,7 @@ import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.calcite.sql.fun.SqlDateTimeDivisionOperator
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.util.DateTimeUtils
+import org.apache.spark.sql.catalyst.util.DateTimeUtils._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
 import org.apache.spark.sql.{Column, DataFrame}
@@ -323,9 +324,10 @@ class SparderRexVisitor(val inputFieldNames: Array[String],
       case literalSql: BasicSqlType => {
         literalSql.getSqlTypeName match {
           case SqlTypeName.DATE =>
-            return Some(DateTimeUtils.stringToTime(literal.toString))
+            return Some(stringToTime(literal.toString))
           case SqlTypeName.TIMESTAMP =>
-            return Some(DateTimeUtils.toJavaTimestamp(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).head))
+            return Some(toJavaTimestamp(stringToTimestamp(UTF8String.fromString(literal.toString),
+              ZoneId.systemDefault()).head))
           case _ =>
         }
       }

@@ -20,7 +20,7 @@
  *
  */
 package io.kyligence.kap.it
-
+/*
 import com.github.sakserv.minicluster.impl.HdfsLocalCluster
 import io.kyligence.kap.common._
 import io.kyligence.kap.engine.spark.streaming.job.StreamingSegmentManager
@@ -208,3 +208,5 @@ class StreamingOLAPSuite
 
 
 }
+
+ */

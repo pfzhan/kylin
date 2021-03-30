@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.smarter
+package org.apache.spark.tracker
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
@@ -36,11 +36,9 @@ class IndexTaskScheduler(tc: IndexTaskContext) extends Logging {
 
   def startUpdateBuildProcess(): Unit = {
     indexTaskChecker = Executors.newSingleThreadScheduledExecutor
-    indexTaskChecker.scheduleAtFixedRate(new Runnable {
-      override def run(): Unit = Utils.tryLogNonFatalError {
-        val indexId = buildLayoutWithUpdate.updateSingleLayout(tc.seg, tc.config, tc.project)
-        tc.runningIndex -= indexId
-      }
+    indexTaskChecker.scheduleAtFixedRate(() => Utils.tryLogNonFatalError {
+      val indexId = buildLayoutWithUpdate.updateSingleLayout(tc.seg, tc.config, tc.project)
+      tc.runningIndex -= indexId
     }, 0, 1, TimeUnit.SECONDS)
   }
 

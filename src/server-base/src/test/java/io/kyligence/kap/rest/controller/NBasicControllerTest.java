@@ -31,9 +31,9 @@ import java.util.List;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;

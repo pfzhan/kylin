@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.cluster.{ClusterManagerFactory, IClusterManager}
 import javax.annotation.concurrent.NotThreadSafe
-import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.SparkConf
 
 class KylinBuildEnv(config: KylinConfig) {

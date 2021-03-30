@@ -404,6 +404,10 @@ public abstract class KylinConfigBase implements Serializable {
                 "org.apache.kylin.metrics.lib.impl.hive.HiveSink");
     }
 
+    public String getEngineSparkHome() {
+        return getOptional("kylin.engine.spark-home", null);
+    }
+
     public boolean isKylinMetricsMonitorEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metrics.monitor-enabled", FALSE));
     }

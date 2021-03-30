@@ -92,6 +92,11 @@
             <artifactId>metrics-json</artifactId>
             <version>${dropwizard.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jmx</artifactId>
+            <version>${dropwizard.version}</version>
+        </dependency>
 
         <!-- micrometer -->
         <dependency>
@@ -190,7 +195,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_2.12</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -198,6 +203,11 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context-support</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -218,6 +228,12 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+            <version>${mockito.version}</version>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>

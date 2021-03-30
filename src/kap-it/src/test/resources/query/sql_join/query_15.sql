@@ -21,11 +21,11 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
-select sum(ACCOUNT_SELLER_LEVEL + item_count)
+select sum(ACCOUNT_SELLER_LEVEL + item_count1)
 from TEST_ACCOUNT inner JOIN
 (
-select ITEM_COUNT item_count, seller_id seller_id from TEST_KYLIN_FACT
+select ITEM_COUNT item_count1, seller_id seller_id from TEST_KYLIN_FACT
 union
-select LSTG_SITE_ID item_count, seller_id seller_id from TEST_KYLIN_FACT
+select LSTG_SITE_ID item_count1, seller_id seller_id from TEST_KYLIN_FACT
 ) FACT
 on TEST_ACCOUNT.account_id = FACT.seller_id

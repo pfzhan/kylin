@@ -23,14 +23,14 @@
  */
 package org.apache.spark.sql.newSession
 
+import java.io.File
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.kylin.external.KylinSharedState
 import org.apache.spark.sql.{SparderEnv, SparkSession}
 import org.scalatest.BeforeAndAfterAll
-
-import java.io.File
 
 trait WithKylinExternalCatalog extends SparkFunSuite with BeforeAndAfterAll {
   protected val ut_meta = "../examples/test_case_data/localmeta"

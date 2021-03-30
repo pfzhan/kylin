@@ -42,28 +42,23 @@
 
 package org.apache.kylin.query.routing;
 
-import com.alibaba.ttl.TtlRunnable;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectLoader;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -88,23 +83,29 @@ import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.alibaba.ttl.TtlRunnable;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectLoader;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 public class RealizationChooser {
 
@@ -290,7 +291,8 @@ public class RealizationChooser {
     }
 
     private static boolean hasReadySegments(NDataModel model) {
-        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataflow(model.getUuid());
+        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+                .getDataflow(model.getUuid());
         return dataflow.hasReadySegments();
     }
 
@@ -365,7 +367,7 @@ public class RealizationChooser {
     }
 
     private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
-                                            Set<FunctionDesc> metrics, Candidate candidate) {
+            Set<FunctionDesc> metrics, Candidate candidate) {
         val layoutCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedCandidate();
         val prunedSegments = candidate.getPrunedSegments();
         val prunedPartitions = candidate.getPrunedPartitions();
@@ -383,14 +385,16 @@ public class RealizationChooser {
         context.setPrunedSegments(prunedSegments);
         context.setPrunedPartitions(prunedPartitions);
         val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
-        logger.debug("for context {}, chosen model: {}, its join: {}, layout: {}, dimensions: {}, measures: {}, segments: {}",
+        logger.debug(
+                "for context {}, chosen model: {}, its join: {}, layout: {}, dimensions: {}, measures: {}, segments: {}",
                 context.getCtxId(), cuboidLayout.getModel().getAlias(), cuboidLayout.getModel().getJoinsGraph(),
-                cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(), segmentIds);
+                cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
+                segmentIds);
 
     }
 
     private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
-                                                  Collection<FunctionDesc> metrics, NDataflow dataflow) {
+            Collection<FunctionDesc> metrics, NDataflow dataflow) {
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric() && !func.isGrouping()) {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision

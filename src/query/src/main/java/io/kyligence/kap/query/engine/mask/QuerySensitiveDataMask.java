@@ -26,6 +26,7 @@ package io.kyligence.kap.query.engine.mask;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.plan.RelOptUtil;
@@ -61,6 +62,7 @@ import io.kyligence.kap.metadata.acl.SensitiveDataMaskInfo;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.relnode.KapTableScan;
 import io.kyligence.kap.query.relnode.KapWindowRel;
+import scala.Option;
 
 public class QuerySensitiveDataMask implements QueryResultMask {
 
@@ -115,20 +117,20 @@ public class QuerySensitiveDataMask implements QueryResultMask {
             }
 
             switch (resultMasks.get(i)) {
-            case DEFAULT:
-                columns[i] = new Column(
-                        new Cast(new Literal(UTF8String.fromString(defaultMaskResultToString(i)), DataTypes.StringType),
-                                dfWithIndexedCol.schema().fields()[i].dataType())).as(dfWithIndexedCol.columns()[i]);
-                masked = true;
-                break;
-            case AS_NULL:
-                columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType()))
-                        .as(dfWithIndexedCol.columns()[i]);
-                masked = true;
-                break;
-            default:
-                columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
-                break;
+                case DEFAULT:
+                    columns[i] = new Column(
+                            new Cast(new Literal(UTF8String.fromString(defaultMaskResultToString(i)), DataTypes.StringType),
+                                    dfWithIndexedCol.schema().fields()[i].dataType(), Option.apply(TimeZone.getDefault().toZoneId().getId()))).as(dfWithIndexedCol.columns()[i]);
+                    masked = true;
+                    break;
+                case AS_NULL:
+                    columns[i] = new Column(new Literal(null, dfWithIndexedCol.schema().fields()[i].dataType()))
+                            .as(dfWithIndexedCol.columns()[i]);
+                    masked = true;
+                    break;
+                default:
+                    columns[i] = dfWithIndexedCol.col(dfWithIndexedCol.columns()[i]);
+                    break;
             }
         }
         return masked ? dfWithIndexedCol.select(columns).toDF(df.columns()) : df;
@@ -145,26 +147,26 @@ public class QuerySensitiveDataMask implements QueryResultMask {
     // for testing
     String defaultMaskResultToString(RelDataType type) {
         switch (type.getSqlTypeName()) {
-            case CHAR:
-            case VARCHAR:
-                return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision())
-                        : "****";
-            case INTEGER:
-            case BIGINT:
-            case TINYINT:
-            case SMALLINT:
-                return "0";
-            case DOUBLE:
-            case FLOAT:
-            case DECIMAL:
-            case REAL:
-                return "0.0";
-            case DATE:
-                return "1970-01-01";
-            case TIMESTAMP:
-                return "1970-01-01 00:00:00";
-            default:
-                return null;
+        case CHAR:
+        case VARCHAR:
+            return (type.getPrecision() > 0 && type.getPrecision() < 4) ? Strings.repeat("*", type.getPrecision())
+                    : "****";
+        case INTEGER:
+        case BIGINT:
+        case TINYINT:
+        case SMALLINT:
+            return "0";
+        case DOUBLE:
+        case FLOAT:
+        case DECIMAL:
+        case REAL:
+            return "0.0";
+        case DATE:
+            return "1970-01-01";
+        case TIMESTAMP:
+            return "1970-01-01 00:00:00";
+        default:
+            return null;
         }
     }
 

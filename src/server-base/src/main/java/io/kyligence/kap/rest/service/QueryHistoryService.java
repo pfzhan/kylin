@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.query.util.QueryHistoryUtil;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -58,7 +59,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.spark.sql.catalyst.util.DateTimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -340,7 +340,7 @@ public class QueryHistoryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
         long endTime = TimeUtil.getDayStart(System.currentTimeMillis());
-        long startTime = endTime - 7 * DateTimeUtils.MILLIS_PER_DAY();
+        long startTime = endTime - 7 * DateUtils.MILLIS_PER_DAY;
         QueryStatistics statistics = queryHistoryDAO.getQueryCountByRange(startTime, endTime, project);
         return statistics.getCount();
     }

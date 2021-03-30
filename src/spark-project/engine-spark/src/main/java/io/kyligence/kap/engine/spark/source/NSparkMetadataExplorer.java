@@ -72,7 +72,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
     @Override
     public List<String> listDatabases() throws Exception {
-        Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases").select("databaseName");
+        Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases").select("namespace");
         return dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
     }
 

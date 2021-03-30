@@ -23,11 +23,12 @@
  */
 package org.apache.spark.sql
 
+import java.time.ZoneId
+import java.util.{Calendar, Locale, TimeZone}
+
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.junit.Assert
-
-import java.util.{Calendar, Locale, TimeZone}
 
 class KapFunctionsTest extends SparderBaseFunSuite with SharedSparkSession {
 
@@ -51,8 +52,8 @@ class KapFunctionsTest extends SparderBaseFunSuite with SharedSparkSession {
     // 4 year,include leap year
     for (i <- 0 to 35040) {
       for ( j <- -12 to 12) {
-        val now = DateTimeUtils.millisToDays(time)
-        val d1 = org.apache.spark.sql.catalyst.util.DateTimeUtils.dateAddMonths(now, j)
+        val now = KapDateTimeUtils.millisToDaysLegacy(time, TimeZone.getTimeZone(ZoneId.systemDefault()))
+        val d1 = DateTimeUtils.dateAddMonths(now, j)
         val d2 = KapDateTimeUtils.dateAddMonths(now, j)
 
         Assert.assertEquals(d1, d2)

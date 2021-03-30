@@ -36,7 +36,7 @@ import java.util.Locale
 trait SSSource extends SharedSparkSession with LocalMetadata {
   self: Suite =>
 
-  val CSV_TABLE_DIR = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv"
+  val CSV_TABLE_DIR = "../" + TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv"
 
   override def beforeAll() {
     super.beforeAll()

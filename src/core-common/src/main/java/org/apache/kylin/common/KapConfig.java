@@ -662,6 +662,11 @@ public class KapConfig {
         return Boolean.parseBoolean(config.getOptional("kylin.build.ae.skew-join-enabled", TRUE));
     }
 
+    public boolean optimizeShardEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.build.optimize-shard-enabled", TRUE));
+    }
+
+
     public String getSwitchBackupFsExceptionAllowString() {
         return config.getOptional("kylin.query.switch-backup-fs-exception-allow-string", "alluxio");
     }

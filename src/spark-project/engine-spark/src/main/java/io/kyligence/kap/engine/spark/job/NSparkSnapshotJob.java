@@ -30,8 +30,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnTable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
-
-import com.google.common.base.Preconditions;
+import org.sparkproject.guava.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 

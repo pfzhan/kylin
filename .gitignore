@@ -17,6 +17,7 @@ release.properties
 
 #IDEA
 *.iml
+ci.log.*
 
 # External tool builders
 .externalToolBuilders/

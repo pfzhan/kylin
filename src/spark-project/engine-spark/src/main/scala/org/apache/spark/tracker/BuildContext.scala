@@ -21,8 +21,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.smarter
+package org.apache.spark.tracker
 
+import io.kyligence.kap.engine.spark.smarter.BuildAppStatusStore
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging

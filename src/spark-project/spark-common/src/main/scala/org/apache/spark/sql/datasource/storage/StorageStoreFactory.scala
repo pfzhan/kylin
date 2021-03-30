@@ -26,7 +26,6 @@ object StorageStoreFactory {
   def create(storageType: Int): StorageStore = {
     storageType match {
       case 0 | 1 => new StorageStoreV1
-      case 2 => new StorageStoreV2
       case _ => throw new IllegalArgumentException(s"Illegal build version id: $storageType")
     }
   }

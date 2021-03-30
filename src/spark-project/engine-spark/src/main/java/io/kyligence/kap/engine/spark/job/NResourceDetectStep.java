@@ -67,9 +67,11 @@ public class NResourceDetectStep extends NSparkExecutable {
     @Override
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
         Map<String, String> sparkConfigOverride = super.getSparkConfigOverride(config);
-        if(!YARN_CLUSTER.equals(sparkConfigOverride.get(SPARK_MASTER))){
+        log.info("spark.master override " + sparkConfigOverride.get(SPARK_MASTER));
+        if (!YARN_CLUSTER.equals(sparkConfigOverride.get(DEPLOY_MODE))) {
             sparkConfigOverride.put("spark.master", "local");
         }
+        log.info("spark.master already " + sparkConfigOverride.get(SPARK_MASTER));
         sparkConfigOverride.put("spark.sql.autoBroadcastJoinThreshold", "-1");
         sparkConfigOverride.put("spark.sql.adaptive.enabled", "false");
         return sparkConfigOverride;

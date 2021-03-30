@@ -154,18 +154,6 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         } catch (org.apache.kylin.common.exception.KylinException e) {
             Assert.assertEquals(CC_EXPRESSION_ILLEGAL.toErrorCode(), e.getErrorCode());
         }
-
-        // case 2: unsupported computed column expression
-        try {
-            ComputedColumnDesc cc = new ComputedColumnDesc();
-            cc.setExpression("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)");
-            cc.setColumnName("CC_2");
-            cc.setTableAlias(dataModel.getRootFactTableName().split("\\.")[1]);
-            ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)"));
-        }
     }
 
     @Test

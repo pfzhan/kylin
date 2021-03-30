@@ -43,7 +43,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob;

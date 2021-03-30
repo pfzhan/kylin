@@ -212,8 +212,10 @@ object LayoutFileSourceStrategy extends Strategy with LogEx {
           outputSchema,
           partitionKeyFilters.toSeq,
           bucketSet,
+          None,
           dataFilters,
-          table.map(_.identifier))
+          table.map(_.identifier),
+          false)
 
       val afterScanFilter = afterScanFilters.toSeq.reduceOption(expressions.And)
       val withFilter = afterScanFilter.map(execution.FilterExec(_, scan)).getOrElse(scan)

@@ -38,7 +38,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.collect.Maps;
 

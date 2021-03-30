@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
@@ -243,8 +244,8 @@ object ExpressionConverter {
           // time_funcs
           case "current_date" =>
             k_lit(
-              DateTimeUtils.dateToString(
-                DateTimeUtils.millisToDays(System.currentTimeMillis())))
+              DateFormat.getDateFormat(DateFormat.DEFAULT_DATE_PATTERN)
+                .format(DateTimeUtils.currentTimestamp() / 1000))
           case "current_timestamp" =>
             current_timestamp()
           case "to_timestamp" =>

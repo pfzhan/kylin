@@ -33,6 +33,7 @@ import java.util.function.Function;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -205,6 +206,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         FileUtils.deleteQuietly(directory);
 
         clearTestConfig();
+        QueryContext.reset();
     }
 
     protected ResourceStore getStore() {

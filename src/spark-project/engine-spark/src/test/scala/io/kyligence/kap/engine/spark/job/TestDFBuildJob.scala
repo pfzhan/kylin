@@ -39,11 +39,9 @@ import org.apache.spark.sql.{Column, Dataset, Row}
 import org.junit.Assert
 import org.mockito.Mockito.{when, mock => jmock}
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 
-
-
-class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession with LocalMetadata {
+class TestDFBuildJob extends AnyWordSpec with MockFactory with SharedSparkSession with LocalMetadata {
   private val path = "./test"
   private val tempPath = path + DFBuildJob.TEMP_DIR_SUFFIX
   private val storage = new ParquetStorage()
@@ -150,7 +148,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
     val sc = jmock(classOf[ContentSummary])
     when(sc.getFileCount).thenReturn(1L)
     when(sc.getLength).thenReturn(repartitionNum * 1024 * 1024L)
-    val helper = new Repartitioner(1, 1, repartitionNum * 100, 100, sc, isShardByColumn, sortByColumns)
+    val helper = new Repartitioner(1, 1, repartitionNum * 100, 100, sc, isShardByColumn, sortByColumns, true)
     Assert.assertEquals(repartitionNum, helper.getRepartitionNumByStorage)
     helper
   }

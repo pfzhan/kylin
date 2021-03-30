@@ -29,7 +29,7 @@ import java.sql.{Date, Timestamp}
 import com.google.common.collect.Lists
 import org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate
 import org.apache.spark.sql.catalyst.expressions.KapSubtractMonths
-import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
+import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.types._
@@ -47,11 +47,11 @@ class ColumnBatchTest extends SparderBaseFunSuite with SharedSparkSession {
     val data = Seq(
       // only String : Caused by: java.lang.RuntimeException: java.lang.String is not a valid external type for schema of date
       Row(1,
-          Date.valueOf("2012-12-12"),
-          Timestamp.valueOf("2016-09-30 03:03:00")),
+        Date.valueOf("2012-12-12"),
+        Timestamp.valueOf("2016-09-30 03:03:00")),
       Row(2,
-          Date.valueOf("2016-12-14"),
-          Timestamp.valueOf("2016-12-14 03:03:00"))
+        Date.valueOf("2016-12-14"),
+        Timestamp.valueOf("2016-12-14 03:03:00"))
     )
 
     val df = spark.createDataFrame(
@@ -63,19 +63,13 @@ class ColumnBatchTest extends SparderBaseFunSuite with SharedSparkSession {
       .take(1)
       .foreach(println)
     df.select(
-        org.apache.spark.sql.functions.add_months(lit("2012-01-31 10:10:10"),
-                                                  1))
+      org.apache.spark.sql.functions.add_months(lit("2012-01-31 10:10:10"),
+        1))
       .take(1)
       .foreach(println)
     //    df.select(from_utc_timestamp(to_utc_timestamp(lit("2012-12-12 00:00:00"), TimeZone.getTimeZone("UTC").getID), TimeZone.getDefault.getID).cast(LongType)).take(1).foreach(println)
     //    df.select(from_utc_timestamp(to_utc_timestamp(lit("2012-12-11 16:00:00"), TimeZone.getTimeZone("UTC").getID), TimeZone.getDefault.getID).cast(LongType)).take(1).foreach(println)
     spark.close()
-  }
-
-  ignore("DateTimeUtils") {
-    print(Timestamp.valueOf("2016-09-30 03:03:00").getTime)
-    print(
-      DateTimeUtils.dateToString(DateTimeUtils.millisToDays(1356998400000L)))
   }
 
   test("addMonths") {

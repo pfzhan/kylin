@@ -23,12 +23,16 @@
  */
 package org.apache.spark.sql.catalyst.expressions
 
+import java.time.ZoneId
+import java.util.TimeZone
+
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode, FalseLiteral}
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, GenericArrayData, KapDateTimeUtils}
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
 
@@ -338,6 +342,8 @@ case class Truncate(_left: Expression, _right: Expression) extends BinaryExpress
 
 case class DictEncode(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
 
+  def maxFields: Int = SQLConf.get.maxToStringFields
+
   override def inputTypes: Seq[AbstractDataType] = Seq(AnyDataType, StringType, StringType)
 
   override protected def doGenCode(ctx: CodegenContext,
@@ -345,11 +351,15 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
     val globalDictClass = classOf[NGlobalDictionaryV2].getName
     val bucketDictClass = classOf[NBucketDictionary].getName
 
-    val globalDictTerm = ctx.addMutableState(globalDictClass, s"${mid.simpleString.replace("[", "").replace("]", "")}_globalDict")
-    val bucketDictTerm = ctx.addMutableState(bucketDictClass, s"${mid.simpleString.replace("[", "").replace("]", "")}_bucketDict")
+    val globalDictTerm = ctx.addMutableState(globalDictClass,
+      s"${mid.simpleString(maxFields)
+        .replace("[", "").replace("]", "")}_globalDict")
+    val bucketDictTerm = ctx.addMutableState(bucketDictClass,
+      s"${mid.simpleString(maxFields)
+        .replace("[", "").replace("]", "")}_bucketDict")
 
-    val dictParamsTerm = mid.simpleString
-    val bucketSizeTerm = right.simpleString.toInt
+    val dictParamsTerm = mid.simpleString(maxFields)
+    val bucketSizeTerm = right.simpleString(maxFields).toInt
 
     val initBucketDictFuncName = ctx.addNewFunction(s"init${bucketDictTerm.replace("[", "").replace("]", "")}BucketDict",
       s"""
@@ -443,14 +453,14 @@ case class FloorDateTime(timestamp: Expression,
   def this(timestamp: Expression, format: Expression) = this(timestamp, format, None)
 
   override def eval(input: InternalRow): Any = {
-    evalHelper(input, maxLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
-      DateTimeUtils.truncTimestamp(t.asInstanceOf[Long], level, timeZone)
+    evalHelper(input, minLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
+      DateTimeUtils.truncTimestamp(t.asInstanceOf[Long], level, zoneId)
     }
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val tz = ctx.addReferenceObj("timeZone", timeZone)
-    codeGenHelper(ctx, ev, maxLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
+    val tz = ctx.addReferenceObj("timeZone", zoneId)
+    codeGenHelper(ctx, ev, minLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
       (date: String, fmt: String) =>
         s"truncTimestamp($date, $fmt, $tz);"
     }
@@ -479,18 +489,19 @@ case class CeilDateTime(timestamp: Expression,
 
   def this(timestamp: Expression, format: Expression) = this(timestamp, format, None)
 
+  // scalastyle:off
   override def eval(input: InternalRow): Any = {
-    evalHelper(input, maxLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
-      DateTimeUtils.ceilTimestamp(t.asInstanceOf[Long], level, timeZone)
+    evalHelper(input, minLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
+      DateTimeUtils.ceilTimestamp(t.asInstanceOf[Long], level, zoneId)
     }
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val tz = ctx.addReferenceObj("timeZone", timeZone)
-    codeGenHelper(ctx, ev, maxLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
-      (date: String, fmt: String) =>
-        s"ceilTimestamp($date, $fmt, $tz);"
-    }
+    val zid = ctx.addReferenceObj("zoneId", zoneId, classOf[ZoneId].getName)
+    val dtu = DateTimeUtils.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (date, fmt) => {
+      s"""$dtu.ceilTimestamp($date, $fmt, $zid)"""
+    })
   }
 }
 

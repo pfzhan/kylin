@@ -54,9 +54,11 @@ public class Repartitioner {
     private ContentSummary contentSummary;
     private List<Integer> shardByColumns = new ArrayList<>();
     private List<Integer> sortByColumns;
+    private boolean optimizeShardEnabled;
 
     public Repartitioner(int shardSize, int fileLengthThreshold, long totalRowCount, long rowCountThreshold,
-            ContentSummary contentSummary, List<Integer> shardByColumns, List<Integer> sortByColumns) {
+            ContentSummary contentSummary, List<Integer> shardByColumns, List<Integer> sortByColumns,
+            boolean optimizeShardEnabled) {
         this.shardSize = shardSize;
         this.fileLengthThreshold = fileLengthThreshold;
         this.totalRowCount = totalRowCount;
@@ -66,6 +68,7 @@ public class Repartitioner {
             this.shardByColumns = shardByColumns;
         }
         this.sortByColumns = sortByColumns;
+        this.optimizeShardEnabled = optimizeShardEnabled;
     }
 
     boolean needRepartitionForFileSize() {
@@ -142,7 +145,8 @@ public class Repartitioner {
             Dataset<Row> data;
 
             if (needRepartitionForShardByColumns()) {
-                ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", "false");
+                if (optimizeShardEnabled)
+                    ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.skewRepartition.enabled", "true");
                 data = ss.read().parquet(inputPath)
                         .repartition(repartitionNum, convertIntegerToColumns(getShardByColumns()))
                         .sortWithinPartitions(convertIntegerToColumns(sortByColumns));
@@ -154,7 +158,8 @@ public class Repartitioner {
 
             data.write().mode(SaveMode.Overwrite).parquet(outputPath);
             if (needRepartitionForShardByColumns()) {
-                ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", null);
+                if (optimizeShardEnabled)
+                    ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.skewRepartition.enabled", null);
             }
             if (readFileSystem.delete(tempResourcePath, true)) {
                 logger.info("Delete temp cuboid path successful. Temp path: {}.", inputPath);

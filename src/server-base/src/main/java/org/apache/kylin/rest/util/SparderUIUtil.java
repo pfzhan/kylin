@@ -62,7 +62,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.ui.SparkUI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spark_project.jetty.http.HttpHeader;
+import org.sparkproject.jetty.http.HttpHeader;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;

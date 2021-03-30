@@ -28,7 +28,7 @@ import org.apache.kylin.common.QueryContext
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.sql.catalyst.catalog.{CatalogTable, ExternalCatalogUtils}
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, BoundReference, Cast, Expression, InterpretedPredicate, Literal}
+import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, BoundReference, Cast, Expression, InterpretedPredicate, Literal, Predicate}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
@@ -80,7 +80,7 @@ class LayoutFileIndex(
       }
       if (partitionFilters.nonEmpty) {
         val boundPredicate =
-          InterpretedPredicate.create(partitionFilters.reduce(And).transform {
+          Predicate.create(partitionFilters.reduce(And).transform {
             case att: AttributeReference =>
               val index = partitionSchema.indexWhere(_.name == att.name)
               BoundReference(index, partitionSchema(index).dataType, nullable = true)

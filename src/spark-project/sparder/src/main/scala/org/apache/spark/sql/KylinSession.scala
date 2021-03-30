@@ -22,12 +22,12 @@
 
 package org.apache.spark.sql
 
-import io.kyligence.kap.common.util.Unsafe
-
 import java.io.File
 import java.net.URI
 import java.nio.file.Paths
 import java.sql.SQLException
+
+import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
 import io.kyligence.kap.query.util.ExtractFactory
@@ -72,7 +72,7 @@ class KylinSession(
     } else {
       // see https://stackoverflow.com/questions/45935672/scala-why-cant-we-do-super-val
       // we can't call  super.sharedState, copy SparkSession#sharedState
-      existingSharedState.getOrElse(new SharedState(sparkContext))
+      existingSharedState.getOrElse(new SharedState(sparkContext, Map.empty))
     }
   }
 
@@ -95,7 +95,7 @@ class KylinSession(
       sparkContext,
       Some(sharedState),
       Some(sessionState),
-      null)
+      extensions)
     result.sessionState // force copy of SessionState
     result
   }

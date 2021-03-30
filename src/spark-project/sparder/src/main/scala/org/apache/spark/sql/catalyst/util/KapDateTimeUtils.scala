@@ -24,21 +24,29 @@
 
 package org.apache.spark.sql.catalyst.util
 
+import java.sql.Date
+import java.time.ZoneId
+import java.util.{Calendar, Locale, TimeZone}
+
 import org.apache.calcite.avatica.util.TimeUnitRange
-import org.apache.spark.sql.catalyst.util.DateTimeUtils._
+import org.apache.spark.sql.catalyst.util.DateTimeConstants._
+import org.apache.spark.sql.catalyst.util.DateTimeUtils.{getDayOfMonth, getMonth, getYear}
 
 object KapDateTimeUtils {
 
-  final val MILLIS_PER_MINUTE: Long = DateTimeUtils.MILLIS_PER_SECOND * 60L
-  final val MILLIS_PER_HOUR: Long = MILLIS_PER_MINUTE * 60L
-  final val DAYS_PER_WEEK: Long = 7L
+  // we use Int and Long internally to represent [[DateType]] and [[TimestampType]]
+  type SQLDate = Int
+  type SQLTimestamp = Long
+
   final val MONTHS_PER_QUARTER: Long = 3L
   final val QUARTERS_PER_YEAR: Long = 4L
+
+  def defaultTimeZone(): TimeZone = TimeZone.getDefault()
 
   def addMonths(timestamp: Long, m: Int): Long = {
     // spark ts unit is microsecond
     val ms = timestamp / 1000
-    val day0 = DateTimeUtils.millisToDays(ms)
+    val day0 = millisToDaysLegacy(ms, TimeZone.getTimeZone(ZoneId.systemDefault()))
     val millis = ms - day0 * MILLIS_PER_DAY
     val x = dateAddMonths(day0, m)
     (x * MILLIS_PER_DAY + millis) * 1000
@@ -68,14 +76,67 @@ object KapDateTimeUtils {
 
   def subtractMonths(t0: Long, t1: Long): Int = {
     val millis0 = floorMod(t0, MILLIS_PER_DAY)
-    val d0 = DateTimeUtils.millisToDays(t0)
+    val d0 = millisToDaysLegacy(t0, TimeZone.getTimeZone(ZoneId.systemDefault()))
     val millis1 = floorMod(t1, MILLIS_PER_DAY)
-    val d1 = DateTimeUtils.millisToDays(t1)
+    val d1 = millisToDaysLegacy(t1, TimeZone.getTimeZone(ZoneId.systemDefault()))
     var x = dateSubtractMonths(d0, d1)
     val d2 = dateAddMonths(d1, x)
     if (x > 0 && d2 == d0 && millis0 < millis1) x -= 1
     if (x < 0 && d2 == d0 && millis0 > millis1) x += 1
     x
+  }
+
+  // TODO fixme spark3 millisToDaysLegacy
+  // millisToDays() and fromJavaDate() are taken from Spark 2.4
+  def millisToDaysLegacy(millisUtc: Long, timeZone: TimeZone): Int = {
+    val millisLocal = millisUtc + timeZone.getOffset(millisUtc)
+    Math.floor(millisLocal.toDouble / MILLIS_PER_DAY).toInt
+  }
+
+  def fromJavaDateLegacy(date: Date): Int = {
+    millisToDaysLegacy(date.getTime, TimeZone.getTimeZone(ZoneId.systemDefault()))
+  }
+
+  // reverse of millisToDays
+  def daysToMillis(days: SQLDate): Long = {
+    daysToMillis(days, defaultTimeZone())
+  }
+
+  def daysToMillis(days: SQLDate, timeZone: TimeZone): Long = {
+    val millisLocal = days.toLong * MILLIS_PER_DAY
+    millisLocal - getOffsetFromLocalMillis(millisLocal, timeZone)
+  }
+
+  private[sql] def getOffsetFromLocalMillis(millisLocal: Long, tz: TimeZone): Long = {
+    var guess = tz.getRawOffset
+    // the actual offset should be calculated based on milliseconds in UTC
+    val offset = tz.getOffset(millisLocal - guess)
+    if (offset != guess) {
+      guess = tz.getOffset(millisLocal - offset)
+      if (guess != offset) {
+        // fallback to do the reverse lookup using java.sql.Timestamp
+        // this should only happen near the start or end of DST
+        val days = Math.floor(millisLocal.toDouble / MILLIS_PER_DAY).toInt
+        val year = getYear(days)
+        val month = getMonth(days)
+        val day = getDayOfMonth(days)
+
+        var millisOfDay = (millisLocal % MILLIS_PER_DAY).toInt
+        if (millisOfDay < 0) {
+          millisOfDay += MILLIS_PER_DAY.toInt
+        }
+        val seconds = (millisOfDay / 1000L).toInt
+        val hh = seconds / 3600
+        val mm = seconds / 60 % 60
+        val ss = seconds % 60
+        val ms = millisOfDay % 1000
+        val calendar = Calendar.getInstance(tz, Locale.getDefault(Locale.Category.FORMAT))
+        calendar.set(year, month - 1, day, hh, mm, ss)
+        calendar.set(Calendar.MILLISECOND, ms)
+        guess = (millisLocal - calendar.getTimeInMillis()).toInt
+      }
+    }
+    guess
   }
 
   def dayOfWeek(date: Int): Int = {

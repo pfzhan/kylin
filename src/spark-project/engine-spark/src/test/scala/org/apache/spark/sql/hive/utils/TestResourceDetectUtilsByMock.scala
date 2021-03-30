@@ -29,9 +29,9 @@ import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.datasources.{FileIndex, HadoopFsRelation}
 import org.apache.spark.sql.types.StructType
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 
-class TestResourceDetectUtilsByMock extends WordSpec with MockFactory with SharedSparkSession {
+class TestResourceDetectUtilsByMock extends AnyWordSpec with MockFactory with SharedSparkSession {
   "getPaths" when {
     "FileSourceScanExec" should {
       "get right paths" in {
@@ -39,7 +39,7 @@ class TestResourceDetectUtilsByMock extends WordSpec with MockFactory with Share
         val fileIndex = mock[FileIndex]
         (fileIndex.rootPaths _).expects().returning(paths).anyNumberOfTimes()
         val relation = HadoopFsRelation(fileIndex, new StructType(), new StructType(), null, null, null)(spark)
-        val sparkPlan = FileSourceScanExec(relation, null, null, null, null, Seq.empty, Option(new TableIdentifier("table"))
+        val sparkPlan = FileSourceScanExec(relation, null, null, null, null, null, Seq.empty, Option(new TableIdentifier("table")), false
         )
         assert(paths == ResourceDetectUtils.getPaths(sparkPlan))
       }

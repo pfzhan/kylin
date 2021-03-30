@@ -24,11 +24,12 @@
 
 package org.apache.spark.sql.udf
 
-import org.apache.spark.sql.catalyst.util.DateTimeUtils.MICROS_PER_MILLIS
-import org.apache.spark.sql.catalyst.util.KapDateTimeUtils.MONTHS_PER_QUARTER
-import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
-
+import java.time.ZoneId
 import java.util.{Calendar, Locale, TimeZone}
+
+import org.apache.spark.sql.catalyst.util.DateTimeConstants._
+import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
+import org.apache.spark.sql.catalyst.util.KapDateTimeUtils.MONTHS_PER_QUARTER
 
 object TimestampAddImpl {
   private val localCalendar = new ThreadLocal[Calendar] {
@@ -45,14 +46,21 @@ object TimestampAddImpl {
     calendar.clear()
     calendar.add(Calendar.DATE, time)
     addTime(unit, increment, calendar)
-    DateTimeUtils.millisToDays(calendar.getTimeInMillis)
+    KapDateTimeUtils.millisToDaysLegacy(calendar.getTimeInMillis, TimeZone.getTimeZone(ZoneId.systemDefault()))
   }
 
   def evaluateTimestamp(unit: String, increment: Int, time: Int): Long = {
     calendar.clear()
     calendar.add(Calendar.DATE, time)
     addTime(unit, increment, calendar)
-    DateTimeUtils.fromMillis(calendar.getTimeInMillis)
+    fromMillis(calendar.getTimeInMillis)
+  }
+
+  /*
+   * Converts millseconds since epoch to SQLTimestamp.
+   */
+  def fromMillis(millis: Long): Long = {
+    millis * 1000L
   }
 
   def evaluateDays(unit: String, increment: Long, time: Int): Int = {

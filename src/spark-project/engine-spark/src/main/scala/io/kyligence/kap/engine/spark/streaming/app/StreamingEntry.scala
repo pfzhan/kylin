@@ -20,7 +20,7 @@
  *
  */
 package io.kyligence.kap.engine.spark.streaming.app
-
+/*
 import java.io.File
 import java.util
 
@@ -228,3 +228,6 @@ object StreamingEntry
   }
 }
 
+
+
+ */

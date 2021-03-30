@@ -71,9 +71,6 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.SparkSessionExtensions;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.catalyst.rules.Rule;
-import org.apache.spark.sql.execution.JoinMemoryManager;
-import org.apache.spark.sql.execution.KylinJoinSelection;
-import org.apache.spark.sql.execution.SparkStrategy;
 import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
@@ -141,7 +138,6 @@ public abstract class SparkApplication implements Application, IKeep {
     public final boolean contains(String key) {
         return params.containsKey(key);
     }
-
 
     /**
      * http request the spark job controller
@@ -306,11 +302,11 @@ public abstract class SparkApplication implements Application, IKeep {
             logger.info("Prepare job environment");
             ss = createSpark(sparkConf);
 
-            if (!config.isUTEnv()) {
+            if (!config.isUTEnv() && (!sparkConf.get("spark.master").startsWith("k8s"))) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
                         getTrackingInfo(buildEnv.clusterManager(), config.isTrackingUrlIpAddressEnabled()));
             }
-            JoinMemoryManager.releaseAllMemory();
+
             // for spark metrics
             JobMetricsUtils.registerListener(ss);
 
@@ -346,12 +342,6 @@ public abstract class SparkApplication implements Application, IKeep {
                 .withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
                     @Override
                     public BoxedUnit apply(SparkSessionExtensions v1) {
-                        v1.injectPlannerStrategy(new AbstractFunction1<SparkSession, SparkStrategy>() {
-                            @Override
-                            public SparkStrategy apply(SparkSession session) {
-                                return new KylinJoinSelection(session);
-                            }
-                        });
                         v1.injectPostHocResolutionRule(new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
                             @Override
                             public Rule<LogicalPlan> apply(SparkSession session) {

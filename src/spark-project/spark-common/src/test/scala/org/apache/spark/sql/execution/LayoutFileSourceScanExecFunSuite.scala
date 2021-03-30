@@ -36,8 +36,8 @@ class LayoutFileSourceScanExecFunSuite extends SparderBaseFunSuite with SharedSp
     val f2 = new FileStatus(4 * 1024 * 1024, false, 0, 4 * 1024 * 1024, 0, new Path("/tmp/2"))
 
     val directory = PartitionDirectory(null, Seq(f1, f2))
-    assert(LayoutFileSourceScanExec(null, null, null, null, null, Seq(), Option(null))
-      .createNonBucketedReadRDD(null, Seq(directory), relation).getNumPartitions == 2)
+    assert(LayoutFileSourceScanExec(null, null, null, null, null, null, Seq(), Option(null), false)
+      .createNonBucketedReadRDD(null, Array(directory), relation).getNumPartitions == 2)
   }
 
   test("120m + 4m = 1 task") {
@@ -47,7 +47,7 @@ class LayoutFileSourceScanExecFunSuite extends SparderBaseFunSuite with SharedSp
     val f2 = new FileStatus(4 * 1024 * 1024, false, 0, 4 * 1024 * 1024, 0, new Path("/tmp/2"))
 
     val directory = PartitionDirectory(null, Seq(f1, f2))
-    assert(LayoutFileSourceScanExec(null, null, null, null, null, Seq(), Option(null))
-      .createNonBucketedReadRDD(null, Seq(directory), relation).getNumPartitions == 1)
+    assert(LayoutFileSourceScanExec(null, null, null, null, null, null, Seq(), Option(null), false)
+      .createNonBucketedReadRDD(null, Array(directory), relation).getNumPartitions == 1)
   }
 }

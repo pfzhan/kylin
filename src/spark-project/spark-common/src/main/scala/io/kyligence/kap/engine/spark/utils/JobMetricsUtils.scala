@@ -28,19 +28,20 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution._
+import org.apache.spark.sql.execution.adaptive.{AdaptiveSparkPlanExec, AdaptiveSparkPlanHelper, QueryStageExec}
 import org.apache.spark.sql.execution.aggregate.{HashAggregateExec, ObjectHashAggregateExec, SortAggregateExec}
 import org.apache.spark.sql.execution.command.DataWritingCommandExec
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, BroadcastNestedLoopJoinExec, ShuffledHashJoinExec, SortMergeJoinExec}
 import org.apache.spark.sql.execution.streaming.StreamingSymmetricHashJoinExec
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 
-
-object JobMetricsUtils extends Logging {
+object JobMetricsUtils extends Logging with AdaptiveSparkPlanHelper {
 
   private val aggs = List(classOf[HashAggregateExec], classOf[SortAggregateExec], classOf[ObjectHashAggregateExec])
   private val joins = List(classOf[BroadcastHashJoinExec], classOf[ShuffledHashJoinExec], classOf[SortMergeJoinExec],
     classOf[BroadcastNestedLoopJoinExec], classOf[StreamingSymmetricHashJoinExec])
-  var sparkListener : SparkListener = _
+  var sparkListener: SparkListener = _
+
   def collectMetrics(executionId: String): JobMetrics = {
     var metrics = new JobMetrics
     val execution = QueryExecutionCache.getQueryExecution(executionId)
@@ -59,28 +60,27 @@ object JobMetricsUtils extends Logging {
     var afterJoin = false
     var afterWrite = false;
 
-    sparkPlan foreach {
-      case plan: DataWritingCommandExec =>
+    foreach(stripAQEPlan(sparkPlan)) {
+      case sparkPlan: DataWritingCommandExec =>
         if (!afterWrite) {
-          rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, plan.metrics.apply("numOutputRows").value)
+          rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, sparkPlan.metrics.apply("numOutputRows").value)
           afterWrite = true
           logInfo(s"Set ${Metrics.CUBOID_ROWS_CNT} to ${DataWritingCommandExec.getClass.getCanonicalName}.metrics.numOutputRows," +
-            s"${plan.metrics.apply("numOutputRows").value}")
+            s"${sparkPlan.metrics.apply("numOutputRows").value}")
         }
-      case plan: UnaryExecNode =>
-        if (aggs.contains(plan.getClass) && !afterAgg && !afterWrite) {
+      case sparkPlan: UnaryExecNode =>
+        if (aggs.contains(sparkPlan.getClass) && !afterAgg && !afterWrite) {
           afterAgg = true
-          rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, plan.metrics.apply("numOutputRows").value)
-          logInfo(s"Set ${Metrics.CUBOID_ROWS_CNT} to ${plan.getClass.getCanonicalName}.metrics.numOutputRows," +
-            s"${plan.metrics.apply("numOutputRows").value}")
+          rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, sparkPlan.metrics.apply("numOutputRows").value)
         }
-      case plan: BinaryExecNode =>
-        if (joins.contains(plan.getClass) && !afterJoin) {
-          rowMetrics.setMetrics(Metrics.SOURCE_ROWS_CNT, plan.metrics.apply("numOutputRows").value)
+      case sparkPlan: BinaryExecNode =>
+        if (joins.contains(sparkPlan.getClass) && !afterJoin) {
+          rowMetrics.setMetrics(Metrics.SOURCE_ROWS_CNT, sparkPlan.metrics.apply("numOutputRows").value)
           afterJoin = true
         }
-      case plan: LeafExecNode =>
-        if (!afterJoin) {
+      case sparkPlan: LeafExecNode =>
+        if (!afterJoin && !sparkPlan.isInstanceOf[QueryStageExec]
+          && !sparkPlan.isInstanceOf[AdaptiveSparkPlanExec]) {
           // add all numOutputRows in leaf nodes up for union case when merge table index
           val preCnt = if (rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == -1) {
             0
@@ -88,13 +88,14 @@ object JobMetricsUtils extends Logging {
             rowMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)
           }
 
-          val rowsCnt = preCnt + plan.metrics.apply("numOutputRows").value
+          logInfo(s"plan name : ${sparkPlan.getClass.getName} , ${sparkPlan.nodeName}")
+          val rowsCnt = preCnt + sparkPlan.metrics.apply("numOutputRows").value
           rowMetrics.setMetrics(Metrics.SOURCE_ROWS_CNT, rowsCnt)
         }
       case _ =>
     }
 
-    // resolve table index without agg and without write
+    // resolve table index without agg
     if (!rowMetrics.isDefinedAt(Metrics.CUBOID_ROWS_CNT)) {
       require(!afterWrite)
       require(!afterAgg)
@@ -121,9 +122,10 @@ object JobMetricsUtils extends Logging {
       }
     }
     ss.sparkContext.addSparkListener(sparkListener)
+
   }
 
-  def unRegisterListener(ss: SparkSession) : Unit = {
+  def unRegisterListener(ss: SparkSession): Unit = {
     if (sparkListener != null) {
       ss.sparkContext.removeSparkListener(sparkListener)
     }

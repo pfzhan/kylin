@@ -29,7 +29,7 @@ import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, Se
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier}
 import org.apache.spark.sql.execution.QueryExecution
-import org.apache.spark.sql.execution.command.{AlterTableAddPartitionCommand, CreateDatabaseCommand, CreateTableCommand, CreateViewCommand, DropDatabaseCommand, DropTableCommand, ExecutedCommandExec, ShowCreateTableCommand, ShowPartitionsCommand}
+import org.apache.spark.sql.execution.command.{AlterTableAddPartitionCommand, CreateDatabaseCommand, CreateTableCommand, CreateViewCommand, DropDatabaseCommand, DropTableCommand, ExecutedCommandExec, ShowCreateTableAsSerdeCommand, ShowCreateTableCommand, ShowPartitionsCommand}
 import org.apache.spark.sql.types.StructField
 import java.lang.{String => JString}
 import java.util.{List => JList}
@@ -113,12 +113,12 @@ object DdlOperation extends Logging {
   }
 
   def getTableDesc(database: String, table: String): String = {
-    val sql = s"show create table ${database}.${table}"
+    val sql = s"show create table ${database}.${table} as serde"
     var ddl = ""
     val logicalPlan: LogicalPlan = SparderEnv.getSparkSession.sessionState.sqlParser.parsePlan(sql)
     val queryExecution: QueryExecution = SparderEnv.getSparkSession.sessionState.executePlan(logicalPlan)
     queryExecution.executedPlan match {
-      case ExecutedCommandExec(show: ShowCreateTableCommand) =>
+      case ExecutedCommandExec(show: ShowCreateTableAsSerdeCommand) =>
         val catalog: SessionCatalog = SparderEnv.getSparkSession.sessionState.catalog
         val metadata: CatalogTable = catalog.getTableMetadata(show.table)
         metadata.tableType match {

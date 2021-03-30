@@ -48,9 +48,10 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.data.QueryResult;
-import jersey.repackaged.com.google.common.collect.Lists;
 import lombok.val;
 
 /**

@@ -42,6 +42,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.KylinFileSourceScanExec;
 import org.apache.spark.sql.execution.SparkPlan;
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.assertj.core.util.Lists;
 import org.junit.After;
@@ -60,7 +61,7 @@ import lombok.val;
 import scala.runtime.AbstractFunction1;
 
 @RunWith(TimeZoneTestRunner.class)
-public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest {
+public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest implements AdaptiveSparkPlanHelper {
     private final String sql = "select count(*) from test_kylin_fact left join test_order on test_kylin_fact.order_id = test_order.order_id ";
 
     @BeforeClass
@@ -504,7 +505,7 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest {
             return numScanFiles;
         }
         df.collect();
-        val actualNum = findFileSourceScanExec(df.queryExecution().sparkPlan()).metrics().get("numFiles").get().value();
+        val actualNum = findFileSourceScanExec(df.queryExecution().executedPlan()).metrics().get("numFiles").get().value();
         Assert.assertEquals(numScanFiles, actualNum);
         val segmentIds = context.storageContext.getPrunedSegments();
         val partitions = context.storageContext.getPrunedPartitions();
@@ -513,10 +514,10 @@ public class MultiPartitionPruningTest extends NLocalWithSparkSessionTest {
     }
 
     private KylinFileSourceScanExec findFileSourceScanExec(SparkPlan plan) {
-        return (KylinFileSourceScanExec) plan.find(new AbstractFunction1<SparkPlan, Object>() {
+        return (KylinFileSourceScanExec) find(plan, new AbstractFunction1<SparkPlan, Object>() {
             @Override
-            public Object apply(SparkPlan p) {
-                return p instanceof KylinFileSourceScanExec;
+            public Object apply(SparkPlan v1) {
+                return v1 instanceof KylinFileSourceScanExec;
             }
         }).get();
     }

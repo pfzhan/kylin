@@ -52,8 +52,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Sets;
+import org.sparkproject.guava.collect.Lists;
+import org.sparkproject.guava.collect.Sets;
 
 import com.google.common.collect.Maps;
 

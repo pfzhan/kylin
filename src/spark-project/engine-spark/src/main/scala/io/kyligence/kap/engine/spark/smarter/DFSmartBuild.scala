@@ -40,6 +40,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.{Column, Dataset, Row}
+import org.apache.spark.tracker.{BuildContext, IndexTaskContext, IndexTaskScheduler, ResourceState}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

@@ -46,7 +46,8 @@ import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spark_project.guava.base.Preconditions;
+
+import com.google.common.base.Preconditions;
 
 import com.google.common.collect.Sets;
 

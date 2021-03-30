@@ -74,7 +74,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
     val logicalPlanStr = afterJoin1.queryExecution.logical.toString()
     // there should be some filter added to the query exec like
     // Filter ((1 = 1) && NOT (TEST_KYLIN_FACT_0_DOT_0_TRANS_ID#42L = cast(123 as bigint)))
-    Assert.assertTrue(logicalPlanStr.contains("Filter ((1 = 1) && NOT (TEST_KYLIN_FACT_0_DOT_0_TRANS_ID"))
+    Assert.assertTrue(logicalPlanStr.contains("Filter ((1 = 1) AND NOT (TEST_KYLIN_FACT_0_DOT_0_TRANS_ID"))
     Assert.assertTrue(logicalPlanStr.contains("= cast(123 as bigint)"))
     checkFilterCondition(afterJoin1, seg1)
     checkEncodeCols(afterJoin1, seg1, false)

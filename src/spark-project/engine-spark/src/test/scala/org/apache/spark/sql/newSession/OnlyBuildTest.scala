@@ -24,19 +24,20 @@
 package org.apache.spark.sql.newSession
 
 import java.util
+
+import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
-import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import io.kyligence.kap.metadata.model.NDataModelManager.NDataModelUpdater
+import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.job.engine.JobEngineConfig
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.metadata.model.SegmentRange
-import org.apache.spark.SparkFunSuite
+import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.apache.spark.sql.test.SQLTestUtils
-import org.spark_project.guava.collect.Sets
 
-abstract class OnlyBuildTest  extends SparkFunSuite with SQLTestUtils with WithKylinExternalCatalog {
+abstract class OnlyBuildTest extends SQLTestUtils with WithKylinExternalCatalog {
 
   val project = "file_pruning"
   protected override val ut_meta = "../kap-it/src/test/resources/ut_meta/file_pruning"

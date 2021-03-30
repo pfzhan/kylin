@@ -73,7 +73,7 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
         .add("c", "int"),
       properties = Map()
     )
-    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false, false)
 
     withTable("hive_table_types") {
       val meta = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
@@ -173,7 +173,7 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       .add("c", "int")
       .add("d", unsupported)
     val catalogTable = createTmpCatalog(st)
-    spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false)
+    spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false, false)
 
     withTable("hive_table_types") {
       val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")

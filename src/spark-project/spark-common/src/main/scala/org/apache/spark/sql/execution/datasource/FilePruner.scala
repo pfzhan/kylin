@@ -306,7 +306,9 @@ class FilePruner(val session: SparkSession,
   }
 
   private def getSpecFilter(dataFilters: Seq[Expression], col: Attribute): Seq[Expression] = {
-    dataFilters.filter(_.references.subsetOf(AttributeSet(col)))
+    if (col != null) {
+      dataFilters.filter(_.references.subsetOf(AttributeSet(col)))
+    } else Seq.empty
   }
 
   private def getDimFilter(dataFilters: Seq[Expression], timeCol: Attribute, shardCol: Attribute): Seq[Expression] = {
@@ -320,7 +322,7 @@ class FilePruner(val session: SparkSession,
       segDirs
     } else {
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
-                                 .flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
+                      .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
       segDirs.filter {
         e => {
           if (dataflow.getSegment(e.segmentID).isOffsetCube) {
@@ -350,7 +352,7 @@ class FilePruner(val session: SparkSession,
       segDirs
     } else {
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
-              .flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
+              .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
 
       reducedFilter.references.distinct.toList
       segDirs.filter {
@@ -673,8 +675,4 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
         Trivial(true)
     }
   }
-}
-
-case class Trivial(value: Boolean) extends Filter {
-  override def references: Array[String] = findReferences(value)
 }

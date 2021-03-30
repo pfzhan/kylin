@@ -32,7 +32,7 @@ object KylinReflectUtils {
   private val rm = universe.runtimeMirror(getClass.getClassLoader)
 
   def getSessionState(sparkContext: SparkContext, kylinSession: Object, parentSessionState: Object): Any = {
-    if (SPARK_VERSION.startsWith("2.4")) {
+    if (SPARK_VERSION.startsWith("2.4") || SPARK_VERSION.startsWith("3.")) {
       var className: String =
         "org.apache.spark.sql.hive.KylinHiveSessionStateBuilder"
       if (!"hive".equals(sparkContext.getConf
@@ -43,7 +43,7 @@ object KylinReflectUtils {
       val method = tuple._2.getMethod("build")
       method.invoke(tuple._1)
     } else {
-      throw new UnsupportedOperationException("Spark version not supported")
+      throw new UnsupportedOperationException("Spark version not supported " + SPARK_VERSION)
     }
   }
 

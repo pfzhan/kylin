@@ -39,7 +39,7 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
-import org.scalatest.Matchers.the
+import org.scalatest.matchers.must.Matchers.the
 
 import scala.collection.mutable
 

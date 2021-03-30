@@ -33,7 +33,7 @@ import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.util.StringUtils
 import org.apache.spark.sql.kylin.external.HasKeExternal.getSparkSQLDataType
-import org.apache.spark.sql.types.{HIVE_TYPE_STRING, StructField, StructType}
+import org.apache.spark.sql.types.{StructField, StructType}
 
 
 class KylinExternalCatalog(
@@ -51,7 +51,6 @@ class KylinExternalCatalog(
   override def getDatabase(db: String): CatalogDatabase = {
     getExternalDatabase(db).getOrElse(super.getDatabase(db))
   }
-
   override def databaseExists(db: String): Boolean = {
     databaseExistsInExternal(db) || super.databaseExists(db)
   }
@@ -120,8 +119,8 @@ object KylinExternalCatalog {
 
   /** Converts the native StructField to Hive's FieldSchema. */
   def toExternalColumn(c: StructField): FieldSchema = {
-    val typeString = if (c.metadata.contains(HIVE_TYPE_STRING)) {
-      c.metadata.getString(HIVE_TYPE_STRING)
+    val typeString = if (c.metadata.contains("HIVE_TYPE_STRING")) {
+      c.metadata.getString("HIVE_TYPE_STRING")
     } else {
       c.dataType.catalogString
     }

@@ -23,25 +23,24 @@
  */
 package org.apache.spark.sql.newSession
 
-import io.kyligence.kap.common.util.TempMetadataBuilder
+import java.util.Locale
 
+import io.kyligence.kap.common.util.TempMetadataBuilder
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest
 import io.kyligence.kap.engine.spark.source.{NSparkMetadataExplorer, NSparkTableMetaExplorer}
 import io.kyligence.kap.metadata.model.NTableMetadataManager
-import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable, CatalogTableType}
 import org.apache.spark.sql.test.SQLTestUtils
-import org.apache.spark.sql.types.{ArrayType, BinaryType, DataType, LongType, MapType, MetadataBuilder, StringType, StructType}
+import org.apache.spark.sql.types._
 
-import java.util.Locale
 import scala.collection.JavaConverters._
 /**
  * Equivalence [[io.kyligence.kap.engine.spark.source.NSparkTableMetaExplorerTest]] +
  * [[io.kyligence.kap.engine.spark.source.NSparkMetadataExplorerTest]]
  */
-class MetaExplorerTest extends SparkFunSuite with SQLTestUtils with WithKylinExternalCatalog {
+class MetaExplorerTest extends SQLTestUtils with WithKylinExternalCatalog {
 
   val table : String = "tableX"
   // import org.apache.spark.sql.newSession.TestKylin.implicits._

@@ -37,7 +37,7 @@ import org.apache.spark.sql.{Row, SparkSession}
 import org.scalatest.BeforeAndAfterAll
 
 //noinspection ScalaStyle
-class CompositeDataMaskDFTest extends org.scalatest.FunSuite with BeforeAndAfterAll {
+class CompositeDataMaskDFTest extends org.scalatest.funsuite.AnyFunSuite with BeforeAndAfterAll {
 
   private var mask: QueryResultMask = _
   private var ss: SparkSession = _
