@@ -3694,18 +3694,25 @@ public class ModelService extends BasicService {
     public void validateCCType(String modelId, String project) {
         StringBuilder errorSb = new StringBuilder();
         NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
-        for (ComputedColumnDesc computedColumnDesc : model.getComputedColumnDescs()) {
-            try {
+        try {
+            List<ComputedColumnDesc> ccListCopy = Lists.newArrayList();
+            for (ComputedColumnDesc computedColumnDesc : model.getComputedColumnDescs()) {
                 // evaluate on a computedcolumn copy to avoid changing the metadata
-                ComputedColumnDesc ccCopy = JsonUtil.deepCopy(computedColumnDesc, ComputedColumnDesc.class);
-                ComputedColumnEvalUtil.evaluateExprAndType(model, ccCopy);
-                if (!matchCCDataType(computedColumnDesc.getDatatype(), ccCopy.getDatatype())) {
-                    errorSb.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCheckCCType(),
-                            computedColumnDesc.getFullName(), ccCopy.getDatatype(), computedColumnDesc.getDatatype()));
-                }
-            } catch (Exception e) {
-                logger.error("Error validating computed column {}, ", computedColumnDesc, e);
+                ccListCopy.add(JsonUtil.deepCopy(computedColumnDesc, ComputedColumnDesc.class));
             }
+            ComputedColumnEvalUtil.evalDataTypeOfCCInBatch(model, ccListCopy);
+            for (int n = 0; n < ccListCopy.size(); n++) {
+                ComputedColumnDesc cc = model.getComputedColumnDescs().get(n);
+                ComputedColumnDesc ccCopy = ccListCopy.get(n);
+
+                if (!matchCCDataType(cc.getDatatype(), ccCopy.getDatatype())) {
+                    errorSb.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCheckCCType(), cc.getFullName(),
+                            ccCopy.getDatatype(), cc.getDatatype()));
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Error validating computed column ", e);
         }
 
         if (errorSb.length() > 0) {
