@@ -43,6 +43,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.apache.spark.sql.util.SparderTypeUtil;
+import org.springframework.util.CollectionUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -91,6 +92,17 @@ public class ComputedColumnEvalUtil {
                 log.info("Discard the computed column {} for {}", computedColumns.get(start).getInnerExpression(),
                         e.getMessage());
             }
+        }
+    }
+
+    public static void evalDataTypeOfCCInBatch(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
+        if (CollectionUtils.isEmpty(computedColumns)) {
+            return;
+        }
+        try {
+            evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSession(), nDataModel, 0, computedColumns.size());
+        } catch (AnalysisException e) {
+            evalDataTypeOfCCInManual(computedColumns, nDataModel, 0, computedColumns.size());
         }
     }
 

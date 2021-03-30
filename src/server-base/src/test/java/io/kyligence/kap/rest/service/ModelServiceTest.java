@@ -1920,6 +1920,22 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCreateModelWithNoCC() {
+        try {
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            NDataModel model = modelManager.getDataModelDesc("b780e4e4-69af-449e-b09f-05c90dfa04b6");
+            ModelRequest modelRequest = new ModelRequest(model);
+            modelRequest.setUuid("no_cc_model");
+            modelRequest.setAlias("no_cc_model");
+            modelRequest.setLastModified(0L);
+            modelRequest.setProject("default");
+            modelService.createModel(modelRequest.getProject(), modelRequest);
+        } catch (Throwable e) {
+            Assert.fail("Should not have thrown any exception");
+        }
+    }
+
+    @Test
     public void testCreateModel_AutoMaintain_Exception() throws Exception {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
