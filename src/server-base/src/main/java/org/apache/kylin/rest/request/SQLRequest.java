@@ -85,6 +85,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private String stopId;
     private String format = "csv";
     private String encode = "utf-8";
+    private String userAgent = "";
     private boolean partialMatchIndex = false;
 
     @JsonProperty("file_name")
@@ -151,7 +152,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     @Override
     public String getErrorMessage(List<FieldError> errors) {
         val message = MsgPicker.getMsg();
-        if (!CollectionUtils.isEmpty(errors) && errors.size() > 0) {
+        if (!CollectionUtils.isEmpty(errors)) {
             if (errors.get(0).getField().equalsIgnoreCase("user_defined_tag")) {
                 return message.getINVALID_USER_TAG();
             }

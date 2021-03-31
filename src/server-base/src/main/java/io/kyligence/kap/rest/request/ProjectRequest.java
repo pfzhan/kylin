@@ -68,7 +68,7 @@ public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     @Override
     public String getErrorMessage(List<FieldError> errors) {
         val message = MsgPicker.getMsg();
-        if (!CollectionUtils.isEmpty(errors) && errors.size() > 0) {
+        if (!CollectionUtils.isEmpty(errors)) {
             if (errors.get(0).getField().equalsIgnoreCase("nameValid")) {
                 return message.getINVALID_PROJECT_NAME();
             }

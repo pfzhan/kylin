@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -112,6 +113,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
@@ -1032,6 +1034,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
         request.setUser_defined_tag(tag);
+        HashMap<String, String> backdoorToggles = Maps.newHashMap();
+        backdoorToggles.put("DEBUG_TOGGLE_HTRACE_ENABLED", "false");
+        request.setBackdoorToggles(backdoorToggles);
+        request.setUserAgent("Chrome/89.0.4389.82 Safari/537.36");
 
         final SQLResponse response = queryService.doQueryWithCache(request, false);
 
@@ -1039,7 +1045,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryContext.current().setUserSQL(sql);
         String log = queryService.logQuery(request, response);
         //
-        final int groupCnt = 28;
+        final int groupCnt = 30;
         String matchNewLine = "\\n";
         String s = "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine + "SQL:\\s(.*?)" + matchNewLine
                 + "User:\\s(.*?)" + matchNewLine + "Success:\\s(.*?)" + matchNewLine + "Duration:\\s(.*?)"
@@ -1054,7 +1060,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)" + matchNewLine
                 + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
                 + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "Is forced to Push-Down:\\s(.*?)"
-                + matchNewLine + "[=]+\\[QUERY\\][=]+.*";
+                + matchNewLine + "User Agent:\\s(.*?)" + matchNewLine + "Back door toggles:\\s(.*?)" + matchNewLine
+                + "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);
 
@@ -1070,6 +1077,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("null", matcher.group(23)); //Trace URL
         Assert.assertEquals(tag, matcher.group(27));
         Assert.assertEquals(pushDownForced, matcher.group(28));
+        Assert.assertEquals("Chrome/89.0.4389.82 Safari/537.36", matcher.group(29));
+        Assert.assertEquals("{DEBUG_TOGGLE_HTRACE_ENABLED=false}", matcher.group(30));
     }
 
     @Test

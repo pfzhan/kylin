@@ -162,11 +162,13 @@ public class QueryCacheManager {
     private SQLResponse searchSuccessCache(SQLRequest sqlRequest) {
         SQLResponse cached = doSearchQuery(Type.SUCCESS_QUERY_CACHE, sqlRequest);
         if (cached == null) {
+            logger.info("[query cache log] No success cache searched");
             return null;
         }
 
         // check signature for success query resp in case the datasource is changed
         if (QueryCacheSignatureUtil.checkCacheExpired(cached, sqlRequest.getProject())) {
+            logger.info("[query cache log] cache has expired, cache key is {}", sqlRequest.getCacheKey());
             clearQueryCache(sqlRequest);
             return null;
         }
@@ -179,6 +181,7 @@ public class QueryCacheManager {
     private SQLResponse searchFailedCache(SQLRequest sqlRequest) {
         SQLResponse cached = doSearchQuery(Type.EXCEPTION_QUERY_CACHE, sqlRequest);
         if (cached == null) {
+            logger.info("[query cache log] No failed cache searched");
             return null;
         }
         cached.setHitExceptionCache(true);

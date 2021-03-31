@@ -397,7 +397,9 @@ public class QueryService extends BasicService {
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
                 .put(LogReport.ERROR_MSG, response.getExceptionMessage())
                 .put(LogReport.USER_TAG, request.getUser_defined_tag())
-                .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown());
+                .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown())
+                .put(LogReport.USER_AGENT, request.getUserAgent())
+                .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles());
         String log = report.oldStyleLog();
         logger.info(log);
         logger.info(report.jsonStyleLog());
@@ -421,8 +423,6 @@ public class QueryService extends BasicService {
             queryContext.setQueryId(UUID.fromString(sqlRequest.getQueryId()).toString());
         }
         try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
-            long t = System.currentTimeMillis();
-            logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
             if (sqlRequest.getExecuteAs() != null)
                 sqlRequest.setUsername(sqlRequest.getExecuteAs());
             else
@@ -538,6 +538,7 @@ public class QueryService extends BasicService {
 
             if (sqlResponse == null && isQueryCacheEnabled
                     && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+                logger.info("[query cache log] try to search query cache");
                 sqlResponse = queryCacheManager.searchQuery(sqlRequest);
                 Trace.addTimelineAnnotation("query cache searched");
             }
@@ -1191,6 +1192,8 @@ public class QueryService extends BasicService {
         static final String ERROR_MSG = "error_msg";
         static final String USER_TAG = "user_defined_tag";
         static final String PUSH_DOWN_FORCED = "push_down_forced";
+        static final String USER_AGENT = "user_agent";
+        static final String BACK_DOOR_TOGGLES = "back_door_toggles";
 
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
@@ -1204,7 +1207,8 @@ public class QueryService extends BasicService {
                 .put(STORAGE_CACHE_USED, "Storage Cache Used: ").put(PUSH_DOWN, "Is Query Push-Down: ")
                 .put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ").put(TRACE_URL, "Trace URL: ")
                 .put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ").put(ERROR_MSG, "Message: ")
-                .put(USER_TAG, "User Defined Tag: ").put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ").build();
+                .put(USER_TAG, "User Defined Tag: ").put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ")
+                .put(USER_AGENT, "User Agent: ").put(BACK_DOOR_TOGGLES, "Back door toggles: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
@@ -1247,7 +1251,8 @@ public class QueryService extends BasicService {
                     + get(TIMEOUT) + newLine + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA)
                     + get(TIMELINE_SCHEMA) + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG)
                     + get(ERROR_MSG) + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED)
-                    + get(PUSH_DOWN_FORCED) + newLine
+                    + get(PUSH_DOWN_FORCED) + newLine + O2N.get(USER_AGENT) + get(USER_AGENT) + newLine
+                    + O2N.get(BACK_DOOR_TOGGLES) + get(BACK_DOOR_TOGGLES) + newLine
                     + "==========================[QUERY]===============================" + newLine;
         }
 

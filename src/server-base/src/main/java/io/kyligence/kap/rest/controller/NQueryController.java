@@ -77,6 +77,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -127,8 +128,10 @@ public class NQueryController extends NBasicController {
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
     @PostMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest,
+            @RequestHeader(value = "User-Agent") String userAgent) {
         checkProjectName(sqlRequest.getProject());
+        sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }

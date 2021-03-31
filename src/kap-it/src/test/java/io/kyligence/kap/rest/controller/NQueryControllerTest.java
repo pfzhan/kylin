@@ -85,6 +85,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(sqlRequest))
+                        .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
@@ -130,6 +131,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
+                .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
@@ -140,6 +142,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         // push down can not hit cache because the cache is expired by default
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
+                .header("User-Agent", "Chrome/89.0.4389.82 Safari/537.36")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
