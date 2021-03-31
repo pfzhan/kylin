@@ -30,6 +30,8 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
 KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
 
+KYLIN_KRB5CONF=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.krb5-conf`
+
 function fetchCloudHadoopConf() {
     mkdir -p ${KYLIN_HOME}/hadoop_conf
     CLOUD_HADOOP_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.cloud.hadoop-conf-dir`
@@ -91,6 +93,8 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile /etc/hadoop/conf/topology.map
         checkAndCopyFile /etc/hadoop/conf/ssl-client.xml
         checkAndCopyFile /etc/hadoop/conf/hadoop-env.sh
+        # Ensure krb5.conf underlying hadoop_conf
+        checkAndCopyFile $KYLIN_HOME/conf/$KYLIN_KRB5CONF
     else
         if [ -f "${kylin_hadoop_conf_dir}/hdfs-site.xml" ]
         then
