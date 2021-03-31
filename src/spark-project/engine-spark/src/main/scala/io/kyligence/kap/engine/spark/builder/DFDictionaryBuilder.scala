@@ -55,11 +55,11 @@ class DFDictionaryBuilder(
     colRefSet.asScala.foreach(col => safeBuild(col))
   }
 
-  private val YARN_CLUSTER: String = "yarn-cluster"
+  private val YARN_CLUSTER: String = "cluster"
 
   private def tryZKJaasConfiguration(): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    if (YARN_CLUSTER.equals(config.getSparkMaster)) {
+    if (YARN_CLUSTER.equals(config.getDeployMode)) {
       val kapConfig = KapConfig.wrap(config)
       if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform)) {
         val sparkConf = ss.sparkContext.getConf

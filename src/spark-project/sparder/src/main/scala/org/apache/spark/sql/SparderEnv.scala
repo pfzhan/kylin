@@ -161,7 +161,7 @@ object SparderEnv extends Logging {
                 case _ =>
                   SparkSession.builder
                     .appName(appName)
-                    .master("yarn-client")
+                    .master("yarn")
                     //if user defined other master in kylin.properties,
                     // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
                     .withExtensions { ext =>

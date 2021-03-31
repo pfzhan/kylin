@@ -1133,7 +1133,11 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getSparkMaster() {
-        return getOptional("kylin.engine.spark-conf.spark.master", "yarn-client").toLowerCase(Locale.ROOT);
+        return getOptional("kylin.engine.spark-conf.spark.master", "yarn").toLowerCase(Locale.ROOT);
+    }
+
+    public String getDeployMode() {
+        return getOptional("kylin.engine.spark-conf.spark.submit.deployMode", "client").toLowerCase(Locale.ROOT);
     }
 
     public String getSparkBuildClassName() {

@@ -67,7 +67,7 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
             context.removeRunningJob(executable);
             val config = KylinConfig.getInstanceFromEnv();
             var usingMemory = 0;
-            if (!config.getSparkMaster().equals("yarn-cluster")) {
+            if (!config.getDeployMode().equals("cluster")) {
                 usingMemory = executable.computeStepDriverMemory();
             }
             logger.info("Before job:{} global memory release {}", jobIdSimple,
