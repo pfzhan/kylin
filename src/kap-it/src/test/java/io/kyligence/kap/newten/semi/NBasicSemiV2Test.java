@@ -119,6 +119,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         ReflectionTestUtils.setField(optRecService, "modelService", modelService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
         ReflectionTestUtils.setField(rawRecService, "optRecService", optRecService);
         ReflectionTestUtils.setField(rawRecService, "projectService", projectService);
         TestingAuthenticationToken auth = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
