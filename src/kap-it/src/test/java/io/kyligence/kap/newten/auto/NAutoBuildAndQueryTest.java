@@ -150,7 +150,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
                 /* CompareLevel = NONE */
                 new TestScenario(CompareLevel.NONE, "query/sql_intersect_count"),
-                new TestScenario(CompareLevel.NONE, "query/sql_limit_offset"));
+                new TestScenario(CompareLevel.NONE, "query/sql_limit_offset"),
+                new TestScenario(CompareLevel.NONE, "query/sql_function/sql_function_round"));
     }
 
     @Test

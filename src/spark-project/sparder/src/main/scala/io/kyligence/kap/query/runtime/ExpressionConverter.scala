@@ -33,8 +33,8 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
 import org.apache.spark.sql.catalyst.expressions
+import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -181,9 +181,23 @@ object ExpressionConverter {
               k_lit(children.head).cast(SparderTypeUtil
                 .convertSqlTypeToSparkType(relDataType)))
           case "round" =>
+            var scale = children.apply(1)
+            if (scale.isInstanceOf[Column]) {
+              val extractConst = (scale: Column) => {
+                val extractCastValue = (child: Literal) => child.value
+                val reduceCast = (expr: Cast) => extractCastValue(expr.child.asInstanceOf[Literal])
+                scale.expr.getClass.getSimpleName match {
+                  case "Cast" =>
+                    return reduceCast(scale.expr.asInstanceOf[Cast])
+                  case _ =>
+                    throw new UnsupportedOperationException(s"Scale parameter of round function doesn't support this expression " + scale.expr.toString())
+                }
+              }
+              scale = extractConst(scale.asInstanceOf[Column])
+            }
             round(
               k_lit(children.head),
-              children.apply(1).asInstanceOf[Int])
+              scale.asInstanceOf[Int])
           case "truncate" =>
             kap_truncate(k_lit(children.head), children.apply(1).asInstanceOf[Int])
           case "cot" =>
