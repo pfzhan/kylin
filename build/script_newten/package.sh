@@ -50,6 +50,35 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.3.2 release note
+
+**Enhancement**
+
+- Support to export query history
+- Support to specify all sub-partitions when loading data in multi-level partitioning
+- Segments pruning according to the dimension range when querying
+- Export model JSON file with pretty format
+- Provide a instruction about network port dependency for product components
+- Optimize model cloning time when there are many computed columns
+- Support to exclude tables serving AS-IS scenarios when generating recommendations to prevent inconsistent query results after derived dimensions are recommended to the index
+- Support hiding sensitive information in diagnostic package
+- Limit username max length to 180
+
+**Bugfix**
+
+- LDAP user can't log in when using alias name
+- In Kerberos environment,if there is no krb5.conf file in the etc directory,the building is abnormal
+- The job steps' waiting time displayes when it reaches the Running status
+- The External catalog configuration name is misspelled
+- In set the time partition column API, it report an error when setting the time partition column in the normal model
+- Fix modal import issue when exporting modle with no recommendation but selected export include recommendation
+- When a computed column is set as a Shardby column, deleting the computed column in the model will make that the tables cannot be reloaded
+- When the index is not built, the copywriting shows errors after modifying the index
+- The sum of the waiting time of each step of the job is not equal to the total waiting time
+- In the prepare reload table api, when the table field is empty, the error message is not friendly
+- Optimization tips after login when user doesn't have permission to create new project and also no project accessible
+
+
 #### Kyligence Enterprise 4.3.1 release note
 
 **Enhancement**
