@@ -72,6 +72,7 @@ import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import lombok.val;
 
+@Ignore
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     private SlowQueryDetector slowQueryDetector = null;
 

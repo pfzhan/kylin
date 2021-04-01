@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.RUNNING;
+import static io.kyligence.kap.rest.service.AsyncQueryService.QueryStatus.SUCCESS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -135,7 +137,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         when(sqlResponse.isException()).thenReturn(false);
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         assertTrue(asyncQueryService.queryStatus(PROJECT, queryId) == AsyncQueryService.QueryStatus.SUCCESS);
         HttpServletResponse response = mock(HttpServletResponse.class);
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
@@ -162,7 +164,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
         mockMetadata(queryId);
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
         HttpServletResponse response = mock(HttpServletResponse.class);
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
@@ -212,7 +214,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         when(sqlResponse.isException()).thenReturn(false);
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
         HttpServletResponse response = mock(HttpServletResponse.class);
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
@@ -234,7 +236,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testCleanFolder() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
         assertTrue(AsyncQueryUtil.getFileSystem().exists(resultPath));
         asyncQueryService.deleteAllFolder();
@@ -245,7 +247,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testDeleteByQueryId() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
 
         // before delete
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
@@ -257,8 +259,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
-            Assert.assertEquals(
-                    "Can’t find the query by this query ID in this project. Please check and try again.",
+            Assert.assertEquals("Can’t find the query by this query ID in this project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -269,8 +270,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             asyncQueryService.deleteByQueryId(PROJECT, "123");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
-            Assert.assertEquals(
-                    "Can’t find the query by this query ID in this project. Please check and try again.",
+            Assert.assertEquals("Can’t find the query by this query ID in this project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -280,7 +280,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
         long time = System.currentTimeMillis();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
 
         // before delete
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
@@ -295,8 +295,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
-            Assert.assertEquals(
-                    "Can’t find the query by this query ID in this project. Please check and try again.",
+            Assert.assertEquals("Can’t find the query by this query ID in this project. Please check and try again.",
                     e.getMessage());
         }
     }
@@ -311,7 +310,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testCleanOldQueryResult() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         Assert.assertTrue(asyncQueryService.cleanOldQueryResult(PROJECT, 1));
     }
 
@@ -325,7 +324,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             @Override
             public void run() {
                 try {
-                    mockResultFile(queryId, true);
+                    mockResultFile(queryId, true, true);
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -339,7 +338,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
                     for (int i = 0; i < 10; i++) {
                         Thread.sleep(1000);
                         AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(PROJECT, queryId);
-                        if (queryStatus == AsyncQueryService.QueryStatus.RUNNING) {
+                        if (queryStatus == RUNNING) {
                             hasRunning = true;
                         }
                     }
@@ -370,7 +369,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testCheckStatusSuccessHappyPass() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, PROJECT, "");
     }
 
@@ -422,6 +421,54 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testDeleteAllWhenRunning() throws IOException, InterruptedException {
+        String queryId = UUID.randomUUID().toString();
+        mockResultFile(queryId, false, false);
+        asyncQueryService.deleteAllFolder();
+
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setColumnMetas(
+                Lists.newArrayList(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0",
+                        "c0", null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false)));
+        try {
+            AsyncQueryUtil.saveMetaData(PROJECT, sqlResponse.getColumnMetas(), queryId);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
+            Assert.assertEquals("KE-020040001", ((NAsyncQueryIllegalParamException) e).getErrorCode().getCodeString());
+        }
+        try {
+            AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
+            Assert.assertEquals("KE-020040001", ((NAsyncQueryIllegalParamException) e).getErrorCode().getCodeString());
+        }
+    }
+
+    @Test
+    public void testQueryStatusWhenRunning() throws IOException, InterruptedException {
+        String queryId = UUID.randomUUID().toString();
+        mockResultFile(queryId, false, false);
+
+        Assert.assertEquals(RUNNING, asyncQueryService.queryStatus(PROJECT, queryId));
+
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setColumnMetas(
+                Lists.newArrayList(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0",
+                        "c0", null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false)));
+        AsyncQueryUtil.saveMetaData(PROJECT, sqlResponse.getColumnMetas(), queryId);
+        AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+
+        Assert.assertEquals(SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+    }
+
+    @Test
+    public void testGetQueryUserNameWhenUserNameNotSaved() throws IOException, InterruptedException {
+        String queryId = UUID.randomUUID().toString();
+        mockResultFile(queryId, false, true);
+        asyncQueryService.hasPermission(queryId, PROJECT);
+    }
+
+    @Test
     public void testHasPermissionWhenIsSelf() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
@@ -455,6 +502,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSaveMetadata() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
         SQLResponse sqlResponse = new SQLResponse();
         sqlResponse.setColumnMetas(
                 Lists.newArrayList(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0",
@@ -466,6 +514,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSaveFileInfo() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
         AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
         AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
         assertEquals(fileInfo.getFormat(), formatDefault);
@@ -477,14 +526,15 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testGetMetadata() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        mockResultFile(queryId, false);
+        mockResultFile(queryId, false, true);
         mockMetadata(queryId);
         List<List<String>> metaData = asyncQueryService.getMetaData(PROJECT, queryId);
         assertArrayEquals(columnNames.toArray(), metaData.get(0).toArray());
         assertArrayEquals(dataTypes.toArray(), metaData.get(1).toArray());
     }
 
-    public Path mockResultFile(String queryId, boolean block) throws IOException, InterruptedException {
+    public Path mockResultFile(String queryId, boolean block, boolean needMeta)
+            throws IOException, InterruptedException {
 
         List<String> row1 = Lists.newArrayList("a1", "b1", "c1");
         List<String> row2 = Lists.newArrayList("a2", "b2", "c2");
@@ -502,8 +552,10 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             csvWriter.write(row1);
             csvWriter.write(row2);
             fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getSuccessFlagFileName()));
-            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()));
-            fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+            if (needMeta) {
+                fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getMetaDataFileName()));
+                fileSystem.createNewFile(new Path(asyncQueryResultDir, AsyncQueryUtil.getFileInfo()));
+            }
         }
 
         return asyncQueryResultDir;

@@ -758,6 +758,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         }).when(asyncQueryService).saveQueryUsername(Mockito.anyString(), Mockito.anyString());
         Mockito.doReturn(SUCCESS).when(asyncQueryService).queryStatus(Mockito.anyString(), Mockito.anyString());
         nAsyncQueryController.query(mockAsyncQuerySQLRequest());
+        Thread.sleep(5000);
 
         Assert.assertTrue(service.hasPermission("123", PROJECT));
         SecurityContextHolder.getContext().setAuthentication(authentication);

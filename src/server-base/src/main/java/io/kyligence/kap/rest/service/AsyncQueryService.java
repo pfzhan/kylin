@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.query.util.AsyncQueryUtil.getUserFileName;
 import static org.apache.kylin.rest.util.AclPermissionUtil.isAdmin;
 
 import java.io.BufferedReader;
@@ -90,7 +91,7 @@ public class AsyncQueryService extends BasicService {
     public void saveQueryUsername(String project, String queryId) throws IOException {
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, AsyncQueryUtil.getUserFileName()));
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getUserFileName()));
                 OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
             osw.write(getUsername());
         }
@@ -200,14 +201,16 @@ public class AsyncQueryService extends BasicService {
 
     public String getQueryUsername(String queryId, String project) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
+        Path userNamePath = new Path(asyncQueryResultDir, getUserFileName());
         FileSystem fileSystem = AsyncQueryUtil.getFileSystem();
-        if (fileSystem.exists(asyncQueryResultDir)) {
-            try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, AsyncQueryUtil.getUserFileName()));
+        if (fileSystem.exists(asyncQueryResultDir) && fileSystem.exists(userNamePath)) {
+            try (FSDataInputStream is = fileSystem.open(userNamePath);
                     BufferedReader bufferedReader = new BufferedReader(
                             new InputStreamReader(is, Charset.defaultCharset()))) {
                 return bufferedReader.readLine();
             }
         }
+        logger.warn("async query user name file not exist");
         return null;
     }
 

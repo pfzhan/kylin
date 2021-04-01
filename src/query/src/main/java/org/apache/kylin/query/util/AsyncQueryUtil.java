@@ -54,8 +54,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,22 +89,32 @@ public class AsyncQueryUtil {
             columnNames.add(selectedColumnMeta.getName());
         }
 
+        FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = getFileSystem().create(new Path(asyncQueryResultDir, getMetaDataFileName())); //
-             OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
-            String metaString = StringUtils.join(columnNames, ",") + "\n" + StringUtils.join(dataTypes, ",");
-            osw.write(metaString);
+        if (fileSystem.exists(asyncQueryResultDir)) {
+            try (FSDataOutputStream os = getFileSystem().create(new Path(asyncQueryResultDir, getMetaDataFileName())); //
+                    OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
+                String metaString = StringUtils.join(columnNames, ",") + "\n" + StringUtils.join(dataTypes, ",");
+                osw.write(metaString);
+            }
+        } else {
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         }
     }
 
     public static void saveFileInfo(String project, String format, String encode, String fileName, String queryId)
             throws IOException {
+        FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = getFileSystem().create(new Path(asyncQueryResultDir, getFileInfo())); //
-             OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
-            osw.write(format + "\n");
-            osw.write(encode + "\n");
-            osw.write(fileName);
+        if (fileSystem.exists(asyncQueryResultDir)) {
+            try (FSDataOutputStream os = getFileSystem().create(new Path(asyncQueryResultDir, getFileInfo())); //
+                    OutputStreamWriter osw = new OutputStreamWriter(os, Charset.defaultCharset())) {
+                osw.write(format + "\n");
+                osw.write(encode + "\n");
+                osw.write(fileName);
+            }
+        } else {
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         }
     }
 
