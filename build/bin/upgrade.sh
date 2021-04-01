@@ -176,6 +176,19 @@ function upgrade() {
     IFS=$OLDIFS
     info "...................................................[DONE]"
 
+    # Ensure krb5.conf underlying hadoop_conf if kerberos enabled
+    logging "Copy krb5.conf"
+    if [[ -f ${OLD_KYLIN_HOME}/conf/krb5.conf ]]; then
+        if [[ -d ${NEW_KYLIN_HOME}/hadoop_conf ]]; then
+          cp -rfv ${OLD_KYLIN_HOME}/conf/krb5.conf ${NEW_KYLIN_HOME}/hadoop_conf
+        fi
+
+        if [[ -d ${NEW_KYLIN_HOME}/write_hadoop_conf ]]; then
+          cp -rfv ${OLD_KYLIN_HOME}/conf/krb5.conf ${NEW_KYLIN_HOME}/write_hadoop_conf
+        fi
+    fi
+    info "...................................................[DONE]"
+
     # sed -nE 's/^([#\t ]*)(kylin\..*|kap\..*)/\2/p' kylin.properties | awk '{kv[substr($0,0,index($0,"=")-1)]=substr($0,index($0,"=")+1)} END{print kv["kylin.metadata.url"]}'
     logging "Checking Kylin Conf"
 python <<PY
