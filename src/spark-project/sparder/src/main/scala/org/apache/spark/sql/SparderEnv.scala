@@ -26,12 +26,12 @@ package org.apache.spark.sql
 
 import java.lang.{Boolean => JBoolean, String => JString}
 import java.security.PrivilegedAction
-import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.common.util.DefaultHostInfoFetcher
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.hadoop.security.UserGroupInformation
-import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.exception.KylinTimeoutException
+import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
@@ -186,6 +186,12 @@ object SparderEnv extends Logging {
             } catch {
               case throwable: Throwable =>
                 logError("Error for initializing spark ", throwable)
+              case e : InterruptedException =>
+                Thread.currentThread.interrupt()
+                QueryContext.current().getQueryTagInfo.setTimeout(true)
+                logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
+                throw new KylinTimeoutException("The query exceeds the set time limit of "
+                        + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Init sparder. ")
             } finally {
               if (startSparkSucceed) {
                 startSparkFailureTimes = 0
