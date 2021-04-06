@@ -194,24 +194,6 @@
         :filter-change="(v) => filterContent(v, 'realization')"
         :filter-filters-change="(v) => fiterList('loadFilterHitModelsList', v)"
         customFilterClass="filter-realization"
-        v-if="queryHistoryFilter.includes('filterActions')"
-        prop="realizations"
-        width="250">
-        <template slot-scope="props">
-          <div class="tag-ellipsis" :class="{'hasMore': checkIsShowMore(props.row.realizations)}">
-            <template v-if="props.row.realizations && props.row.realizations.length">
-              <el-tag v-for="(item, index) in props.row.realizations" :class="{'disabled': 'visible' in item && !item.visible}" v-if="index < checkShowCount(props.row.realizations)" :type="'visible' in item && !item.visible ? 'info' : item.valid ? 'success' : 'info'" size="small" :key="item.modelId"><i class="el-icon-ksd-lock" v-if="'visible' in item && !item.visible"></i>{{item.modelAlias}}</el-tag>
-              <a v-if="checkIsShowMore(props.row.realizations)" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: props.row.realizations.length - checkShowCount(props.row.realizations)})}}</a>
-            </template>
-            <template v-else>
-              <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
-            </template>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('kylinLang.query.realization_th')"
-        v-if="!queryHistoryFilter.includes('filterActions')"
         prop="realizations"
         width="250">
         <template slot-scope="props">
@@ -492,9 +474,9 @@ export default class QueryHistoryTable extends Vue {
 
   created () {
     if (this.queryHistoryFilter.includes('filterActions')) {
-      this.loadFilterHitModelsList()
       this.loadFilterSubmitterList()
     }
+    this.loadFilterHitModelsList() // 普通用户也支持筛选查询对象
   }
 
   // 清除查询开始事件筛选项
