@@ -699,6 +699,8 @@ public class ProjectService extends BasicService {
 
         response.setMultiPartitionEnabled(config.isMultiPartitionEnabled());
 
+        response.setQueryHistoryDownloadMaxSize(config.getQueryHistoryDownloadMaxSize());
+
         return response;
     }
 

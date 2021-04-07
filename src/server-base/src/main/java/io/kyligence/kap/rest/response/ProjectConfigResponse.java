@@ -112,6 +112,9 @@ public class ProjectConfigResponse {
     @JsonProperty("multi_partition_enabled")
     private boolean multiPartitionEnabled;
 
+    @JsonProperty("query_history_download_max_size")
+    private int queryHistoryDownloadMaxSize;
+
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
         case 1:
