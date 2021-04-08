@@ -47,12 +47,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.CaseInsensitiveStringSet;
 import org.springframework.security.provisioning.UserDetailsManager;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 
+@ThirdPartyDependencies({
+        @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                classes = {"StaticUserGroupService"})
+})
 public interface UserService extends UserDetailsManager {
     List<ManagedUser> listUsers() throws IOException;
 

@@ -64,6 +64,7 @@ import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -120,6 +121,10 @@ public class KylinConfig extends KylinConfigBase {
         Unsafe.setProperty("saffron.default.collation.name", NATIVE_UTF16_CHARSET_NAME + "$en_US");
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider", "StaticUserGroupService"})
+    })
     public static KylinConfig getInstanceFromEnv() {
         synchronized (KylinConfig.class) {
             KylinConfig config = THREAD_ENV_INSTANCE.get();

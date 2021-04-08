@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
@@ -79,6 +80,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonFilter("passwordFilter")
+@ThirdPartyDependencies({
+        @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                classes = {"AuthenticationClient", "StaticUserGroupService", "StaticUserService"})
+})
 public class ManagedUser extends RootPersistentEntity implements UserDetails, UserInsensitiveRequest {
 
     // for spring session save serializable object(ManagerUser), do not modify

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.security;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
@@ -40,6 +41,10 @@ import org.springframework.security.core.AuthenticationException;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.service.NUserGroupService;
 
+@ThirdPartyDependencies({
+        @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                classes = {"StaticAuthenticationProvider"})
+})
 public abstract class OpenAuthenticationProvider implements AuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenAuthenticationProvider.class);

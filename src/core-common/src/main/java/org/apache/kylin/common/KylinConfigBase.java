@@ -67,6 +67,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -1665,10 +1666,18 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.server.streaming-change-meta", FALSE));
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider", "StaticUserGroupService", "StaticUserService"})
+    })
     public int getServerUserCacheExpireSeconds() {
         return Integer.parseInt(this.getOptional("kylin.server.auth-user-cache.expire-seconds", "300"));
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider"})
+    })
     public int getServerUserCacheMaxEntries() {
         return Integer.parseInt(this.getOptional("kylin.server.auth-user-cache.max-entries", "100"));
     }
@@ -2387,10 +2396,18 @@ public abstract class KylinConfigBase implements Serializable {
         return getConfigItemIntValue("kylin.guardian.kill-slow-query-fail-threshold", 3, 1, 100);
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"AuthenticationClient"})
+    })
     public Long getLightningClusterId() {
         return Long.parseLong(getOptional("kylin.lightning.cluster-id", "0"));
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"AuthenticationClient"})
+    })
     public String getLightningServerZkNode() {
         return getOptional("kylin.lightning.server.zookeeper-node", "/kylin/management");
     }
@@ -2479,18 +2496,34 @@ public abstract class KylinConfigBase implements Serializable {
                 new String[] { "com.amazonaws.services.s3.model.AmazonS3Exception" });
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider"})
+    })
     public String getAADUsernameClaim() {
         return getOptional("kylin.server.aad-username-claim", "upn");
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider"})
+    })
     public String getAADClientId() {
         return getOptional("kylin.server.aad-client-id", "");
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider"})
+    })
     public String getAADTenantId() {
         return getOptional("kylin.server.aad-tenant-id", "");
     }
 
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                    classes = {"StaticAuthenticationProvider"})
+    })
     public int getAADTokenClockSkewSeconds() {
         return Integer.parseInt(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
     }

@@ -30,48 +30,39 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
-package org.apache.kylin.rest.constant;
+package io.kyligence.kap.common.annotation;
 
-import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * @author xduo
- * 
+ * There some classes, fields or methods that are needed by third party modules.
+ * If you need to modify some of them, you should ensure that it will not affect those modules.
  */
-public class Constant {
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD })
+public @interface ThirdPartyDependencies {
+    ThirdPartyDependent[] value();
 
-    public final static String FakeSchemaName = "defaultSchema";
-    public final static String FakeCatalogName = "defaultCatalog";
+    @interface ThirdPartyDependent {
+        String repository();
 
-    public final static String IDENTITY_USER = "user";
-    public final static String IDENTITY_ROLE = "role";
+        String[] classes();
 
-    @ThirdPartyDependencies({
-            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
-                    classes = {"StaticUserService"})
-    })
-    public final static String ROLE_ADMIN = "ROLE_ADMIN";
-    public final static String ROLE_MODELER = "ROLE_MODELER";
-    public final static String ROLE_ANALYST = "ROLE_ANALYST";
-
-    public final static String GROUP_ALL_USERS = "ALL_USERS";
-
-    public final static String ACCESS_HAS_ROLE_ADMIN = "hasRole('ROLE_ADMIN')";
-    //public final static String ACCESS_HAS_ROLE_MODELER = "hasRole('ROLE_MODELER')";
-
-    public final static String ACCESS_POST_FILTER_READ = "hasRole('ROLE_ADMIN') " + // 
-            " or hasPermission(filterObject, 'ADMINISTRATION')" + // 
-            " or hasPermission(filterObject, 'MANAGEMENT')" + // 
-            " or hasPermission(filterObject, 'OPERATION')" + // 
-            " or hasPermission(filterObject, 'READ')";
+        String owner() default "";
+    }
 }

@@ -42,6 +42,7 @@
 
 package org.apache.kylin.job.lock;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.kylin.common.KylinConfig;
 
 /**
@@ -49,7 +50,10 @@ import org.apache.kylin.common.KylinConfig;
  *
  *   Used By Kyligence Cloud.
  */
-
+@ThirdPartyDependencies({
+        @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                classes = {"AuthenticationClient"})
+})
 public class ZookeeperUtil {
 
     public static String getZKConnectString() {

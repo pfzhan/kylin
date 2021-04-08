@@ -46,6 +46,7 @@ package org.apache.kylin.job.lock;
 import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.hadoop.util.ZKUtil;
@@ -57,6 +58,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by peng.jianhua on 17-6-5.
  */
+@ThirdPartyDependencies({
+        @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                classes = {"AuthenticationClient"})
+})
 public class ZookeeperAclBuilder {
 
     private static Logger logger = LoggerFactory.getLogger(ZookeeperAclBuilder.class);

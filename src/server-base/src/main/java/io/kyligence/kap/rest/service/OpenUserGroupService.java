@@ -27,11 +27,16 @@ package io.kyligence.kap.rest.service;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.kylin.common.msg.MsgPicker;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
 
+@ThirdPartyDependencies({
+        @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
+                classes = {"StaticUserGroupService", "StaticUserService"})
+})
 public abstract class OpenUserGroupService extends NUserGroupService {
 
     public abstract List<ManagedUser> getGroupMembersByName(String name);
