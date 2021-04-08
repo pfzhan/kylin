@@ -29,11 +29,14 @@ import java.util.Locale;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.sdk.datasource.adaptor.SQLDWAdaptor;
+import org.apache.kylin.sdk.datasource.framework.def.DataSourceDef;
 import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
@@ -653,4 +656,70 @@ public class SqlConverterTest extends NLocalFileMetadataTestCase {
                         "select * from (select * from KYLIN.KYLIN_ACCOUNT order by ACCOUNT_ID desc limit 10) order by ACCOUNT_ID "));
     }
 
+    @Test
+    public void testConvertSql_Mssql_OrderByFetchOffset() throws Exception {
+        DataSourceDefProvider provider = DataSourceDefProvider.getInstance();
+        ConvMaster master = new ConvMaster(provider.getDefault(), provider.getById(TEST_TARGET));
+        SQLDWAdaptor sqlDWAdaptor = Mockito.mock(SQLDWAdaptor.class);
+        Mockito.doCallRealMethod().when(sqlDWAdaptor).fixSql(Mockito.anyString());
+        SqlConverter converter = new SqlConverter(new DefaultConfigurer(sqlDWAdaptor, new DataSourceDef()) {
+            @Override
+            public boolean skipHandleDefault() {
+                return false;
+            }
+
+            @Override
+            public boolean skipDefaultConvert() {
+                return false;
+            }
+
+            @Override
+            public boolean useUppercaseDefault() {
+                return true;
+            }
+
+            @Override
+            public String fixAfterDefaultConvert(String orig) {
+                return super.fixAfterDefaultConvert(orig);
+            }
+
+            @Override
+            public String getPagingType() {
+                return "AUTO";
+            }
+
+            @Override
+            public SqlDialect getSqlDialect() {
+                return SqlDialect.DatabaseProduct.MSSQL.getDialect();
+            }
+
+            @Override
+            public boolean isCaseSensitive() {
+                return false;
+            }
+
+            @Override
+            public boolean enableQuote() {
+                return false;
+            }
+
+            @Override
+            public boolean allowNoOffset() {
+                return true;
+            }
+
+            @Override
+            public boolean allowNoOrderByWithFetch() {
+                return false;
+            }
+
+            @Override
+            public boolean allowFetchNoRows() {
+                return true;
+            }
+        }, master);
+
+        Assert.assertEquals("SELECT *\n" + "FROM DBO.KYLIN_SALES\n" + "ORDER BY 1\n" + "OFFSET 0 ROWS \n"
+                + "FETCH NEXT 500 ROWS ONLY", converter.convertSql("select * from DBO.KYLIN_SALES limit 500"));
+    }
 }

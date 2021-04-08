@@ -39,8 +39,8 @@ import com.google.common.base.Preconditions;
 
 public class MssqlAdaptor extends DefaultAdaptor {
 
-    private final Pattern patternASYM = Pattern.compile("BETWEEN(\\s*)ASYMMETRIC");
-    private final Pattern patternSYM = Pattern.compile("BETWEEN(\\s*)SYMMETRIC");
+    private static final Pattern ASYM = Pattern.compile("BETWEEN(\\s*)ASYMMETRIC");
+    private static final Pattern SYM = Pattern.compile("BETWEEN(\\s*)SYMMETRIC");
 
     public MssqlAdaptor(AdaptorConfig config) throws Exception {
         super(config);
@@ -50,7 +50,20 @@ public class MssqlAdaptor extends DefaultAdaptor {
      * Simple Implementation:
      * <p>
      * LIMIT X OFFSET Y is not supported in MSSQL, and will convert to OFFSET Y FETCH NEXT X ROWS ONLY by framework.
-     * But this requires a ORDER BY clause, will add this ORDER BY clause if missing here.
+     *
+     * in MSSQL, The OFFSET and FETCH clauses are options of the ORDER BY clause.
+     * 1. this requires a ORDER BY clause, will add this ORDER BY clause if missing here.
+     * 2. When there is a FETCH clause, the OFFSET clause is required, will add OFFSET clause if missing here.
+     *
+     * example:
+     * * * * * * * * * * * * * * * * * * * * * * *
+     *                                           *
+     *    ORDER BY column_list                   *
+     *    OFFSET offset_row_count ROWS           *
+     *    FETCH NEXT fetch_row_count ROWS ONLY   *
+     *                                           *
+     * * * * * * * * * * * * * * * * * * * * * * *
+     *
      *
      * @param sql The SQL statement to be fixed.
      * @return
@@ -60,10 +73,18 @@ public class MssqlAdaptor extends DefaultAdaptor {
         sql = sql.replaceAll(" DOUBLE", " FLOAT");
 
         boolean hasOrderBy = sql.toLowerCase(Locale.ROOT).contains("order by ");
+        boolean hasOffset = sql.toLowerCase(Locale.ROOT).contains("offset ");
+
         if (!hasOrderBy) {
             int idx = sql.indexOf("OFFSET ");
             if (idx >= 0)
                 sql = sql.substring(0, idx) + " ORDER BY 1 " + sql.substring(idx);
+        } else if (!hasOffset) {
+            // add offset when exist order by and fetch, not exist offset
+            int idx = sql.toLowerCase(Locale.ROOT).indexOf("fetch ");
+            if (idx >= 0) {
+                sql = sql.substring(0, idx) + "OFFSET 0 ROWS \n" + sql.substring(idx);
+            }
         }
         // repalce ceil() -> ceiling()
         sql = sql.replaceAll("CEIL\\(", "CEILING\\(");
@@ -115,12 +136,12 @@ public class MssqlAdaptor extends DefaultAdaptor {
     private String resolveBetweenAsymmetricSymmetric(String sql) {
         String sqlReturn = sql;
 
-        Matcher matcher = patternASYM.matcher(sql);
+        Matcher matcher = ASYM.matcher(sql);
         if (matcher.find()) {
             sqlReturn = sql.replace(matcher.group(), "BETWEEN");
         }
 
-        matcher = patternSYM.matcher(sql);
+        matcher = SYM.matcher(sql);
         if (matcher.find()) {
             sqlReturn = sqlReturn.replace(matcher.group(), "BETWEEN");
         }

@@ -60,6 +60,7 @@ public class PushDownRunnerSDKImpl implements IPushDownRunner {
         ResultSetMetaData metaData;
         int columnCount;
         try (Connection conn = dataSource.getConnection(); Statement state = conn.createStatement()) {
+            log.info("SDK push down sql is [{}]", query);
             rs = state.executeQuery(query);
 
             extractResults(rs, returnRows);
