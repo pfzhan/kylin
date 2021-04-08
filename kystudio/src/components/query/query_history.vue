@@ -54,7 +54,7 @@
       :append-to-body="true"
       :visible.sync="exportSqlDialogVisible"
       :close-on-press-escape="false">
-      <el-alert show-icon class="ksd-mb-10" :closable="false" type="warning" v-if="queryHistoryData.size>maxExportLength">
+      <el-alert show-icon class="ksd-mb-10" :closable="false" type="warning" v-if="queryHistoryData.size>queryDownloadMaxSize">
         <span slot="title">{{$t('exportHistoryTips')}}<a class="ky-a-like" :href="$t('manualUrl')" target="_blank">{{$t('userManual')}}</a>{{$t('exportHistoryTips2')}}</span>
       </el-alert>
       <div v-html="exportMsg"></div>
@@ -77,7 +77,7 @@ import { handleSuccessAsync } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
 import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
-import { pageRefTags, maxExportLength, apiUrl } from 'config'
+import { pageRefTags, apiUrl } from 'config'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -99,7 +99,8 @@ import { pageRefTags, maxExportLength, apiUrl } from 'config'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'datasourceActions'
+      'datasourceActions',
+      'queryDownloadMaxSize'
     ])
   },
   components: {
@@ -134,7 +135,6 @@ import { pageRefTags, maxExportLength, apiUrl } from 'config'
 })
 export default class QueryHistory extends Vue {
   pageRefTags = pageRefTags
-  maxExportLength = maxExportLength
   apiUrl = apiUrl
   aggDetailVisible = false
   tabelIndexVisible = false
@@ -167,7 +167,7 @@ export default class QueryHistory extends Vue {
 
   get exportMsg () {
     // 最多导出10万条查询历史
-    const totalSize = this.queryHistoryData.size > this.maxExportLength ? this.maxExportLength : this.queryHistoryData.size
+    const totalSize = this.queryHistoryData.size > this.queryDownloadMaxSize ? this.queryDownloadMaxSize : this.queryHistoryData.size
     return this.isExportSqlOnly ? this.$t('exportSqlConfirm', {historyTotal: totalSize}) : this.$t('exportHistoryConfirm', {historyTotal: totalSize})
   }
 

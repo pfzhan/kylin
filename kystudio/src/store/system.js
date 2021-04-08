@@ -52,7 +52,8 @@ export default {
     isShowGlobalAlter: false,
     dimMeasNameMaxLength: 300,
     favoriteImportSqlMaxSize: 1000,
-    resourceGroupEnabled: 'false'
+    resourceGroupEnabled: 'false',
+    queryDownloadMaxSize: 100000
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -162,6 +163,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.dimension-measure-name.max-length', key: 'dimMeasNameMaxLength', defaultValue: 300})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.suggest-model-sql-limit', key: 'favoriteImportSqlMaxSize'})
           commit(types.GET_CONF_BY_NAME, {name: 'resource_group_enabled', key: 'resourceGroupEnabled', defaultValue: 'false'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.query.query-history-download-max-size', key: 'queryDownloadMaxSize', defaultValue: 100000})
           resolve(response)
         }, () => {
           reject()
@@ -255,6 +257,9 @@ export default {
     },
     dimMeasNameMaxLength: (state) => {
       return state.dimMeasNameMaxLength
+    },
+    queryDownloadMaxSize: (state) => {
+      return state.queryDownloadMaxSize
     }
   }
 }
