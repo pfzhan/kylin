@@ -55,7 +55,7 @@
       :visible.sync="exportSqlDialogVisible"
       :close-on-press-escape="false">
       <el-alert show-icon class="ksd-mb-10" :closable="false" type="warning" v-if="queryHistoryData.size>queryDownloadMaxSize">
-        <span slot="title">{{$t('exportHistoryTips')}}<a class="ky-a-like" :href="$t('manualUrl')" target="_blank">{{$t('userManual')}}</a>{{$t('exportHistoryTips2')}}</span>
+        <span slot="title">{{$t('exportHistoryTips', {maxLength: queryDownloadMaxSize})}}<a class="ky-a-like" :href="$t('manualUrl')" target="_blank">{{$t('userManual')}}</a>{{$t('exportHistoryTips2')}}</span>
       </el-alert>
       <div v-html="exportMsg"></div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
@@ -113,7 +113,7 @@ import { pageRefTags, apiUrl } from 'config'
       indexOverview: 'Index Overview',
       exportHistoryTitle: 'Export Query History',
       exportSqlTitle: 'Export SQL',
-      exportHistoryTips: '100,000 query histories could be exported at a time. If you want to export more. Check ',
+      exportHistoryTips: '{maxLength} query histories could be exported at a time. If you want to export more. Check ',
       userManual: 'User Manual',
       manualUrl: 'https://docs.kyligence.io/books/v4.3/en/query/history.en.html',
       exportHistoryTips2: ' for details.',
@@ -124,7 +124,7 @@ import { pageRefTags, apiUrl } from 'config'
       indexOverview: '索引总览',
       exportHistoryTitle: '导出查询历史',
       exportSqlTitle: '导出 SQL',
-      exportHistoryTips: '单次导出上限为 100,000 条。如若需要导出更多，请参考',
+      exportHistoryTips: '单次导出上限为 {maxLength} 条。如若需要导出更多，请参考',
       userManual: '用户手册',
       manualUrl: 'https://docs.kyligence.io/books/v4.3/zh-cn/query/history.cn.html',
       exportHistoryTips2: '。',
