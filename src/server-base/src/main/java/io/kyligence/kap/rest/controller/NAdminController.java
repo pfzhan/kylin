@@ -76,6 +76,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.model.dimension-measure-name.max-length");
         propertyKeys.add("kylin.favorite.import-sql-max-size");
         propertyKeys.add("kylin.model.suggest-model-sql-limit");
+        propertyKeys.add("kylin.query.query-history-download-max-size");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys) + addPropertyInMetadata();
 
