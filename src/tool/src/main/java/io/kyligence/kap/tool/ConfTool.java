@@ -23,15 +23,19 @@
  */
 package io.kyligence.kap.tool;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.tool.util.ToolUtil;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Set;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.tool.util.ToolUtil;
 
 public class ConfTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -61,6 +65,16 @@ public class ConfTool {
                 FileUtils.copyDirectoryToDirectory(hadoopConfDir, exportDir);
             } else {
                 logger.error("Can not find the hadoop_conf: {}!", hadoopConfDir.getAbsolutePath());
+            }
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            String buildHadoopConf = kylinConfig.getBuildConf();
+            if (StringUtils.isNotEmpty(buildHadoopConf)) {
+                File buildHadoopConfDir = new File(buildHadoopConf);
+                if (buildHadoopConfDir.exists()) {
+                    FileUtils.copyDirectoryToDirectory(buildHadoopConfDir, exportDir);
+                } else {
+                    logger.error("Can not find the write hadoop_conf: {}!", buildHadoopConfDir.getAbsolutePath());
+                }
             }
         } catch (Exception e) {
             logger.error("Failed to copy /hadoop_conf, ", e);

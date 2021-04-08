@@ -23,9 +23,13 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.tool.util.ToolUtil;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,10 +38,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.tool.util.ToolUtil;
 
 public class ConfToolTest extends NLocalFileMetadataTestCase {
 
@@ -87,16 +89,31 @@ public class ConfToolTest extends NLocalFileMetadataTestCase {
             FileUtils.forceMkdir(confDir);
         }
 
+        File writeConfDir = new File(ToolUtil.getKylinHome(), "write_hadoop_conf");
+        if (!writeConfDir.exists()) {
+            FileUtils.forceMkdir(writeConfDir);
+        }
+
         File configFile = new File(confDir, "a.conf");
         FileUtils.writeStringToFile(configFile, "a=1");
 
+        File configFile2 = new File(writeConfDir, "b.conf");
+        FileUtils.writeStringToFile(configFile2, "b=2");
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        String originValue = kylinConfig.getBuildConf();
+        kylinConfig.setProperty("kylin.engine.submit-hadoop-conf-dir", writeConfDir.getAbsolutePath());
         ConfTool.extractHadoopConf(mainDir);
-
+        kylinConfig.setProperty("kylin.engine.submit-hadoop-conf-dir", originValue);
         FileUtils.deleteQuietly(configFile);
+        FileUtils.deleteQuietly(configFile2);
 
         File newConfDir = new File(mainDir, "hadoop_conf");
         Assert.assertTrue(newConfDir.exists());
         Assert.assertTrue(new File(newConfDir, "a.conf").exists());
+
+        File newWriteConfDir = new File(mainDir, "write_hadoop_conf");
+        Assert.assertTrue(newWriteConfDir.exists());
+        Assert.assertTrue(new File(newWriteConfDir, "b.conf").exists());
     }
 
     @Test
