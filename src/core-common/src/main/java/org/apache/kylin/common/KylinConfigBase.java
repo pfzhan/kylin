@@ -1299,7 +1299,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getQueryMemoryLimitDuringCollect() {
-        return Long.parseLong(getOptional("kylin.query.memory-limit-during-collect-mb", "5400"));
+        return Long.parseLong(getOptional("kylin.query.memory-limit-during-collect-mb", "-1"));
     }
 
     /**
