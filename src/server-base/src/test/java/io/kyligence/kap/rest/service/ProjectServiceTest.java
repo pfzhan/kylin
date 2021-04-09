@@ -42,6 +42,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.metadata.model.MaintainModelType.MANUAL_MAINTAIN;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -168,6 +170,22 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testCreateProject_SemiMode() {
+        ProjectInstance projectInstance = new ProjectInstance();
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.semi-automatic-mode", "true");
+        projectInstance.setName("project11");
+        projectInstance.setMaintainModelType(MANUAL_MAINTAIN);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(projectInstance.getName(), projectInstance);
+            return null;
+        }, projectInstance.getName());
+        ProjectInstance projectInstance2 = projectManager.getProject("project11");
+        Assert.assertTrue(projectInstance2 != null);
+        Assert.assertEquals("true", projectInstance2.getOverrideKylinProps().get("kylin.metadata.semi-automatic-mode"));
+        projectManager.dropProject("project11");
+    }
+
+    @Test
     public void testCreateProject_AutoMaintain_Pass() {
 
         ProjectInstance projectInstance = new ProjectInstance();
@@ -187,7 +205,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
-        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectInstance.setMaintainModelType(MANUAL_MAINTAIN);
         UnitOfWork.doInTransactionWithRetry(() -> {
             projectService.createProject(projectInstance.getName(), projectInstance);
             return null;
@@ -195,7 +213,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertNotNull(projectInstance2);
         Assert.assertFalse(projectInstance2.isSemiAutoMode());
-        Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
+        Assert.assertEquals(MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
         projectManager.dropProject("project11");
     }
 
@@ -798,14 +816,14 @@ public class ProjectServiceTest extends ServiceTestBase {
         {
             ProjectInstance projectInstance = new ProjectInstance();
             projectInstance.setName("project11");
-            projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            projectInstance.setMaintainModelType(MANUAL_MAINTAIN);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 projectService.createProject(projectInstance.getName(), projectInstance);
                 return null;
             }, projectInstance.getName());
             ProjectInstance projectInstance2 = projectManager.getProject("project11");
             Assert.assertNotNull(projectInstance2);
-            Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
+            Assert.assertEquals(MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
             Assert.assertTrue(projectInstance2.getConfig().exposeComputedColumn());
             projectManager.dropProject("project11");
         }
