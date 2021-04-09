@@ -176,8 +176,8 @@ describe('Component QueryHistory', () => {
     expect(wrapper.vm.aggIndexLayoutId).toBe('')
 
     await wrapper.setData({pageSize: 20})
-    wrapper.vm.loadFilterList({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "sandbox.com", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
-    expect(wrapper.vm.filterData).toEqual({"latency_from": null, "latency_to": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "sandbox.com", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
+    wrapper.vm.loadFilterList({"latencyFrom": null, "latencyTo": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "sandbox.com", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
+    expect(wrapper.vm.filterData).toEqual({"latencyFrom": null, "latencyTo": null, "limit": 20, "offset": 0, "project": "Kyligence", "query_status": [], "realization": [], "server": "sandbox.com", "sql": "", "start_time_from": 1613318400000, "start_time_to": 1613923200000, "submitter": []})
     expect(wrapper.vm.queryCurrentPage).toBe(1)
     expect(wrapper.vm.pageSize).toBe(20)
     expect(mockApi.mockGetHistoryList).toBeCalled()

@@ -135,7 +135,7 @@ describe('Component Setting', () => {
 
     await wrapper.vm.beforeRouteLeave(route.to, route.from, route.next)
     jest.runAllTimers()
-    expect(mockConfirm).toBeCalledWith('Exit the page will lose unsaved content.', 'Notification', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Exit', 'type': 'warning'})
+    expect(mockConfirm).toBeCalledWith('Exit the page will lose unsaved content.', 'Notification', {"cancelButtonText": "Cancel", "closeOnClickModal": false, "closeOnPressEscape": false, "confirmButtonText": "Exit", "type": "warning"})
     // expect(mockRouter).toBeCalledWith()
     expect(route.next).toBeCalled()
 
