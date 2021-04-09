@@ -847,7 +847,8 @@ public class NModelController extends NBasicController {
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
-                buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority());
+                buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority(),
+                buildSegmentsRequest.isBuildAllSubPartitions());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

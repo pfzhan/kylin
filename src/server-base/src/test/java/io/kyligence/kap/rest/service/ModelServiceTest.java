@@ -1976,7 +1976,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testCreateModelAndBuildManully() throws Exception {
+    public void testCreateModelAndBuildManually() throws Exception {
         setupPushdownEnv();
         testGetLatestData();
         testCreateModel_PartitionNotNull();
@@ -3330,7 +3330,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
         val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "1577811661000", "1609430400000", true, Sets.newHashSet(), null, 0);
+                "1577811661000", "1609430400000", true, Sets.newHashSet(), null, 0, false);
 
         Assert.assertEquals(jobInfo.getJobs().size(), 1);
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
@@ -3353,6 +3353,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(DateFormat.getFormatTimeStamp("1609430400000", pattern),
                 dataflow.getSegments().get(0).getSegRange().getEnd());
+
+        // multi-partition model
+        String multiPartitionModelUuid = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+        dataflow = dataflowManager.getDataflow(multiPartitionModelUuid);
+        dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
+        dataflowManager.updateDataflow(dataflowUpdate);
+        val jobInfo2 = modelService.buildSegmentsManually("default", multiPartitionModelUuid, "1577811661000",
+                "1609430400000", true, Sets.newHashSet(), null, 0, true);
+        Assert.assertEquals(1, jobInfo2.getJobs().size());
+        Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
+        val job2 = NExecutableManager.getInstance(getTestConfig(), "default")
+                .getJob(jobInfo2.getJobs().get(0).getJobId());
+        Assert.assertEquals(3, job2.getTargetPartitions().size());
+
     }
 
     public void testBuildSegmentsManually_WithPushDown() throws Exception {
@@ -3471,7 +3486,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.updateDataflow(dataflowUpdate);
         Assert.assertEquals(0, dataflow.getSegments().size());
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
-                Sets.newHashSet(), null, 0);
+                Sets.newHashSet(), null, 0, false);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());

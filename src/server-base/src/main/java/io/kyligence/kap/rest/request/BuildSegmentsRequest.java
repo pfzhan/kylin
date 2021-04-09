@@ -51,5 +51,8 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
     @JsonProperty("sub_partition_values")
     private List<String[]> subPartitionValues;
 
+    @JsonProperty("build_all_sub_partitions")
+    private boolean buildAllSubPartitions = false;
+
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
 }

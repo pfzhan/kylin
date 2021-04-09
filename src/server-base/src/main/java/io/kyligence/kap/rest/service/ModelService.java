@@ -2120,15 +2120,15 @@ public class ModelService extends BasicService {
     }
 
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
-            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValuess)
+            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues)
             throws Exception {
         return buildSegmentsManually(project, modelId, start, end, needBuild, ignoredSnapshotTables,
-                multiPartitionValuess, ExecutablePO.DEFAULT_PRIORITY);
+                multiPartitionValues, ExecutablePO.DEFAULT_PRIORITY, false);
     }
 
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
-            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues, int priority)
-            throws Exception {
+            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues, int priority,
+            boolean buildAllSubPartitions) throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
             throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
@@ -2142,7 +2142,8 @@ public class ModelService extends BasicService {
             return incrementBuildSegmentsManually(
                     new IncrementBuildSegmentParams(project, modelId, start, end, modelDesc.getPartitionDesc(),
                             modelDesc.getMultiPartitionDesc(), Lists.newArrayList(), needBuild, multiPartitionValues)
-                                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority));
+                                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority)
+                                    .withBuildAllSubPartitions(buildAllSubPartitions));
         }
     }
 
