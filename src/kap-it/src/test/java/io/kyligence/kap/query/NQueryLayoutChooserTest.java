@@ -544,6 +544,34 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         }
     }
 
+    @Test
+    public void testAggpushdownWithSemiJoin() throws Exception {
+        val sql1 = new String[] {
+                // agg index on test_acc
+                "select max(account_id), account_buyer_level from test_account group by account_buyer_level",
+                // table index on test_acc
+                "select * from test_account",
+                // table index on test_kylin_fact
+                "select * from test_kylin_fact"};
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
+        val smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
+        buildAllCubes(getTestConfig(), "newten");
+
+        val sql2 = "select sum(price)\n"
+                + "from test_kylin_fact inner join test_account\n"
+                + "on seller_id = account_id\n"
+                + "where cal_dt <> date'2012-01-01'\n"
+                + "and account_id in (select max(account_id) - 1000 from test_account)";
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(new Pair<>("aggPushdownOnSemiJoin", sql2));
+        populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "inner");
+    }
+
     public boolean containMeasure(List<NDataModel.Measure> allMeasures, String expression, String parameter) {
         for (NDataModel.Measure measure : allMeasures) {
             if (measure.getFunction().getExpression().equals(expression)

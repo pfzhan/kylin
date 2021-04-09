@@ -102,6 +102,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
         this.context = null;
         this.columnRowType = null;
+        this.belongToPreAggContext = false;
         implementor.visitChild(getInput());
     }
 
