@@ -95,7 +95,7 @@
                     <p class="ksd-fs-12 ksd-mt-5">
                       <span>{{$t('trash')}}<common-tip :content="$t('tarshTips')" placement="top"><i class="el-icon-ksd-info ksd-fs-12 ksd-ml-5 trash-tips-icon"></i></common-tip>{{$t('kylinLang.common.colon')}}</span><span v-if="quotaInfo.garbage_storage_size !== -1"><span>
                         {{quotaInfo.garbage_storage_size | dataSize}}
-                        </span><common-tip placement="right" :content="$t('clear')" v-if="$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
+                        </span><common-tip placement="right" :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
                         <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
                         :class="{'is_no_quota': useageRatio >= 0.9, 'is-disabled': !quotaInfo.garbage_storage_size || quotaInfo.garbage_storage_size === -1}"
                       @click="clearStorage"></i>
