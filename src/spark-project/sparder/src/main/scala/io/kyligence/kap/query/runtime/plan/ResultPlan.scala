@@ -133,7 +133,7 @@ object ResultPlan extends LogEx {
   }
 
   def convertResultWithMemLimit[C: ClassTag](rows: Array[Row])(convertRow: Row => C): Array[C] = {
-    if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect < 0)  {
+    if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect < 0 || CollectExecutionMemoryUsage.current == null) {
       rows.map(convertRow)
     } else {
       var checkedFirst = false
