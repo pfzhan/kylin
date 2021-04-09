@@ -36,6 +36,10 @@ KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
 SPARK_SCHEDULER_MODE=`$KYLIN_HOME/bin/get-properties.sh kylin.query.engine.spark-scheduler-mode`
 MAX_CONCURRENT_JOBS=`$KYLIN_HOME/bin/get-properties.sh kylin.job.max-concurrent-jobs`
 
+if [[ $(hadoop version) == *"mapr"* ]]; then
+    MAPR_AUTHENTICATION="-Djava.security.auth.login.config=${MAPR_HOME}/conf/mapr.login.conf"
+fi
+
 if [ "${SPARK_SCHEDULER_MODE}" == "" ] || [[ "${SPARK_SCHEDULER_MODE}" != "FAIR" && "${SPARK_SCHEDULER_MODE}" != "SJF" ]]; then
   SPARK_SCHEDULER_MODE="FAIR"
 fi
@@ -172,7 +176,7 @@ function runToolInternal() {
     else
         kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.xml"
     fi
-    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/conf/:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
+    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} ${MAPR_AUTHENTICATION} -Dfile.encoding=UTF-8 -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/conf/:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
 }
 
 function killChildProcess {

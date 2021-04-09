@@ -115,17 +115,38 @@ then
     case $SPARK_HDP_VERSION in
         "mapr")
         {
-            if [ ! -d "$SPARK_HOME" ]
+            if [[ ! -d "$SPARK_HOME" ]]
             then
                 quit 'Please make sure SPARK_HOME has been set (export as environment variable first)'
             fi
-            cp -rf ${SPARK_HOME} ${KYLIN_HOME}/spark-tmp
-            rm -rf ${KYLIN_HOME}/spark-tmp/jars/spark-catalyst*.jar
-            rm -rf ${KYLIN_HOME}/spark-tmp/jars/spark-sql*.jar
-            cp -rf ${KYLIN_HOME}/spark/jars/spark-sql*.jar ${KYLIN_HOME}/spark-tmp/jars/
-            cp -rf ${KYLIN_HOME}/spark/jars/spark-catalyst*.jar ${KYLIN_HOME}/spark-tmp/jars/
-            rm -rf ${KYLIN_HOME}/spark
-            mv ${KYLIN_HOME}/spark-tmp ${KYLIN_HOME}/spark
+            rm -rf ${SPARK_HOME}/jars/hadoop-*.jar
+            rm -rf ${SPARK_HOME}/jars/zookeeper-*.jar
+            rm -rf ${KYLIN_HOME}/server/jars/protobuf-java-*.jar
+            rm -rf ${SPARK_HOME}/jars/protobuf-java*.jar
+
+            hadoop_common_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/common/ -maxdepth 2 -name hadoop-*.jar -not -name "*test*" -not -name "*sources.jar")
+            hadoop_hdfs_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/hdfs/ -maxdepth 2 -name hadoop-*.jar -not -name "*test*" -not -name "*sources.jar")
+            hadoop_mapreduce_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/mapreduce/ -maxdepth 2 -name hadoop-*.jar -not -name "*test*" -not -name "*sources.jar")
+            hadoop_yarn_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/yarn/ -maxdepth 2 -name hadoop-*.jar -not -name "*test*" -not -name "*sources.jar")
+            zk_jars=$(find ${MAPR_HOME}/zookeeper/zookeeper*/  -maxdepth 2 -name zookeeper-*.jar -not -name "*test*")
+            maprfs_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/common/lib/ -maxdepth 2 -name maprfs-*.jar -not -name "*test*")
+            mapr_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/common/lib/ -maxdepth 2 -name mapr-*.jar -not -name "*test*")
+            maprdb_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/common/lib/ -maxdepth 2 -name maprdb-*.jar -not -name "*test*")
+            mapr_lib_jars=$(find ${MAPR_HOME}/lib/ -maxdepth 1 -name json-*.jar -o -name flexjson-*.jar -o -name maprutil*.jar -o -name baseutils*.jar -o -name libprotodefs*.jar -o -name kvstore*.jar)
+            other_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/common/lib/ -maxdepth 2 -name htrace-core-*.jar -o -name aws-java-sdk-*.jar)
+            protobuf_jars=$(find ${MAPR_HOME}/hadoop/hadoop*/share/hadoop/common/lib/ -maxdepth 2 -name protobuf-java-*.jar -not -name "*test*")
+
+            cp ${hadoop_common_jars} ${SPARK_HOME}/jars/
+            cp ${hadoop_hdfs_jars} ${SPARK_HOME}/jars/
+            cp ${hadoop_mapreduce_jars} ${SPARK_HOME}/jars/
+            cp ${hadoop_yarn_jars} ${SPARK_HOME}/jars/
+            cp ${zk_jars} ${SPARK_HOME}/jars/
+            cp ${maprfs_jars} ${SPARK_HOME}/jars/
+            cp ${maprdb_jars} ${SPARK_HOME}/jars/
+            cp ${mapr_jars} ${SPARK_HOME}/jars/
+            cp ${other_jars} ${SPARK_HOME}/jars/
+            cp ${mapr_lib_jars} ${SPARK_HOME}/jars/
+            cp ${protobuf_jars} ${SPARK_HOME}/jars/
         }
         ;;
         "aliyun")
