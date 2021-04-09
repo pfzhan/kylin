@@ -399,7 +399,8 @@ class FilePruner(val session: SparkSession,
   override lazy val inputFiles: Array[String] = Array.empty[String]
 
   override lazy val sizeInBytes: Long = {
-    dataflow.getQueryableSegments.asScala.map(seg => seg.getLayout(layout.getId).getByteSize).sum
+    dataflow.getQueryableSegments.asScala.map(seg => seg.getLayout(layout.getId))
+      .filter(_ != null).map(_.getByteSize).sum
   }
 
   override def refresh(): Unit = {}
