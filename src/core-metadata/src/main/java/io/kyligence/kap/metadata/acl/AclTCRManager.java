@@ -36,9 +36,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -50,8 +47,11 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -363,13 +363,17 @@ public class AclTCRManager {
 
             List<String> conditions = principals.stream().map(p -> {
                 final ColumnToConds columnConditions = new ColumnToConds();
-                p.getRowSets().forEach(r -> columnConditions.put(r.getColumnName(),
-                        r.getValues().stream().map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.CLOSED))
-                                .collect(Collectors.toList())));
+                p.getRowSets().stream().filter(r -> columnType.containsKey(r.getColumnName()))
+                        .forEach(r -> columnConditions.put(r.getColumnName(),
+                                r.getValues().stream()
+                                        .map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.CLOSED))
+                                        .collect(Collectors.toList())));
                 final ColumnToConds columnLikeConditions = new ColumnToConds();
-                p.getLikeRowSets().forEach(r -> columnLikeConditions.put(r.getColumnName(),
-                        r.getValues().stream().map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.LIKE))
-                                .collect(Collectors.toList())));
+                p.getLikeRowSets().stream().filter(r -> columnType.containsKey(r.getColumnName()))
+                        .forEach(r -> columnLikeConditions.put(r.getColumnName(),
+                                r.getValues().stream()
+                                        .map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.LIKE))
+                                        .collect(Collectors.toList())));
                 return ColumnToConds.concatConds(columnConditions, columnLikeConditions, columnType);
             }).collect(Collectors.toList());
 

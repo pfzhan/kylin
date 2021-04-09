@@ -210,8 +210,12 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         AclTCR.RealRow u1rr2 = new AclTCR.RealRow();
         u1rr2.add("2001-01-01");
         u1rr2.add("2010-10-10");
+        AclTCR.RealRow u1rr3 = new AclTCR.RealRow();
+        u1rr3.add("2001-01-01");
+        u1rr3.add("2010-10-10");
         u1r1.put("TEST_DATE_ENC", u1rr2);
         u1r1.put("BUYER_ID", null);
+        u1r1.put("UNKNOWN_COLUMN", u1rr3);
         u1cr1.setRow(u1r1);
         u1t1.put("DEFAULT.TEST_ORDER", u1cr1);
         // TEST_SITES
@@ -234,8 +238,12 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         AclTCR.RealRow g1rr3 = new AclTCR.RealRow();
         g1rr3.add("name_a");
         g1rr3.add("name_b");
+        AclTCR.RealRow g1rr4 = new AclTCR.RealRow();
+        g1rr4.add("name_a");
+        g1rr4.add("name_b");
         g1r1.put("NAME", g1rr3);
         g1r1.put("LONGITUDE", null);
+        g1r1.put("UNKNOWN_COLUMN2", g1rr4);
         g1cr1.setRow(g1r1);
         g1t1.put("DEFAULT.TEST_COUNTRY", g1cr1);
         //TEST_ACCOUNT
@@ -257,14 +265,20 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         g2r1.put("LATITUDE", g2rr2);
         AclTCR.RealRow g2rr3 = new AclTCR.RealRow();
         g2rr3.add("name_c");
+        AclTCR.RealRow g2rr4 = new AclTCR.RealRow();
+        g2rr4.add("name_c");
         g2r1.put("NAME", g2rr3);
         g2r1.put("LONGITUDE", null);
+        g2r1.put("UNKNOWN_COLUMN3", g2rr4);
         g2cr1.setRow(g2r1);
 
         AclTCR.Row likeRow = new AclTCR.Row();
         AclTCR.RealRow likeRealRow = new AclTCR.RealRow();
         likeRealRow.add("name\\_%");
+        AclTCR.RealRow likeRealRow2 = new AclTCR.RealRow();
+        likeRealRow2.add("name\\_%");
         likeRow.put("NAME", likeRealRow);
+        likeRow.put("UNKNOWN_COLUMN", likeRealRow2);
         g2cr1.setLikeRow(likeRow);
 
         g2t1.put("DEFAULT.TEST_COUNTRY", g2cr1);
