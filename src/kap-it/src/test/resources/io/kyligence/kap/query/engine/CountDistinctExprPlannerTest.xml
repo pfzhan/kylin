@@ -315,5 +315,31 @@ KapOLAPToEnumerableConverter
             KapTableScan(table=[[DEFAULT, TEST_KYLIN_FACT]], ctx=[], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]])
 ]]>
         </Resource>
+        <Resource name="query11.planBefore">
+            <![CDATA[
+KapOLAPToEnumerableConverter
+  KapSortRel(sort0=[$0], sort1=[$1], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], ctx=[])
+    KapAggregateRel(group-set=[[0, 1]], groups=[null], EXPR$2=[COUNT(DISTINCT $2)], ctx=[])
+      KapProjectRel(CAL_DT=[$2], ACCOUNT_COUNTRY=[$42], $f2=[CASE(=($42, 'US'), $8, null)], ctx=[])
+        KapFilterRel(condition=[AND(>=($2, 2012-01-01), <($2, 2012-02-01), OR(=($42, 'US'), =($42, 'CN')))], ctx=[])
+          KapJoinRel(condition=[=($7, $39)], joinType=[inner], ctx=[])
+            KapTableScan(table=[[DEFAULT, TEST_KYLIN_FACT]], ctx=[], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]])
+            KapTableScan(table=[[DEFAULT, TEST_ACCOUNT]], ctx=[], fields=[[0, 1, 2, 3, 4]])
+]]>
+        </Resource>
+        <Resource name="query11.planAfter">
+            <![CDATA[
+KapOLAPToEnumerableConverter
+  KapSortRel(sort0=[$0], sort1=[$1], dir0=[ASC-nulls-first], dir1=[ASC-nulls-first], ctx=[])
+    KapAggregateRel(group-set=[[0, 1]], groups=[null], AGG$0=[BITMAP_COUNT($2)], ctx=[])
+      KapProjectRel(CAL_DT=[$0], ACCOUNT_COUNTRY=[$1], $f2=[CASE(=($2, 'US'), $3, null)], ctx=[])
+        KapAggregateRel(group-set=[[0, 1, 2]], groups=[null], COUNT_DISTINCT_CASE$0$0=[BITMAP_UUID($3)], ctx=[])
+          KapProjectRel(CAL_DT=[$2], ACCOUNT_COUNTRY=[$42], ACCOUNT_COUNTRY0=[$42], PRICE=[$8], $f4=[0], ctx=[])
+            KapFilterRel(condition=[AND(>=($2, 2012-01-01), <($2, 2012-02-01), OR(=($42, 'US'), =($42, 'CN')))], ctx=[])
+              KapJoinRel(condition=[=($7, $39)], joinType=[inner], ctx=[])
+                KapTableScan(table=[[DEFAULT, TEST_KYLIN_FACT]], ctx=[], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]])
+                KapTableScan(table=[[DEFAULT, TEST_ACCOUNT]], ctx=[], fields=[[0, 1, 2, 3, 4]])
+]]>
+        </Resource>
     </TestCase>
 </Root>

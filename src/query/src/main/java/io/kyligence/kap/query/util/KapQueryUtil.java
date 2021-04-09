@@ -231,7 +231,7 @@ public class KapQueryUtil {
                 return isPlainTableColumn(((RexInputRef) inputRex).getIndex(), ((Project) relNode).getInput());
             }
         } else if (relNode instanceof Filter) {
-            return isPlainTableColumn(colIdx, relNode);
+            return isPlainTableColumn(colIdx, relNode.getInput(0));
         }
         return false;
     }
