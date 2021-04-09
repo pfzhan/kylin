@@ -328,7 +328,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_NOT_FOUND() {
-        return "无法找到项目 \"%s\"。";
+        return "无法找到项目 \"%s\"，请检查后重试。";
     }
 
     @Override

@@ -36,6 +36,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
 
@@ -346,7 +347,7 @@ public class TableService extends BasicService {
                     .join(errorList.stream().map(error -> error.getFirst().getKey() + "." + error.getFirst().getValue())
                             .collect(Collectors.toList()), ",");
             String errorMessage = String.format(Locale.ROOT, MsgPicker.getMsg().getHIVETABLE_NOT_FOUND(), errorTables);
-            throw new KylinException(RELOAD_TABLE_FAILED, errorMessage);
+            throw new KylinException(TABLE_NOT_EXIST, errorMessage);
         }
         return results.stream().map(pair -> (Pair<TableDesc, TableExtDesc>) pair.getSecond())
                 .collect(Collectors.toList());

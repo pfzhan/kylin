@@ -396,7 +396,15 @@ public class TableServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can’t find the table. Please check and try again");
         String[] emptyTables = new String[] { "" };
         tableService.extractTableMeta(emptyTables, "default");
+    }
 
+    @Test
+    public void testExtraTableMetaException() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                "Can’t load table \"DEFAULT.NOT_EXISTS\". Please ensure that the table(s) could be found in the data source.");
+        String[] notExistsTables = new String[] { "DEFAULT.NOT_EXISTS" };
+        tableService.extractTableMeta(notExistsTables, "default");
     }
 
     @Test

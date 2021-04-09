@@ -414,7 +414,7 @@ public class Message {
     }
 
     public String getPROJECT_NOT_FOUND() {
-        return "Can't find project \"%s\".";
+        return "Can't find project \"%s\". Please check and try again.";
     }
 
     public String getPROJECT_UNMODIFIABLE_REASON() {

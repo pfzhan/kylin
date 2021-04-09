@@ -296,7 +296,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Can't find project \"default0\".", e.getMessage());
+            Assert.assertEquals("Can't find project \"default0\". Please check and try again.", e.getMessage());
         }
     }
 
