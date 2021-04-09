@@ -312,7 +312,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     }
 
-    protected static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT");
+    protected static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT", "BITMAP_UUID");
 
     private Boolean isExactlyMatched() {
         if (!KapConfig.getInstanceFromEnv().needReplaceAggWhenExactlyMatched()) {
@@ -331,6 +331,11 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         for (AggregateCall call : getRewriteAggCalls()) {
             if (!supportedFunction.contains(getAggrFuncName(call))) {
                 return false;
+            }
+            // bitmap uuid is fine with exactly matched cube as what we need to query
+            // from the cube is exactly the binary bitmap
+            if (getAggrFuncName(call).equals("BITMAP_UUID")) {
+                continue;
             }
             if (call.getArgList().size() > 1) {
                 return false;
