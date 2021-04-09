@@ -51,6 +51,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRES
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SAVE_QUERY_FAILED;
 import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
@@ -309,7 +310,7 @@ public class QueryService extends BasicService {
         val record = getSavedQueries(creator, project);
         List<Query> currentQueries = record.getQueries();
         if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
-            throw new IllegalArgumentException(
+            throw new KylinException(SAVE_QUERY_FAILED,
                     String.format(Locale.ROOT, msg.getDUPLICATE_QUERY_NAME(), query.getName()));
 
         currentQueries.add(query);
