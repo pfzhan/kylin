@@ -157,7 +157,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
 
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-        createTestMetadata();
+        createTestMetadata("src/test/resources/ut_acl");
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
@@ -557,7 +557,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream()
                 .anyMatch(t -> t.isAuthorized() && "TEST_ORDER".equals(t.getTableName()))));
         Assert.assertTrue(responses.stream()
-                .anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 11));
+                .anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 12));
         Assert.assertTrue(
                 responses.stream().anyMatch(res -> "EDW".equals(res.getDatabaseName()) && res.getTables().size() == 3));
         Assert.assertTrue(
@@ -722,9 +722,12 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
         u1t1.setTableName("TEST_ORDER");
         u1t1.setAuthorized(true);
-        u1t1.setColumns(Arrays.asList(requests.get(0).getTables().get(0).getColumns().get(0)));
+        val any = requests.stream().filter(aclTCRRequest -> aclTCRRequest.getTables().stream()
+                .noneMatch(table -> table.getColumns().isEmpty())).findAny();
+        Assert.assertTrue(any.isPresent());
+        u1t1.setColumns(Collections.singletonList(any.get().getTables().get(0).getColumns().get(0)));
         u1t1.setRows(new ArrayList<>());
-        request.setTables(Arrays.asList(u1t1));
+        request.setTables(Collections.singletonList(u1t1));
         requests.add(request);
         aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
     }
@@ -734,7 +737,10 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘columns’ which should not be empty");
         val requests = getFillRequest();
-        requests.get(0).getTables().get(0).setColumns(null);
+        val any = requests.stream().filter(aclTCRRequest -> aclTCRRequest.getTables().stream()
+                .noneMatch(table -> table.getColumns().isEmpty())).findAny();
+        Assert.assertTrue(any.isPresent());
+        any.get().getTables().get(0).setColumns(null);
         aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
     }
 
@@ -752,7 +758,10 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid value for parameter ‘column_name’ which should not be empty");
         val requests = getFillRequest();
-        requests.get(0).getTables().get(0).getColumns().get(0).setColumnName(null);
+        val any = requests.stream().filter(aclTCRRequest -> aclTCRRequest.getTables().stream()
+                .noneMatch(table -> table.getColumns().isEmpty())).findAny();
+        Assert.assertTrue(any.isPresent());
+        any.get().getTables().get(0).getColumns().get(0).setColumnName(null);
         aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
     }
 
@@ -1181,5 +1190,51 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         u1t1.setLikeRows(Lists.newArrayList(u1r1));
         request.setTables(Arrays.asList(u1t1));
         aclTCRService.mergeAclTCR(projectDefault, user1, true, Lists.newArrayList(request));
+    }
+
+    @Test
+    public void testUpdateAclTCRWithEmptyColumn() throws IOException {
+        // grant empty column table's acl
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("EMPTY_COLUMN");
+        u1t1.setAuthorized(true);
+
+        request.setTables(Collections.singletonList(u1t1));
+        List<AclTCRRequest> aclTCRRequests = fillAclTCRRequest(request);
+        Assert.assertTrue(aclTCRRequests.stream()
+                .anyMatch(aclTCRRequest -> "DEFAULT".equals(aclTCRRequest.getDatabaseName())
+                        && aclTCRRequest.getTables().stream().anyMatch(
+                                table -> "EMPTY_COLUMN".equals(table.getTableName()) && table.getColumns().isEmpty())));
+        aclTCRService.updateAclTCR(projectDefault, user1, true, aclTCRRequests);
+
+        var response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream()
+                .anyMatch(aclTCRResponse -> "DEFAULT".equals(aclTCRResponse.getDatabaseName())
+                        && aclTCRResponse.getTables().stream().anyMatch(
+                                table -> "EMPTY_COLUMN".equals(table.getTableName()) && table.isAuthorized())));
+
+        // revoke empty column table's acl
+        request.setDatabaseName("DEFAULT");
+        u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("EMPTY_COLUMN");
+        u1t1.setAuthorized(false);
+
+        request.setTables(Collections.singletonList(u1t1));
+        aclTCRRequests = fillAclTCRRequest(request);
+        Assert.assertTrue(aclTCRRequests.stream()
+                .anyMatch(aclTCRRequest -> "DEFAULT".equals(aclTCRRequest.getDatabaseName())
+                        && aclTCRRequest.getTables().stream().anyMatch(
+                        table -> "EMPTY_COLUMN".equals(table.getTableName()) && table.getColumns().isEmpty())));
+        aclTCRService.updateAclTCR(projectDefault, user1, true, aclTCRRequests);
+
+        response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, false);
+
+        Assert.assertTrue(response.stream()
+                .anyMatch(aclTCRResponse -> "DEFAULT".equals(aclTCRResponse.getDatabaseName())
+                        && aclTCRResponse.getTables().stream().anyMatch(
+                        table -> "EMPTY_COLUMN".equals(table.getTableName()) && !table.isAuthorized())));
     }
 }

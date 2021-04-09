@@ -212,7 +212,8 @@ public class AclTCRService extends BasicService {
         }
     }
 
-    private void checkAclTCRRequestTableValid(AclTCRRequest db, AclTCRRequest.Table table, Set<String> requestTables, boolean isIncludeAll) {
+    private void checkAclTCRRequestTableValid(NTableMetadataManager manager, AclTCRRequest db,
+            AclTCRRequest.Table table, Set<String> requestTables, boolean isIncludeAll) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(table.getTableName())) {
             throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
@@ -237,13 +238,15 @@ public class AclTCRService extends BasicService {
                 throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ITEMS());
             }
         });
-        if (CollectionUtils.isEmpty(table.getColumns())) {
+        TableDesc tableDesc = manager.getTableDesc(tableName);
+        if (CollectionUtils.isEmpty(table.getColumns()) && tableDesc.getColumns() != null
+                && tableDesc.getColumns().length > 0) {
             throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_LIST());
         }
     }
 
-    private void checkAClTCRRequestParameterValid(Set<String> databases, Set<String> tables, Set<String> columns,
-            List<AclTCRRequest> requests, boolean isIncludeAll) {
+    private void checkAClTCRRequestParameterValid(NTableMetadataManager manager, Set<String> databases,
+            Set<String> tables, Set<String> columns, List<AclTCRRequest> requests, boolean isIncludeAll) {
         Message msg = MsgPicker.getMsg();
         Set<String> requestDatabases = Sets.newHashSet();
         Set<String> requestTables = Sets.newHashSet();
@@ -252,7 +255,7 @@ public class AclTCRService extends BasicService {
         requests.forEach(db -> {
             checkAclTCRRequestDataBaseValid(db, requestDatabases);
             db.getTables().forEach(table -> {
-                checkAclTCRRequestTableValid(db, table, requestTables, isIncludeAll);
+                checkAclTCRRequestTableValid(manager, db, table, requestTables, isIncludeAll);
                 String tableName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, db.getDatabaseName(),
                         table.getTableName());
                 if(table.getColumns() == null) {
@@ -348,7 +351,7 @@ public class AclTCRService extends BasicService {
         if(hasAdminPermissionInProject(sid, principal, project)){
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
         }
-        checkAClTCRRequestParameterValid(databases, tables, columns, requests, isIncludeAll);
+        checkAClTCRRequestParameterValid(manager, databases, tables, columns, requests, isIncludeAll);
         checkACLTCRRequestRowAuthValid(manager, requests);
         checkAClTCRExist(databases, tables, columns, requests);
     }
