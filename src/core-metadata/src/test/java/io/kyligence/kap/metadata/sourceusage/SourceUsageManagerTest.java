@@ -74,7 +74,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(865450L, usage.getCurrentCapacity());
+            Assert.assertEquals(874120L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -128,6 +128,11 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             // assert CC is calculated
             SourceUsageRecord.ColumnCapacityDetail columnCapacityDetail = tableCapacityDetail.getColumnByName(ccName);
             Assert.assertEquals(62240L, columnCapacityDetail.getMaxSourceBytes());
+            projectCapacityDetail = sourceUsageRecord.getProjectCapacity("default");
+            columnCapacityDetail = projectCapacityDetail
+                    .getTableByName("EDW.TEST_SITES").getColumnByName("EDW.TEST_SITES.SITE_NAME");
+            // assert will remove TOMB column (197-> 196) in `nmodel_basic_inner` model when comput column size.
+            Assert.assertEquals(510L, columnCapacityDetail.getMaxSourceBytes());
             return null;
         }, UnitOfWork.GLOBAL_UNIT);
     }

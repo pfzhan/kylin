@@ -58,6 +58,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -141,9 +142,9 @@ public class SourceUsageManager {
 
     public Map<String, Long> calcAvgColumnSourceBytes(NDataSegment segment) {
         Map<String, Long> columnSourceBytes = Maps.newHashMap();
-        Set<TblColRef> allColumns;
+        Set<TblColRef> usedColumns;
         try {
-            allColumns = new NCubeJoinedFlatTableDesc(segment).getUsedColumns();
+            usedColumns = new NCubeJoinedFlatTableDesc(segment).getUsedColumns();
         } catch (Exception e) {
             return columnSourceBytes;
         }
@@ -152,15 +153,15 @@ public class SourceUsageManager {
             logger.debug("Source bytes size for segment: {} is -1", segment);
             return columnSourceBytes;
         }
-        if (allColumns.isEmpty()) {
+        if (usedColumns.isEmpty()) {
             logger.debug("No effective columns found in segment: {}", segment);
             return columnSourceBytes;
         }
-        List<NDataModel.NamedColumn> allNamedColumns = segment.getModel().getAllNamedColumns();
-        int columnSize = allNamedColumns.isEmpty() ? allColumns.size() : allNamedColumns.size();
+        List<NDataModel.NamedColumn> allColumns = Lists.newArrayList(segment.getModel().getEffectiveNamedColumns().values());
+        int columnSize = allColumns.isEmpty() ? usedColumns.size() : allColumns.size();
         // all named columns as denominator, since inputRecordsSize includes all cols on table
         long perColumnSize = inputRecordsSize / columnSize;
-        for (TblColRef tblColRef : allColumns) {
+        for (TblColRef tblColRef : usedColumns) {
             columnSourceBytes.put(tblColRef.getCanonicalName(), perColumnSize);
         }
         return columnSourceBytes;
