@@ -89,7 +89,6 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
     }
 
     public MetaStoreHealthIndicator() {
-        System.out.println("bean init");
         this.config = KylinConfig.getInstanceFromEnv();
         this.warningResponseMs = KapConfig.wrap(config).getMetaStoreHealthWarningResponseMs();
         this.errorResponseMs = KapConfig.wrap(config).getMetaStoreHealthErrorResponseMs();

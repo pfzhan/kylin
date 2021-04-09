@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import lombok.val;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -62,7 +63,7 @@ public class SchemaNode {
     SchemaNodeType type;
 
     @NonNull
-    String key;
+    final String key;
 
     @Setter(value = AccessLevel.PRIVATE)
     Map<String, Object> attributes;
@@ -72,6 +73,8 @@ public class SchemaNode {
 
     @Setter(value = AccessLevel.PRIVATE)
     Map<String, Object> keyAttributes;
+
+    private final int hashcode;
 
     public SchemaNode(SchemaNodeType type, String key) {
         this(type, key, Maps.newHashMap());
@@ -84,6 +87,7 @@ public class SchemaNode {
         ignoreAttributes = Arrays.asList(ignore);
         keyAttributes = attributes.keySet().stream().filter(attribute -> !ignoreAttributes.contains(attribute))
                 .collect(Collectors.toMap(Function.identity(), attributes::get));
+        hashcode = Objects.hash(key);
     }
 
     /**
@@ -190,21 +194,12 @@ public class SchemaNode {
     }
 
     public static SchemaNode ofIndex(SchemaNodeType type, LayoutEntity layout, NDataModel model,
-            Map<Integer, String> modelColumnMeasureIdMap) {
-        return new SchemaNode(type,
-                model.getAlias() + "/" + String.join(",", getLayoutIdColumn(layout, modelColumnMeasureIdMap)),
-                ImmutableMap.of("col_orders", getLayoutIdColumn(layout, modelColumnMeasureIdMap), "shard_by",
-                        getLayoutShardByColumn(layout, modelColumnMeasureIdMap), "sort_by",
-                        getLayoutSortByColumn(layout, modelColumnMeasureIdMap), "id", String.valueOf(layout.getId())),
-                "id");
-    }
-
-    public static SchemaNode ofIndex(SchemaNodeType type, LayoutEntity layout, NDataModel model,
             Map<Integer, String> modelColumnMeasureIdMap, List<Integer> aggShardByColumns) {
-        return new SchemaNode(type,
-                model.getAlias() + "/" + String.join(",", getLayoutIdColumn(layout, modelColumnMeasureIdMap)),
-                ImmutableMap.of("col_orders", getLayoutIdColumn(layout, modelColumnMeasureIdMap), "shard_by",
-                        getColumnMeasureName(aggShardByColumns, modelColumnMeasureIdMap), "sort_by",
+        val colOrders = getLayoutIdColumn(layout, modelColumnMeasureIdMap);
+        val shardBy = aggShardByColumns == null ? getLayoutShardByColumn(layout, modelColumnMeasureIdMap)
+                : getColumnMeasureName(aggShardByColumns, modelColumnMeasureIdMap);
+        return new SchemaNode(type, model.getAlias() + "/" + String.join(",", colOrders),
+                ImmutableMap.of("col_orders", colOrders, "shard_by", shardBy, "sort_by",
                         getLayoutSortByColumn(layout, modelColumnMeasureIdMap), "id", String.valueOf(layout.getId())),
                 "id");
     }
@@ -271,6 +266,7 @@ public class SchemaNode {
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, key, this.keyAttributes);
+        //        return Objects.hash(type, key, this.keyAttributes);
+        return hashcode;
     }
 }

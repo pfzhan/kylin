@@ -37,6 +37,7 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.MutableGraph;
@@ -144,8 +145,8 @@ class ModelEdgeCollector {
                     SchemaNode.ofModelDimensionTable(joinTable.getTableRef(), model.getAlias()));
 
             for (int i = 0; i < joinTable.getJoin().getPrimaryKey().length; i++) {
-                SchemaNode join = SchemaNode.ofJoin(joinTable, joinTable.getJoin().getFKSide(), joinTable.getJoin().getPKSide(),
-                        joinTable.getJoin(), model.getAlias());
+                SchemaNode join = SchemaNode.ofJoin(joinTable, joinTable.getJoin().getFKSide(),
+                        joinTable.getJoin().getPKSide(), joinTable.getJoin(), model.getAlias());
 
                 String fkCol = joinTable.getJoin().getForeignKey()[i];
                 val fkNameColumn = nameColumnIdMap.get(fkCol);
@@ -188,43 +189,31 @@ class ModelEdgeCollector {
     }
 
     private void collectIndex(List<LayoutEntity> allLayouts, SchemaNodeType type, List<Integer> aggShardByColumns) {
+        val colNodes = Maps.<Integer, SchemaNode> newHashMap();
         for (LayoutEntity layout : allLayouts) {
+            val indexNode = SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap,
+                    type == SchemaNodeType.RULE_BASED_INDEX ? aggShardByColumns : null);
             if (layout.getIndex().isTableIndex()) {
                 for (Integer col : layout.getColOrder()) {
                     val namedColumn = effectiveNamedColumns.get(col);
-                    if (type == SchemaNodeType.RULE_BASED_INDEX) {
-                        graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getAlias()), SchemaNode.ofIndex(type,
-                                layout, model, modelColumnMeasureIdNameMap, aggShardByColumns));
-                    } else {
-                        graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getAlias()),
-                                SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap));
-                    }
+                    graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getAlias()), indexNode);
                 }
                 continue;
             }
             for (Integer col : layout.getColOrder()) {
-                if (col < NDataModel.MEASURE_ID_BASE) {
-                    val namedColumn = effectiveNamedColumns.get(col);
-                    if (type == SchemaNodeType.RULE_BASED_INDEX) {
-                        graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getAlias()), SchemaNode.ofIndex(type,
-                                layout, model, modelColumnMeasureIdNameMap, aggShardByColumns));
+                colNodes.computeIfAbsent(col, id -> {
+                    if (col < NDataModel.MEASURE_ID_BASE) {
+                        val namedColumn = effectiveNamedColumns.get(col);
+                        return SchemaNode.ofDimension(namedColumn, model.getAlias());
                     } else {
-                        graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getAlias()),
-                                SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap));
+                        NDataModel.Measure measure = effectiveMeasures.get(col);
+                        if (measure == null) {
+                            return null;
+                        }
+                        return SchemaNode.ofMeasure(measure, model.getAlias());
                     }
-                } else {
-                    NDataModel.Measure measure = effectiveMeasures.get(col);
-                    if (measure == null) {
-                        continue;
-                    }
-                    if (type == SchemaNodeType.RULE_BASED_INDEX) {
-                        graph.putEdge(SchemaNode.ofMeasure(measure, model.getAlias()), SchemaNode.ofIndex(type, layout,
-                                model, modelColumnMeasureIdNameMap, aggShardByColumns));
-                    } else {
-                        graph.putEdge(SchemaNode.ofMeasure(measure, model.getAlias()),
-                                SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap));
-                    }
-                }
+                });
+                graph.putEdge(colNodes.get(col), indexNode);
             }
         }
     }
@@ -276,7 +265,7 @@ class ModelEdgeCollector {
         for (LayoutEntity layout : indexPlan.getRuleBaseLayouts()) {
             if (layout.getColOrder().containsAll(indexPlan.getAggShardByColumns())) {
                 graph.putEdge(node, SchemaNode.ofIndex(SchemaNodeType.RULE_BASED_INDEX, layout, model,
-                        modelColumnMeasureIdNameMap));
+                        modelColumnMeasureIdNameMap, null));
             }
         }
     }
