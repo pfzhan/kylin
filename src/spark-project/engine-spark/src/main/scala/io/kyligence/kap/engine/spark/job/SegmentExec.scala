@@ -57,10 +57,12 @@ trait SegmentExec extends Logging {
   protected val dataModel: NDataModel
   protected val storageType: Int
 
+  private lazy val minThreads = 8
+  private lazy val maxThreads = Math.max(minThreads, config.getSegmentExecMaxThreads)
   // Maybe we should parameterize nThreads.
   private lazy val threadPool = //
     ThreadUtils.newDaemonScalableThreadPool("build-thread", //
-      8, 128, 10, TimeUnit.SECONDS)
+      minThreads, maxThreads, 20, TimeUnit.SECONDS)
 
   // Drain layout result using single thread.
   private lazy val scheduler = //

@@ -67,7 +67,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -87,6 +86,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.ClusterConstant;
@@ -2556,5 +2556,9 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isDimensionRangeFilterEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.dimension-range-filter-enabled", TRUE));
+    }
+
+    public int getSegmentExecMaxThreads() {
+        return Integer.parseInt(getOptional("kylin.engine.segment-exec-max-threads", "200"));
     }
 }
