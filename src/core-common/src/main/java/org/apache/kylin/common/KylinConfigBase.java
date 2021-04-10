@@ -1779,10 +1779,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.metrics.file-frequency", "5000"));
     }
 
-    public String getPerfLoggerClassName() {
-        return getOptional("kylin.metrics.perflogger-class", "PerfLogger");
-    }
-
     public boolean isHtraceTracingEveryQuery() {
         return Boolean.parseBoolean(getOptional("kylin.htrace.trace-every-query", FALSE));
     }

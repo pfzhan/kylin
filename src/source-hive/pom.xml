@@ -42,6 +42,11 @@
     </parent>
 
     <dependencies>
+        <!-- provided -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-metadata</artifactId>

@@ -563,9 +563,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMetricsReporterFrequency", new PropertiesEntity("kylin.metrics.file-frequency", "5000", 5000L));
 
-        map.put("getPerfLoggerClassName",
-                new PropertiesEntity("kylin.metrics.perflogger-class", "PerfLogger", "PerfLogger"));
-
         map.put("isHtraceTracingEveryQuery", new PropertiesEntity("kylin.htrace.trace-every-query", "false", false));
 
         map.put("getBuildConf", new PropertiesEntity("kylin.engine.submit-hadoop-conf-dir", "", ""));
@@ -849,7 +846,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(449, methodsCount);
+        Assert.assertEquals(448, methodsCount);
     }
 
     @Test
