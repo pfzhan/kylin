@@ -140,6 +140,7 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
 
         copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
         copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
+        copy.setSnapshotLastModified(System.currentTimeMillis());
         if (selectPartCol == null) {
             copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
             copy.setSnapshotPartitionCol(null);

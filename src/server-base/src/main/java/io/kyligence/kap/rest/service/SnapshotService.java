@@ -422,7 +422,7 @@ public class SnapshotService extends BasicService {
         tables.forEach(tableDesc -> {
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
             response.add(new SnapshotInfoResponse(tableDesc, tableDesc.getLastSnapshotSize(), countPair.getFirst(),
-                    countPair.getSecond(), tableDesc.getLastModified(), getSnapshotJobStatus(tableDesc, executables),
+                    countPair.getSecond(), tableDesc.getSnapshotLastModified(), getSnapshotJobStatus(tableDesc, executables),
                     getForbiddenColumns(tableDesc), tableDesc.getSelectedSnapshotPartitionCol()));
         });
 

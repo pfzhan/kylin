@@ -155,7 +155,9 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         }).sum(), tableManager.getTableDesc(tableName).getLastSnapshotSize());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getTempSnapshotPath());
         Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
+        Assert.assertTrue(tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
     }
+
 
     @Test
     public void testBuildSnapshotByPartitionRefreshPart() throws Exception {
@@ -193,7 +195,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNotNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getLastSnapshotPath());
         Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
-
+        Assert.assertTrue(tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
     }
 
     private FileStatus[] list(String path) {

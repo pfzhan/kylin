@@ -162,6 +162,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     @Getter
     @Setter
+    @JsonProperty("snapshot_last_modified")
+    private long snapshotLastModified;
+
+    @Getter
+    @Setter
     @JsonProperty("query_hit_count")
     private int snapshotHitCount = 0;
 
@@ -227,6 +232,8 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.snapshotPartitions = other.snapshotPartitions;
         this.selectedSnapshotPartitionCol = other.selectedSnapshotPartitionCol;
         this.snapshotPartitionCol = other.snapshotPartitionCol;
+        this.snapshotLastModified = other.getSnapshotLastModified();
+
 
         setMvcc(other.getMvcc());
     }
@@ -397,6 +404,13 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         return dataGen;
     }
 
+    public long getSnapshotLastModified() {
+        if (snapshotLastModified == 0) {
+            return lastModified;
+        }
+        return snapshotLastModified;
+    }
+
     public void init(String project) {
         this.project = project;
 
@@ -508,6 +522,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         setSnapshotPartitions(originTable.getSnapshotPartitions());
         setSnapshotPartitionCol(originTable.getSnapshotPartitionCol());
         setSelectedSnapshotPartitionCol(originTable.getSelectedSnapshotPartitionCol());
+        setSnapshotLastModified(originTable.getSnapshotLastModified());
     }
 
     public void resetSnapshotPartitions(Set<String> snapshotPartitions) {

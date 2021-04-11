@@ -476,6 +476,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(partColName, response.getPartitionCol());
     }
 
+
     private String getSnapshotPath(String tableName) {
         return NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName)
                 .getLastSnapshotPath();

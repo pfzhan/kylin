@@ -206,7 +206,8 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 }
             }).collect(Collectors.toList()));
         });
-        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
+        userService.createUser(
+                new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @After
@@ -217,6 +218,19 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     }
 
     private static final String TABLE_IDENTITY = "DEFAULT.TEST_CATEGORY_GROUPINGS";
+
+    @Test
+    public void testSnapshotModifyTimeAfterReloadTable() throws Exception {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val table = tableManager.getTableDesc(TABLE_IDENTITY);
+        long snapshotLastModify = System.currentTimeMillis();
+        table.setLastSnapshotPath("mockpath");
+        table.setSnapshotLastModified(snapshotLastModify);
+        tableManager.saveSourceTable(table);
+        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
+        val newTable = tableManager.getTableDesc(TABLE_IDENTITY);
+        Assert.assertEquals(snapshotLastModify, newTable.getSnapshotLastModified());
+    }
 
     @Test
     public void testAddColumn() throws Exception {
