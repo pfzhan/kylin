@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 public enum NonCustomProjectLevelConfig {
     // project setting
     RECOMMENDATION_AUTO_MODE("kylin.metadata.semi-automatic-mode"),
+    OLD_RECOMMENDATION_AUTO_MODE("kap.metadata.semi-automatic-mode"),
 
     STORAGE_QUOTA_SIZE("kylin.storage.quota-in-giga-bytes"),
 
@@ -53,6 +54,7 @@ public enum NonCustomProjectLevelConfig {
     SNAPSHOT_MANUAL_MANAGEMENT_ENABLED("kylin.snapshot.manual-management-enabled"),
 
     EXPOSE_COMPUTED_COLUMN("kylin.query.metadata.expose-computed-column"),
+    OLD_EXPOSE_COMPUTED_COLUMN("kap.query.metadata.expose-computed-column"),
 
     QUERY_NON_EQUI_JOIN_MODEL_ENABLED("kylin.query.non-equi-join-model-enabled"),
 

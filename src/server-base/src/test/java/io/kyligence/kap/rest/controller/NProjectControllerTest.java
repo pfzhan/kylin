@@ -462,7 +462,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nProjectController).getNonCustomProjectConfigs();
-        Assert.assertEquals(14, NonCustomProjectLevelConfig.listAllConfigNames().size());
+        Assert.assertEquals(16, NonCustomProjectLevelConfig.listAllConfigNames().size());
     }
 
     @Test
