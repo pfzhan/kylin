@@ -135,7 +135,7 @@ function fetchKylinHadoopConf() {
               echo "The mysql connector jar is missing, please place it in the ${KYLIN_HOME}/lib/ext directory."
               exit 1
             fi
-            cp -rf "${mysql_connector_jar}" "${KYLIN_HOME}"/spark/jars/
+            cp -rf ${mysql_connector_jar_dir}/mysql-connector-*.jar ${KYLIN_HOME}/spark/jars/
         else
           if [ -f "${kylin_hadoop_conf_dir}/hdfs-site.xml" ]
           then
