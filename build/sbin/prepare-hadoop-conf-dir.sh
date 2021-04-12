@@ -102,12 +102,48 @@ function fetchKylinHadoopConf() {
         # Ensure krb5.conf underlying hadoop_conf
         checkAndCopyFile $KYLIN_HOME/conf/$KYLIN_KRB5CONF
     else
-        if [ -f "${kylin_hadoop_conf_dir}/hdfs-site.xml" ]
-        then
-            echo "Hadoop conf directory currently generated based on manual mode."
+        # APACHE HADOOP platform
+        APACHE_HADOOP_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.apache-hadoop-conf-dir`
+        if [ -n "${APACHE_HADOOP_CONF_DIR}" ]; then
+            APACHE_HIVE_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.apache-hive-conf-dir`
+            if [ -z "${APACHE_HIVE_CONF_DIR}" ]; then
+                quit "ERROR: Please set kylin.env.apache-hive-conf-dir in kylin.properties."
+            fi
+
+            mkdir -p ${KYLIN_HOME}/hadoop_conf
+
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/core-site.xml
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/hdfs-site.xml
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/yarn-site.xml
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/mapred-site.xml
+
+            checkAndCopyFile $APACHE_HIVE_CONF_DIR/hive-site.xml
+
+            sed -i -r "/hive.metastore.schema.verification/I{n; s/true/false/}" ${KYLIN_HOME}/hadoop_conf/hive-site.xml
+
+            checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
+            checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
+
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/topology.py
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/topology.map
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/ssl-client.xml
+            checkAndCopyFile $APACHE_HADOOP_CONF_DIR/hadoop-env.sh
+
+            mysql_connector_jar="${KYLIN_HOME}/lib/ext/mysql-connector-*.jar"
+            if [ ! -f "${mysql_connector_jar}" ]; then
+              rm -rf ${KYLIN_HOME}/hadoop_conf
+              echo "The mysql connector jar is missing, please place it in the ${KYLIN_HOME}/lib/ext directory."
+              exit 1
+            fi
+            cp -rf "${mysql_connector_jar}" "${KYLIN_HOME}"/spark/jars/
         else
-            echo "Missing hadoop conf files. Please contact Kyligence technical support for more details."
-            exit -1
+          if [ -f "${kylin_hadoop_conf_dir}/hdfs-site.xml" ]
+          then
+              echo "Hadoop conf directory currently generated based on manual mode."
+          else
+              echo "Missing hadoop conf files. Please contact Kyligence technical support for more details."
+              exit -1
+          fi
         fi
     fi
 
