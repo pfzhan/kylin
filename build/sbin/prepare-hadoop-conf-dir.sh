@@ -129,8 +129,8 @@ function fetchKylinHadoopConf() {
             checkAndCopyFile $APACHE_HADOOP_CONF_DIR/ssl-client.xml
             checkAndCopyFile $APACHE_HADOOP_CONF_DIR/hadoop-env.sh
 
-            mysql_connector_jar="${KYLIN_HOME}/lib/ext/mysql-connector-*.jar"
-            if [ ! -f "${mysql_connector_jar}" ]; then
+            mysql_connector_jar_dir="${KYLIN_HOME}/lib/ext/"
+            if [ -z "$(find ${mysql_connector_jar_dir} -maxdepth 1 -name 'mysql-connector-*.jar')" ]; then
               rm -rf ${KYLIN_HOME}/hadoop_conf
               echo "The mysql connector jar is missing, please place it in the ${KYLIN_HOME}/lib/ext directory."
               exit 1
