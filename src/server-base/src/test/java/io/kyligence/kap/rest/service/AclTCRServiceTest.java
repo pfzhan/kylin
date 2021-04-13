@@ -683,7 +683,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRTableNotExist() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find table \"DEFAULT.notexist\". Please check and try again.");
+        thrown.expectMessage("Can’t find table \"DEFAULT.NOTEXIST\". Please check and try again.");
         val requests = getFillRequest();
         List<AclTCRRequest.Table> tables = new ArrayList<>(requests.get(0).getTables());
         AclTCRRequest.Table table = new AclTCRRequest.Table();
@@ -699,7 +699,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRColumnNotExist() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Column:[DEFAULT.TEST_ACCOUNT.notexist] is not exist");
+        thrown.expectMessage("Column:[DEFAULT.TEST_ACCOUNT.NOTEXIST] is not exist");
         val requests = getFillRequest();
         requests.get(0).getTables().forEach(table -> {
             if (table.getTableName().equals("TEST_ACCOUNT")) {
@@ -715,7 +715,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRDatabaseNotExist() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t find database \"notexist\". Please check and try again.");
+        thrown.expectMessage("Can’t find database \"NOTEXIST\". Please check and try again.");
         val requests = getFillRequest();
         AclTCRRequest request = new AclTCRRequest();
         request.setDatabaseName("notexist");
@@ -1236,5 +1236,39 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                 .anyMatch(aclTCRResponse -> "DEFAULT".equals(aclTCRResponse.getDatabaseName())
                         && aclTCRResponse.getTables().stream().anyMatch(
                         table -> "EMPTY_COLUMN".equals(table.getTableName()) && !table.isAuthorized())));
+    }
+
+    @Test
+    public void testGetAclResponseWithRowFilter() throws IOException {
+        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
+
+        val acl = new AclTCR();
+        val table = new AclTCR.Table();
+        val columnRow = new AclTCR.ColumnRow();
+        val filterGroup = new AclTCR.FilterGroup();
+        val filterItems = new AclTCR.FilterItems(Sets.newTreeSet(Lists.newArrayList("1")),
+                Sets.newTreeSet(Lists.newArrayList("2")), AclTCR.OperatorType.AND);
+        val filters = new AclTCR.Filters();
+        filters.put("COLUMN1", filterItems);
+        filterGroup.setGroup(false);
+        filterGroup.setFilters(filters);
+        columnRow.setRowFilter(Lists.newArrayList(filterGroup));
+        table.put("DEFAULT.TEST_ORDER", columnRow);
+        acl.setTable(table);
+        manager.updateAclTCR(acl, user1, true);
+
+        List<AclTCRResponse> response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, true);
+        Assert.assertTrue(response.stream()
+                .anyMatch(aclTCRResponse -> {
+                    if (!"DEFAULT".equals(aclTCRResponse.getDatabaseName())
+                        || !"TEST_ORDER".equals(aclTCRResponse.getTables().get(0).getTableName())) {
+                        return false;
+                    }
+
+                    val filter = aclTCRResponse.getTables().get(0).getRowFilter().getFilterGroups()
+                            .get(0).getFilters().get(0);
+                    return ("COLUMN1".equals(filter.getColumnName()) && "1".equals(filter.getInItems().get(0))
+                            && "2".equals(filter.getLikeItems().get(0)));
+                }));
     }
 }

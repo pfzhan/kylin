@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.request;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import lombok.Data;
@@ -49,13 +48,16 @@ public class AclTCRRequest {
         private boolean authorized;
 
         @JsonProperty
-        private List<Column> columns = Lists.newArrayList();
+        private List<Column> columns;
 
         @JsonProperty
-        private List<Row> rows = Lists.newArrayList();
+        private List<Row> rows;
 
         @JsonProperty("like_rows")
-        private List<Row> likeRows = Lists.newArrayList();
+        private List<Row> likeRows;
+
+        @JsonProperty("row_filter")
+        private RowFilter rowFilter;
     }
 
     @Data
@@ -82,6 +84,40 @@ public class AclTCRRequest {
         private List<String> items;
 
     }
+
+    @Data
+    public static class Filter {
+        @JsonProperty("column_name")
+        private String columnName;
+
+        @JsonProperty("in_items")
+        private List<String> inItems;
+
+        @JsonProperty("like_items")
+        private List<String> likeItems;
+    }
+
+    @Data
+    public static class FilterGroup {
+        @JsonProperty
+        private String type = "AND";
+
+        @JsonProperty("is_group")
+        private boolean group;
+
+        @JsonProperty
+        private List<Filter> filters;
+    }
+
+    @Data
+    public static class RowFilter {
+        @JsonProperty
+        private String type = "AND";
+
+        @JsonProperty("filter_groups")
+        private List<FilterGroup> filterGroups;
+    }
+
 
     @Data
     public static class DependentColumnData {

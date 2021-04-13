@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.ACL_INVALID_COLUMN_DATA_TYPE;
+import static org.apache.kylin.common.exception.ServerErrorCode.ACL_INVALID_ROW_FIELD;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
@@ -190,7 +191,13 @@ public class AclTCRService extends BasicService {
         aclEvaluate.checkProjectAdminPermission(project);
         checkAclTCRRequest(project, requests, sid, principal, false);
         NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        checkACLTCRRequestRowAuthValid(manager, requests);
+        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCR aclTCR = aclTCRManager.getAclTCR(sid, principal);
+        if (aclTCR == null) {
+            aclTCR = new AclTCR();
+        }
+        checkACLTCRRequestRowAuthValid(manager, requests,
+                Optional.ofNullable(aclTCR.getTable()).orElse(new AclTCR.Table()));
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             updateAclTCR(project, sid, principal, mergeRequests(project, sid, principal, requests));
             return null;
@@ -202,6 +209,7 @@ public class AclTCRService extends BasicService {
         if (StringUtils.isEmpty(db.getDatabaseName())) {
             throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_DATABASE_NAME());
         }
+        db.setDatabaseName(db.getDatabaseName().toUpperCase(Locale.ROOT));
         if (requestDatabases.contains(db.getDatabaseName())) {
             throw new KylinException(INVALID_PARAMETER,
                     String.format(Locale.ROOT, msg.getDATABASE_PARAMETER_DUPLICATE(), db.getDatabaseName()));
@@ -218,6 +226,7 @@ public class AclTCRService extends BasicService {
         if (StringUtils.isEmpty(table.getTableName())) {
             throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
         }
+        table.setTableName(table.getTableName().toUpperCase(Locale.ROOT));
         String tableName = String.format(Locale.ROOT, IDENTIFIER_FORMAT, db.getDatabaseName(), table.getTableName());
         if (requestTables.contains(tableName)) {
             throw new KylinException(INVALID_PARAMETER,
@@ -267,6 +276,7 @@ public class AclTCRService extends BasicService {
                     if (StringUtils.isEmpty(column.getColumnName())) {
                         throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
                     }
+                    column.setColumnName(column.getColumnName().toUpperCase(Locale.ROOT));
                     if (requestColumns.contains(columnName)) {
                         throw new KylinException(INVALID_PARAMETER,
                                 String.format(Locale.ROOT, msg.getCOLUMN_PARAMETER_DUPLICATE(), columnName));
@@ -352,18 +362,35 @@ public class AclTCRService extends BasicService {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getADMIN_PERMISSION_UPDATE_ABANDON());
         }
         checkAClTCRRequestParameterValid(manager, databases, tables, columns, requests, isIncludeAll);
-        checkACLTCRRequestRowAuthValid(manager, requests);
+        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCR aclTCR = aclTCRManager.getAclTCR(sid, principal);
+        if (aclTCR == null) {
+            aclTCR = new AclTCR();
+        }
+        checkACLTCRRequestRowAuthValid(manager, requests,
+                Optional.ofNullable(aclTCR.getTable()).orElse(new AclTCR.Table()));
         checkAClTCRExist(databases, tables, columns, requests);
     }
 
-    private void checkACLTCRRequestRowAuthValid(NTableMetadataManager manager, List<AclTCRRequest> requests) {
+    private void checkACLTCRRequestRowAuthValid(NTableMetadataManager manager,
+                                                List<AclTCRRequest> requests, AclTCR.Table aclTables) {
         for (AclTCRRequest request : requests) {
             String database = request.getDatabaseName();
-            request.getTables().stream().forEach(table -> checkRowAuthHelper(manager, database, table));
+            request.getTables().stream().forEach(table -> checkRowAuthHelper(manager, database, table, aclTables));
         }
     }
 
-    private void checkRowAuthHelper(NTableMetadataManager manager, String database, AclTCRRequest.Table table) {
+    private void checkRowAuthHelper(NTableMetadataManager manager, String database,
+                                    AclTCRRequest.Table table, AclTCR.Table aclTables) {
+        boolean requestRlsV1 = table.getRows() != null || table.getLikeRows() != null;
+        boolean requestRlsV2 = (table.getRowFilter() != null) && CollectionUtils.isNotEmpty(table.getRowFilter().getFilterGroups());
+        val columnRow = aclTables.get(database + "." + table.getTableName());
+        boolean isV2Used = columnRow != null ? columnRow.getRowFilter() != null : false;
+
+        if (requestRlsV1 && (isV2Used || requestRlsV2)) {
+            throw new KylinException(ACL_INVALID_ROW_FIELD, MsgPicker.getMsg().getInvalidRowACLUpdate());
+        }
+
         String tableName = table.getTableName();
         Map<String, String> columnTypes = new HashMap<>();
         TableDesc tableDesc = manager.getTableDesc(database + "." + tableName);
@@ -374,20 +401,50 @@ public class AclTCRService extends BasicService {
             columnTypes.put(columnDesc.getName(), columnDesc.getTypeName());
         }
 
-        if (table.getLikeRows() == null) {
+        Optional.ofNullable(table.getLikeRows()).map(List::stream).orElseGet(Stream::empty).forEach(likeRow ->
+            validateLikeColumnType(likeRow.getColumnName(), columnTypes));
+
+        if (!requestRlsV2) {
             return;
         }
 
-        for (AclTCRRequest.Row likeRow : table.getLikeRows()) {
-            String type = columnTypes.get(likeRow.getColumnName());
-            if (type == null) {
-                throw new KylinException(INVALID_PARAMETER,
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_NOT_EXIST(), likeRow.getColumnName()));
-            }
-            if (!type.startsWith("varchar") && !type.equals("string") && !type.startsWith("char")) {
-                throw new KylinException(ACL_INVALID_COLUMN_DATA_TYPE,
-                        MsgPicker.getMsg().getROW_ACL_NOT_STRING_TYPE());
-            }
+        int filterCount = table.getRowFilter().getFilterGroups().stream().map(AclTCRRequest.FilterGroup::getFilters)
+                .map(List::size).reduce(0, Integer::sum);
+
+        final int ROWFILTERTHRESHOLD = KylinConfig.getInstanceFromEnv().getRowFilterLimit();
+        if (filterCount > ROWFILTERTHRESHOLD) {
+            throw new KylinException(ACL_INVALID_ROW_FIELD,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getRowFilterExceedLimit(), filterCount, ROWFILTERTHRESHOLD));
+        }
+
+        table.getRowFilter().getFilterGroups().stream().map(AclTCRRequest.FilterGroup::getFilters)
+                .forEach(filters -> {
+                    for (val filter : filters) {
+                        int itemCount = Optional.ofNullable(filter.getInItems()).orElse(Lists.newArrayList()).size()
+                                + Optional.ofNullable(filter.getLikeItems()).orElse(Lists.newArrayList()).size();
+                        if (itemCount > ROWFILTERTHRESHOLD) {
+                            throw new KylinException(ACL_INVALID_ROW_FIELD,
+                                    String.format(Locale.ROOT, MsgPicker.getMsg().getRowFilterItemExceedLimit(),
+                                            filter.getColumnName(), itemCount, ROWFILTERTHRESHOLD));
+                        }
+
+                        // like clause can only accept type `varchar`, `char` and `string`
+                        if (CollectionUtils.isEmpty(filter.getLikeItems())) {
+                            continue;
+                        }
+                        validateLikeColumnType(filter.getColumnName(), columnTypes);
+                    }});
+    }
+
+    private void validateLikeColumnType(String columnName, Map<String, String> columnTypes) {
+        String type = columnTypes.get(columnName);
+        if (type == null) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_NOT_EXIST(), columnName));
+        }
+        if (!type.startsWith("varchar") && !type.equals("string") && !type.startsWith("char")) {
+            throw new KylinException(ACL_INVALID_COLUMN_DATA_TYPE,
+                    MsgPicker.getMsg().getROW_ACL_NOT_STRING_TYPE());
         }
     }
 
@@ -479,9 +536,51 @@ public class AclTCRService extends BasicService {
                         authorizedColumnRow.getLikeRow() == null
                                 ? Lists.newArrayList() : transformResponseRow(authorizedColumnRow.getLikeRow());
                 tbl.setLikeRows(notNullLikeRowList);
+                if (authorizedColumnRow.getRowFilter() == null) {
+                    // AclTCR.rowFilter has not been set.
+                    // Convert old `rows` and `like_rows` to `row_filter`.
+                    tbl.setRowFilter(transformResponseFromOld(
+                            authorizedColumnRow.getRow(), authorizedColumnRow.getLikeRow()));
+                } else {
+                    tbl.setRowFilter(transformResponseRowFilter(authorizedColumnRow.getRowFilter()));
+                }
+
             }
             return tbl;
         }).collect(Collectors.toList());
+    }
+
+    private AclTCRResponse.RowFilter transformResponseFromOld(AclTCR.Row row, AclTCR.Row likeRow) {
+        val respRowFilter = new AclTCRResponse.RowFilter();
+        row = Optional.ofNullable(row).orElse(new AclTCR.Row());
+        likeRow = Optional.ofNullable(likeRow).orElse(new AclTCR.Row());
+
+        if (row.isEmpty() && likeRow.isEmpty()) {
+            return respRowFilter;
+        }
+
+        Set<String> columns = Sets.newHashSet();
+        columns.addAll(row.keySet());
+        columns.addAll(likeRow.keySet());
+
+        List<AclTCRResponse.FilterGroup> filterGroups = Lists.newArrayList();
+        for (String columnName : columns) {
+            val filterGroup = new AclTCRResponse.FilterGroup();
+            filterGroup.setGroup(false);
+            val filter = new AclTCRResponse.Filter();
+            filter.setColumnName(columnName);
+            List<String> inList = row.get(columnName) != null
+                    ? Lists.newArrayList(row.get(columnName)) : Lists.newArrayList();
+            filter.setInItems(inList);
+            List<String> likeList = likeRow.get(columnName) != null
+                    ? Lists.newArrayList(likeRow.get(columnName)) : Lists.newArrayList();
+            filter.setLikeItems(likeList);
+            filterGroup.setFilters(Lists.newArrayList(filter));
+            filterGroups.add(filterGroup);
+        }
+
+        respRowFilter.setFilterGroups(filterGroups);
+        return respRowFilter;
     }
 
     private List<AclTCRResponse> getAllTablesAclTCRResponse(String project,
@@ -533,6 +632,14 @@ public class AclTCRService extends BasicService {
                 }).collect(Collectors.toList()));
                 tbl.setRows(transformResponseRow(te.getValue().getRow()));
                 tbl.setLikeRows(transformResponseRow(te.getValue().getLikeRow()));
+                if (te.getValue().getRowFilter() == null) {
+                    // AclTCR.rowFilter has not been set.
+                    // Convert old `rows` and `like_rows` to `row_filter`.
+                    tbl.setRowFilter(transformResponseFromOld(
+                            te.getValue().getRow(), te.getValue().getLikeRow()));
+                } else {
+                    tbl.setRowFilter(transformResponseRowFilter(te.getValue().getRowFilter()));
+                }
                 return tbl;
             }).collect(Collectors.toList()));
             return response;
@@ -549,6 +656,38 @@ public class AclTCRService extends BasicService {
             row.setItems(Lists.newArrayList(entry.getValue()));
             return row;
         }).collect(Collectors.toList());
+    }
+
+    private AclTCRResponse.RowFilter transformResponseRowFilter(List<AclTCR.FilterGroup> rowFilter) {
+        val respRowFilter = new AclTCRResponse.RowFilter();
+        if (CollectionUtils.isEmpty(rowFilter)) {
+            return respRowFilter;
+        }
+
+        respRowFilter.setType(rowFilter.get(0).getType().toString());
+        rowFilter.forEach(filterGroup -> {
+            val aclFilters = filterGroup.getFilters();
+            val respFilterGroups = new AclTCRResponse.FilterGroup();
+            respFilterGroups.setGroup(filterGroup.isGroup());
+            if (aclFilters != null && aclFilters.size() > 0) {
+                val aclFilter = aclFilters.values().iterator().next();
+                respFilterGroups.setType(aclFilter.getType().toString());
+                List<AclTCRResponse.Filter> respFilters = Lists.newArrayList();
+                for (val entry : aclFilters.entrySet()) {
+                    val respFilter = new AclTCRResponse.Filter();
+                    respFilter.setColumnName(entry.getKey());
+                    val aclFilterItem = entry.getValue();
+                    respFilter.setInItems(Lists.newArrayList(aclFilterItem.getInItems()));
+                    respFilter.setLikeItems(Lists.newArrayList(aclFilterItem.getLikeItems()));
+                    respFilters.add(respFilter);
+                }
+                respFilterGroups.setFilters(respFilters);
+            }
+
+            respRowFilter.getFilterGroups().add(respFilterGroups);
+        });
+
+        return respRowFilter;
     }
 
     private List<AclTCRResponse> tagTableNum(List<AclTCRResponse> responses,
@@ -579,8 +718,7 @@ public class AclTCRService extends BasicService {
                 columnRow.setColumn(null);
             }
 
-            if (MapUtils.isEmpty(columnRow.getRow()) && MapUtils.isEmpty(columnRow.getLikeRow())
-                    && Objects.isNull(columnRow.getColumn())) {
+            if (columnRow.isAllRowGranted() && Objects.isNull(columnRow.getColumn())) {
                 aclTCR.getTable().put(dbTblName, null);
             }
         });
@@ -644,7 +782,13 @@ public class AclTCRService extends BasicService {
                     }
 
                     updateColumnAcl(columnRow, table.getColumns());
+                    if (table.getRowFilter() != null) {
+                        table.setRows(Lists.newArrayList());
+                        table.setLikeRows(Lists.newArrayList());
+                    }
+
                     updateRowAcl(columnRow, table.getRows(), table.getLikeRows());
+                    updateRowFilter(columnRow, table.getRowFilter());
 
                     aclTable.put(tableIdentity, columnRow);
                 }
@@ -718,8 +862,19 @@ public class AclTCRService extends BasicService {
     }
 
     private void updateRowAcl(AclTCR.ColumnRow columnRow, List<AclTCRRequest.Row> rows, List<AclTCRRequest.Row> likeRows) {
-        columnRow.setRow(rowConverter(rows));
-        columnRow.setLikeRow(rowConverter(likeRows));
+        if (rows != null) {
+            columnRow.setRow(rowConverter(rows));
+        }
+
+        if (likeRows != null) {
+            columnRow.setLikeRow(rowConverter(likeRows));
+        }
+    }
+
+    private void updateRowFilter(AclTCR.ColumnRow columnRow, AclTCRRequest.RowFilter rowFilter) {
+        if (rowFilter != null) {
+            columnRow.setRowFilter(rowFilterConverter(rowFilter));
+        }
     }
 
     private void setColumnRow(AclTCR.Table aclTable, AclTCRRequest req, AclTCRRequest.Table table) {
@@ -763,6 +918,78 @@ public class AclTCRService extends BasicService {
         columnRow.setLikeRow(aclLikeRow);
 
         aclTable.put(dbTblName, columnRow);
+    }
+
+    /**
+     * Convert request to Acl Filter Group. A FILTER is a FILTER GROUP which only has ONE filter.
+     * Filters with same column name within one FILTER GROUP will be merged into one filter.
+     * FILTERs with same column name will be merged into one FILTER.
+     * FILTERS and filters(in other FILTER GROUPs) will not be merged.
+     * @param reqRowFilter
+     * @return List<AclTCR.FilterGroup>
+     */
+    private List<AclTCR.FilterGroup> rowFilterConverter(AclTCRRequest.RowFilter reqRowFilter) {
+        List<AclTCR.FilterGroup> aclRowFilter = Lists.newArrayList();
+        if (reqRowFilter == null || reqRowFilter.getFilterGroups() == null) {
+            return aclRowFilter;
+        }
+        // Map to remove duplicated FILTERs
+        Map<String, AclTCR.FilterItems> uniqueFilter = Maps.newHashMap();
+        AclTCR.OperatorType reqGroupType = AclTCR.OperatorType.stringToEnum(reqRowFilter.getType());
+        reqRowFilter.getFilterGroups().stream().forEach(reqFilterGroup -> {
+            val filterGroup = new AclTCR.FilterGroup();
+            filterGroup.setType(reqGroupType);
+            filterGroup.setGroup(reqFilterGroup.isGroup());
+            val reqFilterType = AclTCR.OperatorType.stringToEnum(reqFilterGroup.getType());
+            val filters = new AclTCR.Filters();
+            if (reqFilterGroup.isGroup()) {
+                // If this is a FILTER GROUP,
+                // merge filters with same column name in the same FILTER GROUP
+                reqFilterGroup.getFilters().stream()
+                       .map(reqFilter -> new AbstractMap.SimpleEntry<>(
+                               reqFilter.getColumnName(),
+                               new AclTCR.FilterItems(
+                                       Sets.newTreeSet(reqFilter.getInItems()),
+                                       Sets.newTreeSet(reqFilter.getLikeItems()),
+                                       reqFilterType)))
+                       .collect(Collectors.<Map.Entry<String, AclTCR.FilterItems>, String, AclTCR.FilterItems> toMap(
+                               Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> AclTCR.FilterItems.merge(v1, v2)))
+                       .forEach((columnName, FilterItems) -> filters.put(columnName, FilterItems));
+            } else {
+                // If this is a FILTER,
+                // merge FILTERs with same column name
+                val reqFilter = reqFilterGroup.getFilters().get(0);
+                val newFilterItem = new AclTCR.FilterItems(
+                        Sets.newTreeSet(reqFilter.getInItems()),
+                        Sets.newTreeSet(reqFilter.getLikeItems()),
+                        reqFilterType);
+                if (!uniqueFilter.containsKey(reqFilter.getColumnName())) {
+                    // Only put the filter when the column name appears for the first time
+                    filters.put(reqFilter.getColumnName(), newFilterItem);
+                }
+                // Merge filters with duplicated column name
+                uniqueFilter.merge(reqFilter.getColumnName(), newFilterItem,
+                        (v1, v2) -> AclTCR.FilterItems.merge(v1, v2));
+            }
+
+            if (!filters.isEmpty()) {
+                filterGroup.setFilters(filters);
+                aclRowFilter.add(filterGroup);
+            }
+        });
+
+        // Update FILTERs
+        for (val filterGroup : aclRowFilter) {
+            // Skip FILTER GROUPs
+            if (filterGroup.isGroup()) {
+                continue;
+            }
+            // Update with values in `uniqueFilter`
+            val columnName = filterGroup.getFilters().keySet().iterator().next();
+            filterGroup.getFilters().put(columnName, uniqueFilter.get(columnName));
+        }
+
+        return aclRowFilter;
     }
 
     private AclTCR.Row rowConverter(List<AclTCRRequest.Row> requestRows) {

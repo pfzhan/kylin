@@ -99,4 +99,25 @@ public class OpenAclTCRController extends NBasicController {
         }
         aclTCRService.mergeAclTCR(project, sid, principal, requests);
     }
+
+    @ApiOperation(value = "updateProjectAcl With New Foramt", tags = { "MID" },
+            notes = "Update URL: {project}; Update Param: project")
+    @PutMapping(value = "/{sid_type:.+}/{sid:.+}")
+    @ResponseBody
+    public EnvelopeResponse<String> updateProjectV2(@PathVariable("sid_type") String sidType, //
+                                                  @PathVariable("sid") String sid, //
+                                                  @RequestParam("project") String project, //
+                                                  @RequestBody List<AclTCRRequest> requests) throws IOException {
+        checkProjectName(project);
+        AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
+        if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            mergeSidAclTCR(project, sid, true, requests);
+        } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
+            mergeSidAclTCR(project, sid, false, requests);
+        } else {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
 }

@@ -335,9 +335,37 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         g1a1.setTable(g1t1);
         manager.updateAclTCR(g1a1, group1, false);
 
-        Map<String, String> whereConds = manager.getTableColumnConcatWhereCondition(user1, Sets.newHashSet(group1));
+        // group2
+        AclTCR g2acl1 = new AclTCR();
+        AclTCR.Table g2tbl1 = new AclTCR.Table();
+        AclTCR.ColumnRow g2Colrow1 = new AclTCR.ColumnRow();
+        List<AclTCR.FilterGroup> g2RowFilter1 = Lists.newArrayList();
+        AclTCR.Filters g2Fg1Filters = new AclTCR.Filters();
+        AclTCR.FilterItems g2Fg1Item1 = new AclTCR.FilterItems(
+                Sets.newTreeSet(Lists.newArrayList("2001-02-02", "2001-03-03")),
+                Sets.newTreeSet(), AclTCR.OperatorType.AND);
+        g2Fg1Filters.put("TEST_DATE_ENC", g2Fg1Item1);
+        AclTCR.FilterItems g2Fg1Item2 = new AclTCR.FilterItems(
+                Sets.newTreeSet(Lists.newArrayList("TEST1", "TEST2")),
+                Sets.newTreeSet(Lists.newArrayList("TEST3%", "TEST4%")), AclTCR.OperatorType.AND);
+        g2Fg1Filters.put("TEST_EXTENDED_COLUMN", g2Fg1Item2);
+        AclTCR.FilterGroup g2FilterGroup2 = new AclTCR.FilterGroup();
+        g2FilterGroup2.setFilters(g2Fg1Filters);
+
+        AclTCR.FilterGroup g2FilterGroup1 = new AclTCR.FilterGroup();
+
+        g2RowFilter1.add(g2FilterGroup1);
+        g2RowFilter1.add(g2FilterGroup2);
+        g2Colrow1.setRowFilter(g2RowFilter1);
+        g2tbl1.put("DEFAULT.TEST_ORDER", g2Colrow1);
+        g2acl1.setTable(g2tbl1);
+        manager.updateAclTCR(g2acl1, group2, false);
+        Map<String, String> whereConds = manager.getTableColumnConcatWhereCondition(user1, Sets.newHashSet(group1, group2));
         Assert.assertEquals(
-                "((TEST_DATE_ENC in (DATE '2001-01-01',DATE '2010-10-10')) OR (TEST_EXTENDED_COLUMN like 'TEST560'))",
+                "((TEST_DATE_ENC in (DATE '2001-01-01',DATE '2010-10-10')) OR (TEST_EXTENDED_COLUMN like 'TEST560')"
+                        + " OR (((TEST_DATE_ENC in (DATE '2001-02-02', DATE '2001-03-03')) "
+                        + "AND (TEST_EXTENDED_COLUMN in ('TEST1', 'TEST2') OR TEST_EXTENDED_COLUMN like 'TEST3%' "
+                        + "OR TEST_EXTENDED_COLUMN like 'TEST4%'))))",
                 whereConds.get("DEFAULT.TEST_ORDER"));
     }
 

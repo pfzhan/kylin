@@ -102,6 +102,26 @@ public class AclTCRController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
+    @ApiOperation(value = "getProjectSidTCR", tags = { "MID" }, //
+            notes = "Update URL: {project}; Update Param: project, authorized_only")
+    @GetMapping(value = "/{sid_type:.+}/{sid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @ResponseBody
+    public EnvelopeResponse<List<AclTCRResponse>> getProjectSidTCRV2(@PathVariable("sid_type") String sidType,
+             @PathVariable("sid") String sid, //
+             @RequestParam("project") String project, //
+             @RequestParam(value = "authorized_only", required = false, defaultValue = "false") boolean authorizedOnly)
+            throws IOException {
+        EnvelopeResponse<List<AclTCRResponse>> response = getProjectSidTCR(sidType, sid, project, authorizedOnly);
+        response.getData().stream().forEach(resp -> {
+           resp.getTables().stream().forEach(table -> {
+               table.setRows(null);
+               table.setLikeRows(null);
+           });
+        });
+        return response;
+    }
+
     @ApiOperation(value = "updateProject", tags = { "MID" }, notes = "Update URL: {project}")
     @PutMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody

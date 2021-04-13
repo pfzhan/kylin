@@ -24,21 +24,32 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.common.obf.IKeep;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
@@ -132,6 +143,17 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         @JsonProperty("like_row")
         private Row likeRow = null;
 
+        @JsonProperty("row_filter")
+        private List<FilterGroup> rowFilter = null;
+
+        public void setRowFilter(List<FilterGroup> rowFilter) {
+            this.rowFilter = rowFilter;
+        }
+
+        public List<FilterGroup> getRowFilter() {
+            return rowFilter;
+        }
+
         public void setLikeRow(Row likeRow) {
             this.likeRow = likeRow;
         }
@@ -192,6 +214,11 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
             }
             return map;
         }
+
+        public boolean isAllRowGranted() {
+            return MapUtils.isEmpty(row) && MapUtils.isEmpty(likeRow)
+                    && CollectionUtils.isEmpty(rowFilter);
+        }
     }
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
@@ -203,6 +230,87 @@ public class AclTCR extends RootPersistentEntity implements IKeep {
         // ["COL1", "COL2", "COL3"]
         public Column() {
             super(String.CASE_INSENSITIVE_ORDER);
+        }
+    }
+
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
+            getterVisibility = JsonAutoDetect.Visibility.NONE, //
+            isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
+            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @Setter
+    @Getter
+    public static class FilterItems implements IKeep {
+        @JsonProperty("in_items")
+        private TreeSet<String> inItems = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        @JsonProperty("like_items")
+        private TreeSet<String> likeItems = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        @JsonProperty
+        private OperatorType type = OperatorType.AND;
+
+        // For deserialization
+        public FilterItems() {}
+
+        public FilterItems(TreeSet<String> inItems, TreeSet<String> likeItems, OperatorType type) {
+            this.inItems = inItems;
+            this.likeItems = likeItems;
+            this.type = type;
+        }
+
+        public static FilterItems merge(FilterItems item1, FilterItems item2) {
+            item1.inItems.addAll(item2.inItems);
+            item1.likeItems.addAll(item2.likeItems);
+            return item1;
+        }
+    }
+
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
+            getterVisibility = JsonAutoDetect.Visibility.NONE, //
+            isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
+            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    public static class Filters extends TreeMap<String, FilterItems> implements IKeep {
+
+        // ["COL1", "COL2", "COL3"]
+        public Filters() {
+            super(String.CASE_INSENSITIVE_ORDER);
+        }
+    }
+
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, //
+            getterVisibility = JsonAutoDetect.Visibility.NONE, //
+            isGetterVisibility = JsonAutoDetect.Visibility.NONE, //
+            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @Setter
+    @Getter
+    public static class FilterGroup implements IKeep {
+        @JsonProperty("is_group")
+        private boolean group;
+
+        @JsonProperty
+        private OperatorType type = OperatorType.AND;
+
+        @JsonProperty
+        private Filters filters = new Filters();
+    }
+
+    public enum OperatorType {
+        AND, OR;
+
+        private static final Set<String> validValues = Arrays.stream(OperatorType.values()).map(Enum::name)
+                .collect(Collectors.toSet());
+
+        private static void validateValue(String value) {
+            if (!validValues.contains(value.toUpperCase(Locale.ROOT))) {
+                throw new KylinException(INVALID_PARAMETER,
+                        "Invalid value in parameter \"type\". The value should be \"AND\" or \"OR\".");
+            }
+        }
+
+        public static OperatorType stringToEnum(String value) {
+            value = value.toUpperCase(Locale.ROOT);
+            validateValue(value);
+            return OperatorType.valueOf(value);
         }
     }
 

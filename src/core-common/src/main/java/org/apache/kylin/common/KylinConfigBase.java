@@ -1702,6 +1702,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.security.acl.admin-role", "");
     }
 
+    public int getRowFilterLimit() {
+        return Integer.parseInt(getOptional("kylin.security.acl.row-filter-limit-threshold", "100"));
+    }
+
     // ============================================================================
     // WEB
     // ============================================================================

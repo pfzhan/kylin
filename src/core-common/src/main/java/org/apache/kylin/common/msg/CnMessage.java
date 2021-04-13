@@ -1523,6 +1523,11 @@ public class CnMessage extends Message {
         return "无法对列 “%s” 设置关联规则，因为该列已被其他列关联。";
     }
 
+    @Override
+    public String getInvalidRowACLUpdate() {
+        return "请求中包含无效的 “rows” 或 “like_rows” 参数。请使用新参数 “row_filter” 进行行级权限的更新。";
+    }
+
     // Snapshots
     @Override
     public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
@@ -1653,6 +1658,16 @@ public class CnMessage extends Message {
     @Override
     public String getExceedMaxAllowedPacket() {
         return "MySQL 元数据库返回结果超过配置限制。请联系管理员在 MySQL 中将配置 “max_allowed_packet” 调整至 256M。";
+    }
+
+    @Override
+    public String getRowFilterExceedLimit() {
+        return "过滤器总数超过上限，请修改。超额详情：过滤器总数 (%s/%s)。";
+    }
+
+    @Override
+    public String getRowFilterItemExceedLimit() {
+        return "过滤器包含的值超过上限，请修改。超额详情：%s (%s/%s)。";
     }
 
     @Override

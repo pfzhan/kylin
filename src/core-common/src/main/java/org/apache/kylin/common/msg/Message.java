@@ -1351,6 +1351,10 @@ public class Message {
         return "Can’t set association rules on the column \"%s\". This column has been associated with another column.";
     }
 
+    public String getInvalidRowACLUpdate() {
+        return "The parameter “rows” or “like_rows” is invalid. Please use the parameter “row_filter” to update the Row ACL.";
+    }
+
     // Snapshots
     public String getSNAPSHOT_OPERATION_PERMISSION_DENIED() {
         return "Don’t have permission. Please ensure that you have required permission to the table which this snapshot is associated with.";
@@ -1469,6 +1473,16 @@ public class Message {
 
     public String getROW_ACL_NOT_STRING_TYPE() {
         return "The like operator could only be used for char or varchar data type. Please reset.";
+    }
+
+    public String getRowFilterExceedLimit() {
+        return "The number of filters exceeds the upper limit."
+                + " Please modify. Details: total number of filters (%s/%s)";
+    }
+
+    public String getRowFilterItemExceedLimit() {
+        return "The number of the included values of a single filter exceeds the upper limit."
+                + " Please modify. Details: %s (%s/%s)";
     }
 
     public String getSTOP_BY_USER_ERROR_MESSAGE() {

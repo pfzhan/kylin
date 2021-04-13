@@ -29,11 +29,14 @@ import lombok.Getter;
 
 import java.util.List;
 
-public class PrincipalRowSet {
+public class PrincipalRowFilter {
 
     @Getter
     private List<RowSet> rowSets = Lists.newArrayList();
 
     @Getter
     private List<RowSet> likeRowSets = Lists.newArrayList();
+
+    @Getter
+    private List<AclTCR.FilterGroup> rowFilter = Lists.newArrayList();
 }

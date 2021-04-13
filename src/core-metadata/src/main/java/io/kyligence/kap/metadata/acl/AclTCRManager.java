@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.text.StrBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -47,6 +48,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
@@ -345,8 +348,18 @@ public class AclTCRManager {
             return result;
         }
 
-        final Map<String, List<PrincipalRowSet>> dbTblPrincipals = getTblPrincipalSet(all);
+        result = generateCondition(all);
+        return result;
+    }
 
+    /**
+     * Generate table condition string for different tables for different users/groups
+     * @param all list of AclTCR
+     * @return
+     */
+    private Map<String, String> generateCondition(List<AclTCR> all) {
+        Map<String, String> result = Maps.newHashMap();
+        final Map<String, List<PrincipalRowFilter>> dbTblPrincipals = getTblPrincipalSet(all);
         if (MapUtils.isEmpty(dbTblPrincipals)) {
             return result;
         }
@@ -356,31 +369,113 @@ public class AclTCRManager {
             if (Objects.isNull(tableDesc)) {
                 return;
             }
+
             final Map<String, String> columnType = Optional.ofNullable(tableDesc.getColumns()).map(Arrays::stream)
                     .orElseGet(Stream::empty)
                     .map(columnDesc -> new AbstractMap.SimpleEntry<>(columnDesc.getName(), columnDesc.getTypeName()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             List<String> conditions = principals.stream().map(p -> {
-                final ColumnToConds columnConditions = new ColumnToConds();
-                p.getRowSets().stream().filter(r -> columnType.containsKey(r.getColumnName()))
-                        .forEach(r -> columnConditions.put(r.getColumnName(),
-                                r.getValues().stream()
-                                        .map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.CLOSED))
-                                        .collect(Collectors.toList())));
-                final ColumnToConds columnLikeConditions = new ColumnToConds();
-                p.getLikeRowSets().stream().filter(r -> columnType.containsKey(r.getColumnName()))
-                        .forEach(r -> columnLikeConditions.put(r.getColumnName(),
-                                r.getValues().stream()
-                                        .map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.LIKE))
-                                        .collect(Collectors.toList())));
-                return ColumnToConds.concatConds(columnConditions, columnLikeConditions, columnType);
+                if (CollectionUtils.isEmpty(p.getRowFilter())) {
+                    // Fall back to old rls data
+                    return generateDbTblCondition(p, columnType);
+                } else {
+                    // Generate using the row_filter
+                    return generateDbTblConditionV2(p, columnType);
+                }
             }).collect(Collectors.toList());
 
             result.put(dbTblName, concatPrincipalConditions(conditions));
         });
 
         return result;
+    }
+
+    /**
+     * Generate condition string from old keys 'rows' and 'like_rows' for one table for one user/group
+     * @param principalRF
+     * @param columnType
+     * @return
+     */
+    private String generateDbTblCondition(PrincipalRowFilter principalRF, Map<String, String> columnType) {
+        final ColumnToConds columnConditions = new ColumnToConds();
+        principalRF.getRowSets().stream().filter(r -> columnType.containsKey(r.getColumnName()))
+                .forEach(r -> columnConditions.put(
+                        r.getColumnName(),
+                        r.getValues().stream().map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.CLOSED))
+                                .collect(Collectors.toList())));
+        final ColumnToConds columnLikeConditions = new ColumnToConds();
+        principalRF.getLikeRowSets().stream().filter(r -> columnType.containsKey(r.getColumnName()))
+                .forEach(r -> columnLikeConditions.put(
+                        r.getColumnName(),
+                        r.getValues().stream().map(v -> new ColumnToConds.Cond(v, ColumnToConds.Cond.IntervalType.LIKE))
+                                .collect(Collectors.toList())));
+        return ColumnToConds.concatConds(columnConditions, columnLikeConditions, columnType);
+    }
+
+    /**
+     * Generate condition string from new key 'row_filter' for one table for one user/group
+     * @param principalRF
+     * @param columnType
+     * @return
+     */
+    private String generateDbTblConditionV2(PrincipalRowFilter principalRF, Map<String, String> columnType) {
+        if (principalRF == null || principalRF.getRowFilter() == null || principalRF.getRowFilter().isEmpty()) {
+            return null;
+        }
+
+        StrBuilder result = new StrBuilder();
+        result.append("(");
+        principalRF.getRowFilter().stream().forEach(filterGroup -> {
+            if (MapUtils.isEmpty(filterGroup.getFilters())) {
+                return;
+            }
+
+            if (result.endsWith(")")) {
+                result.append(" ").append(filterGroup.getType()).append(" ");
+            }
+
+            result.append("(");
+            filterGroup.getFilters().forEach((columnName, filterItems) -> {
+                if (CollectionUtils.isEmpty(filterItems.getInItems())
+                        && CollectionUtils.isEmpty(filterItems.getLikeItems())) {
+                    return;
+                }
+
+                if (result.endsWith(")")) {
+                    result.append(" ").append(filterItems.getType()).append(" ");
+                }
+
+                result.append("(");
+                String type = Preconditions.checkNotNull(columnType.get(columnName),
+                        "Column:" + columnName + " type not found");
+                if (CollectionUtils.isNotEmpty(filterItems.getInItems())) {
+                    result.append(columnName)
+                            .append(" in (")
+                            .append(Joiner.on(", ").join(filterItems.getInItems().stream()
+                                    .map(item -> ColumnToConds.Cond.trimWithoutCheck(item, type))
+                                    .collect(Collectors.toList())))
+                            .append(")");
+                }
+
+                if (CollectionUtils.isNotEmpty(filterItems.getLikeItems())) {
+                    if (result.endsWith(")")) {
+                        result.append(" OR ");
+                    }
+
+                    result.append(Joiner.on(" OR ").join(filterItems.getLikeItems().stream()
+                            .map(item -> columnName + " like " + ColumnToConds.Cond.trimWithoutCheck(item, type))
+                            .collect(Collectors.toList())));
+                }
+
+                result.append(")");
+            });
+
+            result.append(")");
+        });
+
+        result.append(")");
+        return result.toString();
     }
 
     private String concatPrincipalConditions(List<String> conditions) {
@@ -394,6 +489,7 @@ public class AclTCRManager {
         return joint;
     }
 
+    @Deprecated
     public AclTCR.ColumnRealRows getAuthorizedRows(String dbTblName, String colName, List<AclTCR> aclTCRS) {
         AclTCR.RealRow authEqualRows = new AclTCR.RealRow();
         AclTCR.RealRow authLikeRows = new AclTCR.RealRow();
@@ -432,66 +528,100 @@ public class AclTCRManager {
         return new AclTCR.ColumnRealRows(dbTblColName, authEqualRows, authLikeRows);
     }
 
-    private boolean isColumnWithoutRowLimit(String dbTblName, String colName, final AclTCR e) {
-        if (!e.getTable().containsKey(dbTblName)) {
+    /**
+     * Check whether this AclTCR user/group has all row access of table
+     * @param dbTblName
+     * @param aclTcr
+     * @return
+     */
+    private boolean isColumnWithoutRowLimit(String dbTblName, final AclTCR aclTcr) {
+        if (!aclTcr.getTable().containsKey(dbTblName)) {
             return false;
         }
-        AclTCR.ColumnRow columnRow = e.getTable().get(dbTblName);
+        AclTCR.ColumnRow columnRow = aclTcr.getTable().get(dbTblName);
         if (Objects.isNull(columnRow)) {
             return true;
         }
 
-        if (Objects.isNull(columnRow.getRow()) && Objects.isNull(columnRow.getLikeRow())) {
+        if (columnRow.isAllRowGranted()) {
             return true;
         }
 
-        AclTCR.Row row = columnRow.getRow();
-        AclTCR.Row likeRow = columnRow.getLikeRow();
-
-        if ((Objects.isNull(row) || row.containsKey(colName))
-                || (Objects.isNull(likeRow) || likeRow.containsKey(colName))) {
-            return false;
-        }
-
-        return (Objects.isNull(row) || Objects.isNull(row.get(colName)))
-                && (Objects.isNull(likeRow) || Objects.isNull(likeRow.get(colName)));
+        return false;
     }
 
-    private Map<String, List<PrincipalRowSet>> getTblPrincipalSet(final List<AclTCR> acls) {
-        final Map<String, List<PrincipalRowSet>> dbTblPrincipals = Maps.newHashMap();
+    private Map<String, List<PrincipalRowFilter>> getTblPrincipalSet(final List<AclTCR> acls) {
+        final Map<String, List<PrincipalRowFilter>> dbTblPrincipals = Maps.newHashMap();
         acls.forEach(tcr -> tcr.getTable().forEach((dbTblName, columnRow) -> {
             if (Objects.isNull(columnRow)
-                    || (Objects.isNull(columnRow.getRow()) && Objects.isNull(columnRow.getLikeRow()))) {
+                    || (Objects.isNull(columnRow.getRow())
+                        && Objects.isNull(columnRow.getLikeRow())
+                        && Objects.isNull(columnRow.getRowFilter()))) {
                 return;
             }
-            final PrincipalRowSet principal = new PrincipalRowSet();
-            if (columnRow.getRow() != null) {
-                updatePrincipalRowSet(columnRow.getRow(), principal.getRowSets(), acls, tcr, dbTblName);
+            final PrincipalRowFilter dbTblPrincipalRF = new PrincipalRowFilter();
+            if (columnRow.getRowFilter() == null) {
+                if (columnRow.getRow() != null) {
+                    updatePrincipalRowSet(columnRow.getRow(), dbTblPrincipalRF.getRowSets(), acls, tcr, dbTblName);
+                }
+                if (columnRow.getLikeRow() != null) {
+                    updatePrincipalRowSet(columnRow.getLikeRow(), dbTblPrincipalRF.getLikeRowSets(), acls, tcr, dbTblName);
+                }
+            } else {
+                updatePrincipalRowFilter(columnRow.getRowFilter(), dbTblPrincipalRF, acls, tcr, dbTblName);
             }
-            if (columnRow.getLikeRow() != null) {
-                updatePrincipalRowSet(columnRow.getLikeRow(), principal.getLikeRowSets(), acls, tcr, dbTblName);
-            }
-            if (CollectionUtils.isEmpty(principal.getRowSets())
-                    && CollectionUtils.isEmpty(principal.getLikeRowSets())) {
+            if (CollectionUtils.isEmpty(dbTblPrincipalRF.getRowSets())
+                    && CollectionUtils.isEmpty(dbTblPrincipalRF.getLikeRowSets())
+                    && CollectionUtils.isEmpty(dbTblPrincipalRF.getRowFilter())) {
                 return;
             }
             if (!dbTblPrincipals.containsKey(dbTblName)) {
                 dbTblPrincipals.put(dbTblName, Lists.newArrayList());
             }
-            dbTblPrincipals.get(dbTblName).add(principal);
+            dbTblPrincipals.get(dbTblName).add(dbTblPrincipalRF);
         }));
         return dbTblPrincipals;
     }
 
+    /**
+     * Update AclTCR.Row when no other acl users/groups can access all rows upon table
+     * @param sourceRow
+     * @param destRowSet
+     * @param acls
+     * @param currentAcl
+     * @param dbTblName
+     */
     private void updatePrincipalRowSet(AclTCR.Row sourceRow, List<RowSet> destRowSet,
                                        final List<AclTCR> acls, final AclTCR currentAcl, final String dbTblName) {
         sourceRow.forEach((colName, realRow) -> {
             if (Objects.isNull(realRow) || acls.stream().filter(e -> !e.equals(currentAcl))
-                    .anyMatch(e -> isColumnWithoutRowLimit(dbTblName, colName, e))) {
+                    .anyMatch(e -> isColumnWithoutRowLimit(dbTblName, e))) {
+                // If another acl user/group has all row access upon this table,
+                // then do not add row filter
                 return;
             }
             destRowSet.add(new RowSet(colName, realRow));
         });
+    }
+
+    /**
+     * Update AclTCR.RowFilter when no other acl users/groups can access all rows upon table
+     * @param rowFilters
+     * @param principalRF
+     * @param acls
+     * @param currentAcl
+     * @param dbTblName
+     */
+    private void updatePrincipalRowFilter(List<AclTCR.FilterGroup> rowFilters, PrincipalRowFilter principalRF,
+                                          final List<AclTCR> acls, final AclTCR currentAcl, final String dbTblName) {
+        if (Objects.isNull(rowFilters) || acls.stream().filter(e -> !e.equals(currentAcl))
+            .anyMatch(e -> isColumnWithoutRowLimit(dbTblName, e))) {
+            // If another acl user/group has all row access upon this table,
+            // then do not add row filter
+            return;
+        }
+
+        principalRF.getRowFilter().addAll(rowFilters);
     }
 
     private boolean isTablesAuthorized(List<AclTCR> all) {
@@ -564,6 +694,7 @@ public class AclTCRManager {
                 if (Objects.nonNull(cr)) {
                     columnRow.setRow(cr.getRow());
                     columnRow.setLikeRow(cr.getLikeRow());
+                    columnRow.setRowFilter(cr.getRowFilter());
                 }
                 db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), columnRow);
             } else {

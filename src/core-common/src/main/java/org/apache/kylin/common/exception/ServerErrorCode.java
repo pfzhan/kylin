@@ -249,7 +249,8 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10034XXX acl
     ACL_DEPENDENT_COLUMN_PARSE_ERROR("KE-010034001"), //
-    ACL_INVALID_COLUMN_DATA_TYPE("KE-010034002");
+    ACL_INVALID_COLUMN_DATA_TYPE("KE-010034002"),
+    ACL_INVALID_ROW_FIELD("KE-010034003");
 
     private final ErrorCode errorCode;
 
