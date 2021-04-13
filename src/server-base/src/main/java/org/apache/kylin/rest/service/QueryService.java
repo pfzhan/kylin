@@ -590,7 +590,8 @@ public class QueryService extends BasicService {
             queryContext.getMetrics()
                     .setSqlPattern(QueryPatternUtil.normalizeSQLPattern(queryContext.getMetrics().getCorrectedSql()));
 
-            if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
+                    && KylinConfig.getInstanceFromEnv().isUniqueAsyncQueryYarnQueue())) {
                 try {
                     recordMetric(sqlRequest, sqlResponse);
                 } catch (Throwable th) {
