@@ -50,6 +50,7 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import lombok.experimental.UtilityClass;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.LoggerFactory;
 
 @UtilityClass
@@ -58,7 +59,8 @@ public class CompressionUtils {
     private static final byte[] GZIP = "GZIP".getBytes(Charset.defaultCharset());
 
     public static byte[] compress(byte[] data) throws IOException {
-        if (data == null || data.length == 0 || isCompressed(data)) {
+        if (data == null || data.length == 0 || isCompressed(data)
+                && !KylinConfig.getInstanceFromEnv().isMetadataCompressEnabled()) {
             return data;
         }
         Deflater deflater = new Deflater(1);

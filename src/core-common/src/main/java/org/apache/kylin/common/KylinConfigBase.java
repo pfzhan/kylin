@@ -489,6 +489,10 @@ public abstract class KylinConfigBase implements Serializable {
         return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@jdbc"));
     }
 
+    public boolean isMetadataCompressEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.compress.enabled", TRUE));
+    }
+
     public boolean isMetadataAuditLogEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.audit-log.enabled", TRUE));
     }

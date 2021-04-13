@@ -214,4 +214,42 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 CompressionUtils.decompress(auditLogContents));
     }
 
+    @Test
+    public void testBatchUpdateWithMetadataCompressDisable() throws Exception {
+        overwriteSystemProp("kylin.metadata.compress.enabled", "false");
+        val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
+        List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
+                new RawResource("/p1/test", ByteStreams.asByteSource("test content".getBytes(StandardCharsets.UTF_8)),
+                        System.currentTimeMillis(), 0)));
+        val unitMessages = new UnitMessages(events);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            metadataStore.batchUpdate(unitMessages, false, "/p1/test", -1);
+            return null;
+        }, "p1");
+
+        String content = new String(metadataStore.load("/p1/test").getByteSource().read());
+        Assert.assertEquals("test content", content);
+
+        val dataSource = new DriverManagerDataSource();
+        val url = getTestConfig().getMetadataUrl();
+        val tableName = url.getIdentifier();
+        dataSource.setUrl(url.getParameter("url"));
+        dataSource.setDriverClassName(url.getParameter("driverClassName"));
+        dataSource.setUsername(url.getParameter("username"));
+        dataSource.setPassword(url.getParameter("password"));
+        val jdbcTemplate = new JdbcTemplate(dataSource);
+
+        String contents = jdbcTemplate.queryForObject(
+                "select META_TABLE_CONTENT from " + tableName + " where META_TABLE_KEY = '/p1/test'",
+                (rs, rowNum) -> rs.getString(1));
+
+        Assert.assertFalse(CompressionUtils.isCompressed(contents.getBytes(StandardCharsets.UTF_8)));
+
+        String auditLogContents = jdbcTemplate.queryForObject(
+                "select meta_content from " + tableName + "_audit_log where meta_key = '/p1/test'",
+                (rs, rowNum) -> rs.getString(1));
+
+        Assert.assertFalse(CompressionUtils.isCompressed(auditLogContents.getBytes(StandardCharsets.UTF_8)));
+    }
+
 }
