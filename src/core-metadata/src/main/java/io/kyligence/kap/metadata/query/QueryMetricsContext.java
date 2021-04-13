@@ -138,20 +138,17 @@ public class QueryMetricsContext extends QueryMetrics {
                 Objects.nonNull(this.errorType) && !this.errorType.equals(QueryHistory.NO_REALIZATION_FOUND_ERROR));
         queryHistoryInfo.setRealizationMetrics(realizationMetricList);
 
-        if (QueryContext.current().getNativeQueryRealizationList() != null) {
-            List<List<String>> querySnapshots = new ArrayList<>();
-            for (QueryContext.NativeQueryRealization qcReal : QueryContext.current().getNativeQueryRealizationList()) {
-                if (CollectionUtils.isEmpty(qcReal.getSnapshots())) {
-                    continue;
-                }
-                querySnapshots.add(qcReal.getSnapshots());
+        List<List<String>> querySnapshots = new ArrayList<>();
+        for (QueryContext.NativeQueryRealization qcReal : QueryContext.current().getNativeQueryRealizationList()) {
+            if (CollectionUtils.isEmpty(qcReal.getSnapshots())) {
+                continue;
             }
-
-            queryHistoryInfo.setQuerySnapshots(querySnapshots);
-            this.queryHistoryInfo = queryHistoryInfo;
-        } else {
-            this.queryHistoryInfo = new QueryHistoryInfo();
+            querySnapshots.add(qcReal.getSnapshots());
         }
+
+        queryHistoryInfo.setQuerySnapshots(querySnapshots);
+        this.queryHistoryInfo = queryHistoryInfo;
+
 
         this.queryHistoryInfo.setTraces(context.getQueryTrace().spans().stream()
                 .map(span -> new QueryHistoryInfo.QueryTraceSpan(span.getName(), span.getGroup(), span.getDuration()))

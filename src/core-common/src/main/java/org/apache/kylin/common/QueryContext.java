@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
 
+import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -310,7 +311,7 @@ public class QueryContext implements Closeable {
 
     @Getter
     @Setter
-    private List<NativeQueryRealization> nativeQueryRealizationList;
+    private List<NativeQueryRealization> nativeQueryRealizationList = Lists.newArrayList();
 
     @AllArgsConstructor
     @Getter
