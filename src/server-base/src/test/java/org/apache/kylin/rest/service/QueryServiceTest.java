@@ -976,6 +976,38 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testQueryContextWhenHitCache() throws Exception {
+        final String project = "default";
+        final String sql = "select * from success_table_3";
+
+        stubQueryConnection(sql, project);
+        mockOLAPContext();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        SQLResponse sqlResponse = queryService.queryWithCache(request, false);
+        Assert.assertNull(QueryContext.current().getEngineType());
+        Assert.assertEquals(-1, QueryContext.current().getMetrics().getScannedBytes());
+        Assert.assertEquals(-1, QueryContext.current().getMetrics().getScannedRows());
+        Assert.assertEquals(0, QueryContext.current().getMetrics().getResultRowCount());
+
+        sqlResponse.setTotalScanBytes(1024);
+        sqlResponse.setTotalScanRows(10000);
+        sqlResponse.setResultRowCount(500);
+        queryCacheManager.cacheSuccessQuery(request, sqlResponse);
+
+        queryService.queryWithCache(request, false);
+        Assert.assertEquals("NATIVE", QueryContext.current().getEngineType());
+        Assert.assertEquals(1024, QueryContext.current().getMetrics().getScannedBytes());
+        Assert.assertEquals(10000, QueryContext.current().getMetrics().getScannedRows());
+        Assert.assertEquals(500, QueryContext.current().getMetrics().getResultRowCount());
+
+        queryCacheManager.clearQueryCache(request);
+    }
+
+    @Test
     @Ignore
     public void testQueryWithResultRowCountBreaker() {
         final String sql = "select * from success_table_2";

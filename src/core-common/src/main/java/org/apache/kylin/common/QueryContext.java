@@ -94,6 +94,9 @@ public class QueryContext implements Closeable {
     private String pushdownEngine;
     @Getter
     @Setter
+    private String engineType;
+    @Getter
+    @Setter
     private int shufflePartitions;
     @Getter
     @Setter

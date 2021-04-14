@@ -540,6 +540,9 @@ public class QueryService extends BasicService {
                     && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 logger.info("[query cache log] try to search query cache");
                 sqlResponse = queryCacheManager.searchQuery(sqlRequest);
+                if (sqlResponse != null) {
+                    collectToQueryContext(queryContext, sqlResponse);
+                }
                 Trace.addTimelineAnnotation("query cache searched");
             }
 
@@ -623,6 +626,26 @@ public class QueryService extends BasicService {
                 scope.close();
             }
         }
+    }
+
+    private void collectToQueryContext(QueryContext queryContext, SQLResponse sqlResponse) {
+        if (sqlResponse.getEngineType() != null) {
+            queryContext.setEngineType(sqlResponse.getEngineType());
+        }
+        queryContext.getMetrics().setScannedBytes(sqlResponse.getTotalScanBytes());
+        queryContext.getMetrics().setScannedRows(sqlResponse.getTotalScanRows());
+        queryContext.getMetrics().setResultRowCount(sqlResponse.getResultRowCount());
+
+        List<QueryContext.NativeQueryRealization> nativeQueryRealizationList = Lists.newArrayList();
+        if (sqlResponse.getNativeRealizations() != null) {
+            for (NativeQueryRealization nqReal : sqlResponse.getNativeRealizations()) {
+                nativeQueryRealizationList.add(
+                        new QueryContext.NativeQueryRealization(nqReal.getModelId(), nqReal.getModelAlias(),
+                                nqReal.getLayoutId(), nqReal.getIndexType(), nqReal.isPartialMatchModel(),
+                                nqReal.isValid(), nqReal.isLayoutExist(), nqReal.getSnapshots()));
+            }
+        }
+        queryContext.setNativeQueryRealizationList(nativeQueryRealizationList);
     }
 
     private String getDefaultServer() {

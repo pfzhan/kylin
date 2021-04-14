@@ -108,12 +108,16 @@ public class QueryMetricsContext extends QueryMetrics {
         this.queryDuration = System.currentTimeMillis() - queryTime;
         this.totalScanBytes = context.getMetrics().getScannedBytes();
         this.totalScanCount = context.getMetrics().getScannedRows();
-        if (context.getQueryTagInfo().isPushdown()) {
-            this.engineType = context.getPushdownEngine();
-        } else if (CollectionUtils.isEmpty(QueryContext.current().getNativeQueryRealizationList())) {
-            this.engineType = QueryHistory.EngineType.CONSTANTS.name();
+        if (context.getQueryTagInfo().isStorageCacheUsed() && context.getEngineType() != null) {
+            this.engineType = context.getEngineType();
         } else {
-            this.engineType = QueryHistory.EngineType.NATIVE.name();
+            if (context.getQueryTagInfo().isPushdown()) {
+                this.engineType = context.getPushdownEngine();
+            } else if (CollectionUtils.isEmpty(QueryContext.current().getNativeQueryRealizationList())) {
+                this.engineType = QueryHistory.EngineType.CONSTANTS.name();
+            } else {
+                this.engineType = QueryHistory.EngineType.NATIVE.name();
+            }
         }
 
         this.queryStatus = context.getMetrics().isException() ? QueryHistory.QUERY_HISTORY_FAILED
