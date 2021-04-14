@@ -753,10 +753,14 @@ export default class ProjectAuthority extends Vue {
         }
         .view-all-tips {
           margin: 0 auto;
-          margin-top: 100px;
+          margin-top: 80px;
           font-size: 12px;
           color: @text-title-color;
           width: 70%;
+          .add-rows-btns {
+            width: 100%;
+            text-align: center;
+          }
         }
         ul {
           overflow-y: auto;
@@ -768,7 +772,7 @@ export default class ProjectAuthority extends Vue {
             &.row-list {
               display: table;
               width: 100%;
-              border-bottom: 1px solid @line-border-color;
+              // border-bottom: 1px solid @line-border-color;
               span {
                 word-break: break-all;
                 &:first-child {
@@ -780,11 +784,70 @@ export default class ProjectAuthority extends Vue {
                   overflow: auto;
                   padding-top: 5px;
                 }
+                &.row-values {
+                  color: @text-disabled-color;
+                  font-size: 12px;
+                }
               }
             }
             &:hover {
               background-color: @base-color-9;
             }
+          }
+        }
+        .filter-groups {
+          margin-bottom: 10px;
+          &:last-child {
+            margin-bottom: 0;
+          }
+          &.is-group {
+            margin: 10px;
+            position: relative;
+            .group-action-btn {
+              position: absolute;
+              top: 10px;
+              right: 10px;
+            }
+            .filter-group-block {
+              padding: 10px;
+              background-color: @base-background-color-1;
+              border: 1px solid @base-background-color-1;
+              &:hover {
+                border: 1px solid @base-color-2;
+              }
+              .row-list {
+                padding: 0px;
+              }
+              .join-type-label {
+                margin: 10px 0;
+              }
+            }
+          }
+        }
+        .join-type-label {
+          font-size: 12px;
+          color: @text-normal-color;
+          background-color: @background-disabled-color;
+          width: 36px;
+          height: 20px;
+          line-height: 20px;
+          padding: 0 7px;
+          border-radius: 2px;
+          margin: 10px;
+          position: relative;
+          &::before,
+          &::after {
+            content: '';
+            border-left: 2px solid @background-disabled-color;
+            height: 10px;
+            position: absolute;
+            left: 50%;
+          }
+          &::before {
+            top: -10px;
+          }
+          &::after {
+            top: 20px;
           }
         }
       }
@@ -812,22 +875,22 @@ export default class ProjectAuthority extends Vue {
       }
       &.row-card {
         .access-content {
+          // padding: 10px;
           ul li {
             .el-row {
               position: relative;
             }
-            .el-col-21 {
-              width: calc(~'100% - 42px');
+            .el-col-23 {
+              width: calc(~'100% - 22px');
               display: flex;
               line-height: 1.5;
               padding: 5px 0;
             }
-            .el-col-3 {
-              width: 42px;
+            .el-col-1 {
+              width: 22px;
               height: 18px;
               position: absolute;
               right: 0;
-              top: 6px;
             }
             .btn-icons {
               text-align: right;

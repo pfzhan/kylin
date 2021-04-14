@@ -15,6 +15,8 @@ let speedInfoTimer = 6000
 let sqlRowsLimit = 100
 let sqlStrLenLimit = 2000
 
+let maxFilterAndFilterValues = 100
+
 let tooltipDelayTime = 400
 if (process.env.NODE_ENV === 'development') {
   apiUrl = '/kylin/api/'
@@ -36,7 +38,8 @@ export {
   tooltipDelayTime,
   speedInfoTimer,
   sqlRowsLimit,
-  sqlStrLenLimit
+  sqlStrLenLimit,
+  maxFilterAndFilterValues
 }
 export const menusData = [
   // {name: 'dashboard', path: '/dashboard', icon: 'el-icon-ksd-dashboard'},

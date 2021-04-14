@@ -112,6 +112,8 @@ Vue.http.interceptors.push(function (request, next) {
   request.headers['If-Modified-Since'] = '0'
   if (request.url.indexOf('kylin/api/j_spring_security_logout') >= 0) {
     request.headers.set('Accept', 'text/html')
+  } else if (request.url.indexOf('acl/') >= 0 && request.method === 'PUT') {
+    request.headers.set('Accept', 'application/vnd.apache.kylin-v4-public+json')
   } else {
     request.headers.set('Accept', 'application/vnd.apache.kylin-v4+json')
   }

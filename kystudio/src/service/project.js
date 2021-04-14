@@ -37,7 +37,7 @@ export default {
     })
   },
   submitAccessData: (projectName, userType, roleOrName, accessData) => {
-    return Vue.resource(apiUrl + `acl/sid/${userType}/${roleOrName}?project=${projectName}`).update(accessData)
+    return Vue.resource(apiUrl + `acl/${userType}/${roleOrName}?project=${projectName}`).update(accessData)
   },
   saveProjectFilter: (filterData) => {
     return Vue.resource(apiUrl + 'ext_filter/save_ext_filter').save(filterData)

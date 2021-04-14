@@ -79,36 +79,107 @@
         <div class="access-card row-card">
           <div class="access-title">
             <span>{{$t('accessRows')}}</span>
-            <el-button type="primary" plain size="small" icon="el-icon-ksd-add_2" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit" :disabled="!isCurrentTableChecked">{{$t('addRowAccess')}}</el-button>
+            <!-- <el-button type="primary" plain size="small" icon="el-icon-ksd-add_2" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit" :disabled="!isCurrentTableChecked">{{$t('addRowAccess')}}</el-button> -->
           </div>
           <div class="access-search">
-            <el-input size="small" :placeholder="$t('searchKey')" v-model="rowFilter">
+            <el-input size="small" :placeholder="$t('searchKey')" v-model="rowSearch">
               <i slot="prefix" class="el-input__icon el-icon-search"></i>
             </el-input>
           </div>
-          <div class="access-tips" v-if="isCurrentTableChecked&&!rows.length">
+          <div class="access-tips" v-if="isCurrentTableChecked&&row_filter&&!row_filter.filter_groups.length">
             <i class="el-icon-ksd-info ksd-fs-14"></i>
             <span class="ksd-fs-12">{{$t('accessRowsTips')}}</span>
           </div>
           <div class="access-content">
-            <ul v-if="rows.length">
-              <li v-for="(row, key) in rows" :key="key" class="row-list" v-show="isShowRow(row)">
-                <el-row>
-                  <el-col :span="isEdit ? 21 : 24">
-                    <span>{{row.column_name}}</span><span v-if="row.items.length">={{row.items.toString()}}</span><span v-if="row.likeItems.length">&nbsp;like {{row.likeItems.toString()}}</span>
-                  </el-col>
-                  <el-col :span="3" class="ky-no-br-space btn-icons" v-if="isEdit">
-                    <i class="el-icon-ksd-table_edit ksd-fs-16" @click="editRowAccess(key, row)"></i>
-                    <i class="el-icon-ksd-table_delete ksd-fs-16 ksd-ml-10" @click="deleteRowAccess(key, row)"></i>
-                  </el-col>
-                </el-row>
-              </li>
-            </ul>
-            <kap-nodata :content="emptyText3" v-if="!isCurrentTableChecked&&!rows.length">
+            <el-select class="ksd-mt-10 ksd-mb-5 ksd-ml-10 join-type" size="small" v-model="row_filter.type" v-if="isEdit && row_filter && getSearchFilterdGroup(row_filter.filter_groups).length" @change="changeRowFilterType">
+              <el-option label="AND" value="AND"></el-option>
+              <el-option label="OR" value="OR"></el-option>
+            </el-select>
+            <div v-for="(fg, fgIndex) in getSearchFilterdGroup(row_filter.filter_groups)" :key="fgIndex">
+              <div class="filter-groups" :class="{'is-group': fg.is_group}">
+                <div class="filter-group-block">
+                  <div class="clearfix">
+                    <el-select class="join-type ksd-fleft" size="small" v-model="fg.type" @change="changeFilterGroupTpye(fgIndex)" v-if="fg.is_group&&fg.filters.length&&isEdit">
+                      <el-option label="AND" value="AND"></el-option>
+                      <el-option label="OR" value="OR"></el-option>
+                    </el-select>
+                  </div>
+                    <el-dropdown class="group-action-btn" size="small" v-if="fg.is_group&&isEdit">
+                      <span class="el-dropdown-link">
+                        <i class="el-icon-ksd-table_others"></i>
+                      </span>
+                      <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item @click.native="addRowAccess(fgIndex)">
+                          <i class="el-icon-ksd-add_2"></i>
+                          {{$t('filters')}}
+                        </el-dropdown-item>
+                        <el-dropdown-item @click.native="deleteFG(fgIndex)">
+                          <i class="el-icon-ksd-table_delete"></i>
+                          {{$t('kylinLang.common.delete')}}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </el-dropdown>
+                  <!-- getFilterFilters 搜索后的filters, getlimitFilters 是搜索后length 大于3时要收拢filterGroup -->
+                  <ul v-if="getFilterFilters(fg.filters).length" :key="fg.isExpand">
+                    <div v-for="(row, key) in getlimitFilters(fg)" :key="key" >
+                      <li class="row-list">
+                        <el-row>
+                          <el-col :span="isEdit ? 23 : 24">
+                            <span>{{row.column_name}}</span><span v-if="row.in_items.length"> IN </span><span v-if="row.in_items.length" class="row-values">({{row.in_items.toString()}})</span><span v-if="row.like_items.length">&nbsp;LIKE </span><span class="row-values" v-if="row.like_items.length">({{row.like_items.toString()}})</span>
+                          </el-col>
+                          <el-col :span="1" class="ky-no-br-space btn-icons" v-if="isEdit">
+                            <!-- <i class="el-icon-ksd-table_edit ksd-fs-16" @click="editRowAccess(key, row)"></i>
+                            <i class="el-icon-ksd-table_delete ksd-fs-16 ksd-ml-10" @click="deleteRowAccess(key, row)"></i> -->
+                            <el-dropdown size="small" v-if="isEdit">
+                              <span class="el-dropdown-link">
+                                <i class="el-icon-ksd-table_others"></i>
+                              </span>
+                              <el-dropdown-menu slot="dropdown">
+                                <el-dropdown-item @click.native="editRowAccess(fgIndex, key, row)">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
+                                <el-dropdown-item @click.native="deleteRowAccess(fgIndex, key, row)">{{$t('kylinLang.common.delete')}}</el-dropdown-item>
+                              </el-dropdown-menu>
+                            </el-dropdown>
+                          </el-col>
+                        </el-row>
+                      </li>
+                      <div v-if="key !== getlimitFilters(fg).length - 1" class="join-type-label">{{fg.type}}</div>
+                    </div>
+                  </ul>
+                  <div class="center ksd-mt-10" v-if="getFilterFilters(fg.filters).length > 3">
+                    <el-button type="primary" size="small" @click="toggleExpandFG(fg)" text>
+                      {{fg.isExpand ? $t('collapse') : $t('expandAll')}} {{fg.isExpand ? '' : `(${fg.filters.length})`}}
+                    </el-button>
+                  </div>
+                  <el-button type="primary" size="small" v-if="fg.is_group&&isEdit" icon="el-icon-ksd-add_2" @click="addRowAccess(fgIndex)" text>{{$t('filters')}}</el-button>
+                </div>
+              </div>
+              <div v-if="fgIndex !== getSearchFilterdGroup(row_filter.filter_groups).length - 1" class="join-type-label">{{row_filter.type}}</div>
+            </div>
+            <el-dropdown size="small" class="ksd-ml-10 ksd-mb-10" v-if="isEdit&&row_filter&&getSearchFilterdGroup(row_filter.filter_groups).length">
+              <span class="el-dropdown-link">
+                <el-button type="primary" size="small" :disabled="!isCurrentTableChecked" icon="el-icon-ksd-add_2" text>{{$t('add')}}</el-button>
+              </span>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item @click.native="addRowAccess(-1)">{{$t('filters')}}</el-dropdown-item>
+                <el-dropdown-item @click.native="addFilterGroups">{{$t('filterGroups')}}</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+            <kap-nodata :content="emptyText3" v-if="isCurrentTableChecked&&row_filter&&!getSearchFilterdGroup(row_filter.filter_groups).length">
             </kap-nodata>
-            <div class="view-all-tips" v-if="isCurrentTableChecked&&!rows.length">
+            <div class="view-all-tips" v-if="isCurrentTableChecked&&row_filter&&!row_filter.filter_groups.length">
               <div><i class="point">•</i> {{$t('viewAllDataTips')}}</div>
               <div><i class="point">•</i> {{$t('viewAllDataTips1')}}</div>
+              <div class="add-rows-btns">
+                <el-dropdown size="small" v-if="isEdit">
+                  <span class="el-dropdown-link">
+                    <el-button type="primary" size="small" :disabled="!isCurrentTableChecked" icon="el-icon-ksd-add_2" text>{{$t('add')}}</el-button>
+                  </span>
+                  <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="addRowAccess(-1)">{{$t('filters')}}</el-dropdown-item>
+                    <el-dropdown-item @click.native="addFilterGroups">{{$t('filterGroups')}}</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+              </div>
             </div>
           </div>
         </div>
@@ -120,6 +191,21 @@
     </div>
 
     <el-dialog :title="rowAuthorTitle" width="960px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
+      <div v-if="filterTotalLength+newFiltersLenth>maxFilterAndFilterValues || overedRowValueFilters.length>0">
+        <el-alert class="ksd-mb-10" type="error" show-icon :closable="false">
+          <span slot="title">{{$t('overFilterMaxTips')}}
+            <a class="a-like" @click="showErrorDetails = !showErrorDetails">{{$t('details')}}
+              <i :class="[showErrorDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i>
+            </a>
+          </span>
+        </el-alert>
+        <div class="ksd-mtb-10 error-msg detail-content" v-if="showErrorDetails">
+          <div v-if="filterTotalLength+newFiltersLenth>maxFilterAndFilterValues">{{$t('filterTotal')}}{{filterTotalLength+newFiltersLenth}}/{{maxFilterAndFilterValues}}</div>
+          <div v-if="overedRowValueFilters.length>0">
+            {{$t('filterValuesTotal')}}{{overedRowValueFilters.toString()}}
+          </div>
+        </div>
+      </div>
       <div class="like-tips-block ksd-mb-10">
         <div class="ksd-mb-5">{{$t('tipsTitle')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('viewDetail')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></div>
         <div class="detail-content" v-if="showDetails">
@@ -131,19 +217,19 @@
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
         <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit" @change="isUnCharColumn(row.column_name)">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!row.column_name"></i>
-          <el-option v-for="c in columns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'like'" :key="c.name" :label="c.name" :value="c.name">
+          <el-option v-for="c in columns" :disabled="c.datatype.indexOf('char') === -1 && c.datatype.indexOf('varchar') === -1 && row.joinType === 'LIKE'" :key="c.name" :label="c.name" :value="c.name">
             <el-tooltip :content="c.name" effect="dark" placement="top"><span>{{c.name | omit(30, '...')}}</span></el-tooltip>
             <span class="ky-option-sub-info">{{c.datatype.toLocaleLowerCase()}}</span>
           </el-option>
         </el-select>
         <el-select
           :placeholder="$t('kylinLang.common.pleaseSelect')"
-          style="width:65px;"
+          style="width:70px;"
           class="link-type"
           popper-class="js_like-type"
           :disabled="isRowAuthorEdit"
           v-model="row.joinType">
-          <el-option :disabled="isNeedDisableLike && key === 'like'" :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
+          <el-option :disabled="isNeedDisableLike && key === 'LIKE'" :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
         </el-select>
         <el-select
           v-model="row.items"
@@ -163,6 +249,16 @@
         </span>
       </div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
+        <div class="ksd-fleft">
+          <el-alert
+            :title="$t('filterTips')"
+            type="info"
+            class="ksd-ptb-5"
+            :show-background="false"
+            :closable="false"
+            show-icon>
+          </el-alert>
+        </div>
         <el-button plain @click="cancelRowAccess" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" @click="submitRowAccess" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
@@ -173,10 +269,10 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { handleSuccessAsync, indexOfObjWithSomeKey, objectClone } from '../../util'
+import { handleSuccessAsync, indexOfObjWithSomeKey, objectClone, kapConfirm } from '../../util'
 import { handleSuccess, handleError } from '../../util/business'
 import { mapActions } from 'vuex'
-import { pageSizeMapping } from '../../config'
+import { pageSizeMapping, maxFilterAndFilterValues } from '../../config'
 @Component({
   props: ['roleOrName', 'projectName', 'type'],
   methods: {
@@ -204,9 +300,21 @@ import { pageSizeMapping } from '../../config'
       loadMore: 'Load More',
       tipsTitle: 'The row ACL provides = and like operators. The like operator could only be used for char or varchar data type, and needs to be used with wildcards. ',
       viewDetail: 'View Rules',
+      details: 'Details',
       rules1: '_ (underscore) wildcard characters, matches any single character. ',
       rules2: '% (percent) wildcard characters, matches with zero or more characters.',
-      rules3: '\\ (backslash) escape character. The characters following "\\" won\'t be regarded as any special characters.'
+      rules3: '\\ (backslash) escape character. The characters following "\\" won\'t be regarded as any special characters.',
+      add: 'Add',
+      filters: 'Filter',
+      filterGroups: 'Filter Group',
+      filterTips: 'The relation between different values ​​of the same filter is "OR"',
+      deleteFilterGroupTips: 'Are you sure you want to delete the filter group? All the included filters would be deleted.',
+      deleteFilterGroupTitle: 'Delete Filter Group',
+      expandAll: 'Expand All',
+      collapse: 'Collapse',
+      overFilterMaxTips: 'The number of filters or the included values of a single filter exceeds the upper limit. Please modify.',
+      filterTotal: 'Total number of filters: ',
+      filterValuesTotal: 'The filter(s) including excess values: '
     },
     'zh-cn': {
       accessTables: '表级访问列表',
@@ -225,13 +333,26 @@ import { pageSizeMapping } from '../../config'
       loadMore: '加载更多',
       tipsTitle: '行级权限支持 = 和 like 操作符。其中，like 仅支持 char 和 varchar 类型的列，需配合通配符使用。',
       viewDetail: '查看规则',
+      details: '详情',
       rules1: '_（下划线）通配符，匹配任意单个字符。',
       rules2: '%（百分号）通配符，匹配空白字符或任意多个字符。',
-      rules3: '\\（反斜杠）转义符，转义符后的通配符或转义符将不被识别为特殊字符。'
+      rules3: '\\（反斜杠）转义符，转义符后的通配符或转义符将不被识别为特殊字符。',
+      add: '添加',
+      filters: '过滤器',
+      filterGroups: '过滤组',
+      filterTips: '同一过滤器的不同值的关系为 “或“ (OR) ',
+      deleteFilterGroupTips: '确定要删除过滤组吗？过滤组中的过滤器会被一并删除。',
+      deleteFilterGroupTitle: '删除过滤组',
+      expandAll: '展开全部',
+      collapse: '收起',
+      overFilterMaxTips: '过滤器包含的值或过滤器总数超过上限，请修改。',
+      filterTotal: '过滤器总数：',
+      filterValuesTotal: '包含值超额的过滤器：'
     }
   }
 })
 export default class UserAccess extends Vue {
+  maxFilterAndFilterValues = maxFilterAndFilterValues
   defaultProps = {
     children: 'children',
     label: 'label'
@@ -244,12 +365,16 @@ export default class UserAccess extends Vue {
   rowAccessVisible = false
   tableFilter = ''
   columnFilter = ''
-  rowFilter = ''
+  rowSearch = ''
   columns = []
   filterCols = []
   rows = []
-  rowLists = [{column_name: '', joinType: '=', items: []}]
-  linkKind = ['=', 'like']
+  rowLists = [{column_name: '', joinType: 'IN', items: []}]
+  row_filter = {
+    type: 'AND',
+    filter_groups: []
+  }
+  linkKind = ['IN', 'LIKE']
   isSelectTable = false
   tableAuthorizedNum = 0
   totalNum = 0
@@ -260,6 +385,7 @@ export default class UserAccess extends Vue {
   copyOriginTables = []
   databaseIndex = -1
   tableIndex = -1
+  editFilterGroupIndex = -1
   editRowIndex = -1
   currentTable = ''
   isAllTablesAccess = false
@@ -274,7 +400,12 @@ export default class UserAccess extends Vue {
   columnCurrentPage = 1
   isAuthority = false
   showDetails = false
+  showErrorDetails = false
   isNeedDisableLike = false
+  isAddFilterForGroup = false
+  filterTotalLength = 0
+  newFiltersLenth = 0
+  overedRowValueFilters = []
   get emptyText () {
     return this.tableFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
@@ -282,7 +413,7 @@ export default class UserAccess extends Vue {
     return this.columnFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get emptyText3 () {
-    return this.rowFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+    return this.rowSearch ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get disabledSubmitBtn () {
     return JSON.stringify(this.copyOriginTables) === JSON.stringify(this.allTables)
@@ -315,21 +446,20 @@ export default class UserAccess extends Vue {
       const indexs = data.id.split('_')
       this.databaseIndex = indexs[0]
       this.tableIndex = indexs[1]
-      this.initColsAndRows(data.columns, data.rows, data.like_rows, data.totalColNum)
+      this.initColsAndRows(data.columns, data.row_filter, data.totalColNum)
     } else if (!data.children && data.isMore) {
       node.parent.data.currentIndex++
-      const index = data.id.split('_')[0]
-      this.tables[index].currentIndex++
       const renderNums = node.parent.data.currentIndex * pageSizeMapping.TABLE_TREE
       const renderMoreTables = node.parent.data.originTables.slice(0, renderNums)
+      node.parent.data.children = []
+      node.parent.data.children = renderMoreTables
       if (renderNums < node.parent.data.originTables.length) {
         renderMoreTables.push(data)
       }
-      node.parent.data.children = renderMoreTables
       this.reRenderTree(true)
     }
   }
-  initColsAndRows (columns, rows, like_rows, totalColNum) {
+  initColsAndRows (columns, row_filter, totalColNum) {
     this.columnCurrentPage = 1
     this.colAuthorizedNum = 0
     this.columns = columns.map((col) => {
@@ -340,21 +470,11 @@ export default class UserAccess extends Vue {
     })
     this.isAllColAccess = this.colAuthorizedNum === totalColNum
     this.selectAllColumns = this.isAllColAccess
-    this.rows = rows.map((r) => {
-      return { column_name: r.column_name, items: r.items, likeItems: [] }
-    })
-    like_rows && like_rows.forEach((l) => {
-      const index = indexOfObjWithSomeKey(this.rows, 'column_name', l.column_name)
-      if (index === -1) {
-        this.rows.push({ column_name: l.column_name, items: [], likeItems: l.items })
-      } else {
-        this.rows[index].likeItems = l.items
-      }
-    })
+    this.row_filter = objectClone(row_filter)
   }
   getColumns (type) {
     let columns = this.columns
-    if (type === 'like') {
+    if (type === 'LIKE') {
       columns = columns.filter((c) => {
         return c.datatype.indexOf('char') !== -1 || c.datatype.indexOf('varchar') !== -1
       })
@@ -441,7 +561,6 @@ export default class UserAccess extends Vue {
     data.columns.forEach((col) => {
       col.authorized = isChecked
     })
-    data.rows = []
     database.originTables[indexs[1]] = data
     this.tables[indexs[0]] = database
     this.defaultCheckedKeys = defaultCheckedKeys
@@ -458,9 +577,8 @@ export default class UserAccess extends Vue {
     this.allTables[indexs[0]].tables[indexs[1]].columns.forEach((col) => {
       col.authorized = isChecked
     })
-    this.allTables[indexs[0]].tables[indexs[1]].rows = []
-    this.allTables[indexs[0]].tables[indexs[1]].like_rows = []
-    this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, this.allTables[indexs[0]].tables[indexs[1]].like_rows, data.totalColNum)
+    this.allTables[indexs[0]].tables[indexs[1]].row_filter = { type: 'AND', filter_groups: [] }
+    this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].row_filter, data.totalColNum)
   }
   checkChange (data, checkNode, node) {
     this.showLoading()
@@ -551,17 +669,17 @@ export default class UserAccess extends Vue {
   }
   isShowRow (row) {
     let isShow = false
-    if (row.column_name.toLowerCase().indexOf(this.rowFilter.trim().toLowerCase()) !== -1) {
+    if (row.column_name.toLowerCase().indexOf(this.rowSearch.trim().toLowerCase()) !== -1) {
       isShow = true
     }
-    for (let i = 0; i < row.items.length; i++) {
-      if (row.items[i].toLowerCase().indexOf(this.rowFilter.trim().toLowerCase()) !== -1) {
+    for (let i = 0; i < row.in_items.length; i++) {
+      if (row.in_items[i].toLowerCase().indexOf(this.rowSearch.trim().toLowerCase()) !== -1) {
         isShow = true
         break
       }
     }
-    for (let k = 0; k < row.likeItems.length; k++) {
-      if (row.likeItems[k].toLowerCase().indexOf(this.rowFilter.trim().toLowerCase()) !== -1) {
+    for (let k = 0; k < row.like_items.length; k++) {
+      if (row.like_items[k].toLowerCase().indexOf(this.rowSearch.trim().toLowerCase()) !== -1) {
         isShow = true
         break
       }
@@ -614,99 +732,235 @@ export default class UserAccess extends Vue {
     })
     this.rowLists[key].items = formatValues.filter(it => !!it)
   }
-  addRowAccess () {
+  addRowAccess (fgIndex) {
+    if (fgIndex !== -1) {
+      this.editFilterGroupIndex = fgIndex
+      this.isAddFilterForGroup = true // 在指定筛选组里添加筛选器
+    } else {
+      this.editFilterGroupIndex = fgIndex
+      this.isAddFilterForGroup = false
+    }
+    this.filterTotalLength = 0
+    this.overedRowValueFilters = []
     this.isRowAuthorEdit = false
     this.rowAccessVisible = true
   }
-  editRowAccess (index, row) {
+  addFilterGroups () {
+    this.row_filter.filter_groups.push({is_group: true, type: 'AND', filters: []})
+  }
+  getSearchFilterdGroup (filterGroups) { // 有搜索关键时，如果没有符合搜索的过滤器内容，去掉空的过滤组
+    if (this.rowSearch) {
+      return filterGroups.filter(fg => {
+        return this.getFilterFilters(fg.filters).length > 0
+      })
+    } else {
+      return filterGroups
+    }
+  }
+  getFilterFilters (filters) {
+    return filters.filter((f) => {
+      return this.isShowRow(f)
+    })
+  }
+  getlimitFilters (fg) {
+    const filterFilters = this.getFilterFilters(fg.filters)
+    if (filterFilters.length <= 3 || (fg.isExpand && filterFilters.length > 3)) {
+      return filterFilters
+    } else {
+      return filterFilters.slice(0, 3)
+    }
+  }
+  toggleExpandFG (fg) {
+    this.$set(fg, 'isExpand', !fg.isExpand)
+  }
+  changeRowFilterType () {
+    this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.type = this.row_filter.type
+    this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.type = this.row_filter.type
+  }
+  changeFilterGroupTpye (fgIndex) {
+    this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.filter_groups[fgIndex].type = this.row_filter.filter_groups[fgIndex].type
+    this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.filter_groups[fgIndex].type = this.row_filter.filter_groups[fgIndex].type
+  }
+  editRowAccess (fgIndex, index, row) {
     this.isRowAuthorEdit = true
+    this.editFilterGroupIndex = fgIndex
     this.editRowIndex = index
     this.rowLists = []
-    if (row.items.length > 0) {
-      this.rowLists.push({column_name: row.column_name, joinType: '=', items: row.items})
+    if (row.in_items.length > 0) {
+      this.rowLists.push({column_name: row.column_name, joinType: 'IN', items: row.in_items})
     }
-    if (row.likeItems.length > 0) {
-      this.rowLists.push({column_name: row.column_name, joinType: 'like', items: row.likeItems})
+    if (row.like_items.length > 0) {
+      this.rowLists.push({column_name: row.column_name, joinType: 'LIKE', items: row.like_items})
     }
+    this.filterTotalLength = 0
+    this.overedRowValueFilters = []
     this.rowAccessVisible = true
   }
-  deleteRowAccess (index, row) {
+  deleteRowAccess (fgIndex, index, row) {
     let idx = index
-    this.rows.splice(idx, 1)
-    if (row.likeItems && row.likeItems.length) {
-      idx = this.allTables[this.databaseIndex].tables[this.tableIndex].like_rows.findIndex(it => it.items.join(',') === row.likeItems.join(','))
-      this.allTables[this.databaseIndex].tables[this.tableIndex].like_rows.splice(idx, 1)
-      this.tables[this.databaseIndex].originTables[this.tableIndex].like_rows.splice(idx, 1)
+    this.row_filter.filter_groups[fgIndex].filters.splice(idx, 1)
+    this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.filter_groups[fgIndex].filters.splice(idx, 1)
+    this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.filter_groups[fgIndex].filters.splice(idx, 1)
+    if (!this.row_filter.filter_groups[fgIndex].filters.length) {
+      if (!this.row_filter.filter_groups[fgIndex].is_group) {
+        this.row_filter.filter_groups.splice(fgIndex, 1)
+      }
+      this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.filter_groups.splice(fgIndex, 1)
+      this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.filter_groups.splice(fgIndex, 1)
     }
-    if (row.items.length) {
-      idx = this.allTables[this.databaseIndex].tables[this.tableIndex].rows.findIndex(it => it.items.join(',') === row.items.join(','))
-      this.allTables[this.databaseIndex].tables[this.tableIndex].rows.splice(idx, 1)
-      this.tables[this.databaseIndex].originTables[this.tableIndex].rows.splice(idx, 1)
-    }
+  }
+  async deleteFG (fgIndex) {
+    await kapConfirm(this.$t('deleteFilterGroupTips'), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('deleteFilterGroupTitle'))
+    this.row_filter.filter_groups.splice(fgIndex, 1)
+    this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.filter_groups.splice(fgIndex, 1)
+    this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.filter_groups.splice(fgIndex, 1)
   }
   cancelRowAccess () {
     this.rowAccessVisible = false
     this.isNeedDisableLike = false
+    this.filterTotalLength = 0
+    this.overedRowValueFilters = []
+  }
+  fromRowArrToObj (rowsList, key) {
+    var len = rowsList && rowsList.length || 0
+    var obj = {}
+    for (var k = 0; k < len; k++) {
+      if (rowsList[k].items.length) {
+        obj[rowsList[k][key]] = obj[rowsList[k][key]] || []
+        obj[rowsList[k][key]] = [...obj[rowsList[k][key]], ...rowsList[k].items]
+      }
+    }
+    return obj
+  }
+  checkFilterValues (filters) {
+    const overedRowValueFilters = []
+    filters.forEach(f => {
+      let copyRowList = objectClone(this.rowLists)
+      let index = indexOfObjWithSomeKey(copyRowList, 'column_name', f.column_name)
+      let newLenth = 0
+      while (index !== -1) {
+        newLenth = newLenth + copyRowList[index].items.length
+        copyRowList.splice(index, 1)
+        index = indexOfObjWithSomeKey(copyRowList, 'column_name', f.column_name)
+      }
+      if (f.in_items.length + f.like_items.length + newLenth > maxFilterAndFilterValues) { // 单个 filter 中的值的数量最多支持 100 个 （包含LIKE）
+        overedRowValueFilters.push(f.column_name + `(${f.in_items.length + f.like_items.length + newLenth}/${maxFilterAndFilterValues})`)
+      }
+    })
+    return overedRowValueFilters
+  }
+  checkMaxRowAccess () {
+    this.filterTotalLength = 0 // filter 总数不超过 100 个 （包含 group 中的 filter）
+    this.newFiltersLenth = 0
+    this.overedRowValueFilters = []
+    if (!this.isRowAuthorEdit) { // 新添加过滤器的入口
+      let isExistedColumn = false
+      if (!this.isAddFilterForGroup) {
+        for (let fgKey in this.row_filter.filter_groups) {
+          const fg = this.row_filter.filter_groups[fgKey]
+          if (fg.is_group) continue // 添加外层过滤器，只在外层过滤器里比对列名值是否超过max
+          this.overedRowValueFilters = this.checkFilterValues(fg.filters)
+        }
+      } else {
+        const fg = this.row_filter.filter_groups[this.editFilterGroupIndex]
+        this.overedRowValueFilters = this.checkFilterValues(fg.filters)
+      }
+      if (!isExistedColumn) { // 新增的列
+        this.row_filter.filter_groups.forEach(fg => {
+          this.filterTotalLength = this.filterTotalLength + fg.filters.length
+        })
+        const rowsObject = this.fromRowArrToObj(this.rowLists, 'column_name')
+        this.newFiltersLenth = Object.keys(rowsObject).length
+        for (let key in rowsObject) {
+          if (rowsObject[key].length > maxFilterAndFilterValues) { // 新增的单条过滤值超过max
+            this.overedRowValueFilters.push(key + `(${rowsObject[key].length}/${maxFilterAndFilterValues})`)
+          }
+        }
+      }
+      return (this.filterTotalLength + this.newFiltersLenth > maxFilterAndFilterValues) || this.overedRowValueFilters.length > 0
+    } else { // 编辑是同一列的in 和 like 值已合并
+      const rowsObject = this.fromRowArrToObj(this.rowLists, 'column_name')
+      for (let key in rowsObject) {
+        if (rowsObject[key].length > maxFilterAndFilterValues) { // 新增的单条过滤值超过max
+          this.overedRowValueFilters.push(key + `(${rowsObject[key].length}/${maxFilterAndFilterValues})`)
+        }
+      }
+      return this.overedRowValueFilters.length > 0
+    }
   }
   submitRowAccess () {
+    if (this.checkMaxRowAccess()) return
     if (!this.isRowAuthorEdit) {
       this.rowLists.forEach((row) => {
         if (row.column_name && row.items.length) {
-          const index = indexOfObjWithSomeKey(this.rows, 'column_name', row.column_name)
-          if (index === -1) {
-            const rowObj = {column_name: row.column_name, items: row.joinType === '=' ? row.items : [], likeItems: row.joinType === 'like' ? row.items : []}
-            this.rows.push(rowObj)
-          } else {
-            if (row.joinType === '=') {
-              this.rows[index].items = [...this.rows[index].items, ...row.items]
-            } else if (row.joinType === 'like') {
-              this.rows[index].likeItems = [...this.rows[index].likeItems, ...row.items]
+          if (this.isAddFilterForGroup) { // 只在指定筛选组里合并相同维度
+            const filters = this.row_filter.filter_groups[this.editFilterGroupIndex].filters
+            const index = indexOfObjWithSomeKey(filters, 'column_name', row.column_name)
+            if (index !== -1) {
+              if (row.joinType === 'IN') {
+                filters[index].in_items = [...filters[index].in_items, ...row.items]
+              } else if (row.joinType === 'LIKE') {
+                filters[index].like_items = [...filters[index].like_items, ...row.items]
+              }
+            } else {
+              const rowObj = {column_name: row.column_name, in_items: row.joinType === 'IN' ? row.items : [], like_items: row.joinType === 'LIKE' ? row.items : []}
+              filters.push(rowObj)
+            }
+          } else { // 在筛选组外的所有筛选器合并相同维度
+            let isExistedColumn = false
+            for (let fg in this.row_filter.filter_groups) {
+              if (this.row_filter.filter_groups[fg].is_group) continue
+              const index = indexOfObjWithSomeKey(this.row_filter.filter_groups[fg].filters, 'column_name', row.column_name)
+              if (index !== -1) {
+                if (row.joinType === 'IN') {
+                  this.row_filter.filter_groups[fg].filters[index].in_items = [...this.row_filter.filter_groups[fg].filters[index].in_items, ...row.items]
+                } else if (row.joinType === 'LIKE') {
+                  this.row_filter.filter_groups[fg].filters[index].like_items = [...this.row_filter.filter_groups[fg].filters[index].like_items, ...row.items]
+                }
+                isExistedColumn = true
+                break
+              }
+            }
+            if (!isExistedColumn) { // 新增的列，需要新增一个filterGroups, is_group 为false
+              const rowObj = {column_name: row.column_name, in_items: row.joinType === 'IN' ? row.items : [], like_items: row.joinType === 'LIKE' ? row.items : []}
+              this.row_filter.filter_groups.push({is_group: false, type: 'AND', filters: [rowObj]})
             }
           }
         }
       })
     } else {
       this.rowLists.forEach((r) => {
-        if (r.joinType === '=') {
-          this.rows[this.editRowIndex].items = r.items
-        } else if (r.joinType === 'like') {
-          this.rows[this.editRowIndex].likeItems = r.items
+        if (r.joinType === 'IN') {
+          this.row_filter.filter_groups[this.editFilterGroupIndex].filters[this.editRowIndex].in_items = r.items
+        } else if (r.joinType === 'LIKE') {
+          this.row_filter.filter_groups[this.editFilterGroupIndex].filters[this.editRowIndex].like_items = r.items
         }
       })
-      if (this.rows[this.editRowIndex].items.length === 0 && this.rows[this.editRowIndex].likeItems.length === 0) {
-        this.rows.splice(this.editRowIndex, 1)
+      if (this.row_filter.filter_groups[this.editFilterGroupIndex].filters[this.editRowIndex].in_items.length === 0 && this.row_filter.filter_groups[this.editFilterGroupIndex].filters[this.editRowIndex].like_items.length === 0) {
+        this.row_filter.filter_groups[this.editFilterGroupIndex].filters.splice(this.editRowIndex, 1)
+        if (!this.row_filter.filter_groups[this.editFilterGroupIndex].filters.length) {
+          if (!this.row_filter.filter_groups[this.editFilterGroupIndex].is_group) {
+            this.row_filter.filter_groups.splice(this.editFilterGroupIndex, 1)
+          }
+          this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.filter_groups.splice(this.editFilterGroupIndex, 1)
+          this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.filter_groups.splice(this.editFilterGroupIndex, 1)
+        }
       }
     }
-    this.allTables[this.databaseIndex].tables[this.tableIndex].rows = this.rows.map((row) => {
-      return { column_name: row.column_name, items: row.items }
-    }).filter((row) => {
-      return row.items.length > 0
-    })
-    this.allTables[this.databaseIndex].tables[this.tableIndex].like_rows = this.rows.map((row) => {
-      return { column_name: row.column_name, items: row.likeItems }
-    }).filter((row) => {
-      return row.items.length > 0
-    })
-    this.tables[this.databaseIndex].originTables[this.tableIndex].rows = this.rows.map((row) => {
-      return { column_name: row.column_name, items: row.items }
-    }).filter((row) => {
-      return row.items.length > 0
-    })
-    this.tables[this.databaseIndex].originTables[this.tableIndex].like_rows = this.rows.map((row) => {
-      return { column_name: row.column_name, items: row.likeItems }
-    }).filter((row) => {
-      return row.items.length > 0
-    })
+    this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter = objectClone(this.row_filter)
+    this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter = objectClone(this.row_filter)
     this.rowAccessVisible = false
   }
   addRow () {
-    this.rowLists.unshift({column_name: '', joinType: '=', items: []})
+    this.rowLists.unshift({column_name: '', joinType: 'IN', items: []})
   }
   removeRow (index) {
     this.rowLists.splice(index, 1)
   }
   resetRowAccess () {
-    this.rowLists = [{column_name: '', joinType: '=', items: []}]
+    this.showErrorDetails = false
+    this.showDetails = false
+    this.rowLists = [{column_name: '', joinType: 'IN', items: []}]
     this.isNeedDisableLike = false
   }
   async loadAccessDetails (authorizedOnly) {
@@ -735,7 +989,7 @@ export default class UserAccess extends Vue {
           if (database.database_name + '.' + t.table_name === this.currentTable) {
             this.currentTableId = id
           }
-          return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, rows: t.rows, like_rows: t.like_rows, totalColNum: t.total_column_num}
+          return {id: id, label: t.table_name, database: database.database_name, authorized: t.authorized, columns: t.columns, row_filter: t.row_filter, totalColNum: t.total_column_num}
         })
         const pegedTableDatas = originTableDatas.slice(0, pageSizeMapping.TABLE_TREE)
         if (pageSizeMapping.TABLE_TREE < originTableDatas.length) {
@@ -794,10 +1048,15 @@ export default class UserAccess extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   .access-content {
+    .join-type {
+      width: 70px;
+    }
     .row-list {
       .el-col {
         display: block !important;
         word-break: break-all;
+        line-height: 1.4;
+        padding: 5px;
       }
     }
   }
@@ -805,10 +1064,10 @@ export default class UserAccess extends Vue {
     width: 210px;
   }
   .row-values-edit {
-    width: calc(~'100% - 285px');
+    width: calc(~'100% - 290px');
   }
   .row-values-add {
-    width: calc(~'100% - 355px');
+    width: calc(~'100% - 360px');
   }
   .row-values-edit,
   .row-values-add {
@@ -850,6 +1109,22 @@ export default class UserAccess extends Vue {
       }
     }
   }
+  .a-like {
+    color: @base-color;
+    position: relative;
+    .arrow {
+      transform: rotate(90deg) scale(0.8);
+      margin-left: 3px;
+      font-size: 7px;
+      color: @base-color;
+      position: absolute;
+      top: 2px;
+    }
+  }
+  .error-msg {
+    color: @text-normal-color;
+    word-break: break-all;
+  }
   .like-tips-block {
     color: @text-normal-color;
     .review-details {
@@ -868,12 +1143,12 @@ export default class UserAccess extends Vue {
       position: absolute;
       top: 4px;
     }
-    .detail-content {
-      background-color: @base-background-color-1;
-      padding: 10px 15px;
-      box-sizing: border-box;
-      font-size: 12px;
-      color: @text-normal-color;
-    }
+  }
+  .detail-content {
+    background-color: @base-background-color-1;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    font-size: 12px;
+    color: @text-normal-color;
   }
 </style>
