@@ -26,8 +26,11 @@ package io.kyligence.kap.rest.config.cloud;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
@@ -42,6 +45,8 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.model.SnapshotBuildFinishedEvent;
 
+import com.clearspring.analytics.util.Lists;
+
 import io.kyligence.kap.guava20.shaded.common.eventbus.KylinEventException;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
@@ -51,6 +56,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AlluxioExtension {
+    private static Pattern IP_PATTERN = Pattern
+            .compile("((25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)");
 
     @Subscribe
     public void onSnapshotFinished(SnapshotBuildFinishedEvent finished) throws Exception {
@@ -71,22 +78,40 @@ public class AlluxioExtension {
             return;
         }
 
-        String hostName = acquireAlluxioAddress();
-        log.info("alluxio hostname: {}", hostName);
+        List<String> hosts = acquireAlluxioAddress();
+        log.info("alluxio hosts: {}", hosts);
 
         String rootPath = new Path(KapConfig.wrap(config).getMetadataWorkingDirectory()).toUri().getPath();
         String snapshotAbsolutePath = rootPath + "/" + snapshotPath;
 
-        String listUrl = String.format(Locale.ROOT, "HTTP://%s:39999/api/v1/paths/%s/list-status", hostName,
+        boolean success = false;
+        for (String hostName : hosts) {
+            if (tryFreshCache(hostName, snapshotAbsolutePath)) {
+                success = true;
+                break;
+            }
+        }
+
+        if (!success) {
+            throw new RuntimeException(String.format(Locale.ROOT, "try all alluxio host %s  failed", hosts));
+        }
+
+    }
+
+    private boolean tryFreshCache(String alluxioHost, String snapshotAbsolutePath) {
+        String listUrl = String.format(Locale.ROOT, "HTTP://%s:39999/api/v1/paths/%s/list-status", alluxioHost,
                 snapshotAbsolutePath);
         log.info("list url: {}", listUrl);
-
         // post request
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost listAlwaysPost = constructListPost(listUrl, "ALWAYS");
             HttpPost listOncePost = constructListPost(listUrl, "ONCE");
             chainPost(httpClient, listAlwaysPost, listOncePost);
+        } catch (Throwable e) {
+            log.warn(String.format(Locale.ROOT, "use alluxio host %s to refresh snapshot failed", alluxioHost), e);
+            return false;
         }
+        return true;
     }
 
     private void chainPost(CloseableHttpClient httpClient, HttpPost... postRequests) throws IOException {
@@ -110,7 +135,27 @@ public class AlluxioExtension {
         return listPost;
     }
 
-    private String acquireAlluxioAddress() throws Exception {
+    private List<String> acquireAlluxioAddress() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (config.isEmbeddedEnable()) {
+            return acquireAlluxioAddressFromConfig();
+        } else {
+            return acquireAlluxioAddressFromZK();
+        }
+    }
+
+    private List<String> acquireAlluxioAddressFromConfig() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        List<String> hosts = Lists.newArrayList();
+        Matcher m = IP_PATTERN.matcher(config.getParquetReadFileSystem());
+
+        while (m.find()) {
+            hosts.add(m.group());
+        }
+        return hosts;
+    }
+
+    private List<String> acquireAlluxioAddressFromZK() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String workSpace = getWorkSpace(config);
         log.info("get workspace name : {}", workSpace);
@@ -131,7 +176,7 @@ public class AlluxioExtension {
         log.info("get alluxio host {} from zk ", hostName);
 
         client.close();
-        return hostName;
+        return Arrays.asList(hostName);
     }
 
     private String getWorkSpace(KylinConfig config) {

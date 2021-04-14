@@ -129,7 +129,6 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
     }
 
     private void mergeRemoteMetaAfterBuilding(TableDesc remoteTbDesc, TableExtDesc remoteTblExtDesc) {
-
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         String selectPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
 

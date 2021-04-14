@@ -24,27 +24,15 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -61,7 +49,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
 import io.kyligence.kap.engine.spark.builder.SnapshotPartitionBuilder;
@@ -69,9 +56,6 @@ import io.kyligence.kap.engine.spark.utils.FileNames;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFrameworkFactory;
-import io.kyligence.kap.shaded.curator.org.apache.curator.retry.ExponentialBackoffRetry;
 
 public class SnapshotBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(SnapshotBuildJob.class);
@@ -97,10 +81,7 @@ public class SnapshotBuildJob extends SparkApplication {
                 moveIncrementalPartitions(tableDesc.getLastSnapshotPath(), tableDesc.getTempSnapshotPath());
             }
         }
-        EventBusFactory.getInstance()
-                .postSync(new SnapshotBuildFinishedEvent(tableDesc, selectedPartCol, incrementalBuild));
     }
-
 
     private void initialize(TableDesc table, String selectedPartCol, boolean incrementBuild) {
         if (table.getTempSnapshotPath() != null) {
@@ -169,8 +150,8 @@ public class SnapshotBuildJob extends SparkApplication {
 
             fs.delete(sourcePath, false);
         } catch (Exception e) {
-            logger.error(String.format(Locale.ROOT, "from %s to %s move file fail:", incrementalSnapshotPath, originSnapshotPath),
-                    e);
+            logger.error(String.format(Locale.ROOT, "from %s to %s move file fail:", incrementalSnapshotPath,
+                    originSnapshotPath), e);
             Throwables.propagate(e);
         }
 

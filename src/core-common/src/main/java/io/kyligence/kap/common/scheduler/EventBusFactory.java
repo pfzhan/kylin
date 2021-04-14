@@ -47,7 +47,7 @@ public class EventBusFactory {
     private final KylinConfig kylinConfig;
     private ExecutorService executor;
     private EventBus asyncEventBus;
-    private EventBus syncEventBus = new SyncThrowExceptionEventBus();
+    private EventBus syncEventBus;
 
     private final Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
 
@@ -59,7 +59,7 @@ public class EventBusFactory {
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("SchedulerEventBus"));
         asyncEventBus = new AsyncEventBus(executor);
-        syncEventBus = new EventBus();
+        syncEventBus = new SyncThrowExceptionEventBus();
     }
 
     public void register(Object listener, boolean isSync) {
