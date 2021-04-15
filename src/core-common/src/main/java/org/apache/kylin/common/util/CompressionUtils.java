@@ -59,8 +59,8 @@ public class CompressionUtils {
     private static final byte[] GZIP = "GZIP".getBytes(Charset.defaultCharset());
 
     public static byte[] compress(byte[] data) throws IOException {
-        if (data == null || data.length == 0 || isCompressed(data)
-                && !KylinConfig.getInstanceFromEnv().isMetadataCompressEnabled()) {
+        if (!KylinConfig.getInstanceFromEnv().isMetadataCompressEnabled()
+                || data == null || data.length == 0 || isCompressed(data)) {
             return data;
         }
         Deflater deflater = new Deflater(1);

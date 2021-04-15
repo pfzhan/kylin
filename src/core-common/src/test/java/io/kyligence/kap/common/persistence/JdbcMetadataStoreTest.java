@@ -239,17 +239,17 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         dataSource.setPassword(url.getParameter("password"));
         val jdbcTemplate = new JdbcTemplate(dataSource);
 
-        String contents = jdbcTemplate.queryForObject(
+        byte[] contents = jdbcTemplate.queryForObject(
                 "select META_TABLE_CONTENT from " + tableName + " where META_TABLE_KEY = '/p1/test'",
-                (rs, rowNum) -> rs.getString(1));
+                (rs, rowNum) -> rs.getBytes(1));
 
-        Assert.assertFalse(CompressionUtils.isCompressed(contents.getBytes(StandardCharsets.UTF_8)));
+        Assert.assertFalse(CompressionUtils.isCompressed(contents));
 
-        String auditLogContents = jdbcTemplate.queryForObject(
+        byte[] auditLogContents = jdbcTemplate.queryForObject(
                 "select meta_content from " + tableName + "_audit_log where meta_key = '/p1/test'",
-                (rs, rowNum) -> rs.getString(1));
+                (rs, rowNum) -> rs.getBytes(1));
 
-        Assert.assertFalse(CompressionUtils.isCompressed(auditLogContents.getBytes(StandardCharsets.UTF_8)));
+        Assert.assertFalse(CompressionUtils.isCompressed(auditLogContents));
     }
 
 }
