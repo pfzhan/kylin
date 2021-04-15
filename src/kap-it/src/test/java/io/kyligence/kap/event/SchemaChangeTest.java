@@ -31,8 +31,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.Objects;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -40,13 +41,11 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -70,10 +69,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -81,6 +82,7 @@ import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -89,17 +91,17 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.TableService;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
+import io.kyligence.kap.util.JobFinishHelper;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
-
-    private static final String PROJECT = "default";
 
     private static final String SQL_LOOKUP = "select cal_dt, week_beg_dt from edw.test_cal_dt";
     private static final String SQL_DERIVED = "select test_sites.site_name, test_kylin_fact.lstg_format_name, sum(test_kylin_fact.price) as gmv, count(*) as trans_cnt \n"
@@ -114,6 +116,8 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
             + "left join test_category_groupings as test_category_groupings\n"
             + "on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id and test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
             + "where upd_user not in ('user_y') group by upd_user";
+
+    private static final String TABLE_IDENTITY = "DEFAULT.TEST_CATEGORY_GROUPINGS";
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
@@ -156,7 +160,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
+        ProjectInstance projectInstance = projectManager.getProject(getProject());
         val overrideKylinProps = projectInstance.getOverrideKylinProps();
         overrideKylinProps.put("kylin.query.force-limit", "-1");
         overrideKylinProps.put("kylin.source.default", "9");
@@ -168,11 +172,14 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         projectManager.forceDropProject("broken_test");
         projectManager.forceDropProject("bad_query_test");
 
-        val scheduler = NDefaultScheduler.getInstance(PROJECT);
+        val scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
 
+        NExecutableManager originExecutableManager = NExecutableManager.getInstance(getTestConfig(), getProject());
+        NExecutableManager executableManager = Mockito.spy(originExecutableManager);
+
         val config = KylinConfig.getInstanceFromEnv();
-        val dsMgr = NDataflowManager.getInstance(config, PROJECT);
+        val dsMgr = NDataflowManager.getInstance(config, getProject());
         // ready dataflow, segment, cuboid layout
         var df = dsMgr.getDataflowByModelAlias("nmodel_basic");
         // cleanup all segments first
@@ -184,30 +191,31 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         val round1 = Lists.newArrayList(layouts);
         val segmentRange = SegmentRange.TimePartitionedSegmentRange.createInfinite();
         val toBuildLayouts = Sets.newLinkedHashSet(round1);
-        val execMgr = NExecutableManager.getInstance(config, PROJECT);
+        val execMgr = NExecutableManager.getInstance(config, getProject());
         // ready dataflow, segment, cuboid layout
         val oneSeg = dsMgr.appendSegment(df, segmentRange);
         val job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN", null);
         // launch the job
         execMgr.addJob(job);
-        if (!Objects.equals(waitForFinished(job), ExecutableState.SUCCEED))
-            throw new IllegalStateException();
+        JobFinishHelper.waitJobFinish(config, getProject(), job.getId(), 600 * 1000);
+        Preconditions.checkArgument(executableManager.getJob(job.getId()).getStatus() == ExecutableState.SUCCEED);
 
         val buildStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep());
-        val merger = new AfterBuildResourceMerger(config, PROJECT);
+        val merger = new AfterBuildResourceMerger(config, getProject());
         val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
 
-        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         indexManager.updateIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", copyForWrite -> {
-            copyForWrite.setIndexes(copyForWrite.getIndexes().stream().peek(i -> {
+            List<IndexEntity> indexes = copyForWrite.getIndexes().stream().peek(i -> {
                 if (i.getId() == 0) {
                     i.setLayouts(Lists.newArrayList(i.getLayouts().get(0)));
                 }
-            }).collect(Collectors.toList()));
+            }).collect(Collectors.toList());
+            copyForWrite.setIndexes(indexes);
         });
-        userService.createUser(
-                new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
+        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false,
+                Collections.singletonList(new UserGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @After
@@ -217,17 +225,15 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         NDefaultScheduler.destroyInstance();
     }
 
-    private static final String TABLE_IDENTITY = "DEFAULT.TEST_CATEGORY_GROUPINGS";
-
     @Test
-    public void testSnapshotModifyTimeAfterReloadTable() throws Exception {
-        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+    public void testSnapshotModifyTimeAfterReloadTable() {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val table = tableManager.getTableDesc(TABLE_IDENTITY);
         long snapshotLastModify = System.currentTimeMillis();
         table.setLastSnapshotPath("mockpath");
         table.setSnapshotLastModified(snapshotLastModify);
         tableManager.saveSourceTable(table);
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
+        tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
         val newTable = tableManager.getTableDesc(TABLE_IDENTITY);
         Assert.assertEquals(snapshotLastModify, newTable.getSnapshotLastModified());
     }
@@ -235,24 +241,22 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testAddColumn() throws Exception {
         addColumn(TABLE_IDENTITY, new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
+        tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
     @Test
     public void testRemoveColumn() throws Exception {
         removeColumn(TABLE_IDENTITY, "SRC_ID");
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
+        tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
     @Ignore
     @Test
     public void testChangeColumnType() throws Exception {
-        changeColumns(TABLE_IDENTITY, Sets.newHashSet("SRC_ID"), columnDesc -> {
-            columnDesc.setDatatype("string");
-        });
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
+        changeColumns(TABLE_IDENTITY, Sets.newHashSet("SRC_ID"), columnDesc -> columnDesc.setDatatype("string"));
+        tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
@@ -265,7 +269,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 columnDesc.setId("35");
             }
         });
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
+        tableService.reloadTable(getProject(), TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
@@ -274,7 +278,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 Pair.newPair(SQL_DERIVED, false), Pair.newPair(SQL_LOOKUP2, true), Pair.newPair(SQL_DERIVED2, true))) {
             val req = new SQLRequest();
             req.setSql(pair.getFirst());
-            req.setProject(PROJECT);
+            req.setProject(getProject());
             req.setUsername("ADMIN");
             val response = queryService.query(req);
             with().pollInterval(10, TimeUnit.MILLISECONDS) //
@@ -289,7 +293,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
 
     private void changeColumns(String tableIdentity, Set<String> columns, Consumer<ColumnDesc> changer)
             throws IOException {
-        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
         String tablePath = resPath + "/../data/tableDesc/" + tableIdentity + ".json";
@@ -300,28 +304,28 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
             }
         }).sorted(Comparator.comparing(col -> Integer.parseInt(col.getId()))).toArray(ColumnDesc[]::new);
         tableMeta.setColumns(newColumns);
-        JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
+        JsonUtil.writeValueIndent(new FileOutputStream(tablePath), tableMeta);
     }
 
     private void addColumn(String tableIdentity, ColumnDesc... columns) throws IOException {
-        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
         String tablePath = resPath + "/../data/tableDesc/" + tableIdentity + ".json";
         val tableMeta = JsonUtil.readValue(new File(tablePath), TableDesc.class);
         val newColumns = Lists.newArrayList(factTable.getColumns());
-        long maxId = newColumns.stream().mapToLong(col -> Long.parseLong(col.getId())).max().getAsLong();
+        long maxId = newColumns.stream().mapToLong(col -> Long.parseLong(col.getId())).max().orElse(0);
         for (ColumnDesc column : columns) {
             maxId++;
             column.setId("" + maxId);
             newColumns.add(column);
         }
         tableMeta.setColumns(newColumns.toArray(new ColumnDesc[0]));
-        JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
+        JsonUtil.writeValueIndent(new FileOutputStream(tablePath), tableMeta);
     }
 
     private void removeColumn(String tableIdentity, String... column) throws IOException {
-        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
         String tablePath = resPath + "/../data/tableDesc/" + tableIdentity + ".json";
@@ -330,17 +334,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         val newColumns = Stream.of(factTable.getColumns()).filter(col -> !columns.contains(col.getName()))
                 .toArray(ColumnDesc[]::new);
         tableMeta.setColumns(newColumns);
-        JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
-    }
-
-    ExecutableState waitForFinished(AbstractExecutable job) throws InterruptedException {
-        while (true) {
-            Thread.sleep(500);
-            val status = job.getStatus();
-            if (!status.isProgressing()) {
-                return status;
-            }
-        }
+        JsonUtil.writeValueIndent(new FileOutputStream(tablePath), tableMeta);
     }
 
     private void setupPushdownEnv() throws Exception {

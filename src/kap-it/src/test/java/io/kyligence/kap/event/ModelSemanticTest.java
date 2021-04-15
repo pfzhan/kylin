@@ -34,10 +34,6 @@ import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.Executable;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -63,9 +59,11 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -78,6 +76,7 @@ import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
+import io.kyligence.kap.util.JobFinishHelper;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +85,9 @@ import lombok.extern.slf4j.Slf4j;
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     public static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+    protected NExecutableManager executableManager;
+    NIndexPlanManager indexPlanManager;
+    NDataflowManager dataflowManager;
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
@@ -156,6 +158,11 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                     copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 1011).collect(Collectors.toList()));
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
+
+        NExecutableManager originExecutableManager = NExecutableManager.getInstance(getTestConfig(), getProject());
+        executableManager = Mockito.spy(originExecutableManager);
+        indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
     }
 
     @After
@@ -170,14 +177,15 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testSemanticChangedHappy() throws Exception {
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        executableManager.getJobs().forEach(jobId -> waitForJobFinish(jobId, 500 * 1000));
         changeModelRequest();
 
-        val executables = getRunningExecutables(getProject(), null);
-        Assert.assertEquals(1, executables.size());
-        waitForJobFinished(0);
+        List<String> jobs = executableManager.getJobs();
+        Assert.assertEquals(1, jobs.size());
+        waitForJobFinish(jobs.get(0), 500 * 1000);
 
-        val df = dfManager.getDataflow(MODEL_ID);
+        NDataflow df = dfManager.getDataflow(MODEL_ID);
         Assert.assertEquals(2, df.getSegments().size());
         Assert.assertEquals(df.getIndexPlan().getAllLayouts().size(),
                 df.getSegments().getLatestReadySegment().getLayoutsMap().size());
@@ -187,19 +195,19 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     // see issue #8740
     public void testChange_WithReadySegment() throws Exception {
         changeModelRequest();
-        waitForJobFinished(0);
-        NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).updateIndexPlan(MODEL_ID,
-                copyForWrite -> {
-                    copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(x -> x.getId() != 1000000)
-                            .collect(Collectors.toList()));
-                });
+        executableManager.getJobs().forEach(jobId -> waitForJobFinish(jobId, 600 * 1000));
+
+        indexPlanManager.updateIndexPlan(MODEL_ID, copyForWrite -> {
+            List<IndexEntity> indexes = copyForWrite.getIndexes() //
+                    .stream().filter(x -> x.getId() != 1000000) //
+                    .collect(Collectors.toList());
+            copyForWrite.setIndexes(indexes);
+        });
 
         // update measure
         updateMeasureRequest();
-        waitForJobFinished(0);
-
-        Segments<NDataSegment> segments = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
-                .getDataflow(MODEL_ID).getSegments();
+        executableManager.getJobs().forEach(jobId -> waitForJobFinish(jobId, 600 * 1000));
+        Segments<NDataSegment> segments = dataflowManager.getDataflow(MODEL_ID).getSegments();
         long storageSize = 0;
         for (NDataSegment seg : segments) {
             Assert.assertEquals(SegmentStatusEnum.READY, seg.getStatus());
@@ -212,7 +220,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     // see issue #8820
     public void testChange_ModelWithAggGroup() throws Exception {
         changeModelRequest();
-        waitForJobFinished(0);
+        executableManager.getJobs().forEach(jobId -> waitForJobFinish(jobId, 600 * 1000));
 
         // init agg group
         val group1 = JsonUtil.readValue("{\n" + //
@@ -231,7 +239,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        waitForJobFinished(0);
+        executableManager.getJobs().forEach(jobId -> waitForJobFinish(jobId, 600 * 1000));
 
         // update measures, throws an exception
         updateMeasureWithAgg();
@@ -252,10 +260,9 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 request.getJoinTables().stream().peek(j -> j.getJoin().setType("inner")).collect(Collectors.toList()));
         request.setSimplifiedJoinTableDescs(
                 SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(request.getJoinTables()));
-        val result = mockMvc
-                .perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
     }
 
@@ -300,41 +307,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         return request;
     }
 
-    private List<DefaultChainedExecutable> genMockJobs(int size, ExecutableState state) {
-        List<DefaultChainedExecutable> jobs = Lists.newArrayList();
-        if (size <= 0) {
-            return jobs;
-        }
-        for (int i = 0; i < size; i++) {
-            DefaultChainedExecutable job = Mockito.spy(DefaultChainedExecutable.class);
-            Mockito.doReturn(state).when(job).getStatus();
-            jobs.add(job);
-        }
-        return jobs;
-    }
-
-    private long waitForJobFinished(int expectedSize) throws InterruptedException {
-        NExecutableManager manager = NExecutableManager.getInstance(getTestConfig(), getProject());
-        List<Executable> jobs;
-        val startTime = System.currentTimeMillis();
-        while (true) {
-            int finishedEventNum = 0;
-            jobs = manager.getJobs().stream().map(manager::getJob).filter(e -> !e.getStatus().isFinalState())
-                    .collect(Collectors.toList());
-            log.debug("finished {}, all {}", finishedEventNum, jobs.size());
-            if (jobs.size() == expectedSize) {
-                break;
-            }
-            if (System.currentTimeMillis() - startTime > 200 * 1000) {
-                break;
-            }
-            Thread.sleep(1000);
-        }
-        return 0L;
-    }
-
-    private List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
-                model);
+    private void waitForJobFinish(String jobId, long maxWaitMilliseconds) {
+        JobFinishHelper.waitJobFinish(getTestConfig(), getProject(), jobId, maxWaitMilliseconds);
     }
 }

@@ -23,11 +23,10 @@
  */
 package io.kyligence.kap.event;
 
-import static io.kyligence.kap.event.DataflowJobTest.prepareSegment;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -50,13 +49,13 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
+import io.kyligence.kap.util.SegmentInitializeUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
 
-    private static final String DEFAULT_PROJECT = "default";
     private NDefaultScheduler scheduler;
 
     @Before
@@ -74,10 +73,10 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
             projectMgr.forceDropProject(project);
         }
         NDefaultScheduler.destroyInstance();
-        scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()));
 
-        val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         table.setIncrementLoading(true);
         tableMgr.updateTableDesc(table);
@@ -92,8 +91,8 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
     @Test
     @Ignore
     public void testStorageCleanWithJob_MultiThread() throws InterruptedException {
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val MAX_WAIT = 500 * 1000;
         val start = System.currentTimeMillis() + MAX_WAIT;
@@ -109,8 +108,10 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
                 }
             }
         }).start();
-        prepareSegment(df.getUuid(), "2012-01-01", "2012-06-01", true);
-        prepareSegment(df.getUuid(), "2012-06-01", "2012-09-01", false);
+        SegmentInitializeUtil.prepareSegment(getTestConfig(), getProject(), df.getUuid(), "2012-01-01", "2012-06-01",
+                true);
+        SegmentInitializeUtil.prepareSegment(getTestConfig(), getProject(), df.getUuid(), "2012-06-01", "2012-09-01",
+                false);
 
         indexManager.updateIndexPlan(df.getId(), copyForWrite -> {
             copyForWrite.removeLayouts(Sets.newHashSet(30001L, 20001L), true, true);
@@ -121,7 +122,7 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
         val root = getTestConfig().getHdfsWorkingDirectory().substring(7) + "default/parquet/";
         val layoutFolders = FileUtils.listFiles(new File(root), new String[] { "parquet" }, true).stream()
                 .map(File::getParent).distinct().sorted().collect(Collectors.toList());
-        val expected = Sets.<String> newTreeSet();
+        Set<String> expected = Sets.newTreeSet();
         for (NDataSegment segment : df2.getSegments()) {
             for (Map.Entry<Long, NDataLayout> entry : segment.getLayoutsMap().entrySet()) {
                 expected.add(root + df2.getId() + "/" + segment.getId() + "/" + entry.getKey());
@@ -129,7 +130,5 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
         }
         finished.set(true);
         Assert.assertEquals(String.join(";\n", expected), String.join(";\n", layoutFolders));
-
     }
-
 }
