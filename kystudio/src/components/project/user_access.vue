@@ -164,7 +164,7 @@
                 <el-dropdown-item @click.native="addFilterGroups">{{$t('filterGroups')}}</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
-            <kap-nodata :content="emptyText3" v-if="isCurrentTableChecked&&row_filter&&!getSearchFilterdGroup(row_filter.filter_groups).length">
+            <kap-nodata :content="emptyText3" v-if="isCurrentTableChecked&&row_filter&&!getSearchFilterdGroup(row_filter.filter_groups).length&&row_filter.filter_groups.length">
             </kap-nodata>
             <div class="view-all-tips" v-if="isCurrentTableChecked&&row_filter&&!row_filter.filter_groups.length">
               <div><i class="point">•</i> {{$t('viewAllDataTips')}}</div>
@@ -199,7 +199,7 @@
             </a>
           </span>
         </el-alert>
-        <div class="ksd-mtb-10 error-msg detail-content" v-if="showErrorDetails">
+        <div class="ksd-mtb-10 detail-content" v-if="showErrorDetails">
           <div v-if="filterTotalLength+newFiltersLenth>maxFilterAndFilterValues">{{$t('filterTotal')}}{{filterTotalLength+newFiltersLenth}}/{{maxFilterAndFilterValues}}</div>
           <div v-if="overedRowValueFilters.length>0">
             {{$t('filterValuesTotal')}}{{overedRowValueFilters.toString()}}
@@ -340,7 +340,7 @@ import { pageSizeMapping, maxFilterAndFilterValues } from '../../config'
       add: '添加',
       filters: '过滤器',
       filterGroups: '过滤组',
-      filterTips: '同一过滤器的不同值的关系为 “或“ (OR) ',
+      filterTips: '同一过滤器的不同值的关系为 “或” (OR) ',
       deleteFilterGroupTips: '确定要删除过滤组吗？过滤组中的过滤器会被一并删除。',
       deleteFilterGroupTitle: '删除过滤组',
       expandAll: '展开全部',
@@ -854,7 +854,6 @@ export default class UserAccess extends Vue {
     this.newFiltersLenth = 0
     this.overedRowValueFilters = []
     if (!this.isRowAuthorEdit) { // 新添加过滤器的入口
-      let isExistedColumn = false
       if (!this.isAddFilterForGroup) {
         for (let fgKey in this.row_filter.filter_groups) {
           const fg = this.row_filter.filter_groups[fgKey]
@@ -865,7 +864,7 @@ export default class UserAccess extends Vue {
         const fg = this.row_filter.filter_groups[this.editFilterGroupIndex]
         this.overedRowValueFilters = this.checkFilterValues(fg.filters)
       }
-      if (!isExistedColumn) { // 新增的列
+      if (!this.overedRowValueFilters.length) { // overedRowValueFilters 为空说明已存在的filter没有超过max的值
         this.row_filter.filter_groups.forEach(fg => {
           this.filterTotalLength = this.filterTotalLength + fg.filters.length
         })
