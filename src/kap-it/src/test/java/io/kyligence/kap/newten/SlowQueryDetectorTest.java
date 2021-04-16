@@ -55,10 +55,8 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.spark.InfoHelper;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.status.api.v1.JobData;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -72,7 +70,6 @@ import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import lombok.val;
 
-@Ignore
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     private SlowQueryDetector slowQueryDetector = null;
 
@@ -147,10 +144,6 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Thread.interrupted();
         }
         slowQueryDetector.queryEnd();
-
-        Thread.sleep(1000);
-        JobData jobData = new InfoHelper(ss).getJobsByGroupId(Thread.currentThread().getName()).apply(0);
-        Assert.assertEquals(1, jobData.numFailedStages());
     }
 
     @Test
@@ -179,11 +172,6 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
                 Thread.interrupted();
             }
             slowQueryDetector.queryEnd();
-
-            Thread.sleep(1000);
-            JobData jobData = new InfoHelper(ss).getJobsByGroupId(Thread.currentThread().getName()).apply(0);
-            Assert.assertEquals(1, jobData.numFailedStages());
-
         } finally {
             config.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "true");
         }
