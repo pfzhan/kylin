@@ -387,7 +387,7 @@ export default class Homepage extends Vue {
   async turnOnRecommendation () {
     try {
       await this.callGlobalDetailDialog({
-        msg: this.$t('turnOnTips'),
+        msg: (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') ? this.$t('turnOnTipsInCloud') : this.$t('turnOnTips'),
         title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
         dialogType: 'warning',
         isBeta: true,
