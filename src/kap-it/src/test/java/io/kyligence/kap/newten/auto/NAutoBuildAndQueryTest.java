@@ -193,15 +193,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         Assert.assertFalse(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled());
         executeTestScenario(2, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
 
-        try {
-            overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
-            Assert.assertTrue(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled());
-            executeTestScenario(1, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
-
-        } finally {
-            overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "FALSE");
-        }
-
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        Assert.assertTrue(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled());
+        executeTestScenario(1, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
     }
 
     @Test

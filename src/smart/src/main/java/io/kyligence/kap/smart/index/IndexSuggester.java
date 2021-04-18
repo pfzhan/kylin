@@ -295,14 +295,13 @@ class IndexSuggester {
         if (isAnyCCDependsLookupTable.get()) {
             throw new PendingException(COMPUTED_COLUMN_ON_EXCLUDED_LOOKUP_TABLE);
         }
-        Set<String> usingExcludedLookupTables = checker.getUsedExcludedLookupTable(context.allColumns);
-        context.joins.forEach(join -> {
-            for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
-                TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
-                String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
-                if (usingExcludedLookupTables.contains(derivedTable) && !filterColumns.contains(foreignKeyColumn)) {
-                    nonFilterColumnSet.add(foreignKeyColumn);
-                }
+
+        // foreign key column as non-filter column
+        Preconditions.checkNotNull(checker, "ExcludedLookupChecker is not prepared yet.");
+        Map<String, TblColRef> fKAsDimensionMap = context.collectFKAsDimensionMap(checker);
+        fKAsDimensionMap.forEach((name, tblColRef) -> {
+            if (!filterColumns.contains(tblColRef)) {
+                nonFilterColumnSet.add(tblColRef);
             }
         });
     }

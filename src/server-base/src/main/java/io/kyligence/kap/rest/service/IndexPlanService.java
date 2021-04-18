@@ -136,9 +136,9 @@ public class IndexPlanService extends BasicService {
             Preconditions.checkNotNull(model);
 
             val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
-                val newRuleBasedCuboid = request.convertToRuleBasedIndex();
-                newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
-                copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, Sets.newHashSet(), false, true,
+                RuleBasedIndex ruleBasedIndex = request.convertToRuleBasedIndex();
+                ruleBasedIndex.setLastModifiedTime(System.currentTimeMillis());
+                copyForWrite.setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), false, true,
                         request.isRestoreDeletedIndex());
             });
             BuildIndexResponse response = new BuildIndexResponse();
@@ -299,16 +299,43 @@ public class IndexPlanService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void removeIndexes(String project, String model, final Set<Long> ids) {
+    public void removeIndex(String project, String model, final long id) {
+        removeIndexes(project, model, Collections.singleton(id));
+    }
+
+    /**
+     * Remove index by ids.
+     * @param project project name
+     * @param modelId model uuid
+     * @param ids layout ids to remove
+     */
+    @Transaction(project = 0)
+    public void removeIndexes(String project, String modelId, Set<Long> ids) {
+        removeIndexes(project, modelId, ids, Sets.newHashSet(), Sets.newHashSet());
+    }
+
+    /**
+     * Remove index by ids, also support remove invalid dimensions and measures.
+     * If the dimensions and measures on model has been deleted, these dimensions and measures
+     * must delete
+     * @param project project name
+     * @param modelId model uuid
+     * @param ids layout ids to remove
+     * @param invalidDimensions invalid dimension ids
+     * @param invalidMeasures  invalid measure ids
+     */
+    @Transaction(project = 0)
+    public void removeIndexes(String project, String modelId, Set<Long> ids, Set<Integer> invalidDimensions,
+            Set<Integer> invalidMeasures) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
 
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
 
-        val indexPlan = getIndexPlan(project, model);
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
         Preconditions.checkNotNull(indexPlan);
 
         String notExistsLayoutIds = ids.stream().filter(id -> Objects.isNull(indexPlan.getLayoutEntity(id))).sorted()
@@ -320,23 +347,34 @@ public class IndexPlanService extends BasicService {
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            for (Long id : ids) {
-                val layout = indexPlan.getLayoutEntity(id);
-                if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
-                    copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
-                }
-            }
-
+            removeIndexFromAggGroup(ids, copyForWrite);
             copyForWrite.removeLayouts(ids, true, true);
+            removeAggGroup(invalidDimensions, invalidMeasures, copyForWrite);
         });
 
-        updateListeners.forEach(listener -> listener.onUpdate(project, model));
-
+        updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
     }
 
-    @Transaction(project = 0)
-    public void removeIndex(String project, String model, final long id) {
-        removeIndexes(project, model, Collections.singleton(id));
+    private void removeAggGroup(Set<Integer> invalidDimensions, Set<Integer> invalidMeasures, IndexPlan indexPlan) {
+        RuleBasedIndex oldRuleBasedIndex = indexPlan.getRuleBasedIndex();
+        if ((invalidDimensions.isEmpty() && invalidMeasures.isEmpty()) || oldRuleBasedIndex == null) {
+            return;
+        }
+        List<NAggregationGroup> aggGroups = oldRuleBasedIndex.getAggregationGroups();
+        aggGroups.removeIf(aggGroup -> Arrays.stream(aggGroup.getIncludes()).anyMatch(invalidDimensions::contains)
+                || Arrays.stream(aggGroup.getMeasures()).anyMatch(invalidMeasures::contains));
+
+        RuleBasedIndex newRuleBasedIndex = RuleBasedIndex.copy(oldRuleBasedIndex);
+        indexPlan.setRuleBasedIndex(newRuleBasedIndex, Sets.newHashSet(), false, true, false);
+    }
+
+    private void removeIndexFromAggGroup(Set<Long> ids, IndexPlan indexPlan) {
+        for (Long id : ids) {
+            LayoutEntity layout = indexPlan.getLayoutEntity(id);
+            if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
+                indexPlan.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+            }
+        }
     }
 
     private boolean addTableIndexToBeDeleted(String project, String modelId, Collection<Long> layoutIds) {
@@ -893,12 +931,12 @@ public class IndexPlanService extends BasicService {
         val dimensions = indexPlan.getModel().getEffectiveDimensions();
 
         val oldShardCols = indexPlan.getAggShardByColumns();
-        val effectiveShardCol = oldShardCols.stream().filter(colId -> dimensions.containsKey(colId)).collect(Collectors.toList());
-                
-        if(effectiveShardCol.size() < oldShardCols.size()){
+        val effectiveShardCol = oldShardCols.stream().filter(dimensions::containsKey).collect(Collectors.toList());
+
+        if (effectiveShardCol.size() < oldShardCols.size()) {
             indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
                 copyForWrite.setAggShardByColumns(effectiveShardCol);
-            }); 
+            });
         }
     }
 }

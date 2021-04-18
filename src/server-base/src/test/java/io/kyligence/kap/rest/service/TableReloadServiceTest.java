@@ -308,6 +308,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     + "    \"scheduler_version\" : 2\n"//
                     + "  }").getBytes(StandardCharsets.UTF_8), RuleBasedIndex.class));
             copyForWrite.setIndexes(Lists.newArrayList());
+            copyForWrite.getRuleBasedIndex().setIndexPlan(copyForWrite);
         });
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
         changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
@@ -334,7 +335,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
         val saved = indexManager.updateIndexPlan(modelId, copyForWrite -> {
             copyForWrite.setIndexes(Lists.newArrayList());
-            copyForWrite.setRuleBasedIndex(JsonUtil.readValueQuietly(("{" //
+            RuleBasedIndex ruleBasedIndex = JsonUtil.readValueQuietly(("{" //
                     + "    \"dimensions\": [ 0, 1, 2, 3, 4, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32, 33 ],\n" //
                     + "    \"measures\": [ 100000, 100001, 100002, 100003, 100004, 100005, 100007, 100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016 ],\n" //
                     + "    \"aggregation_groups\": [\n" + "      {\n" //
@@ -365,7 +366,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     + "      }\n" //
                     + "    ],\n" //
                     + "    \"storage_type\": 20" //
-                    + "}").getBytes(StandardCharsets.UTF_8), RuleBasedIndex.class), false, true);
+                    + "}").getBytes(StandardCharsets.UTF_8), RuleBasedIndex.class);
+            ruleBasedIndex.setIndexPlan(copyForWrite);
+            copyForWrite.setRuleBasedIndex(ruleBasedIndex, false, true);
         });
 
         val toBeDeletedLayouts = saved.getToBeDeletedIndexes();
@@ -401,7 +404,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            newRule.setIndexPlan(copyForWrite);
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "LSTG_FORMAT_NAME");
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
@@ -426,7 +432,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            newRule.setIndexPlan(copyForWrite);
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
@@ -452,7 +461,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            newRule.setIndexPlan(copyForWrite);
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
         val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
@@ -478,7 +490,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
-        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> copyForWrite.setRuleBasedIndex(newRule));
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            newRule.setIndexPlan(copyForWrite);
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
         modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
             if (!id.equals(originIndexPlan.getId())) {
                 modelService.dropModel(id, PROJECT, true);
@@ -916,6 +931,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val updatedIndexPlan = indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            ruleBasedIndex.setIndexPlan(copyForWrite);
             copyForWrite.setRuleBasedIndex(ruleBasedIndex);
             copyForWrite.setAggShardByColumns(beforeAggShardBy);
         });

@@ -296,6 +296,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         indexPlan = indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
             try {
                 val newRule = new RuleBasedIndex();
+                newRule.setIndexPlan(copyForWrite);
                 newRule.setDimensions(Arrays.asList(1, 2, 3, 4));
                 val group1 = JsonUtil
                         .readValue(

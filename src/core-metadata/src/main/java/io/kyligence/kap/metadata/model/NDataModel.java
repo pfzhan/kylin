@@ -119,7 +119,6 @@ import lombok.ToString;
 import lombok.val;
 
 @Data
-@SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NDataModel extends RootPersistentEntity {

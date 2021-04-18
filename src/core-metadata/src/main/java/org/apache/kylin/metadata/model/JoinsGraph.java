@@ -69,10 +69,11 @@ public class JoinsGraph implements Serializable {
 
     public class Edge implements Serializable {
 
-        private JoinDesc join;
-        private ColumnDesc[] leftCols;
-        private ColumnDesc[] rightCols;
-        private NonEquiJoinCondition nonEquiJoinCondition;
+        @Getter
+        private final JoinDesc join;
+        private final ColumnDesc[] leftCols;
+        private final ColumnDesc[] rightCols;
+        private final NonEquiJoinCondition nonEquiJoinCondition;
 
         private Edge(JoinDesc join) {
             this.join = join;
@@ -165,7 +166,8 @@ public class JoinsGraph implements Serializable {
         public String toString() {
             StringBuilder sb = new StringBuilder("Edge: ");
             sb.append(left())
-                    .append(isLeftJoin() ? " LEFT JOIN " : isLeftOrInnerJoin() ? " LEFT OR INNER JOIN " : " INNER JOIN ")
+                    .append(isLeftJoin() ? " LEFT JOIN "
+                            : isLeftOrInnerJoin() ? " LEFT OR INNER JOIN " : " INNER JOIN ")
                     .append(right()).append(" ON ")
                     .append(Arrays.toString(Arrays.stream(leftCols).map(ColumnDesc::getName).toArray())).append(" = ")
                     .append(Arrays.toString(Arrays.stream(rightCols).map(ColumnDesc::getName).toArray()));
@@ -186,7 +188,7 @@ public class JoinsGraph implements Serializable {
      * 1. JoinType
      * 2. Columns on both sides
      */
-    public static interface IJoinEdgeMatcher extends Serializable {
+    public interface IJoinEdgeMatcher extends Serializable {
         boolean matches(@NonNull Edge join1, @NonNull Edge join2);
     }
 
@@ -224,16 +226,16 @@ public class JoinsGraph implements Serializable {
         }
 
         protected boolean columnDescEquals(ColumnDesc a, ColumnDesc b) {
-            return a == null ? b == null : a.equals(b);
+            return Objects.equals(a, b);
         }
     }
 
     @Getter
-    private TableRef center;
-    private Map<String, TableRef> nodes = new HashMap<>();
-    private Set<Edge> edges = new HashSet<>();
-    private Map<TableRef, List<Edge>> edgesFromNode = new HashMap<>();
-    private Map<TableRef, List<Edge>> edgesToNode = new HashMap<>();
+    private final TableRef center;
+    private final Map<String, TableRef> nodes = new HashMap<>();
+    private final Set<Edge> edges = new HashSet<>();
+    private final Map<TableRef, List<Edge>> edgesFromNode = new HashMap<>();
+    private final Map<TableRef, List<Edge>> edgesToNode = new HashMap<>();
 
     /**
      * For model there's always a center, if there's only one tableScan it's the center.
@@ -348,8 +350,7 @@ public class JoinsGraph implements Serializable {
     }
 
     public static JoinsGraph normalizeJoinGraph(JoinsGraph joinsGraph) {
-        Set<Edge> edgesSet = joinsGraph.edges;
-        for (Edge edge : edgesSet) {
+        for (Edge edge : joinsGraph.edges) {
             if (!edge.isLeftJoin() || edge.isLeftOrInnerJoin()) {
                 TableRef leftTable = edge.left();
                 List<Edge> edgeList = joinsGraph.edgesToNode.get(leftTable);
@@ -357,7 +358,8 @@ public class JoinsGraph implements Serializable {
                     continue;
                 }
                 for (Edge targetEdge : edgeList) {
-                    if (!edge.equals(targetEdge) && leftTable.equals(targetEdge.right()) && !targetEdge.isLeftOrInnerJoin()) {
+                    if (!edge.equals(targetEdge) && leftTable.equals(targetEdge.right())
+                            && !targetEdge.isLeftOrInnerJoin()) {
                         joinsGraph.setJoinToLeftOrInner(targetEdge.join);
                         normalizeJoinGraph(joinsGraph);
                     }
@@ -368,7 +370,7 @@ public class JoinsGraph implements Serializable {
     }
 
     public List<TableRef> getAllTblRefNodes() {
-        return nodes == null ? Lists.newArrayList() : Lists.newArrayList(nodes.values());
+        return Lists.newArrayList(nodes.values());
     }
 
     /**
@@ -387,7 +389,7 @@ public class JoinsGraph implements Serializable {
             // return false
             for (Edge outgoingEdge : outgoingEdges) {
                 if (outgoingEdge.isNonEquiJoin()) {
-                    if (!matches.values().contains(patternTable) || !matches.values().contains(outgoingEdge.right())) {
+                    if (!matches.containsValue(patternTable) || !matches.containsValue(outgoingEdge.right())) {
                         return false;
                     }
                 }
@@ -430,12 +432,12 @@ public class JoinsGraph implements Serializable {
         //  matched if:   query graph join count:   model graph join count:
         //  1)                        inner join <= inner join
         //  2)   inner join + left or inner join >= inner join
-        List<Edge> innerQueryEdges = this.edgesFrom(queryTableRef).stream()
-                .filter(e -> e.isInnerJoin()).collect(Collectors.toList());
-        List<Edge> notLeftQueryEdges = this.edgesFrom(queryTableRef).stream()
-                .filter(e -> !e.isLeftJoin()).collect(Collectors.toList());
-        List<Edge> innerPatternEdges = pattern.edgesFrom(patternTableRef).stream()
-                .filter(e -> e.isInnerJoin()).collect(Collectors.toList());
+        List<Edge> innerQueryEdges = this.edgesFrom(queryTableRef).stream().filter(Edge::isInnerJoin)
+                .collect(Collectors.toList());
+        List<Edge> notLeftQueryEdges = this.edgesFrom(queryTableRef).stream().filter(e -> !e.isLeftJoin())
+                .collect(Collectors.toList());
+        List<Edge> innerPatternEdges = pattern.edgesFrom(patternTableRef).stream().filter(Edge::isInnerJoin)
+                .collect(Collectors.toList());
 
         // if all joins are inner joins, compare sum of both sides
         if (isAllJoinInner(this, queryTableRef) && isAllJoinInner(pattern, patternTableRef)) {
@@ -461,8 +463,10 @@ public class JoinsGraph implements Serializable {
         int cntRightSideInnerPatternEdges = (int) innerPatternEdges.stream()
                 .filter(edge -> edge.left().equals(patternTableRef)).count();
 
-        boolean isLeftEqual = cntLeftSideInnerQueryEdges <= cntLeftSideInnerPatternEdges && cntLeftSideNotLeftQueryEdges >= cntLeftSideInnerPatternEdges;
-        boolean isRightEqual = cntRightSideInnerQueryEdges <= cntRightSideInnerPatternEdges && cntRightSideNotLeftQueryEdges >= cntRightSideInnerPatternEdges;
+        boolean isLeftEqual = cntLeftSideInnerQueryEdges <= cntLeftSideInnerPatternEdges
+                && cntLeftSideNotLeftQueryEdges >= cntLeftSideInnerPatternEdges;
+        boolean isRightEqual = cntRightSideInnerQueryEdges <= cntRightSideInnerPatternEdges
+                && cntRightSideNotLeftQueryEdges >= cntRightSideInnerPatternEdges;
         return isLeftEqual && isRightEqual;
     }
 
@@ -477,7 +481,7 @@ public class JoinsGraph implements Serializable {
         Preconditions.checkState(nodes.size() > trialMatches.size());
         Optional<Pair<Edge, TableRef>> toMatch = trialMatches.keySet().stream()
                 .map(t -> edgesFrom(t).stream().filter(e -> !trialMatches.containsKey(e.other(t))).findFirst()
-                        .map(edge -> new Pair<Edge, TableRef>(edge, edge.other(t))).orElse(null))
+                        .map(edge -> new Pair<>(edge, edge.other(t))).orElse(null))
                 .filter(Objects::nonNull).findFirst();
 
         Preconditions.checkState(toMatch.isPresent());

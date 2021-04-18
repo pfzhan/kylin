@@ -55,9 +55,11 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
-/**
- */
-@SuppressWarnings("serial")
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class JoinDesc implements Serializable {
 
@@ -80,16 +82,6 @@ public class JoinDesc implements Serializable {
     private TableRef primaryTableRef;
     private TableRef foreignTableRef;
 
-    public void swapPKFK() {
-        String[] t = primaryKey;
-        primaryKey = foreignKey;
-        foreignKey = t;
-
-        TblColRef[] tt = primaryKeyColumns;
-        primaryKeyColumns = foreignKeyColumns;
-        foreignKeyColumns = tt;
-    }
-
     public boolean isInnerJoin() {
         return "INNER".equalsIgnoreCase(type);
     }
@@ -102,81 +94,9 @@ public class JoinDesc implements Serializable {
         return "LEFT_OR_INNER".equalsIgnoreCase(type);
     }
 
-    public String getPrimaryTable() {
-        return primaryTable;
-    }
-
-    public String getForeignTable() {
-        return foreignTable;
-    }
-
-    public void setPrimaryTable(String primaryTable) {
-        this.primaryTable = primaryTable;
-    }
-
-    public void setForeignTable(String foreignTable) {
-        this.foreignTable = foreignTable;
-    }
-
-    public TableRef getPrimaryTableRef() {
-        return primaryTableRef;
-    }
-
-    public TableRef getForeignTableRef() {
-        return foreignTableRef;
-    }
-
-    public void setPrimaryTableRef(TableRef primaryTableRef) {
-        this.primaryTableRef = primaryTableRef;
-    }
-
-    public void setForeignTableRef(TableRef foreignTableRef) {
-        this.foreignTableRef = foreignTableRef;
-    }
-
-    public NonEquiJoinCondition getNonEquiJoinCondition() {
-        return nonEquiJoinCondition;
-    }
-
-    public void setNonEquiJoinCondition(NonEquiJoinCondition nonEquiJoinCondition) {
-        this.nonEquiJoinCondition = nonEquiJoinCondition;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String[] getPrimaryKey() {
-        return primaryKey;
-    }
-
-    public void setPrimaryKey(String[] primaryKey) {
-        this.primaryKey = primaryKey;
-    }
-
-    public String[] getForeignKey() {
-        return foreignKey;
-    }
-
-    public void setForeignKey(String[] foreignKey) {
-        this.foreignKey = foreignKey;
-    }
-
-    public TblColRef[] getPrimaryKeyColumns() {
-        return primaryKeyColumns;
-    }
-
     public void setPrimaryKeyColumns(TblColRef[] primaryKeyColumns) {
         checkSameTable(primaryKeyColumns);
         this.primaryKeyColumns = primaryKeyColumns;
-    }
-
-    public TblColRef[] getForeignKeyColumns() {
-        return foreignKeyColumns;
     }
 
     public void setForeignKeyColumns(TblColRef[] foreignKeyColumns) {
@@ -263,9 +183,7 @@ public class JoinDesc implements Serializable {
         if (!Arrays.equals(primaryKeyColumns, other.primaryKeyColumns))
             return false;
 
-        if (!this.type.equalsIgnoreCase(other.getType()))
-            return false;
-        return true;
+        return this.type.equalsIgnoreCase(other.getType());
     }
 
     // equals() without alias
@@ -279,10 +197,7 @@ public class JoinDesc implements Serializable {
         // note pk/fk are sorted, sortByFK()
         if (!this.columnDescEquals(foreignKeyColumns, other.foreignKeyColumns))
             return false;
-        if (!this.columnDescEquals(primaryKeyColumns, other.primaryKeyColumns))
-            return false;
-
-        return true;
+        return this.columnDescEquals(primaryKeyColumns, other.primaryKeyColumns);
     }
 
     private boolean columnDescEquals(TblColRef[] a, TblColRef[] b) {
@@ -308,10 +223,10 @@ public class JoinDesc implements Serializable {
 
     public static class JoinDescBuilder {
 
-        private List<String> pks = new ArrayList<String>();
-        private List<TblColRef> pkCols = new ArrayList<TblColRef>();
-        private List<String> fks = new ArrayList<String>();
-        private List<TblColRef> fkCols = new ArrayList<TblColRef>();
+        private final List<String> pks = new ArrayList<>();
+        private final List<TblColRef> pkCols = new ArrayList<>();
+        private final List<String> fks = new ArrayList<>();
+        private final List<TblColRef> fkCols = new ArrayList<>();
         private TableRef primaryTableRef;
         private TableRef foreignTableRef;
         private NonEquiJoinCondition nonEquiJoinCondition;
@@ -362,9 +277,9 @@ public class JoinDesc implements Serializable {
         public JoinDesc build() {
             JoinDesc join = new JoinDesc();
             join.setForeignKey(fks.toArray(new String[0]));
-            join.setForeignKeyColumns(fkCols.toArray(new TblColRef[fkCols.size()]));
+            join.setForeignKeyColumns(fkCols.toArray(new TblColRef[0]));
             join.setPrimaryKey(pks.toArray(new String[0]));
-            join.setPrimaryKeyColumns(pkCols.toArray(new TblColRef[pkCols.size()]));
+            join.setPrimaryKeyColumns(pkCols.toArray(new TblColRef[0]));
             join.primaryTable = primaryTableRef.getAlias();
             join.foreignTable = foreignTableRef.getAlias();
             join.primaryTableRef = primaryTableRef;

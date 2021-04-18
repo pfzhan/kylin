@@ -29,28 +29,43 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import lombok.Getter;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 
-@Getter
+/**
+ * There are two kinds of excluded lookup tables.
+ * One kind is explicit excluded by project settings,
+ * another is excluded by model join relations.
+ */
 public class ExcludedLookupChecker {
     private final String factTable;
-    private final Set<String> excludedLookupTables = Sets.newHashSet();
-    private final Set<String> ccDependsLookupTable = Sets.newHashSet();
+    private final Set<String> excludedLookups = Sets.newHashSet();
+    private final Set<String> antiFlattenLookups = Sets.newHashSet();
+    private final Map<String, String> excludedLookupCCs = Maps.newHashMap();
+    private final Map<String, String> antiFlattenLookupCCs = Maps.newHashMap();
     private final Map<String, Set<String>> joinTableAliasMap = Maps.newHashMap();
 
-    public ExcludedLookupChecker(Set<String> excludedTables, NDataModel model) {
+    public ExcludedLookupChecker(Set<String> excludedTables, List<JoinTableDesc> joinTables, NDataModel model) {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv() && model == null) {
+            factTable = null;
+            return;
+        }
         factTable = model.getRootFactTableName();
         excludedTables.forEach(table -> {
             if (table.equalsIgnoreCase(factTable)) {
                 return;
             }
-            excludedLookupTables.add(table);
+            excludedLookups.add(table);
         });
         if (model.isBroken() || CollectionUtils.isEmpty(model.getJoinTables())) {
             return;
@@ -60,35 +75,37 @@ public class ExcludedLookupChecker {
             joinTableAliasMap.putIfAbsent(join.getTable(), Sets.newHashSet());
             joinTableAliasMap.get(join.getTable()).add(join.getAlias());
         });
+
+        Map<String, String> aliasToIdentityMap = Maps.newHashMap();
+        if (joinTables == null) {
+            return;
+        }
+        joinTables.forEach(joinTable -> {
+            aliasToIdentityMap.put(joinTable.getAlias(), joinTable.getTable());
+            if (!joinTable.isFlattenable()) {
+                antiFlattenLookups.add(joinTable.getTable());
+            }
+        });
+        for (JoinTableDesc joinTable : joinTables) {
+            String fkTableAlias = joinTable.getJoin().getForeignTable();
+            if (!joinTable.isFlattenable() && aliasToIdentityMap.containsKey(fkTableAlias)) {
+                antiFlattenLookups.add(joinTable.getTable());
+                excludedLookups.add(joinTable.getTable());
+            }
+            if (aliasToIdentityMap.containsKey(fkTableAlias)) {
+                String fkTable = aliasToIdentityMap.get(fkTableAlias);
+                if (excludedLookups.contains(fkTable)) {
+                    excludedLookups.add(joinTable.getTable());
+                }
+            }
+        }
     }
 
     /**
      * not very efficient for cc inner expression is a string
      */
     public boolean isColRefDependsLookupTable(TblColRef tblColRef) {
-        if (!tblColRef.getColumnDesc().isComputedColumn()) {
-            return excludedLookupTables.contains(tblColRef.getTableWithSchema());
-        }
-
-        String innerExpression = tblColRef.getColumnDesc().getComputedColumnExpr();
-        if (ccDependsLookupTable.contains(innerExpression)) {
-            return true;
-        }
-
-        for (String table : excludedLookupTables) {
-            Set<String> aliasSet = joinTableAliasMap.get(table);
-            if (aliasSet == null) {
-                continue;
-            }
-            for (String alias : aliasSet) {
-                String aliasWithBacktick = String.format(Locale.ROOT, "`%s`", alias);
-                if (innerExpression.contains(aliasWithBacktick)) {
-                    ccDependsLookupTable.add(innerExpression);
-                    return true;
-                }
-            }
-        }
-        return false;
+        return isColDependsLookups(tblColRef, excludedLookups, excludedLookupCCs);
     }
 
     public boolean isCCDependsLookupTable(TblColRef tblColRef) {
@@ -97,7 +114,7 @@ public class ExcludedLookupChecker {
             if (tblColRef.getTable() == null) {
                 return false;
             } else {
-                return excludedLookupTables.contains(tblColRef.getTableWithSchema());
+                return excludedLookups.contains(tblColRef.getTableWithSchema());
             }
         }
         for (TblColRef colRef : operands) {
@@ -132,10 +149,131 @@ public class ExcludedLookupChecker {
     public Set<String> getUsedExcludedLookupTable(Set<TblColRef> colRefs) {
         Set<String> usedExcludedLookupTables = Sets.newHashSet();
         for (TblColRef column : colRefs) {
-            if (excludedLookupTables.contains(column.getTableWithSchema())) {
+            if (excludedLookups.contains(column.getTableWithSchema())) {
                 usedExcludedLookupTables.add(column.getTableWithSchema());
             }
         }
         return usedExcludedLookupTables;
+    }
+
+    public String detectAntiFlattenLookup(ComputedColumnDesc computedColumn) {
+        String innerExp = computedColumn.getInnerExpression();
+        if (isInnerExpDependsLookups(innerExp, antiFlattenLookups, antiFlattenLookupCCs)) {
+            return antiFlattenLookupCCs.get(innerExp);
+        }
+        return null;
+    }
+
+    public List<ComputedColumnDesc> getInvalidComputedColumns(NDataModel model) {
+        if (model.isBroken()) {
+            return Lists.newArrayList();
+        }
+
+        List<ComputedColumnDesc> ccList = Lists.newArrayList();
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+            if (isInnerExpDependsLookups(cc.getInnerExpression(), antiFlattenLookups, antiFlattenLookupCCs)) {
+                ccList.add(JsonUtil.deepCopyQuietly(cc, ComputedColumnDesc.class));
+            }
+        }
+        return ccList;
+    }
+
+    public Set<Integer> getInvalidDimensions(NDataModel model) {
+        if (model.isBroken()) {
+            return Sets.newHashSet();
+        }
+
+        Set<Integer> dimensions = Sets.newHashSet();
+        for (NDataModel.NamedColumn column : model.getAllNamedColumns()) {
+            if (!column.isDimension()) {
+                continue;
+            }
+            TblColRef colRef = model.getEffectiveCols().get(column.getId());
+            if (isColDependsAntiFlattenLookup(colRef)) {
+                dimensions.add(column.getId());
+            }
+        }
+        return dimensions;
+    }
+
+    public Set<Integer> getInvalidMeasures(NDataModel model) {
+        if (model.isBroken()) {
+            return Sets.newHashSet();
+        }
+
+        Set<Integer> measures = Sets.newHashSet();
+        for (NDataModel.Measure measure : model.getAllMeasures()) {
+            if (measure.isTomb()) {
+                continue;
+            }
+            List<ParameterDesc> parameters = measure.getFunction().getParameters();
+            for (ParameterDesc parameter : parameters) {
+                if (parameter.isConstant()) {
+                    continue;
+                }
+                if (isColDependsAntiFlattenLookup(parameter.getColRef())) {
+                    measures.add(measure.getId());
+                    break;
+                }
+            }
+        }
+        return measures;
+    }
+
+    public Set<Long> getInvalidIndexes(IndexPlan indexPlan, Set<Integer> invalidScope) {
+        if (indexPlan == null || indexPlan.isBroken()) {
+            return Sets.newHashSet();
+        }
+        Set<Long> indexes = Sets.newHashSet();
+        indexPlan.getAllLayoutsMap().forEach((layoutId, layout) -> {
+            for (Integer id : layout.getColOrder()) {
+                if (invalidScope.contains(id)) {
+                    indexes.add(layoutId);
+                    break;
+                }
+            }
+        });
+        return indexes;
+    }
+
+    public List<String> getAntiFlattenLookups() {
+        return Lists.newArrayList(antiFlattenLookups);
+    }
+
+    public Set<String> getExcludedLookups() {
+        return excludedLookups;
+    }
+
+    private boolean isColDependsAntiFlattenLookup(TblColRef colRef) {
+        return isColDependsLookups(colRef, antiFlattenLookups, antiFlattenLookupCCs);
+    }
+
+    private boolean isColDependsLookups(TblColRef colRef, Set<String> lookupTables, Map<String, String> cachedCC) {
+        if (!colRef.getColumnDesc().isComputedColumn()) {
+            return lookupTables.contains(colRef.getTableWithSchema());
+        }
+        String innerExpression = colRef.getColumnDesc().getComputedColumnExpr();
+        return isInnerExpDependsLookups(innerExpression, lookupTables, cachedCC);
+    }
+
+    private boolean isInnerExpDependsLookups(String innerExp, Set<String> lookupTables, Map<String, String> cachedCC) {
+        if (cachedCC.containsKey(innerExp)) {
+            return true;
+        }
+
+        for (String table : lookupTables) {
+            Set<String> aliasSet = joinTableAliasMap.get(table);
+            if (aliasSet == null) {
+                continue;
+            }
+            for (String alias : aliasSet) {
+                String aliasWithBacktick = String.format(Locale.ROOT, "`%s`", alias);
+                if (innerExp.contains(aliasWithBacktick)) {
+                    cachedCC.putIfAbsent(innerExp, alias);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.builder.HashCodeExclude;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -50,6 +51,7 @@ import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -133,7 +135,7 @@ public class NDataModelResponse extends NDataModel {
         }
 
         Set<String> excludedTables = loadExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, this);
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, getJoinTables(), getModel());
         List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
         for (NamedColumn col : getAllNamedColumns()) {
             if (col.isDimension()) {
@@ -142,6 +144,11 @@ public class NDataModelResponse extends NDataModel {
         }
 
         return dimList;
+    }
+
+    private NDataModel getModel() {
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .getDataModelDesc(this.getUuid());
     }
 
     public SimplifiedNamedColumn transColumnToDim(ExcludedLookupChecker checker, NamedColumn col,
@@ -303,7 +310,7 @@ public class NDataModelResponse extends NDataModel {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
         Set<String> excludedTables = loadExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, this);
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, getJoinTables(), getModel());
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
             TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());

@@ -181,16 +181,14 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         prepare(modelId);
 
-        NAggregationGroup aggregationGroup = mkAggGroup(1);
-        IndexPlan saved = indexPlanService.updateRuleBasedCuboid(getProject(),
-                createUpdateRuleRequest(getProject(), modelId, aggregationGroup, false)).getFirst();
+        val rq = createUpdateRuleRequest(getProject(), modelId, mkAggGroup(1), false);
+        IndexPlan saved = indexPlanService.updateRuleBasedCuboid(getProject(), rq).getFirst();
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Long> ids = saved.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
         indexPlanManager.updateIndexPlan(modelId, copyForWrite -> copyForWrite.addRuleBasedBlackList(ids));
 
-        aggregationGroup = mkAggGroup(1, 2);
-        val updateRuleRequest = createUpdateRuleRequest(getProject(), modelId, aggregationGroup, false);
+        val updateRuleRequest = createUpdateRuleRequest(getProject(), modelId, mkAggGroup(1, 2), false);
         val diff = indexPlanService.calculateDiffRuleBasedIndex(updateRuleRequest);
 
         Assert.assertThat(diff.getIncreaseLayouts(), is(2));
@@ -1138,7 +1136,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(7L, aggIndexResponse.getTotalCount().getResult());
 
         val diff = indexPlanService.calculateDiffRuleBasedIndex(request);
-        Assert.assertTrue(diff.getIncreaseLayouts().equals(7));
+        Assert.assertEquals(7, (int) diff.getIncreaseLayouts());
 
         IndexPlan indexPlan = indexPlanService.updateRuleBasedCuboid("default", request).getFirst();
         Assert.assertEquals(7, indexPlan.getRuleBaseLayouts().size());

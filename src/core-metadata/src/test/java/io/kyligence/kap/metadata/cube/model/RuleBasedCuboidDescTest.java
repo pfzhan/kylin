@@ -80,6 +80,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
 
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new RuleBasedIndex();
+            newRule.setIndexPlan(copyForWrite);
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
             try {
                 val group1 = JsonUtil.readValue("{\n" //
@@ -126,6 +127,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         indexPlanManager.createIndexPlan(newPlan);
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new RuleBasedIndex();
+            newRule.setIndexPlan(copyForWrite);
             newRule.setDimensions(Lists.newArrayList(2, 1, 3));
             try {
                 val group = JsonUtil.readValue("{ \"includes\": [2, 1, 3], "
@@ -196,6 +198,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
 
         val indexPlan = indexPlanManager.updateIndexPlan(newPlan.getUuid(), copyForWrite -> {
             val newRule = new RuleBasedIndex();
+            newRule.setIndexPlan(copyForWrite);
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
             try {
                 val group1 = JsonUtil.readValue("{\n" //
@@ -261,6 +264,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
 
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new RuleBasedIndex();
+            newRule.setIndexPlan(copyForWrite);
             newRule.setDimensions(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
             try {
                 val group1 = JsonUtil.readValue("{\n" //
@@ -326,10 +330,10 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         newRule.setAggregationGroups(Arrays.asList(group1, group2));
 
         val result = indexPlan.diffRuleBasedIndex(newRule);
-        Assert.assertTrue(
-                CollectionUtils.isNotEmpty(result.getDecreaseLayouts()) && CollectionUtils.isNotEmpty(result.getIncreaseLayouts()));
-        Assert.assertTrue(
-                result.getDecreaseLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()).contains(30001L));
+        Assert.assertTrue(CollectionUtils.isNotEmpty(result.getDecreaseLayouts())
+                && CollectionUtils.isNotEmpty(result.getIncreaseLayouts()));
+        Assert.assertTrue(result.getDecreaseLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet())
+                .contains(30001L));
         Assert.assertTrue(result.getIncreaseLayouts().stream()
                 .anyMatch(layoutEntity -> layoutEntity.getOrderedMeasures().containsKey(100001)
                         && layoutEntity.getOrderedMeasures().containsKey(100002)));
@@ -425,6 +429,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(12, newPlan.getAllLayouts().size());
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new RuleBasedIndex();
+            newRule.setIndexPlan(copyForWrite);
             newRule.setDimensions(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
             try {
                 val group1 = JsonUtil.readValue("{\n" //
@@ -474,7 +479,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
             copyForWrite.addRuleBasedBlackList(oldRuleBasedIndex.getLayoutIdMapping().subList(0, 2));
         });
 
-        Assert.assertTrue(indexPlan.getRuleBasedIndex().getLayoutBlackList().size() == 2);
+        Assert.assertEquals(2, indexPlan.getRuleBasedIndex().getLayoutBlackList().size());
         Assert.assertEquals(indexPlan.getAllLayouts().size() + 2, newPlan.getAllLayouts().size());
         Set<Long> originalPlanLayoutIds = newPlan.getAllLayouts().stream().map(LayoutEntity::getId)
                 .collect(Collectors.toSet());
@@ -818,6 +823,7 @@ public class RuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(11, newPlan.getAllLayouts().size());
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new RuleBasedIndex();
+            newRule.setIndexPlan(copyForWrite);
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
             try {
                 val group1 = JsonUtil.readValue("{\n" //

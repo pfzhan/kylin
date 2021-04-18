@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,16 +45,22 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 import java.util.Objects;
 
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.model.NDataModel;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class JoinTableDesc implements Serializable {
     private static final long serialVersionUID = 1L;
+    public static final String FLATTEN = "flatten";
+    public static final String NORMALIZED = "normalized";
 
     @JsonProperty("table")
     private String table;
@@ -71,57 +76,16 @@ public class JoinTableDesc implements Serializable {
     @JsonProperty("join")
     private JoinDesc join;
 
+    @JsonProperty("flattenable")
+    private String flattenable;
+
     @JsonProperty("join_relation_type")
     private ModelJoinRelationTypeEnum joinRelationTypeEnum = ModelJoinRelationTypeEnum.MANY_TO_ONE;
 
     private TableRef tableRef;
 
-    public String getTable() {
-        return table;
-    }
-
-    public void setTable(String table) {
-        this.table = table;
-    }
-
-    public NDataModel.TableKind getKind() {
-        return kind;
-    }
-
-    public void setKind(NDataModel.TableKind kind) {
-        this.kind = kind;
-    }
-
-    public void setAlias(String alias) {
-        this.alias = alias;
-    }
-
-    public String getAlias() {
-        return alias;
-    }
-
-    public void setJoin(JoinDesc join) {
-        this.join = join;
-    }
-
-    public JoinDesc getJoin() {
-        return join;
-    }
-
-    public TableRef getTableRef() {
-        return tableRef;
-    }
-
-    public void setTableRef(TableRef ref) {
-        this.tableRef = ref;
-    }
-
-    public ModelJoinRelationTypeEnum getJoinRelationTypeEnum() {
-        return joinRelationTypeEnum;
-    }
-
-    public void setJoinRelationTypeEnum(ModelJoinRelationTypeEnum joinRelationTypeEnum) {
-        this.joinRelationTypeEnum = joinRelationTypeEnum;
+    public boolean isFlattenable() {
+        return this.flattenable == null || FLATTEN.equalsIgnoreCase(this.flattenable);
     }
 
     @Override
@@ -139,7 +103,7 @@ public class JoinTableDesc implements Serializable {
             return false;
         if (alias != null ? !alias.equals(that.alias) : that.alias != null)
             return false;
-        if(!Objects.equals(this.joinRelationTypeEnum, that.joinRelationTypeEnum)){
+        if (!Objects.equals(this.joinRelationTypeEnum, that.joinRelationTypeEnum)) {
             return false;
         }
         return join != null ? join.equals(that.join) : that.join == null;

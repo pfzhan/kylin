@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
@@ -82,6 +83,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -121,6 +123,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -188,6 +191,7 @@ import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
@@ -217,6 +221,7 @@ import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -1633,7 +1638,12 @@ public class ModelService extends BasicService {
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> saveModel(project, modelRequest), project);
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataModel model = saveModel(project, modelRequest);
+            modelRequest.setUuid(model.getUuid());
+            updateExcludedCheckerResult(project, modelRequest);
+            return getDataModelManager(project).getDataModelDesc(model.getUuid());
+        }, project);
     }
 
     public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
@@ -2588,38 +2598,49 @@ public class ModelService extends BasicService {
      * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
-    public ComputedColumnCheckResponse checkComputedColumn(final NDataModel dataModelDesc, String project,
-            String ccInCheck) {
+    public ComputedColumnCheckResponse checkComputedColumn(NDataModel model, String project, String ccInCheck) {
         aclEvaluate.checkProjectWritePermission(project);
-        if (dataModelDesc.getUuid() == null)
-            dataModelDesc.updateRandomUuid();
+        if (model.getUuid() == null) {
+            model.updateRandomUuid();
+        }
 
-        dataModelDesc.init(getConfig(), getTableManager(project).getAllTablesMap(),
+        model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
+        model.getComputedColumnDescs().forEach(cc -> {
+            String innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
+            cc.setInnerExpression(innerExp);
+        });
 
-        if (dataModelDesc.isSeekingCCAdvice()) {
+        if (model.isSeekingCCAdvice()) {
             // if it's seeking for advice, it should have thrown exceptions by far
             throw new IllegalStateException("No advice could be provided");
         }
 
-        checkCCNameAmbiguity(dataModelDesc);
+        checkCCNameAmbiguity(model);
         ComputedColumnDesc checkedCC = null;
 
-        for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
+        Set<String> excludedTables = getFavoriteRuleManager(project).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
             checkCCName(cc.getColumnName());
 
             if (!StringUtils.isEmpty(ccInCheck) && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck)) {
                 checkCascadeErrorOfNestedCC(cc, ccInCheck);
             } else {
                 //replace computed columns with basic columns
-                ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
-                String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc,
+                String antiFlattenLookup = checker.detectAntiFlattenLookup(cc);
+                if (antiFlattenLookup != null) {
+                    throw new KylinException(COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
+                            MsgPicker.getMsg().getCC_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+                }
+                ComputedColumnDesc.simpleParserCheck(cc.getExpression(), model.getAliasMap().keySet());
+                String innerExpression = KapQueryUtil.massageComputedColumn(model, project, cc,
                         AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
                 cc.setInnerExpression(innerExpression);
 
                 //check by data source, this could be slow
                 long ts = System.currentTimeMillis();
-                ComputedColumnEvalUtil.evaluateExprAndType(dataModelDesc, cc);
+                ComputedColumnEvalUtil.evaluateExprAndType(model, cc);
                 logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
                         (System.currentTimeMillis() - ts), cc.getExpression());
                 checkedCC = cc;
@@ -2628,17 +2649,17 @@ public class ModelService extends BasicService {
 
         Preconditions.checkState(checkedCC != null, "No computed column match: {}", ccInCheck);
         // check invalid measure removed due to cc data type change
-        val modelManager = getDataModelManager(dataModelDesc.getProject());
-        val oldDataModel = modelManager.getDataModelDesc(dataModelDesc.getUuid());
+        val modelManager = getDataModelManager(model.getProject());
+        val oldDataModel = modelManager.getDataModelDesc(model.getUuid());
 
         // brand new model, no measure to remove
         if (oldDataModel == null)
-            return getComputedColoumnCheckResponse(checkedCC, new ArrayList<>());
+            return getComputedColumnCheckResponse(checkedCC, new ArrayList<>());
 
         val copyModel = modelManager.copyForWrite(oldDataModel);
-        val request = new ModelRequest(dataModelDesc);
-        request.setProject(dataModelDesc.getProject());
-        request.setMeasures(dataModelDesc.getAllMeasures());
+        val request = new ModelRequest(model);
+        request.setProject(model.getProject());
+        request.setMeasures(model.getAllMeasures());
         UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request);
         // get invalid measure names in original model
         val removedMeasures = updateImpact.getInvalidMeasures();
@@ -2650,7 +2671,7 @@ public class ModelService extends BasicService {
                 .filter(m -> removedRequestMeasures.contains(m.getId())).map(NDataModel.Measure::getName)
                 .collect(Collectors.toList());
         measureNames.addAll(requestMeasureNames);
-        return getComputedColoumnCheckResponse(checkedCC, measureNames);
+        return getComputedColumnCheckResponse(checkedCC, measureNames);
     }
 
     static void checkCCName(String name) {
@@ -2965,8 +2986,7 @@ public class ModelService extends BasicService {
 
         val copyModel = modelManager.copyForWrite(originModel);
         UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
-        val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
-                .getAllTablesMap();
+        val allTables = getTableManager(request.getProject()).getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
 
@@ -2987,8 +3007,55 @@ public class ModelService extends BasicService {
         checkFlatTableSql(newModel);
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
                 request.isSaveOnly(), affectedLayoutSet.size() > 0);
-
+        updateExcludedCheckerResult(project, request);
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
+    }
+
+    public void updateExcludedCheckerResult(String project, ModelRequest request) {
+        NDataModelManager modelManager = getDataModelManager(project);
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+
+        String uuid = request.getUuid();
+        List<JoinTableDesc> joinTables = request.getJoinTables();
+
+        NDataModel model = modelManager.getDataModelDesc(uuid);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(uuid);
+        Set<String> excludedTables = getFavoriteRuleManager(project).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, model);
+        List<ComputedColumnDesc> invalidCCList = checker.getInvalidComputedColumns(model);
+        Set<Integer> invalidDimensions = checker.getInvalidDimensions(model);
+        Set<Integer> invalidMeasures = checker.getInvalidMeasures(model);
+        Set<Integer> invalidScope = Sets.newHashSet();
+        invalidScope.addAll(invalidDimensions);
+        invalidScope.addAll(invalidMeasures);
+        Set<Long> invalidIndexes = checker.getInvalidIndexes(indexPlan, invalidScope);
+
+        Map<String, ComputedColumnDesc> invalidCCMap = Maps.newHashMap();
+        invalidCCList.forEach(cc -> invalidCCMap.put(cc.getColumnName(), cc));
+        if (!invalidIndexes.isEmpty()) {
+            indexPlanService.removeIndexes(project, uuid, invalidIndexes, invalidDimensions, invalidMeasures);
+        }
+
+        modelManager.updateDataModel(uuid, copyForWrite -> {
+            copyForWrite.getComputedColumnDescs().removeIf(cc -> invalidCCMap.containsKey(cc.getColumnName()));
+            copyForWrite.getAllMeasures().removeIf(measure -> invalidMeasures.contains(measure.getId()));
+            copyForWrite.getAllNamedColumns().forEach(column -> {
+                if (!column.isExist()) {
+                    return;
+                }
+                if (invalidDimensions.contains(column.getId())) {
+                    column.setStatus(NDataModel.ColumnStatus.EXIST);
+                }
+
+                if (invalidCCMap.containsKey(column.getName())) {
+                    String colName = column.getAliasDotColumn();
+                    final String fullName = invalidCCMap.get(column.getName()).getFullName();
+                    if (fullName.equalsIgnoreCase(colName)) {
+                        column.setStatus(NDataModel.ColumnStatus.TOMB);
+                    }
+                }
+            });
+        });
     }
 
     public String[] convertSegmentIdWithName(String modelId, String project, String[] segIds, String[] segNames) {
@@ -3363,7 +3430,7 @@ public class ModelService extends BasicService {
         return response;
     }
 
-    public ComputedColumnCheckResponse getComputedColoumnCheckResponse(ComputedColumnDesc ccDesc,
+    public ComputedColumnCheckResponse getComputedColumnCheckResponse(ComputedColumnDesc ccDesc,
             List<String> removedMeasures) {
         val response = new ComputedColumnCheckResponse();
         response.setComputedColumnDesc(ccDesc);
@@ -3504,8 +3571,7 @@ public class ModelService extends BasicService {
         }
 
         List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream()
-                .filter(col->allDimIds.contains(col.getId()))
-                .map(col->new NModelDescResponse.Dimension(col, false))
+                .filter(col -> allDimIds.contains(col.getId())).map(col -> new NModelDescResponse.Dimension(col, false))
                 .collect(Collectors.toList());
         response.setDimensions(Lists.newArrayList(dims));
         return response;
@@ -4057,5 +4123,63 @@ public class ModelService extends BasicService {
                 }
             });
         });
+    }
+
+    public InvalidIndexesResponse detectInvalidIndexes(ModelRequest request) {
+        String project = request.getProject();
+        aclEvaluate.checkProjectReadPermission(project);
+
+        NDataModel model = convertToDataModel(request);
+        Map<String, TableDesc> allTables = getTableManager(project).getAllTablesMap();
+        Map<String, TableDesc> initialAllTables = model.getExtendedTables(allTables);
+        model.init(KylinConfig.getInstanceFromEnv(), initialAllTables,
+                getDataflowManager(project).listUnderliningDataModels(), project);
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+            String innerExp = cc.getInnerExpression();
+            if (cc.getExpression().equalsIgnoreCase(innerExp)) {
+                innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
+            }
+            cc.setInnerExpression(innerExp);
+        }
+
+        String uuid = model.getUuid();
+        List<JoinTableDesc> joinTables = request.getJoinTables();
+        IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(uuid);
+        Set<String> excludedTables = getFavoriteRuleManager(project).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, model);
+        List<ComputedColumnDesc> invalidCCList = checker.getInvalidComputedColumns(model);
+        Set<Integer> invalidDimensions = checker.getInvalidDimensions(model);
+        Set<Integer> invalidMeasures = checker.getInvalidMeasures(model);
+        Set<Integer> invalidScope = Sets.newHashSet();
+        invalidScope.addAll(invalidDimensions);
+        invalidScope.addAll(invalidMeasures);
+        Set<Long> invalidIndexes = checker.getInvalidIndexes(indexPlan, invalidScope);
+        AtomicInteger aggIndexCount = new AtomicInteger();
+        AtomicInteger tableIndexCount = new AtomicInteger();
+        invalidIndexes.forEach(layoutId -> {
+            if (layoutId > IndexEntity.TABLE_INDEX_START_ID) {
+                tableIndexCount.getAndIncrement();
+            } else {
+                aggIndexCount.getAndIncrement();
+            }
+        });
+        List<String> antiFlattenLookupTables = checker.getAntiFlattenLookups();
+
+        List<String> invalidDimensionNames = model.getAllNamedColumns().stream()
+                .filter(col -> invalidDimensions.contains(col.getId())).map(NDataModel.NamedColumn::getAliasDotColumn)
+                .collect(Collectors.toList());
+        List<String> invalidMeasureNames = model.getAllMeasures().stream()
+                .filter(measure -> invalidMeasures.contains(measure.getId())).map(MeasureDesc::getName)
+                .collect(Collectors.toList());
+
+        InvalidIndexesResponse response = new InvalidIndexesResponse();
+        response.setCcList(invalidCCList);
+        response.setDimensions(invalidDimensionNames);
+        response.setMeasures(invalidMeasureNames);
+        response.setIndexes(Lists.newArrayList(invalidIndexes));
+        response.setInvalidAggIndexCount(aggIndexCount.get());
+        response.setInvalidTableIndexCount(tableIndexCount.get());
+        response.setAntiFlattenLookups(antiFlattenLookupTables);
+        return response;
     }
 }

@@ -112,6 +112,7 @@ import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.MergeSegmentCheckResponse;
@@ -484,6 +485,15 @@ public class NModelController extends NBasicController {
         } else {
             throw new IllegalArgumentException();
         }
+    }
+
+    @ApiOperation(value = "detectInvalidIndexes", tags = { "AI" })
+    @PostMapping(value = "/invalid_indexes")
+    @ResponseBody
+    public EnvelopeResponse<InvalidIndexesResponse> detectInvalidIndexes(@RequestBody ModelRequest request) {
+        checkProjectName(request.getProject());
+        InvalidIndexesResponse response = modelService.detectInvalidIndexes(request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "updateModelSemantic", tags = { "AI" })

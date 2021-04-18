@@ -24,9 +24,14 @@
 
 package io.kyligence.kap.rest.response;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COUNT;
+
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,6 +40,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.service.CSVSourceTestCase;
 
 public class NDataModelResponseTest extends CSVSourceTestCase {
@@ -58,13 +64,16 @@ public class NDataModelResponseTest extends CSVSourceTestCase {
         namedColumn.setName("PRICE1");
         namedColumn.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
         namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
-
         allNamedColumns.add(namedColumn);
 
         NDataModel model = new NDataModel();
         model.setUuid("model");
         model.setProject(PROJECT);
         model.setAllNamedColumns(allNamedColumns);
+        model.setAllMeasures(Lists.newArrayList(createMeasure()));
+        model.setRootFactTableName("DEFAULT.TEST_KYLIN_FACT");
+
+        createModel(model);
 
         NDataModelResponse modelResponse = new NDataModelResponse(model);
         modelResponse.setConfig(KylinConfig.getInstanceFromEnv());
@@ -82,13 +91,16 @@ public class NDataModelResponseTest extends CSVSourceTestCase {
         namedColumn.setName("PRICE1");
         namedColumn.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
         namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
-
         allNamedColumns.add(namedColumn);
 
         NDataModel model = new NDataModel();
         model.setUuid("model");
         model.setProject(PROJECT);
         model.setAllNamedColumns(allNamedColumns);
+        model.setAllMeasures(Lists.newArrayList(createMeasure()));
+        model.setRootFactTableName("DEFAULT.TEST_KYLIN_FACT");
+
+        createModel(model);
 
         NDataModelResponse modelResponse = new NDataModelResponse(model);
         modelResponse.setBroken(true);
@@ -96,5 +108,19 @@ public class NDataModelResponseTest extends CSVSourceTestCase {
         Assert.assertEquals(1, selectedColumns.size());
         List<NDataModelResponse.SimplifiedNamedColumn> namedColumns = modelResponse.getNamedColumns();
         Assert.assertEquals(1, namedColumns.size());
+    }
+
+    private NDataModel.Measure createMeasure() {
+        NDataModel.Measure countOneMeasure = new NDataModel.Measure();
+        countOneMeasure.setName("COUNT_ONE");
+        countOneMeasure.setFunction(
+                FunctionDesc.newInstance(FUNC_COUNT, newArrayList(ParameterDesc.newInstance("1")), "bigint"));
+        countOneMeasure.setId(200001);
+        return countOneMeasure;
+    }
+
+    private void createModel(NDataModel model) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        modelManager.createDataModelDesc(model, "root");
     }
 }

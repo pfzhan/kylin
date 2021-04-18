@@ -110,7 +110,7 @@ public class OptRecV2 {
         uniqueFlagToRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
         uniqueFlagToRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
         Set<String> excludedTables = FavoriteRuleManager.getInstance(config, project).getExcludedTables();
-        checker = new ExcludedLookupChecker(excludedTables, getModel());
+        checker = new ExcludedLookupChecker(excludedTables, getModel().getJoinTables(), getModel());
         if (!getModel().isBroken()) {
             initModelColumnRefs(getModel());
             initModelMeasureRefs(getModel());

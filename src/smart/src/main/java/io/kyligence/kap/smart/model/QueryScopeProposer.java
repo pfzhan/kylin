@@ -183,7 +183,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             }
 
             // set status for all columns and put them into candidate named columns
-            Map<String, TblColRef> fKAsDimensionMap = collectFKAsDimensionMap(ctx);
+            Map<String, TblColRef> fKAsDimensionMap = ctx.collectFKAsDimensionMap(modelContext.getChecker());
             allColumns.forEach(tblColRef -> {
                 ColumnStatus status;
                 boolean canTreatAsDim = canTblColRefTreatAsDimension(fKAsDimensionMap, tblColRef)
@@ -335,23 +335,6 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         private boolean canTblColRefTreatAsDimension(Map<String, TblColRef> fKAsDimensionMap, TblColRef tblColRef) {
             return fKAsDimensionMap.containsKey(tblColRef.getCanonicalName());
-        }
-
-        private Map<String, TblColRef> collectFKAsDimensionMap(OLAPContext ctx) {
-            Map<String, TblColRef> fKAsDimensionMap = Maps.newHashMap();
-            Set<String> usingExcludedLookupTables = modelContext.getChecker()
-                    .getUsedExcludedLookupTable(ctx.allColumns);
-            ctx.joins.forEach(join -> {
-                for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
-                    TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
-                    String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
-                    if (usingExcludedLookupTables.contains(derivedTable)
-                            && !usingExcludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())) {
-                        fKAsDimensionMap.putIfAbsent(foreignKeyColumn.getCanonicalName(), foreignKeyColumn);
-                    }
-                }
-            });
-            return fKAsDimensionMap;
         }
 
         protected NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {

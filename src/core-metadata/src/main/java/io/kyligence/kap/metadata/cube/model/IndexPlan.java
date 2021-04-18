@@ -38,7 +38,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -72,7 +71,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -496,7 +494,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public UpdateRuleImpact diffRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
-        genMeasuresForRuleBasedIndex(ruleBasedIndex);
+        ruleBasedIndex.adjustMeasures();
         if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
             ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
         }
@@ -532,8 +530,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public void setRuleBasedIndex(RuleBasedIndex ruleBasedIndex, Set<LayoutEntity> reloadLayouts, boolean reuseStartId,
             boolean markToBeDeleted, boolean restoreDeletedIndex) {
         checkIsNotCachedAndShared();
-        genMeasuresForRuleBasedIndex(ruleBasedIndex);
-
+        ruleBasedIndex.adjustMeasures();
         if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
             ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
         }
@@ -571,23 +568,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             return Sets.newHashSet();
         }
         return this.ruleBasedIndex.getBlacklistLayouts();
-    }
-
-    private void genMeasuresForRuleBasedIndex(RuleBasedIndex ruleBasedIndex) {
-        val aggregationGroups = ruleBasedIndex.getAggregationGroups();
-
-        TreeSet<Integer> measures = new TreeSet<>();
-        if (CollectionUtils.isEmpty(aggregationGroups))
-            return;
-
-        for (NAggregationGroup agg : aggregationGroups) {
-            val aggMeasures = agg.getMeasures();
-            if (aggMeasures == null || aggMeasures.length == 0)
-                continue;
-            measures.addAll(Sets.newHashSet(aggMeasures));
-        }
-
-        ruleBasedIndex.setMeasures(Lists.newArrayList(measures));
     }
 
     public void setAggShardByColumns(List<Integer> aggShardByColumns) {

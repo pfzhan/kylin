@@ -53,9 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryMetrics;
-import lombok.val;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -82,14 +79,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.query.relnode.KapRel;
 import lombok.Getter;
 import lombok.Setter;
-
+import lombok.val;
 
 /**
  */
@@ -509,7 +510,8 @@ public class OLAPContext {
         this.setJoinsGraph(JoinsGraph.normalizeJoinGraph(joinsGraph));
     }
 
-    public static RexInputRef createUniqueInputRefAmongTables(OLAPTableScan table, int columnIdx, Collection<OLAPTableScan> tables) {
+    public static RexInputRef createUniqueInputRefAmongTables(OLAPTableScan table, int columnIdx,
+            Collection<OLAPTableScan> tables) {
         List<TableScan> sorted = new ArrayList<>(tables);
         sorted.sort(Comparator.comparingInt(AbstractRelNode::getId));
         int offset = 0;
@@ -517,8 +519,7 @@ public class OLAPContext {
             if (tableScan == table) {
                 return new RexInputRef(
                         table.getTableName() + "." + table.getRowType().getFieldList().get(columnIdx).getName(),
-                        offset + columnIdx,
-                        table.getRowType().getFieldList().get(columnIdx).getType());
+                        offset + columnIdx, table.getRowType().getFieldList().get(columnIdx).getType());
             }
             offset += tableScan.getRowType().getFieldCount();
         }
@@ -527,5 +528,22 @@ public class OLAPContext {
 
     public RexInputRef createUniqueInputRefContextTables(OLAPTableScan table, int columnIdx) {
         return createUniqueInputRefAmongTables(table, columnIdx, allTableScans);
+    }
+
+    public Map<String, TblColRef> collectFKAsDimensionMap(ExcludedLookupChecker checker) {
+        Map<String, TblColRef> fKAsDimensionMap = Maps.newHashMap();
+        Set<String> usingExcludedLookupTables = checker.getUsedExcludedLookupTable(this.allColumns);
+        this.joins.forEach(join -> {
+            for (int i = 0; i < join.getForeignKeyColumns().length; i++) {
+                TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
+                String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
+                if (usingExcludedLookupTables.contains(derivedTable)
+                        && !usingExcludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())) {
+                    fKAsDimensionMap.putIfAbsent(foreignKeyColumn.getCanonicalName(), foreignKeyColumn);
+                }
+            }
+        });
+
+        return fKAsDimensionMap;
     }
 }

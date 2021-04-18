@@ -395,16 +395,15 @@ public class ModelSemanticHelper extends BasicService {
     private NDataModel updateColumnsInit(NDataModel originModel, ModelRequest request, boolean saveCheck) {
         val expectedModel = convertToDataModel(request);
 
-        val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
-                .getAllTablesMap();
-        val initedAllTables = expectedModel.getExtendedTables(allTables);
-        expectedModel.init(KylinConfig.getInstanceFromEnv(), initedAllTables);
+        String project = request.getProject();
+        val allTables = getTableManager(project).getAllTablesMap();
+        val initialAllTables = expectedModel.getExtendedTables(allTables);
+        expectedModel.init(KylinConfig.getInstanceFromEnv(), initialAllTables);
         Map<String, String> matchAlias = getAliasTransformMap(originModel, expectedModel);
         updateModelColumnForTableAliasModify(expectedModel, matchAlias);
 
-        expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables,
-                getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject(), false,
-                saveCheck);
+        List<NDataModel> allModels = getDataflowManager(project).listUnderliningDataModels();
+        expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables, allModels, project, false, saveCheck);
 
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
@@ -462,7 +461,7 @@ public class ModelSemanticHelper extends BasicService {
         originModel.setComputedColumnDescs(expectedModel.getComputedColumnDescs());
 
         // compare measures
-        val newMeasures = Lists.<NDataModel.Measure> newArrayList();
+        List<NDataModel.Measure> newMeasures = Lists.newArrayList();
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
                 toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
                 oldMeasure -> oldMeasure.setTomb(true),
@@ -857,7 +856,7 @@ public class ModelSemanticHelper extends BasicService {
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
 
-            if(Objects.isNull(jobId)){
+            if (Objects.isNull(jobId)) {
                 buildIndexResponse.setWarnCodeWithSupplier(FAILED_CREATE_JOB_SAVE_INDEX_SUCCESS);
             }
 

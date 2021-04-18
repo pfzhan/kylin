@@ -751,6 +751,10 @@ public class CnMessage extends Message {
         return "无法修改可计算列 “%s”。当前模型中存在嵌套可计算列 “%s” 依赖于当前可计算列。请先解除引用关系后再进行修改。";
     }
 
+    public String getCC_ON_ANTI_FLATTEN_LOOKUP() {
+        return "无法在可计算列中使用维度表 “%s” 中的列，因为该表的关联关系不进行预计算。";
+    }
+
     @Override
     public String getCHANGE_GLOBALADMIN() {
         return "您不可以添加，修改，删除系统管理员的权限。";
@@ -1125,7 +1129,7 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getTABLE_PARAM_EMPTY(){
+    public String getTABLE_PARAM_EMPTY() {
         return "无法找到该表，请检查后重试。";
     }
 
@@ -1262,7 +1266,8 @@ public class CnMessage extends Message {
 
     @Override
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
-        return String.format(Locale.ROOT, "可计算列 \"%s\" 的表达式 \"%s\" 与可计算列 \"%s\" 相同。请修改。", newCCName, newCCExpression, existedCCName);
+        return String.format(Locale.ROOT, "可计算列 \"%s\" 的表达式 \"%s\" 与可计算列 \"%s\" 相同。请修改。", newCCName, newCCExpression,
+                existedCCName);
     }
 
     @Override

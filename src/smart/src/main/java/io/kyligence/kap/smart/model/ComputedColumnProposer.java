@@ -74,7 +74,8 @@ public class ComputedColumnProposer extends AbstractModelProposer {
         initModel(dataModel);
         if (modelContext.getChecker() == null) {
             Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
-            ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, dataModel);
+            ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, dataModel.getJoinTables(),
+                    dataModel);
             modelContext.setChecker(checker);
         }
         Set<String> ccSuggestions = collectLatentCCSuggestions(modelContext, dataModel);

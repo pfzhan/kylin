@@ -437,7 +437,7 @@ public class Message {
         return "This project don't support multilevel partitioning, and multilevel partitioning can’t be used. Please turn it on in project setting and try again.";
     }
 
-    public String getTABLE_PARAM_EMPTY(){
+    public String getTABLE_PARAM_EMPTY() {
         return "Can’t find the table. Please check and try again";
     }
 
@@ -716,6 +716,10 @@ public class Message {
 
     public String getNESTED_CC_CASCADE_ERROR() {
         return "Can’t modify computed column \"%s\". It’s been referenced by a nested computed column \"%s\" in the current model. Please remove it from the nested column first.";
+    }
+
+    public String getCC_ON_ANTI_FLATTEN_LOOKUP() {
+        return "Unable to use columns from dimension table \"%s\" for computed columns. Because the join relationship of this table won’t be precomputed.";
     }
 
     public String getCHANGE_GLOBALADMIN() {
@@ -1085,8 +1089,8 @@ public class Message {
 
     public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
         return String.format(Locale.ROOT,
-                "The expression \"%s\" of computed column \"%s\" is same as computed column \"%s\". Please modify it.", newCCExpression,
-                newCCName, existedCCName);
+                "The expression \"%s\" of computed column \"%s\" is same as computed column \"%s\". Please modify it.",
+                newCCExpression, newCCName, existedCCName);
     }
 
     public String getCC_NAME_CONFLICT(String ccName) {
