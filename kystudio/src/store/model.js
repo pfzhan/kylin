@@ -81,6 +81,9 @@ export default {
         })
       })
     },
+    [types.INVALID_INDEXES]: function ({ commit }, para) {
+      return api.model.invalidIndexes(para)
+    },
     [types.APPLY_SPEED_INFO]: function ({ commit }, para) {
       return api.model.applySpeedModelInfo(para.project, para.size)
     },

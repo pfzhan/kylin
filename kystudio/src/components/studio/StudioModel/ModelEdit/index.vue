@@ -554,7 +554,8 @@ import { NamedRegex } from '../../../../config'
       loadDataSourceByModel: 'LOAD_DATASOURCE_OF_MODEL',
       saveModel: 'SAVE_MODEL',
       updataModel: 'UPDATE_MODEL',
-      getAboutKap: 'GET_ABOUTKAP'
+      getAboutKap: 'GET_ABOUTKAP',
+      invalidIndexes: 'INVALID_INDEXES'
     }),
     ...mapActions('DimensionsModal', {
       showDimensionDialog: 'CALL_MODAL'
@@ -644,6 +645,20 @@ export default class ModelEdit extends Vue {
   isFullLoad = false
   saveModelType = ''
   isPurgeSegment = false
+  panelAppear = modelRenderConfig.pannelsLayout()
+  radio = 1
+  isShowCheckbox = false
+  isShowMeaCheckbox = false
+  isShowCCCheckbox = false
+    // 快捷编辑table操作 start
+  showTableCoverDiv = false
+  currentEditTable = null
+  showEditAliasForm = false
+  formTableAlias = {
+    currentEditAlias: ''
+  }
+  delTipVisible = false
+
   validateName (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
@@ -655,11 +670,7 @@ export default class ModelEdit extends Vue {
       }
     }
   }
-  panelAppear = modelRenderConfig.pannelsLayout()
-  radio = 1
-  isShowCheckbox = false
-  isShowMeaCheckbox = false
-  isShowCCCheckbox = false
+
   async showGuide () {
     await this.callGuideModal({ isShowDimAndMeasGuide: true })
     localStorage.setItem('isFirstAddModel', 'false')
@@ -720,14 +731,6 @@ export default class ModelEdit extends Vue {
   get isSchemaBrokenModel () {
     return this.modelRender.broken_reason === 'SCHEMA'
   }
-  // 快捷编辑table操作 start
-  showTableCoverDiv = false
-  currentEditTable = null
-  showEditAliasForm = false
-  formTableAlias = {
-    currentEditAlias: ''
-  }
-  delTipVisible = false
   // 定位含有broken连线的table
   focusBrokenLinkedTable () {
     if (this.modelInstance) {
@@ -943,6 +946,7 @@ export default class ModelEdit extends Vue {
           if (data && data.value && data.value.length) {
             this.modelData = data.value[0]
             this.modelData.project = this.currentSelectedProject
+            this.modelData.anti_flatten_lookups = []
             cb(this.modelData)
           } else {
             kapMessage(this.$t('modelDataNullTip'), {type: 'warning'})
@@ -957,6 +961,7 @@ export default class ModelEdit extends Vue {
         name: this.extraoption.modelName,
         description: this.extraoption.modelDesc,
         project: this.currentSelectedProject,
+        anti_flatten_lookups: [],
         simplified_measures: [{
           expression: 'COUNT',
           name: 'COUNT_ALL',
@@ -1283,6 +1288,17 @@ export default class ModelEdit extends Vue {
     }
     let alias = table.alias
     let fullName = alias + '.' + this.currentDragColumnData.columnName
+    // 当维度表关联关系没有被预计算时无法作为维度、度量或CC
+    if (this.modelRender.anti_flatten_lookups.includes(alias)) {
+      this.$message({
+        message: this.$t('flattenLookupTableTips'),
+        type: 'warning',
+        showClose: true,
+        closeOtherMessages: true,
+        duration: 0
+      })
+      return
+    }
     if (type === 'dimension') {
       this.showSingleDimensionDialog({
         dimension: {
@@ -1332,7 +1348,7 @@ export default class ModelEdit extends Vue {
     var pTable = this.modelInstance.tables[pGuid]
     // 2020/06/24 add 多了 scd2 模式后，joinData 中的字段格式需要重新拼接
     // 给table添加连接数据
-    pTable.addLinkData(fTable, fcols, pcols, joinType, joinData.op, selectTableRelation)
+    pTable.addLinkData(fTable, fcols, pcols, joinType, joinData.op, data.isPrecompute, selectTableRelation)
     this.currentDragColumnData = {}
     this.currentDropColumnData = {}
     this.currentDragColumn = null
@@ -1345,6 +1361,9 @@ export default class ModelEdit extends Vue {
     // 正常连线
       this.modelInstance.renderLink(pGuid, fGuid)
     }
+    // 同步因为预计算被禁用的表
+    this.modelRender.anti_flatten_lookups = this.modelInstance.anti_flatten_lookups = Object.values(this.modelInstance.tables).filter(it => data.anti_flatten_lookups.includes(it.name) && it.links.filter(item => item.flattenable !== 'flatten').length > 0).map(it => it.alias)
+    this.modelRender.anti_flatten_cc = this.modelInstance.anti_flatten_cc = data.anti_flatten_cc
   }
   removeDragInClass () {
     $(this.$el).find('.drag-column-in').removeClass('drag-column-in')
@@ -1437,7 +1456,8 @@ export default class ModelEdit extends Vue {
         pid: pguid,
         fid: fguid,
         selectTableRelation: joinInfo.join_relation_type,
-        tables: this.modelRender.tables
+        tables: this.modelRender.tables,
+        flattenable: joinInfo.flattenable
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
         this.modelSearchActionSuccessTip = this.$t('searchActionSaveSuccess', {saveObj: this.$t('tableJoin')})
@@ -1455,6 +1475,16 @@ export default class ModelEdit extends Vue {
       })
     }
     if (select.action === 'adddimension') {
+      if (this.modelRender.anti_flatten_lookups.includes(select.more.table_alias)) {
+        this.$message({
+          message: this.$t('flattenLookupTableTips'),
+          type: 'warning',
+          showClose: true,
+          closeOtherMessages: true,
+          duration: 0
+        })
+        return
+      }
       this.showSingleDimensionDialog({
         dimension: {
           column: moreInfo.full_colname
@@ -1493,6 +1523,16 @@ export default class ModelEdit extends Vue {
       })
     }
     if (select.action === 'addmeasure') {
+      if (this.modelRender.anti_flatten_lookups.includes(select.more.table_alias)) {
+        this.$message({
+          message: this.$t('flattenLookupTableTips'),
+          type: 'warning',
+          showClose: true,
+          closeOtherMessages: true,
+          duration: 0
+        })
+        return
+      }
       this.measureObj = {
         name: '',
         expression: 'SUM(column)',
@@ -1694,7 +1734,7 @@ export default class ModelEdit extends Vue {
       this.globalLoading.hide()
       return false
     }
-    await this.initModelDesc((data) => { // 初始化模型数据
+    await this.initModelDesc(async (data) => { // 初始化模型数据
       if ('visible' in this.modelData && !this.modelData.visible) {
         this.showNoAuthorityContent(this.modelData)
         return
@@ -1727,6 +1767,7 @@ export default class ModelEdit extends Vue {
             tables: this.modelRender.tables
           })
         })
+        this.checkInvalidIndex()
       } catch (e) {
         this.globalLoading.hide()
         kapConfirm(this.$t('canNotRepairBrokenTip'), {
@@ -1740,6 +1781,21 @@ export default class ModelEdit extends Vue {
     })
     if (localStorage.getItem('isFirstAddModel') === 'true') {
       await this.showGuide()
+    }
+  }
+
+  async checkInvalidIndex () {
+    if (this.extraoption.action === 'edit') {
+      const res = await this.modelInstance.generateMetadata(true)
+      // const _data = {
+      //   project: this.currentSelectedProject,
+      //   model_id: res.uuid,
+      //   join_tables: res.join_tables
+      // }
+      const response = await this.invalidIndexes(res)
+      const result = await handleSuccessAsync(response)
+      const { computed_columns } = result
+      this.modelInstance.anti_flatten_cc = computed_columns
     }
   }
   // 展示model无权限的相关table和columns信息

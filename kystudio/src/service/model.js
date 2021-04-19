@@ -36,6 +36,9 @@ export default {
     params.status = 'ONLINE'
     return Vue.resource(apiUrl + 'models/' + params.modelId + '/status').update({model: params.modelId, project: params.project, status: params.status})
   },
+  invalidIndexes: (params) => {
+    return window.kapVm.$http.post(apiUrl + 'models/invalid_indexes', params)
+  },
   measureDimensionSuggestion: (params) => {
     return Vue.resource(apiUrl + 'models/table_suggestions').get(params)
   },

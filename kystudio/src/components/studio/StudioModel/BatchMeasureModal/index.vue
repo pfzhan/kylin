@@ -58,40 +58,46 @@
           </el-table>
         </div>
         <!-- 维度表 -->
-        <div v-for="(table, index) in lookupTable" class="ksd-mb-10 scroll-table-item" :key="index">
+        <div v-for="(table, index) in lookupTable" :class="['ksd-mb-10', 'scroll-table-item']" :key="index">
           <div @click="toggleTableShow(table)" class="table-header clearfix">
             <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
             <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
             <span class="ksd-ml-2 table-icon">
               <i class="el-icon-ksd-lookup_table"></i>
             </span>
-            <div class="table-title"><span class="measure-header-tip-layout">{{table.alias}}</span> <span>({{table.meaColNum}}/{{table.columns.length}})</span></div>
+            <div class="table-title">
+              <span class="measure-header-tip-layout">{{table.alias}}</span> <span>({{table.meaColNum}}/{{table.columns.length}})</span>
+              <common-tip placement="top" v-if="flattenLookupTables.includes(table.alias)" :content="$t('lockLookupMeasureTableTip')">
+                <i class="el-icon-ksd-what ksd-ml-5"></i>
+              </common-tip>
+            </div>
           </div>
           <el-table
             v-if="table.show || isGuideMode"
             border
+            :class="{'disabled-checkbox': flattenLookupTables.includes(table.alias)}"
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
             <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, table, 'SUM')" :disabled="scope.row.SUM.isShouldDisable || flattenLookupTables.includes(table.alias)"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, table, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, table, 'MIN')" :disabled="scope.row.MIN.isShouldDisable || flattenLookupTables.includes(table.alias)"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, table, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, table, 'MAX')" :disabled="scope.row.MAX.isShouldDisable || flattenLookupTables.includes(table.alias)"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, table, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, table, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable || flattenLookupTables.includes(table.alias)"></el-checkbox>
               </template>
             </el-table-column>
           </el-table>
@@ -106,6 +112,9 @@
                 <i class="el-icon-ksd-auto_computed_column"></i>
               </span>
               <span class="table-title">{{$t('computedColumns')}} <span>({{ccTable.meaColNum}}/{{ccTable.columns.length}})</span></span>
+              <common-tip placement="top" v-if="unflattenComputedColumns.length" :content="$t('useCCBylockLookupTableTip')">
+                <i class="el-icon-ksd-what ksd-ml-5"></i>
+              </common-tip>
             </div>
             <el-table
               v-if="ccTable.show || isGuideMode"
@@ -116,22 +125,22 @@
               <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
               <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, ccTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
+                  <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, ccTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable || unflattenComputedColumns.includes(scope.row.columnName)"></el-checkbox>
                 </template>
               </el-table-column>
               <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, ccTable, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
+                  <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, ccTable, 'MIN')" :disabled="scope.row.MIN.isShouldDisable || unflattenComputedColumns.includes(scope.row.columnName)"></el-checkbox>
                 </template>
               </el-table-column>
               <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, ccTable, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
+                  <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, ccTable, 'MAX')" :disabled="scope.row.MAX.isShouldDisable || unflattenComputedColumns.includes(scope.row.columnName)"></el-checkbox>
                 </template>
               </el-table-column>
               <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
-                  <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, ccTable, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
+                  <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, ccTable, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable || unflattenComputedColumns.includes(scope.row.columnName)"></el-checkbox>
                 </template>
               </el-table-column>
             </el-table>
@@ -140,6 +149,7 @@
       </div>
       <div v-else>
         <div v-for="searchTable in pagerSearchTable" class="scroll-table-item" :key="searchTable.guid">
+          {{searchTable.table_alias}}
           <el-table
             border
             :empty-text="emptyText"
@@ -149,22 +159,22 @@
             <el-table-column show-overflow-tooltip prop="table_alias" :label="$t('table')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, searchTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, searchTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable || flattenLookupTables.includes(scope.row.table_alias)"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MIN" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, searchTable, 'MIN')" :disabled="scope.row.MIN.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.MIN.value" @change="handleChange(scope.row, searchTable, 'MIN')" :disabled="scope.row.MIN.isShouldDisable || flattenLookupTables.includes(scope.row.table_alias)"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="MAX" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, searchTable, 'MAX')" :disabled="scope.row.MAX.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.MAX.value" @change="handleChange(scope.row, searchTable, 'MAX')" :disabled="scope.row.MAX.isShouldDisable || flattenLookupTables.includes(scope.row.table_alias)"></el-checkbox>
               </template>
             </el-table-column>
             <el-table-column prop="COUNT" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
-                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, searchTable, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable"></el-checkbox>
+                <el-checkbox v-model="scope.row.COUNT.value" @change="handleChange(scope.row, searchTable, 'COUNT')" :disabled="scope.row.COUNT.isShouldDisable || flattenLookupTables.includes(scope.row.table_alias)"></el-checkbox>
               </template>
             </el-table-column>
           </el-table>
@@ -235,6 +245,15 @@ export default class BatchMeasureModal extends Vue {
   tableHeaderTops = []
   scrollTableList = []
   targetFixedTable = null
+
+  get flattenLookupTables () {
+    return this.modelDesc.anti_flatten_lookups
+  }
+
+  get unflattenComputedColumns () {
+    return this.modelDesc.anti_flatten_cc.map(it => it.columnName)
+  }
+
   checkHasSameName (arr, val, column) {
     let flag = false
     for (let i = 0; i < arr.length; i++) {
@@ -556,12 +575,12 @@ export default class BatchMeasureModal extends Vue {
     const toggleAllMeasures = (val) => {
       table.columns.forEach((d) => {
         if (val) {
-          if (!d[column.property].isShouldDisable) {
+          if (!d[column.property].isShouldDisable && !this.flattenLookupTables.includes(d.table_alias) && !this.unflattenComputedColumns.includes(d.columnName)) {
             d[column.property] = {value: val, isShouldDisable: d[column.property].isShouldDisable}
             d.isMeasureCol = true
           }
         } else {
-          if (!d[column.property].isShouldDisable) {
+          if (!d[column.property].isShouldDisable && !this.flattenLookupTables.includes(d.table_alias) && !this.unflattenComputedColumns.includes(d.columnName)) {
             d[column.property] = {value: val, isShouldDisable: d[column.property].isShouldDisable}
           }
           if (!(d.SUM.value || d.MIN.value || d.MAX.value || d.COUNT.value)) {
@@ -636,6 +655,17 @@ export default class BatchMeasureModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
   .batch-measure-modal {
+    .el-table.disabled-checkbox {
+      .el-table__header {
+        .el-checkbox {
+          pointer-events: none;
+          .el-checkbox__inner {
+            background-color: @background-disabled-color;
+            border-color: @line-border-color3;
+          }
+        }
+      }
+    }
     .batch-des {
       color: @text-title-color;
       font-size: 14px;

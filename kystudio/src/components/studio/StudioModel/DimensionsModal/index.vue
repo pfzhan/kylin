@@ -92,14 +92,20 @@
                 <div @click="toggleTableShow(table)" class="table-header clearfix">
                   <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
                   <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                  <el-checkbox class="checkbox-all" v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+                  <el-checkbox class="checkbox-all" :disabled="flattenLookupTables.includes(table.alias)" v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
                   <span class="ksd-ml-6 table-icon">
                     <i class="el-icon-ksd-lookup_table"></i>
                   </span>
-                  <div class="table-title"><span class="dimension-header-tip-layout">{{table.alias}}</span> <span> ({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></div>
+                  <div class="table-title">
+                    <span class="dimension-header-tip-layout">{{table.alias}}</span> <span> ({{countTableSelectColumns(table)}}/{{table.columns.length}})</span>
+                    <common-tip placement="top" v-if="flattenLookupTables.includes(table.alias)" :content="$t('lockLookupTableTip')">
+                      <i class="el-icon-ksd-what ksd-ml-5"></i>
+                    </common-tip>
+                  </div>
                 </div>
                 <el-table
                   v-if="table.show || isGuideMode"
+                  :class="[flattenLookupTables.includes(table.alias) && 'is-disabled']"
                   border
                   :row-class-name="(para) => tableRowClassName(para, table)"
                   :data="table.columns" :ref="table.guid"
@@ -108,6 +114,7 @@
                   @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
                   <el-table-column
                     type="selection"
+                    :selectable="setTableSelectable"
                     align="center"
                     width="44">
                   </el-table-column>
@@ -115,7 +122,7 @@
                     :render-header="renderNameHeader">
                     <template slot-scope="scope">
                       <div @click.stop>
-                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
+                        <el-input size="small" v-model.trim="scope.row.alias" @change="checkDimensionForm" :disabled="!scope.row.isSelected || flattenLookupTables.includes(table.alias)" :maxlength="+dimMeasNameMaxLength">
                         </el-input>
                         <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                         <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('sameName')}}</div>
@@ -164,6 +171,9 @@
                       <i class="el-icon-ksd-auto_computed_column"></i>
                     </span>
                     <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}}/{{ccTable.columns.length}})</span></span>
+                    <common-tip placement="top" v-if="unflattenComputedColumns.length" :content="$t('useCCBylockLookupTableTip')">
+                      <i class="el-icon-ksd-what ksd-ml-5"></i>
+                    </common-tip>
                   </div>
                   <el-table
                     v-if="ccTable.show || isGuideMode"
@@ -175,6 +185,7 @@
                     @select="(selection, row) => {selectionChange(selection, row, ccTable.guid)}">
                     <el-table-column
                       type="selection"
+                      :selectable="setCCSelected"
                       align="center"
                       width="44">
                     </el-table-column>
@@ -183,7 +194,7 @@
                       :render-header="renderNameHeader">
                       <template slot-scope="scope">
                         <div @click.stop>
-                          <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
+                          <el-input size="small" v-model.trim="scope.row.alias" @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
                           </el-input>
                           <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                           <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('sameName')}}</div>
@@ -223,6 +234,7 @@
               <el-table-column
                 type="selection"
                 align="center"
+                :selectable="setTableSelectable"
                 width="44">
               </el-table-column>
               <el-table-column
@@ -341,6 +353,27 @@ export default class DimensionsModal extends Vue {
 
   get emptyText () {
     return this.searchChar ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+
+  get flattenLookupTables () {
+    return this.modelDesc.anti_flatten_lookups
+  }
+
+  get unflattenComputedColumns () {
+    return this.modelDesc.anti_flatten_cc.map(it => it.columnName)
+  }
+
+  // 判断 table 前的复选框是否能够被点击
+  setTableSelectable (row, index) {
+    // if (this.flattenLookupTables.includes(row.tableName)) {
+    //   row.isSelected = false
+    // }
+    return !this.flattenLookupTables.includes(row.tableName)
+  }
+
+  // 判断 cc 是否引用了不预计算的维表
+  setCCSelected (row) {
+    return !this.unflattenComputedColumns.includes(row.columnName)
   }
 
   // 同步或撤销注释到名称
@@ -679,6 +712,7 @@ export default class DimensionsModal extends Vue {
   }
   // 点击行触发事件
   rowClick (row, guid) {
+    if (this.flattenLookupTables.includes(row.tableName)) return
     row.isSelected = !row.isSelected
     this.getTableCheckedStatus(guid)
     this.$refs[guid][0].toggleRowSelection(row)
@@ -688,6 +722,7 @@ export default class DimensionsModal extends Vue {
     let table = this.getCurrentTable(guid)
     let columns = table.columns
     columns.forEach((row) => {
+      if (this.unflattenComputedColumns.includes(row.columnName)) return
       this.$set(row, 'isSelected', val)
     })
     this.renderTableColumnSelected(table)
@@ -815,6 +850,16 @@ export default class DimensionsModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .dimension-modal{
+  .el-table.is-disabled {
+    .el-table__header {
+      .el-checkbox {
+        pointer-events: none;
+        .el-checkbox__inner {
+          background-color: @background-disabled-color;
+        }
+      }
+    }
+  }
   .table-title {
     font-size: 14px;
     margin-left: 5px;

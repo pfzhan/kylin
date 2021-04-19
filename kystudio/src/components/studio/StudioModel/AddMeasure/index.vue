@@ -306,6 +306,11 @@ export default class AddMeasure extends Vue {
     }
     return []
   }
+
+  get flattenLookupTables () {
+    return this.modelInstance.anti_flatten_lookups
+  }
+
   sameGroupBy () {
     return this.measure.expression === 'TOP_N' && this.measure.convertedColumns.filter(it => it.sameIndex).length > 0
   }
@@ -555,7 +560,7 @@ export default class AddMeasure extends Vue {
       $.each(this.allTableColumns, (index, column) => {
         const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
         const returnValue = returnRegex.exec(column.datatype)
-        if (filterType.indexOf(returnValue[1]) >= 0) {
+        if (filterType.indexOf(returnValue[1]) >= 0 && !this.flattenLookupTables.includes(column.table_alias)) {
           const columnObj = {name: column.table_alias + '.' + column.name, datatype: column.datatype}
           targetColumns.push(columnObj)
         }
@@ -570,7 +575,7 @@ export default class AddMeasure extends Vue {
     $.each(this.allTableColumns, (index, column) => {
       const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
       const returnValue = returnRegex.exec(column.datatype)
-      if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+      if (measuresDataType.indexOf(returnValue[1]) >= 0 && !this.flattenLookupTables.includes(column.table_alias)) {
         const columnObj = {name: column.table_alias + '.' + column.name, datatype: column.datatype}
         targetColumns.push(columnObj)
       }

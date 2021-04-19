@@ -78,7 +78,8 @@ export default {
     measureRuleErrorTip: 'This measure\'s function ({type}) is incompatible with the referenced column, which is Varchar.',
     pleaseModify: 'Please modify.',
     iKnow: 'Got It',
-    disabledConstantMeasureTip: 'Can\'t modify the default measure.'
+    disabledConstantMeasureTip: 'Can\'t modify the default measure.',
+    flattenLookupTableTips: 'Unable to use columns from this table for dimension and measure. Because the join relationship of this dimension table won\'t be precomputed.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -159,6 +160,7 @@ export default {
     measureRuleErrorTip: '该度量的函数类型 {type} 不支持引用 Varchar 类型的列',
     pleaseModify: '请修改。',
     iKnow: '知道了',
-    disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。'
+    disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。',
+    flattenLookupTableTips: '无法在维度和度量中使用该表中的列，因为该维度表的关联关系不进行预计算。'
   }
 }

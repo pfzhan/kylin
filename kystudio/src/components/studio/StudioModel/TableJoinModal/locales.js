@@ -19,7 +19,18 @@ export default {
     oneToMany: 'One-to-Many',
     manyToMany: 'One-to-Many or Many-to-Many',
     tableRelationTips: 'When the relationship is one-to-many or many-to-many, the columns which are not defined as dimensions from the joined table {tableName} can\'t be queried.',
-    tableRelation: 'Table Relationship'
+    tableRelation: 'Table Relationship',
+    precomputeJoin: 'Precompute Join Relationships',
+    precomputeJoinTip: '* If precomputing join relationships, the columns which are not defined as dimensions from the joined dimension table can’t be queried. <br/> * If not precomputing join relationships, the storage and operation cost would be reduced. However, the columns from the joined dimension table can\'t used for dimensions, measures, computed columns and indexes of the model. Query can be served by adding the join key to the aggregate group. ',
+    disabledPrecomputeJoinTip: 'Precomputing the join relationships is not allowed. Because the joined dimension table is in the excluded rule of recommendation setting, precomputing may cause mistakes in query results. ',
+    backEdit: '返回编辑',
+    deletePrecomputeJoinDialogTips: 'If not precomputing the join relationships, the columns from the joined dimension table can’t be used for dimensions, measures, computed columns and indexes of the model. The following data will be deleted when the model is saved：',
+    measureCollapse: 'Measures ({num})',
+    dimensionCollapse: 'Dimensions ({num})',
+    computedColumnCollapse: 'Computed Columns ({num})',
+    indexesCollapse: 'Indexes ({num})',
+    aggIndexes: 'Aggregate Indexes ({len})',
+    tableIndexes: 'Table Indexes ({len})'
   },
   'zh-cn': {
     addJoinCondition: '添加关联关系',
@@ -41,6 +52,17 @@ export default {
     oneToMany: '一对多',
     manyToMany: '一对多或多对多',
     tableRelationTips: '当表关系为一对多或多对多时，将无法查询被关联表 {tableName} 的非维度列。',
-    tableRelation: '表关系'
+    tableRelation: '表关系',
+    precomputeJoin: '预计算关联关系',
+    precomputeJoinTip: '* 预计算关联关系将导致关联维度表中的非维度列无法查询。<br/> * 不进行预计算可降低存储和运维成本。但关联维度表中的列将无法在模型的维度，度量，可计算列和索引使用，可将关联键加入聚合组来服务查询。',
+    disabledPrecomputeJoinTip: '不允许预计算关联关系。因为该关联维度表已加入优化建议屏蔽设置，预计算可能导致查询结果出错。',
+    backEdit: '返回编辑',
+    deletePrecomputeJoinDialogTips: '不进行预计算时，关联维度表中的列将无法在模型的维度，度量，可计算列和索引中使用。模型保存时，以下数据将被删除：',
+    measureCollapse: '度量 ({num})',
+    dimensionCollapse: '维度（{num}）',
+    computedColumnCollapse: '可计算列（{num}）',
+    indexesCollapse: '索引（{num}）',
+    aggIndexes: '聚合索引（{len}）',
+    tableIndexes: '明细索引（{len}）'
   }
 }

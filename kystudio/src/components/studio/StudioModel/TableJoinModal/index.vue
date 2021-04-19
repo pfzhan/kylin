@@ -1,13 +1,13 @@
 <template>
   <el-dialog append-to-body limited-area :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="720px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
-    <el-alert
+    <!-- <el-alert
       :title="$t('tableRelationTips', {tableName: pTableName})"
       type="warning"
       class="ksd-mb-15"
       show-icon
       :closable="false"
       v-if="showTRelationTips">
-    </el-alert>
+    </el-alert> -->
     <p class="join-notices"><i :class="[!isErrorValue.length ? 'el-icon-ksd-alert' : 'el-icon-ksd-error_01 is-error']"></i>{{$t(!isErrorValue.length ? 'joinNotice' : 'joinErrorNotice')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('details')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></p>
     <div class="detail-content" v-if="showDetails">
       <p :class="[item.isError && 'is-error']" v-for="item in getDetails" :key="item.value"><i class="point">•</i>{{item.text}}</p>
@@ -44,6 +44,7 @@
           <el-option  v-for="key in selectedTRelations" :value="key.value" :key="key.value" :label="$t(key.label)"></el-option>
         </el-select>
       </el-col>
+      <span class="precompute-check ksd-ml-5"><el-checkbox v-model="isPrecompute">{{$t('precomputeJoin')}}</el-checkbox><el-tooltip effect="dark" placement="top"><span slot="content" v-html="$t('precomputeJoinTip')"></span><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip></span>
     </el-row>
     <!-- <div class="ky-line ksd-mt-15"></div> -->
     <!-- 列的关联 -->
@@ -103,7 +104,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import { modelRenderConfig } from '../ModelEdit/config'
 import vuex from '../../../../store'
-import { objectClone } from '../../../../util'
+import { handleError, handleSuccessAsync, objectClone } from '../../../../util'
 import locales from './locales'
 import store, { types } from './store'
 import { kapMessage, kapConfirm } from 'util/business'
@@ -131,6 +132,7 @@ vuex.registerModule(['modals', 'TableJoinModal'], store)
     }),
     // 后台接口请求
     ...mapActions({
+      invalidIndexes: 'INVALID_INDEXES'
     })
   },
   locales
@@ -164,13 +166,22 @@ export default class TableJoinModal extends Vue {
     // {value: 'ONE_TO_MANY', label: 'oneToMany'},
     {value: 'MANY_TO_MANY', label: 'manyToMany'}
   ]
-  get showTRelationTips () {
-    if (this.selectTableRelation === 'ONE_TO_MANY' || this.selectTableRelation === 'MANY_TO_MANY') {
-      return true
-    } else {
-      return false
-    }
-  }
+  isPrecompute = true
+  // get showTRelationTips () {
+  //   if (this.selectTableRelation === 'ONE_TO_MANY' || this.selectTableRelation === 'MANY_TO_MANY') {
+  //     return true
+  //   } else {
+  //     return false
+  //   }
+  // }
+
+  // 是否 disabled 预计算关联关系 checkbox
+  // get disabledCheckPrecomputed () {
+  //   const status = this.selectTableRelation === 'MANY_TO_ONE'
+  //   this.isPrecompute = !status
+  //   return status
+  // }
+
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
@@ -194,10 +205,12 @@ export default class TableJoinModal extends Vue {
         this.joinColumns.primary_key = objectClone(joinInfo.primary_key)
         this.joinColumns.op = objectClone(joinInfo.op)
         this.joinType = joinInfo.type
+        this.isPrecompute = typeof joinData.flattenable !== 'undefined' ? joinData.flattenable === 'flatten' : true
       } else { // 无join数据的情况,设置默认值
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
         this.$set(this.joinColumns, 'op', [''])
+        this.isPrecompute = true
       }
       // 拖动添加默认填充
       // 如果添加的是重复的关联关系不做处理
@@ -516,21 +529,86 @@ export default class TableJoinModal extends Vue {
       kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
       return
     }
-    // 删除重复的条件
-    this.removeDuplicateCondition()
-    // 传出处理后的结果
-    this.handleClose(true, {
-      selectF: selectF,
-      selectP: selectP,
-      joinData: joinData,
-      selectTableRelation: selectTableRelation,
-      joinType: this.joinType
-    })
-    // } else {
-    //   kapMessage(this.$t('checkCompleteLink'), {
-    //     type: 'warning'
-    //   })
-    // }
+    try {
+      const res = await this.form.modelInstance.generateMetadata(true)
+      // if (res.uuid) {
+      const currentJoinIndex = res.join_tables.findIndex(it => it.alias === this.pTableName)
+      if (currentJoinIndex > -1) {
+        res.join_tables[currentJoinIndex] = {...res.join_tables[currentJoinIndex], flattenable: this.isPrecompute ? 'flatten' : 'normalized'}
+      } else {
+        res.join_tables.push({
+          alias: this.pTableName,
+          join: joinData,
+          join_relation_type: selectTableRelation,
+          flattenable: this.isPrecompute ? 'flatten' : 'normalized',
+          table: this.form.modelInstance.tables[selectP].name
+        })
+      }
+      // const data = {
+      //   project: this.currentSelectedProject,
+      //   model_id: res.uuid,
+      //   join_tables: res.join_tables
+      // }
+      // todo 调 check 接口
+      const response = await this.invalidIndexes(res)
+      const result = await handleSuccessAsync(response)
+      // const result = {
+      //   computed_columns: [],
+      //   dimensions: [10, 12, 15, 16],
+      //   measures: [100001, 100002],
+      //   agg_index_count: 2,
+      //   table_index_count: 4,
+      //   anti_flatten_lookups: ['CUSTOMER']
+      // }
+      const {computed_columns, dimensions, measures, agg_index_count, table_index_count, anti_flatten_lookups} = result
+
+      if ((computed_columns.length + dimensions.length + measures.length + agg_index_count + table_index_count) > 0) {
+        await this.$msgbox({
+          title: this.$t('kylinLang.common.tip'),
+          message: <div>
+                      <span>{this.$t('deletePrecomputeJoinDialogTips')}</span>
+                      <div class="deleted-precompute-join-content">
+                        <el-collapse>
+                          {dimensions.length ? <el-collapse-item title={this.$t('dimensionCollapse', {num: dimensions.length})}>
+                            {dimensions.map(it => (<p>{it}</p>))}
+                          </el-collapse-item> : null}
+                          {measures.length ? <el-collapse-item title={this.$t('measureCollapse', {num: measures.length})}>
+                            {measures.map(it => (<p>{it}</p>))}
+                          </el-collapse-item> : null}
+                          {computed_columns.length ? <el-collapse-item title={this.$t('computedColumnCollapse', {num: computed_columns.length})}>
+                            {computed_columns.map(it => (<p>{it.columnName}</p>))}
+                          </el-collapse-item> : null}
+                          {(agg_index_count || table_index_count) ? <el-collapse-item title={this.$t('indexesCollapse', {num: agg_index_count + table_index_count})}>
+                            {agg_index_count ? <div>{this.$t('aggIndexes', {len: agg_index_count})}</div> : null}
+                            {table_index_count ? <div>{this.$t('tableIndexes', {len: table_index_count})}</div> : null}
+                          </el-collapse-item> : null}
+                        </el-collapse>
+                      </div>
+                    </div>,
+          type: 'warning',
+          cancelButtonText: this.$t('backEdit'),
+          showCancelButton: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: false
+        })
+      }
+
+      // 删除重复的条件
+      this.removeDuplicateCondition()
+      // 传出处理后的结果
+      this.handleClose(true, {
+        selectF: selectF,
+        selectP: selectP,
+        joinData: joinData,
+        selectTableRelation: selectTableRelation,
+        joinType: this.joinType,
+        isPrecompute: this.isPrecompute ? 'flatten' : 'normalized',
+        anti_flatten_lookups,
+        anti_flatten_cc: computed_columns
+      })
+    } catch (e) {
+      handleError(e)
+    }
   }
   handleClose (isSubmit, data) {
     this.hideModal()
@@ -598,6 +676,9 @@ export default class TableJoinModal extends Vue {
     font-weight: bold;
     margin-bottom: 10px;
   }
+  .precompute-check {
+    line-height: 30px;
+  }
   .el-button+.el-button {
     margin-left:5px;
   }
@@ -642,5 +723,34 @@ export default class TableJoinModal extends Vue {
     }
   }
 }
-
+.deleted-precompute-join-content {
+  background-color: #FAFAFA;
+  padding: 5px 10px;
+  box-sizing: border-box;
+  max-height: 200px;
+  margin-top: 8px;
+  overflow: auto;
+  .el-collapse {
+    border: 0;
+  }
+  .el-collapse-item {
+    .el-collapse-item__header {
+      background-color: #FAFAFA;
+      line-height: 30px;
+      height: 30px;
+      border: 0;
+    }
+    .el-collapse-item__wrap {
+      border: 0;
+      background-color: initial;
+      .el-collapse-item__content {
+        padding-bottom: 0;
+      }
+    }
+    .el-collapse-item__arrow {
+      line-height: 30px;
+      float: left;
+    }
+  }
+}
 </style>

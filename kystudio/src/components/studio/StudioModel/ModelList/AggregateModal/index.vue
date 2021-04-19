@@ -1594,7 +1594,8 @@ export default class AggregateModal extends Vue {
       })
     } else {
       this.measureList.forEach(it => {
-        it.name !== 'COUNT_ALL' && (it.isCheck = false)
+        if (it.name === 'COUNT_ALL') return
+        it.isCheck = false
         this.collectSelectedMeasures(it, type)
       })
     }

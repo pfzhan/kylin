@@ -37,6 +37,8 @@ class NModel {
       partition_date_start: 0,
       partition_type: 'APPEND'
     }
+    this.anti_flatten_lookups = options.join_tables ? options.join_tables.filter(item => item.flattenable === 'normalized').map(it => it.alias) : []
+    this.anti_flatten_cc = []
     this.multi_partition_desc = options.multi_partition_desc || null
     this.his_partition_desc = Object.assign({}, options.partition_desc)
     this.simplified_dimensions = options.simplified_dimensions || []
@@ -87,6 +89,7 @@ class NModel {
       table.join.foreign_key = objectClone(temp_foreign_key)
       table.join.primary_key = objectClone(temp_primary_key)
       table.join.op = objectClone(temp_op)
+      table.flattenable = typeof table.flattenable !== 'undefined' ? table.flattenable : 'flatten'
       delete table.join.non_equi_join_condition
       delete table.join.simplified_non_equi_join_conditions
     })
@@ -133,6 +136,8 @@ class NModel {
       this.$set(this._mount, 'hasBrokenLinkedTable', false)
       this.$set(this._mount, 'broken_reason', options.broken_reason)
       this.$set(this._mount, 'all_named_columns', options.all_named_columns || [])
+      this.$set(this._mount, 'anti_flatten_lookups', this.anti_flatten_lookups)
+      this.$set(this._mount, 'anti_flatten_cc', this.anti_flatten_cc)
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)
@@ -427,7 +432,7 @@ class NModel {
         // 获取外键表对象
         if (this.renderDom) {
           var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
-          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type, tableObj.join.op, tableObj.join_relation_type)
+          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type, tableObj.join.op, tableObj.flattenable, tableObj.join_relation_type)
         }
       })
     }
@@ -472,7 +477,7 @@ class NModel {
           this.removeRenderLink(conn)
           // 产生新的连接数据
           if (hisConnInfo) {
-            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type, hisConnInfo.join.op, hisConnInfo.join_relation_type)
+            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type, hisConnInfo.join.op, hisConnInfo.flattenable, hisConnInfo.join_relation_type)
           }
           // 重新连接
           this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)
