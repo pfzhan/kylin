@@ -64,6 +64,7 @@ public class QueryParams {
     String defaultSchema;
     String executeAs;
     String prepareSql;
+    String sparkQueue;
     boolean isSelect;
     boolean isPrepare;
     boolean isForced;

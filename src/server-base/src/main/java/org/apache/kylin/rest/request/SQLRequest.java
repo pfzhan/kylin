@@ -86,6 +86,8 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private String format = "csv";
     private String encode = "utf-8";
     private String userAgent = "";
+    @JsonProperty("spark_queue")
+    private String sparkQueue = "";
     private boolean partialMatchIndex = false;
 
     @JsonProperty("file_name")

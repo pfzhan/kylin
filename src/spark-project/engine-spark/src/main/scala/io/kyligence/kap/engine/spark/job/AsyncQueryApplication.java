@@ -50,23 +50,36 @@ public class AsyncQueryApplication extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(AsyncQueryApplication.class);
 
     @Override
-    protected void doExecute() throws IOException {
+    protected void handleException(Exception e) throws Exception {
         try {
-            logger.info("start async query job");
-            QueryContext.set(JsonUtil.readValue(getParam(P_QUERY_CONTEXT), QueryContext.class));
-            QueryMetricsContext.start(QueryContext.current().getQueryId(), "");
-            QueryRoutingEngine queryRoutingEngine = new QueryRoutingEngine();
-            QueryParams queryParams = JsonUtil.readValue(getParam(P_QUERY_PARAMS), QueryParams.class);
-            queryParams.setKylinConfig(KylinConfig.getInstanceFromEnv());
-            queryRoutingEngine.queryWithSqlMassage(queryParams);
-        } catch (Exception e) {
-            logger.error("async query job failed.", e);
             QueryContext.current().getMetrics().setException(true);
             AsyncQueryUtil.createErrorFlag(getParam(P_PROJECT_NAME), getParam(P_QUERY_ID), e.getMessage());
+        } catch (Exception ex) {
+            logger.error("save async query exception message failed");
+        }
+        throw e;
+    }
+
+    @Override
+    protected void doExecute() throws IOException {
+        try {
+            try {
+                logger.info("start async query job");
+                QueryContext.set(JsonUtil.readValue(getParam(P_QUERY_CONTEXT), QueryContext.class));
+                QueryMetricsContext.start(QueryContext.current().getQueryId(), "");
+                QueryRoutingEngine queryRoutingEngine = new QueryRoutingEngine();
+                QueryParams queryParams = JsonUtil.readValue(getParam(P_QUERY_PARAMS), QueryParams.class);
+                queryParams.setKylinConfig(KylinConfig.getInstanceFromEnv());
+                queryRoutingEngine.queryWithSqlMassage(queryParams);
+            } catch (Exception e) {
+                logger.error("async query job failed.", e);
+                QueryContext.current().getMetrics().setException(true);
+                AsyncQueryUtil.createErrorFlag(getParam(P_PROJECT_NAME), getParam(P_QUERY_ID), e.getMessage());
+            }
+            saveQueryHistory();
         } finally {
             QueryMetricsContext.reset();
         }
-        saveQueryHistory();
     }
 
     @Override

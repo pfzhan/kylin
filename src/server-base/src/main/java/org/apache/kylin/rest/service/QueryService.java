@@ -184,7 +184,6 @@ public class QueryService extends BasicService {
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     public static final String UNKNOWN = "Unknown";
     private static final String JDBC_METADATA_SCHEMA = "metadata";
-    public static final String IS_ASYNC_QUERY_PUSH_DOWN = "async query temporary unknown whether push down";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
@@ -230,8 +229,14 @@ public class QueryService extends BasicService {
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
             queryParams.setACLDisabledOrAdmin(isACLDisabledOrAdmin(queryParams.getProject(), queryParams.getAclInfo()));
 
+            KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(queryParams.getProject()).getConfig();
+
             if (QueryContext.current().getQueryTagInfo().isAsyncQuery()
-                    && KylinConfig.getInstanceFromEnv().isUniqueAsyncQueryYarnQueue()) {
+                    && projectConfig.isUniqueAsyncQueryYarnQueue()) {
+                if (StringUtils.isNotEmpty(sqlRequest.getSparkQueue())) {
+                    queryParams.setSparkQueue(sqlRequest.getSparkQueue());
+                }
                 AsyncQueryJob asyncQueryJob = new AsyncQueryJob();
                 asyncQueryJob.setProject(queryParams.getProject());
                 asyncQueryJob.submit(queryParams);
@@ -247,7 +252,9 @@ public class QueryService extends BasicService {
             }
 
             Pair<List<List<String>>, List<SelectedColumnMeta>> pair = queryRoutingEngine.queryWithSqlMassage(queryParams);
-            QueryContext.current().getMetrics().setResultRowCount(pair.getFirst().size());
+            if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+                QueryContext.current().getMetrics().setResultRowCount(pair.getFirst().size());
+            }
             return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(), pair.getFirst(),
                     pair.getSecond(), sqlRequest.getProject());
         } finally {
@@ -374,6 +381,10 @@ public class QueryService extends BasicService {
                     .collect(Collectors.toList());
         }
 
+        KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(request.getProject()).getConfig();
+
+
         LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
                 .put(LogReport.SQL, sql).put(LogReport.USER, user)
                 .put(LogReport.SUCCESS, null == response.getExceptionMessage()).put(LogReport.DURATION, duration)
@@ -389,8 +400,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.PARTIAL_RESULT, response.isPartial())
                 .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
                 .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
-                .put(LogReport.PUSH_DOWN, QueryContext.current().getQueryTagInfo().isAsyncQuery()
-                        ? IS_ASYNC_QUERY_PUSH_DOWN : response.isQueryPushDown())
+                .put(LogReport.PUSH_DOWN, response.isQueryPushDown())
                 .put(LogReport.IS_PREPARE, response.isPrepare())
                 .put(LogReport.TIMEOUT, response.isTimeout()).put(LogReport.TRACE_URL, response.getTraceUrl())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
@@ -401,11 +411,13 @@ public class QueryService extends BasicService {
                 .put(LogReport.USER_AGENT, request.getUserAgent())
                 .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles());
         String log = report.oldStyleLog();
-        logger.info(log);
-        logger.info(report.jsonStyleLog());
-        if (request.getExecuteAs() != null)
-            logger.info(String.format(Locale.ROOT, "[EXECUTE AS USER]: User [%s] executes the sql as user [%s].", user,
-                    request.getExecuteAs()));
+        if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery() && projectConfig.isUniqueAsyncQueryYarnQueue())) {
+            logger.info(log);
+            logger.info(report.jsonStyleLog());
+            if (request.getExecuteAs() != null)
+                logger.info(String.format(Locale.ROOT, "[EXECUTE AS USER]: User [%s] executes the sql as user [%s].",
+                        user, request.getExecuteAs()));
+        }
         return log;
     }
 
@@ -596,8 +608,11 @@ public class QueryService extends BasicService {
             queryContext.getMetrics()
                     .setSqlPattern(QueryPatternUtil.normalizeSQLPattern(queryContext.getMetrics().getCorrectedSql()));
 
+            KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(project).getConfig();
+
             if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
-                    && KylinConfig.getInstanceFromEnv().isUniqueAsyncQueryYarnQueue())) {
+                    && projectKylinConfig.isUniqueAsyncQueryYarnQueue())) {
                 try {
                     recordMetric(sqlRequest, sqlResponse);
                 } catch (Throwable th) {

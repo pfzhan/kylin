@@ -213,6 +213,7 @@ object ResultPlan extends LogEx {
     jobTrace.jobFinished()
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
     val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
+    logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")
     QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
     QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
     QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")

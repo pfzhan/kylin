@@ -2223,6 +2223,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.unique-async-query-yarn-queue-enabled", FALSE));
     }
 
+    public String getAsyncQuerySparkYarnQueue() {
+        return getOptional("kylin.query.async-query.spark-conf.spark.yarn.queue", "default");
+    }
+
     public String getAsyncQueryHadoopConfDir() {
         return getOptional("kylin.query.async-query.submit-hadoop-conf-dir", "");
     }

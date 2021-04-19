@@ -67,6 +67,8 @@ public class AsyncQueryUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryUtil.class);
 
+    public static final String ASYNC_QUERY_JOB_ID_PRE = "ASYNC-QUERY-";
+
     public static FileSystem getFileSystem() {
         return HadoopUtil.getWorkingFileSystem();
     }

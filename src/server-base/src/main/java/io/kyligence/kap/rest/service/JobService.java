@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JO
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -622,6 +623,10 @@ public class JobService extends BasicService {
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
         extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
 
+        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
+            return;
+        }
+
         executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
     }
 
@@ -631,6 +636,10 @@ public class JobService extends BasicService {
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_JOB_WAIT_TIME, waitTime);
         extraInfo.put(ExecutableConstants.YARN_JOB_RUN_TIME, buildTime);
+
+        if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
+            return;
+        }
 
         executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
     }

@@ -56,6 +56,7 @@ public interface NBatchConstants {
     String P_QUERY_ID = "queryId";
     String P_QUERY_PARAMS = "queryParams";
     String P_QUERY_CONTEXT = "queryContext";
+    String P_QUERY_QUEUE = "queryQueue";
 
     // ut only
     String P_BREAK_POINT_LAYOUTS = "breakPointLayouts";

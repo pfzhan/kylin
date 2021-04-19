@@ -327,6 +327,8 @@ public abstract class SparkApplication implements Application, IKeep {
             val outputConfig = KylinConfig.createKylinConfig(config);
             outputConfig.setMetadataUrl(getParam(NBatchConstants.P_OUTPUT_META_URL));
             MetadataStore.createMetadataStore(outputConfig).dump(resourceStore);
+        } catch (Exception e) {
+            handleException(e);
         } finally {
             if (infos != null) {
                 infos.jobEnd();
@@ -336,6 +338,10 @@ public abstract class SparkApplication implements Application, IKeep {
                 ss.stop();
             }
         }
+    }
+    
+    protected void handleException(Exception e) throws Exception {
+        throw e;
     }
 
     private SparkSession createSpark(SparkConf sparkConf) {
