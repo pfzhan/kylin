@@ -42,6 +42,10 @@
 
 package io.kyligence.kap.query.optrule;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
@@ -56,10 +60,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.runtime.PredicateImpl;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class KapProjectJoinTransposeRule extends RelOptRule {
     private static class SkipOverConidtion extends PredicateImpl<RexNode> implements PushProjector.ExprCondition {
@@ -136,7 +136,6 @@ public class KapProjectJoinTransposeRule extends RelOptRule {
         if (join instanceof SemiJoin) {
             return; // TODO: support SemiJoin
         }
-
         if (projectSameInputFields(origProj, join)) {
             return;
         }

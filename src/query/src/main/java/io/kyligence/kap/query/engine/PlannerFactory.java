@@ -28,7 +28,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -92,6 +91,7 @@ import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
 import io.kyligence.kap.query.optrule.KapMinusRule;
 import io.kyligence.kap.query.optrule.KapOLAPToEnumerableConverterRule;
+import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSortRule;

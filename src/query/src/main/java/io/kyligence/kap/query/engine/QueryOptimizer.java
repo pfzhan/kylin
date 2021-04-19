@@ -36,8 +36,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+
+import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 
 public class QueryOptimizer {
 
@@ -62,6 +65,11 @@ public class QueryOptimizer {
                     final RelOptTable.ToRelContext context = RelOptUtil.getContext(cluster);
                     final RelNode r = node.getTable().toRel(context);
                     planner.registerClass(r);
+                }
+                if (node instanceof Union) {
+                    // @see https://olapio.atlassian.net/browse/AL-2127
+                    // the optimize step is extremely slow with this rule
+                    planner.removeRule(KapProjectJoinTransposeRule.INSTANCE);
                 }
                 super.visit(node, ordinal, parent);
             }

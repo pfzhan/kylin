@@ -28,11 +28,11 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 
 import io.kyligence.kap.common.obf.IKeep;
+import lombok.val;
 
 public class SensitivePatternLayout extends PatternLayout implements IKeep {
     private static final String PREFIX_GROUP_NAME = "prefix";
@@ -47,12 +47,9 @@ public class SensitivePatternLayout extends PatternLayout implements IKeep {
         if (event.getMessage() instanceof String) {
             String maskedMessage = mask(event.getRenderedMessage());
 
-            Throwable throwable = event.getThrowableInformation() != null
-                    ? event.getThrowableInformation().getThrowable()
-                    : null;
-            LoggingEvent maskedEvent = new LoggingEvent(event.fqnOfCategoryClass,
-                    Logger.getLogger(event.getLoggerName()), event.timeStamp, event.getLevel(), maskedMessage,
-                    throwable);
+            val maskedEvent = new LoggingEvent(event.getFQNOfLoggerClass(), event.getLogger(), event.getTimeStamp(),
+                    event.getLevel(), maskedMessage, event.getThreadName(), event.getThrowableInformation(),
+                    event.getNDC(), event.getLocationInformation(), event.getProperties());
 
             return super.format(maskedEvent);
         }

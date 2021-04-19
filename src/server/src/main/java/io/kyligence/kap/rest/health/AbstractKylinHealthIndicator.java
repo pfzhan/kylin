@@ -43,7 +43,7 @@ public abstract class AbstractKylinHealthIndicator implements HealthIndicator {
             throw new InterruptedException();
 
         long response = System.currentTimeMillis() - start;
-        logger.info("{} took {} ms", operation, response);
+        logger.trace("{} took {} ms", operation, response);
 
         if (response > errorResponseMs) {
             throw new RuntimeException("check time is time out");
