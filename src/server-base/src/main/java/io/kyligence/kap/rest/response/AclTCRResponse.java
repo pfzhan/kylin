@@ -76,6 +76,7 @@ public class AclTCRResponse {
         @JsonProperty("like_rows")
         private List<Row> likeRows = new ArrayList<>();
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         @JsonProperty("row_filter")
         private RowFilter rowFilter = new RowFilter();
     }

@@ -32,7 +32,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -99,6 +101,12 @@ public class AclTCRController extends NBasicController {
         } else {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
         }
+        // remove new field `row_filter`
+        result.stream().forEach(resp -> {
+            Optional.ofNullable(resp.getTables()).orElse(Lists.newArrayList()).stream().forEach(table -> {
+                table.setRowFilter(null);
+            });
+        });
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
@@ -112,14 +120,24 @@ public class AclTCRController extends NBasicController {
              @RequestParam("project") String project, //
              @RequestParam(value = "authorized_only", required = false, defaultValue = "false") boolean authorizedOnly)
             throws IOException {
-        EnvelopeResponse<List<AclTCRResponse>> response = getProjectSidTCR(sidType, sid, project, authorizedOnly);
-        response.getData().stream().forEach(resp -> {
-           resp.getTables().stream().forEach(table -> {
+        checkProjectName(project);
+        List<AclTCRResponse> result;
+        if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            sid = makeUserNameCaseInSentive(sid);
+            result = getProjectSidTCR(project, sid, true, authorizedOnly);
+        } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
+            result = getProjectSidTCR(project, sid, false, authorizedOnly);
+        } else {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
+        }
+        // remove depreciated fields `rows` and `like_rows`
+        result.stream().forEach(resp -> {
+           Optional.ofNullable(resp.getTables()).orElse(Lists.newArrayList()).stream().forEach(table -> {
                table.setRows(null);
                table.setLikeRows(null);
            });
         });
-        return response;
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "updateProject", tags = { "MID" }, notes = "Update URL: {project}")
@@ -131,6 +149,11 @@ public class AclTCRController extends NBasicController {
             @RequestBody List<AclTCRRequest> requests) throws IOException {
         checkProjectName(project);
         AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
+        // Depreciated api can't use new field `row_filter`
+        requests.stream().forEach(request -> Optional.ofNullable(request.getTables()).orElse(Lists.newArrayList())
+                .stream().forEach(table -> {
+            table.setRowFilter(null);
+        }));
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             sid = makeUserNameCaseInSentive(sid);
             updateSidAclTCR(project, sid, true, requests);

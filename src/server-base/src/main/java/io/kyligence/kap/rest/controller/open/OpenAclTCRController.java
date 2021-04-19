@@ -31,7 +31,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -76,7 +78,13 @@ public class OpenAclTCRController extends NBasicController {
             @RequestBody List<AclTCRRequest> requests) throws IOException {
         checkProjectName(project);
         AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
+        // Depreciated api can't use new field `row_filter`
+        requests.stream().forEach(request -> Optional.ofNullable(request.getTables()).orElse(Lists.newArrayList())
+                .stream().forEach(table -> {
+                    table.setRowFilter(null);
+        }));
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            sid = makeUserNameCaseInSentive(sid);
             mergeSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             mergeSidAclTCR(project, sid, false, requests);
@@ -111,6 +119,7 @@ public class OpenAclTCRController extends NBasicController {
         checkProjectName(project);
         AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            sid = makeUserNameCaseInSentive(sid);
             mergeSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             mergeSidAclTCR(project, sid, false, requests);

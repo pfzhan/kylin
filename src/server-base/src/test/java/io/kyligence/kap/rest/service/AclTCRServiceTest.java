@@ -1239,36 +1239,45 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAclResponseWithRowFilter() throws IOException {
-        AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
-
-        val acl = new AclTCR();
-        val table = new AclTCR.Table();
-        val columnRow = new AclTCR.ColumnRow();
-        val filterGroup = new AclTCR.FilterGroup();
-        val filterItems = new AclTCR.FilterItems(Sets.newTreeSet(Lists.newArrayList("1")),
-                Sets.newTreeSet(Lists.newArrayList("2")), AclTCR.OperatorType.AND);
-        val filters = new AclTCR.Filters();
-        filters.put("COLUMN1", filterItems);
-        filterGroup.setGroup(false);
-        filterGroup.setFilters(filters);
-        columnRow.setRowFilter(Lists.newArrayList(filterGroup));
-        table.put("DEFAULT.TEST_ORDER", columnRow);
-        acl.setTable(table);
-        manager.updateAclTCR(acl, user1, true);
-
+    public void testMergeAndGetWithRowFilter() throws IOException {
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        val rf1 = new AclTCRRequest.RowFilter();
+        val filterGroups = new ArrayList<AclTCRRequest.FilterGroup>();
+        val fg1 = new AclTCRRequest.FilterGroup();
+        fg1.setGroup(false);
+        val filters = new ArrayList<AclTCRRequest.Filter>();
+        val filter = new AclTCRRequest.Filter();
+        filter.setColumnName("TEST_EXTENDED_COLUMN");
+        filter.setInItems(Lists.newArrayList("a", "b"));
+        filter.setLikeItems(Lists.newArrayList("1", "2"));
+        filters.add(filter);
+        fg1.setFilters(filters);
+        filterGroups.add(fg1);
+        rf1.setFilterGroups(filterGroups);
+        u1t1.setRowFilter(rf1);
+        request.setTables(Lists.newArrayList(u1t1));
+        aclTCRService.mergeAclTCR(projectDefault, user1, true, Lists.newArrayList(request));
         List<AclTCRResponse> response = aclTCRService.getAclTCRResponse(projectDefault, user1, true, true);
         Assert.assertTrue(response.stream()
                 .anyMatch(aclTCRResponse -> {
-                    if (!"DEFAULT".equals(aclTCRResponse.getDatabaseName())
-                        || !"TEST_ORDER".equals(aclTCRResponse.getTables().get(0).getTableName())) {
+                    if (!"DEFAULT".equals(aclTCRResponse.getDatabaseName())) {
                         return false;
                     }
 
-                    val filter = aclTCRResponse.getTables().get(0).getRowFilter().getFilterGroups()
-                            .get(0).getFilters().get(0);
-                    return ("COLUMN1".equals(filter.getColumnName()) && "1".equals(filter.getInItems().get(0))
-                            && "2".equals(filter.getLikeItems().get(0)));
+                    return aclTCRResponse.getTables().stream().anyMatch(table -> {
+                       if (!"TEST_ORDER".equals(table.getTableName())) {
+                           return false;
+                       }
+
+                       val f = table.getRowFilter().getFilterGroups().get(0).getFilters().get(0);
+                        return ("TEST_EXTENDED_COLUMN".equals(f.getColumnName())
+                                && "a".equals(f.getInItems().get(0))
+                                && "1".equals(f.getLikeItems().get(0)));
+                    });
                 }));
     }
 }

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -50,6 +51,8 @@ public class AclTCRRequest {
         @JsonProperty
         private List<Column> columns;
 
+        // Default value for rows, like_rows and row_filter is null
+        // DO NOT CHANGE TO EMPTY LIST OR EMPTY ROW FILTER
         @JsonProperty
         private List<Row> rows;
 
@@ -91,10 +94,10 @@ public class AclTCRRequest {
         private String columnName;
 
         @JsonProperty("in_items")
-        private List<String> inItems;
+        private List<String> inItems = new ArrayList<>();
 
         @JsonProperty("like_items")
-        private List<String> likeItems;
+        private List<String> likeItems = new ArrayList<>();
     }
 
     @Data
@@ -106,7 +109,7 @@ public class AclTCRRequest {
         private boolean group;
 
         @JsonProperty
-        private List<Filter> filters;
+        private List<Filter> filters = new ArrayList<>();
     }
 
     @Data
@@ -115,9 +118,8 @@ public class AclTCRRequest {
         private String type = "AND";
 
         @JsonProperty("filter_groups")
-        private List<FilterGroup> filterGroups;
+        private List<FilterGroup> filterGroups = new ArrayList<>();
     }
-
 
     @Data
     public static class DependentColumnData {

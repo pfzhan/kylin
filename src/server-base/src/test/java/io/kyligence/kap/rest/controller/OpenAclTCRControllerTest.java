@@ -27,8 +27,10 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import io.kyligence.kap.rest.controller.open.OpenAclTCRController;
+import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
@@ -118,14 +120,36 @@ public class OpenAclTCRControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(openAclTCRController).updateProject("user", "u1", "default", Lists.newArrayList());
 
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        val rf1 = new AclTCRRequest.RowFilter();
+        val filterGroups = new ArrayList<AclTCRRequest.FilterGroup>();
+        val fg1 = new AclTCRRequest.FilterGroup();
+        fg1.setGroup(false);
+        val filters = new ArrayList<AclTCRRequest.Filter>();
+        val filter = new AclTCRRequest.Filter();
+        filter.setColumnName("TEST_EXTENDED_COLUMN");
+        filter.setInItems(Lists.newArrayList("a", "b"));
+        filter.setLikeItems(Lists.newArrayList("1", "2"));
+        filters.add(filter);
+        fg1.setFilters(filters);
+        filterGroups.add(fg1);
+        rf1.setFilterGroups(filterGroups);
+        u1t1.setRowFilter(rf1);
+        request.setTables(Lists.newArrayList(u1t1));
+
         mockMvc.perform(MockMvcRequestBuilders.put("/api/acl/sid/{sidType}/{sid}", "group", "g1") //
                 .param("project", "default") //
-                .content(JsonUtil.writeValueAsBytes(Lists.<AclTCRRequest> newArrayList())) //
+                .content(JsonUtil.writeValueAsBytes(Lists.newArrayList(request))) //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON_PUBLIC))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openAclTCRController).updateProject("group", "g1", "default", Lists.newArrayList());
+        request.getTables().get(0).setRowFilter(null);
+        Mockito.verify(openAclTCRController).updateProject("group", "g1", "default", Lists.newArrayList(request));
     }
 
     @Test
@@ -148,6 +172,15 @@ public class OpenAclTCRControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(openAclTCRController).updateProjectV2("user", "u1", "default", Lists.newArrayList());
 
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        u1t1.setRows(Lists.newArrayList(new AclTCRRequest.Row()));
+        u1t1.setLikeRows(Lists.newArrayList(new AclTCRRequest.Row()));
+        request.setTables(Lists.newArrayList(u1t1));
+
         mockMvc.perform(MockMvcRequestBuilders.put("/api/acl/{sidType}/{sid}", "group", "g1") //
                 .param("project", "default") //
                 .content(JsonUtil.writeValueAsBytes(Lists.<AclTCRRequest> newArrayList())) //
@@ -155,6 +188,8 @@ public class OpenAclTCRControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON_PUBLIC))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
+        request.getTables().get(0).setRows(null);
+        request.getTables().get(0).setLikeRows(null);
         Mockito.verify(openAclTCRController).updateProjectV2("group", "g1", "default", Lists.newArrayList());
     }
 }
