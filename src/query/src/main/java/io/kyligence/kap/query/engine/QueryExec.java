@@ -276,6 +276,7 @@ public class QueryExec {
         dataContext.setContentQuery(routeToCalcite);
         if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()
                 && KapConfig.wrap(kylinConfig).runConstantQueryLocally() && routeToCalcite) {
+            QueryContext.current().getQueryTagInfo().setConstantQuery(true);
             return new CalciteQueryPlanExec().execute(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
             NoRealizationFoundException lastException = null;

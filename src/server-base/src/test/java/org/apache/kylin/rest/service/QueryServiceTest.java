@@ -1008,6 +1008,25 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testAnswerByWhenQueryFailed() throws Exception {
+        final String project = "default";
+        final String constantQueryFailSql = "select * from success_table_3";
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(constantQueryFailSql);
+        request.setQueryId("testAnswerByWhenQueryFailed");
+
+        QueryMetricsContext.start(request.getQueryId(), "");
+
+        SQLResponse sqlResponse = queryService.queryWithCache(request, false);
+        Assert.assertTrue(sqlResponse.isException());
+        Assert.assertTrue(QueryContext.current().getMetrics().isException());
+        Assert.assertFalse(QueryContext.current().getQueryTagInfo().isPushdown());
+        Assert.assertFalse(QueryContext.current().getQueryTagInfo().isConstantQuery());
+    }
+
+    @Test
     @Ignore
     public void testQueryWithResultRowCountBreaker() {
         final String sql = "select * from success_table_2";

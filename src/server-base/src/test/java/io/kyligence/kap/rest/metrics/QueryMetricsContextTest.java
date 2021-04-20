@@ -252,6 +252,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         queryContext.setProject("default");
         queryContext.setUserSQL(sql);
         queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.getQueryTagInfo().setConstantQuery(true);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
 
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);

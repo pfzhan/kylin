@@ -113,9 +113,9 @@ public class QueryMetricsContext extends QueryMetrics {
         } else {
             if (context.getQueryTagInfo().isPushdown()) {
                 this.engineType = context.getPushdownEngine();
-            } else if (CollectionUtils.isEmpty(QueryContext.current().getNativeQueryRealizationList())) {
+            } else if (context.getQueryTagInfo().isConstantQuery()) {
                 this.engineType = QueryHistory.EngineType.CONSTANTS.name();
-            } else {
+            } else if (!context.getMetrics().isException()) {
                 this.engineType = QueryHistory.EngineType.NATIVE.name();
             }
         }

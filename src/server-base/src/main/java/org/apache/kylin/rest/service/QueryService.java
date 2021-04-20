@@ -677,6 +677,7 @@ public class QueryService extends BasicService {
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
             queryContext.getMetrics().setFinalCause(e);
+            queryContext.getQueryTagInfo().setPushdown(false);
 
             if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {
                 queryContext.getQueryTagInfo().setTimeout(true);
