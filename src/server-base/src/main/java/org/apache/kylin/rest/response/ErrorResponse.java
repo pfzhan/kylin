@@ -80,7 +80,7 @@ public class ErrorResponse extends EnvelopeResponse {
             }
         } else {
             String error_code = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString();
-            if (exception.getClass() == JsonParseException.class ) {
+            if (exception.getClass() == JsonParseException.class) {
                 error_code = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
             }
 
