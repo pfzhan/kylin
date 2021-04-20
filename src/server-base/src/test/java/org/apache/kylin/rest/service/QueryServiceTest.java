@@ -1131,13 +1131,16 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "true");
         queryService.queryWithCache(request, false);
 
-        overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "false");
-        queryService.queryWithCache(request, false);
-
         final QueryContext queryContext = QueryContext.current();
         String filledSql = "select * from test where col1 = 'value1'";
         Assert.assertEquals(queryContext.getUserSQL(), filledSql);
         Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
+
+        overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "false");
+        queryService.queryWithCache(request, false);
+        Assert.assertEquals(queryContext.getUserSQL(), sql);
+        Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), sql);
+
         queryContext.getMetrics().setCorrectedSql(filledSql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());

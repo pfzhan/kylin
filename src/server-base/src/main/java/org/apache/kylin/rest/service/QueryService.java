@@ -78,14 +78,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
@@ -563,15 +561,6 @@ public class QueryService extends BasicService {
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
-            if (isPrepareStatementWithParams(sqlRequest)) {
-                String filledSql = sqlRequest.getSql();
-                if (!KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()) {
-                    PrepareSqlStateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
-                    filledSql = PrepareSQLUtils.fillInParams(sqlRequest.getSql(), params);
-                }
-                queryContext.getMetrics().setCorrectedSql(filledSql);
-                queryContext.setUserSQL(filledSql);
-            }
             logQuery(sqlRequest, sqlResponse);
 
             if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql()) && queryContext.getQueryTagInfo().isStorageCacheUsed()) {

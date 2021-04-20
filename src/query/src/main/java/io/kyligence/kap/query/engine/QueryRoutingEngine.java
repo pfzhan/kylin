@@ -95,6 +95,7 @@ public class QueryRoutingEngine {
 
                 //CAUTION: should not change sqlRequest content!
                 QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
+                QueryContext.current().setUserSQL(correctedSql);
                 QueryContext.current().setPartialMatchIndex(queryParams.isPartialMatchIndex());
 
                 logger.info("The corrected query: {}", correctedSql);
@@ -193,10 +194,12 @@ public class QueryRoutingEngine {
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams, SQLException sqlException, boolean isPrepare) throws Exception {
         QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String sqlString = queryParams.getSql();
-        if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
-                && queryParams.isPrepareStatementWithParams()
-                && !KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()) {
+        if ((KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
+                || KapConfig.getInstanceFromEnv().enableReplaceDynamicParams())
+                && queryParams.isPrepareStatementWithParams()) {
             sqlString = queryParams.getPrepareSql();
+            QueryContext.current().getMetrics().setCorrectedSql(sqlString);
+            QueryContext.current().setUserSQL(sqlString);
         }
 
         if (BackdoorToggles.getPrepareOnly()) {
