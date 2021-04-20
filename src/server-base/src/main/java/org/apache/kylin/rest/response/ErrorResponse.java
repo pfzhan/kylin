@@ -42,8 +42,10 @@
 
 package org.apache.kylin.rest.response;
 
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_PARSE_JSON;
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 
@@ -77,7 +79,12 @@ public class ErrorResponse extends EnvelopeResponse {
                 this.stacktrace = Throwables.getStackTraceAsString(exception);
             }
         } else {
-            this.msg = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString() + " " + exception.getLocalizedMessage();
+            String error_code = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString();
+            if (exception.getClass() == JsonParseException.class ) {
+                error_code = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
+            }
+
+            this.msg = error_code + " " + exception.getLocalizedMessage();
             this.code = ResponseCode.CODE_UNDEFINED;
             this.stacktrace = Throwables.getStackTraceAsString(exception);
         }

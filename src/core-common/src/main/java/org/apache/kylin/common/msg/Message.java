@@ -1187,7 +1187,7 @@ public class Message {
     }
 
     public String getINVALID_SID_TYPE() {
-        return "Invalid value for parameter ‘sid_type’ which should only be ‘user’ or ‘group’(case-insensitive).";
+        return "Invalid value for parameter ‘type’ which should only be ‘user’ or ‘group’(case-insensitive).";
     }
 
     public String getEMPTY_DATABASE_NAME() {
