@@ -3552,28 +3552,22 @@ public class ModelService extends BasicService {
 
         response.setMeasures(model.getMeasures());
         IndexPlan indexPlan = getIndexPlan(response.getUuid(), project);
-
-        Set<Integer> allDimIds = Sets.newHashSet();
-        // Get Dimensions from table index
-        Set<Integer> dimIdsOfTableIndexes = indexPlan.getIndexes().stream() //
-                .map(IndexEntity::getDimensions) //
-                .flatMap(Collection::stream) //
-                .collect(Collectors.toSet());
-        allDimIds.addAll(dimIdsOfTableIndexes);
-        // Get Dimensions from aggregate group index
         if (indexPlan.getRuleBasedIndex() != null) {
             List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
                     .map(x -> new AggGroupResponse(dataModel, x)).collect(Collectors.toList());
             response.setAggregationGroups(aggGroupResponses);
-            allDimIds.addAll(indexPlan.getRuleBasedIndex().getDimensions());
+            Set<String> allAggDim = Sets.newHashSet();
+            indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> dataModel.getEffectiveDimensions().get(x))
+                    .forEach(x -> allAggDim.add(x.getIdentity()));
+            List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream()
+                    .filter(namedColumn -> allAggDim.contains(namedColumn.getAliasDotColumn()))
+                    .map(namedColumn -> new NModelDescResponse.Dimension(namedColumn, false))
+                    .collect(Collectors.toList());
+            response.setDimensions(dims);
         } else {
             response.setAggregationGroups(new ArrayList<>());
+            response.setDimensions(new ArrayList<>());
         }
-
-        List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream()
-                .filter(col -> allDimIds.contains(col.getId())).map(col -> new NModelDescResponse.Dimension(col, false))
-                .collect(Collectors.toList());
-        response.setDimensions(Lists.newArrayList(dims));
         return response;
     }
 

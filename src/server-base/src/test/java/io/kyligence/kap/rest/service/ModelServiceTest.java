@@ -4291,29 +4291,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetModelDesc() {
-        // model1: model with only rule_based_index
-        String uuid = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        modelManager.updateDataModel(uuid, copyForWrite -> {
-            List<NDataModel.NamedColumn> columns = copyForWrite.getAllNamedColumns();
-            columns.get(11).setStatus(NDataModel.ColumnStatus.DIMENSION);
-            columns.get(12).setStatus(NDataModel.ColumnStatus.DIMENSION);
-        });
-        NDataModel model = modelManager.getDataModelDesc(uuid);
-        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(11).getStatus());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE", model.getAllNamedColumns().get(11).getAliasDotColumn());
-        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(12).getStatus());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT", model.getAllNamedColumns().get(12).getAliasDotColumn());
-
-        NModelDescResponse model1 = modelService.getModelDesc("ut_inner_join_cube_partial", "default");
-        Assert.assertEquals("default", model1.getProject());
-        Assert.assertEquals(11, model1.getMeasures().size());
-        Assert.assertEquals(2, model1.getAggregationGroups().size());
-        Assert.assertNotEquals(0, model1.getCreateTime());
-        Assert.assertEquals(21, model1.getDimensions().size());
-        // model2: model with rule_based_index and table indexes, with overlap between their dimensions
-        NModelDescResponse model2 = modelService.getModelDesc("nmodel_basic_inner", "default");
-        Assert.assertEquals(32, model2.getDimensions().size());
+        NModelDescResponse model = modelService.getModelDesc("ut_inner_join_cube_partial", "default");
+        Assert.assertTrue(model.getProject().equals("default"));
+        Assert.assertTrue(model.getName().equals("ut_inner_join_cube_partial"));
+        Assert.assertTrue(model.getVersion().equals("4.0.0.0"));
+        Assert.assertTrue(model.getMeasures().size() == 11);
+        Assert.assertTrue(model.getAggregationGroups().size() == 2);
+        Assert.assertNotEquals(0, model.getCreateTime());
     }
 
     @Test
