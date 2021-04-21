@@ -89,7 +89,7 @@ class NModel {
       table.join.foreign_key = objectClone(temp_foreign_key)
       table.join.primary_key = objectClone(temp_primary_key)
       table.join.op = objectClone(temp_op)
-      table.flattenable = typeof table.flattenable !== 'undefined' ? table.flattenable : 'flatten'
+      table.flattenable = typeof table.flattenable !== 'undefined' ? table.flattenable !== 'normalized' ? 'flatten' : 'normalized' : 'flatten'
       delete table.join.non_equi_join_condition
       delete table.join.simplified_non_equi_join_conditions
     })
