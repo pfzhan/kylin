@@ -25,9 +25,10 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.TimeZone;
 
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
@@ -40,7 +41,9 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.tool.obf.KylinConfObfuscatorTest;
 import io.kyligence.kap.tool.util.ToolUtil;
+import lombok.val;
 
 public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
@@ -385,5 +388,30 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         matcher = pattern.matcher(log);
         Assert.assertTrue(matcher.find());
         Assert.assertEquals("2019-09-02 02:40:07", KylinLogTool.getJobTimeString(matcher));
+    }
+
+    @Test
+    public void testHideLicenseString() throws Exception {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        val eventLogFile = new File(
+                KylinConfObfuscatorTest.class.getClassLoader().getResource("diag/eventlog").getFile());
+        File testFile = new File(mainDir, "eventlog");
+        Files.copy(eventLogFile.toPath(), testFile.toPath());
+        Assert.assertTrue(testFile.isFile());
+        String license = "6v2pi13f19vqn10jlmo8vhf2d5iq52qwcb7s3gg9zyhgwrxko23gon5xzav8n19q7vgb"
+                + "chk6xpvf8jshz3xwnqrtupvwwcydlygli2wro2i41bix91xgdhcy3g2l31hjkhef5ij0l8ok9pwsfmh"
+                + "6450a6xp9ht30uq8aaxx65qt8uudcsrgyakz71wacs7hgvkefbz7q0pq194cgdewfznilavltdrazw40s"
+                + "tv6s7f31j3ziy4shne3doxkbee1ko0b2etrm9zozooyu2bx0qxk0e5q7x52btvnfun38zfjzxezun7u0zj"
+                + "9iq8u8n8jx8258o1qnld9pobwcm8hugdizlzg3srwbk9xejmivpipjc1kxitql5k2ag1cai7rqij2zz3hw"
+                + "lln23y86yc782fwhp8kl4bdt5kizsu2sxkivxal5bi5pigknyttao2gtx4wj2gs1lmk91yu8iwo09s3ykoigj"
+                + "sfgb1cht2edlimgcj5b91y3vpaczru18k8wj1ncrhx8vyibayffvbwc6v4q76cgvuvnj7g50syxszwyypvrqpr"
+                + "ky7jfuby6iqylvkkfgxip1us5js0b0t8sxx6n4f6bxrbbro9yckfzn8zyxasnfv546f9kt4n04tkn2ioxvg83pe"
+                + "vi7z3uxuy1t1we3nlrsndh0e4q2e3i2unhjihw11mroz9vt1qedhg1ug7e0ynbk8l7mts8xhhke1nsvzj0mecnov"
+                + "pneckhdbbcksys5jnm9ym2ojgxljhloseau1c7upxfqlro31x7zmvuinnv5mq4p9ikn4q4j5jdu9chz8xpasll2z"
+                + "46b1jak3m11s4z204abyxfydyp11dhm1ddydm0rmmg7uhdtwlg4pts0";
+        Assert.assertTrue(FileUtils.readFileToString(testFile).contains(license));
+        KylinLogTool.hideLicenseString(testFile);
+        Assert.assertFalse(FileUtils.readFileToString(testFile).contains(license));
     }
 }

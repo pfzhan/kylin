@@ -328,8 +328,7 @@ public class LicenseInfoService extends BasicService {
                     String license = in.readLine();
                     setProperty(Constants.KE_LICENSE, prefix, license);
 
-                    log.info("Kyligence Enterprise License:\n" + statement + "====\n" + version + "\n" + dates + "\n"
-                            + license);
+                    log.info("Kyligence Enterprise License:\n{}====\n{}\n{}", statement, version, dates);
                     break;
                 }
                 statement.append(l).append("\n");

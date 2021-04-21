@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.common.constant.Constants.KE_LICENSE;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,11 +40,13 @@ import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -55,6 +59,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -85,6 +90,8 @@ public class KylinLogTool {
     private static final int EXTRA_LINES = 100;
 
     private static final String ROLL_LOG_FILE_NAME_PREFIX = "events";
+
+    private static final String SYSTEM_PROPERTIES = "System Properties";
 
     // 2019-11-11 03:24:52,342 DEBUG [JobWorker(prj:doc_smart,jobid:8a13964c)-965] job.NSparkExecutable : Copied metadata to the target metaUrl, delete the temp dir: /tmp/kylin_job_meta204633716010108932
     @VisibleForTesting
@@ -472,6 +479,36 @@ public class KylinLogTool {
         });
     }
 
+    public static void hideLicenseString(File file) throws IOException {
+        if (!file.exists() || !file.isFile()) {
+            logger.error("file {} is not exist", file.getAbsolutePath());
+            return;
+        }
+        logger.info("hide license file {}", file.getAbsolutePath());
+        File tempFile = new File(file.getParent(), UUID.randomUUID().toString());
+        try {
+            FileUtils.moveFile(file, tempFile);
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(tempFile), Charset.defaultCharset().name()));
+                    BufferedWriter bw = new BufferedWriter(
+                            new OutputStreamWriter(new FileOutputStream(file), Charset.defaultCharset().name()))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    val map = JsonUtil.readValue(line, HashMap.class);
+                    if (map.containsKey(SYSTEM_PROPERTIES)) {
+                        Map<String, String> systemProperties = (Map) map.get(SYSTEM_PROPERTIES);
+                        systemProperties.put(KE_LICENSE, "***");
+                        line = JsonUtil.writeValueAsString(map);
+                    }
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }
+        } finally {
+            FileUtils.deleteQuietly(tempFile);
+        }
+    }
+
     private static void copyValidLog(String appId, long startTime, long endTime, FileStatus fileStatus, FileSystem fs,
             File localFile) throws IOException, InterruptedException {
         FileStatus[] eventStatuses = fs.listStatus(new Path(fileStatus.getPath().toUri()));
@@ -480,6 +517,7 @@ public class KylinLogTool {
                 throw new InterruptedException("Event log task is interrupt");
             }
             boolean valid = false;
+            boolean isFirstLogFile = false;
             String[] att = status.getPath().getName().replace("_" + appId, "").split("_");
             if (att.length >= 3 && ROLL_LOG_FILE_NAME_PREFIX.equals(att[0])) {
 
@@ -490,20 +528,26 @@ public class KylinLogTool {
                 }
 
                 boolean isTimeValid = begin <= endTime && end >= startTime;
-                boolean isFirstLogFile = "1".equals(att[1]);
+                isFirstLogFile = "1".equals(att[1]);
                 if (isTimeValid || isFirstLogFile) {
                     valid = true;
                 }
             }
+            copyToLocalFile(valid, localFile, status, fs, isFirstLogFile);
+        }
+    }
 
-            if (valid) {
-                if (!localFile.exists()) {
-                    FileUtils.forceMkdir(localFile);
-                }
-                fs.copyToLocalFile(false, status.getPath(), new Path(localFile.getAbsolutePath()), true);
+    private static void copyToLocalFile(boolean valid, File localFile, FileStatus status, FileSystem fs,
+            boolean isFirstLogFile) throws IOException {
+        if (valid) {
+            if (!localFile.exists()) {
+                FileUtils.forceMkdir(localFile);
+            }
+            fs.copyToLocalFile(false, status.getPath(), new Path(localFile.getAbsolutePath()), true);
+            if (isFirstLogFile) {
+                hideLicenseString(new File(localFile, status.getPath().getName()));
             }
         }
-
     }
 
     public static void extractJobEventLogs(File exportDir, Set<String> appIds, Map<String, String> sparkConf) {
