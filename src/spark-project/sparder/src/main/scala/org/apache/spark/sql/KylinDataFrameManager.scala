@@ -35,7 +35,7 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
 
 
   /** File format for table */
-  def format(source: String): KylinDataFrameManager = {
+  private def format(source: String): KylinDataFrameManager = {
     option("source", source)
     this
   }
@@ -67,6 +67,7 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
   }
 
   def cuboidTable(dataflow: NDataflow, layout: LayoutEntity, pruningInfo: String): DataFrame = {
+    format("parquet")
     option("project", dataflow.getProject)
     option("dataflowId", dataflow.getUuid)
     option("cuboidId", layout.getId)

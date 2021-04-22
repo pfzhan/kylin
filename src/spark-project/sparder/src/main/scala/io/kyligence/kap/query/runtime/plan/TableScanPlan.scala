@@ -105,7 +105,6 @@ object TableScanPlan extends LogEx {
           }
         }.mkString(",")
         val newDf = session.kylin
-          .format("parquet")
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout, pruningInfo)
           .toDF(columnNames: _*)

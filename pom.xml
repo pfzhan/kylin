@@ -53,9 +53,9 @@
         <!-- Keep same order with dependencyManagement -->
 
         <!-- Hadoop versions -->
-        <hadoop2.version>2.8.4</hadoop2.version>
-        <yarn.version>2.8.4</yarn.version>
-
+        <hadoop.version>2.8.4</hadoop.version>
+        <yarn.version>${hadoop.version}</yarn.version>
+        
         <!-- Hive versions -->
         <hive.version>2.3.7</hive.version>
         <hive-hcatalog.version>2.3.7</hive-hcatalog.version>
@@ -102,7 +102,7 @@
         <awaitility.version>3.0.0</awaitility.version>
 
         <!-- Commons -->
-        <commons-lang3.version>3.5</commons-lang3.version>
+        <commons-lang3.version>3.10</commons-lang3.version>
         <commons-email.version>1.5</commons-email.version>
 
         <!-- Utility -->
@@ -111,6 +111,7 @@
         <postgresql.version>42.2.13</postgresql.version>
         <commons-dbcp.version>2.5.0</commons-dbcp.version>
         <log4j.version>1.2.17</log4j.version>
+        <log4j-extras.version>${log4j.version}</log4j-extras.version>
         <slf4j.version>1.7.30</slf4j.version>
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
@@ -230,7 +231,6 @@
         <parquet.version>1.12.0-kylin-r6</parquet.version>
         <jackson.version>2.10.5</jackson.version>
         <jackson.databind.version>2.10.5.1</jackson.databind.version>
-        <hadoop2.version>2.8.4</hadoop2.version>
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
         <janino.version>3.0.9</janino.version>
@@ -465,7 +465,7 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
                 <scope>provided</scope>
                 <exclusions>
                     <exclusion>
@@ -502,18 +502,29 @@
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
+                    </exclusion>
                 </exclusions>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-mapreduce-client-app</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-yarn-api</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-yarn-client</artifactId>
+                <version>${hadoop.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -524,12 +535,18 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-mapreduce-client-core</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -540,23 +557,23 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-annotations</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-auth</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -567,7 +584,7 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
                 <optional>true</optional>
             </dependency>
             <dependency>
@@ -755,6 +772,58 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-exec</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-1.2-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-slf4j-impl</artifactId>
+                    </exclusion>
+                </exclusions>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-common</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-1.2-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-slf4j-impl</artifactId>
+                    </exclusion>
+                </exclusions>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-metastore</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-1.2-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-slf4j-impl</artifactId>
+                    </exclusion>
+                        <exclusion>
+                            <artifactId>hbase-client</artifactId>
+                            <groupId>org.apache.hbase</groupId>
+                        </exclusion>
+                </exclusions>
+                <scope>provided</scope>
+            </dependency>
             <!-- Yarn dependencies -->
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -832,6 +901,36 @@
                         <groupId>org.apache.calcite</groupId>
                         <artifactId>calcite-avatica</artifactId>
                     </exclusion>
+                    <!-- Hive dependency -->
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-common</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-exec</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-metastore</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-serde</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-shims</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-llap-common</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hive</groupId>
+                        <artifactId>hive-llap-client</artifactId>
+                    </exclusion>
+                    <!-- End of Hive dependencies -->
                 </exclusions>
                 <version>${spark.version}</version>
                 <scope>provided</scope>
@@ -840,6 +939,12 @@
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-unsafe_2.12</artifactId>
                 <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-streaming_2.12</artifactId>
+                <version>${spark.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.esotericsoftware</groupId>
@@ -852,6 +957,32 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.12</artifactId>
                 <version>${kafka.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-sql-kafka-0-10_2.12</artifactId>
+                <version>${spark.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>lz4</artifactId>
+                        <groupId>net.jpountz.lz4</groupId>
+                    </exclusion>
+                    <!-- Hadoop 3.x dependency-->
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-minicluster</artifactId>
+                    </exclusion>
+                    <!-- End of Hadoop 3.x dependencies -->
+                </exclusions>
                 <scope>provided</scope>
             </dependency>
 
@@ -883,6 +1014,12 @@
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <version>${log4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>log4j</groupId>
+                <artifactId>apache-log4j-extras</artifactId>
+                <version>${log4j-extras.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -1243,7 +1380,7 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-distcp</artifactId>
-                <version>${hadoop2.version}</version>
+                <version>${hadoop.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -1277,6 +1414,23 @@
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-yarn_2.12</artifactId>
                 <version>${spark.version}</version>
+                <exclusions>
+                    <!-- Hadoop 3.x dependency-->
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-minicluster</artifactId>
+                    </exclusion>
+                    <!-- End of Hadoop 3.x dependencies -->
+                </exclusions>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -1318,6 +1472,20 @@
                         <artifactId>jetty-servlets</artifactId>
                         <groupId>org.eclipse.jetty</groupId>
                     </exclusion>
+                    <!-- Hadoop 3.x dependency-->
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-client-minicluster</artifactId>
+                    </exclusion>
+                    <!-- End of Hadoop 3.x dependencies -->
                 </exclusions>
                 <version>${spark.version}</version>
                 <scope>provided</scope>

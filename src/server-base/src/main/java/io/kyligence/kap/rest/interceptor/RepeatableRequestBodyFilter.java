@@ -34,7 +34,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.directory.api.util.Strings;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
@@ -61,7 +61,7 @@ public class RepeatableRequestBodyFilter implements Filter {
             Pair<String, HttpServletRequest> projectInfo = ProjectInfoParser
                     .parseProjectInfo((HttpServletRequest) request);
             String project = projectInfo.getFirst();
-            if (!Strings.isEmpty(project) && !project.equalsIgnoreCase("_global")) {
+            if (StringUtils.isNotEmpty(project) && !project.equalsIgnoreCase("_global")) {
                 MDC.put("request.project", String.format(Locale.ROOT, "[%s] ", project));
                 NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
                 ProjectInstance prjInstance = projectManager.getProject(project);
