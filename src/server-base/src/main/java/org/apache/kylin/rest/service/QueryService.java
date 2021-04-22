@@ -78,12 +78,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
@@ -559,6 +561,18 @@ public class QueryService extends BasicService {
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
             QueryContext.currentTrace().endLastSpan();
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
+            if (isPrepareStatementWithParams(sqlRequest)
+                    && !(KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()
+                    || sqlResponse.isQueryPushDown())) {
+                PrepareSqlStateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
+                String filledSql = queryContext.getMetrics().getCorrectedSql();
+                try {
+                    filledSql = PrepareSQLUtils.fillInParams(filledSql, params);
+                } catch (IllegalStateException e) {
+                    logger.error(e.getMessage(), e);
+                }
+                queryContext.getMetrics().setCorrectedSql(filledSql);
+            }
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
             logQuery(sqlRequest, sqlResponse);

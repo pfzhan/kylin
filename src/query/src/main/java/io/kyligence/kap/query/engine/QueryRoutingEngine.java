@@ -95,7 +95,6 @@ public class QueryRoutingEngine {
 
                 //CAUTION: should not change sqlRequest content!
                 QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
-                QueryContext.current().setUserSQL(correctedSql);
                 QueryContext.current().setPartialMatchIndex(queryParams.isPartialMatchIndex());
 
                 logger.info("The corrected query: {}", correctedSql);
@@ -198,8 +197,6 @@ public class QueryRoutingEngine {
                 || KapConfig.getInstanceFromEnv().enableReplaceDynamicParams())
                 && queryParams.isPrepareStatementWithParams()) {
             sqlString = queryParams.getPrepareSql();
-            QueryContext.current().getMetrics().setCorrectedSql(sqlString);
-            QueryContext.current().setUserSQL(sqlString);
         }
 
         if (BackdoorToggles.getPrepareOnly()) {
@@ -208,6 +205,7 @@ public class QueryRoutingEngine {
 
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
                 queryParams.getLimit(), queryParams.getOffset());
+        QueryContext.current().getMetrics().setCorrectedSql(massagedSql);
         queryParams.setSql(massagedSql);
         queryParams.setSqlException(sqlException);
         queryParams.setPrepare(isPrepare);
