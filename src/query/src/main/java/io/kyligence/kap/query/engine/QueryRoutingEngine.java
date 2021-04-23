@@ -193,9 +193,7 @@ public class QueryRoutingEngine {
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams, SQLException sqlException, boolean isPrepare) throws Exception {
         QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String sqlString = queryParams.getSql();
-        if ((KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
-                || KapConfig.getInstanceFromEnv().enableReplaceDynamicParams())
-                && queryParams.isPrepareStatementWithParams()) {
+        if (isPrepareStatementWithParams(queryParams)) {
             sqlString = queryParams.getPrepareSql();
         }
 
@@ -205,11 +203,19 @@ public class QueryRoutingEngine {
 
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
                 queryParams.getLimit(), queryParams.getOffset());
-        QueryContext.current().getMetrics().setCorrectedSql(massagedSql);
+        if (isPrepareStatementWithParams(queryParams)) {
+            QueryContext.current().getMetrics().setCorrectedSql(massagedSql);
+        }
         queryParams.setSql(massagedSql);
         queryParams.setSqlException(sqlException);
         queryParams.setPrepare(isPrepare);
         return PushDownUtil.tryPushDownQuery(queryParams);
+    }
+
+    private boolean isPrepareStatementWithParams(QueryParams queryParams) {
+        return (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
+                || KapConfig.getInstanceFromEnv().enableReplaceDynamicParams())
+                && queryParams.isPrepareStatementWithParams();
     }
 
     private Pair<List<List<String>>, List<SelectedColumnMeta>> prepareOnly(String correctedSql, QueryExec queryExec, List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
