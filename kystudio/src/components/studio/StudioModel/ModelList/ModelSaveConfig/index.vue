@@ -164,7 +164,7 @@
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
       </div>
-      <el-button plain size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange||disabledSave" :loading="isLoadingSave" v-guide.partitionSaveBtn @click="savePartitionConfirm" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
