@@ -6,7 +6,7 @@
       <el-alert :title="$t('editCCTip')" type="warning" v-if="editCC" showIcon :closable="false" />
       <CCEditForm v-if="isShow" @saveSuccess="saveCC" @saveError="saveCCError" ref="ccForm" @resetSubmitLoading="resetLoading" :isPureForm="true" :currentCCForm="currentCCForm" :modelInstance="modelInstance" :isEdited="editCC"/>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" @click="submit" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>

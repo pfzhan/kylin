@@ -8,7 +8,7 @@
           :is-show-load-table="datasourceActions.includes('loadSource') && $store.state.config.platform !== 'iframe'"
           :is-expand-on-click-node="false"
           :is-show-drag-width-bar="true"
-          :default-width="280"
+          :default-width="240"
           :expand-node-types="['datasource', 'database']"
           :hide-bar-title="$store.state.config.platform === 'iframe'"
           :custom-tree-title="$store.state.config.platform !== 'iframe' ? '' : 'kylinLang.common.dataDirectory'"
@@ -20,10 +20,10 @@
         <div class="ksd_right_box">
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
-              <el-button plain size="small" :disabled="editableTabs.length<2" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
-              size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('savedQueries')}}({{savedSize}})</el-button>
+              <el-button type="primary" text size="small" :disabled="editableTabs.length<2" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
+              size="small" type="primary" text @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('savedQueries')}}({{savedSize}})</el-button>
             </div>
-            <tab class="insight_tab" type="card" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
+            <tab class="insight_tab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
               <template slot-scope="props">
                 <queryTab
                   v-on:addTab="addTab"
@@ -80,7 +80,7 @@
               </div>
             </div>
             <span slot="footer" class="dialog-footer">
-              <el-button plain @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+              <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
                @click="resubmit" type="primary" size="medium" :disabled="!checkedQueryList.length">{{$t('runQuery')}}</el-button>
             </span>
           </el-dialog>
@@ -439,7 +439,7 @@ export default class NewQuery extends Vue {
     position: relative;
     height: 100%;
     .layout-left {
-      min-width: 280px;
+      min-width: 240px;
     }
     .data-source-bar .el-tree__empty-block {
       display: none;
@@ -532,6 +532,15 @@ export default class NewQuery extends Vue {
         }
       }
     }
+    .smyles_editor_wrap {
+      border-bottom: none;
+      border-bottom-left-radius: 0px;
+      border-bottom-right-radius: 0px;
+      .smyles_editor {
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+      }
+    }
     .operatorBox{
       .tips_box{
         color: @text-normal-color;
@@ -586,24 +595,37 @@ export default class NewQuery extends Vue {
       > .btn-group {
         position: absolute;
         right: 0px;
-        top: 2px;
+        top: 12px;
         z-index: 99;
       }
       h3{
         margin: 20px;
       }
       .el-tabs{
-        margin-top: 3px;
-        .el-tabs__nav-wrap {
-          width: calc(~'100% - 250px');
-          &::after {
-            background-color: transparent;
-          }
-        }
+        // margin-top: 3px;
+        // .el-tabs__nav-wrap {
+        //   width: calc(~'100% - 250px');
+        //   &::after {
+        //     background-color: transparent;
+        //   }
+        // }
         .el-tabs__content{
           padding: 0px;
           .el-tab-pane{
-            padding-top: 15px;
+            padding-top: 16px;
+          }
+        }
+        &.el-tabs--button {
+          .el-tab-pane{
+            padding-top: 8px;
+          }
+          .el-tabs__header {
+            width: 114px;
+          }
+        }
+        &.en-model {
+          .el-tabs__header {
+            width: 158px !important;
           }
         }
       }

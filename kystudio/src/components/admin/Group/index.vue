@@ -2,11 +2,11 @@
   <div class="security-group">
     <div class="ksd-title-label ksd-mt-20 ksd-mrl-20">{{$t('userGroupsList')}}</div>
     <el-row class="ksd-mb-10 ksd-mt-10 ksd-mrl-20">
-      <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-icon-ksd-add_2" @click="editGroup('new')">{{$t('userGroup')}}</el-button>
+      <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-ksd-icon-add_22" @click="editGroup('new')">{{$t('userGroup')}}</el-button>
       <div style="width:240px;" class="ksd-fright">
         <el-input class="show-search-btn"
           size="medium"
-          prefix-icon="el-icon-search"
+          prefix-icon="el-ksd-icon-search_22"
           :placeholder="$t('groupFilter')"
           v-global-key-event.enter.debounce="inputFilter"
           @clear="inputFilter('')"

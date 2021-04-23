@@ -146,7 +146,7 @@
     </el-form>
 
     <div slot="footer" class="dialog-footer ky-no-br-space" v-if="isFormShow">
-      <el-button plain size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
+      <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
       <el-button type="primary" size="medium" :loading="saveLoading" @click="submit" v-guide.saveProjectBtn class="js_addproject_submit">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>

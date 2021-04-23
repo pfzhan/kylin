@@ -132,7 +132,7 @@ export default class EditableBlock extends Vue {
     border-bottom-left-radius: 2px;
     border-bottom-right-radius: 2px;
     .el-button+.el-button {
-      margin-left: 10px;
+      margin-left: 8px;
     }
   }
 }

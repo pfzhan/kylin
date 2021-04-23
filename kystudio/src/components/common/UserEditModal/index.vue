@@ -137,7 +137,7 @@
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain size="medium" v-if="showCancelBtn" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
+      <el-button size="medium" v-if="showCancelBtn" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
       <el-button type="primary" size="medium" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
     </div>
   </el-dialog>

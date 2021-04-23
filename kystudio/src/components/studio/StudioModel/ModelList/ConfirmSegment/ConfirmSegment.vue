@@ -77,7 +77,7 @@
             </common-tip>
           </el-checkbox>
         </div>
-        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" @click="submit" :disabled="!selectedSegments.length" :loading="btnLoading" size="medium">{{submitText}}</el-button>
       </div>
     </el-dialog>

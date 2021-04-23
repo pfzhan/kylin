@@ -286,7 +286,7 @@ export default class Admin extends Vue {
       line-height: 24px;
     }
     .el-table__expanded-cell{
-      padding: 20px;
+      padding: 24px;
     }
     .others-manage {
       margin: 26px 0px 100px;

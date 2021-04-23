@@ -400,7 +400,7 @@ export default class AggregateView extends Vue {
   .agg-total-info-block {
     background-color: @background-disabled-color;
     padding: 10px;
-    color: @color-text-regular;
+    color:@text-normal-color;
     font-size: 12px;
   }
   .agg-detail-block {
@@ -410,7 +410,7 @@ export default class AggregateView extends Vue {
     padding-bottom: 15px;
     position: relative;
     .content {
-      color: @color-text-regular;
+      color:@text-normal-color;
       .is-used {
         background-color: #EAFFEA;
         color: #4CB050;

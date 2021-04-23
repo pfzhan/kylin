@@ -33,7 +33,7 @@
         </div>
       </el-alert>    
       <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
       </div>
     </el-dialog>
     <Modal />

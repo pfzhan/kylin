@@ -46,11 +46,11 @@ export const menusData = [
   // {name: 'studio', path: '/studio/model', icon: 'el-icon-ksd-studio'},
   // {name: 'auto', path: '/auto', icon: 'el-icon-ksd-auto_modeling'},
   // {name: 'insight', path: '/insight', icon: 'el-icon-ksd-insight'},
-  {name: 'dashboard', path: '/dashboard', icon: 'el-icon-ksd-homepage'},
+  {name: 'dashboard', path: '/dashboard', icon: 'el-ksd-icon-nav_homepage_24'},
   {
     name: 'query',
     path: '/query',
-    icon: 'el-icon-ksd-insight',
+    icon: 'el-ksd-icon-nav_query_24',
     children: [
       {name: 'insight', path: '/query/insight'},
       {name: 'queryhistory', path: '/query/queryhistory'}
@@ -59,7 +59,7 @@ export const menusData = [
   {
     name: 'studio',
     path: '/studio',
-    icon: 'el-icon-ksd-studio',
+    icon: 'el-ksd-icon-nav_model_24',
     children: [
       { name: 'source', path: '/studio/source' },
       {name: 'acceleration', path: '/studio/acceleration'},
@@ -70,7 +70,7 @@ export const menusData = [
   {
     name: 'monitor',
     path: '/monitor',
-    icon: 'el-icon-ksd-monitor',
+    icon: 'el-ksd-icon-nav_monitor_24',
     children: [
       {name: 'job', path: '/monitor/job'}
       // {name: 'cluster', path: '/monitor/cluster'},
@@ -80,7 +80,7 @@ export const menusData = [
   {
     name: 'setting',
     path: '/setting',
-    icon: 'el-icon-ksd-setting'
+    icon: 'el-ksd-icon-nav_setting_24'
   },
   {
     name: 'project',
@@ -103,6 +103,34 @@ export const menusData = [
     icon: 'el-icon-ksd-Combined_Shape'
   }
 ]
+
+let columnTypeIconMap = {
+  'boolean': 'el-icon-ksd-type_boolean',
+  'varbinary': 'el-icon-ksd-type_varbinary',
+  'date': 'el-icon-ksd-type_date',
+  'float': 'el-icon-ksd-type_float',
+  'decimal': 'el-icon-ksd-type_decimal',
+  'double': 'el-icon-ksd-type_double',
+  'int': 'el-icon-ksd-type_int',
+  'integer': 'el-icon-ksd-type_int',
+  'bigint': 'el-icon-ksd-type_bigint',
+  'smallint': 'el-icon-ksd-type_int',
+  'tinyint': 'el-icon-ksd-type_int',
+  'time': 'el-icon-ksd-type_time',
+  'timestamp': 'el-icon-ksd-type_timestamp',
+  'varchar': 'el-icon-ksd-type_varchar',
+  'map': 'el-icon-ksd-type_map',
+  'list': 'el-icon-ksd-type_list',
+  'interval_day_to_seconds': 'el-icon-ksd-type_interval_day_to_seconds',
+  'interval_years_to_months': 'el-icon-ksd-type_interval_years_to_months'
+}
+export function columnTypeIcon (columnType) {
+  columnType = columnType && columnType.replace(/\s*\([^()]+\)\s*/, '').toLowerCase() || ''
+  if (columnType) {
+    return columnTypeIconMap[columnType]
+  }
+  return ''
+}
 
 export const pageRefTags = {
   indexPager: 'indexPager',

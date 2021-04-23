@@ -13,7 +13,7 @@
         </el-button><el-button
           plain type="primary"
           size="medium"
-          icon="el-icon-ksd-add_2"
+          icon="el-ksd-icon-add_22"
           v-if="userActions.includes('addUser')"
           @click="editUser('new')">
           {{$t('user')}}
@@ -24,7 +24,7 @@
             v-model="filterName"
             v-global-key-event.enter.debounce="inputFilter"
             @clear="inputFilter('')"
-            prefix-icon="el-icon-search"
+            prefix-icon="el-ksd-icon-search_22"
             :placeholder="$t('userName')"
           >
           </el-input>

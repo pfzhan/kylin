@@ -1,9 +1,7 @@
 <template>
   <div class="help-box">
     <el-dropdown @command="handleCommand">
-      <el-button plain size="small">
-         {{$t('kylinLang.common.help')}}<i class="el-icon-arrow-down el-icon--right"></i>
-      </el-button>
+      <el-button type="primary" text icon-button icon="el-ksd-icon-help_22"></el-button>
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item command="kapmanual"><a class="ksd-block-a" target="_blank" :href="$t('manualUrl')">{{$t('Manual')}}</a></el-dropdown-item>
         <el-dropdown-item command="kybotservice"><a class="ksd-block-a" target="_blank" :href="supportUrl"> {{$t('keService')}}</a></el-dropdown-item>
@@ -42,7 +40,7 @@
     <el-dialog :title="$t('license')" :append-to-body="true" :visible.sync="updateLicenseVisible" :close-on-click-modal="false" class="updateKAPLicense" width="480px" @close="resetUpdate">
       <update_license v-if="updateLicenseVisible" ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess" @requestLicense="apply"></update_license>
       <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="resetUpdate">{{$t('cancel')}}</el-button>
+        <el-button size="medium" @click="resetUpdate">{{$t('cancel')}}</el-button>
         <el-button type="primary" size="medium" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
@@ -60,7 +58,7 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
+        <el-button size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
@@ -86,7 +84,7 @@
         <span slot="title" class="ksd-fs-14">{{$t('importFailed1')}}<a target="_blank" :href="$t('manualLinkURL')">{{$t('manualLink')}}</a>{{$t('importFailed2')}}</span>
       </el-alert>
       <div slot="footer" class="dialog-footer" v-if="!isImportSuccess&&isShowImportError">
-        <el-button plain size="medium" @click="importSSBvisible = false">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button size="medium" @click="importSSBvisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </div>
     </el-dialog>
   </div>

@@ -292,17 +292,17 @@
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <!-- 确认/取消: 上传元数据zip包界面 -->
       <template v-if="step === 'first'">
-        <el-button plain size="medium" :disabled="isSubmiting" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" :disabled="isSubmiting" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button size="medium" type="primary" :disabled="!form.file || setTableMapping && !tableMapContent || showError" :loading="isSubmiting" @click="handleUploadFile">{{$t('parseFile')}}</el-button>
       </template>
       <!-- 确认/取消: 解析zip元数据包界面 -->
       <template v-else-if="step === 'second'">
-        <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('first')">{{$t('kylinLang.common.prev')}}</el-button>
+        <el-button size="medium" :disabled="isSubmiting" @click="handlePrev('first')">{{$t('kylinLang.common.prev')}}</el-button>
         <el-button type="primary" size="medium" @click="nextConfirmImport" :loading="isCheckName">{{$t('kylinLang.common.next')}}</el-button>
       </template>
       <!-- 确认导入模型 -->
       <template v-else>
-        <el-button plain size="medium" :disabled="isSubmiting" @click="handlePrev('second')">{{$t('kylinLang.common.prev')}}</el-button>
+        <el-button size="medium" :disabled="isSubmiting" @click="handlePrev('second')">{{$t('kylinLang.common.prev')}}</el-button>
         <el-button type="primary" size="medium" :loading="isSubmiting" @click="handleSubmit">{{getImportBtnText}}</el-button>
       </template>
     </div>
@@ -928,7 +928,7 @@ export default class ModelsImportModal extends Vue {
         }
         .detail-text {
           margin-top: 5px;
-          color: @color-text-regular;
+          color:@text-normal-color;
           &:first-child {
             margin-top: 0;
           }

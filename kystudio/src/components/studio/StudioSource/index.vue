@@ -33,13 +33,13 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | toGMTDate}}</h2>
             <div class="table-actions ky-no-br-space">
-              <el-button size="small" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable')">{{$t('sample')}}</el-button>
-              <el-button size="small" :loading="reloadBtnLoading" plain @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable')">{{$t('reload')}}</el-button>
-              <el-button size="small" :loading="delBtnLoading" v-if="datasourceActions.includes('delSourceTable')" @click="handleDelete" plain>{{$t('delete')}}</el-button>
+              <el-button type="primary" text icon="el-ksd-icon-sample_22" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable')">{{$t('sample')}}</el-button>
+              <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-resure_22" :loading="reloadBtnLoading" @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable')">{{$t('reload')}}</el-button>
+              <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-table_delete_16" :loading="delBtnLoading" v-if="datasourceActions.includes('delSourceTable')" @click="handleDelete">{{$t('delete')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->
-          <el-tabs class="table-details" :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" type="card" v-model="viewType">
+          <el-tabs class="table-details" :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" v-model="viewType">
             <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
               <TableDataLoad :project="currentProjectData" :table="selectedTable" :isShowLoadData="datasourceActions.includes('loadData')" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
@@ -406,7 +406,7 @@ export default class StudioSource extends Vue {
     z-index:8;
   }
   .layout-right {
-    padding: 20px 20px 0 20px;
+    padding: 24px 24px 0;
     min-height: 100%;
     box-sizing: border-box;
     position: relative;
@@ -421,11 +421,11 @@ export default class StudioSource extends Vue {
   .table-details {
     padding-bottom: 20px;
     .el-tabs__content {
-      min-height: calc(~'100vh - 196px');
+      min-height: calc(~'100vh - 204px');
     }
     &.is-global-alter {
       .el-tabs__content {
-        min-height: calc(~'100vh - 249px');
+        min-height: calc(~'100vh - 257px');
       }
     }
   }
@@ -437,7 +437,7 @@ export default class StudioSource extends Vue {
   .table-header {
     padding-right: 300px;
     position: relative;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
   }
   .table-actions {
     position: absolute;

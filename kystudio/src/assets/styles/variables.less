@@ -1,5 +1,68 @@
 @import '~themescss/common/varless.less';
 @import 'mixin.less';
+
+// 4.x
+
+// 文字颜色
+@text-title-color: @color-text-primary; //#2F374C
+@text-normal-color: @color-text-secondary; //#546174
+@text-secondary-color:@color-text-secondary;//#b0bec5;
+@text-placeholder-color: @color-text-placeholder; //#A5B2C5
+@text-darkbg-color: @fff;
+@text-disabled-color: @color-text-disabled; //#8B99AE
+@text-description: #415461;
+
+
+@ke-color-primary: @color-primary; //#0875DA;
+@ke-color-primary-hover:@color-primary-hover; // #0867BF;
+@ke-color-primary-active: @color-primary-active; //#0659A7;
+@ke-color-secondary: @color-secondary; //#ECF0F8;
+@ke-color-secondary-hover: @color-secondary-hover; //#E6EBF4;
+@ke-color-secondary-active: @color-secondary-active; //#CED6E4;
+@ke-color-nav: @color-nav; //#054885;
+@ke-color-nav-hover: @color-nav-hover; //#0867BF;
+@ke-color-nav-active: @color-nav-active; //#0659A7;
+
+@ke-color-success: @color-success; //#66C942;
+@ke-color-success-hover: @color-success-hover; //#49A82B;
+@ke-color-success-active: @color-success-active; //#32671E;
+@ke-color-success-bg: @color-success-bg; //#EFF9EB;
+@ke-color-danger: @color-danger; //#E03B3B;
+@ke-color-danger-hover: @color-danger-hover; //#CA1616;
+@ke-color-danger-active: @color-danger-active; //#7F2727;
+@ke-color-danger-bg: @color-danger-bg; //#FCE9E9;
+@ke-color-warning: @color-warning; //#F29D41;
+@ke-color-warning-hover: @color-warning-hover; //#EC8600;
+@ke-color-warning-active: @color-warning-active; //#844001;
+@ke-color-warning-bg: @color-warning-bg; //#FFF2E5;
+@ke-color-info: @color-primary;
+@ke-color-info-hover: @color-info-hover; //#0659A7;
+@ke-color-info-active: @color-nav;
+@ke-color-info-bg: @color-info-bg; //#F0F8FE;
+@ke-color-info-secondary: @color-info-secondary;//#A5B2C5;
+@ke-color-info-secondary-hover: @color-info-secondary-hover; //#546174;
+@ke-color-info-secondary-active: @color-info-secondary-active; //#3B4759;
+@ke-color-info-secondary-bg: @color-info-secondary-bg; //#F8F9FB;
+
+/* Background
+-------------------------- */
+@ke-background-color-white: @background-color-white; //#fff;
+@ke-background-color-secondary: @background-color-secondary; //#F8F9FB;
+@ke-background-color-hover: @background-color-hover; //#ECF0F8;
+@ke-background-color-active: @background-color-active; //#E6EBF4;
+
+@ke-background-color-base: @background-color-base; //#f5f5f5;
+@ke-background-color-base-1: @background-color-base-1; //#fafafa;
+@ke-background-color-light: @background-color-light; //#F9FBFC;
+@ke-background-color-regular: @background-color-regular; //#CDE7F8;
+
+/* Border
+-------------------------- */
+@ke-border-divider-color: @border-divider-color; //#ECF0F8;
+@ke-border-secondary: @border-secondary; //#E6EBF4;
+@ke-border-secondary-hover: @border-secondary-hover; //#CED6E4;
+@ke-border-secondary-active: @border-secondary-active; //#A5B2C5;
+
 // 纯色
 @fff:#fff;
 @000:#000;
@@ -41,24 +104,15 @@
 @menu-active-bgcolor: #1C262A;
 
 //色彩倾向其含义
-@normal-color-1:@color-success;//#4cb050;
+@normal-color-1:@ke-color-success-hover;//#49A82B;
 @normal-color-2:#e8fee9;
-@warning-color-1:@color-warning;//#f7ba2a;
+@warning-color-1:@ke-color-warning-hover;
 @warning-color-2:#fffce0;
 @warning-color-3:#fff7b9;
-@error-color-1:@color-danger;//#e73371;
+@error-color-1:@ke-color-danger-hover;//#e73371;
 @error-color-2:#feeff1;
 @error-color-3: #fdf0f2;
 @info-color-1:@color-info;//#909399;
-
-// 文字颜色
-@text-title-color:@color-text-primary;//#191919; after: #252525
-@text-normal-color:@color-text-regular;//#323232; after: #5c5c5c
-@text-secondary-color:@color-text-secondary;//#b0bec5;
-@text-placeholder-color:@color-text-placeholder;//#b2b2b2; after: #b6b6b6
-@text-darkbg-color: @fff;
-@text-disabled-color: @color-text-disabled; //#7f7f7f; after: #989898
-@text-description: #415461;
 
 
 // 超链接
@@ -105,8 +159,9 @@
 @dm-bg-color:@block-hover-color;
 
 
-@font-medium:bold;
+@font-medium:500;
 @font-regular:400;
+@font-600: 600;
 
 
 

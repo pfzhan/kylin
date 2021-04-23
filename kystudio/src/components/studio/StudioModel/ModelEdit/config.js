@@ -140,30 +140,3 @@ export const modelErrorMsg = {
   'noFact': 'kylinLang.model.hasNoFact',
   'hasAloneTable': 'kylinLang.model.aloneTableTip'
 }
-let columnTypeIconMap = {
-  'boolean': 'el-icon-ksd-type_boolean',
-  'varbinary': 'el-icon-ksd-type_varbinary',
-  'date': 'el-icon-ksd-type_date',
-  'float': 'el-icon-ksd-type_float',
-  'decimal': 'el-icon-ksd-type_decimal',
-  'double': 'el-icon-ksd-type_double',
-  'int': 'el-icon-ksd-type_int',
-  'integer': 'el-icon-ksd-type_int',
-  'bigint': 'el-icon-ksd-type_bigint',
-  'smallint': 'el-icon-ksd-type_int',
-  'tinyint': 'el-icon-ksd-type_int',
-  'time': 'el-icon-ksd-type_time',
-  'timestamp': 'el-icon-ksd-type_timestamp',
-  'varchar': 'el-icon-ksd-type_varchar',
-  'map': 'el-icon-ksd-type_map',
-  'list': 'el-icon-ksd-type_list',
-  'interval_day_to_seconds': 'el-icon-ksd-type_interval_day_to_seconds',
-  'interval_years_to_months': 'el-icon-ksd-type_interval_years_to_months'
-}
-export function columnTypeIcon (columnType) {
-  columnType = columnType && columnType.replace(/\s*\([^()]+\)\s*/, '').toLowerCase() || ''
-  if (columnType) {
-    return columnTypeIconMap[columnType]
-  }
-  return ''
-}

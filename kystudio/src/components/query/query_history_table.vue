@@ -1,11 +1,10 @@
 <template>
   <div id="queryHistoryTable">
-    <div class="ksd-title-label ksd-mb-10">{{$t('kylinLang.menu.queryhistory')}}</div>
+    <div class="ksd-title-page ksd-mb-16">{{$t('kylinLang.menu.queryhistory')}}</div>
     <div class="clearfix ksd-mb-10">
       <div class="btn-group ksd-fleft export-btn">
         <el-dropdown
           split-button
-          plain
           class="ksd-fleft"
           :class="{'is-disabled': !queryHistoryTotalSize}"
           type="primary"
@@ -24,16 +23,15 @@
         </el-dropdown>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" @clear="onSqlFilterChange()" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
+        <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" @clear="onSqlFilterChange()" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSQL')" size="medium"></el-input>
       </div>
     </div>
     <div class="filter-tags" v-show="filterTags.length">
-      <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：'}}{{['query_status', 'realization'].includes(item.key) ? $t(item.label) : item.label}}</el-tag><span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span></div>
+      <div class="filter-tags-layout"><el-tag closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：'}}{{['query_status', 'realization'].includes(item.key) ? $t(item.label) : item.label}}</el-tag><span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span></div>
       <span class="filter-queries-size">{{$t('filteredTotalSize', {totalSize: queryHistoryTotalSize})}}</span>
     </div>
     <el-table
       :data="queryHistoryData"
-      border
       v-scroll-shadow
       class="history-table"
       :empty-text="emptyText"
@@ -44,11 +42,11 @@
       style="width: 100%">
       <el-table-column type="expand" width="34">
         <template slot-scope="props">
-          <div class="detail-title">
+          <!-- <div class="detail-title">
             <span class="ksd-fleft ksd-fs-14">{{$t('queryDetails')}}</span>
-          </div>
+          </div> -->
           <div class="detail-content">
-            <el-row :gutter="15" type="flex">
+            <el-row :gutter="16" type="flex">
               <el-col :span="14" :style="{height: props.row.flexHeight + 'px'}">
                 <div class="loading" v-if="currentExpandId === props.row.query_id"><i class="el-icon-loading"></i></div>
                 <kap-editor
@@ -67,14 +65,14 @@
                 </kap-editor>
               </el-col>
               <el-col :span="10">
-                <table class="ksd-table history_detail_table" :id="'detailTable_' + props.row.query_id">
-                  <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.query_id')}}</th>
-                    <td>{{props.row.query_id}}</td>
-                  </tr>
-                  <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.duration')}}</th>
-                    <td>
+                <div class="ksd-list ksd-table-list history_detail_table" :id="'detailTable_' + props.row.query_id">
+                  <p class="list">
+                    <span class="label">{{$t('kylinLang.query.query_id')}}</span>
+                    <span class="text">{{props.row.query_id}}</span>
+                  </p>
+                  <p class="list">
+                    <span class="label">{{$t('kylinLang.query.duration')}}</span>
+                    <span class="text">
                       <el-popover
                         placement="bottom"
                         :width="$lang === 'en' ? 340 : 320"
@@ -96,12 +94,12 @@
                         <span slot="reference" class="duration">{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
                       </el-popover>
                       <span v-else>{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
-                    </td>
-                  </tr>
-                  <tr class="ksd-tr" :class="{'active': props.row.hightlight_realizations}">
-                    <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
-                    <td style="padding: 3px 10px;">
-                      <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
+                    </span>
+                  </p>
+                  <p class="list" :class="{'active': props.row.hightlight_realizations}">
+                    <span class="label">{{$t('kylinLang.query.answered_by')}}</span>
+                    <span class="text">
+                      <span v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
                         <span v-for="(item, index) in props.row.realizations" :key="item.modelId">
                           <template v-if="'visible' in item && !item.visible">
                             <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
@@ -110,43 +108,41 @@
                             <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
                           </template>
                         </span>
-                      </div>
-                      <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
-                    </td>
-                  </tr>
-                  <tr class="ksd-tr" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
-                    <th class="label">{{$t('kylinLang.query.index_id')}}</th>
-                    <td>
-                      <p>
-                        <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in getRealizations(props.row.realizations)" :key="item.layoutId" @click="openLayoutDetails(item)">
-                          <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                            <span>{{`${item.layoutId}${index !== getRealizations(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
-                          </el-tooltip>
-                        </span>
-                      </p>
-                    </td>
-                  </tr>
-                  <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
-                    <th class="label">{{$t('kylinLang.query.snapshot')}}</th>
-                    <td>{{getSnapshots(props.row.realizations)}}</td>
-                  </tr>
-                  <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.total_scan_count')}}</th>
-                    <td>{{props.row.total_scan_count | filterNumbers}}</td>
-                  </tr>
-                  <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.total_scan_bytes')}}</th>
-                    <td>{{props.row.total_scan_bytes | filterNumbers}}</td>
-                  </tr>
-                  <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.result_row_count')}}</th>
-                    <td>{{props.row.result_row_count | filterNumbers}}</td>
-                  </tr>
-                  <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.cache_hit')}}</th>
-                    <td>{{props.row.cache_hit}}</td>
-                  </tr>
-                </table>
+                      </span>
+                      <span v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></span>
+                    </span>
+                  </p>
+                  <p class="list" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
+                    <span class="label">{{$t('kylinLang.query.index_id')}}</span>
+                    <span class="text">
+                      <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId" @click="openLayoutDetails(item)">
+                        <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
+                          <span>{{`${item.layoutId}${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                        </el-tooltip>
+                      </span>
+                    </span>
+                  </p>
+                  <p class="list ellipsis" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
+                    <span class="label">{{$t('kylinLang.query.snapshot')}}</span>
+                    <span class="text">{{getSnapshots(props.row.realizations)}}</span>
+                  </p>
+                  <p class="list">
+                    <span class="label">{{$t('kylinLang.query.total_scan_count')}}</span>
+                    <span class="text">{{props.row.total_scan_count | filterNumbers}}</span>
+                  </p>
+                  <p class="list">
+                    <span class="label">{{$t('kylinLang.query.total_scan_bytes')}}</span>
+                    <span class="text">{{props.row.total_scan_bytes | filterNumbers}}</span>
+                  </p>
+                  <p class="list">
+                    <span class="label">{{$t('kylinLang.query.result_row_count')}}</span>
+                    <span class="text">{{props.row.result_row_count | filterNumbers}}</span>
+                  </p>
+                  <p class="list">
+                    <span class="label">{{$t('kylinLang.query.cache_hit')}}</span>
+                    <span class="text">{{props.row.cache_hit}}</span>
+                  </p>
+                </div>
               </el-col>
             </el-row>
           </div>
@@ -187,7 +183,7 @@
         :show-search-input="true"
         :filtered-value="filterData.realization"
         :label="$t('kylinLang.query.realization_th')"
-        filter-icon="el-icon-ksd-filter"
+        filter-icon="el-ksd-icon-filter_22"
         :placeholder="$t('searchAnsweredBy')"
         :emptyFilterText="$t('kylinLang.common.noData')"
         :show-multiple-footer="false"
@@ -208,19 +204,19 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :filters="statusList.map(item => ({text: $t(item), value: item}))" :filtered-value="filterData.query_status" :label="$t('kylinLang.query.query_status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'query_status')" show-overflow-tooltip prop="query_status" width="130">
+      <el-table-column :filters="statusList.map(item => ({text: $t(item), value: item}))" :filtered-value="filterData.query_status" :label="$t('kylinLang.query.query_status')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'query_status')" show-overflow-tooltip prop="query_status" width="130">
         <template slot-scope="scope">
           {{$t('kylinLang.query.' + scope.row.query_status)}}
         </template>
       </el-table-column>
-      <el-table-column :filterMultiple="false" :show-all-select-option="false" :filters="queryNodes.map(item => ({text: item, value: item}))" :filtered-value="filterData.server" :label="$t('kylinLang.query.queryNode')" filter-icon="el-icon-ksd-filter" :filter-change="(v) => filterContent(v, 'server')"  show-overflow-tooltip prop="server" width="145">
+      <el-table-column :filterMultiple="false" :show-all-select-option="false" :filters="queryNodes.map(item => ({text: item, value: item}))" :filtered-value="filterData.server" :label="$t('kylinLang.query.queryNode')" filter-icon="el-ksd-icon-filter_22" :filter-change="(v) => filterContent(v, 'server')"  show-overflow-tooltip prop="server" width="145">
       </el-table-column>
       <el-table-column
         :label="$t('kylinLang.query.submitter')"
         :filters="submitterFilter.map(item => ({text: item, value: item}))"
         :show-search-input="true"
         :filtered-value="filterData.submitter"
-        filter-icon="el-icon-ksd-filter"
+        filter-icon="el-ksd-icon-filter_22"
         :show-multiple-footer="false"
         :placeholder="$t('searchSubmitter')"
         :emptyFilterText="$t('kylinLang.common.noData')"
@@ -983,14 +979,14 @@ export default class QueryHistoryTable extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   #queryHistoryTable {
-    margin-top: 20px;
+    margin-top: 24px;
     /* table.ksd-table{
       tr:nth-child(odd){
         background: @table-stripe-color;
       }
     } */
     .el-table__expanded-cell {
-      padding: 15px;
+      padding: 24px;
       .copy-btn {
         margin-right: 9%;
         .copyStatusMsg {
@@ -1018,6 +1014,9 @@ export default class QueryHistoryTable extends Vue {
         .el-col {
           position: relative;
           .history_detail_table{
+            .label {
+              width: 100px;
+            }
             .duration {
               color: @base-color;
               cursor: pointer;
@@ -1030,7 +1029,7 @@ export default class QueryHistoryTable extends Vue {
       }
     }
     .searchInput {
-      width: 400px;
+      width: 260px;
     }
     .export-btn .is-disabled .el-button-group .el-button{
       color: @text-disabled-color;
@@ -1046,7 +1045,7 @@ export default class QueryHistoryTable extends Vue {
         position: relative;
         left: 5px;
         top: 2px;
-        .el-icon-ksd-filter {
+        .el-ksd-icon-filter_22 {
           float: none;
           position: relative;
           left: 0px;
@@ -1130,8 +1129,8 @@ export default class QueryHistoryTable extends Vue {
         } */
       }
       .realization-tags {
-        display: flex;
-        flex-wrap: wrap;
+        // display: flex;
+        // flex-wrap: wrap;
         /* .el-tag {
           margin: 2.5px 10px 2.5px 0;
           border: none;
@@ -1200,11 +1199,11 @@ export default class QueryHistoryTable extends Vue {
           color: @normal-color-1;
         }
       }
-      .el-icon-ksd-filter {
-        position: relative;
-        font-size: 17px;
-        top: 1px;
-        left: 5px;
+      .el-ksd-icon-filter_22 {
+        // position: relative;
+        // font-size: 17px;
+        // top: 1px;
+        // left: 5px;
         &:hover,
         &.filter-open {
           color: @base-color;
@@ -1215,7 +1214,7 @@ export default class QueryHistoryTable extends Vue {
   .duration-popover {
     line-height: 1.5 !important;
     .step-name {
-      color: @color-text-regular;
+      color:@text-normal-color;
       &.sub-step {
         color: @color-text-placeholder;
       }
@@ -1311,32 +1310,33 @@ export default class QueryHistoryTable extends Vue {
   }
   .filter-tags {
     margin-bottom: 10px;
-    padding: 0px 5px 5px;
     box-sizing: border-box;
     position: relative;
-    background: @background-disabled-color;
     .filter-tags-layout {
       display: inline-block;
       width: calc(~'100% - 80px');
       .clear-all-filters {
         color: @base-color;
-        margin-left: 10px;
+        margin-left: 8px;
         position: relative;
-        top: 2px;
+        top: 0px;
         display: inline-block;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 12px;
       }
     }
     .el-tag {
       margin-left: 5px;
-      margin-top: 5px;
+      margin-top: 6px;
+      &:first-child {
+        margin-left: 0px;
+      }
     }
     .filter-queries-size {
       position: absolute;
       top: 8px;
-      right: 10px;
-      font-size: 14px;
+      right: 8px;
+      font-size: 12px;
       color: @text-title-color;
     }
   }

@@ -37,7 +37,7 @@ export default {
     },
     background: {
       type: Boolean,
-      default: true
+      default: false
     },
     refTag: {
       type: String,

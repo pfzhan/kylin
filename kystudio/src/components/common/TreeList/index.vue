@@ -426,7 +426,7 @@ export default class TreeList extends Vue {
     }
   }
   .selected {
-    color: #0988de;
+    // color: #0988de;
   }
 }
 </style>

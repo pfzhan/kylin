@@ -1,4 +1,4 @@
-import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
+import { sourceTypes, sourceNameMapping, pageSizeMapping, columnTypeIcon } from '../../../config'
 import { transToServerGmtTime } from '../../../util'
 export const render = {
   datasource: {
@@ -113,7 +113,10 @@ export const render = {
               <span>{this.$t('kylinLang.dataSource.minimal')}</span>: <span>{min_value === null ? 'NULL' : min_value}</span><br/>
               <span>{this.$t('kylinLang.dataSource.maximum')}</span>: <span>{max_value === null ? 'NULL' : max_value}</span>
             </div>
-            <span><div></div><span class="column-name">{label}</span><span class="ksd-ml-5 ksd-fs-12 datatype">{datatype}</span></span>
+            <span><div></div>
+              <i class={columnTypeIcon(datatype)}></i>
+              <span class="column-name"> {label}</span>
+            </span>
           </el-tooltip>
         </div>
       )

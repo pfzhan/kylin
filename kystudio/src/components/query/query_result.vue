@@ -1,6 +1,6 @@
 <template>
   <div class="result_box">
-    <div class="ksd-title-label-small ksd-mb-10">{{$t('queryResults')}}</div>
+    <div class="ksd-title-label ksd-mb-8">{{$t('queryResults')}}</div>
     <el-alert
       :title="noModelRangeTips"
       type="warning"
@@ -58,7 +58,7 @@
           <span class="label">{{$t('kylinLang.query.snapshot')}}: </span>
           <span class="text" :title="snapshots">{{snapshots}}</span>
         </p>
-        <el-button plain size="mini" @click="toggleDetail" class="show-more-btn">
+        <el-button type="primary" text size="mini" @click="toggleDetail" class="show-more-btn">
           {{$t('kylinLang.common.seeDetail')}}
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
           <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -79,81 +79,80 @@
         </p>
       </div>
     </div>
-    <div v-if="!isStop">
-      <el-button-group class="result-layout-btns">
+    <div v-if="!isStop" class="result-block">
+      <!-- <el-button-group class="result-layout-btns">
         <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
-      </el-button-group>
-      <div class="ksd-fright ksd-mt-15" v-if="activeResultType === 'data'">
+      </el-button-group> -->
+      <el-tabs v-model="activeResultType" class="ksd-mt-16" type="button" :class="{'en-model': $lang==='en'}">
+          <el-tab-pane :label="$t('dataBtn')" name="data">
+            <div class="grid-box narrowTable" v-if="!isStop">
+              <el-table
+                :data="pagerTableData"
+                v-scroll-shadow
+                ref="tableLayout"
+                style="width: 100%;">
+                <el-table-column v-for="(value, index) in tableMeta" :key="index"
+                  :prop="''+index"
+                  :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+15*(value.label&&value.label.length || 0)"
+                  show-overflow-tooltip
+                  :label="value.label">
+                  <template slot-scope="props">
+                    <span class="table-cell-text">{{props.row[index]}}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+
+              <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-16" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
+            </div>
+            <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
+              <input type="hidden" name="sql" v-model="sql"/>
+              <input type="hidden" name="project" v-model="project"/>
+              <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
+            </form>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('visualizationBtn')" name="visualization">
+            <div class="chart-headers" v-if="charts.dimension && charts.measure">
+              <el-row class="ksd-mt-10" :gutter="5">
+                <el-col :span="4" class="title">{{$t('chartType')}}</el-col>
+                <el-col :span="10" class="title">{{$t('chartDimension')}}</el-col>
+                <el-col :span="10" class="title">{{$t('chartMeasure')}}</el-col>
+              </el-row>
+              <el-row :gutter="5">
+                <el-col :span="4" class="content">
+                  <el-select v-model="charts.type" :placeholder="$t('pleaseSelect')" @change="changeChartType">
+                    <el-option v-for="item in chartTypeOptions" :label="$t(item.text)" :disabled="item.isDisabled" :key="item.value" :value="item.value"></el-option>
+                  </el-select>
+                </el-col>
+                <el-col :span="10" class="content">
+                  <el-select v-model="charts.dimension" :placeholder="$t('pleaseSelect')" @change="changeChartDimension">
+                    <el-option v-for="item in chartDimensionOptions.map(it => ({text: it, value: it}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
+                  </el-select>
+                </el-col>
+                <el-col :span="10" class="content">
+                  <el-select v-model="charts.measure" :placeholder="$t('pleaseSelect')" @change="changeChartMeasure">
+                    <el-option v-for="item in chartMeasureList.map(v => ({text: v, value: v}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
+                  </el-select>
+                </el-col>
+              </el-row>
+            </div>
+            <div class="chart-contains ksd-mt-10">
+              <el-tooltip :content="$t('overSizeTips')" effect="dark" placement="top" v-if="displayOverSize">
+                <i class="el-icon-ksd-info ksd-fs-15 tips"></i>
+              </el-tooltip>
+              <div :id="`charts_${tabsItem.name}`" class="chart-layout" v-show="charts.dimension && charts.measure"></div>
+              <p class="no-fill-data" v-if="!charts.dimension || !charts.measure">{{$t('noDimensionOrMeasureData')}}</p>
+            </div>
+          </el-tab-pane>
+      </el-tabs>
+      <div class="query-data-options" v-if="activeResultType === 'data'">
         <span class="resultOperator">
           <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
           </el-input>
-        </span>
-        <el-button v-if="showExportCondition" :loading="hasClickExportBtn" type="primary" plain size="small" @click.native="exportData">
+        </span><el-button v-if="showExportCondition" :loading="hasClickExportBtn" class="ksd-ml-8" size="small" @click.native="exportData">
           {{$t('exportCSV')}}
         </el-button>
       </div>
     </div>
-    <template v-if="activeResultType === 'data'">
-      <div class="ksd-mt-10 grid-box narrowTable" v-if="!isStop">
-        <el-table
-          :data="pagerTableData"
-          border
-          v-scroll-shadow
-          ref="tableLayout"
-          style="width: 100%;">
-          <el-table-column v-for="(value, index) in tableMeta" :key="index"
-            :prop="''+index"
-            :min-width="value.label&&value.label.length > 100 ? 52+8*(value.label&&value.label.length || 0) : 52+15*(value.label&&value.label.length || 0)"
-            show-overflow-tooltip
-            :label="value.label">
-            <template slot-scope="props">
-              <span class="table-cell-text">{{props.row[index]}}</span>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
-      </div>
-      <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
-        <input type="hidden" name="sql" v-model="sql"/>
-        <input type="hidden" name="project" v-model="project"/>
-        <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
-      </form>
-    </template>
-    <!-- 可视化 tab -->
-    <template v-if="activeResultType === 'visualization'">
-      <div class="chart-headers" v-if="charts.dimension && charts.measure">
-        <el-row class="ksd-mt-10" :gutter="5">
-          <el-col :span="4" class="title">{{$t('chartType')}}</el-col>
-          <el-col :span="10" class="title">{{$t('chartDimension')}}</el-col>
-          <el-col :span="10" class="title">{{$t('chartMeasure')}}</el-col>
-        </el-row>
-        <el-row :gutter="5">
-          <el-col :span="4" class="content">
-            <el-select v-model="charts.type" :placeholder="$t('pleaseSelect')" @change="changeChartType">
-              <el-option v-for="item in chartTypeOptions" :label="$t(item.text)" :disabled="item.isDisabled" :key="item.value" :value="item.value"></el-option>
-            </el-select>
-          </el-col>
-          <el-col :span="10" class="content">
-            <el-select v-model="charts.dimension" :placeholder="$t('pleaseSelect')" @change="changeChartDimension">
-              <el-option v-for="item in chartDimensionOptions.map(it => ({text: it, value: it}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
-            </el-select>
-          </el-col>
-          <el-col :span="10" class="content">
-            <el-select v-model="charts.measure" :placeholder="$t('pleaseSelect')" @change="changeChartMeasure">
-              <el-option v-for="item in chartMeasureList.map(v => ({text: v, value: v}))" :label="item.text" :value="item.value" :key="item.value"></el-option>
-            </el-select>
-          </el-col>
-        </el-row>
-      </div>
-      <div class="chart-contains ksd-mt-10">
-        <el-tooltip :content="$t('overSizeTips')" effect="dark" placement="top" v-if="displayOverSize">
-          <i class="el-icon-ksd-info ksd-fs-15 tips"></i>
-        </el-tooltip>
-        <div :id="`charts_${tabsItem.name}`" class="chart-layout" v-show="charts.dimension && charts.measure"></div>
-        <p class="no-fill-data" v-if="!charts.dimension || !charts.measure">{{$t('noDimensionOrMeasureData')}}</p>
-      </div>
-    </template>
   </div>
 </template>
 <script>
@@ -654,10 +653,10 @@ export default class queryResult extends Vue {
     }
   }
   .resultTipsLine{
-    font-size: 14px;
-    padding: 10px;
-    background-color: @table-stripe-color;
-    line-height: 20px;
+    font-size: 12px;
+    padding: 16px;
+    background-color: @ke-background-color-secondary;
+    line-height: 16px;
     position: relative;
     .show-more-btn {
       position: absolute;
@@ -668,9 +667,13 @@ export default class queryResult extends Vue {
       align-items: center;
       flex-wrap:wrap;
       .resultText{
-        color:@color-text-primary;
+        color:@text-normal-color;
+        margin-top: 8px;
+        &:first-child {
+          margin-top: 0px;
+        }
         .label {
-          font-weight: bold;
+          font-weight: normal;
         }
         .text{
           color:@color-text-primary;
@@ -697,23 +700,31 @@ export default class queryResult extends Vue {
     }
   }
   .result_box{
+    .result-block {
+      position: relative;
+      .query-data-options {
+        position: absolute;
+        right: 0px;
+        top: 0px;
+      }
+    }
     .el-table .cell{
        word-break: break-all!important;
     }
     .resultOperator {
       .el-input {
-        width: 150px;
+        width: 245px;
       }
     }
-    .result-layout-btns {
-      margin-top: 17px;
-      .el-button.active {
-        color: #5c5c5c;
-        background: #f4f4f4;
-        border: 1px solid #cccccc;
-        box-shadow: inset 1px 1px 2px 0 #ddd;
-      }
-    }
+    // .result-layout-btns {
+    //   margin-top: 16px;
+    //   .el-button.active {
+    //     color: #5c5c5c;
+    //     background: #f4f4f4;
+    //     border: 1px solid #cccccc;
+    //     box-shadow: inset 1px 1px 2px 0 #ddd;
+    //   }
+    // }
     .chart-headers {
       .title {
         font-weight: bold;

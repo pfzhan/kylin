@@ -1,6 +1,6 @@
 <template>
   <div id="snapshot">
-    <div class="ksd-title-label">{{$t('snapshotList')}}
+    <div class="ksd-title-page">{{$t('snapshotList')}}
       <common-tip placement="bottom-start">
         <div slot="content" class="snapshot-desc">
           <p>*&nbsp;{{$t('snapshotDesc1')}}</p>
@@ -10,15 +10,15 @@
         <i class="el-icon-ksd-what ksd-fs-14"></i>
       </common-tip>
     </div>
-    <div class="ksd-mtb-10">{{$t('snapshotDesc')}}</div>
+    <div class="ksd-mb-16 snapshot-desc">{{$t('snapshotDesc')}}</div>
 
     <div class="clearfix">
       <div class="ksd-fleft ky-no-br-space" v-if="datasourceActions.includes('snapshotAction')">
-        <el-button-group class="ksd-mr-10 ke-it-add_snapshot"><el-button icon="el-icon-plus" @click="addSnapshot">{{$t('snapshot')}}</el-button></el-button-group>
-        <el-button-group class="ke-it-other_actions">
-          <el-button icon="el-icon-ksd-table_refresh" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button icon="el-icon-ksd-table_delete" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
-        </el-button-group>
+        <el-button type="primary" class="ksd-mr-8 ksd-fleft" icon="el-icon-plus" @click="addSnapshot">{{$t('snapshot')}}</el-button>
+        <div class="ke-it-other_actions ksd-fleft">
+          <el-button type="primary" text icon="el-icon-ksd-table_refresh" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
+          <el-button type="primary" text icon="el-icon-ksd-table_delete" class="ksd-ml-2" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
+        </div>
       </div>
       <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-icon-search" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
     </div>
@@ -29,7 +29,6 @@
       :empty-text="emptyText"
       :row-class-name="setRowClass"
       @selection-change="handleSelectionChange"
-      border
       v-loading="loadingSnapshotTable"
       ref="snapshotTableRef"
       style="width: 100%">
@@ -637,8 +636,11 @@ export default class Snapshot extends Vue {
 @import '../../../assets/styles/variables.less';
 #snapshot {
   margin: 20px;
+  .snapshot-desc {
+    color: @text-disabled-color;
+  }
   .search-input {
-    width: 400px;
+    width: 248px;
   }
   .snapshot-table {
     .el-icon-ksd-filter {

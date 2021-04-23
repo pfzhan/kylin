@@ -15,14 +15,13 @@
       v-model="showCopyStatus">
       <i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span>
     </el-popover>
-    <el-button size="mini" class="edit-copy-btn" plain
+    <i class="el-ksd-icon-dup_16 edit-copy-btn ksd-fs-14"
       v-if="readOnly"
       :class="{'is-show': editorData, 'alwaysShow': alwaysShowCopyBtn}"
       v-clipboard:copy="editorData"
       v-clipboard:success="onCopy"
       v-clipboard:error="onError">
-      {{$t('kylinLang.common.copy')}}
-    </el-button>
+    </i>
   </div>
 </template>
 <script>
@@ -286,18 +285,20 @@ export default {
   .smyles_editor_wrap {
     width: 100%;
     position: relative;
-    border: 1px solid @line-border-color;
-    background-color: @aceditor-bg-color;
+    border: 1px solid @ke-border-secondary;
+    // background-color: @aceditor-bg-color;
+    border-radius: 6px;
     .ace_print-margin {
       visibility: hidden !important;
     }
     .smyles_editor {
       // width: calc(~'100% - 50px') !important;
       border: none;
+      border-radius: 6px;
     }
     .smyles_dragbar {
       width: 100%;
-      border-bottom: 1px solid @line-border-color;
+      border-bottom: 1px solid @ke-border-secondary;
       cursor: row-resize;
       opacity: 1;
       position: relative;
@@ -313,7 +314,7 @@ export default {
       z-index: 9;
       opacity: 0;
       display: none;
-      width: 48px;
+      cursor: pointer;
       // background-color: rgba(255,255,255,0.2);
       &.alwaysShow{
         display: block;
@@ -329,7 +330,7 @@ export default {
       }
     }
     .el-popover {
-      right: 46px;
+      right: 16px;
       top: 0px;
       min-width: 80px;
       text-align: right;
@@ -348,12 +349,23 @@ export default {
       font-size: 12px;
       background: @fff;
       color: @text-normal-color;
-      border: 1px solid @line-border-color;
+      border: 1px solid @ke-border-secondary;
       border-bottom: none;
       box-sizing: border-box;
       margin-left: -1px;
       padding:5px 0;
       line-height: 1.8;
+    }
+    .ace-chrome {
+      .ace_marker-layer .ace_active-line {
+        background: @ke-color-info-secondary-bg;
+      }
+      .ace_gutter-active-line {
+        background: @ke-color-info-secondary-bg;
+      }
+      .ace_gutter {
+        background: @ke-color-info-secondary-bg;
+      }
     }
   }
 </style>

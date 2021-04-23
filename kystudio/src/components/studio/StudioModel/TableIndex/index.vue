@@ -398,7 +398,7 @@ export default class TableIndex extends Vue {
   .slider-content-below {
     height:40px;
     line-height:40px;
-    color:@color-text-regular;
+    color:@text-normal-color;
     .tableindex-user {
       float:left;
       margin-left:20px;

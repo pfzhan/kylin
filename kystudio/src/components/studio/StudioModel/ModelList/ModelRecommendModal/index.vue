@@ -63,7 +63,7 @@
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <span v-if="isShowtips" class="ksd-fs-14 pull-left ksd-mt-5">{{$t('recommendationTips', {'recommendationPageSize': this.recommendationPageSize})}}</span>
-        <el-button plain @click="closeModal()" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="closeModal()" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" :loading="btnLoading" :disabled="clearBtnLoading || btnLoading || !canSubmitRecom" size="medium" @click="submit">{{$t('acceptBtn')}}</el-button>
       </div>
   </el-dialog>

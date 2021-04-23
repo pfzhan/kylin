@@ -79,7 +79,7 @@
         <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.IndexDetailPager" :perpage_size="currentCount" :curPage="currentPage+1" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
       </div>
     <div slot="footer" class="dialog-footer">
-      <el-button plain size="medium" @click="closeIndexDetailsDialog">{{$t('kylinLang.common.close')}}</el-button>
+      <el-button size="medium" @click="closeIndexDetailsDialog">{{$t('kylinLang.common.close')}}</el-button>
     </div>
   </el-dialog>
 </template>

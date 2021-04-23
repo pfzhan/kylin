@@ -2,7 +2,7 @@
 <div style="height: 100%;" class="clearfix">
   <aside class="data-source-bar" :style="dataSourceStyle">
     <section class="header clearfix" v-if="isShowActionGroup && !hideBarTitle">
-      <div class="header-text font-medium">
+      <div class="header-text ksd-title-module">
         <span>{{$t('kylinLang.common.dataSource')}}</span>
       </div>
       <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]">
@@ -17,7 +17,7 @@
           {{$t('addDatasource')}}
         </el-button>
       </div>
-      <div v-if="showTreeFilter" class="ksd-mb-10">
+      <div v-if="showTreeFilter" class="ksd-mb-16">
         <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
       </div>
       <div v-scroll style="height:calc(100% - 51px)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
@@ -86,7 +86,7 @@
     </el-dialog> -->
   </aside>
   <div class="ky-drag-layout-line" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">
-    <div class="ky-drag-layout-bar" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">||</div>
+    <!-- <div class="ky-drag-layout-bar" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">||</div> -->
   </div>
 </div>
 </template>
@@ -691,7 +691,7 @@ export default class DataSourceBar extends Vue {
 @import '../../../assets/styles/variables.less';
 .ky-drag-layout-line {
   height: 100%;
-  border-left: 1px solid #ddd;
+  border-left: 1px solid @ke-border-secondary;
   cursor: col-resize;
   float: left;
   z-index: 8;
@@ -716,17 +716,16 @@ export default class DataSourceBar extends Vue {
   width: 100%;
   .header,
   .body {
-    width: 250px;
+    width: 240px;
     box-sizing: border-box;
   }
   .header {
-    padding: 13px 20px;
+    padding: 24px 16px 16px 16px;
     font-size: 16px;
     color: @text-title-color;
-    border-bottom: 1px solid @line-split-color;
   }
   .body {
-    padding: 10px 20px 20px;
+    padding: 0px 16px 16px;
   }
   .header-text {
     float: left;
@@ -760,7 +759,7 @@ export default class DataSourceBar extends Vue {
     }
   }
   .body {
-    height: calc(~"100% - 51px");
+    height: calc(~"100% - 66px");
     overflow: hidden;
   }
   .body .btn-group {
@@ -848,7 +847,7 @@ export default class DataSourceBar extends Vue {
         z-index: 1;
       }
       &.selected .background {
-        background: @base-color-9;
+        background: @ke-background-color-secondary;
         position: absolute;
         top: 0;
         right: 0;
@@ -863,11 +862,11 @@ export default class DataSourceBar extends Vue {
     .datasource {
       color: #263238;
     }
-    .el-tree-node {
-      .el-tree-node__content:hover > .tree-item {
-        color: #087AC8;
-      }
-    }
+    // .el-tree-node {
+    //   .el-tree-node__content:hover > .tree-item {
+    //     color: #087AC8;
+    //   }
+    // }
     .table-date-tip {
       color: #8E9FA8;
       &:hover {
@@ -896,18 +895,18 @@ export default class DataSourceBar extends Vue {
       font-style: normal;
     }
     & > .el-tree-node {
-      border: 1px solid #ddd;
+      // border: 1px solid #ddd;
       min-height: calc(~"100vh - 263px");
       overflow: hidden;
       margin-bottom: 10px;
-      & > .el-tree-node__content {
-        padding: 7px 9px 8px 9px !important; // important用来去掉el-tree的内联样式
-        height: auto;
-        background: @regular-background-color;
-        &:hover > .tree-item > span {
-          color: #263238;
-        }
-      }
+      // & > .el-tree-node__content {
+      //   padding: 7px 9px 8px 9px !important; // important用来去掉el-tree的内联样式
+      //   height: auto;
+      //   background: @regular-background-color;
+      //   &:hover > .tree-item > span {
+      //     color: #263238;
+      //   }
+      // }
       // datasource的样式
       & > .el-tree-node__content {
         cursor: default;
@@ -921,15 +920,15 @@ export default class DataSourceBar extends Vue {
           }
         }
       }
-      & > .el-tree-node__content .el-tree-node__expand-icon {
-        display: none;
-      }
-      & > .el-tree-node__children {
-        margin-left: -18px;
-      }
-      & > .el-tree-node__children > .el-tree-node {
-        border-top: 1px solid #CFD8DC;
-      }
+      // & > .el-tree-node__content .el-tree-node__expand-icon {
+      //   display: none;
+      // }
+      // & > .el-tree-node__children {
+      //   margin-left: -18px;
+      // }
+      // & > .el-tree-node__children > .el-tree-node {
+      //   border-top: 1px solid #CFD8DC;
+      // }
     }
   }
   .el-tree__empty-block {

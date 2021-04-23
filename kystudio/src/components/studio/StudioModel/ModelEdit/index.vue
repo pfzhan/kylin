@@ -522,8 +522,8 @@ import DragBar from './dragbar.vue'
 import AddCC from '../AddCCModal/addcc.vue'
 import ShowCC from '../ShowCC/showcc.vue'
 import NModel from './model.js'
-import { modelRenderConfig, modelErrorMsg, columnTypeIcon } from './config'
-import { NamedRegex } from '../../../../config'
+import { modelRenderConfig, modelErrorMsg } from './config'
+import { NamedRegex, columnTypeIcon } from '../../../../config'
 @Component({
   props: ['extraoption'],
   computed: {

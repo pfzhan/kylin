@@ -1306,7 +1306,7 @@ export default {
     padding:6px 15px;
   }
   .el-button+.el-button {
-    margin-right: 10px;
+    margin-right: 8px;
     margin-left: 0px;
   }
   p {

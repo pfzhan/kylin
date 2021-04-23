@@ -57,7 +57,7 @@
     <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-click-modal="false" width="480px">
       <license v-if="hasLicense" ref="licenseEnter" v-on:validSuccess="licenseValidSuccess" @requestLicense="apply"></license>
       <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="closeDialog" name="cancelUpdate">{{$t('cancel')}}</el-button>
+        <el-button size="medium" @click="closeDialog" name="cancelUpdate">{{$t('cancel')}}</el-button>
         <el-button type="primary" size="medium" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
@@ -96,7 +96,7 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
+        <el-button size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>

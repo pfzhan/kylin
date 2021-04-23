@@ -71,7 +71,7 @@
       </div>
     </div>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain size="medium" :disabled="isSubmiting" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" :disabled="isSubmiting" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" :disabled="!selectedModals.length" @click="handleSubmit" :loading="isSubmiting">{{$t('export')}}</el-button>
     </div>
   </el-dialog>

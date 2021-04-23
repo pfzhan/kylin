@@ -419,7 +419,7 @@ export default class SuggestModel extends Vue {
       background-color: @base-color-9;
     }
     .el-table__expanded-cell {
-      padding: 10px;
+      padding: 24px;
       font-size: 12px;
       color: @text-title-color;
       p {

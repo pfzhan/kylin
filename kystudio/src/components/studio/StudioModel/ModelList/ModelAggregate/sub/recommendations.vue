@@ -164,7 +164,7 @@
         </el-table-column>
       </el-table>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="showIndexDetail = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="showIndexDetail = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" icon="el-icon-ksd-accept" @click="acceptLayout" :loading="accessLoading">{{$t('accept')}}</el-button>
       </div>
     </el-dialog>
@@ -224,7 +224,7 @@
         </el-table-column>
       </el-table>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="showValidate = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="showValidate = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" icon="" @click="addLayout" :loading="isLoading">{{$t('add')}}</el-button>
       </div>
     </el-dialog>
@@ -921,7 +921,7 @@ export default class IndexList extends Vue {
     }
   }
   .el-table__expanded-cell {
-    padding: 10px;
+    padding: 24px;
     font-size: 12px;
     color: @text-title-color;
     p {

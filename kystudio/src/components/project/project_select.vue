@@ -85,9 +85,12 @@ export default {
 @import "../../assets/styles/variables.less";
 
 .project_select{
-  margin: 14px 0 0 20px;
+  margin: 10px 0 0 20px;
   float: left;
   width: 220px;
+  .el-input__inner {
+    background-color: @ke-background-color-hover;
+  }
   .el-input__icon {
     font-size: 18px;
     color: @text-disabled-color;

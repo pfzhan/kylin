@@ -1,8 +1,15 @@
 <template>
-  <el-button-group class="switch-button-group change_lang ke-it-lang">
+  <!-- <el-button-group class="switch-button-group change_lang ke-it-lang">
     <el-button size="small" @click="changeLang('en')" :class="{'active':lang=='en'}" class="ke-it-en">EN</el-button>
     <el-button size="small" @click="changeLang('zh-cn')" :class="{'active':lang=='zh-cn'}" class="ke-it-cn">中文</el-button>
-</el-button-group>
+  </el-button-group> -->
+  <el-dropdown>
+      <el-button type="primary" text icon-button icon="el-ksd-icon-language_22"></el-button>
+      <el-dropdown-menu slot="dropdown">
+        <el-dropdown-item @click.native="changeLang('en')">EN</el-dropdown-item>
+        <el-dropdown-item @click.native="changeLang('zh-cn')">中文</el-dropdown-item>
+      </el-dropdown-menu>
+    </el-dropdown>
 </template>
 <script>
   import Vue from 'vue'

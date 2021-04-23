@@ -119,7 +119,7 @@
           <el-button type="primary" size="mini" @click="closeDialog">{{$t('confrimBtn')}}</el-button>
         </div>
       </el-popover>
-      <el-button v-popover="'closePopover'" plain size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+      <el-button v-popover="'closePopover'" size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
       <el-button type="primary" size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length || isManualDownload">{{$t('generateBtn')}}</el-button>
     </div>
   </el-dialog>

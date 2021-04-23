@@ -470,7 +470,7 @@
         </transition-group>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="editIncludeDimension = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="editIncludeDimension = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" @click="saveIncludes" :disabled="!getSelectedIncludeDimensions.length">{{$t('ok')}}</el-button>
       </div>
     </el-dialog>
@@ -509,7 +509,7 @@
         </el-row>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="editMeasure = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="editMeasure = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" @click="saveMeasures">{{$t('ok')}}</el-button>
       </div>
     </el-dialog>

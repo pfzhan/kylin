@@ -109,7 +109,7 @@
     <div slot="footer" class="dialog-footer ky-no-br-space" v-if="isShow">
       <!-- {{form.freshDataRange}} -->
       <!-- <el-button v-guide.hasFundData style="display:none" v-if="form.freshDataRange[0] && form.freshDataRange[1]"></el-button> -->
-      <el-button plain size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" size="medium" v-guide.saveRangeBtn @click="handleSubmit" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>

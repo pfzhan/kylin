@@ -13,7 +13,7 @@
           </el-select>
         </div>
       </div>
-      <el-table class="columns-body" ref="sampleTable" :data="pagedColumns" v-scroll-shadow border :emptyText="$t('noSamplingData')" v-if="pagedHeaders.length">
+      <el-table class="columns-body" ref="sampleTable" :data="pagedColumns" v-scroll-shadow :emptyText="$t('noSamplingData')" v-if="pagedHeaders.length">
         <el-table-column
           align="left"
           show-overflow-tooltip

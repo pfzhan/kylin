@@ -8,7 +8,7 @@
       v-on:openIndexDialog="openIndexDialog"
       v-on:loadFilterList="loadFilterList"
       v-on:exportHistory="exportHistory"></query_history_table>
-    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-16" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('indexOverview')"
       top="5vh"
@@ -251,7 +251,7 @@ export default class QueryHistory extends Vue {
 <style lang="less">
 @import '../../assets/styles/variables.less';
 #queryHistory {
-  padding: 0 20px 50px 20px;
+  padding: 0 24px 50px 24px;
 }
 .export-sql-dialog .dialog-footer{
   a {

@@ -396,7 +396,7 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" :disabled="!(modelOwner.model&&modelOwner.owner)" @click="changeModelOwner" :loading="changeLoading">{{$t('change')}}</el-button>
       </div>
     </el-dialog>
@@ -410,7 +410,7 @@
         <el-radio v-for="it in tdsConnectionOptions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
       </el-radio-group>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" @click="handlerExportTDS">{{$t('kylinLang.query.export')}}</el-button>
       </div>
     </el-dialog>

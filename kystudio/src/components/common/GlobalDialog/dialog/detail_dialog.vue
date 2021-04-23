@@ -86,12 +86,12 @@
     </el-table>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <template v-if="dialogType === 'error'">
-        <el-button plain @click="handleClose">{{closeT}}</el-button>
+        <el-button @click="handleClose">{{closeT}}</el-button>
       </template>
       <template v-else>
-        <el-button plain v-if="needResolveCancel" @click="handleCloseAndResove">{{cancelT}}</el-button>
-        <el-button plain v-else @click="handleClose">{{cancelT}}</el-button>
-        <el-button type="primary" plain v-if="isSubSubmit" :loading="loading" @click="handleSubmit(false)">{{submitSubText}}</el-button>
+        <el-button v-if="needResolveCancel" @click="handleCloseAndResove">{{cancelT}}</el-button>
+        <el-button v-else @click="handleClose">{{cancelT}}</el-button>
+        <el-button type="primary" v-if="isSubSubmit" :loading="loading" @click="handleSubmit(false)">{{submitSubText}}</el-button>
         <el-button type="primary" v-if="!isHideSubmit" :loading="loading" @click="handleSubmit(true)">{{submitT}}</el-button>
       </template>
     </div>

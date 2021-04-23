@@ -9,7 +9,8 @@
           <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
-                <i :class="item.icon" class="ksd-fs-16"></i>
+                <!-- <i :class="item.icon" class="ksd-fs-16"></i> -->
+                <el-icon :name="item.icon" type="mult"></el-icon>
                 <span slot="title" v-if="item.name === 'modelList'">
                   {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
                 </span>
@@ -19,11 +20,12 @@
               </el-menu-item>
               <el-submenu :index="item.path" v-if="item.children && showMenuByRole(item.name)" :id="item.name" :key="index">
                 <template slot="title">
-                  <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
+                  <!-- <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i> -->
+                  <el-icon :name="item.icon" type="mult"></el-icon>
                   <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
                 </template>
                 <!-- <el-menu-item-group> -->
-                  <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
+                  <el-menu-item :index="child.path" class="ksd-pl-55" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
                     <template v-if="child.name === 'job'">
                       <span style="position:relative;" id="monitorJobs">
                         {{$t('kylinLang.menu.' + child.name)}}
@@ -58,17 +60,17 @@
         <div class="topbar">
           <div class="nav-icon">
             <common-tip :content="$t('holdNaviBar')" placement="bottom-start" v-if="!briefMenuGet">
-              <i class="ksd-fs-14 el-icon-ksd-grid_01" @click="toggleLeftMenu"></i>
+              <i class="ksd-fs-18 el-icon-ksd-grid_01" @click="toggleLeftMenu"></i>
             </common-tip>
             <common-tip :content="$t('unholdNaviBar')" placement="bottom-start" v-else>
-              <i class="ksd-fs-14 el-icon-ksd-grid_02" @click="toggleLeftMenu"></i>
+              <i class="ksd-fs-18 el-icon-ksd-grid_02" @click="toggleLeftMenu"></i>
             </common-tip>
           </div>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
             <common-tip :content="canAddProject ? $t('kylinLang.project.addProject') : $t('disableAddProject')" placement="bottom-start">
-              <el-button class="add-project-btn" v-guide.addProjectBtn :type="highlightType" plain @click="addProject" v-show="isAdmin" size="small" :disabled="!canAddProject">
-                <i class="el-icon-ksd-add_2"></i>
+              <el-button class="add-project-btn" v-guide.addProjectBtn type="primary" text @click="addProject" v-show="isAdmin" :disabled="!canAddProject">
+                <i class="el-ksd-icon-add_22 ksd-fs-22"></i>
               </el-button>
             </common-tip>
           </template>
@@ -115,12 +117,13 @@
             </li>
             <li v-if="showMenuByRole('admin')">
               <el-button
-                size="small"
-                plain
+                type="primary"
+                text
                 class="entry-admin"
+                icon-button
+                icon="el-ksd-icon-system_config_22"
                 :class="isAdminView ? 'active' : null"
                 @click="handleSwitchAdmin">
-                <span>{{$t('kylinLang.menu.admin')}}</span>
               </el-button>
             </li>
             <li><help></help></li>
@@ -128,7 +131,8 @@
             <li>
               <el-dropdown @command="handleCommand" class="user-msg-dropdown">
                 <span class="el-dropdown-link">
-                  <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i><span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
+                  <!-- <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i> -->
+                  <span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
                 </span>
                 <el-dropdown-menu slot="dropdown">
                   <div class="user-name">{{ currentUserInfo && currentUserInfo.username }}</div>
@@ -222,7 +226,7 @@
         </el-col>
       </el-row>
       <div slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
+        <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
         <el-button type="primary" size="medium" @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
       </div>
     </el-dialog>
@@ -1109,11 +1113,13 @@ export default class LayoutLeftRightTop extends Vue {
   }
   .quota-top-bar {
     position: relative;
-    min-width: 75px;
+    min-width: 65px;
     .quota-info {
       font-size: 12px;
+      height: 20px;
+      line-height: 20px;
       .quota-title {
-        font-weight: bold;
+        font-weight: @font-regular;
         &:hover {
           color: @base-color;
         }
@@ -1122,6 +1128,7 @@ export default class LayoutLeftRightTop extends Vue {
         width: 10px;
         height: 10px;
         // position: absolute;
+        // left: -8px;
         display: inline-block;
         border-radius: 100%;
         &.is-danger {
@@ -1240,7 +1247,7 @@ export default class LayoutLeftRightTop extends Vue {
     }
     .brief_menu.panel .panel-center{
       .left-menu {
-        width: 56px;
+        width: 64px;
         text-align:center;
         li {
           text-align: center;
@@ -1266,7 +1273,7 @@ export default class LayoutLeftRightTop extends Vue {
         margin-left: 76px;
       }
       .panel-content{
-        left: 56px;
+        left: 64px;
       }
     }
     &:not(.isModelList){
@@ -1293,17 +1300,17 @@ export default class LayoutLeftRightTop extends Vue {
         .panel-content {
           position: absolute;
           right: 0px;
-          top: 52px;
+          top: 48px;
           bottom: 0;
-          left: 138px;
+          left: 184px;
           overflow-x: hidden;
         }
         .left-menu {
-          width: 138px;
+          width: 184px;
           height: 100%;
           position: relative;
           z-index: 999;
-          background-color: #004e91;
+          background-color: @ke-color-nav;
           // >ul {
           //   height: 100%;
           //   background-color: @text-title-color;
@@ -1347,7 +1354,7 @@ export default class LayoutLeftRightTop extends Vue {
             height: 26px;
             vertical-align: middle;
             z-index:999;
-            margin: 13px 14px 12px 14px;
+            margin: 13px 36px 12px 36px;
             cursor: pointer;
           }
           .ky-line {
@@ -1355,37 +1362,39 @@ export default class LayoutLeftRightTop extends Vue {
           }
         }
         .topbar{
-          height: 51px;
+          height: 47px;
           width: 100%;
-          background: @fff;
+          background: @ke-background-color-secondary;
           position: absolute;
           top:0;
-          border-bottom: 1px solid @line-split-color;
-          box-shadow: 0 1px 2px 0 @line-split-color;
+          border-bottom: 1px solid @ke-border-divider-color;
+          // box-shadow: 0 1px 2px 0 @line-split-color;
           z-index: 100;
           .nav-icon {
-            margin-left: 158px;
-            margin-top: 20px;
+            margin-left: 204px;
+            margin-top: 15px;
             height: 14px;
             line-height: 14px;
             cursor: pointer;
             float: left;
           }
           .add-project-btn {
-            margin: 14px 0 0 10px;
+            margin: 7px 0 0 2px;
             padding:5px;
           }
           .top-ul {
             font-size:0;
-            margin-top: 14px;
+            margin-top: 7px;
             >li{
               vertical-align: middle;
               display: inline-block;
-              margin-right: 20px;
+              margin-right: 16px;
               cursor: pointer;
             }
             .active-nodes {
               font-size: 12px;
+              height: 20px;
+              line-height: 20px;
               &:hover {
                 color: @base-color;
               }
@@ -1426,9 +1435,16 @@ export default class LayoutLeftRightTop extends Vue {
       }
     }
     .entry-admin.active {
-      box-shadow: inset 1px 1px 2px 0 #ADC2D0;
-      border-color: @base-color-11;
-      color: @base-color-11;
+      // box-shadow: inset 1px 1px 2px 0 #ADC2D0;
+      // border-color: @base-color-11;
+      // color: @base-color-11;
+      background-color: @ke-background-color-active;
+      &:hover,
+      &:focus {
+        background-color: @ke-background-color-active;
+        border-color: @ke-background-color-active;
+      }
+
     }
     .global-mask {
       position: absolute;

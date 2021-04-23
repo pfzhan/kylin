@@ -77,7 +77,7 @@
               </el-form>
               <div slot="footer" class="dialog-footer">
                 <el-button @click="addGrantDialog = false">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" plain :loading="saveBtnLoad" @click="saveAclTable" :disabled="!grantObj.name">{{$t('kylinLang.common.submit')}}</el-button>
+                <el-button type="primary" :loading="saveBtnLoad" @click="saveAclTable" :disabled="!grantObj.name">{{$t('kylinLang.common.submit')}}</el-button>
               </div>
           </el-dialog>
     </div>

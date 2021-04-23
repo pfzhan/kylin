@@ -206,7 +206,7 @@
         </el-table-column>
       </el-table>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain @click="closeMergeDialog">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="closeMergeDialog">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" :loading="mergeLoading" @click="handleSubmitMerge()">{{$t('merge')}}</el-button>
     </div>
     </el-dialog>
@@ -261,7 +261,7 @@
         </el-table-column>
       </el-table>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" :loading="refreshLoading" @click="handleSubmit()">{{$t('kylinLang.common.refresh')}}</el-button>
     </div>
     </el-dialog>

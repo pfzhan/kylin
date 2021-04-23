@@ -195,7 +195,7 @@
   
   .capacity-top-bar {
     position: relative;
-    min-width: 75px;
+    min-width: 65px;
     // padding-right: 20px;
     .active-nodes {
       position: relative;
@@ -203,7 +203,7 @@
         color: @text-normal-color !important;
       }
       .server-status {
-        font-weight: bold;
+        font-weight: @font-regular;
         &:hover {
           color: @base-color;
         }
@@ -212,6 +212,7 @@
         width: 10px;
         height: 10px;
         // position: absolute;
+        // left: -8px;
         display: inline-block;
         border-radius: 100%;
         &.is-danger {

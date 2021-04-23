@@ -15,7 +15,7 @@
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
-      <el-button plain size="medium" @click="handlerClose">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" @click="handlerClose">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" size="medium" :loading="loadingSubmit" @click="submit">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>

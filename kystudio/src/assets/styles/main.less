@@ -198,17 +198,30 @@ i[class^=el-icon-]{
     color: @base-color;
   }
 }
+.ksd-title-page {
+  font-size: 26px;
+  line-height: 38px;
+  color: @text-title-color;
+  font-weight: @font-medium;
+}
+.ksd-title-module {
+  font-size: 20px;
+  color: @text-title-color;
+  font-weight: @font-600;
+  height: 26px;
+  line-height: 26px;
+}
 .ksd-title-label {
   font-size: 16px;
   color: @text-title-color;
-  font-weight: @font-medium;
-  height: 22px;
-  line-height: 22px;
+  font-weight: @font-600;
+  height: 24px;
+  line-height: 24px;
 }
 .ksd-title-label-small {
   font-size: 14px;
   color: @text-title-color;
-  font-weight: @font-medium;
+  font-weight: @font-600;
 }
 
 .ksd-btn-minwidth {
@@ -368,6 +381,44 @@ i[class^=el-icon-]{
     }
   }
 }
+  .ksd-list {
+    -ms-flex-align: center;
+    align-items: center;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+    .list {
+      color: @text-normal-color;
+      margin-top: 8px;
+      font-size: 12px;
+      display: flex;
+      &:first-child {
+        margin-top: 0;
+      }
+      .label {
+        font-weight: normal;
+        flex: none;
+      }
+      .text {
+        color: @text-title-color;
+        margin-left: 8px;
+        word-break: break-all;
+      }
+      &.ellipsis .text {
+        width: calc(100% - 85px);
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: absolute;
+        margin-left: 5px;
+        white-space: nowrap;
+      }
+    }
+    &.ksd-table-list {
+      .label {
+        text-align: right;
+      }
+    }
+  }
   table.ksd-table{
     border-top:solid 1px @line-border-color;
     border-left:solid 1px @line-border-color;
@@ -439,9 +490,9 @@ i[class^=el-icon-]{
   font-size: 14px;
 }
 .query_panel_box {
-  border: 1px solid @line-border-color;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
+  border: 1px solid @ke-border-secondary;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
   .smyles_editor_wrap {
     margin: -1px;
     // .ace-chrome {
@@ -454,7 +505,7 @@ i[class^=el-icon-]{
   .operatorBox{
     display: flex;
     padding: 10px 15px;
-    background-color: @base-background-color-1;
+    background-color: @fff;
   }
 }
 // 带图标警告、成功、失败提示语样式覆盖
@@ -731,12 +782,12 @@ i[class^=el-icon-]{
 .layout-left {
   .data-source-bar {
     .header, .body {
-      min-width:250px;
+      min-width:240px;
       width: auto!important;
     }
   }
   width: auto;
-  min-width:250px;
+  min-width:240px;
   float: left;
   /* border-right: solid 1px #cfd8dc; */
   box-sizing: border-box;
@@ -744,10 +795,10 @@ i[class^=el-icon-]{
 }
 
 .layout-right {
-  padding: 20px 20px 0 20px;
-  margin-left: 250px;
+  padding: 24px 24px 0;
+  margin-left: 240px;
   overflow: auto;
-  max-height: calc(~'100vh - 134px');
+  max-height: calc(~'100vh - 142px');
   position: relative;
   min-height: 100%;
   box-sizing: border-box;

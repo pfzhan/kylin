@@ -51,18 +51,18 @@ export default {
   .kap_progress{
     &.success {
       .el-progress-bar__inner {
-        background-color: @color-success;
+        background-color: @ke-color-success-hover;
       }
       i {
-        color: @color-success;
+        color: @ke-color-success-hover;
       }
     }
     &.error {
       .el-progress-bar__inner {
-        background-color: @color-danger;
+        background-color: @ke-color-danger-hover;
       }
       i {
-        color: @color-danger;
+        color: @ke-color-danger-hover;
       }
     }
     &.lose {

@@ -14,7 +14,7 @@
         </el-input>
       </div>
     </div>
-    <el-table class="columns-body" ref="tableColumns" v-scroll-shadow :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange" border>
+    <el-table class="columns-body" ref="tableColumns" v-scroll-shadow :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange">
       <el-table-column
         type="index"
         label="ID"
@@ -81,7 +81,7 @@
       </el-table-column>
     </el-table>
     <kap-pager
-      class="ksd-center ksd-mt-10" ref="pager"
+      class="ksd-center ksd-mt-16" ref="pager"
       :refTag="pageRefTags.tableColumnsPager"
       :totalSize="columns.length"
       :curPage="pagination.page_offset + 1"
@@ -116,7 +116,7 @@ export default class TableColumns extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('kylinLang.dataSource.cardinality')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('cardinalityTip')}>
-       <span class='el-icon-ksd-what'></span>
+       <span class='el-icon-ksd-info'></span>
       </common-tip>
     </span>)
   }
@@ -124,7 +124,7 @@ export default class TableColumns extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('kylinLang.dataSource.comment')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('commentTip')}>
-       <span class='el-icon-ksd-what'></span>
+       <span class='el-icon-ksd-info'></span>
       </common-tip>
     </span>)
   }
