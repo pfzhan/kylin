@@ -5,7 +5,7 @@ import './util/polyfill'
 import Vue from 'vue'
 import ElementUI from 'kyligence-ui'
 import store from './store'
-
+import { v4 as uuidv4 } from 'uuid'
 // import 'intro.js/introjs.css'
 // import {introJs} from 'intro.js'
 import fullLayout from 'components/layout/layout_full'
@@ -123,6 +123,12 @@ Vue.http.interceptors.push(function (request, next) {
     }
   })
   if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') { // 嵌套ifrme的平台
+    // 云上时，针对除 get 以外的接口都要带上自定义的 request id
+    const methodsArr = ['post', 'put', 'delete']
+    const curMethod = request && request.method ? request.method.toLocaleLowerCase() : ''
+    if (methodsArr.includes(curMethod)) {
+      request.headers.set('Kylin-Request-Id', uuidv4())
+    }
     nprogress.done()
     window.parent.postMessage('requestStart', '*')
   } else {
