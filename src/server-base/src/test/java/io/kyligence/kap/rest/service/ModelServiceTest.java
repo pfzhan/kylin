@@ -4291,13 +4291,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetModelDesc() {
-        NModelDescResponse model = modelService.getModelDesc("ut_inner_join_cube_partial", "default");
-        Assert.assertTrue(model.getProject().equals("default"));
-        Assert.assertTrue(model.getName().equals("ut_inner_join_cube_partial"));
-        Assert.assertTrue(model.getVersion().equals("4.0.0.0"));
-        Assert.assertTrue(model.getMeasures().size() == 11);
-        Assert.assertTrue(model.getAggregationGroups().size() == 2);
-        Assert.assertNotEquals(0, model.getCreateTime());
+        // model1: model with only rule_based_index
+        NModelDescResponse model1 = modelService.getModelDesc("ut_inner_join_cube_partial", "default");
+        Assert.assertEquals("default", model1.getProject());
+        Assert.assertEquals(11, model1.getMeasures().size());
+        Assert.assertEquals(2, model1.getAggregationGroups().size());
+        Assert.assertNotEquals(0, model1.getCreateTime());
+        Assert.assertEquals(24, model1.getDimensions().size());
+        Assert.assertSame("DIMENSION", model1.getDimensions().get(3).getNamedColumn().getStatus().name());
+        Assert.assertSame("DIMENSION", model1.getDimensions().get(5).getNamedColumn().getStatus().name());
+
+        // model2: model with rule_based_index and table indexes, with overlap between their dimensions
+        NModelDescResponse model2 = modelService.getModelDesc("nmodel_basic_inner", "default");
+        Assert.assertEquals(31, model2.getDimensions().size());
+        Assert.assertSame("DIMENSION", model2.getDimensions().get(0).getNamedColumn().getStatus().name());
+        Assert.assertSame("DIMENSION", model2.getDimensions().get(1).getNamedColumn().getStatus().name());
     }
 
     @Test

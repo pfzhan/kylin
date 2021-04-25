@@ -3551,22 +3551,19 @@ public class ModelService extends BasicService {
         response.setDescription(model.getDescription());
 
         response.setMeasures(model.getMeasures());
+        List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream() //
+                .map(namedColumn -> new NModelDescResponse.Dimension(namedColumn, false)) //
+                .collect(Collectors.toList());
+        response.setDimensions(dims);
+
         IndexPlan indexPlan = getIndexPlan(response.getUuid(), project);
         if (indexPlan.getRuleBasedIndex() != null) {
-            List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
-                    .map(x -> new AggGroupResponse(dataModel, x)).collect(Collectors.toList());
-            response.setAggregationGroups(aggGroupResponses);
-            Set<String> allAggDim = Sets.newHashSet();
-            indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> dataModel.getEffectiveDimensions().get(x))
-                    .forEach(x -> allAggDim.add(x.getIdentity()));
-            List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream()
-                    .filter(namedColumn -> allAggDim.contains(namedColumn.getAliasDotColumn()))
-                    .map(namedColumn -> new NModelDescResponse.Dimension(namedColumn, false))
+            List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream() //
+                    .map(x -> new AggGroupResponse(dataModel, x)) //
                     .collect(Collectors.toList());
-            response.setDimensions(dims);
+            response.setAggregationGroups(aggGroupResponses);
         } else {
             response.setAggregationGroups(new ArrayList<>());
-            response.setDimensions(new ArrayList<>());
         }
         return response;
     }
