@@ -56,6 +56,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testSumExpr() throws Exception {
+        excludedSqlPatterns.addAll(loadWhiteListPatterns());
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");

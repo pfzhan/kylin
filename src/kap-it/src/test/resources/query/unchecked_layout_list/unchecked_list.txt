@@ -3,6 +3,7 @@ query/sql/query27.sql
 query/sql/query35.sql
 query/sql/query130.sql
 query/sql_intersect_count/query00.sql
+query/sql_sum_expr/query10.sql
 ---INDEX_NOT_MATCH
 query/sql/query61.sql
 query/sql/query83.sql
