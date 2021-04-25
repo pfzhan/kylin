@@ -136,7 +136,7 @@ public class AsyncQueryUtil {
     public static void createSuccessFlag(String project, String queryId) throws IOException {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
-        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getSuccessFlagFileName())){
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getSuccessFlagFileName()))) {
             os.hflush();
         }
     }
