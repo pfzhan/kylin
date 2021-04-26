@@ -86,6 +86,13 @@ public class JoinProposer extends AbstractModelProposer {
             try {
                 Map<String, JoinTableDesc> tmpJoinTablesMap = new HashMap<>();
                 GreedyModelTreesBuilder.TreeBuilder.mergeContext(ctx, tmpJoinTablesMap, tableAliasMap, aliasRefMap);
+                tmpJoinTablesMap.forEach((alias, joinTableDesc) -> {
+                    JoinTableDesc oldJoinTable = joinTables.get(alias);
+                    if (oldJoinTable != null) {
+                        String flattenable = oldJoinTable.getFlattenable();
+                        joinTableDesc.setFlattenable(flattenable);
+                    }
+                });
                 joinTables.putAll(tmpJoinTablesMap);
             } catch (Exception e) {
                 val accelerateInfoMap = modelContext.getProposeContext().getAccelerateInfoMap();

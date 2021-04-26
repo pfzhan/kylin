@@ -316,7 +316,24 @@ public class ModelSemanticHelper extends BasicService {
                 columns.add(namedColumn);
             }
         }
-        for (ComputedColumnDesc computedColumnDesc : dataModel.getComputedColumnDescs()) {
+        Map<String, ComputedColumnDesc> ccMap = dataModel.getComputedColumnDescs().stream()
+                .collect(Collectors.toMap(ComputedColumnDesc::getFullName, Function.identity()));
+        List<ComputedColumnDesc> orderedCCList = Lists.newArrayList();
+        NDataModel originModel = getDataModelManager(project).getDataModelDesc(dataModel.getUuid());
+        if (originModel != null && !originModel.isBroken()) {
+            originModel.getAllNamedColumns().stream().filter(NamedColumn::isExist)
+                    .filter(column -> ccMap.containsKey(column.getAliasDotColumn())) //
+                    .forEach(column -> {
+                        ComputedColumnDesc cc = ccMap.get(column.getAliasDotColumn());
+                        orderedCCList.add(cc);
+                        ccMap.remove(column.getAliasDotColumn());
+                    });
+            orderedCCList.addAll(ccMap.values());
+        } else {
+            orderedCCList.addAll(dataModel.getComputedColumnDescs());
+        }
+
+        for (ComputedColumnDesc computedColumnDesc : orderedCCList) {
             NDataModel.NamedColumn namedColumn = new NDataModel.NamedColumn();
             namedColumn.setId(id++);
             namedColumn.setName(computedColumnDesc.getColumnName());

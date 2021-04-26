@@ -1374,6 +1374,19 @@ public class TableService extends BasicService {
         request.setComputedColumnDescs(model.getComputedColumnDescs().stream()
                 .filter(cc -> !removeAffectedModel.getComputedColumns().contains(cc.getColumnName()))
                 .collect(Collectors.toList()));
+
+        // clean
+        request.getAllNamedColumns().stream() //
+                .filter(col -> removeAffectedModel.getColumns().contains(col.getId())) //
+                .forEach(col -> col.setStatus(NDataModel.ColumnStatus.TOMB));
+        String factTableAlias = model.getRootFactTable().getAlias();
+        Set<String> ccFullNameSet = removeAffectedModel.getComputedColumns().stream() //
+                .map(ccName -> factTableAlias + "." + ccName) //
+                .collect(Collectors.toSet());
+        request.getAllNamedColumns().stream() //
+                .filter(col -> ccFullNameSet.contains(col.getAliasDotColumn())) //
+                .forEach(col -> col.setStatus(NDataModel.ColumnStatus.TOMB));
+
         request.setProject(projectName);
     }
 

@@ -193,10 +193,10 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testModelUpdateComputedColumn() throws Exception {
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
 
         // Add new computed column
         final int colIdOfCC;
+        final String ccColName = "TEST_KYLIN_FACT.TEST_CC_1";
         {
             ModelRequest request = newSemanticRequest();
             Assert.assertFalse(request.getComputedColumnNames().contains("TEST_CC_1"));
@@ -211,23 +211,26 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
             NDataModel model = getTestModel();
             Assert.assertTrue(model.getComputedColumnNames().contains("TEST_CC_1"));
-            colIdOfCC = model.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1");
+            colIdOfCC = model.getColumnIdByColumnName(ccColName);
             Assert.assertNotEquals(-1, colIdOfCC);
         }
 
         // Add dimension which uses TEST_CC_1, column will be renamed
         {
             ModelRequest request = newSemanticRequest();
-            //            Assert.assertEquals(-1, request.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
-            NamedColumn newDimension = new NamedColumn();
-            newDimension.setName("TEST_DIM_WITH_CC");
-            newDimension.setAliasDotColumn("TEST_KYLIN_FACT.TEST_CC_1");
-            newDimension.setStatus(ColumnStatus.DIMENSION);
-            request.getSimplifiedDimensions().add(newDimension);
+            request.getAllNamedColumns().stream()
+                    .filter(column -> column.getAliasDotColumn().equalsIgnoreCase(ccColName)) //
+                    .forEach(column -> {
+                        column.setName("TEST_DIM_WITH_CC");
+                        column.setStatus(ColumnStatus.DIMENSION);
+                    });
+            request.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
+                    .collect(Collectors.toList()));
+            request.getOtherColumns().removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase(ccColName));
             modelService.updateDataModelSemantic(request.getProject(), request);
 
             ModelRequest requestToVerify = newSemanticRequest();
-            Assert.assertEquals(colIdOfCC, requestToVerify.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
+            Assert.assertEquals(colIdOfCC, requestToVerify.getColumnIdByColumnName(ccColName));
             NamedColumn dimensionToVerify = requestToVerify.getSimplifiedDimensions().stream()
                     .filter(col -> col.getId() == colIdOfCC).findFirst().get();
             Assert.assertNotNull(dimensionToVerify);
@@ -243,7 +246,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             newMeasure.setName("TEST_MEASURE_WITH_CC");
             newMeasure.setExpression("SUM");
             newMeasure.setReturnType("bigint");
-            ParameterResponse param = new ParameterResponse("column", "TEST_KYLIN_FACT.TEST_CC_1");
+            ParameterResponse param = new ParameterResponse("column", ccColName);
             newMeasure.setParameterValue(Lists.newArrayList(param));
             request.getSimplifiedMeasures().add(newMeasure);
 
@@ -262,7 +265,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             Assert.assertNotNull(measure);
             measureIdOfCC = measure.getId();
             Assert.assertTrue(measure.getFunction().isSum());
-            Assert.assertEquals("TEST_KYLIN_FACT.TEST_CC_1", measure.getFunction().getParameters().get(0).getValue());
+            Assert.assertEquals(ccColName, measure.getFunction().getParameters().get(0).getValue());
         }
 
         // Update TEST_CC_1's definition, named column and measure will be updated
@@ -291,7 +294,12 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         // Remove TEST_CC_1, all related should be moved to tomb
         {
             ModelRequest request = newSemanticRequest();
-            Assert.assertTrue(request.getComputedColumnDescs().removeIf(cc -> cc.getColumnName().equals("TEST_CC_1")));
+            request.getComputedColumnDescs().removeIf(cc -> cc.getColumnName().equals("TEST_CC_1"));
+            request.getAllNamedColumns().stream()
+                    .filter(column -> column.getAliasDotColumn().equalsIgnoreCase(ccColName))
+                    .forEach(column -> column.setStatus(ColumnStatus.TOMB));
+            request.getSimplifiedDimensions()
+                    .removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase(ccColName));
             try {
                 modelService.updateDataModelSemantic(request.getProject(), request);
                 Assert.fail();
@@ -459,74 +467,93 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Test
     public void testModelUpdateDimensions() throws Exception {
         val request = newSemanticRequest();
-        request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
-                .filter(c -> c.isDimension() && c.getId() != 25).collect(Collectors.toList()));
-        val newCol = new NDataModel.NamedColumn();
-        newCol.setName("PRICE2");
-        newCol.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
-        newCol.setStatus(NDataModel.ColumnStatus.DIMENSION);
-        request.getSimplifiedDimensions().add(newCol);
-        ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
-                .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
-        Assert.assertNotNull(ccDesc);
-        NamedColumn ccCol = request.getAllNamedColumns().stream()
-                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).findFirst().orElse(null);
-        Assert.assertNotNull(ccCol);
-        Assert.assertTrue(ccCol.getStatus() == ColumnStatus.DIMENSION);
-        int ccColId = ccCol.getId();
-        request.getComputedColumnDescs().remove(ccDesc);
 
-        val prevId = getTestModel().getAllNamedColumns().stream()
-                .filter(n -> n.getAliasDotColumn().equals(newCol.getAliasDotColumn())).findFirst().map(n -> n.getId())
-                .orElse(0);
+        // reserve cc & corresponding column
+        String ccDealYear = "DEAL_YEAR";
+        ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
+                .filter(cc -> ccDealYear.equals(cc.getColumnName())).findFirst().orElse(null);
+        NamedColumn ccCol = request.getAllNamedColumns().stream().filter(c -> {
+            assert ccDesc != null;
+            return c.getAliasDotColumn().equals(ccDesc.getFullName());
+        }).findFirst().orElse(null);
+        Assert.assertNotNull(ccDesc);
+        Assert.assertNotNull(ccCol);
+
+        // set "TEST_KYLIN_FACT.PRICE" as dimension and rename 
+        String colPrice = "TEST_KYLIN_FACT.PRICE";
+        request.getAllNamedColumns().stream() //
+                .filter(column -> colPrice.equalsIgnoreCase(column.getAliasDotColumn())) //
+                .forEach(column -> {
+                    column.setName("PRICE2");
+                    column.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                });
+        List<NamedColumn> dimensions = request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
+                .collect(Collectors.toList());
+        request.getComputedColumnDescs().removeIf(cc -> cc.getColumnName().equalsIgnoreCase(ccDealYear));
+        dimensions.removeIf(column -> ccDesc.getFullName().equalsIgnoreCase(column.getAliasDotColumn()));
+        dimensions.removeIf(column -> column.getId() == 25);
+        request.setSimplifiedDimensions(dimensions);
+        request.getOtherColumns().stream() //
+                .filter(column -> ccDesc.getFullName().equalsIgnoreCase(column.getAliasDotColumn()))
+                .forEach(column -> column.setStatus(ColumnStatus.TOMB));
+        request.getOtherColumns().removeIf(column -> colPrice.equalsIgnoreCase(column.getAliasDotColumn()));
+
+        int preservedId = getTestModel().getAllNamedColumns().stream()
+                .filter(n -> n.getAliasDotColumn().equals(colPrice)) //
+                .findFirst().map(NamedColumn::getId).orElse(0);
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), getProject())
                 .getIndexPlan(getTestModel().getUuid());
         UnitOfWork.doInTransactionWithRetry(() -> {
             NIndexPlanManager.getInstance(getTestConfig(), getProject()).updateIndexPlan(indexPlan.getUuid(),
-                    copyForWrite -> {
-                        copyForWrite.setIndexes(new ArrayList<>());
-                    });
+                    copyForWrite -> copyForWrite.setIndexes(new ArrayList<>()));
             return 0;
         }, getProject());
         modelService.updateDataModelSemantic(getProject(), request);
 
         val model = getTestModel();
-        Assert.assertEquals(newCol.getName(), model.getNameByColumnId(prevId));
+        Assert.assertEquals("PRICE2", model.getNameByColumnId(preservedId));
         Assert.assertNull(model.getEffectiveDimensions().get(25));
-        Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_YEAR"));
-        Assert.assertNull(model.getEffectiveDimensions().get(ccColId));
-        Assert.assertNull(model.getEffectiveCols().get(ccColId));
+        Assert.assertFalse(model.getComputedColumnNames().contains(ccDealYear));
+        Assert.assertNull(model.getEffectiveDimensions().get(ccCol.getId()));
+        Assert.assertNull(model.getEffectiveCols().get(ccCol.getId()));
 
-        newCol.setName("PRICE3");
+        // rename & update again
+        request.getAllNamedColumns().stream() //
+                .filter(column -> colPrice.equalsIgnoreCase(column.getAliasDotColumn())) //
+                .forEach(column -> {
+                    column.setName("PRICE3");
+                    column.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                });
         request.getComputedColumnDescs().add(ccDesc);
         modelService.updateDataModelSemantic(getProject(), request);
         val model2 = getTestModel();
-        Assert.assertEquals(newCol.getName(), model2.getNameByColumnId(prevId));
-        Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_YEAR"));
+        Assert.assertEquals("PRICE3", model2.getNameByColumnId(preservedId));
+        Assert.assertTrue(model2.getComputedColumnNames().contains(ccDealYear));
         NamedColumn newCcCol = model2.getAllNamedColumns().stream()
-                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
-                .orElse(null);
+                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).filter(NamedColumn::isExist)
+                .findFirst().orElse(null);
         Assert.assertNotNull(newCcCol);
-        Assert.assertNotEquals(ccColId, newCcCol.getId());
+        Assert.assertNotEquals(ccCol.getId(), newCcCol.getId());
     }
 
     @Test
     public void testRemoveColumnExistInTableIndex() throws Exception {
         val request = newSemanticRequest();
-        request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
-                .filter(c -> c.isDimension() && c.getId() != 25).collect(Collectors.toList()));
-        val newCol = new NDataModel.NamedColumn();
-        newCol.setName("PRICE2");
-        newCol.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
-        newCol.setStatus(NDataModel.ColumnStatus.DIMENSION);
-        request.getSimplifiedDimensions().add(newCol);
-        ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
-                .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
-        Assert.assertNotNull(ccDesc);
-        NamedColumn ccCol = request.getAllNamedColumns().stream()
-                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).findFirst().orElse(null);
-        Assert.assertNotNull(ccCol);
-        request.getComputedColumnDescs().remove(ccDesc);
+        request.getComputedColumnDescs().removeIf(cc -> cc.getColumnName().equalsIgnoreCase("DEAL_YEAR"));
+        request.getAllNamedColumns().stream()
+                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.PRICE"))
+                .forEach(column -> {
+                    column.setName("PRICE2");
+                    column.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                });
+        List<NamedColumn> dimensions = request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
+                .collect(Collectors.toList());
+        dimensions.removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.DEAL_YEAR"));
+        dimensions.removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase("BUYER_COUNTRY.NAME"));
+        request.setSimplifiedDimensions(dimensions);
+        request.getOtherColumns().stream()
+                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.DEAL_YEAR"))
+                .forEach(column -> column.setStatus(ColumnStatus.TOMB));
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("The dimension BUYER_COUNTRY.NAME,TEST_KYLIN_FACT.DEAL_YEAR is being referenced by "
@@ -579,8 +606,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
 
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
-        val indexList = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
-                .map(index -> new Long(index.getId())).collect(Collectors.toSet());
+        val indexList = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream().map(LayoutEntity::getId)
+                .collect(Collectors.toSet());
         indexPlanService.removeIndexes(getProject(), modelId, indexList);
 
         val shardReq = new AggShardByColumnsRequest();
@@ -591,9 +618,14 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         var request = newSemanticRequest(modelId);
         request.getComputedColumnDescs().removeIf(c -> ("NEST5").equals(c.getColumnName()));
+        request.getSimplifiedDimensions()
+                .removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.NEST5"));
+        request.getOtherColumns().stream()
+                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.NEST5"))
+                .forEach(column -> column.setStatus(ColumnStatus.TOMB));
         modelService.updateDataModelSemantic(getProject(), request);
 
-       Assert.assertEquals(indexPlanService.getShardByColumns(getProject(), modelId).getShardByColumns().size(), 0);
+        Assert.assertEquals(indexPlanService.getShardByColumns(getProject(), modelId).getShardByColumns().size(), 0);
     }
 
     @Test
@@ -615,6 +647,11 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         // remove cc TEST_KYLIN_FACT.NEST5
         var request = newSemanticRequest(modelId);
         request.getComputedColumnDescs().removeIf(c -> ("NEST5").equals(c.getColumnName()));
+        request.getSimplifiedDimensions()
+                .removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.NEST5"));
+        request.getOtherColumns().stream()
+                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("TEST_KYLIN_FACT.NEST5"))
+                .forEach(column -> column.setStatus(ColumnStatus.TOMB));
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("The dimension TEST_KYLIN_FACT.NEST5 is being referenced by aggregation group, "
                 + "recommended aggregate index or table index. Please delete this dimension from the above first.");
@@ -826,6 +863,17 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_multi_measures.json"),
                 ModelRequest.class);
+        request.setUuid(null);
+        List<NamedColumn> dimensions = request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
+                .collect(Collectors.toList());
+        dimensions.removeIf(column -> column.getName().startsWith("LEFTJOIN"));
+        dimensions.removeIf(column -> column.getName().startsWith("DEAL"));
+        List<NamedColumn> otherColumns = request.getAllNamedColumns().stream()
+                .filter(column -> column.isExist() && !column.isDimension()).collect(Collectors.toList());
+        request.setSimplifiedDimensions(dimensions);
+        request.setOtherColumns(otherColumns);
+        request.setAllNamedColumns(Lists.newArrayList());
+
         val model = modelService.createModel(request.getProject(), request);
         Assert.assertEquals(3, model.getEffectiveMeasures().size());
         Assert.assertThat(
@@ -1378,14 +1426,16 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         request.setSimplifiedJoinTableDescs(
                 SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(model.getJoinTables()));
+        List<NamedColumn> otherColumns = model.getAllNamedColumns().stream().filter(column -> !column.isDimension())
+                .collect(Collectors.toList());
+        request.setOtherColumns(otherColumns);
 
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
     }
 
     private NDataModel getTestModel() {
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        return model;
+        return modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
     }
 
     @Test

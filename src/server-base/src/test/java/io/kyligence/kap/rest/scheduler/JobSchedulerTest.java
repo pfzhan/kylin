@@ -32,12 +32,15 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -77,6 +80,21 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         ExecutableUtils.initJobFactory();
         createTestMetadata();
         prepareSegment();
+        startScheduler();
+    }
+
+    void startScheduler() {
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+    }
+
+    @After
+    public void after() throws Exception {
+        NDefaultScheduler.destroyInstance();
+        cleanupTestMetadata();
     }
 
     @Test
@@ -264,7 +282,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-03-01")));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t submit the job, as the indexes are not identical in the selected segments. Please check and try again.");
+        thrown.expectMessage(
+                "Can’t submit the job, as the indexes are not identical in the selected segments. Please check and try again.");
         jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 

@@ -3016,15 +3016,15 @@ public class ModelService extends BasicService {
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
 
         String uuid = request.getUuid();
-        List<JoinTableDesc> joinTables = request.getJoinTables();
+        NDataModel convertedModel = convertAndInitDataModel(request, project);
+        List<JoinTableDesc> joinTables = convertedModel.getJoinTables();
 
-        NDataModel model = modelManager.getDataModelDesc(uuid);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(uuid);
         Set<String> excludedTables = getFavoriteRuleManager(project).getExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, model);
-        List<ComputedColumnDesc> invalidCCList = checker.getInvalidComputedColumns(model);
-        Set<Integer> invalidDimensions = checker.getInvalidDimensions(model);
-        Set<Integer> invalidMeasures = checker.getInvalidMeasures(model);
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, convertedModel);
+        List<ComputedColumnDesc> invalidCCList = checker.getInvalidComputedColumns(convertedModel);
+        Set<Integer> invalidDimensions = checker.getInvalidDimensions(convertedModel);
+        Set<Integer> invalidMeasures = checker.getInvalidMeasures(convertedModel);
         Set<Integer> invalidScope = Sets.newHashSet();
         invalidScope.addAll(invalidDimensions);
         invalidScope.addAll(invalidMeasures);
@@ -4120,21 +4120,10 @@ public class ModelService extends BasicService {
         String project = request.getProject();
         aclEvaluate.checkProjectReadPermission(project);
 
-        NDataModel model = convertToDataModel(request);
-        Map<String, TableDesc> allTables = getTableManager(project).getAllTablesMap();
-        Map<String, TableDesc> initialAllTables = model.getExtendedTables(allTables);
-        model.init(KylinConfig.getInstanceFromEnv(), initialAllTables,
-                getDataflowManager(project).listUnderliningDataModels(), project);
-        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
-            String innerExp = cc.getInnerExpression();
-            if (cc.getExpression().equalsIgnoreCase(innerExp)) {
-                innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
-            }
-            cc.setInnerExpression(innerExp);
-        }
+        NDataModel model = convertAndInitDataModel(request, project);
 
         String uuid = model.getUuid();
-        List<JoinTableDesc> joinTables = request.getJoinTables();
+        List<JoinTableDesc> joinTables = model.getJoinTables();
         IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(uuid);
         Set<String> excludedTables = getFavoriteRuleManager(project).getExcludedTables();
         ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, model);
@@ -4172,5 +4161,21 @@ public class ModelService extends BasicService {
         response.setInvalidTableIndexCount(tableIndexCount.get());
         response.setAntiFlattenLookups(antiFlattenLookupTables);
         return response;
+    }
+
+    private NDataModel convertAndInitDataModel(ModelRequest request, String project) {
+        NDataModel model = convertToDataModel(request);
+        Map<String, TableDesc> allTables = getTableManager(project).getAllTablesMap();
+        Map<String, TableDesc> initialAllTables = model.getExtendedTables(allTables);
+        model.init(KylinConfig.getInstanceFromEnv(), initialAllTables,
+                getDataflowManager(project).listUnderliningDataModels(), project);
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+            String innerExp = cc.getInnerExpression();
+            if (cc.getExpression().equalsIgnoreCase(innerExp)) {
+                innerExp = KapQueryUtil.massageComputedColumn(model, project, cc, null);
+            }
+            cc.setInnerExpression(innerExp);
+        }
+        return model;
     }
 }

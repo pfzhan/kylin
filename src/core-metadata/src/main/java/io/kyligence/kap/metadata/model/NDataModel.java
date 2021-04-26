@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.metadata.model;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
@@ -696,7 +694,7 @@ public class NDataModel extends RootPersistentEntity {
 
             boolean isLookup = join.getKind() == TableKind.LOOKUP;
             TableRef ref = new TableRef(this, alias, tableDesc, isLookup);
-            if (!join.getJoinRelationTypeEnum().isQueryDerivedEnabled()) {
+            if (join.isFlattenable() && !join.getJoinRelationTypeEnum().isQueryDerivedEnabled()) {
                 queryDerivedDisabledRefs.add(ref);
             }
             join.setTableRef(ref);

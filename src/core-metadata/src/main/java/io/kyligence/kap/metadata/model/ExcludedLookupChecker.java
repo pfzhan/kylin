@@ -34,6 +34,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
@@ -87,11 +88,28 @@ public class ExcludedLookupChecker {
             }
         });
         for (JoinTableDesc joinTable : joinTables) {
-            String fkTableAlias = joinTable.getJoin().getForeignTable();
-            if (!joinTable.isFlattenable() && aliasToIdentityMap.containsKey(fkTableAlias)) {
-                antiFlattenLookups.add(joinTable.getTable());
-                excludedLookups.add(joinTable.getTable());
+            TblColRef[] fkColumns = joinTable.getJoin().getForeignKeyColumns();
+            TableRef foreignTableRef = joinTable.getJoin().getForeignTableRef();
+            String fkTableAlias;
+            if (fkColumns.length > 0) {
+                TblColRef firstFK = fkColumns[0];
+                fkTableAlias = firstFK.getTableAlias();
+                if (canTreatAsAntiFlattenableLookup(aliasToIdentityMap, joinTable, firstFK.getTableAlias(),
+                        firstFK.getTableWithSchema())) {
+                    antiFlattenLookups.add(joinTable.getTable());
+                    excludedLookups.add(joinTable.getTable());
+                }
+            } else if (foreignTableRef != null) {
+                fkTableAlias = foreignTableRef.getAlias();
+                if (canTreatAsAntiFlattenableLookup(aliasToIdentityMap, joinTable, foreignTableRef.getAlias(),
+                        foreignTableRef.getTableIdentity())) {
+                    antiFlattenLookups.add(joinTable.getTable());
+                    excludedLookups.add(joinTable.getTable());
+                }
+            } else {
+                fkTableAlias = null;
             }
+
             if (aliasToIdentityMap.containsKey(fkTableAlias)) {
                 String fkTable = aliasToIdentityMap.get(fkTableAlias);
                 if (excludedLookups.contains(fkTable)) {
@@ -99,6 +117,12 @@ public class ExcludedLookupChecker {
                 }
             }
         }
+    }
+
+    private boolean canTreatAsAntiFlattenableLookup(Map<String, String> aliasToIdentityMap, JoinTableDesc joinTable,
+            String fkTableAlias, String fkTableIdentity) {
+        return !joinTable.isFlattenable() //
+                || (aliasToIdentityMap.containsKey(fkTableAlias) && antiFlattenLookups.contains(fkTableIdentity));
     }
 
     /**
