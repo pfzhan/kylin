@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.tool.util.ToolMainWrapper;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -73,7 +74,6 @@ import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.tool.util.ScreenPrintUtil;
 import lombok.Getter;
 import lombok.val;
@@ -279,13 +279,12 @@ public class MetadataTool extends ExecutableApplication {
             logger.info("start to copy all projects from ResourceStore.");
             val auditLogStore = resourceStore.getAuditLogStore();
             long finalOffset = getOffset(auditLogStore);
-            UnitOfAllWorks.doInTransaction(() -> {
                 backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
                         System.currentTimeMillis(), -1);
                 var projectFolders = resourceStore.listResources("/");
                 if (projectFolders == null) {
-                    return null;
+                    return;
                 }
                 backupProjects(projectFolders, backupResourceStore, excludeTableExd);
                 val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
@@ -293,8 +292,6 @@ public class MetadataTool extends ExecutableApplication {
                     backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
                             uuid.getTimestamp(), -1);
                 }
-                return null;
-            }, true);
             logger.info("start to backup all projects");
 
         } else {
@@ -334,7 +331,11 @@ public class MetadataTool extends ExecutableApplication {
                 continue;
             }
             // The "_global" directory is already included in the full backup
-            copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
+            val projectName = Paths.get(projectPath).getFileName().toString();
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
+                return null;
+            }, projectName);
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("metadata task is interrupt");
             }

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -46,7 +47,6 @@ import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -91,30 +91,30 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication implements IKe
         systemKylinConfig.setMetadataUrl(metadataUrl);
 
         log.info("Start to truncate favorite query.");
-        UnitOfAllWorks.doInTransaction(() -> {
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-            Map<String, List<FavoriteRule>> globalFavoriteRuleList = Maps.newHashMap();
-            NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
-            projectManager.listAllProjects().forEach(projectInstance -> {
-                FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(kylinConfig,
-                        projectInstance.getName());
-                List<FavoriteRule> favoriteRuleList = favoriteRuleManager.getAll();
+        Map<String, List<FavoriteRule>> globalFavoriteRuleList = Maps.newHashMap();
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        projectManager.listAllProjects().forEach(projectInstance -> {
+            FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(kylinConfig,
+                    projectInstance.getName());
+            List<FavoriteRule> favoriteRuleList = favoriteRuleManager.getAll();
 
-                globalFavoriteRuleList.put(projectInstance.getName(), favoriteRuleList);
+            globalFavoriteRuleList.put(projectInstance.getName(), favoriteRuleList);
+        });
+
+        long fr = globalFavoriteRuleList.values().stream().mapToLong(List::size).sum();
+        printlnGreen(String.format(Locale.ROOT, "found %d recommendation metadata need to be updated.", fr));
+
+        if (optionsHelper.hasOption(OPTION_EXEC)) {
+            globalFavoriteRuleList.forEach((project, frList) -> {
+                        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                            frList.forEach(tfr -> FavoriteRuleManager.getInstance(kylinConfig, project).delete(tfr));
+                            return null;
+                        }, project);
+                        printlnGreen("recommendation metadata upgrade succeeded.");
             });
-
-            long fr = globalFavoriteRuleList.values().stream().mapToLong(List::size).sum();
-            printlnGreen(String.format(Locale.ROOT, "found %d recommendation metadata need to be updated.", fr));
-
-            if (optionsHelper.hasOption(OPTION_EXEC)) {
-                globalFavoriteRuleList.forEach((project, frList) -> frList
-                        .forEach(tfr -> FavoriteRuleManager.getInstance(kylinConfig, project).delete(tfr)));
-
-                printlnGreen("recommendation metadata upgrade succeeded.");
-            }
-            return null;
-        }, false);
+        }
         log.info("Succeed to truncate favorite query.");
     }
 }

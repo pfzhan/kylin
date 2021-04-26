@@ -33,6 +33,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -49,7 +50,6 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 
@@ -95,52 +95,49 @@ public class UpdateModelCLI extends ExecutableApplication implements IKeep {
         systemKylinConfig.setMetadataUrl(metadataUrl);
 
         log.info("Start to upgrade all model.");
-        UnitOfAllWorks.doInTransaction(() -> {
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-            List<NDataModel> globalUpdateModelList = Lists.newArrayList();
+        List<NDataModel> globalUpdateModelList = Lists.newArrayList();
 
-            NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
-            projectManager.listAllProjects().forEach(projectInstance -> {
-                NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig,
-                        projectInstance.getName());
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        projectManager.listAllProjects().forEach(projectInstance -> {
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, projectInstance.getName());
 
-                NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig,
-                        projectInstance.getName());
-                List<NDataModel> updateModelList = dataModelManager.listAllModels().stream()
-                        .filter(nDataModel -> !nDataModel.isBroken())
-                        .filter(nDataModel -> !indexPlanManager.getIndexPlan(nDataModel.getUuid()).isBroken())
-                        .map(dataModelManager::copyForWrite).peek(model -> {
-                            IndexPlan indexPlan = indexPlanManager.getIndexPlan(model.getUuid());
+            NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectInstance.getName());
+            List<NDataModel> updateModelList = dataModelManager.listAllModels().stream()
+                    .filter(nDataModel -> !nDataModel.isBroken())
+                    .filter(nDataModel -> !indexPlanManager.getIndexPlan(nDataModel.getUuid()).isBroken())
+                    .map(dataModelManager::copyForWrite).peek(model -> {
+                        IndexPlan indexPlan = indexPlanManager.getIndexPlan(model.getUuid());
 
-                            Set<Integer> tableIndexDimensions = indexPlan.getIndexes().stream()
-                                    .filter(indexEntity -> indexEntity.getId() >= TABLE_INDEX_START_ID)
-                                    .flatMap(indexEntity -> indexEntity.getDimensions().stream())
-                                    .collect(Collectors.toSet());
-                            long count = model.getAllNamedColumns().stream().filter(namedColumn -> {
-                                if (!namedColumn.isDimension() && tableIndexDimensions.contains(namedColumn.getId())) {
-                                    namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
-                                    return true;
-                                }
-                                return false;
-                            }).count();
+                        Set<Integer> tableIndexDimensions = indexPlan.getIndexes().stream()
+                                .filter(indexEntity -> indexEntity.getId() >= TABLE_INDEX_START_ID)
+                                .flatMap(indexEntity -> indexEntity.getDimensions().stream())
+                                .collect(Collectors.toSet());
+                        long count = model.getAllNamedColumns().stream().filter(namedColumn -> {
+                            if (!namedColumn.isDimension() && tableIndexDimensions.contains(namedColumn.getId())) {
+                                namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                                return true;
+                            }
+                            return false;
+                        }).count();
 
-                            log.info("Project: {}, model: {}, add model dimension size: {}", projectInstance.getName(),
-                                    model.getAlias(), count);
-                        }).collect(Collectors.toList());
+                        log.info("Project: {}, model: {}, add model dimension size: {}", projectInstance.getName(),
+                                model.getAlias(), count);
+                    }).collect(Collectors.toList());
 
-                globalUpdateModelList.addAll(updateModelList);
+            globalUpdateModelList.addAll(updateModelList);
+        });
+
+        printlnGreen(String.format(Locale.ROOT, "found %d models need to be modified.", globalUpdateModelList.size()));
+        if (optionsHelper.hasOption(OPTION_EXEC)) {
+            globalUpdateModelList.forEach(model -> {
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    NDataModelManager.getInstance(kylinConfig, model.getProject()).updateDataModelDesc(model);
+                    return null;
+                }, model.getProject());
             });
-
-            printlnGreen(
-                    String.format(Locale.ROOT, "found %d models need to be modified.", globalUpdateModelList.size()));
-            if (optionsHelper.hasOption(OPTION_EXEC)) {
-                globalUpdateModelList.forEach(model -> NDataModelManager.getInstance(kylinConfig, model.getProject())
-                        .updateDataModelDesc(model));
-            }
-
-            return null;
-        }, false);
+        }
 
         if (optionsHelper.hasOption(OPTION_EXEC)) {
             printlnGreen("model dimensions upgrade succeeded.");

@@ -86,7 +86,6 @@ import io.kyligence.kap.metadata.acl.DependentColumn;
 import io.kyligence.kap.metadata.acl.SensitiveDataMask;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
@@ -119,10 +118,12 @@ public class AclTCRService extends BasicService {
     public void revokeAclTCR(String sid, boolean principal) {
         // only global admin has permission
         // permission already has been checked in UserController, UserGroupController
-        UnitOfAllWorks.doInTransaction(() -> {
-            getProjectManager().listAllProjects().forEach(prj -> revokePrjAclTCR(prj.getName(), sid, principal));
-            return null;
-        }, false);
+        getProjectManager().listAllProjects().forEach(prj -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                revokePrjAclTCR(prj.getName(), sid, principal);
+                return null;
+            }, prj.getName());
+        });
     }
 
     private void revokePrjAclTCR(String project, String sid, boolean principal) {

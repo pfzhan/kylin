@@ -76,7 +76,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -152,13 +151,13 @@ public class StorageCleaner {
         for (StorageItem allFileSystem : allFileSystems) {
             collectFromHDFS(allFileSystem);
         }
-        UnitOfAllWorks.doInTransaction(() -> {
-            collectDeletedProject();
-            for (ProjectInstance project : projects) {
+        collectDeletedProject();
+        for (ProjectInstance project : projects) {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(()->{
                 collect(project.getName());
-            }
-            return null;
-        }, true);
+                return null;
+            }, project.getName());
+        }
 
         long configSurvivalTimeThreshold = timeMachineEnabled ? kylinConfig.getStorageResourceSurvivalTimeThreshold()
                 : config.getCuboidLayoutSurvivalTimeThreshold();

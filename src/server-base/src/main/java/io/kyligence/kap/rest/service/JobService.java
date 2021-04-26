@@ -43,6 +43,7 @@ import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -87,7 +88,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
@@ -448,8 +448,7 @@ public class JobService extends BasicService {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (int i = 0; i < tasks.size(); ++i) {
             AbstractExecutable task = tasks.get(i);
-            executableStepList
-                    .add(parseToExecutableStep(task, getExecutableManager(project).getOutput(task.getId())));
+            executableStepList.add(parseToExecutableStep(task, getExecutableManager(project).getOutput(task.getId())));
         }
         if (executable.getStatus() == ExecutableState.DISCARDED) {
             executableStepList
@@ -503,13 +502,14 @@ public class JobService extends BasicService {
     }
 
     public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses) {
-        UnitOfAllWorks.doInTransaction(() -> {
-            for (ProjectInstance project : getReadableProjects()) {
-                aclEvaluate.checkProjectOperationPermission(project.getName());
+        for (ProjectInstance project : getReadableProjects()) {
+            aclEvaluate.checkProjectOperationPermission(project.getName());
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 batchUpdateJobStatus0(jobIds, project.getName(), action, filterStatuses);
-            }
-            return null;
-        }, false);
+                return null;
+            }, project.getName());
+
+        }
     }
 
     private void batchDropJob0(String project, List<String> jobIds, List<String> filterStatuses) {
@@ -546,13 +546,13 @@ public class JobService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchDropGlobalJob(List<String> jobIds, List<String> filterStatuses) {
-        UnitOfAllWorks.doInTransaction(() -> {
-            for (ProjectInstance project : getReadableProjects()) {
-                aclEvaluate.checkProjectOperationPermission(project.getName());
+        for (ProjectInstance project : getReadableProjects()) {
+            aclEvaluate.checkProjectOperationPermission(project.getName());
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 batchDropJob0(project.getName(), jobIds, filterStatuses);
-            }
-            return null;
-        }, false);
+                return null;
+            }, project.getName());
+        }
     }
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
