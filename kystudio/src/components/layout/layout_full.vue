@@ -1,6 +1,6 @@
 <template>
    <div>
-    <router-view></router-view>
+    <router-view v-if="!forceLoadRoute"></router-view>
     <!-- 全局级别loading -->
     <kap-loading v-show="$store.state.config.showLoadingBox"></kap-loading>
     <!-- 全局级别错误提示框 -->
@@ -120,6 +120,11 @@ import { filterInjectScript } from 'util'
       return range
     }
   },
+  provide () {
+    return {
+      forceUpdateRoute: this.forceUpdateRoute
+    }
+  },
   components: {
     Modal,
     GuidType,
@@ -145,13 +150,22 @@ import { filterInjectScript } from 'util'
   }
 })
 export default class LayoutFull extends Vue {
+  forceLoadRoute = false
   showDetail = false
   showCopyStatus = false
   filterInjectScript = filterInjectScript
+
   @Watch('showErrorMsgBox')
   changeShowType (newVal) {
     // 解决enter提交表单，input框仍可以操作并且成功之后错误弹窗不消失
     document.activeElement.blur()
+  }
+  // 强制刷新界面，更新数据
+  forceUpdateRoute () {
+    this.forceLoadRoute = true
+    this.$nextTick(() => {
+      this.forceLoadRoute = false
+    })
   }
   toggleDetail () {
     this.showDetail = !this.showDetail

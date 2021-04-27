@@ -6,7 +6,7 @@
     <div class="footer">
       <div class="btn-group ky-no-br-space">
         <el-button @click="goModelList" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" v-guide.saveModelBtn type="primary" icon="el-icon-ksd-table_save" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button size="medium" v-guide.saveModelBtn type="primary" icon="el-ksd-icon-table_save_old" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
       </div>
     </div>
   </div>
@@ -24,12 +24,12 @@ let MessageBox = ElementUI.MessageBox
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
+      vm.fromRoute = from
       // 在添加模型页面刷新，跳转到列表页面
       if (to.name === 'ModelEdit' && to.params.action === 'add' && from.name === null) {
         vm.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
       }
     })
-    next()
   },
   beforeRouteLeave (to, from, next) {
     if (this.$store.state.config.platform === 'iframe') {
@@ -92,6 +92,8 @@ export default class ModelTabs extends Vue {
   activeName = ''
   modelEditPanels = []
   saveBtnLoading = false
+  fromRoute = null
+
   get currentModel () {
     return this.$route.params.modelName
   }
@@ -115,6 +117,10 @@ export default class ModelTabs extends Vue {
   }
   goModelList () {
     this.toggleFullScreen(false)
+    if (this.fromRoute && this.fromRoute.name) {
+      this.$router.push({name: this.fromRoute.name, params: {modelName: this.currentModel}})
+      return
+    }
     this.$router.push({name: 'ModelList'})
   }
   saveModel () {

@@ -5,7 +5,7 @@
       <el-input
         class="ksd-fright"
         :placeholder="$t('kylinLang.common.pleaseFilter')"
-        prefix-icon="el-icon-search"
+        prefix-icon="el-ksd-icon-search_22"
         v-model.trim="keyword"
         @keyup.native="handleFilter()"
         @clear="handleFilter()"

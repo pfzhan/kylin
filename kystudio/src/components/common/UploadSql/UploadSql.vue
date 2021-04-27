@@ -153,6 +153,11 @@
         </el-tabs>
       </div>
       <span slot="footer" class="dialog-footer">
+        <div class="ksd-fleft">
+          <el-checkbox v-model="addBaseIndex">
+            <span>{{$t('addBaseIndexCheckBox')}}</span>
+          </el-checkbox>
+        </div>
         <div class="ksd-fleft query-count">
           <span v-if="uploadFlag==='step2'">
             <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}</span><span class="ksd-ml-10">
@@ -295,6 +300,7 @@ export default class UploadSqlModel extends Vue {
   }
   showUploadRules = false
   wrongFormatFile = []
+  addBaseIndex = true
   handleClose () {
     this.hideModal()
     this.resetModalForm()
@@ -553,7 +559,7 @@ export default class UploadSqlModel extends Vue {
   }
   submitModels () {
     this.submitModelLoading = true
-    let models = [...this.selectModels]
+    let models = [...this.selectModels.map(it => ({...it, create_base_index: this.addBaseIndex}))]
     models.forEach(obj => {
       delete obj.isChecked
       delete obj.isNameError

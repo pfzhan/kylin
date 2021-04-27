@@ -76,6 +76,10 @@ let routerOptions = {
         // component: modelTab
         component: () => import('../components/studio/StudioModel/ModelList/index.vue')
       }, {
+        name: 'ModelDetails',
+        path: 'studio/model/:modelName',
+        component: () => import('../components/studio/StudioModel/ModelList/ModelLayout/modelLayout.vue')
+      }, {
         name: 'ModelEdit',
         path: 'studio/model/:modelName/:action',
         // path: 'studio/:subaction',

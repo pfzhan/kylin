@@ -1,6 +1,6 @@
 <template>
   <div class="model-sql ksd-mb-15" v-loading="isLoading">
-    <kap-editor ref="modelSql" :value="convertHiveSql"  height="390" lang="sql" theme="chrome" :readOnly="true" :dragable="false" :isAbridge="true">
+    <kap-editor ref="modelSql" :value="convertHiveSql" lang="sql" theme="chrome" :readOnly="true" :dragable="false" :isAbridge="true">
     </kap-editor>
   </div>
 </template>
@@ -46,8 +46,13 @@ export default class modelSql extends Vue {
 <style lang="less">
   @import '../../../../../assets/styles/variables.less';
   .model-sql {
+    height: 100%;
     .smyles_editor_wrap {
+      height: calc(~'100% - 50px');
       overflow: hidden;
+      .smyles_editor {
+        height: 100%;
+      }
     }
   }
 </style>

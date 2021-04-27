@@ -185,8 +185,8 @@ export default class GuideModal extends Vue {
   .build-guide-block {
     .segment-block {
       position: absolute;
-      top: 271px;
-      left: 160px;
+      top: 202px;
+      left: 134px;
       .segment-tag {
         position: absolute;
         left: 55px;
@@ -224,15 +224,15 @@ export default class GuideModal extends Vue {
     }
     .index-block {
       position: absolute;
-      top: 271px;
-      left: 220px;
+      top: 126px;
+      left: 270px;
       .index-tags {
         position: absolute;
         left: 100px;
         top: 0px;
         background-color: rgba(255,255,255,1);
         border-radius: 5px;
-        width: 225px;
+        width: 240px;
         height: 30px;
         line-height: 30px;
         span {
@@ -264,8 +264,8 @@ export default class GuideModal extends Vue {
     }
     .build-block {
       position: absolute;
-      top: 221px;
-      right: 43px;
+      top: 60px;
+      right: 120px;
       .build-icon {
         position: absolute;
         right: 11px;

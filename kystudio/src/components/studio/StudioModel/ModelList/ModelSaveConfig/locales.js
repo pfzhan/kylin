@@ -44,7 +44,8 @@ export default {
     partitionDateTable: 'Partition Table',
     multilevelPartition: 'Subpartition Column',
     multilevelPartitionDesc: 'A column from the selected table could be chosen. The models under this project could be partitioned by this column in addition to time partitioning. ',
-    advanceSetting: 'Advanced Setting'
+    advanceSetting: 'Advanced Setting',
+    addBaseIndexCheckBox: 'Add Base Indexes'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -91,6 +92,7 @@ export default {
     partitionDateTable: '分区表',
     multilevelPartition: '子分区列',
     multilevelPartitionDesc: '可选择表上的一列作为子分区，对模型进行分区管理。',
-    advanceSetting: '高级设置'
+    advanceSetting: '高级设置',
+    addBaseIndexCheckBox: '添加基础索引'
   }
 }

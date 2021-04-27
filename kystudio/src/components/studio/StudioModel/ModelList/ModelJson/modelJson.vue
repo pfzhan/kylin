@@ -1,7 +1,7 @@
 <template>
-  <div class="ksd-mb-15" v-loading="isLoading">
+  <div class="model-json" v-loading="isLoading">
     <el-input
-      class="model-json"
+      class="model-json_input"
       :value="JSON.stringify(jsonInfo, '', 4)"
       type="textarea"
       :rows="18"
@@ -49,8 +49,15 @@ export default class modelJSON extends Vue {
 <style lang="less">
   @import '../../../../../assets/styles/variables.less';
   .model-json {
-    .el-textarea__inner:focus {
-      border-color: @line-border-color;
+    height: calc(~'100% - 50px');
+    .model-json_input {
+      height: 100%;
+      .el-textarea__inner {
+        height: 100%;
+      }
+      .el-textarea__inner:focus { 
+        border-color: @line-border-color;
+      }
     }
   }
 </style>

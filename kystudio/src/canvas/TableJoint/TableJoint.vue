@@ -42,11 +42,13 @@ export default class TableJoint extends Vue {
   }
 
   mounted () {
+    if (!this.$refs.$arrow.getNode().getLayer()) return
     this.addEventListener()
     this.handleRefreshJoint()
   }
 
   beforeDestroy () {
+    if (!this.$refs.$arrow.getNode().getLayer()) return
     this.removeEventListener()
   }
 
@@ -107,8 +109,8 @@ export default class TableJoint extends Vue {
   }
 
   removeEventListener () {
-    this.sourceNode.off('dragmove text-redraw', this.handleRefreshJoint)
-    this.targetNode.off('dragmove text-redraw', this.handleRefreshJoint)
+    this.sourceNode && this.sourceNode.off('dragmove text-redraw', this.handleRefreshJoint)
+    this.targetNode && this.targetNode.off('dragmove text-redraw', this.handleRefreshJoint)
   }
 
   handleRefreshJoint () {

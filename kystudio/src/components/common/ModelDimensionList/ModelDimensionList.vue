@@ -15,7 +15,7 @@
           />
         </div>
       </div>
-      <el-table class="model-dimension-table" border :data="dimensions.data" style="width: 100%">
+      <el-table class="model-dimension-table" :data="dimensions.data" style="width: 100%">
         <el-table-column :label="$t('kylinLang.dataSource.dimensionName')">
           <span slot-scope="scope" class="text">{{scope.row.name}}</span>
         </el-table-column>

@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="segment-part">
   <div class="model-segment" v-loading="isLoading" v-if="!isSubPartitionList">
     <div class="segment-actions clearfix">
       <el-popover
@@ -15,23 +15,17 @@
         </div>
       </el-popover>
       <div class="ksd-title-label-small ksd-mb-10">
-        <span>{{$t('segmentList')}}<i v-popover:segmentPopover class="el-icon-question ksd-ml-2"></i></span>
+        <div class="segment-header-title"><span class="ksd-title-page">{{$t('segmentList')}}</span><i v-popover:segmentPopover class="el-icon-ksd-info ksd-ml-10"></i></div>
         <!-- <span class="right ky-a-like" v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span> -->
       </div>
-      <div class="left ky-no-br-space" v-if="isShowSegmentActions">
-        <el-button-group v-if="$store.state.project.emptySegmentEnable">
-          <el-button size="small" icon="el-icon-ksd-add_2" class="ksd-mr-10" type="default" :disabled="!model.partition_desc && segments.length>0" @click="addSegment">Segment</el-button>
-        </el-button-group>
-        <el-button-group class="ksd-mr-10">
-          <el-button size="small" icon="el-icon-ksd-table_refresh" type="primary" :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-merge" type="default" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')" @click="handleMergeSegment">{{$t('merge')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-table_delete" type="default" :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        </el-button-group>
-        <el-button-group>
-          <el-button size="small" icon="el-icon-ksd-repair" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
-        </el-button-group>
+      <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
+        <el-button v-if="$store.state.project.emptySegmentEnable" type="primary" icon="el-ksd-icon-add_22" text :disabled="!model.partition_desc && segments.length>0" @click="addSegment">Segment</el-button>
+        <el-button icon="el-ksd-icon-refresh_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button icon="el-ksd-icon-merge_22" type="primary" text :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')" @click="handleMergeSegment">{{$t('merge')}}</el-button>
+        <el-button icon="el-ksd-icon-table_delete_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button icon="el-ksd-icon-repair_22" type="primary" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
         <!-- <el-button-group>
-          <el-button size="small" icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+          <el-button icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
         </el-button-group> -->
 
       </div>
@@ -61,7 +55,7 @@
     </div>
 
     <div class="segment-views ksd-mb-15">
-      <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom" min-width="180">
@@ -77,8 +71,11 @@
           prop="indexAmount"
           width="185"
           show-overflow-tooltip
+          :label="$t('subPratitionAmount')"
+          :info-tooltip="$t('subPratitionAmountTip')"
+          info-icon="el-ksd-icon-more_info_22"
           v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc"
-          :render-header="renderSubPartitionAmountHeader">
+        >
           <template slot-scope="scope">
             <el-tooltip :content="$t('disabledSubPartitionEnter', {status: scope.row.status_to_display})" :disabled="scope.row.status_to_display !== 'LOCKED'" effect="dark" placement="top">
               <span :class="['ky-a-like', {'is-disabled': scope.row.status_to_display === 'LOCKED' || !model.multi_partition_desc}]" @click="showSubParSegments(scope.row)">{{['LOADING', 'REFRESHING', 'MERGING'].indexOf(scope.row.status_to_display) !== -1 ? `-/${scope.row.multi_partition_count_total}` : `${scope.row.multi_partition_count}/${scope.row.multi_partition_count_total}`}}</span>
@@ -92,7 +89,10 @@
           prop="indexAmount"
           width="145"
           show-overflow-tooltip
-          :render-header="renderIndexAmountHeader">
+          :label="$t('kylinLang.common.indexAmount')"
+          :info-tooltip="$t('kylinLang.common.indexAmountTip')"
+          info-icon="el-ksd-icon-more_info_22"
+        >
           <template slot-scope="scope">
               <span v-if="['LOADING', 'REFRESHING', 'MERGING'].indexOf(scope.row.status_to_display) !== -1">-/{{scope.row.index_count_total}}</span>
               <span v-else>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
@@ -122,7 +122,7 @@
                 <i class="el-icon-ksd-go" @click="showSubParSegments(scope.row)"></i>
               </common-tip>
               <common-tip :content="$t('showDetail')">
-                <i class="el-icon-ksd-desc" @click="handleShowDetail(scope.row)"></i>
+                <i class="el-ksd-icon-view_16 ksd-icon-center-text-18" @click="handleShowDetail(scope.row)"></i>
               </common-tip>
             </div>
           </template>
@@ -272,27 +272,23 @@
     <div class="clearfix">
       <div class="ksd-fleft">
         <el-tooltip :content="$t('kylinLang.common.back')" effect="dark" placement="top">
-          <i class="back-btn el-icon-ksd-iconback_1414" @click="backToSegmentList"></i>
+          <i class="back-btn el-ksd-icon-iconback_1414_old" @click="backToSegmentList"></i>
         </el-tooltip>
         <span class="ksd-title-label">{{$t('subParValuesTitle')}}</span>
-        <span class="segment-range">(Segment {{currentSegment.startTime | toServerGMTDate}} {{$t('kylinLang.query.to')}} {{currentSegment.endTime | toServerGMTDate}})</span>
+        <p class="segment-range">Segment {{currentSegment.startTime | toServerGMTDate}} {{$t('kylinLang.query.to')}} {{currentSegment.endTime | toServerGMTDate}}</p>
       </div>
-      <span class="ksd-fright ky-a-like" v-if="$store.state.project.multi_partition_enabled && availableMenus.includes('modelsubpartitionvalues')" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span>
+      <el-button class="ksd-fright ky-a-like" icon="el-ksd-icon-view_16" text type="primary" v-if="$store.state.project.multi_partition_enabled && availableMenus.includes('modelsubpartitionvalues')" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</el-button>
     </div>
     <div class="clearfix">
       <div class="ksd-fleft ksd-mt-10 ky-no-br-space" v-if="isShowSegmentActions">
-        <el-button-group>
-          <el-tooltip :content="$t('noIndexTipByBuild')" :disabled="!!model.total_indexes" effect="dark" placement="top">
-            <el-button size="small" :class="['ksd-mr-10', {'disabled-build': controlBuildSubSegment}]" type="default" @click="!controlBuildSubSegment && buildSubSegment()">{{$t('buildSubSegment')}}</el-button>
-          </el-tooltip>
-        </el-button-group>
-        <el-button-group class="ksd-mr-10">
-          <el-button size="small" icon="el-icon-ksd-table_refresh" type="primary" :disabled="!selectedSubPartitionSegments.length || hasSubPartitionEventAuthority('refresh')" :loading="refreshSubPartitionLoading" @click="handleRefreshSubSegment">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-table_delete" type="default" :disabled="!selectedSubPartitionSegments.length || hasSubPartitionEventAuthority('delete')" @click="handleDeleteSubSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        </el-button-group>
+        <el-tooltip :content="$t('noIndexTipByBuild')" :disabled="!!model.total_indexes" effect="dark" placement="top">
+          <el-button text :disabled="controlBuildSubSegment" type="primary" icon="el-ksd-icon-build_index_22" @click="!controlBuildSubSegment && buildSubSegment()">{{$t('buildSubSegment')}}</el-button>
+        </el-tooltip>
+        <el-button text icon="el-ksd-icon-refresh_22" type="primary" :disabled="!selectedSubPartitionSegments.length || hasSubPartitionEventAuthority('refresh')" :loading="refreshSubPartitionLoading" @click="handleRefreshSubSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button text icon="el-ksd-icon-table_delete_22" type="primary" :disabled="!selectedSubPartitionSegments.length || hasSubPartitionEventAuthority('delete')" @click="handleDeleteSubSegment">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="ksd-fright">
-        <el-input class="ksd-mt-10" :placeholder="$t('searchPlaceholder')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" v-model="subParValuesFilter"></el-input>
+        <el-input class="ksd-mt-10" :placeholder="$t('searchPlaceholder')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" v-model="subParValuesFilter"></el-input>
       </div>
     </div>
     <el-table
@@ -737,25 +733,33 @@ export default class ModelSegment extends Vue {
     })
   }
   addSegment () {
-    let type = 'incremental'
-    if (!(this.model.partition_desc && this.model.partition_desc.partition_date_column)) {
-      type = 'fullLoad'
-    }
-    this.isSegmentOpen = true
-    this.$nextTick(async () => {
-      await this.callModelBuildDialog({
-        modelDesc: this.model,
-        title: this.$t('addSegment'),
-        source: 'addSegment',
-        type: type,
-        isAddSegment: true,
-        isHaveSegment: !!this.totalSegmentCount,
-        disableFullLoad: type === 'fullLoad' && this.segments.length > 0 && this.segments[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
+    try {
+      let type = 'incremental'
+      if (!(this.model.partition_desc && this.model.partition_desc.partition_date_column)) {
+        type = 'fullLoad'
+      }
+      this.isSegmentOpen = true
+      this.$nextTick(async () => {
+        try {
+          await this.callModelBuildDialog({
+            modelDesc: this.model,
+            title: this.$t('addSegment'),
+            source: 'addSegment',
+            type: type,
+            isAddSegment: true,
+            isHaveSegment: !!this.totalSegmentCount,
+            disableFullLoad: type === 'fullLoad' && this.segments.length > 0 && this.segments[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
+          })
+          // await this.loadSegments()
+          this.$emit('loadModels')
+          this.isSegmentOpen = false
+        } catch (e) {
+          console.log(e)
+        }
       })
-      await this.loadSegments()
-      this.$emit('loadModels')
-      this.isSegmentOpen = false
-    })
+    } catch (e) {
+      console.log(e)
+    }
   }
   willAddIndex () {
     this.$emit('willAddIndex')
@@ -997,22 +1001,6 @@ export default class ModelSegment extends Vue {
   handleSelectSegments (selectedSegments) {
     this.selectedSegmentIds = selectedSegments.map(segment => segment.id)
   }
-  renderSubPartitionAmountHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('subPratitionAmount')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('subPratitionAmountTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
-  renderIndexAmountHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('kylinLang.common.indexAmount')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('kylinLang.common.indexAmountTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
   checkDuplicateValue (type) {
     this.duplicateValueError = type
   }
@@ -1049,6 +1037,9 @@ export default class ModelSegment extends Vue {
 
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
+.segment-part {
+  height: 100%;
+}
 .segment-detail.ksd-table {
   &.ksd-table{
     table-layout:fixed;
@@ -1088,7 +1079,7 @@ export default class ModelSegment extends Vue {
     }
   }
   .detail-content {
-    background-color: @base-background-color-1;
+    // background-color: @base-background-color-1;
     padding: 10px 15px;
     box-sizing: border-box;
     font-size: 12px;
@@ -1105,17 +1096,28 @@ export default class ModelSegment extends Vue {
   }
 }
 .model-segment {
+  height: 100%;
   background-color: @fff;
   padding: 10px;
-  border: 1px solid @line-border-color4;
-  margin: 15px;
+  // border: 1px solid @line-border-color4;
+  // margin: 15px;
+  box-sizing: border-box;
   .segment-actions {
     margin-bottom: 10px;
+    .segment-header-title {
+      i {
+        color: @text-disabled-color;
+        vertical-align: text-top;
+      }
+    }
+    .segment-button-groups {
+      margin-left: -14px;
+    }
     .el-icon-question {
       color: @base-color;
     }
     .el-button .el-icon-ksd-what {
-      color: @base-color;
+      // color: @base-color;
       margin-left: 5px;
     }
     .left {
@@ -1153,6 +1155,17 @@ export default class ModelSegment extends Vue {
     padding-top: 10px;
     padding-bottom: 10px;
   }
+  .ky-hover-icon {
+    .icon {
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .tip_box:first-child {
+      .icon {
+        margin-left: 0;
+      }
+    }
+  }
 }
 .error-msg {
   color: @error-color-1;
@@ -1160,10 +1173,16 @@ export default class ModelSegment extends Vue {
   margin-top: 5px;
 }
 .subPartition-segment {
+  height: 100%;
   background-color: @fff;
-  padding: 10px;
-  border: 1px solid @regular-background-color;
-  margin: 15px;
+  // padding: 10px;
+  // border: 1px solid @regular-background-color;
+  box-sizing: border-box;
+  .segment-range {
+    color: @text-disabled-color;
+    font-size: 12px;
+    margin-left: 20px;
+  }
   .back-btn {
     cursor: pointer;
     &:hover {

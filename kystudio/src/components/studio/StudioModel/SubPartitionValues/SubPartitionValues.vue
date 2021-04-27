@@ -8,15 +8,14 @@
     </div>
     <div class="clearfix">
       <div class="ksd-fleft">
-        <el-button icon="el-icon-ksd-add_2" class="ksd-mt-10" @click="openAddDialog">{{$t('subParValuesTitle')}}</el-button>
-        <el-button icon="el-icon-ksd-table_delete" plain class="ksd-mt-10" :disabled="!selectedParValues.length" @click="dropSubPartitionValues">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button icon="el-ksd-icon-add_22" type="primary" text class="ksd-mt-10" @click="openAddDialog">{{$t('subParValuesTitle')}}</el-button>
+        <el-button icon="el-ksd-icon-table_delete_22" type="primary" text class="ksd-mt-10" :disabled="!selectedParValues.length" @click="dropSubPartitionValues">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="ksd-fright">
-        <el-input class="ksd-mt-10" :placeholder="$t('searchPlaceholder')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" v-model="subParValuesFilter"></el-input>
+        <el-input class="ksd-mt-10" :placeholder="$t('searchPlaceholder')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" v-model="subParValuesFilter"></el-input>
       </div>
     </div>
     <el-table
-      border
       ref="subPartitionValuesTable"
       :data="pagerTableData"
       style="width: 100%"
@@ -125,6 +124,11 @@ import locales from './locales'
 import arealabel from '../../../common/area_label.vue'
 import { handleSuccessAsync, handleError, split_array } from '../../../../util'
 @Component({
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.fromRoute = from
+    })
+  },
   components: {
     arealabel
   },
@@ -143,6 +147,7 @@ import { handleSuccessAsync, handleError, split_array } from '../../../../util'
   locales
 })
 export default class subPartitionValues extends Vue {
+  fromRoute = null
   pageRefTags = pageRefTags
   subParValuesFilter = ''
   subPartitionValuesList = []
@@ -225,6 +230,10 @@ export default class subPartitionValues extends Vue {
     }
   }
   backToModelList () {
+    if (this.fromRoute && this.fromRoute.name && this.fromRoute.name === 'ModelDetails') {
+      this.$router.replace({name: this.fromRoute.name, params: {modelName: this.$route.params.modelName}})
+      return
+    }
     if (this.$route.params && this.$route.params.expandTab) {
       this.$router.replace({name: 'ModelList', params: { expandTab: 'first' }})
     } else {

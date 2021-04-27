@@ -162,3 +162,11 @@ export default class indexDetails extends Vue {
   }
 }
 </script>
+
+<style lang="less">
+.table-index-detail {
+  .ky-dot-tag {
+    line-height: 15px !important;
+  }
+}
+</style>

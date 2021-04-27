@@ -49,6 +49,7 @@ export default {
   },
   actions: {
     [types.CALL_MODAL] ({ commit }, { modelDesc, title, type, source = '', isAddSegment, isHaveSegment, disableFullLoad }) {
+      console.log(modelDesc, title, 42222)
       return new Promise(resolve => {
         commit(types.SET_MODAL_FORM, {modelDesc: modelDesc, title: title, source, type: type, isAddSegment: isAddSegment, isHaveSegment: isHaveSegment, disableFullLoad: disableFullLoad, callback: resolve})
         commit(types.SHOW_MODAL)

@@ -71,12 +71,12 @@
         callback()
       }
     }
-    closeModal (isSubmit) {
+    closeModal (isSubmit, name) {
       this.hideModal()
-      this.modelEdit.newName = ''
       this.$refs.renameForm.resetFields()
       setTimeout(() => {
-        this.callback && this.callback(isSubmit)
+        this.callback && this.callback({isSubmit, newName: name})
+        this.modelEdit.newName = ''
         this.resetModalForm()
       }, 200)
     }
@@ -87,7 +87,7 @@
         this.renameModel({model: this.modelDesc.uuid, new_model_name: this.modelEdit.newName, project: this.currentSelectedProject}).then(() => {
           this.btnLoading = false
           kapMessage(this.$t('updateSuccessful'))
-          this.closeModal(true)
+          this.closeModal(true, this.modelEdit.newName)
         }, (res) => {
           this.btnLoading = false
           res && handleError(res)

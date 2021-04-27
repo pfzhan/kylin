@@ -1,32 +1,31 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
-    <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
-    <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
+    <div class="ksd-title-page ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
+    <div class="ksd-title-page ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
       <div class="clearfix">
         <div class="ksd-mtb-10 ksd-fright">
-          <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
+          <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-ksd-icon-loading_22':'el-ksd-icon-search_22'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
           </el-input>
           <el-button
             text
             class="filter-button"
             type="primary"
             @click="handleToggleFilters">
-            {{$t('filterButton')}}
-            <i :class="['el-icon-arrow-up', isShowFilters && 'reverse']" />
+            <span>{{$t('filterButton')}}</span>
+            <i :class="['el-ksd-icon-arrow_up_22', isShowFilters && 'reverse']" />
           </el-button>
         </div>
         <div class="ky-no-br-space model-list-header clearfix">
           <el-dropdown
             v-guide.addModelBtn
             split-button
-            plain
             class="ksd-mtb-10 ksd-fleft"
             type="primary"
             size="medium"
             id="addModel"
             placement="bottom-start"
-            btn-icon="el-icon-ksd-add_2"
+            btn-icon="el-ksd-icon-add_22"
             v-if="datasourceActions.includes('modelActions')"
             @click="showAddModelDialog">
             {{$t('kylinLang.common.model')}}
@@ -44,13 +43,13 @@
             </el-dropdown-menu>
           </el-dropdown>
           <common-tip :content="$t('noModelsExport')" v-if="metadataActions.includes('executeModelMetadata')" placement="top" :disabled="!!modelArray.length">
-            <el-button icon="el-icon-ksd-export" size="medium" plain class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
+            <el-button icon="el-ksd-icon-export_22" size="medium" class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
               <span>{{$t('exportMetadatas')}}</span>
             </el-button>
           </common-tip>
         </div>
       </div>
-      <div class="table-filters clearfix" v-show="isShowFilters">
+      <div class="table-filters clearfix ksd-mt-24" v-show="isShowFilters">
         <DropdownFilter
           type="checkbox"
           trigger="click"
@@ -78,7 +77,7 @@
           <el-button
             text
             type="info"
-            icon="el-icon-ksd-table_resure"
+            icon="el-ksd-icon-resure_22"
             class="reset-filters-btn"
             :disabled="isResetFilterDisabled"
             @click="handleResetFilters">{{$t('reset')}}</el-button>
@@ -96,81 +95,17 @@
         v-guide.scrollModelTable
         v-scroll-shadow
         :data="modelArray"
-        border
         :empty-text="emptyText"
         tooltip-effect="dark"
-        :expand-row-keys="expandedRows"
-        :row-key="renderRowKey"
+        @row-click="modelRowClickEvent"
         :row-class-name="setRowClass"
-        @expand-change="expandRow"
         @sort-change="onSortChange"
         :cell-class-name="renderColumnClass"
+        :expand-row-keys="expandedRows"
+        :row-key="renderRowKey"
+        @expand-change="expandRow"
         ref="modelListTable"
         style="width: 100%">
-        <el-table-column width="34" type="expand">
-          <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
-            <transition name="full-model-slide-fade">
-              <div :class="renderFullExpandClass(props.row)">
-                <!-- <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div> -->
-                <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
-                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
-                  <el-tab-pane :label="$t('overview')" name="overview">
-                    <ModelOverview
-                      v-if="props.row.tabTypes === 'overview'"
-                      :ref="`$model-overview-${props.row.uuid}`"
-                      :data="props.row"
-                    />
-                  </el-tab-pane>
-                  <el-tab-pane :label="$t('segment')" name="first">
-                    <ModelSegment
-                     :ref="'segmentComp' + props.row.alias"
-                     :model="props.row"
-                     :isShowSegmentActions="datasourceActions.includes('segmentActions')"
-                     v-if="props.row.tabTypes === 'first'"
-                     @purge-model="model => handleCommand('purge', model)"
-                     @loadModels="loadModelsList"
-                     @willAddIndex="() => {props.row.tabTypes = 'third'}"
-                     @auto-fix="autoFix(props.row.alias, props.row.uuid, props.row.segment_holes)" />
-                  </el-tab-pane>
-                  <el-tab-pane :label="$t('indexOverview')" name="second">
-                    <ModelAggregate
-                      class="ksd-mrl-15 ksd-mt-15"
-                      :model="props.row"
-                      :project-name="currentSelectedProject"
-                      :isShowEditAgg="datasourceActions.includes('editAggGroup')"
-                      :isShowBulidIndex="datasourceActions.includes('buildIndex')"
-                      :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
-                      @loadModels="loadModelsList"
-                      ref="modelAggregateItem"
-                      v-if="props.row.tabTypes === 'second'" />
-                  </el-tab-pane>
-                  <el-tab-pane v-if="datasourceActions.includes('editAggGroup')" :label="$t('aggregateGroup')" name="third">
-                    <ModelAggregateView
-                      :model="props.row"
-                      :project-name="currentSelectedProject"
-                      :isShowEditAgg="datasourceActions.includes('editAggGroup')"
-                      @loadModels="loadModelsList"
-                      v-if="props.row.tabTypes === 'third'" />
-                  </el-tab-pane>
-                  <el-tab-pane v-if="datasourceActions.includes('editAggGroup')" :label="$t('tableIndex')" name="forth">
-                    <TableIndexView
-                      :model="props.row"
-                      :project-name="currentSelectedProject"
-                      :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
-                      @loadModels="loadModelsList"
-                      v-if="props.row.tabTypes === 'forth'" />
-                  </el-tab-pane>
-                  <el-tab-pane label="JSON" name="fifth">
-                    <ModelJson v-if="props.row.tabTypes === 'fifth'" class="ksd-mrl-15 ksd-mt-15" :model="props.row.uuid"/>
-                  </el-tab-pane>
-                  <el-tab-pane label="SQL" name="sixth">
-                    <ModelSql v-if="props.row.tabTypes === 'sixth'" class="ksd-mrl-15 ksd-mt-15" :model="props.row.uuid"/>
-                  </el-tab-pane>
-                </el-tabs>
-              </div>
-            </transition>
-          </template>
-        </el-table-column>
         <el-table-column
           min-width="270px"
           prop="alias"
@@ -205,66 +140,97 @@
                   <span>{{$t('multilParTip')}}</span>
                 </div>
               </el-popover>
-              <span class="model-alias-title" v-custom-tooltip="{text: scope.row.alias, w: 50, tableClassName: 'model_list_table'}">{{scope.row.alias}}</span>
+              <el-popover
+                ref="titlePopover"
+                placement="top-start"
+                width="250"
+                trigger="hover"
+                popper-class="title-popover-layout"
+              >
+                <div class="title-popover">
+                  <p class="title ksd-mb-20">{{scope.row.alias}}</p>
+                  <div class="label">
+                    <div class="name ksd-mb-8">{{$t('kylinLang.model.ownerGrid')}}</div>
+                    <div class="name">描述</div>
+                  </div>
+                  <div class="content">
+                    <div class="ksd-mb-8">{{scope.row.owner}}</div>
+                    <div>{{scope.row.description || '-'}}</div>
+                  </div>
+                </div>
+              </el-popover>
+              <span class="model-alias-title" @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
             </div>
-            <el-popover
-              popper-class="last-modified-tooltip"
-              placement="top-start"
-              trigger="hover"
-              :content="$t('dataLoadTime')">
-              <div class="last-modified" slot="reference">
-                <i class="el-icon-ksd-elapsed_time" />
-                <span>{{scope.row.gmtTime}}</span>
-              </div>
-            </el-popover>
-            <el-popover
-              popper-class="recommend-tooltip"
-              placement="top-start"
-              trigger="hover"
-              v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions') && scope.row.status !== 'BROKEN'"
-              :disabled="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">
-              <div class="recommend" slot="reference">
-                <i class="el-icon-ksd-status" />
-                <span class="recommend-count" @click="openRecommendDialog(scope)">
-                  <b>{{scope.row.recommendations_count || 0}}</b>
-                </span>
-              </div>
-              <span>{{$t('recommendations_c')}}</span>
-              <span class="recommend-link" @click="openRecommendDialog(scope)">{{$t('clickToView')}}</span>
-            </el-popover>
+            <el-tooltip class="last-modified-tooltip" effect="dark" :content="$t('dataLoadTime')" placement="top">
+              <span>{{scope.row.gmtTime}}</span>
+            </el-tooltip>
+
+            <!-- 工具栏 -->
+            <model-actions :currentModel="scope.row" @loadModelsList="loadModelsList" @jump:recommendation="jumpToRecommendation"/>
+
           </template>
         </el-table-column>
-        <el-table-column
-          prop="total_indexes"
-          header-align="right"
-          align="right"
-          show-overflow-tooltip
-          width="120px"
-          :label="$t('aggIndexCount')">
+        <el-table-column width="140px" :label="$t('recommendationsTiTle')">
           <template slot-scope="scope">
-            <span>{{scope.row.total_indexes || 0}}</span>
+            <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom">
+              <span class="recommendation-layout"><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.available_indexes_count}}</span></span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.fact')" width="200">
+          <template slot-scope="scope">
+            <el-popover
+              :ref="`${scope.row.alias}-ERPopover`"
+              placement="top-start"
+              width="400"
+              trigger="hover"
+              @after-enter="(e) => afterPoppoverEnter(e, scope.row)"
+              popper-class="er-popover-layout"
+            >
+              <div class="model-ER-layout"><ModelERDiagram v-if="scope.row.showER" :model="dataGenerator.generateModel(scope.row)" /></div>
+            </el-popover>
+            <span class="fact-table-title" v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 20, tableClassName: 'model_list_table'}" v-if="scope.row.fact_table.split('.').length === 2">{{scope.row.fact_table.split('.')[1]}}</span>
+            <span class="model-ER">
+              <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-24" type="mult"></el-icon>
+            </span>
           </template>
         </el-table-column>
         <el-table-column
-          header-align="right"
-          align="right"
+          prop="usage"
+          sortable="custom"
+          show-overflow-tooltip
+          :info-tooltip="$t('usageTip', {mode: $t(isAutoProject ? 'indexGroup' : 'model')})"
+          :label="$t('usage')">
+        </el-table-column>
+        <el-table-column
+          width="150"
+          prop="source"
+          sortable="custom"
+          show-overflow-tooltip
+          :label="$t('rowCount')">
+          <template slot-scope="scope">
+            <div>{{sliceNumber(scope.row.source)}}</div>
+            <div class="update-time ksd-fs-12" v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 20, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</div>
+          </template>
+        </el-table-column>
+        <el-table-column
           prop="storage"
           show-overflow-tooltip
-          width="120px"
           sortable="custom"
-          :render-header="renderStorageHeader">
+          :info-tooltip="$t('storageTip')"
+          :label="$t('storage')"
+        >
           <template slot-scope="scope">
             {{scope.row.storage|dataSize}}
           </template>
         </el-table-column>
         <el-table-column
-          header-align="right"
-          align="right"
           sortable="custom"
           prop="expansionrate"
           show-overflow-tooltip
-          width="170px"
-          :render-header="renderExpansionRateHeader">
+          :info-tooltip="$t('expansionRateTip')"
+          :label="$t('expansionRate')"
+        >
           <template slot-scope="scope">
               <span v-if="scope.row.storage < 1073741824">-</span>
               <span v-else-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
@@ -272,152 +238,29 @@
           </template>
         </el-table-column>
         <el-table-column
-          header-align="right"
-          align="right"
-          prop="usage"
-          sortable="custom"
+          prop="total_indexes"
           show-overflow-tooltip
-          width="120px"
-          :render-header="renderUsageHeader"
-          :label="$t('usage')">
+          :label="$t('aggIndexCount')">
+          <template slot-scope="scope">
+            <span>{{sliceNumber(scope.row.total_indexes) || 0}}</span>
+          </template>
         </el-table-column>
-        <el-table-column
+        <!-- <el-table-column
           v-if="!isAutoProject"
           prop="owner"
           show-overflow-tooltip
           width="120px"
           :label="$t('kylinLang.model.ownerGrid')">
-        </el-table-column>
-        <el-table-column
-        width="96px"
-        class-name="ky-hover-icon"
-        v-if="!isAutoProject"
-        :label="$t('kylinLang.common.action')">
-          <template slot-scope="scope">
-            <template v-if="'visible' in scope.row && !scope.row.visible">
-              <common-tip :content="$t('authorityDetails')">
-                <i class="el-icon-ksd-lock ksd-fs-14" @click="showNoAuthorityContent(scope.row)"></i>
-              </common-tip>
-            </template>
-            <template v-else>
-              <common-tip :content="$t('kylinLang.common.edit')" v-if="scope.row.status !== 'BROKEN' && datasourceActions.includes('modelActions')">
-                <i class="el-icon-ksd-table_edit ksd-fs-14" @click="(e) => handleEditModel(scope.row.alias, e)"></i>
-              </common-tip>
-              <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
-                <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="(e) => handleEditModel(scope.row.alias, e)"></i>
-              </common-tip>
-              <common-tip :content="(!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc) ? $t('multilParTip') : scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
-                <el-popover
-                  ref="popoverBuild"
-                  placement="bottom-end"
-                  width="280"
-                  trigger="manual"
-                  v-model="buildVisible[scope.row.uuid]">
-                  <div>{{$t('buildTips')}}</div>
-                  <div style="text-align: right; margin: 0">
-                    <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(scope.row.uuid)">{{$t('iKnow')}}</el-button>
-                  </div>
-                </el-popover>
-                <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes || (!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc)}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
-              </common-tip>
-              <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
-                <el-dropdown @command="(command) => {handleCommand(command, scope.row, scope)}" :id="scope.row.name" trigger="click" >
-                  <span class="el-dropdown-link" >
-                      <i class="el-icon-ksd-table_others ksd-fs-14"></i>
-                  </span>
-                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' :append-to-body="false" :popper-container="'modelListPage'" class="specialDropdown">
-                    <!-- 数据检测移动至project 级别处理， -->
-                    <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
-                    <!-- 设置partition -->
-                    <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
-                    <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
-                    <el-dropdown-item @click.native="subParValMana(scope.row)" v-if="scope.row.status !== 'BROKEN' && $store.state.project.multi_partition_enabled && scope.row.multi_partition_desc && modelActions.includes('manageSubPartitionValues')">{{$t('subPartitionValuesManage')}}</el-dropdown-item>
-                    <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                    <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
-                    <!-- <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
-                    <el-dropdown-item command="exportMetadata" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="metadataActions.includes('executeModelMetadata')">
-                      <common-tip :content="$t('bokenModelExportMetadatasTip')" :disabled="scope.row.status !== 'BROKEN'">
-                        {{$t('exportMetadatas')}}
-                      </common-tip>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="modelActions.includes('exportTDS')">
-                      <common-tip :content="$t('bokenModelExportTDSTip')" :disabled="scope.row.status !== 'BROKEN'">
-                        <span>{{$t('exportTds')}}</span>
-                      </common-tip>
-                    </el-dropdown-item>
-                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('rename')}}</el-dropdown-item>
-                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('clone')">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
-                    <el-dropdown-item v-if="scope.row.status !== 'BROKEN' && modelActions.includes('changeModelOwner')" @click.native="openChangeModelOwner(scope.row.alias, scope.row.uuid)">{{$t('changeModelOwner')}}</el-dropdown-item>
-                    <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
-                    <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
-                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" :class="{'disabled-online': scope.row.forbidden_online || !scope.row.segments.length || (!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc)}" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">
-                      <common-tip :content="getDisabledOnlineTips(scope.row)" v-if="scope.row.forbidden_online || !scope.row.segments.length || (!$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc)">
-                        <span>{{$t('onLine')}}</span>
-                      </common-tip>
-                      <span v-else>{{$t('onLine')}}</span>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </el-dropdown>
-              </common-tip>
-            </template>
-          </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
       <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.modelListPager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
-    <el-dialog width="480px" :title="$t('changeModelOwner')" class="change_owner_dialog" :visible.sync="changeOwnerVisible" @close="resetModelOwner" :close-on-click-modal="false">
-      <el-alert
-        :title="$t('changeDesc')"
-        type="info"
-        :show-background="false"
-        :closable="false"
-        class="ksd-pt-0"
-        show-icon>
-      </el-alert>
-      <el-form :model="modelOwner" @submit.native.prevent ref="projectOwnerForm" label-width="130px" label-position="top">
-        <el-form-item :label="$t('modelName')" prop="model">
-          <el-input disabled name="project" v-model="modelOwner.modelName" size="medium"></el-input>
-        </el-form-item>
-        <el-form-item :label="$t('changeTo')" prop="owner">
-         <el-select
-          :placeholder="$t('pleaseChangeOwner')"
-          filterable
-          remote
-          :remote-method="loadAvailableModelOwners"
-          @blur="(e) => loadAvailableModelOwners(e.target.value)"
-          v-model="modelOwner.owner"
-          size="medium"
-          class="owner-select"
-          style="width:100%">
-          <el-option :label="user" :value="user" v-for="user in userOptions" :key="user"></el-option>
-        </el-select>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="medium" :disabled="!(modelOwner.model&&modelOwner.owner)" @click="changeModelOwner" :loading="changeLoading">{{$t('change')}}</el-button>
-      </div>
-    </el-dialog>
-    <el-dialog width="480px" :title="$t('exportTDSTitle')" class="export_tds_dialog" v-if="showExportTDSDialog" :visible="true" @close="closeExportTDSDialog" :close-on-click-modal="false">
-      <p class="export-tds-alert">{{$t('step1')}}</p>
-      <el-radio-group v-model="exportTDSType">
-        <el-radio v-for="it in exportTDSOtions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
-      </el-radio-group>
-      <p class="export-tds-alert">{{$t('step2')}}</p>
-      <el-radio-group v-model="exportTDSConnectionType">
-        <el-radio v-for="it in tdsConnectionOptions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
-      </el-radio-group>
-      <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="medium" @click="handlerExportTDS">{{$t('kylinLang.query.export')}}</el-button>
-      </div>
-    </el-dialog>
+    
+    <!-- 模型构建 -->
+    <ModelBuildModal @isWillAddIndex="willAddIndex" ref="modelBuildComp"/>
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
-    <!-- 模型构建 -->
-    <ModelBuildModal v-on:refreshModelList="loadModelsList" @isWillAddIndex="willAddIndex" ref="modelBuildComp"/>
     <!-- 数据分区设置 -->
     <ModelPartition/>
     <!-- 模型重命名 -->
@@ -443,11 +286,11 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapState, mapGetters, mapMutations } from 'vuex'
 import dayjs from 'dayjs'
-import { NamedRegex, apiUrl, pageRefTags } from '../../../../config'
+import { NamedRegex, pageRefTags } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
-import { handleError, kapConfirm, kapMessage, handleSuccess } from 'util/business'
-import { objectClone, handleSuccessAsync, transToServerGmtTime } from 'util'
+import { handleError, kapMessage } from 'util/business'
+import { handleSuccessAsync, dataGenerator, sliceNumber, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
@@ -456,8 +299,8 @@ import TableIndexView from './TableIndexView/index.vue'
 import ModelRenameModal from './ModelRenameModal/rename.vue'
 import ModelCloneModal from './ModelCloneModal/clone.vue'
 import ModelAddModal from './ModelAddModal/addmodel.vue'
-import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ModelBuildModal from './ModelBuildModal/build.vue'
+import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ConfirmSegment from './ConfirmSegment/ConfirmSegment.vue'
 import ModelPartition from './ModelPartition/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
@@ -470,6 +313,8 @@ import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
 import ModelOverview from './ModelOverview/ModelOverview.vue'
 import AggregateModal from './AggregateModal/index.vue'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
+import ModelActions from './ModelActions/modelActions'
+import ModelERDiagram from '../../../common/ModelERDiagram/ModelERDiagram'
 
 function getDefaultFilters (that) {
   return {
@@ -532,34 +377,17 @@ function getDefaultFilters (that) {
   methods: {
     ...mapActions({
       loadModels: 'LOAD_MODEL_LIST',
-      delModel: 'DELETE_MODEL',
       checkModelName: 'CHECK_MODELNAME',
-      purgeModel: 'PURGE_MODEL',
-      disableModel: 'DISABLE_MODEL',
-      enableModel: 'ENABLE_MODEL',
       updataModel: 'UPDATE_MODEL',
       getModelJson: 'GET_MODEL_JSON',
-      getModelByModelName: 'LOAD_MODEL_INFO',
-      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
       fetchSegments: 'FETCH_SEGMENTS',
       downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA',
       downloadModelsMetadataBlob: 'DOWNLOAD_MODELS_METADATA_BLOB',
-      getAvailableModelOwners: 'GET_AVAILABLE_MODEL_OWNERS',
-      updateModelOwner: 'UPDATE_MODEL_OWNER',
       refreshAccelerationTag: 'ACCELERATE_TAG',
       getFavoriteRules: 'GET_FAVORITE_RULES'
     }),
-    ...mapActions('ModelRenameModal', {
-      callRenameModelDialog: 'CALL_MODAL'
-    }),
-    ...mapActions('ModelCloneModal', {
-      callCloneModelDialog: 'CALL_MODAL'
-    }),
     ...mapActions('ModelAddModal', {
       callAddModelDialog: 'CALL_MODAL'
-    }),
-    ...mapActions('ModelCheckDataModal', {
-      checkModelData: 'CALL_MODAL'
     }),
     ...mapActions('ModelBuildModal', {
       callModelBuildDialog: 'CALL_MODAL'
@@ -567,17 +395,11 @@ function getDefaultFilters (that) {
     ...mapActions('ConfirmSegment', {
       callConfirmSegmentModal: 'CALL_MODAL'
     }),
-    ...mapActions('ModelPartition', {
-      callModelPartitionDialog: 'CALL_MODAL'
-    }),
     ...mapActions('ModelRecommendModal', {
       callModelRecommendDialog: 'CALL_MODAL'
     }),
     ...mapActions('UploadSqlModel', {
       showUploadSqlDialog: 'CALL_MODAL'
-    }),
-    ...mapActions('DetailDialogModal', {
-      callGlobalDetailDialog: 'CALL_MODAL'
     }),
     ...mapActions('ModelsImportModal', {
       callModelsImportModal: 'CALL_MODAL'
@@ -585,14 +407,15 @@ function getDefaultFilters (that) {
     ...mapActions('ModelsExportModal', {
       callModelsExportModal: 'CALL_MODAL'
     }),
-    ...mapActions('GuideModal', {
-      callGuideModal: 'CALL_MODAL'
-    }),
+    // ...mapActions('GuideModal', {
+    //   callGuideModal: 'CALL_MODAL'
+    // }),
     ...mapMutations('DimensionsModal', {
       collectOtherColumns: 'COLLECT_OTHER_COLUMNS'
     })
   },
   components: {
+    ModelBuildModal,
     TableIndex,
     ModelSegment,
     ModelAggregate,
@@ -602,7 +425,6 @@ function getDefaultFilters (that) {
     ModelCloneModal,
     ModelAddModal,
     ModelCheckDataModal,
-    ModelBuildModal,
     ConfirmSegment,
     ModelPartition,
     ModelJson,
@@ -612,7 +434,9 @@ function getDefaultFilters (that) {
     DropdownFilter,
     AggregateModal,
     TableIndexEdit,
-    ModelOverview
+    ModelOverview,
+    ModelActions,
+    ModelERDiagram
   },
   locales,
   provide () {
@@ -624,6 +448,9 @@ function getDefaultFilters (that) {
 export default class ModelList extends Vue {
   pageRefTags = pageRefTags
   mockSQL = mockSQL
+  dataGenerator = dataGenerator
+  sliceNumber = sliceNumber
+  transToServerGmtTime = transToServerGmtTime
   filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
   currentEditModel = null
@@ -637,101 +464,23 @@ export default class ModelList extends Vue {
   prevExpendContent = []
   buildVisible = {}
   changeOwnerVisible = false
-  changeLoading = false
-  userOptions = []
-  modelOwner = {
-    modelName: '',
-    model: '',
-    owner: ''
-  }
-  ownerFilter = {
-    page_size: 100,
-    page_offset: 0,
-    project: '',
-    model: '',
-    name: ''
-  }
   expandTab = ''
   isModelListOpen = false
-  exportTDSOtions = [
-    {value: 'AGG_INDEX_COL', text: 'exportTDSOptions1'},
-    {value: 'AGG_INDEX_AND_TABLE_INDEX_COL', text: 'exportTDSOptions2'},
-    {value: 'ALL_COLS', text: 'exportTDSOptions3'}
-  ]
-  exportTDSType = 'AGG_INDEX_COL'
-  exportTDSConnectionType = 'TABLEAU_ODBC_TDS'
-  tdsConnectionOptions = [
-    {value: 'TABLEAU_ODBC_TDS', text: 'connectODBC'},
-    {value: 'TABLEAU_CONNECTOR_TDS', text: 'connectTableau'}
-  ]
-  showExportTDSDialog = false
-  currentExportTDSModel = null
-  getDisabledOnlineTips (row) {
-    let tips = this.$t('cannotOnlineTips')
-    if (row.forbidden_online) {
-      tips += '<br/>'
-      tips += this.$t('closeSCD2ModalOnlineTip')
-    }
-    if (!row.segments.length) {
-      tips += '<br/>'
-      tips += this.$t('noSegmentOnlineTip')
-    }
-    if (!this.$store.state.project.multi_partition_enabled && row.multi_partition_desc) {
-      tips += '<br/>'
-      tips += this.$t('multilParTip')
-    }
-    return tips
+  isShow = false
+
+  // async showGuide () {
+  //   await this.callGuideModal({ isShowBuildGuide: true })
+  //   localStorage.setItem('isFirstSaveModel', 'false')
+  // }
+
+  // 获取模型 E-R 图数据
+  getER (row) {
+    return this.dataGenerator.generateModel(row)
   }
-  async showGuide () {
-    await this.callGuideModal({ isShowBuildGuide: true })
-    localStorage.setItem('isFirstSaveModel', 'false')
-  }
-  async loadAvailableModelOwners (filterName) {
-    this.ownerFilter.name = filterName || ''
-    try {
-      const res = await this.getAvailableModelOwners(this.ownerFilter)
-      const data = await handleSuccessAsync(res)
-      this.userOptions = data.value
-    } catch (e) {
-      this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
-    }
-  }
-  async openChangeModelOwner (modelName, modelId) {
-    this.modelOwner.modelName = modelName
-    this.modelOwner.model = modelId
-    this.ownerFilter.project = this.currentSelectedProject
-    this.ownerFilter.model = modelId
-    await this.loadAvailableModelOwners()
-    this.changeOwnerVisible = true
-  }
-  async changeModelOwner () {
-    if (!(this.modelOwner.model && this.modelOwner.owner)) {
-      return
-    }
-    this.modelOwner.project = this.currentSelectedProject
-    this.changeLoading = true
-    try {
-      await this.updateModelOwner(this.modelOwner)
-      this.changeLoading = false
-      this.changeOwnerVisible = false
-      this.$message.success(this.$t('changeModelSuccess', this.modelOwner))
-      this.loadModelsList()
-    } catch (e) {
-      this.$message({ showClose: true, duration: 0, message: e.body.msg, type: 'error' })
-      this.changeLoading = false
-      this.changeOwnerVisible = false
-    }
-  }
+
   // 刷新首页 new 标签
   refreshHomepageTag () {
     this.refreshAccelerationTag({project: this.currentSelectedProject, user: this.currentUser.username})
-  }
-  resetModelOwner () {
-    this.modelOwner = {
-      modelName: '',
-      model: '',
-      owner: ''
-    }
   }
   showGenerateModelDialog () {
     this.showUploadSqlDialog({
@@ -741,10 +490,7 @@ export default class ModelList extends Vue {
   needShowBuildTips (uuid) {
     this.buildVisible[uuid] = !localStorage.getItem('hideBuildTips')
   }
-  closeBuildTips (uuid) {
-    this.buildVisible[uuid] = false
-    localStorage.setItem('hideBuildTips', true)
-  }
+
   reloadModelAndSegment (alias) {
     this.loadModelsList()
     this.refreshSegment(alias)
@@ -865,7 +611,12 @@ export default class ModelList extends Vue {
   }
   renderColumnClass ({row, column, rowIndex, columnIndex}) {
     if ((row.status === 'BROKEN' || ('visible' in row && !row.visible)) && columnIndex === 0) {
-      return 'broken-column'
+      return 'model-alias-item broken-column'
+    } else if (columnIndex === 0) {
+      return 'model-alias-item'
+    }
+    if (columnIndex === 2) {
+      return 'fact-table-title'
     }
   }
   checkName (rule, value, callback) {
@@ -921,9 +672,6 @@ export default class ModelList extends Vue {
       this.isModelListOpen = false
     })
   }
-  async willAddIndex (alias) {
-    this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('willAddIndex')
-  }
   async refreshSegment (alias) {
     this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('refresh')
     this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
@@ -945,9 +693,9 @@ export default class ModelList extends Vue {
     this.expandedRows.length && this.expandedRows.forEach(item => {
       this.$refs.modelListTable.toggleRowExpansion(item)
     })
-    if (localStorage.getItem('isFirstSaveModel') === 'true') {
-      await this.showGuide()
-    }
+    // if (localStorage.getItem('isFirstSaveModel') === 'true') {
+    //   await this.showGuide()
+    // }
   }
   async openRecommendDialog (scope) {
     const modelDesc = scope.row
@@ -965,129 +713,7 @@ export default class ModelList extends Vue {
       })
     }
   }
-  async handleCommand (command, modelDesc, scope) {
-    if (command === 'dataCheck') {
-      this.checkModelData({
-        modelDesc: modelDesc
-      }).then((isSubmit) => {
-        if (isSubmit) {
-          this.loadModelsList()
-        }
-      })
-    } else if (command === 'recommendations') {
-      // this.openRecommendDialog(modelDesc)
-      this.$refs.modelListTable.toggleRowExpansion(modelDesc, true)
-      modelDesc.tabTypes = 'second'
-      this.$nextTick(() => {
-        // this.$set(this, 'showRecommand', true)
-        this.$refs.modelAggregateItem && (this.$refs.modelAggregateItem.switchIndexValue = 1)
-        setTimeout(() => {
-          this.scrollViewArea(scope.$index)
-        }, 200)
-      })
-    } else if (command === 'dataLoad') {
-      this.getModelByModelName({model_name: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
-        handleSuccess(response, (data) => {
-          if (data && data.value && data.value.length) {
-            this.modelData = data.value[0]
-            this.modelData.project = this.currentSelectedProject
-            let cloneModelDesc = objectClone(this.modelData)
-            this.callModelPartitionDialog({
-              modelDesc: cloneModelDesc
-            }).then((res) => {
-              if (res.isSubmit) {
-                this.loadModelsList()
-              }
-            })
-          }
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    } else if (command === 'rename') {
-      const isSubmit = await this.callRenameModelDialog(objectClone(modelDesc))
-      isSubmit && this.loadModelsList()
-    } else if (command === 'delete') {
-      kapConfirm(this.$t('delModelTip', {modelName: modelDesc.alias}), null, this.$t('delModelTitle')).then(() => {
-        this.handleDrop(modelDesc)
-      })
-    } else if (command === 'purge') {
-      return kapConfirm(this.$t('pergeModelTip', {modelName: modelDesc.alias}), {type: 'warning'}, this.$t('pergeModelTitle')).then(() => {
-        this.handlePurge(modelDesc).then(() => {
-          this.refreshSegment(modelDesc.alias)
-        })
-      })
-    } else if (command === 'clone') {
-      const isSubmit = await this.callCloneModelDialog(objectClone(modelDesc))
-      isSubmit && this.loadModelsList()
-    } else if (command === 'offline') {
-      kapConfirm(this.$t('disableModelTip', {modelName: modelDesc.alias}), {confirmButtonText: this.$t('disableModelTitle')}, this.$t('disableModelTitle')).then(() => {
-        this.handleDisableModel(objectClone(modelDesc))
-      })
-    } else if (command === 'online') {
-      if (modelDesc.forbidden_online || !modelDesc.segments.length || !this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc) return
-      // 模型上线不再进行二次弹窗确认
-      // kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
-      //   })
-      this.handleEnableModel(objectClone(modelDesc))
-    } else if (command === 'exportMetadata') {
-      if (scope.row.status === 'BROKEN') return
-      const form = { ids: [modelDesc.uuid] }
-      // if (this.$store.state.config.platform === 'iframe') {
-      //   this.downloadResouceData(project, form)
-      //   let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
-      //   downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
-      //     this.$message.success(this.$t('exportMetadataSuccess'))
-      //   })
-      // } else {
-      const project = this.currentSelectedProject
-      const type = 'one'
-      await this.callModelsExportModal({ project, form, type })
-        // try {
-        //   await this.downloadModelsMetadata({ project, form })
-        //   this.$message.success(this.$t('exportMetadataSuccess'))
-        // } catch (e) {
-        //   this.$message.error(this.$t('exportMetadataFailed'))
-        // }
-      // }
-    } else if (command === 'exportTDS') {
-      if (scope.row.status === 'BROKEN') return
-      if (scope.row.status === 'OFFLINE') {
-        this.$confirm(this.$t('exportTDSOfflineTips'), this.$t('kylinLang.common.tip'), {
-          confirmButtonText: this.$t('exportTDSContinueBtn'),
-          closeOnClickModal: false,
-          closeOnPressEscape: false
-        }).then(() => {
-          this.showExportTDSDialog = true
-          this.currentExportTDSModel = scope.row
-        })
-      } else {
-        this.showExportTDSDialog = true
-        this.currentExportTDSModel = scope.row
-      }
-    }
-  }
-  handlerExportTDS () {
-    const { uuid, model_id = uuid } = this.currentExportTDSModel
-    const data = {
-      project: this.currentSelectedProject,
-      export_as: this.exportTDSConnectionType,
-      element: this.exportTDSType,
-      server_host: window.location.hostname,
-      server_port: window.location.port
-    }
-    let params = ''
-    Object.keys(data).forEach(item => {
-      params += `${item}=${data[item]}&`
-    })
-    const dom = document.createElement('a')
-    dom.href = `${location.protocol}//${location.host}${apiUrl}models/${model_id}/export?${params}`
-    dom.download = true
-    document.body.appendChild(dom)
-    dom.click()
-    document.body.removeChild(dom)
-    this.closeExportTDSDialog()
-  }
+
   downloadResouceData (project, form) {
     const params = {}
     for (const [key, value] of Object.entries(form)) {
@@ -1137,93 +763,7 @@ export default class ModelList extends Vue {
       handleError(res)
     })
   }
-  handleModel (action, modelDesc, successTip) {
-    return this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
-      kapMessage(successTip)
-      this.loadModelsList()
-    }, (res) => {
-      handleError(res)
-    })
-  }
-  async autoFix (modelName, modleId, segmentHoles) {
-    try {
-      const tableData = []
-      let selectSegmentHoles = []
-      segmentHoles.forEach((seg) => {
-        const obj = {}
-        obj['start'] = transToServerGmtTime(seg.date_range_start)
-        obj['end'] = transToServerGmtTime(seg.date_range_end)
-        obj['date_range_start'] = seg.date_range_start
-        obj['date_range_end'] = seg.date_range_end
-        tableData.push(obj)
-      })
-      await this.callGlobalDetailDialog({
-        msg: this.$t('segmentHoletips', {modelName: modelName}),
-        title: this.$t('fixSegmentTitle'),
-        detailTableData: tableData,
-        detailColumns: [
-          {column: 'start', label: this.$t('kylinLang.common.startTime')},
-          {column: 'end', label: this.$t('kylinLang.common.endTime')}
-        ],
-        isShowSelection: true,
-        dialogType: 'warning',
-        showDetailBtn: false,
-        customCallback: async (segments) => {
-          selectSegmentHoles = segments.map((seg) => {
-            return {start: seg.date_range_start, end: seg.date_range_end}
-          })
-          try {
-            await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
-            this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
-            this.loadModelsList()
-            this.refreshSegment(modelName)
-          } catch (e) {
-            handleError(e)
-          }
-        }
-      })
-    } catch (e) {
-      e !== 'cancel' && handleError(e)
-    }
-  }
-  // 禁用model
-  handleDisableModel (modelDesc) {
-    this.handleModel('disableModel', modelDesc, this.$t('disableModelSuccessTip'))
-  }
-  // 启用model
-  handleEnableModel (modelDesc) {
-    this.handleModel('enableModel', modelDesc, this.$t('enabledModelSuccessTip'))
-  }
-  // 删除model
-  handleDrop (modelDesc) {
-    this.handleModel('delModel', modelDesc, this.$t('deleteModelSuccessTip'))
-  }
-  // 清理model
-  async handlePurge (modelDesc) {
-    return this.handleModel('purgeModel', modelDesc, this.$t('purgeModelSuccessTip'))
-  }
-  // 编辑model
-  handleEditModel (modelName, event) {
-    event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
 
-    if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
-      let msg = ''
-      if (this.$store.state.capacity.maintenance_mode) {
-        msg = this.$t('kylinLang.common.systemUpgradeTips')
-      } else if (this.isOnlyQueryNode) {
-        msg = this.$t('kylinLang.common.noAllNodeTips')
-      }
-      kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
-        this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
-      })
-    } else {
-      this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
-    }
-  }
-  // 子分区值管理
-  subParValMana (model) {
-    this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.alias, modelId: model.uuid }})
-  }
   async handleImportModels () {
     const project = this.currentSelectedProject
     const isSubmit = await this.callModelsImportModal({ project })
@@ -1243,7 +783,8 @@ export default class ModelList extends Vue {
       this.$set(item, 'showModelDetail', false)
       this.modelArray.push({
         ...item,
-        tabTypes: this.currentEditModel === item.alias ? this.expandTab : 'overview'
+        tabTypes: this.currentEditModel === item.alias ? this.expandTab : 'overview',
+        showER: false
       })
     })
   }
@@ -1351,35 +892,11 @@ export default class ModelList extends Vue {
     this.filterTags = []
     this.pageCurrentChange(0, this.filterArgs.page_size)
   }
-  // 展示model无权限的相关table和columns信息
-  showNoAuthorityContent (row) {
-    const { unauthorized_tables, unauthorized_columns } = row
-    let details = []
-    if (unauthorized_tables && unauthorized_tables.length) {
-      details.push({title: `Table (${unauthorized_tables.length})`, list: unauthorized_tables})
-    }
-    if (unauthorized_columns && unauthorized_columns.length) {
-      details.push({title: `Columns (${unauthorized_columns.length})`, list: unauthorized_columns})
-    }
-    this.callGlobalDetailDialog({
-      theme: 'plain-mult',
-      title: this.$t('kylinLang.model.authorityDetail'),
-      msg: this.$t('kylinLang.model.authorityMsg', {modelName: row.name}),
-      showCopyBtn: true,
-      showIcon: false,
-      showDetailDirect: true,
-      details,
-      showDetailBtn: false,
-      dialogType: 'error',
-      customClass: 'no-acl-model',
-      showCopyTextLeftBtn: true
-    })
-  }
 
   renderStatusLabel (h, option) {
     const { value } = option
     return [
-      <i class={['filter-status', value]} />,
+      <i class={['filter-bar filter-status', value]} />,
       <span>{value}</span>
     ]
   }
@@ -1388,13 +905,6 @@ export default class ModelList extends Vue {
   scrollViewArea (index) {
     const scrollDom = this.$el.querySelector(`.model_list_row_${index}`)
     scrollDom.nextSibling.querySelector('.aggregate-view').scrollIntoView({block: 'center', inline: 'nearest', behavior: 'smooth'})
-  }
-
-  // 关闭导出 TDS 弹窗
-  closeExportTDSDialog () {
-    this.showExportTDSDialog = false
-    this.exportTDSType = 'AGG_INDEX_COL'
-    this.exportTDSConnectionType = 'TABLEAU_ODBC_TDS'
   }
 
   async getFavoriteRulesContext () {
@@ -1406,6 +916,26 @@ export default class ModelList extends Vue {
       handleError(err)
       return {}
     }
+  }
+
+  async willAddIndex (alias) {
+    this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('willAddIndex')
+  }
+
+  modelRowClickEvent (row, args) {
+    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias, ...args}})
+  }
+
+  // 展示 E-R 图
+  afterPoppoverEnter (e, row) {
+    this.$nextTick(() => {
+      this.$set(row, 'showER', true)
+    })
+  }
+
+  // 跳转至指定模型优化建议界面
+  jumpToRecommendation (model) {
+    this.modelRowClickEvent(model, {jump: 'recommendation'})
   }
 }
 </script>
@@ -1482,6 +1012,25 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    .custom-tooltip-layout {
+      vertical-align: middle;
+      // margin-top: 6px;
+      width: calc(~'100% - 20px');
+    }
+    .model-ER {
+      position: absolute;
+      right: 10px;
+      cursor: pointer;
+      top: 50%;
+      transform: translate(0, -50%);
+    }
+    .recommendation-layout {
+      display: inline-block;
+      padding: 5px 10px;
+      border: 1px solid @ke-border-secondary;
+      border-radius: 6px;
+      color: @ke-color-primary;
+    }
     .el-icon-ksd-icon_build-index.build-disabled {
       color: @color-text-disabled;
       &:hover {
@@ -1565,15 +1114,43 @@ export default class ModelList extends Vue {
       color: @text-title-color;
     }
     .model-alias-title {
-      display: -webkit-box;
+      max-width: calc(~'100% - 15px');
+      display: inline-block;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: normal;
-      -webkit-line-clamp: 1;
-      /*! autoprefixer: off */
-      -webkit-box-orient: vertical;
-      /* autoprefixer: on */
+      white-space: nowrap;
+      // -webkit-line-clamp: 1;
+      // /*! autoprefixer: off */
+      // -webkit-box-orient: vertical;
+      // /* autoprefixer: on */
       white-space: nowrap\0 !important;
+    }
+    .model-alias-item {
+      .action-items {
+        display: none;
+        position: absolute;
+        right: 10px;
+        top: 6px;
+      }
+      &:hover {
+        .model-alias-title {
+          max-width: calc(~'100% - 100px');
+        }
+        .action-items {
+          display: block;
+        }
+      }
+    }
+    .fact-table-title {
+      .cell > span {
+        width: 100%;
+        display: inline-block;
+      }
+    }
+    .update-time {
+      color: @text-disabled-color;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
   margin-left: 20px;
@@ -1640,7 +1217,7 @@ export default class ModelList extends Vue {
     overflow: initial;
   }
   .table-filters {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     .actions {
       float: right;
       .el-button.is-text {
@@ -1700,7 +1277,7 @@ export default class ModelList extends Vue {
   .alias .filter-status {
     float: left;
     position: relative;
-    top: 4px;
+    top: 6px;
   }
   .text-container {
     overflow: hidden;
@@ -1725,21 +1302,19 @@ export default class ModelList extends Vue {
 }
 .filter-button {
   margin-left: 5px;
-  .el-icon-arrow-up {
+  .el-ksd-icon-arrow_up_22 {
     transform: rotate(180deg);
   }
-  .el-icon-arrow-up.reverse {
+  .el-ksd-icon-arrow_up_22.reverse {
     transform: rotate(0);
   }
 }
 .filter-status {
-  border-radius: 50%;
-  width: 12px;
-  height: 12px;
+  border-radius: 100%;
+  width: 10px;
+  height: 10px;
   display: inline-block;
-  position: relative;
-  top: 2px;
-  margin-right: 5px;
+  margin-right: 10px;
   &.ONLINE {
     background-color: @color-success;
   }
@@ -1753,10 +1328,32 @@ export default class ModelList extends Vue {
     background-color: @color-warning;
   }
 }
+.filter-bar {
+  &.filter-status {
+    border-radius: 100%;
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    margin-right: 10px;
+    &.ONLINE {
+      background-color: @color-success;
+    }
+    &.OFFLINE {
+      background-color: #5C5C5C;
+    }
+    &.BROKEN {
+      background-color: @color-danger;
+    }
+    &.WARNING {
+      background-color: @color-warning;
+    }
+  }
+}
 .last-modified-tooltip {
   min-width: unset;
   transform: translate(-5px, 5px);
-  pointer-events: none;
+  margin-left: 15px;
+  color: #8B99AE;
   .popper__arrow {
     left: 5px !important;
   }
@@ -1774,7 +1371,7 @@ export default class ModelList extends Vue {
 }
 .status-tooltip {
   min-width: unset;
-  transform: translate(-5px, 5px);
+  transform: translate(0, 5px);
   .popper__arrow {
     left: 5px !important;
   }
@@ -1783,25 +1380,32 @@ export default class ModelList extends Vue {
   text-align: left;
   min-width: 95px;
 }
-.export_tds_dialog {
-  .export-tds-alert {
-    margin-bottom: 5px;
-    margin-top: 20px;
-    &:first-child {
-      margin-top: 0;
+.title-popover-layout {
+  font-size: 14px;
+  .title {
+    color: @text-title-color;
+    font-weight: bold;
+  }
+  .label {
+    display: inline-block;
+    .name {
+      color: @text-disabled-color;
+      text-align: right;
+      margin-right: 15px;
     }
   }
-  .el-radio-group {
-    .el-radio {
-      margin-left: 0;
-      margin-top: 15px;
-      display: block;
-    }
-    .el-radio__label {
-      word-break: break-all;
-      white-space: break-spaces;
-      white-space: normal;
-    }
+  .content {
+    display: inline-block;
+  }
+}
+.er-popover-layout {
+  width: 400px;
+  height: 300px;
+  position: relative;
+  .model-ER-layout {
+    width: 100%;
+    height: 100%;
+    position: relative;
   }
 }
 </style>

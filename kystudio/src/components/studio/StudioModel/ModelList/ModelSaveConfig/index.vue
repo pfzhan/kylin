@@ -59,7 +59,7 @@
                 popper-class="js_partition-column"
                 @change="changeColumn('column')"
                 style="width:100%">
-              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.column.length"></i>
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!partitionMeta.column.length"></i>
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
                   <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
@@ -88,7 +88,7 @@
                 <el-button
                   size="medium"
                   :loading="isLoadingFormat"
-                  icon="el-icon-ksd-data_range_search"
+                  icon="el-ksd-icon-data_range_search_old"
                   v-guide.getPartitionColumnFormat
                   v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
                   @click="handleLoadFormat">
@@ -118,7 +118,7 @@
               style="width:100%"
               @change="changeColumn('multiPartition')"
             >
-              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!partitionMeta.multiPartition.length"></i>
               <el-option :label="$t('noPartition')" value=""></el-option>
               <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
                 <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
@@ -159,7 +159,12 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || modelInstance.mode === 'edit' && !modelInstance.has_base_index)">
+        <el-checkbox v-model="addBaseIndex">
+          <span>{{$t('addBaseIndexCheckBox')}}</span>
+        </el-checkbox>
+      </div>
+      <el-button plain size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange||disabledSave" :loading="isLoadingSave" v-guide.partitionSaveBtn @click="savePartitionConfirm" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
@@ -260,6 +265,7 @@ export default class ModelPartitionModal extends Vue {
   importantChange = false
   isExpand = false
   defaultBuildType = 'incremental'
+  addBaseIndex = true
 
   toggleShowPartition () {
     this.isExpand = !this.isExpand
@@ -627,7 +633,8 @@ export default class ModelPartitionModal extends Vue {
       this.callback && this.callback({
         isSubmit: isSubmit,
         isPurgeSegment: this.isChangePartition,
-        data: temp
+        data: temp,
+        create_base_index: this.addBaseIndex
       })
       this.hideModal()
       this.resetModalForm()

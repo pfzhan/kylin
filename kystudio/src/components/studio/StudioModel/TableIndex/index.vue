@@ -10,7 +10,7 @@
        </el-button>
         <!-- <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button> -->
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
-        <el-input style="width:200px" size="small" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-15"></el-input>
+        <el-input style="width:200px" size="small" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-ksd-icon-search_22'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-15"></el-input>
       </div>
       <el-steps direction="vertical">
         <template v-for="(tableIndex, key) in tableIndexGroup">
@@ -63,7 +63,7 @@
           v-scroll-shadow
           :data="showTableIndexDetail"
           height="529px"
-          border class="table-index-detail">
+          class="table-index-detail">
           <el-table-column
             :label="$t('ID')"
             prop="id"

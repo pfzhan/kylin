@@ -110,6 +110,16 @@ i[class^=el-icon-]{
   }
   .generate-attrs-ratio-5(@n,@attr, @attrName1, @attrName2, (@i + 1));
 }
+
+.generate-attr-ratio-3(@n, @attr, @attrName, @i: @n, @k: @i) when (@i >= @n) and (@i <= 20) {
+  .@{attr}-@{k} {
+    @{attrName}: @i*1px;
+    vertical-align: middle;
+    margin-right: 3px;
+  }
+  .generate-attr-ratio-3(@n, @attr, @attrName, (@i + 1));
+}
+
 .generate-attr-ratio-2(20,ksd-pb,padding-bottom);
 .generate-attr-ratio-2(20,ksd-pr,padding-right);
 .generate-attr-ratio-2(20,ksd-pl,padding-left);
@@ -128,6 +138,7 @@ i[class^=el-icon-]{
 .generate-attrs-ratio-2(20,ksd-prl,padding-right,padding-left);
 .generate-attrs-ratio-2(20,ksd-mtb,margin-top,margin-bottom);
 .generate-attrs-ratio-2(20,ksd-mrl,margin-right,margin-left);
+.generate-attr-ratio-3(16,ksd-icon-center-text,font-size);
 
 .generate-attr-ratio-5(20,ksd-ml,margin-left);
 .generate-attr-ratio-5(20,ksd-mr,margin-right);

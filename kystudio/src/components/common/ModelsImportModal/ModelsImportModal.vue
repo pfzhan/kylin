@@ -928,7 +928,7 @@ export default class ModelsImportModal extends Vue {
         }
         .detail-text {
           margin-top: 5px;
-          color:@text-normal-color;
+          color: @text-normal-color;
           &:first-child {
             margin-top: 0;
           }

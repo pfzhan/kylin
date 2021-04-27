@@ -1,0 +1,40 @@
+export default {
+  'en': {
+    overview: 'Overview',
+    segment: 'Segment',
+    indexes: 'Index',
+    indexOverview: 'Index Overview',
+    aggregateGroup: 'Aggregate Group',
+    tableIndex: 'Table Index',
+    developers: 'Developers',
+    dataFeatures: 'Data Features',
+    segmentHoletips: 'There exists a gap in the segment range, and the data of this range cannot be queried. Please confirm whether to add the following segments to fix.',
+    fixSegmentTitle: 'Fix Segment',
+    modelMetadataChangedDesc: 'Source table in the following segment(s) might have been changed. The data might be inconsistent after being built. Please check with your system admin.<br/>You may try refreshing these segments to ensure the data consistency.',
+    buildIndex: 'Build Index',
+    batchBuildSubTitle: 'Please choose which data ranges you\'d like to build with the added indexes.',
+    modelEditAction: 'Edit',
+    modelBuildAction: 'Build',
+    moreAction: 'More',
+    noData: 'No Data'
+  },
+  'zh-cn': {
+    overview: '基本信息',
+    segment: 'Segment',
+    indexes: '索引',
+    indexOverview: '索引总览',
+    aggregateGroup: '聚合组',
+    tableIndex: '明细索引',
+    developers: '开发者',
+    dataFeatures: '数据特征',
+    segmentHoletips: '当前 Segment 区间存在空洞，此时将无法查询到该段时间的数据，是否需要补充以下 Segment 进行修复？',
+    fixSegmentTitle: '修复 Segment',
+    modelMetadataChangedDesc: '检测到以下 Segment 中源表数据可能发生了变化，将导致构建后数据不一致。请与系统管理员核实。<br/>建议刷新以下这些 Segment 确保数据的一致性。',
+    buildIndex: '构建索引',
+    batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
+    modelEditAction: '编辑',
+    modelBuildAction: '构建',
+    moreAction: '更多',
+    noResult: '暂无数据'
+  }
+}

@@ -13,7 +13,7 @@
       <div class="ksd-mb-10 ksd-right">
         <el-button @click="changeSyncName">{{!syncCommentToName ? $t('syncName') : $t('resetSyncName')}}</el-button>
         <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
-          <i slot="prefix" class="el-input__icon el-icon-search"></i>
+          <i slot="prefix" class="el-input__icon el-ksd-icon-search_22"></i>
         </el-input>
       </div>
       <div v-scroll.reactive v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
@@ -356,11 +356,11 @@ export default class DimensionsModal extends Vue {
   }
 
   get flattenLookupTables () {
-    return this.modelDesc.anti_flatten_lookups
+    return this.modelDesc.anti_flatten_lookups || []
   }
 
   get unflattenComputedColumns () {
-    return this.modelDesc.anti_flatten_cc.map(it => it.columnName)
+    return this.modelDesc.anti_flatten_cc ? this.modelDesc.anti_flatten_cc.map(it => it.columnName) : []
   }
 
   // 判断 table 前的复选框是否能够被点击

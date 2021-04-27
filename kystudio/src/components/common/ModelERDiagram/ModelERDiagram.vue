@@ -13,7 +13,7 @@
         v-for="canvasTable in canvas.tables"
         :key="canvasTable.guid"
         :id="canvasTable.guid"
-        :table="tableMap[canvasTable.guid]"
+        :table="canvasTable"
         :x="canvasTable.X"
         :y="canvasTable.Y"
         :width="configs.TABLE_WIDTH"
@@ -22,8 +22,8 @@
         v-for="canvasJoint in canvas.joints"
         :key="canvasJoint.guid"
         :id="canvasJoint.guid"
-        :sourceId="tableMap[canvasJoint.foreign].guid"
-        :targetId="tableMap[canvasJoint.primary].guid"
+        :sourceId="getGuid(canvasJoint.foreign)"
+        :targetId="getGuid(canvasJoint.primary)"
         :joint-type="canvasJoint.type"
       />
     </Stage>
@@ -117,6 +117,10 @@ export default class ModelERDiagram extends Vue {
         [table.guid]: tableWithHeight
       }
     }, {})
+  }
+
+  getGuid (name) {
+    return this.canvas.tables.filter(it => it.alias === name)[0].guid
   }
 
   setZoom (zoom) {

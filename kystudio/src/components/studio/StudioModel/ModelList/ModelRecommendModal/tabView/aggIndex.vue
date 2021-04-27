@@ -24,7 +24,7 @@
               <el-input
                 class="ksd-fright"
                 :placeholder="$t('kylinLang.common.pleaseFilter')"
-                prefix-icon="el-icon-search"
+                prefix-icon="el-ksd-icon-search_22"
                 v-model.trim="curTableInTableKeyword[scope.row.item_id]"
                 @keyup.native="handleTableInTableFilter(scope.row)"
                 @clear="handleTableInTableFilter(scope.row)"

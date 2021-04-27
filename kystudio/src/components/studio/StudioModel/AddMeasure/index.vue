@@ -56,7 +56,7 @@
             'error-measure': handlerErrorTip(measure)}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
             filterable @change="changeParamValue" :disabled="isEdit">
-              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!measure.parameterValue.value"></i>
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!measure.parameterValue.value"></i>
               <el-option-group key="column" :label="$t('columns')">
                 <el-option
                   v-for="(item, index) in getParameterValue"
@@ -88,7 +88,7 @@
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
             <el-select :class="['measures-width', {'error-tip': showMutipleColumnsTip || column.sameIndex}]" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
-              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!column.value"></i>
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!column.value"></i>
               <el-option
                 v-for="(item, index) in getParameterValue2"
                 :key="index"

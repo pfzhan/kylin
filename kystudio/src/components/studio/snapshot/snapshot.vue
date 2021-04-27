@@ -20,7 +20,7 @@
           <el-button type="primary" text icon="el-icon-ksd-table_delete" class="ksd-ml-2" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
         </div>
       </div>
-      <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-icon-search" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
+      <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
     </div>
     <el-table class="ksd-mt-10 snapshot-table ke-it-snapshot_table"
       :data="snapshotTables"
@@ -194,7 +194,7 @@
                 <el-button
                   size="medium"
                   :loading="currentPartitionRow.isLoadingPartition"
-                  icon="el-icon-ksd-data_range_search"
+                  icon="el-ksd-icon-data_range_search_old"
                   @click="handleLoadPartitionColumn">
                 </el-button>
               </div>

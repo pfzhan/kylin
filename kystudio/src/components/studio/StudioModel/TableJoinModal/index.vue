@@ -16,7 +16,7 @@
     <el-row :gutter="10">
       <el-col :span="10">
         <el-select :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" @change="changeFTable" style="width:100%" filterable v-model="selectF">
-          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!selectF"></i>
+          <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!selectF"></i>
           <el-option  v-for="key in selectedFTables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
@@ -32,7 +32,7 @@
       </el-col>
       <el-col :span="10">
         <el-select :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"  @change="changePTable" size="medium" style="width:100%" filterable v-model="selectP">
-          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!selectP"></i>
+          <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!selectP"></i>
           <el-option v-for="key in selectedPTables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
@@ -59,7 +59,7 @@
             v-model="joinColumns.foreign_key[val]"
             popper-class="js_foreign-select"
             :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
-              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.foreign_key[val]"></i>
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!joinColumns.foreign_key[val]"></i>
             <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
             <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
@@ -81,13 +81,13 @@
             v-model="joinColumns.primary_key[val]"
             popper-class="js_primary-select"
             :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
-            <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.primary_key[val]"></i>
+            <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!joinColumns.primary_key[val]"></i>
             <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
             <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
             </el-option>
           </el-select>
         </el-form-item>
-        <el-button  type="primary" class="ksd-ml-10" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
+        <el-button  type="primary" class="ksd-ml-10" plain icon="el-ksd-icon-add_22" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-ksd-icon-minus_22" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
@@ -535,6 +535,7 @@ export default class TableJoinModal extends Vue {
       const currentJoinIndex = res.join_tables.findIndex(it => it.alias === this.pTableName)
       if (currentJoinIndex > -1) {
         res.join_tables[currentJoinIndex] = {...res.join_tables[currentJoinIndex], flattenable: this.isPrecompute ? 'flatten' : 'normalized'}
+        res.all_named_columns = this.form.modelInstance.all_named_columns || []
       } else {
         res.join_tables.push({
           alias: this.pTableName,
@@ -543,6 +544,7 @@ export default class TableJoinModal extends Vue {
           flattenable: this.isPrecompute ? 'flatten' : 'normalized',
           table: this.form.modelInstance.tables[selectP].name
         })
+        res.all_named_columns = this.form.modelInstance.all_named_columns || []
       }
       // const data = {
       //   project: this.currentSelectedProject,
@@ -699,7 +701,7 @@ export default class TableJoinModal extends Vue {
       float: left;
     }
     .foreign-select, .primary-select {
-      width: 273px;
+      width: 270px;
     }
     .foreign-select.is-error {
       .el-input__inner {

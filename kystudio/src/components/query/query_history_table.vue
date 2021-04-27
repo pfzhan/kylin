@@ -1214,7 +1214,7 @@ export default class QueryHistoryTable extends Vue {
   .duration-popover {
     line-height: 1.5 !important;
     .step-name {
-      color:@text-normal-color;
+      color: @text-normal-color;
       &.sub-step {
         color: @color-text-placeholder;
       }

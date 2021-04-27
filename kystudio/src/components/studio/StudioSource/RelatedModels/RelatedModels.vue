@@ -15,7 +15,7 @@
           <el-input
             size="medium"
             class="search-box"
-            prefix-icon="el-icon-search"
+            prefix-icon="el-ksd-icon-search_22"
             v-model="filterText"
             :placeholder="$t('searchModel')">
           </el-input>

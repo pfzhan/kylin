@@ -83,7 +83,7 @@
     <div class="table-index-detail-block" v-else>
       <div class="empty-block">
         <div>{{$t('aggTableIndexTips')}}</div>
-        <el-button type="primary" text icon="el-icon-ksd-table_add" @click="confrimEditTableIndex()" v-if="isShowTableIndexActions&&!isHideEdit">{{$t('tableIndex')}}</el-button>
+        <el-button type="primary" text icon="el-ksd-icon-table_add_old" @click="confrimEditTableIndex()" v-if="isShowTableIndexActions&&!isHideEdit">{{$t('tableIndex')}}</el-button>
       </div>
     </div>
   </div>
@@ -238,7 +238,7 @@ export default class TableIndexView extends Vue {
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
 .table-index-view {
-  height: 500px;
+  height: calc(~'100% - 40px');
   overflow: hidden;
   width: 100%;
   .title-list {

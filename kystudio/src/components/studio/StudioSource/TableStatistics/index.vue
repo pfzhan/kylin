@@ -7,7 +7,7 @@
       <div class="right">
         <el-input
           class="filter-input"
-          prefix-icon="el-icon-search"
+          prefix-icon="el-ksd-icon-search_22"
           v-model="filterText"
           :placeholder="$t('kylinLang.common.pleaseFilter')">
         </el-input>

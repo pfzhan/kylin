@@ -268,6 +268,12 @@ export default {
   loadAllIndex: (para) => {
     return Vue.resource(apiUrl + 'index_plans/index{?sources}' + '{&status}').get(para)
   },
+  loadBaseIndex: (paras) => {
+    return window.kapVm.$http.post(apiUrl + 'index_plans/base_index', paras)
+  },
+  updateBaseIndex: (paras) => {
+    return Vue.http.put(apiUrl + 'models/base_index', paras)
+  },
   deleteIndex: (para) => {
     return Vue.resource(apiUrl + `index_plans/index/${para.id}?project=${para.project}&model=${para.model}`).delete()
   },
@@ -276,6 +282,10 @@ export default {
   },
   fetchIndexGraph: (para) => {
     return Vue.resource(apiUrl + 'index_plans/index_graph').get(para)
+  },
+  // 获取索引自定义的特征信息
+  fetchIndexStat: (para) => {
+    return Vue.resource(apiUrl + 'index_plans/index_stat').get(para)
   },
   suggestIsByAnswered: (para) => {
     return Vue.resource(apiUrl + 'models/can_answered_by_existed_model').save(para)

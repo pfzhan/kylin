@@ -15,7 +15,7 @@
           <div class="ksd-ml-20 ksd-mt-20">
             <el-input :placeholder="$t('filterTableName')"
               v-model="filterText"
-              prefix-icon="el-icon-search"
+              prefix-icon="el-ksd-icon-search_22"
               @keyup.enter.native="handleFilter()"
               @clear="handleFilter()"
               class="ke-it-filter_input"
@@ -95,7 +95,7 @@
       </div>
       <div class="partition-setting-layout" v-else>
         <p class="ksd-mb-10">{{$t('sourceTablePartitionTip')}}</p>
-        <div class="search-partition-input"><el-input v-model="searchDBOrTableName" size="medium" v-global-key-event.enter.debounce="searchPartitionColumns" @clear="searchPartitionColumns" prefix-icon="el-icon-search" style="width:280px" :placeholder="$t('pleaseFilterDBOrTable')"></el-input></div>
+        <div class="search-partition-input"><el-input v-model="searchDBOrTableName" size="medium" v-global-key-event.enter.debounce="searchPartitionColumns" @clear="searchPartitionColumns" prefix-icon="el-ksd-icon-search_22" style="width:280px" :placeholder="$t('pleaseFilterDBOrTable')"></el-input></div>
         <template v-if="partitionColumnData && partitionColumnData.list.length">
           <el-row class="ksd-mb-10" :gutter="5">
             <el-col :span="12">{{$t('table')}}</el-col>
@@ -131,7 +131,7 @@
                   <el-button
                     size="medium"
                     :loading="item.isLoadingPartition"
-                    icon="el-icon-ksd-data_range_search"
+                    icon="el-ksd-icon-data_range_search_old"
                     @click="handleLoadPartitionColumn(item)">
                   </el-button>
                 </div>

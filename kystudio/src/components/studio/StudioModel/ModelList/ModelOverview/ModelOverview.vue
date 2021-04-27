@@ -1,5 +1,5 @@
 <template>
-  <el-tabs class="model-overview" type="border-card" v-model="activeTab" v-if="model">
+  <el-tabs class="model-overview" v-model="activeTab" v-if="model">
     <el-tab-pane :label="$t('erDiagram')" name="erDiagram">
       <ModelERDiagram ref="$er-diagram" is-show-full-screen :model="model" />
     </el-tab-pane>
@@ -55,9 +55,10 @@ export default class ModelOverview extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-overview {
-  margin: 15px;
+  height: 100%;
+  // margin: 15px;
   box-shadow: none;
-  border:1px solid rgba(245,245,245,1);
+  // border:1px solid rgba(245,245,245,1);
   > .el-tabs__header,
   > .el-tabs__header .el-tabs__item {
     border: transparent;
@@ -74,6 +75,9 @@ export default class ModelOverview extends Vue {
     height: 470px;
     box-sizing: border-box;
     overflow: auto;
+  }
+  .el-tabs__nav-scroll {
+    background-color: @ke-background-color-white;
   }
   .model-er-diagram {
     margin: -20px;

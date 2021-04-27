@@ -1,7 +1,13 @@
 <template>
   <div class="model-aggregate ksd-mb-15" v-if="model" v-loading="isLoading">
     <div class="aggregate-view">
-      <div class="aggregate-tree-map" :style="{width: `${moveEvent.w}%`}">
+      <div class="btn-groups" v-if="isShowAggregateAction">
+        <el-tabs class="btn-group-tabs" v-model="switchIndexValue" type="button">
+          <el-tab-pane :label="$t('indexListBtn')" @click="switchIndexValue = 'index', doLayoutIndexTable()" name="index" />
+          <el-tab-pane :label="$t('recommendationsBtn')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" name="rec" />
+        </el-tabs>
+      </div>
+      <!-- <div class="aggregate-tree-map" :style="{width: `${moveEvent.w}%`}">
         <el-card class="agg-detail-card agg_index">
           <div slot="header" class="clearfix">
             <div class="left font-medium">
@@ -30,17 +36,11 @@
             @searchId="handleClickNode"/>
         </el-card>
         <div class="drag-bar ky-drag-layout-bar" @mousedown="handlerDownEvent">||</div>
-      </div>
-      <div class="index-group" :style="{width: `calc(${100 - moveEvent.w}% - 10px)`}">
-        <div class="btn-groups" v-if="isShowAggregateAction">
-          <el-button-group>
-            <el-button plain size="mini" icon="el-icon-ksd-login_intro" @click="switchIndexValue = 0, doLayoutIndexTable()" :class="{'active': switchIndexValue === 0}">{{$t('indexListBtn')}}</el-button>
-            <el-button plain size="mini" icon="el-icon-ksd-status" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" @click="switchIndexValue = 1" :class="{'active': switchIndexValue === 1}">{{$t('recommendationsBtn')}}</el-button>
-          </el-button-group>
-        </div>
-        <el-card class="agg-detail-card agg-detail" v-show="switchIndexValue === 0">
-          <div slot="header" class="clearfix">
-            <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
+      </div> -->
+      <div class="index-group">
+        <el-card class="agg-detail-card agg-detail" v-show="switchIndexValue === 'index'">
+          <!-- <div slot="header" class="clearfix"> -->
+            <!-- <div class="left font-medium fix">{{$t('aggregateDetail')}}</div> -->
             <!-- <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
               <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
               <el-dropdown-menu slot="dropdown">
@@ -49,9 +49,9 @@
               </el-dropdown-menu>
             </el-dropdown>
             <div class="right fix">
-              <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+              <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
             </div> -->
-          </div>
+          <!-- </div> -->
           <div class="detail-content" v-loading="indexLoading">
             <div class="clearfix">
               <el-popover
@@ -66,34 +66,42 @@
                   </div>
                 </div>
               </el-popover>
-              <div class="ksd-mb-10 ksd-fs-12 ksd-fleft">
-                {{$t('dataRange')}}<i v-popover:indexPopover class="el-icon-question ksd-fs-14 ksd-mrl-2"></i>: {{getDataRange}}
+              <div class="date-range ksd-mb-16 ksd-fs-12 ksd-fleft">
+                {{$t('dataRange')}}: {{getDataRange}}<span class="data-range-tips"><i v-popover:indexPopover class="el-icon-ksd-info ksd-fs-12 ksd-ml-8"></i></span>
               </div>
-              <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-5">
+              <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-6">
                 <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
-                  <i class="el-icon-ksd-complete"></i>
+                  <i class="el-ksd-icon-view_range_22"></i>
                 </el-tooltip>
               </div>
             </div>
             <div class="actions-header clearfix ksd-mb-10" v-if="!isShowAggregateAction">
               <el-checkbox v-model="indexesByQueryHistory" @change="changeAggList">{{$t('indexesByQueryHistoryTip')}}</el-checkbox>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
               </div>
             </div>
             <div class="clearfix" v-if="isShowAggregateAction">
-              <el-button icon="el-icon-ksd-icon_build-index" :disabled="!checkedList.length" v-if="datasourceActions.includes('buildIndex')" class="ksd-mb-10 ksd-fleft" size="small" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
+              <el-dropdown class="ksd-ml-5 ksd-fleft" v-if="isShowAggregateAction && isShowIndexActions">
+                <el-button icon="el-ksd-icon-add_22" type="primary" text>{{$t('index')}}</el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
+                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
+                  <!-- <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout}">
+                    <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
+                  </el-dropdown-item> -->
+                  
+                </el-dropdown-menu>
+              </el-dropdown>
+              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
               <el-dropdown
-                split-button
-                plain
-                class="split-button ksd-mb-10 ksd-ml-10 ksd-fleft"
+                class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
                 :class="{'is-disabled': !checkedList.length}"
-                size="small"
                 placement="bottom-start"
                 :loading="removeLoading"
                 v-if="datasourceActions.includes('delAggIdx')"
-                @click="removeIndexes">
-                {{$t('kylinLang.common.delete')}}
+              >
+                <el-button type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}<i class="el-ksd-icon-arrow_down_22"></i></el-button>
                 <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
                   <el-dropdown-item
                     :disabled="!checkedList.length"
@@ -104,15 +112,8 @@
               </el-dropdown>
               <!-- <el-button
               icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10 ksd-ml-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button> -->
-              <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
-                <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
-                <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
-                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="medium" :placeholder="$t('searchAggregateID')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
               </div>
             </div>
             <div class="filter-tags-agg" v-show="filterTags.length">
@@ -121,11 +122,9 @@
             </div>
             <el-table
               nested
-              border
               ref="indexesTable"
               :data="indexDatas"
               class="indexes-table"
-              size="medium"
               :empty-text="emptyText"
               @sort-change="onSortChange"
               @selection-change="handleSelectionChange"
@@ -133,18 +132,28 @@
             >
               <el-table-column type="selection" width="44" v-if="isShowAggregateAction"></el-table-column>
               <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
-              <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
+              <el-table-column prop="data_size" sortable="custom" :label="$t('storage')">
                 <template slot-scope="scope">
-                  {{scope.row.data_size | dataSize}}
+                  <span class="data-size-text">{{scope.row.data_size | dataSize}}</span>
+                  <el-progress v-if="indexStat.max_data_siz" :percentage="indexStat.max_data_size ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
                 </template>
               </el-table-column>
-              <el-table-column prop="usage" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
-              <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
+              <el-table-column
+                prop="usage"
+                sortable="custom"
+                :label="$t('queryCount')"
+              >
+                <template slot-scope="scope">
+                  <span class="usage-text">{{scope.row.usage}}</span>
+                  <el-progress v-if="indexStat.max_hit_count" :percentage="indexStat.max_hit_count ? scope.row.usage / indexStat.max_hit_count * 100 : 0.5" class="usage-progress"></el-progress>
+                </template>
+              </el-table-column>
+              <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
                 <template slot-scope="scope">
                   <span>{{$t(scope.row.source)}}</span>
                 </template>
               </el-table-column>
-              <el-table-column align="left" :label="$t('indexContent')">
+              <el-table-column align="left" :label="$t('indexContent')" width="200">
                 <template slot-scope="scope">
                   <el-popover
                     ref="index-content-popover"
@@ -158,23 +167,28 @@
                       <el-button v-if="scope.row.col_order.length > 20" class="ksd-fs-12" type="primary" text @click="showDetail(scope.row)">{{$t('viewAll')}}</el-button>
                     </template>
                   </el-popover>
+                  <span class="detail-icon el-ksd-icon-view_16" @click="showDetail(scope.row)"></span>
                 </template>
               </el-table-column>
-              <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
+              <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
                 <template slot-scope="scope">
-                  <span>{{$t(scope.row.status)}}</span>
+                  <!-- <span>{{$t(scope.row.status)}}</span> -->
+                  <el-tag size="small" :type="getStatusTagColor(scope.row.status)">{{$t(scope.row.status)}}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column :label="$t('kylinLang.common.action')" fixed="right" width="83" v-if="isShowAggregateAction">
                 <template slot-scope="scope">
-                  <common-tip :content="$t('viewDetail')">
+                  <!-- <common-tip :content="$t('viewDetail')">
                     <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
-                  </common-tip>
+                  </common-tip> -->
                   <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')">
                     <i class="el-icon-ksd-icon_build-index ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
                   </common-tip>
                   <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
                     <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
+                  </common-tip>
+                  <common-tip :content="$t('update')" v-if="scope.row.needUpdate">
+                    <i class="action-icons el-ksd-icon-refresh_22 ksd-ml-5" @click="updateBaseIndexEvent(scope.row)"></i>
                   </common-tip>
                   <!-- <common-tip :content="$t('kylinLang.common.moreActions')">
                     <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" trigger="click" >
@@ -196,7 +210,7 @@
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
-        <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 1"/>
+        <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 'rec'"/>
       </div>
     </div>
     <index-details :indexDetailTitle="indexDetailTitle" :detailType="detailType" :cuboidData="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
@@ -291,9 +305,12 @@ import IndexDetails from './indexDetails'
       fetchIndexGraph: 'FETCH_INDEX_GRAPH',
       buildIndex: 'BUILD_INDEX',
       loadAllIndex: 'LOAD_ALL_INDEX',
+      loadBaseIndex: 'LOAD_BASE_INDEX',
+      updateBaseIndex: 'UPDATE_BASE_INDEX',
       deleteIndex: 'DELETE_INDEX',
       deleteIndexes: 'DELETE_INDEXES',
-      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
+      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
+      fetchIndexStat: 'FETCH_INDEX_STAT'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -336,7 +353,7 @@ export default class ModelAggregate extends Vue {
   }
   indexDetailShow = false
   tableIndexBaseList = []
-  realFilteArr = ['RECOMMENDED_AGG_INDEX', 'RECOMMENDED_TABLE_INDEX', 'CUSTOM_AGG_INDEX', 'CUSTOM_TABLE_INDEX']
+  realFilteArr = ['RECOMMENDED_AGG_INDEX', 'RECOMMENDED_TABLE_INDEX', 'CUSTOM_AGG_INDEX', 'CUSTOM_TABLE_INDEX', 'BASE_TABLE_INDEX', 'BASE_AGG_INDEX']
   statusArr = ['NO_BUILD', 'ONLINE', 'LOCKED', 'BUILDING']
   detailType = ''
   currentPage = 0
@@ -347,16 +364,17 @@ export default class ModelAggregate extends Vue {
   filterTags = []
   checkedList = []
   removeLoading = false
-  moveEvent = {
-    w: 35,
-    curW: 35,
-    limit: {
-      width: [10, 80]
-    }
-  }
-  switchIndexValue = 0
+  // moveEvent = {
+  //   w: 35,
+  //   curW: 35,
+  //   limit: {
+  //     width: [10, 80]
+  //   }
+  // }
+  switchIndexValue = 'index'
   isHaveComplementSegs = false
   indexesByQueryHistory = true  // 是否获取查询相关的索引
+  indexStat = {}
   // 打开高级设置
   // openAggAdvancedModal () {
   //   this.callAggAdvancedModal({
@@ -388,6 +406,10 @@ export default class ModelAggregate extends Vue {
       indexes = this.checkedList.map((i) => {
         return i.id
       })
+    } else if (indexType === 'baseIndex') {
+      title = this.$t('buildIndex')
+      subTitle = this.$t('batchBuildSubTitle', {number: id.split(',').length})
+      indexes = id.split(',')
     } else {
       indexes.push(id)
     }
@@ -400,6 +422,19 @@ export default class ModelAggregate extends Vue {
       model: this.model
     })
     this.refreshIndexGraphAfterSubmitSetting()
+  }
+
+  // 索引状态 tag 类型
+  getStatusTagColor (type) {
+    if (type === 'ONLINE') {
+      return 'success'
+    } else if (type === 'NO_BUILD') {
+      return 'warning'
+    } else if (type === 'BUILDING') {
+      return ''
+    } else {
+      return 'info'
+    }
   }
 
   changeAggList () {
@@ -439,6 +474,7 @@ export default class ModelAggregate extends Vue {
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.removeLoading = false
       this.refreshIndexGraphAfterSubmitSetting()
+      // this.getIndexInfo()
       this.$emit('loadModels')
     } catch (e) {
       handleError(e)
@@ -616,7 +652,8 @@ export default class ModelAggregate extends Vue {
       await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: row.id})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.refreshIndexGraphAfterSubmitSetting()
-      this.$emit('loadModels')
+      // this.getIndexInfo()
+      // this.$emit('loadModels')
     } catch (e) {
       handleError(e)
     }
@@ -649,7 +686,7 @@ export default class ModelAggregate extends Vue {
     return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
   }
   async handleClickNode (id) {
-    this.switchIndexValue = 0
+    this.switchIndexValue = 'index'
     this.filterArgs.key = id
     this.indexLoading = true
     await this.loadAggIndices()
@@ -722,6 +759,7 @@ export default class ModelAggregate extends Vue {
     this.isLoading = true
     await this.freshIndexGraph()
     await this.loadAggIndices()
+    // this.getIndexInfo()
     this.isLoading = false
   }
   async refreshIndexGraphAfterSubmitSetting () {
@@ -784,29 +822,29 @@ export default class ModelAggregate extends Vue {
     this.filterSouces()
   }
 
-  handlerDownEvent (e) {
-    this.moveEvent.downX = e.clientX
-    document.addEventListener('mousemove', this.handlerMoveEvent)
-    document.addEventListener('mouseup', this.handlerUpEvent)
-  }
+  // handlerDownEvent (e) {
+  //   this.moveEvent.downX = e.clientX
+  //   document.addEventListener('mousemove', this.handlerMoveEvent)
+  //   document.addEventListener('mouseup', this.handlerUpEvent)
+  // }
 
-  handlerMoveEvent (e) {
-    let tarX = e.clientX
-    let viewParent = this.$el.querySelector('.aggregate-view').getBoundingClientRect()
-    this.moveEvent.w = (this.moveEvent.curW / 100 * viewParent.width + tarX - this.moveEvent.downX) / viewParent.width * 100
-    if (this.moveEvent.limit.width.length) {
-      const [min, max] = this.moveEvent.limit.width
-      min && this.moveEvent.w < min && (this.moveEvent.w = min)
-      max && this.moveEvent.w > max && (this.moveEvent.w = max)
-    }
-    this.$refs.indexTreeMap && this.$refs.indexTreeMap.myChart.resize()
-  }
+  // handlerMoveEvent (e) {
+  //   let tarX = e.clientX
+  //   let viewParent = this.$el.querySelector('.aggregate-view').getBoundingClientRect()
+  //   this.moveEvent.w = (this.moveEvent.curW / 100 * viewParent.width + tarX - this.moveEvent.downX) / viewParent.width * 100
+  //   if (this.moveEvent.limit.width.length) {
+  //     const [min, max] = this.moveEvent.limit.width
+  //     min && this.moveEvent.w < min && (this.moveEvent.w = min)
+  //     max && this.moveEvent.w > max && (this.moveEvent.w = max)
+  //   }
+  //   this.$refs.indexTreeMap && this.$refs.indexTreeMap.myChart.resize()
+  // }
 
-  handlerUpEvent () {
-    this.moveEvent.curW = this.moveEvent.w
-    document.removeEventListener('mousemove', this.handlerMoveEvent)
-    document.removeEventListener('mouseup', this.handlerUpEvent)
-  }
+  // handlerUpEvent () {
+  //   this.moveEvent.curW = this.moveEvent.w
+  //   document.removeEventListener('mousemove', this.handlerMoveEvent)
+  //   document.removeEventListener('mouseup', this.handlerUpEvent)
+  // }
 
   // 优化建议通过后刷新索引列表
   async acceptRecommend () {
@@ -818,6 +856,62 @@ export default class ModelAggregate extends Vue {
   closeDetailDialog () {
     this.indexDetailShow = false
   }
+
+  // 手动更新基础索引
+  updateBaseIndexEvent (row) {
+    this.$msgbox({
+      title: this.$t('updateBaseIndexTitle'),
+      message: '.xx',
+      showCancelButton: true,
+      confirmButtonText: this.$t('update')
+    }).then(async () => {
+      await this.updateBaseIndex({
+        model_id: this.model.uuid,
+        project: this.projectName,
+        load_data: false,
+        source_types: [row.source]
+      })
+      this.loadAggIndices()
+    }).catch(e => {
+      handleError(e)
+    })
+  }
+
+  // 创建 base index
+  createBaseIndex () {
+    if (Object.keys(this.indexStat).length && this.indexStat.has_load_base_agg_layout && this.indexStat.has_load_base_table_layout) return
+    this.loadBaseIndex({
+      model_id: this.model.uuid,
+      project: this.projectName,
+      load_data: false,
+      source_type: ['BASE_TABLE_INDEX', 'BASE_AGG_INDEX']
+    }).then(async (res) => {
+      const result = await handleSuccessAsync(res)
+      const layoutIds = []
+      const baseAggIndexNum = result.agg_index ? result.agg_index.dimension_count + result.agg_index.measure_count : 0
+      const baseTableIndexNum = result.table_index ? result.table_index.dimension_count + result.table_index.measure_count : 0
+      result.agg_index && layoutIds.push(result.agg_index.layout_id)
+      result.table_index && layoutIds.push(result.table_index.layout_id)
+      this.$message({
+        type: 'success',
+        message: <span>{this.$t('buildBaseIndexTip', {baseIndexNum: baseAggIndexNum + baseTableIndexNum})}<a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a></span>
+      })
+      this.loadAggIndices()
+      // this.getIndexInfo()
+    }).catch((e) => {
+      handleError(e)
+    })
+  }
+
+  // 获取索引特征信息(是否有聚合或明细基础索引。。。)
+  getIndexInfo () {
+    this.fetchIndexStat({model_id: this.model.uuid, project: this.projectName}).then(async res => {
+      const result = await handleSuccessAsync(res)
+      this.indexStat = result
+    }).catch((e) => {
+      handleError(e)
+    })
+  }
 }
 </script>
 
@@ -825,10 +919,12 @@ export default class ModelAggregate extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-aggregate {
+  height: 100%;
   .aggregate-view {
     background-color: @fff;
+    height: 100%;
     // padding: 10px;
-    border: 1px solid @line-border-color4;
+    // border: 1px solid @line-border-color4;
     // display: flex;
     .aggregate-tree-map {
       position: relative;
@@ -836,19 +932,33 @@ export default class ModelAggregate extends Vue {
       vertical-align: top;
     }
     .index-group {
-      padding: 15px 20px;
+      width: 100%;
+      height: 100%;
+      // padding: 15px 20px;
       box-sizing: border-box;
       position: relative;
       display: inline-block;
       vertical-align: top;
-      .btn-groups {
-        position: absolute;
-        right: 20px;
-        .active {
-          color: @text-normal-color;
-          background:rgba(244,244,244,1);
-          border:1px solid rgba(204,204,204,1);
-          box-shadow: inset 1px 1px 2px 0 @line-border-color3;
+    }
+    .btn-groups {
+      display: inline-block;
+      right: 20px;
+      // .active {
+      //   color: @text-normal-color;
+      //   background:rgba(244,244,244,1);
+      //   border:1px solid rgba(204,204,204,1);
+      //   box-shadow: inset 1px 1px 2px 0 @line-border-color3;
+      // }
+      .el-tabs {
+        display: inline-block;
+        .el-tabs__header {
+          margin: 0 0 8px;
+        }
+      }
+      .btn-group-tabs {
+        .el-tabs__nav-scroll {
+          background-color: @ke-background-color-hover;
+          overflow: initial;
         }
       }
     }
@@ -871,6 +981,43 @@ export default class ModelAggregate extends Vue {
       &.isFilter,
       &:hover {
         color: @base-color;
+      }
+    }
+    .detail-icon {
+      position: absolute;
+      top: 50%;
+      transform: translate(0, -44%);
+      right: 15px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .action-icons {
+      font-size: 18px;
+      vertical-align: text-top;
+      cursor: pointer;
+    }
+    .data-size-text, .usage-text {
+      width: 40%;
+      display: inline-block;
+      text-align: right;
+    }
+    .usage-progress, .data-size-progress {
+      width: 70px;
+      display: inline-block;
+      margin-right: 8px;
+      .el-progress-bar {
+        padding-right: 0;
+        margin-right: 0;
+      }
+      .el-progress__text {
+        display: none;
+      }
+      .el-progress-bar__outer {
+        border-radius: none;
+        background-color: transparent;
+        .el-progress-bar__inner {
+          background-color: #2492F7;
+        }
       }
     }
   }
@@ -929,6 +1076,7 @@ export default class ModelAggregate extends Vue {
   }
   .agg-detail-card {
     // height: 496px;
+    height: 100%;
     border: none;
     background: none;
     .el-card__header {
@@ -955,19 +1103,29 @@ export default class ModelAggregate extends Vue {
     // }
     .el-card__body {
       overflow: auto;
-      height: 460px;
+      height: calc(~'100% - 100px');
       width: 100%;
       position: relative;
       box-sizing: border-box;
       padding: 0px !important;
       .detail-content {
+        .date-range {
+          color: @text-normal-color;
+        }
+        .data-range-tips {
+          .el-icon-ksd-info {
+            color: @text-disabled-color;
+  
+          }
+        }
         .el-icon-question {
           color: @base-color;
         }
         .text-btn-like {
-          color: @base-color;
+          // color: @base-color;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 14px;
+          line-height: 19px;
         }
         .el-row {
           margin-bottom: 10px;
@@ -1064,7 +1222,8 @@ export default class ModelAggregate extends Vue {
   }
   .index-content {
     cursor: pointer;
-    width: calc(100%);
+    width: calc(~'100% - 30px');
+    height: 23px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -1103,4 +1262,10 @@ export default class ModelAggregate extends Vue {
     justify-content: space-between;
   }
 }
+.el-dropdown-menu__item {
+  &.action-disabled {
+    color: @text-disabled-color;
+  }
+}
+
 </style>

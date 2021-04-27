@@ -14,7 +14,7 @@
       <div class="batch-des">{{$t('batchMeasureDes')}}</div>
       <div class="ksd-mb-10 ksd-right">
         <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
-          <i slot="prefix" class="el-input__icon el-icon-search"></i>
+          <i slot="prefix" class="el-input__icon el-ksd-icon-search_22"></i>
         </el-input>
       </div>
       <div v-if="!searchChar">

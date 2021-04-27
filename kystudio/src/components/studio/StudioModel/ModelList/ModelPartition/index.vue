@@ -34,7 +34,7 @@
             <el-form-item prop="column">
               <el-select
               v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
-              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.column.length"></i>
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!partitionMeta.column.length"></i>
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
                   <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
@@ -54,7 +54,7 @@
                 <el-button
                   size="medium"
                   :loading="isLoadingFormat"
-                  icon="el-icon-ksd-data_range_search"
+                  icon="el-ksd-icon-data_range_search_old"
                   v-guide.getPartitionColumnFormat
                   v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
                   @click="handleLoadFormat">
@@ -82,7 +82,7 @@
               style="width:100%"
               @change="changePartitionSetting"
             >
-                <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.multiPartition.length"></i>
+                <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!partitionMeta.multiPartition.length"></i>
                 <el-option :label="$t('noPartition')" value=""></el-option>
                 <el-option :label="t.name" :value="t.name" v-for="t in subPartitionColumnOtions" :key="t.name">
                   <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>

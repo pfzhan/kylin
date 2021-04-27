@@ -51,7 +51,7 @@
                 :loading="isLoadingFormat"
                 v-guide.getPartitionColumnFormat
                 v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig"
-                icon="el-icon-ksd-data_range_search"
+                icon="el-ksd-icon-data_range_search_old"
                 @click="handleLoadFormat">
               </el-button>
             </div>

@@ -56,7 +56,7 @@
                       :placeholder="!groupsDim[aggregateIdx]?(form.globalDimCap?form.globalDimCap+'':$t('noLimitation')) : ''"
                     ></el-input>
                     <span v-if="!aggregate.isEditDim">
-                      <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit ksd-ml-5" @click.stop="editDimCan(aggregateIdx, true)"></i></common-tip>
+                      <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-ksd-icon-edit_22 ksd-ml-5" @click.stop="editDimCan(aggregateIdx, true)"></i></common-tip>
                     </span>
                     <span v-else>
                       <i class="el-icon-ksd-right ksd-ml-6" @click.stop="saveDimCan(aggregateIdx)"></i><i class="el-icon-ksd-error_02 ksd-ml-10" @click.stop="editDimCan(aggregateIdx, false)"></i>
@@ -80,7 +80,7 @@
                           <span class="title font-medium include-title">{{$t('include')}}</span>
                           <div class="row ksd-fright ky-no-br-space">
                             <el-button plain class="ksd-ml-10" size="mini" @click="handleRemoveAllIncludes(aggregateIdx, aggregateIdx + 1, aggregate.id)">{{$t('clearAll')}}</el-button>
-                            <el-button plain size="mini" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-icon-ksd-table_edit ksd-mr-5"></i>{{$t('edit')}}</el-button>
+                            <el-button plain size="mini" icon="el-ksd-icon-edit_22" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleEditIncludes(aggregateIdx, aggregate.id)">{{$t('edit')}}</el-button>
                           </div>
                         </div>
                         <!-- <el-select
@@ -94,7 +94,7 @@
                           :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                           @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value, aggregate.id)"
                           @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
-                          <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
+                          <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-ksd-icon-search_22"></i>
                           <el-option
                             v-for="dimension in dimensions"
                             :key="dimension.value"
@@ -108,7 +108,7 @@
                           </template>
                           <div class="no-includes" v-else>
                             <span>{{$t('noIncludesTip')}}</span>
-                            <span class="add-includes-btn" @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-icon-ksd-table_add ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
+                            <span class="add-includes-btn" @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-table_add_old ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
                           </div>
                         </div>
                       </div>
@@ -129,7 +129,7 @@
                           :value="aggregate.mandatory"
                           :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                           @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value, aggregate.id)">
-                          <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
+                          <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-ksd-icon-search_22"></i>
                           <el-option
                             v-for="dimension in getUnusedDimensions(aggregateIdx)"
                             :key="dimension.value"
@@ -158,7 +158,7 @@
                             :value="hierarchy.items"
                             :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                             @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value, aggregate.id)">
-                            <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
+                            <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-ksd-icon-search_22"></i>
                             <el-option
                               v-for="dimension in getUnusedDimensions(aggregateIdx)"
                               :key="dimension.value"
@@ -167,10 +167,10 @@
                             </el-option>
                           </el-select>
                           <div class="list-actions clearfix ky-no-br-space">
-                            <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
+                            <el-button circle plain type="primary" size="mini" icon="el-ksd-icon-add_22"
                               @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregate.id)">
                             </el-button>
-                            <el-button circle class="delete" size="mini" icon="el-icon-minus"
+                            <el-button circle class="delete" size="mini" icon="el-ksd-icon-minus_22"
                               :disabled="aggregate.hierarchyArray.length === 1"
                               @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx, aggregate.id)">
                             </el-button>
@@ -197,7 +197,7 @@
                             :value="joint.items"
                             :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                             @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value, aggregate.id)">
-                            <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
+                            <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-ksd-icon-search_22"></i>
                             <el-option
                               v-for="dimension in getUnusedDimensions(aggregateIdx)"
                               :key="dimension.value"
@@ -206,10 +206,10 @@
                             </el-option>
                           </el-select>
                           <div class="list-actions clearfix ky-no-br-space">
-                            <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
+                            <el-button circle plain type="primary" size="mini" icon="el-ksd-icon-add_22"
                               @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
                             </el-button>
-                            <el-button circle class="delete" size="mini" icon="el-icon-minus"
+                            <el-button circle class="delete" size="mini" icon="el-ksd-icon-minus_22"
                               :disabled="aggregate.jointArray.length === 1"
                               @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx, aggregate.id)">
                             </el-button>
@@ -238,7 +238,7 @@
                           :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
                           @input="value => handleInput(`aggregateArray.${aggregateIdx}.measures`, value, aggregate.id)"
                           @remove-tag="value => handleRemoveMeasureRules(value, aggregateIdx, aggregate.id)">
-                          <i slot="prefix" v-show="!aggregate.measures.length" class="el-input__icon el-icon-search"></i>
+                          <i slot="prefix" v-show="!aggregate.measures.length" class="el-input__icon el-ksd-icon-search_22"></i>
                           <el-option
                             v-for="measure in measures"
                             :key="measure.value"
@@ -256,7 +256,7 @@
                 </div>
               </div>
               <div class="aggregate-buttons ksd-mt-20">
-                <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
+                <el-button type="primary" icon="el-ksd-icon-add_22" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
               </div>
             </div>
           </div>
@@ -426,7 +426,7 @@
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
         <div class="filter-dimension">
           <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-model="displayExcludedTables" @change="changeExcludedTables" v-if="showExcludedTableCheckBox">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
-          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:240px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:240px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table" @scroll="scrollEvent">
@@ -489,7 +489,7 @@
       <div class="action-measure-layout">
         <p class="alert">{{$t('editMeasuresTip')}}</p>
         <div class="filter-measure">
-          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
       </div>
       <div class="ky-simple-table measure-table">
@@ -1674,7 +1674,7 @@ export default class AggregateModal extends Vue {
   top: 52px;
   height: 100vh;
   width: calc(~'100% - 124px');
-  margin: 0 -20px 0 -20px;
+  // margin: 0 -20px 0 -20px;
   // padding: 20px;
   overflow-y: auto;
   &.brief-Menu {

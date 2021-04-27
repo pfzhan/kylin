@@ -87,7 +87,7 @@
           <template slot-scope="scope">
             <common-tip>
               <div slot="content">{{$t('addSettingItem')}}</div>
-              <i class="el-icon-ksd-table_add" @click="addSettingItem(scope.row)"></i>
+              <i class="el-ksd-icon-table_add_old" @click="addSettingItem(scope.row)"></i>
             </common-tip>
           </template>
       </el-table-column>
@@ -557,11 +557,11 @@ export default class SettingStorage extends Vue {
     }
   }
   .model-setting-table {
-    .el-icon-ksd-table_add.disabled {
+    .el-ksd-icon-table_add_old.disabled {
       color: @text-disabled-color;
       cursor: not-allowed;
     }
-    .el-icon-ksd-table_add,
+    .el-ksd-icon-table_add_old,
     .el-icon-ksd-table_edit,
     .el-icon-ksd-symbol_type {
       &:hover {

@@ -355,6 +355,12 @@ export default {
     [types.LOAD_ALL_INDEX] ({ commit }, paras) {
       return api.model.loadAllIndex(paras)
     },
+    [types.LOAD_BASE_INDEX] (_, paras) {
+      return api.model.loadBaseIndex(paras)
+    },
+    [types.UPDATE_BASE_INDEX] (_, paras) {
+      return api.model.updateBaseIndex(paras)
+    },
     [types.DELETE_INDEX] ({ commit }, paras) {
       return api.model.deleteIndex(paras)
     },
@@ -363,6 +369,9 @@ export default {
     },
     [types.FETCH_INDEX_GRAPH] ({ commit }, paras) {
       return api.model.fetchIndexGraph(paras)
+    },
+    [types.FETCH_INDEX_STAT] (_, paras) {
+      return api.model.fetchIndexStat(paras)
     },
     [types.SUGGEST_IS_BY_ANSWERED] ({ commit }, paras) {
       return api.model.suggestIsByAnswered(paras)

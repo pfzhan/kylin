@@ -641,6 +641,15 @@ export function ArrayFlat (arr) {
   breakUpArray(arr)
   return flat
 }
+
+// 数字划分千分位
+export function sliceNumber (number, len) {
+  if (!number || typeof number !== 'number') return 0
+  let s = typeof len === 'number' ? len : 3
+  let reg = new RegExp(`\\d{1,${s}}(?=(\\d{${s}})+$)`, 'g')
+  return `${number}`.replace(reg, (v) => `${v},`)
+}
+
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, isSubPartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }

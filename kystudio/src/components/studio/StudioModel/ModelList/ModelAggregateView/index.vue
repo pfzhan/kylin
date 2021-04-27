@@ -12,9 +12,9 @@
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowEditAgg">
           <common-tip :content="$t('addAggGroup')">
-            <i class="el-icon-ksd-project_add" @click="(e) => handleAggregateGroup(e)"></i>
+            <i class="el-ksd-icon-add_with_border_22 ksd-fs-22" @click="(e) => handleAggregateGroup(e)"></i>
           </common-tip><common-tip :content="$t('aggAdvanced')">
-            <i class="el-icon-ksd-setting ksd-ml-10" @click="openAggAdvancedModal()"></i>
+            <i class="el-ksd-icon-setting_old ksd-fs-22 ksd-ml-10" @click="openAggAdvancedModal()"></i>
           </common-tip>
         </div>
       </div>
@@ -119,7 +119,7 @@
     <div class="agg-detail-block" v-else>
       <div class="empty-block">
         <div>{{$t('aggGroupTips')}}</div>
-        <el-button type="primary" text icon="el-icon-ksd-table_add" @click="(e) => handleAggregateGroup(e)" v-if="isShowEditAgg">{{$t('aggGroup')}}</el-button>
+        <el-button type="primary" text icon="el-ksd-icon-table_add_old" @click="(e) => handleAggregateGroup(e)" v-if="isShowEditAgg">{{$t('aggGroup')}}</el-button>
       </div>
     </div>
     <AggAdvancedModal/>
@@ -367,7 +367,7 @@ export default class AggregateView extends Vue {
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
 .model-aggregate-view {
-  height: 500px;
+  height: calc(~'100% - 40px');
   overflow: hidden;
   width: 100%;
   .title-list {
@@ -400,7 +400,7 @@ export default class AggregateView extends Vue {
   .agg-total-info-block {
     background-color: @background-disabled-color;
     padding: 10px;
-    color:@text-normal-color;
+    color: @text-normal-color;
     font-size: 12px;
   }
   .agg-detail-block {
@@ -410,7 +410,7 @@ export default class AggregateView extends Vue {
     padding-bottom: 15px;
     position: relative;
     .content {
-      color:@text-normal-color;
+      color: @text-normal-color;
       .is-used {
         background-color: #EAFFEA;
         color: #4CB050;

@@ -6,14 +6,13 @@
     <div class="detail-content">
       <p class="title-tip">{{$t('recommendationsTip1')}}<span v-if="$lang !== 'en'&&datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span><a href="javascript:void();" v-if="datasourceActions.includes('acceRuleSettingActions')" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en' && datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span></p>
       <div class="ksd-fleft ksd-mb-10 ksd-mt-10 ksd-fs-12" >
-        <el-button size="mini" :disabled="!selectedList.length" type="primary" @click="betchAccept" icon="el-icon-ksd-accept">{{$t('accept')}}</el-button><el-button plain size="mini" :disabled="!selectedList.length" @click="betchDelete" icon="el-icon-ksd-table_delete">{{$t('delete')}}</el-button>
+        <el-button text :disabled="!selectedList.length" @click="betchAccept" icon="el-ksd-icon-confirm_22">{{$t('accept')}}</el-button><el-button text :disabled="!selectedList.length" @click="betchDelete" icon="el-ksd-icon-table_delete_22">{{$t('delete')}}</el-button>
       </div>
       <div class="search-contain ksd-fright ksd-mt-10">
-        <el-input class="search-input" v-model.trim="recommendationsList.key" size="small" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
+        <el-input class="search-input" v-model.trim="recommendationsList.key" size="small" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
       </div>
       <el-table
         nested
-        border
         :data="recommendationsList.list"
         class="recommendations-table clearfix"
         size="medium"
@@ -29,7 +28,7 @@
           :label="$t('th_recommendType')"
           :filters="typeList.map(item => ({text: $t(item), value: item}))"
           :filtered-value="checkedStatus"
-          filter-icon="el-icon-ksd-filter"
+          filter-icon="el-ksd-icon-filter_22"
           :show-multiple-footer="false"
           :filter-change="(v) => filterType(v, 'checkedStatus')"
           prop="type"
@@ -72,7 +71,7 @@
           width="120"
           prop="hit_count"
           :label="$t('th_useCount')"
-          :render-header="renderHeaderCol"
+          :info-tooltip="$t('usedCountTip')"
           sortable>
         </el-table-column>
         <el-table-column
@@ -531,14 +530,14 @@ export default class IndexList extends Vue {
     }
   }
 
-  renderHeaderCol (h, { column, index }) {
-    return <span class="used-count">
-      {this.$t('th_useCount')}
-      <el-tooltip content={ this.$t('usedCountTip') } effect="dark" placement="top">
-        <span class="icon el-icon-ksd-what ksd-ml-5"></span>
-      </el-tooltip>
-    </span>
-  }
+  // renderHeaderCol (h, { column, index }) {
+  //   return <span class="used-count">
+  //     {this.$t('th_useCount')}
+  //     <el-tooltip content={ this.$t('usedCountTip') } effect="dark" placement="top">
+  //       <span class="icon el-icon-ksd-what ksd-ml-5"></span>
+  //     </el-tooltip>
+  //   </span>
+  // }
 
   async acceptLayout () {
     this.showIndexDetail = false

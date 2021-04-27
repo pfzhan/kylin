@@ -13,7 +13,7 @@
           </common-tip>
           <span class="setting-icon" v-if="!isSchemaBrokenModel" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
-        <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="t.filterColumnChar" @input="t.filterColumns()" size="small" :placeholder="$t('searchColumn')"></el-input></div>
+        <div class="column-search-box"><el-input prefix-icon="el-ksd-icon-search_22" v-model="t.filterColumnChar" @input="t.filterColumns()" size="small" :placeholder="$t('searchColumn')"></el-input></div>
         <div class="column-list-box ksd-drag-box" v-if="!t.drawSize.isOutOfView&&t.showColumns.length" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
           <ul>
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.showColumns" :key="col.name">
@@ -338,7 +338,7 @@
               :closable="false"
               show-icon>
             </el-alert>
-            <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
+            <el-input @input="searchModelEverything"  clearable class="search-input" :placeholder="$t('searchInputPlaceHolder')" v-model="modelGlobalSearch" prefix-icon="el-ksd-icon-search_22"></el-input>
             <transition name="bounceleft">
               <div v-scroll.reactive class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-if="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
                 <div>
@@ -445,7 +445,7 @@
         <span class="alias-span name">{{currentEditTable.alias}}</span>
         <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
       </div>
-      <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="currentEditTable.filterColumnChar" @input="currentEditTable.filterColumns()" size="small"></el-input></div>
+      <div class="column-search-box"><el-input prefix-icon="el-ksd-icon-search_22" v-model="currentEditTable.filterColumnChar" @input="currentEditTable.filterColumns()" size="small"></el-input></div>
       <div class="column-list-box" v-scroll v-if="currentEditTable.showColumns.length">
         <ul >
           <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.showColumns" :key="col.name">
@@ -1642,13 +1642,13 @@ export default class ModelEdit extends Vue {
           this.isPurgeSegment = res.isPurgeSegment // 修改分区列会清空所有segment，该字段引导用户去添加segment
         }
         if (res.isSubmit) {
-          this.handleSaveModel(data, res.data)
+          this.handleSaveModel({data, modelSaveConfigData: res.data, createBaseIndex: res.create_base_index})
         } else {
           this.$emit('saveRequestEnd')
         }
       })
     } else {
-      this.handleSaveModel(data)
+      this.handleSaveModel({data})
     }
   }
   // 解析校验保存模型数据
@@ -1861,22 +1861,22 @@ export default class ModelEdit extends Vue {
     if (localStorage.getItem('isFirstAddModel') === 'false' && !localStorage.getItem('isFirstSaveModel')) {
       localStorage.setItem('isFirstSaveModel', 'true')
     }
-    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'third' }})
+    this.$router.replace({name: 'ModelDetails', params: { modelName: this.modelInstance.alias, tabTypes: 'second', ignoreIntercept: true }})
     this.gotoIndexdialogVisible = false
   }
   willAddSegment () {
-    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'first' }})
+    this.$router.replace({name: 'ModelDetails', params: { modelName: this.modelInstance.alias, tabTypes: 'first', ignoreIntercept: true }})
     this.gotoIndexdialogVisible = false
   }
-  handleSaveModel (data, modelSaveConfigData) {
+  handleSaveModel ({data, modelSaveConfigData, createBaseIndex}) {
     this.saveModelType = 'saveModel'
-    let para = data
+    let para = {...data, create_base_index: createBaseIndex}
     if (data.uuid) {
       this.saveModelType = 'updataModel'
     }
     // 如果未选择partition 把partition desc 设置为null
     if (!(data && data.partition_desc && data.partition_desc.partition_date_column)) {
-      data.partition_desc = null
+      para.partition_desc = null
       this.isFullLoad = true
     }
     this[this.saveModelType](para).then((res) => {

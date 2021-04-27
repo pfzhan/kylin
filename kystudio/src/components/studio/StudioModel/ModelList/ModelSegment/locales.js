@@ -107,7 +107,7 @@ export default {
     confirmMergeSegments: '确认要合并 {count} 个 segments？',
     pleaseSelectStartOrEndSegments: '请选择第一个开始或最后一个结束的连续 segments。',
     segmentWarning: '请确认是否删除以下 Segment(s)，删除后将导致模型 {modelName} 处于警告状态，查询对应数据范围时结果将为空。请注意：删除操作无法撤销。',
-    storageSize: '存储大小',
+    storageSize: '存储',
     segmentDetail: 'Segment 详情',
     segmentID: 'Segment ID：',
     segmentName: 'Segment 名称：',
