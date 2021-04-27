@@ -23,24 +23,30 @@
  */
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.CANDIDATE_LOG;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.LOG;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARDER_HISTORY;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.Future;
 
+import lombok.val;
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.OptionBuilder;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.ExtractFactory;
 import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
@@ -150,7 +156,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         exportInfluxDBMetrics(exportDir, recordTime);
 
         exportSparkLog(exportDir, startTime, endTime, recordTime);
-
+        exportCandidateLog(exportDir, recordTime, startTime, endTime);
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
         executeTimeoutTask(taskQueue);
@@ -167,6 +173,18 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         }
 
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
+    }
+
+    private void exportCandidateLog(File exportDir, File recordTime, long startTime, long endTime) {
+        // candidate log
+        val candidateLogTask = executorService.submit(() -> {
+            recordTaskStartTime(CANDIDATE_LOG);
+            List<ProjectInstance> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .listAllProjects();
+            projects.forEach(x -> KylinLogTool.extractJobTmpCandidateLog(exportDir, x.getName(), startTime, endTime));
+            recordTaskExecutorTimeToFile(CANDIDATE_LOG, recordTime);
+        });
+        scheduleTimeoutTask(candidateLogTask, CANDIDATE_LOG);
     }
 
     private void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime) {
@@ -190,6 +208,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         });
 
         scheduleTimeoutTask(sparderHistoryTask, SPARDER_HISTORY);
+
     }
 
     public long getDefaultStartTime() {

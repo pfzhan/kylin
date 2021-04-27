@@ -209,4 +209,11 @@ public class ToolUtil {
         }
         return isAvailable;
     }
+
+    public static String getHdfsJobTmpDir(String project) {
+        Preconditions.checkArgument(!StringUtils.isBlank(project));
+
+        final String JOB_TMP = "job_tmp";
+        return getHdfsPrefix() + File.separator + project + File.separator + JOB_TMP;
+    }
 }

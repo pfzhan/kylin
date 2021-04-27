@@ -414,4 +414,24 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         KylinLogTool.hideLicenseString(testFile);
         Assert.assertFalse(FileUtils.readFileToString(testFile).contains(license));
     }
+
+    @Test
+    public void testExtractJobTmpCandidateLog() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        String project = "expert_05";
+        String hdfsPath = ToolUtil.getHdfsJobTmpDir(project);
+        String normPath = hdfsPath.startsWith("file://") ? hdfsPath.substring(7) : hdfsPath;
+
+        FileUtils.forceMkdir(new File(normPath));
+        String zipFile = "expert_05-2021-04-21-06-53-51-549.zip";
+        File tFile = new File(normPath, zipFile);
+        FileUtils.writeStringToFile(tFile, "111");
+
+        KylinLogTool.extractJobTmpCandidateLog(mainDir, project, 0, 1619058301307L);
+
+        FileUtils.deleteQuietly(new File(hdfsPath));
+        Assert.assertTrue(new File(mainDir, String.format("job_tmp/%s", zipFile)).exists());
+    }
 }
