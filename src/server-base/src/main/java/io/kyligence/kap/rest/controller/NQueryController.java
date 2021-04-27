@@ -202,7 +202,7 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryHistories(@RequestParam(value = "project") String project,
            @RequestParam(value = "timezone_offset_hour") Integer timeZoneOffsetHour,
-           @RequestParam(value = "language") String language,
+           @RequestParam(value = "language", required = false) String language,
            @RequestParam(value = "start_time_from", required = false) String startTimeFrom,
            @RequestParam(value = "start_time_to", required = false) String startTimeTo,
            @RequestParam(value = "latency_from", required = false) String latencyFrom,
@@ -344,8 +344,10 @@ public class NQueryController extends NBasicController {
 
     private void checkGetQueryHistoriesParam(QueryHistoryRequest request) {
         // check start time and end time
-        Preconditions.checkArgument(allEmptyOrNotAllEmpty(request.getStartTimeFrom(), request.getStartTimeTo()));
-        Preconditions.checkArgument(allEmptyOrNotAllEmpty(request.getLatencyFrom(), request.getLatencyTo()));
+        Preconditions.checkArgument(allEmptyOrNotAllEmpty(request.getStartTimeFrom(), request.getStartTimeTo()),
+                "'start time from' and 'start time to' must be used together.");
+        Preconditions.checkArgument(allEmptyOrNotAllEmpty(request.getLatencyFrom(), request.getLatencyTo()),
+                "'latency from ' and 'latency to' must be used together.");
     }
 
     private boolean allEmptyOrNotAllEmpty(String param1, String param2) {
