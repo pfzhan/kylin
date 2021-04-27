@@ -1294,7 +1294,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isGlobalDictCheckEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.global-dict-check-enabled", TRUE));
+        return Boolean.parseBoolean(getOptional("kylin.engine.global-dict-check-enabled", FALSE));
     }
 
     public int[] getSparkEngineDriverMemoryStrategy() {
