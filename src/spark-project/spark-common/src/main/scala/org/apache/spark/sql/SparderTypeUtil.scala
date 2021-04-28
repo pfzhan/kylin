@@ -227,6 +227,8 @@ object SparderTypeUtil extends Logging {
         b
       case b: JLong =>
         b
+      case null =>
+        null
       case _ =>
         literal.getValue.toString
     }
