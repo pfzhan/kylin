@@ -132,20 +132,21 @@
             >
               <el-table-column type="selection" width="44" v-if="isShowAggregateAction"></el-table-column>
               <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
-              <el-table-column prop="data_size" sortable="custom" :label="$t('storage')">
+              <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
                 <template slot-scope="scope">
                   <span class="data-size-text">{{scope.row.data_size | dataSize}}</span>
-                  <el-progress v-if="indexStat.max_data_siz" :percentage="indexStat.max_data_size ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
+                  <el-progress v-if="indexStat.max_data_size" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column
                 prop="usage"
                 sortable="custom"
+                width="200px"
                 :label="$t('queryCount')"
               >
                 <template slot-scope="scope">
                   <span class="usage-text">{{scope.row.usage}}</span>
-                  <el-progress v-if="indexStat.max_hit_count" :percentage="indexStat.max_hit_count ? scope.row.usage / indexStat.max_hit_count * 100 : 0.5" class="usage-progress"></el-progress>
+                  <el-progress v-if="indexStat.max_hit_count" :percentage="indexStat.max_hit_count && (scope.row.usage / indexStat.max_hit_count > 0.05) ? scope.row.usage / indexStat.max_hit_count * 100 : 0.5" class="usage-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
@@ -153,7 +154,7 @@
                   <span>{{$t(scope.row.source)}}</span>
                 </template>
               </el-table-column>
-              <el-table-column align="left" :label="$t('indexContent')" width="200">
+              <el-table-column align="left" :label="$t('indexContent')">
                 <template slot-scope="scope">
                   <el-popover
                     ref="index-content-popover"
@@ -1008,6 +1009,7 @@ export default class ModelAggregate extends Vue {
       .el-progress-bar {
         padding-right: 0;
         margin-right: 0;
+        border-radius: 0;
       }
       .el-progress__text {
         display: none;
@@ -1015,8 +1017,10 @@ export default class ModelAggregate extends Vue {
       .el-progress-bar__outer {
         border-radius: none;
         background-color: transparent;
+        border-radius: 0;
         .el-progress-bar__inner {
           background-color: #2492F7;
+          border-radius: 0;
         }
       }
     }
@@ -1109,6 +1113,7 @@ export default class ModelAggregate extends Vue {
       box-sizing: border-box;
       padding: 0px !important;
       .detail-content {
+        background-color: transparent;
         .date-range {
           color: @text-normal-color;
         }
@@ -1125,7 +1130,7 @@ export default class ModelAggregate extends Vue {
           // color: @base-color;
           cursor: pointer;
           font-size: 14px;
-          line-height: 19px;
+          line-height: 16px;
         }
         .el-row {
           margin-bottom: 10px;

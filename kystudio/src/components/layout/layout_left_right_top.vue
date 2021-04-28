@@ -718,7 +718,7 @@ export default class LayoutLeftRightTop extends Vue {
     this.$nextTick(() => {
       if (currentPathName === 'Job' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
         this.$router.replace({name: 'Dashboard', params: { refresh: true }})
-      } else if (currentPathName === 'ModelSubPartitionValues') {
+      } else if (currentPathName === 'ModelSubPartitionValues' || currentPathName === 'ModelDetails') {
         this.$router.replace({name: 'ModelList', params: { refresh: true }})
       } else {
         this.$router.replace({name: currentPathName, params: { refresh: true }})

@@ -151,7 +151,7 @@
                   <p class="title ksd-mb-20">{{scope.row.alias}}</p>
                   <div class="label">
                     <div class="name ksd-mb-8">{{$t('kylinLang.model.ownerGrid')}}</div>
-                    <div class="name">描述</div>
+                    <div class="name">{{$t('description')}}</div>
                   </div>
                   <div class="content">
                     <div class="ksd-mb-8">{{scope.row.owner}}</div>
@@ -173,7 +173,7 @@
         <el-table-column width="140px" :label="$t('recommendationsTiTle')">
           <template slot-scope="scope">
             <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom">
-              <span class="recommendation-layout"><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.available_indexes_count}}</span></span>
+              <span class="recommendation-layout" @click.stop><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.available_indexes_count}}</span></span>
             </el-tooltip>
           </template>
         </el-table-column>

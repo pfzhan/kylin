@@ -12,9 +12,9 @@
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowEditAgg">
           <common-tip :content="$t('addAggGroup')">
-            <i class="el-ksd-icon-add_with_border_22 ksd-fs-22" @click="(e) => handleAggregateGroup(e)"></i>
+            <el-button text type="primary" icon-button icon="el-ksd-icon-add_with_border_22" size="small" @click="(e) => handleAggregateGroup(e)"></el-button>
           </common-tip><common-tip :content="$t('aggAdvanced')">
-            <i class="el-ksd-icon-setting_old ksd-fs-22 ksd-ml-10" @click="openAggAdvancedModal()"></i>
+            <el-button text type="primary" icon-button icon="el-ksd-icon-setting_old" size="small" @click="openAggAdvancedModal()"></el-button>
           </common-tip>
         </div>
       </div>
@@ -51,9 +51,9 @@
           </span>
           <span class="ksd-fright icon-group">
             <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit" @click="editAggGroup(aggregateIdx)"></i>
+              <el-button text type="primary" icon-button icon="el-ksd-icon-edit_16" size="small" @click="editAggGroup(aggregateIdx)"></el-button>
             </common-tip><common-tip :content="$t('kylinLang.common.delete')">
-              <i class="el-icon-ksd-table_delete ksd-ml-10" @click="deleteAggGroup(aggregateIdx)"></i>
+              <el-button text type="primary" icon-button icon="el-ksd-icon-table_delete_16" size="small" @click="deleteAggGroup(aggregateIdx)"></el-button>
             </common-tip>
           </span>
         </div>

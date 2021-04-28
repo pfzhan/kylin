@@ -6,7 +6,7 @@
     <div class="detail-content">
       <p class="title-tip">{{$t('recommendationsTip1')}}<span v-if="$lang !== 'en'&&datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span><a href="javascript:void();" v-if="datasourceActions.includes('acceRuleSettingActions')" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en' && datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span></p>
       <div class="ksd-fleft ksd-mb-10 ksd-mt-10 ksd-fs-12" >
-        <el-button text :disabled="!selectedList.length" @click="betchAccept" icon="el-ksd-icon-confirm_22">{{$t('accept')}}</el-button><el-button text :disabled="!selectedList.length" @click="betchDelete" icon="el-ksd-icon-table_delete_22">{{$t('delete')}}</el-button>
+        <el-button text :disabled="!selectedList.length" @click="betchAccept" type="primary" icon="el-ksd-icon-confirm_22">{{$t('accept')}}</el-button><el-button text :disabled="!selectedList.length" type="primary" @click="betchDelete" icon="el-ksd-icon-table_delete_22">{{$t('delete')}}</el-button>
       </div>
       <div class="search-contain ksd-fright ksd-mt-10">
         <el-input class="search-input" v-model.trim="recommendationsList.key" size="small" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
@@ -75,7 +75,6 @@
           sortable>
         </el-table-column>
         <el-table-column
-          width="175"
           prop="last_modified"
           :label="$t('th_updateDate')"
           sortable
@@ -87,6 +86,7 @@
         <el-table-column
           :label="$t('th_note')">
           <div slot-scope="scope" class="col-tab-note">
+            <!-- <el-tag class="th-note-tag" size="small" type="warning">查询历史</el-tag> -->
             <template v-if="'recommendation_source' in scope.row.memo_info">
               <el-tooltip class="item" effect="dark" :content="removeReasonTip(scope)" placement="top">
                 <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.memo_info.recommendation_source)}}</el-tag>
@@ -886,6 +886,10 @@ export default class IndexList extends Vue {
   }
   .el-card__body {
     padding: 0 !important;
+
+    .detail-content {
+      background-color: transparent;
+    }
   }
   .title-tip {
     color: #5C5C5C;

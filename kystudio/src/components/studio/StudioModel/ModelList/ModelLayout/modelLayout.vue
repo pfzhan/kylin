@@ -129,10 +129,8 @@ import ModelPartition from '../ModelPartition/index.vue'
   beforeRouteEnter (to, from, next) {
     if (!from.name || from.name !== 'ModelList') {
       next((vm) => {
-        // await vm.loadModelList()
         vm.initData = true
         vm.__init()
-        // vm.$router.push({name: 'ModelList'})
       })
     } else {
       next((vm) => {
