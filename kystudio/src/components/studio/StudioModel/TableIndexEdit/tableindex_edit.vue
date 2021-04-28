@@ -266,7 +266,7 @@
     getAllColumns () {
       this.allColumns = []
       // let result = []
-      let result = this.modelInstance.selected_columns.map((c) => {
+      let result = this.modelInstance.selected_columns.filter(it => it.status === 'DIMENSION').map((c) => {
         return { fullName: c.column, cardinality: c.cardinality, depend_lookup_table: typeof c.depend_lookup_table !== 'undefined' ? c.depend_lookup_table : true }
       })
       // let modelUsedTables = this.modelInstance && this.modelInstance.getTableColumns() || []
