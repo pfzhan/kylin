@@ -114,17 +114,25 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();
         sparkExecutable.setProject("default");
-
         String hadoopConf = System.getProperty("KYLIN_HOME") + "/hadoop";
         String kylinJobJar = System.getProperty("KYLIN_HOME") + "/lib/job.jar";
         String appArgs = "/tmp/output";
 
-        String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
-        Assert.assertNotNull(cmd);
-        Assert.assertTrue(cmd.contains("spark-submit"));
-        Assert.assertTrue(cmd.contains("log4j.configuration=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
-        Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
-        Assert.assertTrue(cmd.contains("spark.driver.log4j.appender.hdfs.File="));
-        Assert.assertTrue(cmd.contains("kylin.hdfs.working.dir="));
+        {
+            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
+            Assert.assertNotNull(cmd);
+            Assert.assertTrue(cmd.contains("spark-submit"));
+            Assert.assertTrue(cmd.contains("log4j.configuration=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
+            Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
+            Assert.assertTrue(cmd.contains("spark.driver.log4j.appender.hdfs.File="));
+            Assert.assertTrue(cmd.contains("kylin.hdfs.working.dir="));
+        }
+
+        overwriteSystemProp("kylin.engine.extra-jars-path", "/this_new_path");
+        {
+            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
+            Assert.assertNotNull(cmd);
+            Assert.assertTrue(cmd.contains("/this_new_path"));
+        }
     }
 }

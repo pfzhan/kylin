@@ -39,7 +39,6 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -120,20 +119,12 @@ public class NSparkExecutable extends AbstractExecutable {
         return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
-    protected void setProjectParam(String project) {
-        this.setParam(NBatchConstants.P_PROJECT_NAME, project);
-    }
-
     protected void setSparkSubmitClassName(String className) {
         this.setParam(NBatchConstants.P_CLASS_NAME, className);
     }
 
     public String getSparkSubmitClassName() {
         return this.getParam(NBatchConstants.P_CLASS_NAME);
-    }
-
-    protected void setJars(String jars) {
-        this.setParam(NBatchConstants.P_JARS, jars);
     }
 
     public String getJars() {
@@ -461,7 +452,7 @@ public class NSparkExecutable extends AbstractExecutable {
             jars = jars + COMMA + sparkConf.get("spark.sql.hive.metastore.jars");
         }
         final KylinConfig config = getConfig();
-        if (!Strings.isEmpty(config.getExtraJarsPath())) {
+        if (StringUtils.isNotEmpty(config.getExtraJarsPath())) {
             jars = jars + COMMA + config.getExtraJarsPath();
         }
 

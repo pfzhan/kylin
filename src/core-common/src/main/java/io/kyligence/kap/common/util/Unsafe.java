@@ -32,7 +32,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.directory.api.util.Strings;
+import org.apache.commons.lang.StringUtils;
 
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
@@ -103,7 +103,7 @@ public class Unsafe implements IKeep {
             systemProp.put(key, System.getProperty(key));
         }
 
-        if (Strings.isEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             System.clearProperty(key);
         } else {
             System.setProperty(key, value);
