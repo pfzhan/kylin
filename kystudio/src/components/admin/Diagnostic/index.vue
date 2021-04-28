@@ -445,7 +445,6 @@ export default class Diagnostic extends Vue {
       .time-range-radio {
         .el-radio {
           height: 30px;
-          line-height: 30px;
           padding: 0 8px;
           box-sizing: border-box;
           &.is-checked {

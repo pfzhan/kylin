@@ -75,7 +75,6 @@
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('emptyDataLoad')}}</span><span class="setting-value fixed">
           <el-switch
-            size="small"
             v-model="form.data_load_empty_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
@@ -83,9 +82,8 @@
         </span>
         <div class="setting-desc">{{$t('emptyDataLoadDesc')}}</div>
         <div class="split"></div>
-        <span class="setting-label font-medium">{{$t('errorJob')}}</span><span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('errorJob')}}</span><span class="setting-value fixed ksd-fs-12">
           <el-switch
-            size="small"
             v-model="form.job_error_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
@@ -192,7 +190,6 @@
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('mulPartition')}}</span><span class="setting-value fixed">
           <el-switch
-            size="small"
             v-model="form.multi_partition_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
@@ -207,9 +204,8 @@
       :header-content="$t('snapshotTitle')"
       :isEditable="false">
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('snapshotManagment')}}</span><span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('snapshotManagment')}}</span><span class="setting-value fixed ksd-fs-12">
           <el-switch
-            size="small"
             v-model="form.snapshot_manual_management_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
@@ -226,7 +222,6 @@
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('exposingCC')}}</span><span class="setting-value fixed">
           <el-switch
-            size="small"
             v-model="form.expose_computed_column"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
@@ -244,9 +239,8 @@
         <span class="beta-label">BETA</span>
       </template>
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('nonEqualJoin')}}</span><span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('nonEqualJoin')}}</span><span class="setting-value fixed ksd-fs-12">
           <el-switch
-            size="small"
             v-model="form.scd2_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"

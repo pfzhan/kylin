@@ -21,9 +21,8 @@
           {{$t('enableSemiAutomatic')}}
           <span class="beta-label">BETA</span>
         </span>
-        <span class="setting-value fixed">
+        <span class="setting-value fixed ksd-fs-12">
           <el-switch
-            size="small"
             v-model="form.semi_automatic_mode"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
@@ -96,9 +95,8 @@
       :header-content="$t('pushdownSettings')"
       :isEditable="false">
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span><span class="setting-value fixed">
+        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span><span class="setting-value fixed ksd-fs-12">
           <el-switch
-            size="small"
             v-model="form.push_down_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
@@ -131,7 +129,6 @@
         <div class="setting-item">
           <span class="setting-label font-medium">{{$t('segmentMerge')}}</span><span class="setting-value fixed">
             <el-switch
-              size="small"
               v-model="form.auto_merge_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
@@ -179,7 +176,6 @@
         <div class="setting-item">
           <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span><span class="setting-value fixed">
             <el-switch
-              size="small"
               v-model="form.retention_range.retention_range_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
@@ -212,9 +208,8 @@
           </div>
         </div>
         <div class="setting-item">
-          <span class="setting-label font-medium">{{$t('emptySegmentEnable')}} <span class="beta-label">BETA</span></span><span class="setting-value fixed">
+          <span class="setting-label font-medium">{{$t('emptySegmentEnable')}} <span class="beta-label">BETA</span></span><span class="setting-value fixed ksd-fs-12">
             <el-switch
-              size="small"
               v-model="form.create_empty_segment_enabled"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
@@ -252,7 +247,7 @@
         <div class="conds">
           <div class="conds-title">
             <span class="setting-label font-medium">{{$t('querySubmitter')}}</span>
-            <el-switch size="small" v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content">
             <div class="ksd-fs-12 ksd-mt-5">{{$t('querySubmitterTips')}}</div>
@@ -276,7 +271,7 @@
         </div>
         <div class="conds">
           <div class="conds-title">
-            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><el-switch size="small" @change="changeDurationEnable" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><el-switch @change="changeDurationEnable" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
@@ -313,7 +308,7 @@
         <div class="conds">
           <div class="conds-title">
             <span class="setting-label font-medium">{{$t('excludeRule')}}</span>
-            <el-switch size="small" v-model="rulesObj.excluded_tables_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch v-model="rulesObj.excluded_tables_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
               <div class="ksd-mt-10 ksd-fs-14">
@@ -822,12 +817,6 @@ export default class SettingBasic extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .basic-setting {
-  .setting-item {
-    .el-switch {
-      position: relative;
-      top: -2px;
-    }
-  }
   .beta-label {
     display: inline-block;
     height: 18px;
@@ -865,10 +854,10 @@ export default class SettingBasic extends Vue {
       font-weight: @font-medium;
     }
     .conds > .conds-title {
-      height: 18px;
-      line-height: 18px;
+      height: 21px;
+      line-height: 22px;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
     }
     .el-form-item--medium .el-form-item__content, .el-form-item--medium .el-form-item__label {
       line-height: 1;

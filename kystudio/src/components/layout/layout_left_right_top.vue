@@ -60,10 +60,10 @@
         <div class="topbar">
           <div class="nav-icon">
             <common-tip :content="$t('holdNaviBar')" placement="bottom-start" v-if="!briefMenuGet">
-              <i class="ksd-fs-18 el-icon-ksd-grid_01" @click="toggleLeftMenu"></i>
+              <i class="ksd-fs-22 el-ksd-icon-nav_fold_22" @click="toggleLeftMenu"></i>
             </common-tip>
             <common-tip :content="$t('unholdNaviBar')" placement="bottom-start" v-else>
-              <i class="ksd-fs-18 el-icon-ksd-grid_02" @click="toggleLeftMenu"></i>
+              <i class="ksd-fs-22 el-ksd-icon-nav_unfold_22" @click="toggleLeftMenu"></i>
             </common-tip>
           </div>
           <template v-if="!isAdminView">
@@ -112,10 +112,10 @@
                 </p>
               </div>
             </li>
-            <li>
+            <li class="capacity-li">
               <capacity/>
             </li>
-            <li v-if="showMenuByRole('admin')">
+            <li class="ksd-mr-2" v-if="showMenuByRole('admin')">
               <el-button
                 type="primary"
                 text
@@ -126,8 +126,8 @@
                 @click="handleSwitchAdmin">
               </el-button>
             </li>
-            <li><help></help></li>
-            <li><change_lang ref="changeLangCom"></change_lang></li>
+            <li class="ksd-mr-2"><help></help></li>
+            <li class="ksd-mr-22"><change_lang ref="changeLangCom"></change_lang></li>
             <li>
               <el-dropdown @command="handleCommand" class="user-msg-dropdown">
                 <span class="el-dropdown-link">
@@ -1372,7 +1372,7 @@ export default class LayoutLeftRightTop extends Vue {
           z-index: 100;
           .nav-icon {
             margin-left: 204px;
-            margin-top: 15px;
+            margin-top: 13px;
             height: 14px;
             line-height: 14px;
             cursor: pointer;
@@ -1388,8 +1388,13 @@ export default class LayoutLeftRightTop extends Vue {
             >li{
               vertical-align: middle;
               display: inline-block;
-              margin-right: 16px;
+              margin-right: 24px;
               cursor: pointer;
+              &.capacity-li {
+                padding-right: 18px;
+                margin-right: 10px;
+                border-right: 1px solid @ke-border-secondary;
+              }
             }
             .active-nodes {
               font-size: 12px;
