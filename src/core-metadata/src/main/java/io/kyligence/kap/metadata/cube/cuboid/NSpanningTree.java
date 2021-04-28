@@ -30,6 +30,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.kylin.common.KylinConfig;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -74,13 +76,18 @@ public abstract class NSpanningTree implements Serializable {
 
     abstract public Collection<IndexEntity> getChildrenByIndexPlan(IndexEntity parent);
 
-    abstract public IndexEntity getParentByIndexPlan(IndexEntity child);
+    @Nullable
+    abstract public IndexEntity getParentByIndexEntity(IndexEntity child);
+
+    abstract public IndexEntity getRootByIndexEntity(IndexEntity child);
 
     abstract public Collection<IndexEntity> getAllIndexEntities();
 
     abstract public Collection<IndexEntity> decideTheNextBatch(NDataSegment segment);
 
     abstract public Collection<IndexEntity> getImmediateSuccessors(IndexEntity index);
+
+    abstract public void addParentChildRelation(IndexEntity parent, IndexEntity child);
 
     public Map<IndexEntity, Collection<LayoutEntity>> getCuboids() {
         return cuboids;
@@ -98,6 +105,7 @@ public abstract class NSpanningTree implements Serializable {
         protected int level;
 
         protected transient TreeNode parent;
+        protected transient TreeNode rootNode;
         protected transient List<IndexEntity> parentCandidates;
         protected transient boolean hasBeenDecided = false;
 

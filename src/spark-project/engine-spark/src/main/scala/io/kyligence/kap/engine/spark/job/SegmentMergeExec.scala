@@ -115,7 +115,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
   private def mergeDataLayout(layout: LayoutEntity, unitedDS: Dataset[Row]): Unit = {
     val readableDesc = s"Merge layout ${layout.getId}"
     val layoutDS = wrapLayoutDS(layout, unitedDS)
-    newDataLayout(dataSegment, layout, layoutDS, readableDesc)
+    newDataLayout(dataSegment, layout, layoutDS, readableDesc, None)
   }
 
 

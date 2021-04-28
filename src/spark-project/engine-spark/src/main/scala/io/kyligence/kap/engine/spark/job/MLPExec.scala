@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util
 import java.util.Objects
-
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.MLPExec.PartitionResult
@@ -34,7 +33,7 @@ import io.kyligence.kap.engine.spark.job.SegmentExec.ResultType
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.job.JobBucket
 import org.apache.kylin.common.KylinConfig
-import org.apache.spark.sql.datasource.storage.WriteTaskStats
+import org.apache.spark.sql.datasource.storage.{StorageListener, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row}
 
 import scala.collection.JavaConverters._
@@ -67,13 +66,14 @@ trait MLPExec extends SegmentExec {
                                          layout: LayoutEntity, //
                                          partitionId: java.lang.Long, //
                                          layoutDS: Dataset[Row], //
-                                         readableDesc: String): Unit = {
+                                         readableDesc: String,
+                                         storageListener: Option[StorageListener]): Unit = {
     val newBucketId = newBuckets.filter(_.getLayoutId == layout.getId) //
       .filter(_.getPartitionId == partitionId) //
       .head.getBucketId
     logInfo(s"LAYOUT-PARTITION-BUCKET ${layout.getId}-$partitionId-$newBucketId.")
     val storagePath = NSparkCubingUtil.getStoragePath(dataSegment, layout.getId, newBucketId)
-    val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc)
+    val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc, storageListener)
     pipe.offer(PartitionResult(layout.getId, partitionId, newBucketId, taskStats))
   }
 

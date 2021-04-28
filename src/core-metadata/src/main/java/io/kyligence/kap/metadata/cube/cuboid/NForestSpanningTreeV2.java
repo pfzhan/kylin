@@ -53,12 +53,6 @@ public class NForestSpanningTreeV2 extends NForestSpanningTree implements IKeepN
         super(cuboids, cacheKey);
     }
 
-    @Override
-    public IndexEntity getParentByIndexPlan(IndexEntity child) {
-        TreeNode childNode = nodesMap.get(child.getId());
-        return childNode.parent.indexEntity;
-    }
-
     private List<TreeNode> getAllLeafNodes() {
         val roots = getRoots();
         List<TreeNode> leafNodes = Lists.newArrayList();

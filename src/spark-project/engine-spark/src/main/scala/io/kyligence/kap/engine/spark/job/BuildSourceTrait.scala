@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util.Objects
-
 import io.kyligence.kap.engine.spark.builder.{MLPBuildSource, SegmentBuildSource}
 import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.spark.internal.Logging
 
+import java.util.Objects
 import scala.collection.JavaConverters._
 
 trait BuildSourceTrait extends Logging {
@@ -48,6 +47,7 @@ trait BuildSourceTrait extends Logging {
       } else {
         layouts.map { layout =>
           logInfo(s"Optimal source LAYOUT_${parent.getId} of LAYOUT_${layout.getId}")
+          spanningTree.addParentChildRelation(parent.getIndex, index)
           SegmentBuildSource.newLayoutSource(layout, parent, dataSegment)
         }
       }
@@ -70,6 +70,7 @@ trait BuildSourceTrait extends Logging {
         } else {
           layouts.map { layout =>
             logInfo(s"Optimal source LAYOUT_${parent.getId} of LAYOUT_${layout.getId}, PARTITION_$partitionId")
+            spanningTree.addParentChildRelation(parent.getIndex, index)
             MLPBuildSource.newLayoutSource(partitionId, layout, parent, dataSegment)
           }
         }

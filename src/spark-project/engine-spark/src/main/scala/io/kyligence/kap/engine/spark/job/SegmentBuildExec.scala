@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.io.IOException
-import java.util.Objects
-
 import com.google.common.collect.Lists
+import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{SegmentBuildSource, SegmentFlatTable}
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
@@ -35,6 +33,8 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Column, Dataset, Row}
 
+import java.io.IOException
+import java.util.Objects
 import scala.collection.JavaConverters.asScalaSetConverter
 
 class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
@@ -54,13 +54,16 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected final val storageType = dataModel.getStorageType
   protected final val dimRangeInfo = new java.util.HashMap[String, DimensionRangeInfo]
 
+  private final val sanityCheckHandler = new SanityCheckIndexHandler(spanningTree)
 
   protected lazy val flatTableDesc = new SegmentFlatTableDesc(config, dataSegment, spanningTree)
 
   protected lazy val flatTable: SegmentFlatTable = //
     SegmentSourceUtils.newFlatTable(flatTableDesc, sparkSession)
 
-  private lazy val layer1Sources = get1stLayerSources()
+  private var flatTableStatistics: Statistics = _
+
+  protected lazy val layer1Sources = get1stLayerSources()
 
   private lazy val needFlatTable = layer1Sources.exists(_.isFlatTable)
 
@@ -69,6 +72,8 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     logInfo(s"Build SEGMENT $segmentId")
     // Checkpoint results.
     checkpoint()
+    // Gather statistics of flat table
+    gatherFlatTableStats()
     // Build layers.
     buildByLayer()
     // Drain results immediately after building.
@@ -122,7 +127,10 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       // ParentDS should be constructed from the parent layout.
       // Parent layout should be coupled with the dataSegment reference.
       val parentDS = StorageStoreUtils.toDF(head.getDataSegment, head.getParent, sparkSession)
-      grouped.foreach(source => asyncExecute(buildDataLayout(source, parentDS)))
+      grouped.foreach(source => {
+        val sanityCheckCount = sanityCheckHandler.getOrComputeFromLayout(source, parentDS, source.getParent)
+        asyncExecute(buildDataLayout(source, parentDS, sanityCheckCount))
+      })
     }
   }
 
@@ -130,7 +138,11 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     // By design, only index in the first layer may should build from flat table.
     if (sources.nonEmpty) {
       val parentDS = flatTable.getDS()
-      sources.foreach(source => asyncExecute(buildDataLayout(source, parentDS)))
+      sources.foreach(source => {
+        val sanityCheckCount = sanityCheckHandler.getOrComputeFromFlatTable(source, () => flatTableStatistics.totalCount)
+
+        asyncExecute(buildDataLayout(source, parentDS, sanityCheckCount))
+      })
     }
   }
 
@@ -138,8 +150,8 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     val dimensions = dataSegment.getDataflow.getIndexPlan.getEffectiveDimCols.keySet()
     // Not support multi partition for now
     if (Objects.isNull(dataSegment.getModel.getMultiPartitionDesc)
-            && config.isDimensionRangeFilterEnabled()
-            && !dimensions.isEmpty) {
+      && config.isDimensionRangeFilterEnabled()
+      && !dimensions.isEmpty) {
       val start = System.currentTimeMillis()
       import org.apache.spark.sql.functions._
 
@@ -153,7 +165,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       val cols = Array.concat(minCols, maxCols)
       val row = dimDS.agg(cols.head, cols.tail: _*).head.toSeq.splitAt(columns.length)
       (dimensions.asScala.toSeq, row._1, row._2)
-              .zipped.map {
+        .zipped.map {
         case (_, null, null) =>
         case (column, min, max) => dimRangeInfo.put(column.toString, new DimensionRangeInfo(min.toString, max.toString))
       }
@@ -176,13 +188,21 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       .groupBy(_.getId).map(_._2.head).toSeq // distinct
   }
 
+  protected def gatherFlatTableStats(): Unit = {
+    if (!needFlatTable) {
+      logInfo(s"Skip gather flat table stats $segmentId")
+      return
+    }
+    flatTableStatistics = flatTable.gatherStatistics()
+  }
+
 
   protected def tryRefreshColumnBytes(): Unit = {
-    if (!needFlatTable) {
+    if (flatTableStatistics == null) {
       logInfo(s"Skip COLUMN-BYTES segment $segmentId")
       return
     }
-    val stats = flatTable.gatherStatistics()
+    val stats = flatTableStatistics
     val copiedDataflow = jobContext.getDataflow(dataflowId).copy()
     val copiedSegment = copiedDataflow.getSegment(segmentId)
     val dataflowUpdate = new NDataflowUpdate(dataflowId)
@@ -199,14 +219,14 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
   }
 
-  private def buildDataLayout(source: SegmentBuildSource, parentDS: Dataset[Row]): Unit = {
+  private def buildDataLayout(source: SegmentBuildSource, parentDS: Dataset[Row], sanityCheckCount: Long): Unit = {
     if (needSkipLayout(source.getLayout.getId)) {
       return
     }
     val layout = source.getLayout
     val layoutDS = wrapLayoutDS(layout, parentDS)
     val readableDesc = source.readableDesc()
-    newDataLayout(dataSegment, layout, layoutDS, readableDesc)
+    newDataLayout(dataSegment, layout, layoutDS, readableDesc, Some(new SanityChecker(sanityCheckCount)))
   }
 
   protected val sparkSchedulerPool = "build"

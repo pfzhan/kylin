@@ -23,16 +23,17 @@
  */
 package io.kyligence.kap.engine.spark.job
 
-import java.lang
-import java.util.Objects
-
 import com.google.common.collect.Lists
+import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{MLPBuildSource, MLPFlatTable, SegmentBuildSource}
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
 
+import java.lang
+import java.util.Objects
+import java.util.concurrent.ConcurrentHashMap
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -45,12 +46,15 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
   protected final val newBuckets = //
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
 
+  private final val sanityCheckHandler = new SanityCheckPartitionHandler(spanningTree)
+
   override protected lazy val flatTableDesc = //
     new MLPFlatTableDesc(config, dataSegment, spanningTree, partitionIds, jobId)
 
   override protected lazy val flatTable: MLPFlatTable = //
     MLPSourceUtils.newFlatTable(flatTableDesc, sparkSession)
 
+  private lazy val flatTablePartIdStatsMap = new ConcurrentHashMap[Long, Statistics]()
 
   // Partition and its flat table dataset.
   private lazy val partitionFTDS = mutable.HashMap[Long, Dataset[Row]]()
@@ -63,6 +67,27 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
     MLPSourceUtils.getNextLayerSources(indices, spanningTree, newestSegment, partitionIds)
   }
 
+  override protected def gatherFlatTableStats(): Unit = {
+
+    layer1Sources.map(_.asInstanceOf[MLPBuildSource]).filter(_.isFlatTable)
+      .foreach(source => {
+        partitionFTDS.put(source.getPartitionId, flatTable.getPartitionDS(source.getPartitionId))
+      })
+
+    if (partitionFTDS.isEmpty) {
+      logInfo(s"Skip gather flat table stats $segmentId")
+      return
+    }
+    // Parallel gathering statistics.
+    // Maybe we should parameterize the parallelism.
+    val parallel = partitionFTDS.par
+    parallel.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(128))
+    parallel.foreach({ case (partitionId, tableDS) => //
+      val stats = flatTable.gatherPartitionStatistics(partitionId, tableDS)
+      flatTablePartIdStatsMap.put(partitionId, stats)
+    })
+  }
+
   override protected def buildFromLayout(sources: Seq[SegmentBuildSource]): Unit = {
     // Build from layout
     sources.map(_.asInstanceOf[MLPBuildSource]) //
@@ -71,7 +96,10 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
       // ParentDS should be constructed from the parent layout partition.
       // Parent layout partition should be coupled with the dataSegment reference.
       val parentDS = StorageStoreUtils.toDF(head.getDataSegment, head.getParent, head.getPartitionId, sparkSession)
-      grouped.foreach(source => asyncExecute(buildLayoutPartition(source, parentDS)))
+      grouped.foreach(source => {
+        val sanityCheckCount = sanityCheckHandler.getOrComputeFromLayout(source, parentDS, source.getParent)
+        asyncExecute(buildLayoutPartition(source, parentDS, sanityCheckCount))
+      })
     }
   }
 
@@ -80,13 +108,27 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
     sources.map(_.asInstanceOf[MLPBuildSource]) //
       .groupBy(_.getPartitionId).values.foreach { grouped =>
       val head = grouped.head
-      val parentDS = flatTable.getPartitionDS(head.getPartitionId)
-      grouped.foreach(source => asyncExecute(buildLayoutPartition(source, parentDS)))
-      partitionFTDS.put(head.getPartitionId, parentDS)
+      val partitionId = head.getPartitionId
+
+      val parentDS = partitionFTDS(partitionId)
+
+      grouped.foreach(source => {
+        val sanityCheckCount = getFlatTableCountFromStats(source)
+
+        asyncExecute(buildLayoutPartition(source, parentDS, sanityCheckCount))
+      })
     }
   }
 
-  private def buildLayoutPartition(source: MLPBuildSource, parentDS: Dataset[Row]): Unit = {
+  private def getFlatTableCountFromStats(source: MLPBuildSource): Long = {
+    require(flatTablePartIdStatsMap.containsKey(source.getPartitionId),
+      f"the flat table of partition:${source.getPartitionId} don't exist")
+
+    sanityCheckHandler.getOrComputeFromFlatTable(source,
+      () => flatTablePartIdStatsMap.get(source.getPartitionId).totalCount)
+  }
+
+  private def buildLayoutPartition(source: MLPBuildSource, parentDS: Dataset[Row], sanityCheckCount: Long): Unit = {
     if (needSkipPartition(source.getLayoutId, source.getPartitionId)) {
       return
     }
@@ -94,23 +136,15 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
     val layoutDS = wrapLayoutDS(layout, parentDS)
     val readableDesc = source.readableDesc()
     val partitionId = source.getPartitionId
-    newLayoutPartition(dataSegment, layout, partitionId, layoutDS, readableDesc)
+    newLayoutPartition(dataSegment, layout, partitionId, layoutDS, readableDesc, Some(new SanityChecker(sanityCheckCount)))
   }
 
-
   override protected def tryRefreshColumnBytes(): Unit = {
-    if (partitionFTDS.isEmpty) {
+    if (flatTablePartIdStatsMap.isEmpty) {
       logInfo(s"Skip COLUMN-BYTES segment $segmentId")
       return
     }
-    // Parallel gathering statistics.
-    // Maybe we should parameterize the parallelism.
-    val parallel = partitionFTDS.par
-    parallel.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(128))
-    val partitionStats = parallel.map { case (partitionId, tableDS) => //
-      val stats = flatTable.gatherPartitionStatistics(partitionId, tableDS)
-      (partitionId, stats)
-    }.seq
+    val partitionStats = flatTablePartIdStatsMap.asScala
     val copiedDataflow = jobContext.getDataflow(dataflowId).copy()
     val copiedSegment = copiedDataflow.getSegment(segmentId)
     val dataflowUpdate = new NDataflowUpdate(dataflowId)

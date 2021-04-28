@@ -27,7 +27,6 @@ package io.kyligence.kap.engine.spark.job
 import java.util
 import java.util.Objects
 import java.util.concurrent._
-
 import com.google.common.collect.{Lists, Queues}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.SegmentExec.{LayoutResult, ResultType, SourceStats}
@@ -38,7 +37,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.datasource.storage.{StorageStoreFactory, WriteTaskStats}
+import org.apache.spark.sql.datasource.storage.{StorageListener, StorageStoreFactory, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
@@ -56,6 +55,7 @@ trait SegmentExec extends Logging {
 
   protected val dataModel: NDataModel
   protected val storageType: Int
+
 
   private lazy val minThreads = 8
   private lazy val maxThreads = Math.max(minThreads, config.getSegmentExecMaxThreads)
@@ -213,9 +213,10 @@ trait SegmentExec extends Logging {
   protected final def newDataLayout(dataSegment: NDataSegment, //
                                     layout: LayoutEntity, //
                                     layoutDS: Dataset[Row], //
-                                    readableDesc: String): Unit = {
+                                    readableDesc: String,
+                                    storageListener: Option[StorageListener]): Unit = {
     val storagePath = NSparkCubingUtil.getStoragePath(dataSegment, layout.getId)
-    val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc)
+    val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc, storageListener)
     val sourceStats = newSourceStats(layout, taskStats)
     pipe.offer(LayoutResult(layout.getId, taskStats, sourceStats))
   }
@@ -234,11 +235,17 @@ trait SegmentExec extends Logging {
   protected val sparkSchedulerPool: String
 
   protected final def saveWithStatistics(layout: LayoutEntity, layoutDS: Dataset[Row], //
-                                         storagePath: String, readableDesc: String): WriteTaskStats = {
+                                         storagePath: String, readableDesc: String,
+                                         storageListener: Option[StorageListener]): WriteTaskStats = {
     logInfo(readableDesc)
     sparkSession.sparkContext.setJobDescription(readableDesc)
     sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", sparkSchedulerPool)
     val store = StorageStoreFactory.create(storageType)
+    storageListener match {
+      case Some(x) => store.setStorageListener(x)
+      case None =>
+    }
+
     val stats = store.save(layout, new Path(storagePath), KapConfig.wrap(config), layoutDS)
     sparkSession.sparkContext.setJobDescription(null)
     stats

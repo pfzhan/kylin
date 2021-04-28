@@ -219,7 +219,7 @@ class DFSmartBuild extends DFBuildJob with Logging {
       index => {
         val theRootLevelBuildInfos = new NBuildSourceInfo
         theRootLevelBuildInfos.setSparkSession(ss)
-        val parentIndex = nSpanningTree.getParentByIndexPlan(index)
+        val parentIndex = nSpanningTree.getParentByIndexEntity(index)
         val layout = new util.ArrayList[LayoutEntity](nSpanningTree.getLayouts(parentIndex)).get(0)
         theRootLevelBuildInfos.setLayoutId(layout.getId)
         theRootLevelBuildInfos.setParentStorageDF(StorageStoreUtils.toDF(seg, layout, ss))

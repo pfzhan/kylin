@@ -142,9 +142,9 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             adjustTree(index, segment, true);
 
             logger.info("Adjust spanning tree." + //
-            " Current index plan: {}." + //
-            " Current index entity: {}." + //
-            " Its children: {}\n", // 
+                            " Current index plan: {}." + //
+                            " Current index entity: {}." + //
+                            " Its children: {}\n", //
                     index.getIndexPlan().getUuid(), //
                     index.getId(), //
                     Arrays.toString(getChildrenByIndexPlan(index).stream() //
@@ -163,8 +163,18 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     }
 
     @Override
-    public IndexEntity getParentByIndexPlan(IndexEntity child) {
-        return null;
+    public IndexEntity getParentByIndexEntity(IndexEntity child) {
+        TreeNode childNode = nodesMap.get(child.getId());
+        if(childNode.parent == null){
+            return null;
+        }
+        return childNode.parent.indexEntity;
+    }
+
+    @Override
+    public IndexEntity getRootByIndexEntity(IndexEntity child) {
+        TreeNode childNode = nodesMap.get(child.getId());
+        return childNode.rootNode.indexEntity;
     }
 
     @Override
@@ -188,6 +198,21 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         return successorMap.getOrDefault(index.getId(), ret);
     }
 
+    @Override
+    public void addParentChildRelation(IndexEntity parent, IndexEntity child) {
+
+        TreeNode parentNode = nodesMap.get(parent.getId());
+        TreeNode childNode = nodesMap.get(child.getId());
+
+        if (parentNode == null) {
+            return;
+        }
+
+        childNode.parent = parentNode;
+        childNode.rootNode = parentNode.rootNode;
+        childNode.level = parentNode.level + 1;
+    }
+
     protected TreeNode adjustTree(IndexEntity parent, NDataSegment seg, Boolean needParentsBuild) {
         TreeNode parentNode = nodesMap.get(parent.getId());
 
@@ -198,6 +223,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         children.forEach(node -> {
             node.level = parentNode.level + 1;
             node.parent = parentNode;
+            node.rootNode = parentNode.rootNode;
         });
 
         // update parent node's children.
@@ -263,6 +289,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
                 node.parentCandidates = candidates;
             } else {
                 node.level = 0;
+                node.rootNode = node;
                 roots.add(node);
             }
 
@@ -301,7 +328,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
                 nodes.values().stream().filter(node -> Objects.nonNull(node) //
                         && Objects.nonNull(node.parentCandidates) //
                         && node.parentCandidates.stream().filter(Objects::nonNull)
-                                .anyMatch(parent -> parent.getId() == index.getId()))
+                        .anyMatch(parent -> parent.getId() == index.getId()))
                         .map(TreeNode::getIndexEntity) //
                         .forEach(child -> successorMap.get(index.getId()).add(child));
             });

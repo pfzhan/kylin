@@ -94,7 +94,7 @@ class MLPMergeExec(private val jobContext: SegmentMergeJob,
   private def mergeLayoutPartition(partitionId: java.lang.Long, layout: LayoutEntity, unitedDS: Dataset[Row]): Unit = {
     val readableDesc = s"Merge layout ${layout.getId} partition $partitionId"
     val layoutDS = wrapLayoutDS(layout, unitedDS)
-    newLayoutPartition(dataSegment, layout, partitionId, layoutDS, readableDesc)
+    newLayoutPartition(dataSegment, layout, partitionId, layoutDS, readableDesc, None)
   }
 
   override protected def mergeColumnBytes(): Unit = {
