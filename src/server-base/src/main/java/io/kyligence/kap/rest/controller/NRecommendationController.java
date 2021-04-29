@@ -30,6 +30,8 @@ import java.util.List;
 
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -57,7 +59,7 @@ import lombok.val;
 @Controller
 @RequestMapping(value = "/api/recommendations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NRecommendationController extends NBasicController {
-
+    private static final Logger logger = LoggerFactory.getLogger("smart");
     private static final String MODEL_ID = "modelId";
     private static final String REC_COUNT_ACTION = "action";
 
@@ -70,6 +72,11 @@ public class NRecommendationController extends NBasicController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }
 
     @ApiOperation(value = "approveOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}")

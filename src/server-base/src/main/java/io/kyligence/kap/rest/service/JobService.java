@@ -114,7 +114,7 @@ public class JobService extends BasicService {
     @Autowired
     private ModelService modelService;
 
-    private static final Logger logger = LoggerFactory.getLogger(JobService.class);
+    private static final Logger logger = LoggerFactory.getLogger("schedule");
 
     private static final Map<String, String> jobTypeMap = Maps.newHashMap();
 

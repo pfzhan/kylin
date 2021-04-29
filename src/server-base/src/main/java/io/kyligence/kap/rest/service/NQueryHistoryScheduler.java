@@ -49,7 +49,7 @@ public class NQueryHistoryScheduler {
 
     protected BlockingQueue<QueryMetrics> queryMetricsQueue;
 
-    private static final Logger logger = LoggerFactory.getLogger(NQueryHistoryScheduler.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     private ScheduledExecutorService writeQueryHistoryScheduler;
 

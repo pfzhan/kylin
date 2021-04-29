@@ -92,7 +92,7 @@ import javax.servlet.http.HttpServletResponse;
 
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
-    private static final Logger logger = LoggerFactory.getLogger(QueryHistoryService.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
     public static final String DELETED_MODEL = "Deleted Model";
     public static final byte[] CSV_UTF8_BOM = new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF};
 

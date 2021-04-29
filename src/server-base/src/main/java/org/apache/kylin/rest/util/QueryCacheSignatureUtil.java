@@ -64,7 +64,7 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import lombok.val;
 
 public class QueryCacheSignatureUtil {
-    private static final Logger logger = LoggerFactory.getLogger(QueryCacheSignatureUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     public static String createCacheSignature(SQLResponse response, String project) {
         List<String> signature = Lists.newArrayList();

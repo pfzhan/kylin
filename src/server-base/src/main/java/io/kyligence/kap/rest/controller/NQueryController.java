@@ -110,7 +110,7 @@ import lombok.val;
 @RequestMapping(value = "/api/query", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NQueryController extends NBasicController {
     @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger(NQueryController.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
     private static final Pattern queryNamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
     public static final String CN = "zh-cn";
 
@@ -124,6 +124,11 @@ public class NQueryController extends NBasicController {
 
     @Autowired
     private ClusterManager clusterManager;
+
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }
 
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
     @PostMapping(value = "")

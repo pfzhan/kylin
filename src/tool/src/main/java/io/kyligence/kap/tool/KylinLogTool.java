@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.util.ToolUtil;
@@ -92,6 +93,9 @@ public class KylinLogTool {
     private static final String ROLL_LOG_FILE_NAME_PREFIX = "events";
 
     private static final String SYSTEM_PROPERTIES = "System Properties";
+
+    private static final Set<String> kylinLogPrefix = Sets.newHashSet("kylin.log", "kylin.schedule.log",
+            "kylin.query.log", "kylin.smart.log", "kylin.build.log");
 
     // 2019-11-11 03:24:52,342 DEBUG [JobWorker(prj:doc_smart,jobid:8a13964c)-965] job.NSparkExecutable : Copied metadata to the target metaUrl, delete the temp dir: /tmp/kylin_job_meta204633716010108932
     @VisibleForTesting
@@ -365,6 +369,15 @@ public class KylinLogTool {
         }
     }
 
+    private static boolean isKylinLogFile(String fileName) {
+        for (String name : kylinLogPrefix) {
+            if (StringUtils.startsWith(fileName, name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * extract kylin log
      *
@@ -385,7 +398,7 @@ public class KylinLogTool {
                 return;
             }
 
-            File[] kylinLogs = logsDir.listFiles(pathname -> pathname.getName().startsWith("kylin.log"));
+            File[] kylinLogs = logsDir.listFiles(pathname -> isKylinLogFile(pathname.getName()));
             if (null == kylinLogs || 0 == kylinLogs.length) {
                 logger.error("Can not find the kylin.log file!");
                 return;

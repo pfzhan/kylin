@@ -225,6 +225,42 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testExtractKylinLogAllModule() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        File scheduleLog = new File(ToolUtil.getLogFolder(), "kylin.schedule.log");
+        File queryLog = new File(ToolUtil.getLogFolder(), "kylin.query.log");
+        File smartLog = new File(ToolUtil.getLogFolder(), "kylin.smart.log");
+        File buildLog = new File(ToolUtil.getLogFolder(), "kylin.build.log");
+
+        FileUtils.writeStringToFile(scheduleLog, logs1);
+        FileUtils.writeStringToFile(queryLog, logs1);
+        FileUtils.writeStringToFile(smartLog, logs1);
+        FileUtils.writeStringToFile(buildLog, logs1);
+
+        long startTime = DateTime.parse("2019-09-01").withTimeAtStartOfDay().getMillis();
+        long endTime = DateTime.parse("2019-09-03").withTimeAtStartOfDay().getMillis();
+
+        KylinLogTool.extractKylinLog(mainDir, startTime, endTime);
+
+        FileUtils.deleteQuietly(scheduleLog);
+        FileUtils.deleteQuietly(queryLog);
+        FileUtils.deleteQuietly(smartLog);
+        FileUtils.deleteQuietly(buildLog);
+
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.schedule.log"))
+                .contains("2019-09-02 02:35:19,868"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.query.log"))
+                .contains("2019-09-02 02:35:19,868"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.smart.log"))
+                .contains("2019-09-02 02:35:19,868"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.build.log"))
+                .contains("2019-09-02 02:35:19,868"));
+
+    }
+
+    @Test
     public void testExtractSparkLog() throws IOException {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);

@@ -59,7 +59,7 @@ import lombok.Getter;
 
 public class SlowQueryDetector extends Thread {
 
-    private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetector.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     @Getter
     private static final ConcurrentHashMap<Thread, QueryEntry> runningQueries = new ConcurrentHashMap<>();

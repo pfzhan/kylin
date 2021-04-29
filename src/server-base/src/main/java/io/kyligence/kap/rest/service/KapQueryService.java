@@ -81,7 +81,7 @@ import lombok.val;
 
 @Component("kapQueryService")
 public class KapQueryService extends QueryService {
-    private static final Logger logger = LoggerFactory.getLogger(KapQueryService.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     @Override
     protected String makeErrorMsgUserFriendly(Throwable e) {

@@ -29,6 +29,8 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -49,9 +51,14 @@ import io.swagger.annotations.ApiOperation;
 @RequestMapping(value = "/api/query/favorite_queries", produces = { HTTP_VND_APACHE_KYLIN_JSON,
         HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class FavoriteQueryController extends NBasicController {
-
+    private static final Logger logger = LoggerFactory.getLogger("query");
     @Autowired
     private FavoriteRuleService favoriteRuleService;
+
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }
 
     @ApiOperation(value = "importSqls (response)", tags = { "AI" }, notes = "sql_advices")
     @PostMapping(value = "/sql_files")

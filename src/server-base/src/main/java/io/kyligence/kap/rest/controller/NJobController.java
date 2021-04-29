@@ -44,6 +44,8 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -71,13 +73,18 @@ import io.swagger.annotations.ApiOperation;
 @Controller
 @RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NJobController extends NBasicController {
-
+    private static final Logger logger = LoggerFactory.getLogger("schedule");
     private static final String JOB_ID_ARG_NAME = "jobId";
     private static final String STEP_ID_ARG_NAME = "stepId";
 
     @Autowired
     @Qualifier("jobService")
     private JobService jobService;
+
+    @Override
+    protected Logger getLogger() {
+        return logger;
+    }
 
     @ApiOperation(value = "getJobList", tags = { "DW" }, notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")

@@ -49,6 +49,8 @@ import org.apache.kylin.rest.model.FuzzyKeySearcher;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -87,12 +89,10 @@ import io.kyligence.kap.rest.response.OptRecLayoutResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OptRecResponse;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Component("optRecService")
 public class OptRecService extends BasicService implements ModelUpdateListener {
-
+    private static final Logger log = LoggerFactory.getLogger("smart");
     public static final int V2 = 2;
     public static final String RECOMMENDATION_SOURCE = "recommendation_source";
     public static final String OPERATION_ERROR_MSG = "The operation types of recommendation includes: add_index, removal_index and all(by default)";

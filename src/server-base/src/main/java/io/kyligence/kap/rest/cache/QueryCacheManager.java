@@ -70,7 +70,7 @@ public class QueryCacheManager {
         }
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(QueryCacheManager.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     @Autowired
     private CacheManager cacheManager;

@@ -63,7 +63,7 @@ import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
 
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
-    private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     private static final String DEFAULT_SCHEMA = "DEFAULT";
 

@@ -184,7 +184,7 @@ public class QueryService extends BasicService {
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     public static final String UNKNOWN = "Unknown";
     private static final String JDBC_METADATA_SCHEMA = "metadata";
-    private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
     @Autowired

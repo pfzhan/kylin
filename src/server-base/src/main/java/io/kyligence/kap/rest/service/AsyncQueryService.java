@@ -82,7 +82,7 @@ import lombok.Setter;
 @Component("asyncQueryService")
 public class AsyncQueryService extends BasicService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AsyncQueryService.class);
+    private static final Logger logger = LoggerFactory.getLogger("query");
 
     public enum QueryStatus {
         RUNNING, FAILED, SUCCESS, MISS

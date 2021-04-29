@@ -134,6 +134,10 @@ public class NBasicController {
     @Autowired
     protected UserService userService;
 
+    protected Logger getLogger(){
+        return logger;
+    }
+
     public ProjectInstance getProject(String project) {
         if (null != project) {
             List<ProjectInstance> projectInstanceList = projectService.getReadableProjects(project, true);
@@ -150,7 +154,7 @@ public class NBasicController {
     @ExceptionHandler(Exception.class)
     @ResponseBody
     ErrorResponse handleError(HttpServletRequest req, Throwable ex) {
-        logger.error("", ex);
+        getLogger().error("", ex);
         Message msg = MsgPicker.getMsg();
         Throwable cause = ex;
         KylinException kylinException = null;
@@ -173,7 +177,7 @@ public class NBasicController {
     @ExceptionHandler(ForbiddenException.class)
     @ResponseBody
     ErrorResponse handleForbidden(HttpServletRequest req, Exception ex) {
-        logger.error("", ex);
+        getLogger().error("", ex);
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
     }
 
@@ -181,7 +185,7 @@ public class NBasicController {
     @ExceptionHandler(NotFoundException.class)
     @ResponseBody
     ErrorResponse handleNotFound(HttpServletRequest req, Exception ex) {
-        logger.error("", ex);
+        getLogger().error("", ex);
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
     }
 
@@ -189,7 +193,7 @@ public class NBasicController {
     @ExceptionHandler(TransactionException.class)
     @ResponseBody
     ErrorResponse handleTransaction(HttpServletRequest req, Throwable ex) {
-        logger.error("", ex);
+        getLogger().error("", ex);
         Throwable root = ExceptionUtils.getRootCause(ex) == null ? ex : ExceptionUtils.getRootCause(ex);
         if (root instanceof AccessDeniedException) {
             return handleAccessDenied(req, root);
@@ -205,7 +209,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(ACCESS_DENIED, ex);
-        logger.error("", e);
+        getLogger().error("", e);
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
@@ -215,7 +219,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleInvalidRequestParam(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(INVALID_PARAMETER, ex);
-        logger.error("", e);
+        getLogger().error("", e);
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
@@ -223,7 +227,7 @@ public class NBasicController {
     @ExceptionHandler(KylinException.class)
     @ResponseBody
     ErrorResponse handleErrorCode(HttpServletRequest req, Throwable ex) {
-        logger.error("", ex);
+        getLogger().error("", ex);
         KylinException cause = (KylinException) ex;
         while (cause != null && cause.getCause() != null && cause.getCause() instanceof KylinException) {
             cause = (KylinException) cause.getCause();
@@ -252,7 +256,7 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleUnauthorized(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(USER_UNAUTHORIZED, ex);
-        logger.error("", e);
+        getLogger().error("", e);
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), ex);
     }
 
