@@ -26,7 +26,7 @@ package org.apache.kylin.job.factory;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import com.google.common.collect.Maps;
@@ -66,7 +66,7 @@ public abstract class JobFactory {
         private Set<JobBucket> buckets;
     }
 
-    public static AbstractExecutable createJob(String factory, JobBuildParams jobBuildParams) {
+    public static DefaultChainedExecutableOnModel createJob(String factory, JobBuildParams jobBuildParams) {
         if (!implementations.containsKey(factory)) {
             log.error("JobFactory doesn't contain this factory:{}", factory);
             return null;
@@ -74,6 +74,6 @@ public abstract class JobFactory {
         return implementations.get(factory).create(jobBuildParams);
     }
 
-    protected abstract AbstractExecutable create(JobBuildParams jobBuildParams);
+    protected abstract DefaultChainedExecutableOnModel create(JobBuildParams jobBuildParams);
 
 }
