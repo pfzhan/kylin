@@ -24,17 +24,15 @@
 
 package io.kyligence.kap.query.engine;
 
-import static io.kyligence.kap.query.engine.QueryRoutingEngine.SPARK_MEM_LIMIT_EXCEEDED;
 
-import java.util.Collections;
+import java.sql.SQLException;
 import java.util.List;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.persistence.InMemResourceStore;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.spark.SparkException;
 import org.junit.After;
@@ -48,14 +46,12 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
 
-    private int pushdownCount;
     @Mock
     private QueryRoutingEngine queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
 
     @Before
     public void setup() throws Exception {
         this.createTestMetadata();
-        pushdownCount = 0;
     }
 
     @After
@@ -64,8 +60,7 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryPushDown() throws Throwable {
-        Assert.assertEquals(0, pushdownCount);
+    public void testQueryPushdownOnRealizationNotFound() throws Exception {
         final String sql = "select * from success_table_2";
         final String project = "default";
         KylinConfig kylinconfig = KylinConfig.getInstanceFromEnv();
@@ -76,22 +71,21 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
         queryParams.setKylinConfig(kylinconfig);
         queryParams.setSelect(true);
 
-        Mockito.doAnswer(invocation -> {
-            pushdownCount++;
-            Assert.assertTrue(
-                    ResourceStore.getKylinMetaStore(kylinconfig) instanceof InMemResourceStore);
-            return new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                    Collections.EMPTY_LIST);
-        }).when(queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+        final NoRealizationFoundException cause = new NoRealizationFoundException("");
+        Mockito.doThrow(new SQLException(cause))
+                .when(queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+        final Pair<List<List<String>>, List<SelectedColumnMeta>> pushdownResult = new Pair<>();
+        Mockito.doReturn(pushdownResult)
+                .when(queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+        Assert.assertEquals(pushdownResult, queryRoutingEngine.queryWithSqlMassage(queryParams));
 
-        queryRoutingEngine.queryWithSqlMassage(queryParams);
-        Assert.assertTrue(QueryContext.current().getQueryTagInfo().isPushdown());
-
-        Assert.assertEquals(1, pushdownCount);
+        Mockito.doThrow(new TransactionException("", new SQLException(cause)))
+                .when(queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+        Assert.assertEquals(pushdownResult, queryRoutingEngine.queryWithSqlMassage(queryParams));
     }
 
     @Test
-    public void testThrowExceptionWhenSparkOOM() throws Exception {
+    public void testQueryRethrowOtherException() throws Exception {
         final String sql = "select * from success_table_2";
         final String project = "default";
         KylinConfig kylinconfig = KylinConfig.getInstanceFromEnv();
@@ -102,20 +96,21 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
         queryParams.setKylinConfig(kylinconfig);
         queryParams.setSelect(true);
 
-        Mockito.doThrow(new SparkException(
-                "Job aborted due to stage failure: Task 40 in stage 888.0 failed 1 times, most recent failure: "
-                        + "Lost task 40.0 in stage 888.0 (TID 79569, hrbd-73, executor 5): ExecutorLostFailure (executor 5 exited "
-                        + "caused by one of the running tasks) Reason: Container killed by YARN for exceeding memory limits.  6.5 GB "
-                        + "of 6.5 GB physical memory used. Consider boosting spark.yarn.executor.memoryOverhead or disabling "
-                        + "yarn.nodemanager.vmem-check-enabled because of YARN-4714."))
+        final SparkException cause = new SparkException("");
+        Mockito.doThrow(new SQLException(cause))
                 .when(queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
-
         try {
             queryRoutingEngine.queryWithSqlMassage(queryParams);
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof SparkException || e.getCause() instanceof SparkException);
-            Assert.assertTrue(e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)
-                    || e.getCause().getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED));
+            Assert.assertEquals(cause, e.getCause());
+        }
+
+        Mockito.doThrow(new TransactionException("", new SQLException(cause)))
+                .when(queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
+        try {
+            queryRoutingEngine.queryWithSqlMassage(queryParams);
+        } catch (Exception e) {
+            Assert.assertEquals(cause, e.getCause().getCause());
         }
     }
 }

@@ -34,8 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -68,9 +70,6 @@ import lombok.val;
 public class QueryRoutingEngine {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryRoutingEngine.class);
-
-    // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
-    public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> queryWithSqlMassage(QueryParams queryParams) throws Exception {
         QueryContext.current().setAclInfo(queryParams.getAclInfo());
@@ -126,19 +125,31 @@ public class QueryRoutingEngine {
                 return execute(correctedSql, queryExec);
             }, queryParams.getProject());
         } catch (TransactionException e) {
-            if (e.getCause() instanceof SQLException && !e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)) {
-                return pushDownQuery((SQLException) e.getCause(), queryParams);
+            Throwable cause = e.getCause();
+            if (shouldPushdown(cause, queryParams.getKylinConfig())) {
+                return pushDownQuery((SQLException) cause, queryParams);
             } else {
                 throw e;
             }
         } catch (SQLException e) {
-            if (e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED)) {
+            if (shouldPushdown(e, queryParams.getKylinConfig())) {
+                return pushDownQuery(e, queryParams);
+            } else {
                 throw e;
             }
-            return pushDownQuery(e, queryParams);
         } finally {
             QueryResultMasks.remove();
         }
+    }
+
+    private boolean shouldPushdown(Throwable e, KylinConfig config) {
+        Throwable cause = e instanceof SQLException ? e : e.getCause();
+        for (Class<?> pushdownOnError : config.pushdownOnErrors()) {
+            if (ExceptionUtils.indexOfThrowable(cause, pushdownOnError) != -1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
@@ -151,7 +162,8 @@ public class QueryRoutingEngine {
         }
     }
 
-    protected Pair<List<List<String>>, List<SelectedColumnMeta>> execute(String correctedSql, QueryExec queryExec)
+    @VisibleForTesting
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> execute(String correctedSql, QueryExec queryExec)
             throws Exception {
         QueryResult queryResult = queryExec.executeQuery(correctedSql);
 
