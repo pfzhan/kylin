@@ -42,7 +42,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <engine.spark.version>${spark.version}</engine.spark.version>
         <engine.scala.version>2.12.10</engine.scala.version>
     </properties>
 
@@ -252,12 +251,6 @@
             <artifactId>aws-java-sdk-s3</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>apache-log4j-extras</artifactId>
-        </dependency>
-
     </dependencies>
 
     <build>
