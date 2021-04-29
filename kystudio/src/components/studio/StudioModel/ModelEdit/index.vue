@@ -1362,7 +1362,7 @@ export default class ModelEdit extends Vue {
       this.modelInstance.renderLink(pGuid, fGuid)
     }
     // 同步因为预计算被禁用的表
-    this.modelRender.anti_flatten_lookups = this.modelInstance.anti_flatten_lookups = Object.values(this.modelInstance.tables).filter(it => data.anti_flatten_lookups.includes(it.name) && it.links.filter(item => item.flattenable !== 'flatten').length > 0).map(it => it.alias)
+    this.modelRender.anti_flatten_lookups = this.modelInstance.anti_flatten_lookups = Object.values(this.modelInstance.tables).filter(it => data.anti_flatten_lookups.includes(it.name)).map(it => it.alias)
     this.modelRender.anti_flatten_cc = this.modelInstance.anti_flatten_cc = data.anti_flatten_cc
   }
   removeDragInClass () {
@@ -1767,7 +1767,9 @@ export default class ModelEdit extends Vue {
             tables: this.modelRender.tables
           })
         })
-        this.checkInvalidIndex()
+        this.$nextTick(() => {
+          this.checkInvalidIndex()
+        })
       } catch (e) {
         this.globalLoading.hide()
         kapConfirm(this.$t('canNotRepairBrokenTip'), {
@@ -1794,7 +1796,8 @@ export default class ModelEdit extends Vue {
       // }
       const response = await this.invalidIndexes(res)
       const result = await handleSuccessAsync(response)
-      const { computed_columns } = result
+      const { computed_columns, anti_flatten_lookups } = result
+      this.modelInstance.anti_flatten_lookups = this.modelRender.anti_flatten_lookups = Object.values(this.modelInstance.tables).filter(it => anti_flatten_lookups.includes(it.name)).map(it => it.alias)
       this.modelInstance.anti_flatten_cc = computed_columns
     }
   }
