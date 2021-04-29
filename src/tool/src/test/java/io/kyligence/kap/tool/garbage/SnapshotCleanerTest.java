@@ -27,7 +27,7 @@ package io.kyligence.kap.tool.garbage;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.After;
@@ -72,7 +72,7 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
         tableName = tables.iterator().next().getIdentity();
 
         Assert.assertTrue(tables.size() > 0);
-        Assert.assertFalse(StringUtils.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
+        Assert.assertFalse(Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
 
     }
 
@@ -91,7 +91,7 @@ public class SnapshotCleanerTest extends NLocalFileMetadataTestCase {
         }, DEFAULT_PROJECT);
 
         // assert that snapshots are cleared
-        Assert.assertTrue(StringUtils.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
+        Assert.assertTrue(Strings.isEmpty(tableMetadataManager.getTableDesc(tableName).getLastSnapshotPath()));
         Assert.assertEquals(-1, tableMetadataManager.getOrCreateTableExt(tableName).getOriginalSize());
     }
 

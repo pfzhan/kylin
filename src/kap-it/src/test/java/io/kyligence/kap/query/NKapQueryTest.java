@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
@@ -118,7 +118,7 @@ public class NKapQueryTest extends KylinTestBase {
             runSQL(tempFile, false, false);
         } finally {
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", x);
-            if (StringUtils.isEmpty(x)) {
+            if (Strings.isEmpty(x)) {
                 KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown-enabled", "false");
             } else {
                 KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown-enabled", "true");

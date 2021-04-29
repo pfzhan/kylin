@@ -67,6 +67,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -1232,14 +1233,14 @@ public class TableService extends BasicService {
         List<String> jobs = Lists.newArrayList();
         for (val model : affectedModels) {
             val jobId = updateBrokenModel(project, model, context, needBuild);
-            if (StringUtils.isNotEmpty(jobId)) {
+            if (Strings.isNotEmpty(jobId)) {
                 jobs.add(jobId);
             }
         }
         mergeTable(projectName, context, true);
         for (val model : affectedModels) {
             val jobId = updateModelByReloadTable(project, model, context, needBuild);
-            if (StringUtils.isNotEmpty(jobId)) {
+            if (Strings.isNotEmpty(jobId)) {
                 jobs.add(jobId);
             }
         }

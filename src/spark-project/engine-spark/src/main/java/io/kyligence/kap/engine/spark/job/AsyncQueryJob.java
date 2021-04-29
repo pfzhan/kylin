@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -159,7 +160,7 @@ public class AsyncQueryJob extends NSparkExecutable {
 
     private String getHadoopConfDir() {
         KylinConfig kylinconfig = KylinConfig.getInstanceFromEnv();
-        if (StringUtils.isNotEmpty(kylinconfig.getAsyncQueryHadoopConfDir())) {
+        if (Strings.isNotEmpty(kylinconfig.getAsyncQueryHadoopConfDir())) {
             return kylinconfig.getAsyncQueryHadoopConfDir();
         }
         return HadoopUtil.getHadoopConfDir();
