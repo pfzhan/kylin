@@ -42,6 +42,7 @@ import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
@@ -173,8 +174,9 @@ public class AppInitializer {
                     new Date(System.currentTimeMillis() + kylinConfig.getGuardianHACheckInitDelay() * Constant.SECOND),
                     kylinConfig.getGuardianHACheckInterval() * Constant.SECOND);
         }
-    }
 
+        EventBusFactory.getInstance().postAsync(new SourceUsageVerifyNotifier());
+    }
 
     private void postInit() {
         AddressUtil.setHostInfoFetcher(hostInfoFetcher);

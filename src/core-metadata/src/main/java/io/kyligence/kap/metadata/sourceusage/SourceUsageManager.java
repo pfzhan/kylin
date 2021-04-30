@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -58,6 +59,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -157,7 +159,8 @@ public class SourceUsageManager {
             logger.debug("No effective columns found in segment: {}", segment);
             return columnSourceBytes;
         }
-        List<NDataModel.NamedColumn> allColumns = Lists.newArrayList(segment.getModel().getEffectiveNamedColumns().values());
+        List<NDataModel.NamedColumn> allColumns = Lists
+                .newArrayList(segment.getModel().getEffectiveNamedColumns().values());
         int columnSize = allColumns.isEmpty() ? usedColumns.size() : allColumns.size();
         // all named columns as denominator, since inputRecordsSize includes all cols on table
         long perColumnSize = inputRecordsSize / columnSize;
@@ -167,15 +170,15 @@ public class SourceUsageManager {
         return columnSourceBytes;
     }
 
-    private Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
+    @VisibleForTesting
+    public Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
         Map<String, Long> dataflowSourceMap = new HashMap<>();
         Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        NDataSegment lastOldSegment = null;
+        List<NDataSegment> oldSegments = Lists.newArrayList();
         for (NDataSegment segment : segments) {
             Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
             if (MapUtils.isEmpty(columnSourceBytesMap)) {
-                // get reference of lastOldSegment
-                lastOldSegment = segment;
+                oldSegments.add(segment);
             } else {
                 for (Map.Entry<String, Long> sourceMap : columnSourceBytesMap.entrySet()) {
                     String column = sourceMap.getKey();
@@ -184,16 +187,31 @@ public class SourceUsageManager {
                 }
             }
         }
-        if (lastOldSegment != null) {
-            // only estimate last old segment
-            Map<String, Long> estimateSourceMap = calcAvgColumnSourceBytes(lastOldSegment);
-            for (Map.Entry<String, Long> sourceMap : estimateSourceMap.entrySet()) {
-                String column = sourceMap.getKey();
-                long value = dataflowSourceMap.getOrDefault(column, 0L);
-                dataflowSourceMap.put(column, sourceMap.getValue() + value);
+        if (!oldSegments.isEmpty()) {
+            List<NDataSegment> evaluations = isPartitioned(dataflow) ? oldSegments // all old segments
+                    : Lists.newArrayList(oldSegments.get(oldSegments.size() - 1)); // last old segment
+            for (NDataSegment segment : evaluations) {
+                Map<String, Long> estimateSourceMap = calcAvgColumnSourceBytes(segment);
+                for (Map.Entry<String, Long> sourceMap : estimateSourceMap.entrySet()) {
+                    String column = sourceMap.getKey();
+                    long value = dataflowSourceMap.getOrDefault(column, 0L);
+                    dataflowSourceMap.put(column, sourceMap.getValue() + value);
+                }
             }
         }
         return dataflowSourceMap;
+    }
+
+    private boolean isPartitioned(NDataflow dataflow) {
+        val partDesc = dataflow.getModel().getPartitionDesc();
+        if (Objects.isNull(partDesc)) {
+            return false;
+        }
+        val colRef = partDesc.getPartitionDateColumnRef();
+        if (Objects.isNull(colRef)) {
+            return false;
+        }
+        return colRef.getColumnDesc().isPartitioned();
     }
 
     private long calculateTableInputBytes(TableCapacityDetail tableDetail) {

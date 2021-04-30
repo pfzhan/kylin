@@ -29,7 +29,7 @@
     "snapshots" : null,
     "last_build_time" : 0,
     "source_count" : -1,
-    "source_bytes_size" : -1,
+    "source_bytes_size" : 10240,
     "column_source_bytes" : { },
     "ori_snapshot_size" : {
       "DEFAULT.TEST_BANK_LOCATION" : 27
@@ -75,7 +75,7 @@
     "snapshots" : null,
     "last_build_time" : 0,
     "source_count" : -1,
-    "source_bytes_size" : -1,
+    "source_bytes_size" : 20480,
     "column_source_bytes" : { },
     "ori_snapshot_size" : {
       "DEFAULT.TEST_BANK_LOCATION" : 27
@@ -137,7 +137,7 @@
     "dictionaries" : null,
     "snapshots" : null,
     "last_build_time" : 0,
-    "source_count" : -1,
+    "source_count" : 40960,
     "source_bytes_size" : -1,
     "column_source_bytes" : { },
     "ori_snapshot_size" : {
@@ -218,7 +218,7 @@
     "snapshots" : null,
     "last_build_time" : 0,
     "source_count" : -1,
-    "source_bytes_size" : -1,
+    "source_bytes_size" : 81920,
     "column_source_bytes" : { },
     "ori_snapshot_size" : {
       "DEFAULT.TEST_BANK_LOCATION" : 27

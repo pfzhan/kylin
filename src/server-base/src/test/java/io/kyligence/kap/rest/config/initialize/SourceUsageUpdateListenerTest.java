@@ -38,9 +38,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
@@ -84,7 +86,7 @@ public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
             epoch = new Epoch(1L, EpochManager.GLOBAL, ownerIdentity, System.currentTimeMillis(), "all", null, 0L);
         }
 
-        epochManager.insertOrUpdateEpoch(epoch);
+        ReflectionTestUtils.invokeMethod(epochManager, "insertOrUpdateEpoch", epoch);
         SourceUsageUpdateListener updateListener = new SourceUsageUpdateListener();
 
         // _global epoch owner
@@ -97,13 +99,33 @@ public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
         epoch = new Epoch(epoch.getEpochId() + 1, EpochManager.GLOBAL, "127.0.0.1:1111", System.currentTimeMillis(),
                 "all", null, 0L);
 
-        epochManager.insertOrUpdateEpoch(epoch);
+        ReflectionTestUtils.invokeMethod(epochManager, "insertOrUpdateEpoch", epoch);
 
         // not epoch owner
         updateListener.onUpdate(new SourceUsageUpdateNotifier());
 
         Assert.assertTrue(testAppender.events.stream().anyMatch(loggingEvent -> loggingEvent.getMessage().toString()
                 .contains("Start to notify 127.0.0.1:1111 to update source usage")));
+    }
+
+    @Test
+    public void testOnVerify() {
+        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+
+        String ownerIdentity = EpochOrchestrator.getOwnerIdentity();
+        Epoch epoch = epochManager.getEpoch("default");
+        if (epoch == null) {
+            epoch = new Epoch(1L, "default", ownerIdentity, System.currentTimeMillis(), "all", null, 0L);
+        }
+
+        ReflectionTestUtils.invokeMethod(epochManager, "insertOrUpdateEpoch", epoch);
+        SourceUsageUpdateListener updateListener = new SourceUsageUpdateListener();
+
+        // _global epoch owner
+        updateListener.onVerify(new SourceUsageVerifyNotifier());
+
+        Assert.assertTrue(testAppender.events.stream().anyMatch(loggingEvent -> loggingEvent.getMessage().toString()
+                .contains("Verify model partition is aligned with source table partition")));
     }
 
     public static class TestAppender extends AppenderSkeleton {

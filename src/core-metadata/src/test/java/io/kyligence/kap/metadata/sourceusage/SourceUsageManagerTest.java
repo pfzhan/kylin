@@ -74,7 +74,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(874120L, usage.getCurrentCapacity());
+            Assert.assertEquals(920928L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -129,8 +129,8 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             SourceUsageRecord.ColumnCapacityDetail columnCapacityDetail = tableCapacityDetail.getColumnByName(ccName);
             Assert.assertEquals(62240L, columnCapacityDetail.getMaxSourceBytes());
             projectCapacityDetail = sourceUsageRecord.getProjectCapacity("default");
-            columnCapacityDetail = projectCapacityDetail
-                    .getTableByName("EDW.TEST_SITES").getColumnByName("EDW.TEST_SITES.SITE_NAME");
+            columnCapacityDetail = projectCapacityDetail.getTableByName("EDW.TEST_SITES")
+                    .getColumnByName("EDW.TEST_SITES.SITE_NAME");
             // assert will remove TOMB column (197-> 196) in `nmodel_basic_inner` model when comput column size.
             Assert.assertEquals(510L, columnCapacityDetail.getMaxSourceBytes());
             return null;
@@ -263,5 +263,26 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
 
         SourceUsageRecord copy = usageManager.copy(sourceUsageRecord);
         Assert.assertEquals(sourceUsageRecord, copy);
+    }
+
+    @Test
+    public void testPartitioned() {
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataflow dataflow = dfManager.getDataflow("b780e4e4-69af-449e-b09f-05c90dfa04b6");
+        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
+        Map<String, Long> summed = usageManager.sumDataflowColumnSourceMap(dataflow);
+        Assert.assertEquals(11702L, summed.entrySet().iterator().next().getValue().longValue());
+        boolean partitioned = dataflow.getModel().getPartitionDesc() //
+                .getPartitionDateColumnRef().getColumnDesc().isPartitioned();
+        try {
+            dataflow.getModel().getPartitionDesc().getPartitionDateColumnRef().getColumnDesc().setPartitioned(true);
+            summed = usageManager.sumDataflowColumnSourceMap(dataflow);
+            Assert.assertEquals(16089L, summed.entrySet().iterator().next().getValue().longValue());
+        } finally {
+            // set back
+            dataflow.getModel().getPartitionDesc().getPartitionDateColumnRef().getColumnDesc()
+                    .setPartitioned(partitioned);
+        }
+
     }
 }

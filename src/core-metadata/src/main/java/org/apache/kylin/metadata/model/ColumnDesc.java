@@ -90,6 +90,10 @@ public class ColumnDesc implements Serializable {
     @JsonProperty("case_sensitive_name")
     public String caseSensitiveName;
 
+    @JsonProperty("is_partitioned")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public boolean isPartitioned = false;
+
     // parsed from data type
     private DataType type;
     private DataType upgradedType;
@@ -113,6 +117,7 @@ public class ColumnDesc implements Serializable {
         this.index = other.index;
         this.computedColumnExpr = other.computedColumnExpr;
         this.caseSensitiveName = other.caseSensitiveName;
+        this.isPartitioned = other.isPartitioned;
     }
 
     public ColumnDesc(String id, String name, String datatype, String comment, String dataGen, String index,
@@ -258,6 +263,14 @@ public class ColumnDesc implements Serializable {
 
     public boolean isComputedColumn() {
         return computedColumnExpr != null;
+    }
+
+    public boolean isPartitioned() {
+        return isPartitioned;
+    }
+
+    public void setPartitioned(boolean partitioned) {
+        isPartitioned = partitioned;
     }
 
     public void init(TableDesc table) {

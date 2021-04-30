@@ -23,25 +23,52 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.restclient.RestClient;
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.catalyst.TableIdentifier;
+import org.apache.spark.sql.catalyst.catalog.CatalogTable;
+import org.apache.spark.sql.catalyst.catalog.SessionCatalog;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
+import io.kyligence.kap.engine.spark.utils.ThreadUtils;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import lombok.extern.slf4j.Slf4j;
+import scala.Option;
 
 @Component
 @Slf4j
 public class SourceUsageUpdateListener {
 
     private ConcurrentHashMap<String, RestClient> clientMap = new ConcurrentHashMap<>();
+
+    private final ScheduledExecutorService scheduler = //
+            ThreadUtils.newDaemonSingleThreadScheduledExecutor("sourceUsage");
 
     @Subscribe
     public void onUpdate(SourceUsageUpdateNotifier notifier) {
@@ -70,5 +97,97 @@ public class SourceUsageUpdateListener {
                 log.error("Failed to update source usage using rest client", e);
             }
         }
+    }
+
+    @Subscribe
+    public void onVerify(SourceUsageVerifyNotifier notifier) {
+        log.debug("Verify model partition is aligned with source table partition.");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        final EpochManager epochManager = EpochManager.getInstance(config);
+        List<String> projects = NProjectManager.getInstance(config).listAllProjects().stream() //
+                .map(ProjectInstance::getName) //
+                .filter(epochManager::checkEpochOwner) // project owner
+                .collect(Collectors.toList());
+        if (projects.isEmpty()) {
+            log.debug("Skip verify source table partition, no projects.");
+            scheduler.schedule(() -> onVerify(notifier), 30, TimeUnit.SECONDS);
+            return;
+        }
+        verifyProjects(config, projects);
+    }
+
+    private void verifyProjects(KylinConfig config, List<String> projects) {
+        boolean updatable = false;
+        // shared among projects
+        final Map<String, Boolean> colPartMap = Maps.newHashMap();
+        SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
+        for (String project : projects) {
+            try {
+                if (!verifyProject(config, project, catalog, colPartMap)) {
+                    updatable = true;
+                }
+            } catch (Exception e) {
+                log.warn("[UNEXPECTED_THINGS_HAPPENED] Verify project catalog table failed: {}", project, e);
+            }
+        }
+
+        if (updatable) {
+            log.debug("Source table partition recognized, update source usage.");
+            onUpdate(new SourceUsageUpdateNotifier());
+        }
+    }
+
+    private boolean verifyProject(KylinConfig config, String project, SessionCatalog catalog, //
+            Map<String, Boolean> colPartMap) {
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
+        final List<TableDesc> copiedTables = NDataflowManager.getInstance(config, project).listUnderliningDataModels() //
+                .stream().map(NDataModel::getPartitionDesc).filter(Objects::nonNull) //
+                .map(PartitionDesc::getPartitionDateColumnRef).filter(Objects::nonNull) //
+                .filter(ref -> !ref.getColumnDesc().isPartitioned()).distinct() // distinct
+                .filter(colRef -> {
+                    String canonical = colRef.getCanonicalName();
+                    if (!colPartMap.containsKey(canonical)) {
+                        colPartMap.put(canonical, isPartitioned(catalog, colRef));
+                    }
+                    return colPartMap.get(canonical);
+                }).map(colRef -> {
+                    TableDesc copied = tableManager.copyForWrite(colRef.getTableRef().getTableDesc());
+                    Arrays.stream(copied.getColumns()) //
+                            .filter(desc -> Objects.nonNull(desc.getName())) //
+                            .filter(desc -> desc.getName().equals(colRef.getName())) //
+                            .findAny().ifPresent(desc -> desc.setPartitioned(true));
+                    return copied;
+                }).collect(Collectors.toList());
+
+        // persist
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            for (TableDesc copied : copiedTables) {
+                NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project) //
+                        .updateTableDesc(copied);
+            }
+            return 0;
+        }, project);
+
+        return copiedTables.isEmpty();
+    }
+
+    private boolean isPartitioned(SessionCatalog catalog, TblColRef colRef) {
+        try {
+            String dbName = colRef.getTableRef().getTableDesc().getDatabase();
+            TableIdentifier identifier = // 
+                    TableIdentifier.apply(colRef.getTableRef().getTableName(), Option.apply(dbName));
+            CatalogTable catalogTable = catalog.getTempViewOrPermanentTableMetadata(identifier);
+            if (Objects.isNull(catalogTable) || Objects.isNull(catalogTable.partitionColumnNames())) {
+                return false;
+            }
+
+            return scala.collection.JavaConverters //
+                    .seqAsJavaListConverter(catalogTable.partitionColumnNames()).asJava() //
+                    .stream().anyMatch(name -> name.equalsIgnoreCase(colRef.getName()));
+        } catch (Exception e) {
+            log.warn("[UNEXPECTED_THINGS_HAPPENED] Verify catalog table {} failed.", colRef.getTable(), e);
+        }
+
+        return false;
     }
 }

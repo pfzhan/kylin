@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -163,6 +164,10 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         }
         //set table type = spark
         tableDesc.setSourceType(ISourceAware.ID_SPARK);
+
+        Set<String> partColumnSet = Optional.ofNullable(tableMeta.partitionColumns) //
+                .orElseGet(Collections::emptyList).stream().map(field -> field.name) //
+                .collect(Collectors.toSet());
         int columnNumber = tableMeta.allColumns.size();
         List<ColumnDesc> columns = new ArrayList<ColumnDesc>(columnNumber);
         for (int i = 0; i < columnNumber; i++) {
@@ -177,6 +182,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             }
             cdesc.setId(String.valueOf(i + 1));
             cdesc.setComment(field.comment);
+            cdesc.setPartitioned(partColumnSet.contains(field.name));
             columns.add(cdesc);
         }
         tableDesc.setColumns(columns.toArray(new ColumnDesc[columnNumber]));
