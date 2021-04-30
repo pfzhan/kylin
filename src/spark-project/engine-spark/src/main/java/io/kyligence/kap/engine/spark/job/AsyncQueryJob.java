@@ -72,10 +72,10 @@ public class AsyncQueryJob extends NSparkExecutable {
         val patternedLogger = new BufferedLogger(logger);
 
         try {
-            killOrphanApplicationIfExists(getAsyncQueryJobId());
+            killOrphanApplicationIfExists(getId());
             String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
             CliCommandExecutor exec = new CliCommandExecutor();
-            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getAsyncQueryJobId());
+            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getId());
             return ExecuteResult.createSucceed(r.getCmd());
         } catch (Exception e) {
             return ExecuteResult.createError(e);
@@ -106,7 +106,8 @@ public class AsyncQueryJob extends NSparkExecutable {
         return "ASYNC_QUERY_JOB_";
     }
 
-    private String getAsyncQueryJobId() {
+    @Override
+    public String getId() {
         return ASYNC_QUERY_JOB_ID_PRE + super.getId();
     }
 
@@ -128,10 +129,10 @@ public class AsyncQueryJob extends NSparkExecutable {
         setParam(NBatchConstants.P_QUERY_CONTEXT, JsonUtil.writeValueAsString(QueryContext.current()));
         setParam(NBatchConstants.P_PROJECT_NAME, getProject());
         setParam(NBatchConstants.P_QUERY_ID, QueryContext.current().getQueryId());
-        setParam(NBatchConstants.P_JOB_ID, getAsyncQueryJobId());
+        setParam(NBatchConstants.P_JOB_ID, getId());
         setParam(NBatchConstants.P_JOB_TYPE, JobTypeEnum.ASYNC_QUERY.toString());
         setParam(NBatchConstants.P_QUERY_QUEUE, queryParams.getSparkQueue());
-        setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), getAsyncQueryJobId()));
+        setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()));
 
         try {
             // dump kylin.properties to HDFS
@@ -146,7 +147,7 @@ public class AsyncQueryJob extends NSparkExecutable {
                     metadataDumpSet.addAll(resourceStore.listResourcesRecursively("/" + getProject() + mata));
                 }
             }
-            config.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getAsyncQueryJobId()).toString());
+            config.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()).toString());
             MetadataStore.createMetadataStore(config).dump(ResourceStore.getKylinMetaStore(config), metadataDumpSet);
         } catch (Exception e) {
             throw new ExecuteException("kylin properties or meta dump failed", e);
@@ -154,7 +155,7 @@ public class AsyncQueryJob extends NSparkExecutable {
 
         return runSparkSubmit(getHadoopConfDir(), jars, kylinJobJar,
                 "-className io.kyligence.kap.engine.spark.job.AsyncQueryApplication "
-                        + createArgsFileOnHDFS(config, getAsyncQueryJobId()));
+                        + createArgsFileOnHDFS(config, getId()));
     }
 
     private String getHadoopConfDir() {

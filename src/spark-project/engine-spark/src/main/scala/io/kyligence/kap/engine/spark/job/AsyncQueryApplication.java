@@ -77,6 +77,8 @@ public class AsyncQueryApplication extends SparkApplication {
                 AsyncQueryUtil.createErrorFlag(getParam(P_PROJECT_NAME), getParam(P_QUERY_ID), e.getMessage());
             }
             saveQueryHistory();
+        } catch (Exception e) {
+            logger.error("async query job failed.", e);
         } finally {
             QueryMetricsContext.reset();
         }
