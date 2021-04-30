@@ -106,11 +106,19 @@ public abstract class NSpanningTree implements Serializable {
 
         protected transient TreeNode parent;
         protected transient TreeNode rootNode;
+        //if the layout build from existed layout, we mark its parent is a fake node
+        //fake node cannot be get by getParentByIndexEntity or getRootByIndexEntity
+        protected transient boolean isFakeNode = false;
         protected transient List<IndexEntity> parentCandidates;
         protected transient boolean hasBeenDecided = false;
 
         public TreeNode(IndexEntity indexEntity) {
             this.indexEntity = indexEntity;
+        }
+
+        public TreeNode(IndexEntity indexEntity, boolean isFakeNode) {
+            this.indexEntity = indexEntity;
+            this.isFakeNode = isFakeNode;
         }
 
         @Override

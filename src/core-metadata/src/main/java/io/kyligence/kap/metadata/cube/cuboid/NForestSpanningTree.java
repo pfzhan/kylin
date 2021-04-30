@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -165,7 +166,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     @Override
     public IndexEntity getParentByIndexEntity(IndexEntity child) {
         TreeNode childNode = nodesMap.get(child.getId());
-        if(childNode.parent == null){
+        if (childNode.parent == null) {
             return null;
         }
         return childNode.parent.indexEntity;
@@ -204,7 +205,14 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         TreeNode parentNode = nodesMap.get(parent.getId());
         TreeNode childNode = nodesMap.get(child.getId());
 
+        Preconditions.checkNotNull(childNode, String.format(Locale.ROOT,
+                "child index:%d don't exist", child.getId()));
+
         if (parentNode == null) {
+            //build from layout
+            childNode.parent = new TreeNode(parent, true);
+            childNode.rootNode = childNode.parent;
+            childNode.level = 0;
             return;
         }
 
