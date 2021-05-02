@@ -88,6 +88,19 @@ public class JoinTableDesc implements Serializable {
         return this.flattenable == null || FLATTEN.equalsIgnoreCase(this.flattenable);
     }
 
+    public boolean isDerivedForbidden() {
+        return isFlattenable() && isToManyJoinRelation();
+    }
+
+    private boolean isToManyJoinRelation() {
+        return this.joinRelationTypeEnum == ModelJoinRelationTypeEnum.MANY_TO_MANY
+                || this.joinRelationTypeEnum == ModelJoinRelationTypeEnum.ONE_TO_MANY;
+    }
+
+    public boolean isDerivedToManyJoinRelation() {
+        return !isFlattenable() && isToManyJoinRelation();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)

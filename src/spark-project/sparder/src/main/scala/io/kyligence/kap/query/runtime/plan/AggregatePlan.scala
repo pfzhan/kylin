@@ -40,8 +40,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udaf.SingleValueAgg
 import org.apache.spark.sql.util.SparderTypeUtil
-import java.util.Locale
 
+import java.util.Locale
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -53,26 +53,24 @@ object AggregatePlan extends LogEx {
           rel: KapAggregateRel,
           dataContext: DataContext): DataFrame = logTime("aggregate", info = true) {
 
-      var dataFrame = inputs.get(0)
-      val schemaNames = dataFrame.schema.fieldNames
-      val groupList = rel.getRewriteGroupKeys.asScala
-        .map(groupId => col(schemaNames.apply(groupId)))
-        .toList
+    var dataFrame = inputs.get(0)
+    val schemaNames = dataFrame.schema.fieldNames
+    val groupList = rel.getRewriteGroupKeys.asScala.map(groupId => col(schemaNames.apply(groupId))).toList
 
-      if (rel.getContext != null && rel.getContext.isExactlyAggregate) {
-        // exactly match, skip agg, direct project.
-        val aggCols = rel.getRewriteAggCalls.asScala
-          .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
-        val prjList = groupList ++ aggCols
-        logInfo(s"Query exactly match index, skip agg, project $prjList.")
-        dataFrame.select(prjList: _*)
-      } else {
-        dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
-        val aggList = buildAgg(dataFrame.schema, rel)
-        val groupSets = rel.getRewriteGroupSets.asScala
-          .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
-        SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
-      }
+    if (rel.getContext != null && rel.getContext.isExactlyAggregate && !rel.getContext.isNeedToManyDerived) {
+      // exactly match, skip agg, direct project.
+      val aggCols = rel.getRewriteAggCalls.asScala
+        .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
+      val prjList = groupList ++ aggCols
+      logInfo(s"Query exactly match index, skip agg, project $prjList.")
+      dataFrame.select(prjList: _*)
+    } else {
+      dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
+      val aggList = buildAgg(dataFrame.schema, rel)
+      val groupSets = rel.getRewriteGroupSets.asScala
+        .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
+      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
+    }
   }
 
   private def genFiltersWhenIntersectCount(rel: KapAggregateRel, dataFrame: DataFrame): DataFrame = {
@@ -132,7 +130,7 @@ object AggregatePlan extends LogEx {
               .approx_count_distinct(columnName.head, dataType.getPrecision)
               .alias(aggName)
           } else {
-              KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
+            KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
           }
         } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_BITMAP_UUID)) {
           KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)

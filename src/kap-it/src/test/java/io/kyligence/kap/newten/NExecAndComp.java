@@ -157,8 +157,7 @@ public class NExecAndComp {
     private static boolean inToDoList(String fullPath) {
         final String[] toDoList = new String[] {
                 // array
-                "query/sql_array/query00.sql",
-                "query/sql_array/query01.sql",
+                "query/sql_array/query00.sql", "query/sql_array/query01.sql",
                 // TODO ifnull()
                 "query/sql_function/sql_function_nullHandling/query00.sql",
                 "query/sql_function/sql_function_nullHandling/query01.sql",
@@ -343,6 +342,10 @@ public class NExecAndComp {
                 .replaceAll("`edw`\\.", "") //
                 .replaceAll("\"EDW\"\\.", "") //
                 .replaceAll("`EDW`\\.", "") //
+                .replaceAll("`SSB`\\.", "") //
+                .replaceAll("`ssb`\\.", "") //
+                .replaceAll("\"SSB\"\\.", "") //
+                .replaceAll("(?i)SSB\\.", "") //
                 .replaceAll("(?i)default\\.", "") //
                 .replaceAll("`default`\\.", "") //
                 .replaceAll("\"DEFAULT\"\\.", "") //

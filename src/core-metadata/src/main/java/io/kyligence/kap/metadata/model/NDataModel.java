@@ -694,7 +694,7 @@ public class NDataModel extends RootPersistentEntity {
 
             boolean isLookup = join.getKind() == TableKind.LOOKUP;
             TableRef ref = new TableRef(this, alias, tableDesc, isLookup);
-            if (join.isFlattenable() && !join.getJoinRelationTypeEnum().isQueryDerivedEnabled()) {
+            if (join.isDerivedForbidden()) {
                 queryDerivedDisabledRefs.add(ref);
             }
             join.setTableRef(ref);

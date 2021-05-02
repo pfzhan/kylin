@@ -21,9 +21,6 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import java.util.concurrent.ConcurrentHashMap
-import java.{lang, util}
-
 import com.google.common.base.Joiner
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
@@ -45,6 +42,8 @@ import org.apache.spark.sql.types.{ArrayType, DoubleType, StructField, StructTyp
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 
+import java.util.concurrent.ConcurrentHashMap
+import java.{lang, util}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -192,9 +191,11 @@ object TableScanPlan extends LogEx {
       val segmentIDs = LogUtils.jsonArray(prunedSegments.asScala)(e => s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
       logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflowId}","segments":$segmentIDs,"layout": ${cuboidId}""")
     } else {
-      val prunedSegmentInfo = partitionsMap.asScala.map { case (segmentId, partitionList) => {
-        "[" + segmentId + ": " + partitionList.asScala.mkString(",") + "]"
-      } }.mkString(",")
+      val prunedSegmentInfo = partitionsMap.asScala.map {
+        case (segmentId, partitionList) => {
+          "[" + segmentId + ": " + partitionList.asScala.mkString(",") + "]"
+        }
+      }.mkString(",")
       logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflowId}","segments":{$prunedSegmentInfo},"layout": ${cuboidId}""")
     }
     logInfo(s"size is ${cacheDf.get().size()}")

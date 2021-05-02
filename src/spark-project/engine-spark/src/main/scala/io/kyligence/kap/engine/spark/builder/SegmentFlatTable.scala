@@ -194,9 +194,11 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     val ret = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
     dataModel.getJoinTables.asScala
       .foreach { joinDesc =>
-        val tableRef = joinDesc.getTableRef
-        val tableDS = newTableDS(tableRef)
-        ret.put(joinDesc, fulfillDS(tableDS, cols, tableRef))
+        if (joinDesc.isFlattenable) {
+          val tableRef = joinDesc.getTableRef
+          val tableDS = newTableDS(tableRef)
+          ret.put(joinDesc, fulfillDS(tableDS, cols, tableRef))
+        }
       }
     ret
   }

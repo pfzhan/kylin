@@ -3005,8 +3005,9 @@ public class ModelService extends BasicService {
         checkIndexColumnExist(project, modelId, originModel);
 
         checkFlatTableSql(newModel);
+        boolean layoutRebuild = affectedLayoutSet.size() > 0;
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
-                request.isSaveOnly(), affectedLayoutSet.size() > 0);
+                request.isSaveOnly(), layoutRebuild);
         updateExcludedCheckerResult(project, request);
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
     }

@@ -109,13 +109,6 @@ import lombok.val;
 
 public class RealizationChooser {
 
-    private static final String DATE = "date";
-    private static final String TIMESTAMP = "timestamp";
-    private static final String VARCHAR = "varchar";
-    private static final String STRING = "string";
-    private static final String INTEGER = "integer";
-    private static final String BIGINT = "bigint";
-
     private static ExecutorService selectCandidateService = new ThreadPoolExecutor(
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadCoreNum(),
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
@@ -286,8 +279,18 @@ public class RealizationChooser {
         } else {
             logger.trace("Model {} failed in QueryRouter matching", model);
         }
+        context.setNeedToManyDerived(needToManyDerived(model));
         context.unfixModel();
         return candidate;
+    }
+
+    private static boolean needToManyDerived(NDataModel model) {
+        for (JoinTableDesc joinTable : model.getJoinTables()) {
+            if (joinTable.isDerivedToManyJoinRelation()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasReadySegments(NDataModel model) {

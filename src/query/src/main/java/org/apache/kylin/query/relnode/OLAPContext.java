@@ -247,11 +247,13 @@ public class OLAPContext {
     // hive query
     public String sql = "";
 
-    public OLAPAuthentication olapAuthen = new OLAPAuthentication();
-
     @Getter
     @Setter
     private boolean hasAdminPermission = false;
+
+    @Setter
+    @Getter
+    private boolean needToManyDerived;
 
     protected boolean isExactlyAggregate = false;
 
@@ -271,10 +273,6 @@ public class OLAPContext {
 
     public void setHasBitmapMeasure(boolean bitmapMeasure) {
         hasBitmapMeasure = bitmapMeasure;
-    }
-
-    public boolean isSimpleQuery() {
-        return (joins.isEmpty()) && (groupByColumns.isEmpty()) && (aggregations.isEmpty());
     }
 
     public boolean isConstantQuery() {
@@ -538,7 +536,8 @@ public class OLAPContext {
                 TblColRef foreignKeyColumn = join.getForeignKeyColumns()[i];
                 String derivedTable = join.getPrimaryKeyColumns()[i].getTableWithSchema();
                 if (usingExcludedLookupTables.contains(derivedTable)
-                        && !usingExcludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())) {
+                        && !usingExcludedLookupTables.contains(foreignKeyColumn.getTableWithSchema())
+                        && !checker.getExcludedLookups().contains(foreignKeyColumn.getTableWithSchema())) {
                     fKAsDimensionMap.putIfAbsent(foreignKeyColumn.getCanonicalName(), foreignKeyColumn);
                 }
             }

@@ -77,7 +77,7 @@ public class NQueryLayoutChooser {
     }
 
     public static NLayoutCandidate selectPartialLayoutCandidate(NDataflow dataflow, List<NDataSegment> prunedSegments,
-                                                                SQLDigest sqlDigest) {
+            SQLDigest sqlDigest) {
 
         NLayoutCandidate candidate = null;
         List<NDataSegment> toRemovedSegments = Lists.newArrayList();
@@ -96,7 +96,7 @@ public class NQueryLayoutChooser {
     }
 
     public static NLayoutCandidate selectLayoutCandidate(NDataflow dataflow, List<NDataSegment> prunedSegments,
-                                                         SQLDigest sqlDigest) {
+            SQLDigest sqlDigest) {
 
         logger.info("Starting matching sql {}", sqlDigest);
         if (CollectionUtils.isEmpty(prunedSegments)) {
@@ -270,8 +270,8 @@ public class NQueryLayoutChooser {
             // calcite can do aggregation from columns on-the-fly
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
-            val leftUnmatchedCols = Sets
-                    .newHashSet(CollectionUtils.subtract(functionDesc.getSourceColRefs(), indexEntity.getDimensionSet()));
+            val leftUnmatchedCols = Sets.newHashSet(
+                    CollectionUtils.subtract(functionDesc.getSourceColRefs(), indexEntity.getDimensionSet()));
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
                 goThruDerivedDims(indexEntity, model, needDeriveCollector, leftUnmatchedCols);
             }
@@ -430,8 +430,9 @@ public class NQueryLayoutChooser {
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
             if (model.isLookupTable(unmatchedDim.getTableRef())
-                    && model.isQueryDerivedEnabled(unmatchedDim.getTableRef()) && goThruDerivedDimsFromLookupTable(
-                            indexEntity, needDeriveCollector, model, unmatchedDimItr, unmatchedDim)) {
+                    && model.isQueryDerivedEnabled(unmatchedDim.getTableRef()) //
+                    && goThruDerivedDimsFromLookupTable(indexEntity, needDeriveCollector, model, unmatchedDimItr,
+                            unmatchedDim)) {
                 continue;
             }
 
@@ -439,6 +440,18 @@ public class NQueryLayoutChooser {
             goThruDerivedDimsFromFactTable(indexEntity, needDeriveCollector, model, unmatchedDimItr, unmatchedDim);
 
         }
+
+        // suppose: A join B && A join C, the relation of A->C is TO_MANY and C need to derive,
+        // then the built index of this join relation only based on the flat table of A join B,
+        // in order to get the correct result, the query result must join the snapshot of C.
+        model.getJoinTables().forEach(joinTableDesc -> {
+            if (joinTableDesc.isDerivedToManyJoinRelation()) {
+                JoinDesc join = joinTableDesc.getJoin();
+                TblColRef foreignKeyColumn = join.getForeignKeyColumns()[0];
+                needDeriveCollector.put(foreignKeyColumn, new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, join,
+                        new TblColRef[] { foreignKeyColumn }, false));
+            }
+        });
     }
 
     private static void goThruDerivedDimsFromFactTable(IndexEntity indexEntity,

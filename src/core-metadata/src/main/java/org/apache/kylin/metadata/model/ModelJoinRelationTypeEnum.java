@@ -29,9 +29,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum ModelJoinRelationTypeEnum {
-    MANY_TO_ONE("MANY_TO_ONE"), ONE_TO_ONE("ONE_TO_ONE"), ONE_TO_MANY("ONE_TO_MANY"), MANY_TO_MANY("MANY_TO_MANY");
+    MANY_TO_ONE("MANY_TO_ONE"),
 
-    private String name;
+    ONE_TO_ONE("ONE_TO_ONE"),
+
+    ONE_TO_MANY("ONE_TO_MANY"),
+
+    MANY_TO_MANY("MANY_TO_MANY");
+
+    private final String name;
 
     ModelJoinRelationTypeEnum(String name) {
         this.name = name;
@@ -53,9 +59,5 @@ public enum ModelJoinRelationTypeEnum {
             }
         }
         throw new IllegalArgumentException("error init ModelJoinRelationTypeEnum with tpe:" + name);
-    }
-
-    public boolean isQueryDerivedEnabled() {
-        return this == MANY_TO_ONE || this == ONE_TO_ONE;
     }
 }
