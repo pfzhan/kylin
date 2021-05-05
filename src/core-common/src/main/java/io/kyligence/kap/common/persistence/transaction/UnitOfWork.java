@@ -139,7 +139,6 @@ public class UnitOfWork {
             }
 
             long startTime = System.currentTimeMillis();
-            TransactionListenerRegistry.onStart(params.getUnitName());
             params.getProcessor().preProcess();
             context = UnitOfWork.startTransaction(params);
             val waitForLockTime = System.currentTimeMillis() - startTime;
@@ -174,7 +173,6 @@ public class UnitOfWork {
                     log.error("Failed to close UnitOfWork", e);
                 }
                 threadLocals.remove();
-                TransactionListenerRegistry.onEnd(params.getUnitName());
             }
         }
 

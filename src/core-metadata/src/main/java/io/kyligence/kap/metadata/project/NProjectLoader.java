@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionListenerRegistry;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
@@ -62,10 +61,6 @@ public class NProjectLoader {
     private static final Logger logger = LoggerFactory.getLogger(NProjectLoader.class);
 
     private NProjectManager mgr;
-
-    static {
-        TransactionListenerRegistry.register(NProjectLoader::updateCache, project -> NProjectLoader.removeCache());
-    }
 
     private static ThreadLocal<ProjectBundle> cache = new ThreadLocal<>();
 
