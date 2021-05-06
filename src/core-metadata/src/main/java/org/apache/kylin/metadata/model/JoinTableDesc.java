@@ -85,7 +85,7 @@ public class JoinTableDesc implements Serializable {
     private TableRef tableRef;
 
     public boolean isFlattenable() {
-        return this.flattenable == null || FLATTEN.equalsIgnoreCase(this.flattenable);
+        return !NORMALIZED.equalsIgnoreCase(this.flattenable);
     }
 
     public boolean isDerivedForbidden() {
@@ -99,6 +99,10 @@ public class JoinTableDesc implements Serializable {
 
     public boolean isDerivedToManyJoinRelation() {
         return !isFlattenable() && isToManyJoinRelation();
+    }
+
+    public boolean hasDifferentAntiFlattenable(JoinTableDesc other) {
+        return this.isFlattenable() ^ other.isFlattenable();
     }
 
     @Override

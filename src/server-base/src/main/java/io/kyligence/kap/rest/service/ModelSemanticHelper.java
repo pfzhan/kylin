@@ -735,13 +735,31 @@ public class ModelSemanticHelper extends BasicService {
         return oldColumns.equals(newColumns);
     }
 
+    public static boolean isAntiFlattenableSame(List<JoinTableDesc> oldJoinTables, List<JoinTableDesc> newJoinTables) {
+        Map<JoinDesc, JoinTableDesc> newJoinMap = newJoinTables.stream()
+                .collect(Collectors.toMap(JoinTableDesc::getJoin, Function.identity()));
+        boolean sameAntiFlattenable = true;
+        for (JoinTableDesc oldJoinTable : oldJoinTables) {
+            JoinDesc join = oldJoinTable.getJoin();
+            if (newJoinMap.containsKey(join)) {
+                JoinTableDesc newJoinTable = newJoinMap.get(join);
+                if (oldJoinTable.hasDifferentAntiFlattenable(newJoinTable)) {
+                    sameAntiFlattenable = false;
+                    break;
+                }
+            }
+        }
+        return sameAntiFlattenable;
+    }
+
     // if partitionDesc, mpCol, joinTable, FilterCondition changed, we need reload data from datasource
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getRootFactTable(), newModel.getRootFactTable())
                 || !originModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap())
                 || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition())
-                || !isMultiPartitionDescSame(originModel.getMultiPartitionDesc(), newModel.getMultiPartitionDesc());
+                || !isMultiPartitionDescSame(originModel.getMultiPartitionDesc(), newModel.getMultiPartitionDesc())
+                || !isAntiFlattenableSame(originModel.getJoinTables(), newModel.getJoinTables());
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
