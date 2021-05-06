@@ -1290,9 +1290,8 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public String getColumnNameByColumnId(int id) {
-        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
-        return allNamedColumns.stream().filter(col -> Objects.equals(col.getId(), id) && col.isExist())
-                .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
+        Preconditions.checkArgument(Objects.nonNull(effectiveCols));
+        return effectiveCols.containsKey(id) ? effectiveCols.get(id).getAliasDotName() : null;
     }
 
     public String getTombColumnNameById(int id) {
@@ -1314,9 +1313,8 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public String getMeasureNameByMeasureId(int id) {
-        Preconditions.checkArgument(Objects.nonNull(allMeasures));
-        return allMeasures.stream().filter(mea -> Objects.equals(mea.getId(), id) && !mea.isTomb())
-                .map(Measure::getName).findAny().orElse(null);
+        Preconditions.checkArgument(Objects.nonNull(effectiveMeasures));
+        return effectiveMeasures.containsKey(id) ? effectiveMeasures.get(id).getName() : null;
     }
 
     @Override

@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -71,11 +72,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -157,7 +157,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     private long prjMvccWhenConfigInitted = -1;
     private long indexPlanMvccWhenConfigInitted = -1;
 
-    private transient NSpanningTree spanningTree = null; // transient, because can self recreate
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
     private transient BiMap<Integer, NDataModel.Measure> effectiveMeasures; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
 
@@ -166,6 +165,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     private final LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
 
     private List<LayoutEntity> ruleBasedLayouts = Lists.newArrayList();
+
+    @Getter(value = AccessLevel.PRIVATE, lazy = true)
+    private final IdMapping idMapping = initIdMapping();
 
     /**
      * Error messages during resolving json metadata
@@ -285,28 +287,12 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return NIndexPlanManager.getInstance(config, project).copy(this);
     }
 
-    public NSpanningTree getSpanningTree() {
-        if (spanningTree != null)
-            return spanningTree;
-
-        synchronized (this) {
-            if (spanningTree == null) {
-                spanningTree = NSpanningTreeFactory.fromIndexPlan(this);
-            }
-            return spanningTree;
-        }
-    }
-
     public IndexEntity getIndexEntity(long indexId) {
-        final NSpanningTree tree = getSpanningTree();
-        if (!tree.isValid(indexId)) {
-            return null;
-        }
-        return tree.getIndexEntity(indexId);
+        return getIdMapping().getIndexEntity(indexId);
     }
 
     public LayoutEntity getLayoutEntity(Long layoutId) {
-        return getSpanningTree().getLayoutEntity(layoutId);
+        return getIdMapping().getLayoutEntity(layoutId);
     }
 
     public KylinConfig getConfig() {
@@ -953,6 +939,10 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return getOverrideProps().getOrDefault(KylinConfig.MODEL_OFFLINE_FLAG, "false").trim().equals(KylinConfig.TRUE);
     }
 
+    private IdMapping initIdMapping() {
+        return new IdMapping();
+    }
+
     @AllArgsConstructor
     @Data
     public static class UpdateRuleImpact {
@@ -961,5 +951,25 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         private Set<LayoutEntity> increaseLayouts;
 
         private Set<LayoutEntity> rollbackLayouts;
+    }
+
+    private class IdMapping implements Serializable {
+        private Map<Long, IndexEntity> allIndexMapping;
+        private Map<Long, LayoutEntity> allLayoutMapping;
+
+        IdMapping() {
+            allIndexMapping = getAllIndexes().stream()
+                    .collect(Collectors.toMap(IndexEntity::getId, Function.identity()));
+            allLayoutMapping = allIndexMapping.values().stream().flatMap(index -> index.getLayouts().stream())
+                    .collect(Collectors.toMap(LayoutEntity::getId, Function.identity()));
+        }
+
+        public IndexEntity getIndexEntity(long indexId) {
+            return allIndexMapping.get(indexId);
+        }
+
+        public LayoutEntity getLayoutEntity(Long layoutId) {
+            return allLayoutMapping.get(layoutId);
+        }
     }
 }

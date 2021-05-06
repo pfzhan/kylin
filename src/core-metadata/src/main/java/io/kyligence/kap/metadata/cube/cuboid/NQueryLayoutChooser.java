@@ -105,13 +105,12 @@ public class NQueryLayoutChooser {
         }
         List<NLayoutCandidate> candidates = new ArrayList<>();
         val commonLayouts = getLayoutsFromSegments(prunedSegments, dataflow);
-        NSpanningTree spanningTree = dataflow.getIndexPlan().getSpanningTree();
         val model = dataflow.getModel();
         for (NDataLayout dataLayout : commonLayouts) {
             CapabilityResult tempResult = new CapabilityResult();
             // check indexEntity
-            IndexEntity indexEntity = spanningTree.getIndexEntity(dataLayout.getIndexId());
-            LayoutEntity layout = spanningTree.getLayoutEntity(dataLayout.getLayoutId());
+            IndexEntity indexEntity = dataflow.getIndexPlan().getIndexEntity(dataLayout.getIndexId());
+            LayoutEntity layout = dataflow.getIndexPlan().getLayoutEntity(dataLayout.getLayoutId());
 
             Set<TblColRef> unmatchedCols = Sets.newHashSet();
             Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);

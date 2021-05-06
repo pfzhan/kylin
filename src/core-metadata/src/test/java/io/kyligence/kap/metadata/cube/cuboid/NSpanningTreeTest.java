@@ -59,19 +59,19 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() {
         NIndexPlanManager mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
-        IndexPlan cube = mgr.getIndexPlanByModelAlias("nmodel_basic");
-        Assert.assertNotNull(cube);
+        IndexPlan indexPlan = mgr.getIndexPlanByModelAlias("nmodel_basic");
+        Assert.assertNotNull(indexPlan);
 
-        NSpanningTree spanningTree = cube.getSpanningTree();
+        NSpanningTree spanningTree = NSpanningTreeFactory.fromIndexPlan(indexPlan);
         Assert.assertTrue(spanningTree instanceof NForestSpanningTree);
         Assert.assertNotNull(spanningTree);
 
-        Assert.assertEquals(cube.getAllIndexes().size(), spanningTree.getCuboidCount());
-        Assert.assertEquals(cube.getAllIndexes().size(), spanningTree.getAllIndexEntities().size());
+        Assert.assertEquals(indexPlan.getAllIndexes().size(), spanningTree.getCuboidCount());
+        Assert.assertEquals(indexPlan.getAllIndexes().size(), spanningTree.getAllIndexEntities().size());
 
         IndexEntity cuboidDesc = spanningTree.getIndexEntity(10000L);
         Assert.assertNotNull(cuboidDesc);
-        Assert.assertTrue(cube.getAllIndexes().contains(cuboidDesc));
+        Assert.assertTrue(indexPlan.getAllIndexes().contains(cuboidDesc));
         Assert.assertEquals(2, cuboidDesc.getLayouts().size());
 
         LayoutEntity cuboidLayout = spanningTree.getLayoutEntity(10001L);
@@ -113,7 +113,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, segs.size());
 
         val plan = mgr.getIndexPlanByModelAlias("test_spanning_tree");
-        val st = plan.getSpanningTree();
+        val st = NSpanningTreeFactory.fromIndexPlan(plan);
 
         val roots = new ArrayList<IndexEntity>(st.getRootIndexEntities());
         // decide the children of roots(level 0)
@@ -160,10 +160,10 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMaxCombination() {
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
-        val cube = mgr.getIndexPlanByModelAlias("nmodel_basic_inner");
+        val indexPlan = mgr.getIndexPlanByModelAlias("nmodel_basic_inner");
         try {
             overwriteSystemProp("kylin.cube.aggrgroup.max-combination", "1");
-            cube.getSpanningTree();
+            NSpanningTreeFactory.fromIndexPlan(indexPlan);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals(
@@ -179,7 +179,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
         newPlan = indexPlanManager.createIndexPlan(newPlan);
 
-        val st = newPlan.getSpanningTree();
+        val st = NSpanningTreeFactory.fromIndexPlan(newPlan);
         Assert.assertEquals(0, st.getCuboids().size());
         Assert.assertEquals(0, st.getAllIndexEntities().size());
         Assert.assertEquals(0, st.getCuboidCount());

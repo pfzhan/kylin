@@ -347,7 +347,13 @@ public class IndexPlanService extends BasicService {
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            removeIndexFromAggGroup(ids, copyForWrite);
+            val ruleLayoutIds = ids.stream().filter(id -> {
+                if (IndexEntity.isAggIndex(id) && indexPlan.getLayoutEntity(id).isManual()) {
+                    return true;
+                }
+                return false;
+            }).collect(Collectors.toList());
+            copyForWrite.addRuleBasedBlackList(ruleLayoutIds);
             copyForWrite.removeLayouts(ids, true, true);
             removeAggGroup(invalidDimensions, invalidMeasures, copyForWrite);
         });
@@ -366,15 +372,6 @@ public class IndexPlanService extends BasicService {
 
         RuleBasedIndex newRuleBasedIndex = RuleBasedIndex.copy(oldRuleBasedIndex);
         indexPlan.setRuleBasedIndex(newRuleBasedIndex, Sets.newHashSet(), false, true, false);
-    }
-
-    private void removeIndexFromAggGroup(Set<Long> ids, IndexPlan indexPlan) {
-        for (Long id : ids) {
-            LayoutEntity layout = indexPlan.getLayoutEntity(id);
-            if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
-                indexPlan.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
-            }
-        }
     }
 
     private boolean addTableIndexToBeDeleted(String project, String modelId, Collection<Long> layoutIds) {
