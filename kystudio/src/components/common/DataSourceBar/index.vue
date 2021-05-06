@@ -7,18 +7,18 @@
       </div>
       <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]">
         <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
-          <i class="ksd-fs-14 el-icon-ksd-setting" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
+          <i class="ksd-fs-22 el-ksd-icon-setting_old" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
         </el-tooltip>
       </div>
     </section>
     <section class="body">
       <div v-if="isShowLoadTable" class="btn-group">
-        <el-button plain size="medium" v-if="!isLoadingTreeData && showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
+        <el-button plain size="medium" v-if="!isLoadingTreeData && showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-ksd-icon-add_data_source_old" @click="importDataSource('selectSource', currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>
       <div v-if="showTreeFilter" class="ksd-mb-16">
-        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
+        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
       </div>
       <div v-scroll style="height:calc(100% - 51px)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList

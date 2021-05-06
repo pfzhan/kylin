@@ -255,7 +255,7 @@ export default class DropdownFilter extends Vue {
     padding: 0 10px 10px 10px;
   }
   .el-checkbox {
-    display: block;
+    display: flex;
     &:not(:last-child) {
       margin-bottom: 10px;
     }

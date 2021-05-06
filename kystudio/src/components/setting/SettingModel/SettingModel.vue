@@ -7,7 +7,6 @@
     <el-table
       :data="modelList"
       class="model-setting-table"
-      border
       v-scroll-shadow
       :empty-text="emptyText"
       style="width: 100%">

@@ -459,11 +459,11 @@ export default {
     height: 52px;
     background-color: @color-menu-color1;
     ul {
-      margin-top: 14px;
+      margin-top: 10px;
       li{
         vertical-align: middle;
         display: inline-block;
-        margin-right: 20px;
+        margin-right: 10px;
       }
     }
     img {
@@ -484,7 +484,8 @@ export default {
         color: #fff;
       }
     }
-    .help-box span{
+    .el-dropdown i,
+    .help-box i{
       color: @fff;
     }
   }

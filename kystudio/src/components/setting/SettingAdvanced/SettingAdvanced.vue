@@ -105,8 +105,8 @@
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
               <el-form-item :prop="`job_notification_emails.${index}`">
                 <el-input v-model="form.job_notification_emails[index]" :placeholder="$t('pleaseInputEmail')"></el-input><el-button
-                 icon="el-icon-ksd-add_2" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button><el-button
-                  icon="el-icon-minus" class="ksd-ml-5" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
+                 icon="el-ksd-icon-add_16" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button><el-button
+                  icon="el-ksd-icon-minus_16" class="ksd-ml-5" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
               </el-form-item>
             </div>
           </el-form>
@@ -255,7 +255,7 @@
       :header-content="$t('projectConfig')"
       :isEditable="false">
       <div class="setting-item">
-        <el-button icon="el-icon-plus" @click="editConfig()">{{$t('configuration')}}</el-button>
+        <el-button icon="el-ksd-icon-add_22" @click="editConfig()">{{$t('configuration')}}</el-button>
         <el-table
           class="ksd-mt-10"
           :data="convertedProperties"

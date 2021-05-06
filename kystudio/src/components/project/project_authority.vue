@@ -4,8 +4,8 @@
     <el-row class="ksd-mt-10 ksd-mb-10">
       <el-col :span="24">
         <div class="ksd-fleft ky-no-br-space">
-          <el-button plain type="primary" icon="el-icon-ksd-back" @click="$router.push('/admin/project')">{{$t('back')}}</el-button>
-          <el-button plain type="primary" icon="el-icon-ksd-add_2" v-if="projectActions.includes('accessActions')" @click="authorUser()">{{$t('userAccess')}}</el-button>
+          <el-button plain type="primary" icon="el-ksd-icon-back_old" @click="$router.push('/admin/project')">{{$t('back')}}</el-button>
+          <el-button plain type="primary" icon="el-ksd-icon-add_22" v-if="projectActions.includes('accessActions')" @click="authorUser()">{{$t('userAccess')}}</el-button>
           <!-- <el-button v-if="accessView == 'user'" plain type="primary" @click="toggleView('table')">{{$t('toggleTableView')}}</el-button>
           <el-button v-if="accessView == 'table'" plain type="primary" @click="toggleView('user')">{{$t('toggleUserView')}}</el-button> -->
         </div>
@@ -44,10 +44,10 @@
         <el-table-column :label="$t('kylinLang.common.action')" :width="87">
           <template slot-scope="scope">
             <el-tooltip :content="$t('kylinLang.common.edit')" effect="dark" placement="top">
-              <i class="el-icon-ksd-table_edit ksd-mr-10 ksd-fs-14" @click="editAuthorUser(scope.row)"></i>
+              <i class="el-ksd-icon-edit_16 ksd-mr-10 ksd-fs-16" @click="editAuthorUser(scope.row)"></i>
             </el-tooltip><span>
             </span><el-tooltip :content="$t('kylinLang.common.delete')" effect="dark" placement="top">
-              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeAccess(scope.row.id, scope.row.role_or_name, scope.row.promission, !scope.row.sid.grantedAuthority)"></i>
+              <i class="el-ksd-icon-table_delete_16 ksd-fs-16" @click="removeAccess(scope.row.id, scope.row.role_or_name, scope.row.promission, !scope.row.sid.grantedAuthority)"></i>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -712,11 +712,10 @@ export default class ProjectAuthority extends Vue {
         background-color: @background-disabled-color;
         border-bottom: 1px solid @line-border-color;
         height: 36px;
-        line-height: 36px;
         color: @text-title-color;
         font-size: 14px;
         font-weight: bold;
-        padding: 0 10px;
+        padding: 7px 10px;
         .el-checkbox__label {
           color: @text-title-color;
           font-weight: bold;
@@ -724,8 +723,7 @@ export default class ProjectAuthority extends Vue {
       }
       .access-search {
         height: 32px;
-        line-height: 32px;
-        padding: 0 10px;
+        padding: 3px 10px;
         border-bottom: 1px solid @line-border-color;
       }
       .access-tips {
@@ -766,8 +764,7 @@ export default class ProjectAuthority extends Vue {
           overflow-y: auto;
           li {
             height: 30px;
-            line-height: 30px;
-            padding: 0 10px;
+            padding: 4px 10px;
             box-sizing: border-box;
             &.row-list {
               display: table;

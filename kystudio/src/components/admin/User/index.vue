@@ -6,7 +6,7 @@
       <el-col :span="24">
         <el-button plain type="primary"
           size="medium"
-          icon="el-icon-ksd-back"
+          icon="el-ksd-icon-back_old"
           v-if="currentGroup"
           @click="$router.push('/admin/group')">
           {{$t('back')}}
@@ -91,7 +91,7 @@
     </el-table>
 
     <kap-pager
-      class="ksd-center ksd-mtb-10" ref="pager"
+      class="ksd-center ksd-mtb-16" ref="pager"
       :refTag="pageRefTags.userPager"
       :totalSize="totalSize"
       :perPageSize="20"

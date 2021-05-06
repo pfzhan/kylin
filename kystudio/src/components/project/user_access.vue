@@ -9,8 +9,8 @@
             <el-checkbox v-model="isAllTablesAccess" @change="checkAllTables" :indeterminate="tableAuthorizedNum !== totalNum && tableAuthorizedNum>0" :disabled="!tables.length" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
           </div>
           <div class="access-search">
-            <el-input size="small" :placeholder="$t('searchKey')" v-model="tableFilter">
-              <i slot="prefix" class="el-input__icon el-icon-search"></i>
+            <el-input size="mini" :placeholder="$t('searchKey')" v-model="tableFilter">
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_16"></i>
             </el-input>
           </div>
           <div class="access-tips" v-if="isAllTablesAccess&&!isEdit">
@@ -52,8 +52,8 @@
             <el-checkbox v-model="selectAllColumns" @change="checkAllColumns" :disabled="!isCurrentTableChecked || !columns.length" :indeterminate="colAuthorizedNum !== columns.length && colAuthorizedNum>0" v-else>{{$t('accessColumns')}} ({{colAuthorizedNum}}/{{columns.length}})</el-checkbox>
           </div>
           <div class="access-search">
-            <el-input size="small" :placeholder="$t('searchKey')" v-model="columnFilter">
-              <i slot="prefix" class="el-input__icon el-icon-search"></i>
+            <el-input size="mini" :placeholder="$t('searchKey')" v-model="columnFilter">
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_16"></i>
             </el-input>
           </div>
           <div class="access-tips" v-if="isAllColAccess&&!isEdit">
@@ -79,11 +79,11 @@
         <div class="access-card row-card">
           <div class="access-title">
             <span>{{$t('accessRows')}}</span>
-            <!-- <el-button type="primary" plain size="small" icon="el-icon-ksd-add_2" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit" :disabled="!isCurrentTableChecked">{{$t('addRowAccess')}}</el-button> -->
+            <!-- <el-button type="primary" plain size="small" icon="el-ksd-icon-add_16" class="ksd-fright ksd-mt-5" @click="addRowAccess" v-if="isEdit" :disabled="!isCurrentTableChecked">{{$t('addRowAccess')}}</el-button> -->
           </div>
           <div class="access-search">
-            <el-input size="small" :placeholder="$t('searchKey')" v-model="rowSearch">
-              <i slot="prefix" class="el-input__icon el-icon-search"></i>
+            <el-input size="mini" :placeholder="$t('searchKey')" v-model="rowSearch">
+              <i slot="prefix" class="el-input__icon el-ksd-icon-search_16"></i>
             </el-input>
           </div>
           <div class="access-tips" v-if="isCurrentTableChecked&&row_filter&&!row_filter.filter_groups.length">
@@ -110,7 +110,7 @@
                       </span>
                       <el-dropdown-menu slot="dropdown">
                         <el-dropdown-item @click.native="addRowAccess(fgIndex)">
-                          <i class="el-icon-ksd-add_2"></i>
+                          <i class="el-ksd-icon-add_16"></i>
                           {{$t('filters')}}
                         </el-dropdown-item>
                         <el-dropdown-item @click.native="deleteFG(fgIndex)">
@@ -150,14 +150,14 @@
                       {{fg.isExpand ? $t('collapse') : $t('expandAll')}} {{fg.isExpand ? '' : `(${fg.filters.length})`}}
                     </el-button>
                   </div>
-                  <el-button type="primary" size="small" v-if="fg.is_group&&isEdit" icon="el-icon-ksd-add_2" @click="addRowAccess(fgIndex)" text>{{$t('filters')}}</el-button>
+                  <el-button type="primary" size="small" v-if="fg.is_group&&isEdit" icon="el-ksd-icon-add_16" @click="addRowAccess(fgIndex)" text>{{$t('filters')}}</el-button>
                 </div>
               </div>
               <div v-if="fgIndex !== getSearchFilterdGroup(row_filter.filter_groups).length - 1" class="join-type-label">{{row_filter.type}}</div>
             </div>
             <el-dropdown size="small" class="ksd-ml-10 ksd-mb-10" v-if="isEdit&&row_filter&&getSearchFilterdGroup(row_filter.filter_groups).length">
               <span class="el-dropdown-link">
-                <el-button type="primary" size="small" :disabled="!isCurrentTableChecked" icon="el-icon-ksd-add_2" text>{{$t('add')}}</el-button>
+                <el-button type="primary" size="small" :disabled="!isCurrentTableChecked" icon="el-ksd-icon-add_16" text>{{$t('add')}}</el-button>
               </span>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item @click.native="addRowAccess(-1)">{{$t('filters')}}</el-dropdown-item>
@@ -172,7 +172,7 @@
               <div class="add-rows-btns">
                 <el-dropdown size="small" v-if="isEdit">
                   <span class="el-dropdown-link">
-                    <el-button type="primary" size="small" :disabled="!isCurrentTableChecked" icon="el-icon-ksd-add_2" text>{{$t('add')}}</el-button>
+                    <el-button type="primary" size="small" :disabled="!isCurrentTableChecked" icon="el-ksd-icon-add_16" text>{{$t('add')}}</el-button>
                   </span>
                   <el-dropdown-menu slot="dropdown">
                     <el-dropdown-item @click.native="addRowAccess(-1)">{{$t('filters')}}</el-dropdown-item>
@@ -244,7 +244,7 @@
           :placeholder="$t('pleaseInput')">
         </el-select>
         <span class="ky-no-br-space ksd-ml-10" v-if="!isRowAuthorEdit">
-          <el-button type="primary" icon="el-icon-ksd-add_2" plain circle size="mini" @click="addRow" v-if="key==0"></el-button>
+          <el-button type="primary" icon="el-ksd-icon-add_16" plain circle size="mini" @click="addRow" v-if="key==0"></el-button>
           <el-button icon="el-icon-minus" plain circle size="mini" @click="removeRow(key)"></el-button>
         </span>
       </div>
@@ -341,7 +341,7 @@ import { pageSizeMapping, maxFilterAndFilterValues } from '../../config'
       filters: '过滤器',
       filterGroups: '过滤组',
       filterTips: '同一过滤器的不同值的关系为 “或” (OR) ',
-      deleteFilterGroupTips: '确定要删除过滤组吗？过滤组中的过滤器会被同时删除。',
+      deleteFilterGroupTips: '确定要删除过滤组吗？过滤组中的过滤器会被一并删除。',
       deleteFilterGroupTitle: '删除过滤组',
       expandAll: '展开全部',
       collapse: '收起',

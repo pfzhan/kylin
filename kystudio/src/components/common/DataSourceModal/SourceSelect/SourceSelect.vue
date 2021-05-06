@@ -171,6 +171,7 @@ export default class SourceSelect extends Vue {
   .datasource-icon {
     font-size: 65px;
     height: 90px;
+    line-height: 1.2;
     border-radius: 6px;
     background: @grey-4;
     margin-bottom: 10px;

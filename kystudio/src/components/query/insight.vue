@@ -595,7 +595,7 @@ export default class NewQuery extends Vue {
       > .btn-group {
         position: absolute;
         right: 0px;
-        top: 12px;
+        top: 9px;
         z-index: 99;
       }
       h3{

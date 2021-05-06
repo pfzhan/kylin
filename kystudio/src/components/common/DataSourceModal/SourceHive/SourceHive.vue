@@ -144,7 +144,6 @@
     </div>
     <div :class="['sample-block', {'has-error': needSampling && errorMsg}]">
       <span class="ksd-title-label-small ksd-mr-10">{{$t('samplingTitle')}}</span><el-switch
-        size="small"
         @change="handleSampling"
         :value="needSampling"
         :active-text="$t('kylinLang.common.OFF')"
