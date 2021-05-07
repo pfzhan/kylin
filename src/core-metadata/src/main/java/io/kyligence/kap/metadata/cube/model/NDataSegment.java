@@ -50,6 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -142,6 +143,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @Getter
     private long maxBucketId = -1L;
 
+    private transient Set<String> excludedTables = Sets.newHashSet();
+
     // computed fields below
     // transient, not required by spark cubing
     private transient NDataSegDetails segDetails;
@@ -169,6 +172,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.lastBuildTime = other.lastBuildTime;
         this.sourceCount = other.sourceCount;
         this.additionalInfo = other.additionalInfo;
+        this.excludedTables = other.excludedTables;
         this.isEncodingDataSkew = other.isEncodingDataSkew;
         this.isSnapshotReady = other.isSnapshotReady;
         this.isDictReady = other.isDictReady;
@@ -426,8 +430,16 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.additionalInfo = additionalInfo;
     }
 
+    public Set<String> getExcludedTables() {
+        return excludedTables;
+    }
+
+    public void setExcludedTables(Set<String> excludedTables) {
+        this.excludedTables = excludedTables;
+    }
+
     public long getSourceCount() {
-        if(CollectionUtils.isEmpty(multiPartitions)) {
+        if (CollectionUtils.isEmpty(multiPartitions)) {
             return sourceCount;
         }
         return multiPartitions.stream().mapToLong(SegmentPartition::getSourceCount).sum();

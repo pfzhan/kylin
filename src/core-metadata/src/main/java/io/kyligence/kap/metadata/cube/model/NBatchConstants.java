@@ -25,15 +25,12 @@
 package io.kyligence.kap.metadata.cube.model;
 
 public interface NBatchConstants {
-    String P_ASYNC_QUERY_NAME = "asyncQuery";
-    String P_CUBOID_AGG_UDF = "newtenCuboidAggUDF";
     String P_DATAFLOW_ID = "dataflowId";
     String P_SEGMENT_IDS = "segmentIds";
     String P_JOB_ID = "jobId";
     String P_JOB_TYPE = "jobType";
     String P_LAYOUT_IDS = "layoutIds";
     String P_TO_BE_DELETED_LAYOUT_IDS = "toBeDeletedLayoutIds";
-    String P_LAYOUT_ID_PATH = "layoutIdPath";
     String P_CLASS_NAME = "className";
     String P_JARS = "jars";
     String P_DIST_META_URL = "distMetaUrl";
@@ -44,8 +41,9 @@ public interface NBatchConstants {
     String P_TARGET_MODEL = "targetModel";
     String P_DATA_RANGE_START = "dataRangeStart";
     String P_DATA_RANGE_END = "dataRangeEnd";
+    String P_EXCLUDED_TABLES = "excludedTables";
 
-    String P_IGNORED_SNAPSHOT_TABLES="ignoredSnapshotTables";
+    String P_IGNORED_SNAPSHOT_TABLES = "ignoredSnapshotTables";
     String P_NEED_BUILD_SNAPSHOTS = "needBuildSnapshots";
     String P_PARTITION_IDS = "partitionIds";
     String P_BUCKETS = "buckets";

@@ -60,6 +60,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.val;
 
@@ -111,7 +112,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
             Set<JobBucket> buckets) {
         Preconditions.checkArgument(!segments.isEmpty());
         Preconditions.checkArgument(submitter != null);
-        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!kylinConfig.isUTEnv()) {
             Preconditions.checkArgument(!layouts.isEmpty());
         }
         NDataflow df = segments.iterator().next().getDataflow();
@@ -119,8 +121,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         long startTime = Long.MAX_VALUE - 1;
         long endTime = 0L;
         for (NDataSegment segment : segments) {
-            startTime = startTime < Long.parseLong(segment.getSegRange().getStart().toString()) ? startTime
-                    : Long.parseLong(segment.getSegRange().getStart().toString());
+            startTime = Math.min(startTime, Long.parseLong(segment.getSegRange().getStart().toString()));
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
         }
@@ -148,6 +149,9 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
         job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
+        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, df.getProject());
+        Set<String> excludedTables = ruleManager.getExcludedTables();
+        job.setParam(NBatchConstants.P_EXCLUDED_TABLES, String.join(",", excludedTables));
         if (CollectionUtils.isNotEmpty(ignoredSnapshotTables)) {
             job.setParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES, String.join(",", ignoredSnapshotTables));
         }

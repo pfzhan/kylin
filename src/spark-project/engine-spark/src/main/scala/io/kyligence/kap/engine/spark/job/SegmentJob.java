@@ -40,6 +40,8 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSet;
+
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -88,9 +90,16 @@ public abstract class SegmentJob extends SparkApplication {
 
         final Predicate<NDataSegment> notSkip = (NDataSegment dataSegment) -> !needSkipSegment(dataSegment);
 
+        String excludeTableStr = getParam(NBatchConstants.P_EXCLUDED_TABLES);
+        ImmutableSet<String> tables = StringUtils.isBlank(excludeTableStr) //
+                ? ImmutableSet.of()
+                : ImmutableSet.copyOf(excludeTableStr.split(SegmentJob.COMMA));
         readOnlySegments = Collections.unmodifiableSet((Set<? extends NDataSegment>) segmentIDs.stream() //
-                .map(this::getSegment) //
-                .filter(notSkip) //
+                .map(segmentId -> {
+                    NDataSegment dataSegment = getSegment(segmentId);
+                    dataSegment.setExcludedTables(tables);
+                    return dataSegment;
+                }).filter(notSkip) //
                 .collect(Collectors.toCollection(LinkedHashSet::new)));
     }
 

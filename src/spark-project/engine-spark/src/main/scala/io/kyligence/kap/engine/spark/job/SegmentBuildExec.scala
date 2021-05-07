@@ -103,6 +103,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       // Choose optimal source from the newest segment data.
       val indices = indicesOfSources(sources)
       val newestSegment = jobContext.getSegment(segmentId)
+      newestSegment.setExcludedTables(dataSegment.getExcludedTables)
       val nextLayerSources = getNextLayerSources(indices, newestSegment)
       if (nextLayerSources.nonEmpty) {
         queue.offer(nextLayerSources)
