@@ -106,6 +106,6 @@ public class MetricsConfig {
         METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(MetricsRegistry::refreshTotalStorageSize,
                 0, 10, TimeUnit.MINUTES);
 
-        MetricsController.startReporters(KapConfig.wrap(KylinConfig.getInstanceFromEnv()));
+        METRICS_SCHEDULED_EXECUTOR.execute(() -> MetricsController.startReporters(KapConfig.wrap(KylinConfig.getInstanceFromEnv())));
     }
 }
