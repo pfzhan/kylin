@@ -31,7 +31,7 @@
                   </h1>
                   <span class="ksd-ml-15 ksd-fleft">
                     <!-- 超出上限的情况 -->
-                    <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+                    <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-ksd-icon-more_info_16 ksd-ml-5"></i></el-tooltip> )</span></span>
                     <!-- 数字的情况 -->
                     <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">{{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}}</span></span>
                     <!-- 待检测的情况 -->
@@ -41,7 +41,7 @@
                   </span>
                   <div class="dimCap-block ksd-ml-10">
                     <span class="divide"></span>
-                    <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
+                    <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-ksd-icon-more_info_16 ksd-mrl-2"></i></common-tip>{{$t('colon')}}
                     </span>
                     <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&!form.globalDimCap" class="nolimit-dim">{{$t('noLimitation')}}</span>
                     <span v-if="!aggregate.isEditDim&&aggregate.dimCap">{{aggregate.dimCap}}</span>
@@ -64,8 +64,8 @@
                   </div>
                   <div class="actions">
                     <!-- <el-button type="mini" @click="() => openAggregateItem(aggregateIdx)">{{ aggregate.open ? $t('retract') : $t('open') }}</el-button> -->
-                    <common-tip :content="$t('kylinLang.common.copy')"><i class="el-icon-ksd-iconcopy-1" @click.stop="() => handleCopyAggregate(aggregateIdx)"></i></common-tip>
-                    <common-tip :content="$t('kylinLang.common.delete')"><i class="el-icon-ksd-table_delete" @click.stop="() => handleDeleteAggregate(aggregateIdx, aggregateIdx + 1)"></i></common-tip>
+                    <common-tip :content="$t('kylinLang.common.copy')"><i class="el-ksd-icon-iconcopy-1_old ksd-fs-16" @click.stop="() => handleCopyAggregate(aggregateIdx)"></i></common-tip>
+                    <common-tip :content="$t('kylinLang.common.delete')"><i class="el-ksd-icon-table_delete_16 ksd-fs-16" @click.stop="() => handleDeleteAggregate(aggregateIdx, aggregateIdx + 1)"></i></common-tip>
                   </div>
                 </div>
                 <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
@@ -116,7 +116,7 @@
                       <div class="row mandatory">
                         <h2 class="title font-medium">{{$t('mandatory')}}
                           <common-tip placement="right" :content="$t('mandatoryDesc')">
-                            <i class="el-icon-ksd-what"></i>
+                            <i class="el-ksd-icon-more_info_16"></i>
                           </common-tip>
                         </h2>
                         <el-select
@@ -142,7 +142,7 @@
                       <div class="row hierarchy">
                         <h2 class="title font-medium">{{$t('hierarchy')}}
                           <common-tip placement="right" :content="$t('hierarchyDesc')">
-                            <i class="el-icon-ksd-what"></i>
+                            <i class="el-ksd-icon-more_info_16"></i>
                           </common-tip>
                         </h2>
                         <div class="list"
@@ -181,7 +181,7 @@
                       <div class="row joint">
                         <h2 class="title font-medium">{{$t('joint')}}
                           <common-tip placement="right" :content="$t('jointDesc')">
-                            <i class="el-icon-ksd-what"></i>
+                            <i class="el-ksd-icon-more_info_16"></i>
                           </common-tip>
                         </h2>
                         <div class="list"
@@ -225,7 +225,7 @@
                           <div class="row ksd-mb-10 ksd-fright ky-no-br-space">
                             <!-- <el-button plain size="mini" class="add-all-item" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button> -->
                             <el-button plain size="mini" class="ksd-ml-10" @click="handleRemoveAllMeasure(aggregateIdx, aggregateIdx+1, aggregate.id)">{{$t('clearAll')}}</el-button>
-                            <el-button plain size="mini" class="add-all-item" type="primary" @click="handleEditMeasures(aggregateIdx, aggregate.id)"><i class="el-icon-ksd-table_edit ksd-mr-5"></i>{{$t('edit')}}</el-button>
+                            <el-button plain size="mini" class="add-all-item" type="primary" @click="handleEditMeasures(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-edit_16 ksd-mr-5"></i>{{$t('edit')}}</el-button>
                           </div>
                         </div>
                         <!-- <el-select
@@ -312,10 +312,10 @@
             <template v-else>
               <div class="noData">
                 <template v-if="currentSelectedTag.isCC">
-                  <i class="icon el-icon-ksd-select"></i><p class="tip">{{$t('ccDimensionTip')}}</p>
+                  <i class="icon el-ksd-icon-select_old"></i><p class="tip">{{$t('ccDimensionTip')}}</p>
                 </template>
                 <template v-else-if="!currentSelectedTag.ctx">
-                  <i class="icon el-icon-ksd-select"></i><p class="tip">{{$t('noSelectDimensionTip')}}</p>
+                  <i class="icon el-ksd-icon-select_old"></i><p class="tip">{{$t('noSelectDimensionTip')}}</p>
                 </template>
                 <template v-else-if="!currentSelectedTag.data.simple">
                   <i class="icon el-icon-ksd-sampling"></i><p class="tip">{{$t('noSamplingTip')}}</p>
@@ -348,7 +348,7 @@
             </template>
             <template v-else>
               <div class="noData">
-                <i class="icon el-icon-ksd-select"></i><p class="tip">{{$t('noSelectMeasureTip')}}</p>
+                <i class="icon el-ksd-icon-select_old"></i><p class="tip">{{$t('noSelectMeasureTip')}}</p>
               </div>
             </template>
           </template>
@@ -359,7 +359,7 @@
         <div class="left">
           <span class="ksd-fleft">
             <!-- 超出上限的情况 -->
-            <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10 + 1})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+            <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10 + 1})"><i class="el-ksd-icon-more_info_16 ksd-ml-5"></i></el-tooltip> )</span></span>
             <!-- 数字的情况 -->
             <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">{{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.total_count.result})}}</span></span>
             <!-- 待检测的情况 -->
@@ -367,24 +367,24 @@
             <!-- 正在检测的情况 -->
             <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'">{{$t('numTitle1')}}<i class="el-icon-loading"></i></span>
             <common-tip :content="$t('includesEmpty')" v-if="isDisabledSaveBtn" >
-              <i class="el-icon-ksd-table_refresh ksd-ml-10 is-disabled" @click="checkCuboids(true)"></i>
+              <i class="el-ksd-icon-refresh_22 ksd-fs-22 ksd-ml-10 is-disabled" @click="checkCuboids(true)"></i>
             </common-tip>
-            <i class="el-icon-ksd-table_refresh ksd-ml-10" v-else @click="checkCuboids(true)"></i>
+            <i class="el-ksd-icon-refresh_22 ksd-fs-22 ksd-ml-10" v-else @click="checkCuboids(true)"></i>
           </span>
           <div class="dimCap-block ksd-ml-10">
             <span class="divide"></span>
-            <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
+            <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-ksd-icon-more_info_16 ksd-mrl-2"></i></common-tip>{{$t('colon')}}
             </span>
             <span v-if="!isEditGlobalDim&&!form.globalDimCap">{{$t('noLimitation')}}</span>
             <span v-if="!isEditGlobalDim&&form.globalDimCap">{{form.globalDimCap}}</span>
             <el-input class="dim-input" v-if="isEditGlobalDim" :placeholder="form.globalDimCap?'':$t('noLimitation')" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
             <span v-if="!isEditGlobalDim">
               <common-tip :content="$t('kylinLang.common.edit')" v-show="isShowTooltips"><i
-                class="dim-btn el-icon-ksd-table_edit ksd-ml-5" @click="editGlobalDim"></i>
+                class="dim-btn el-ksd-icon-edit_16 ksd-fs-16 ksd-ml-5" @click="editGlobalDim"></i>
               </common-tip><common-tip
                 v-show="isShowTooltips"
                 :content="clearTips">
-                <i class="dim-btn el-icon-ksd-clear ksd-ml-10" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
+                <i class="dim-btn el-ksd-icon-clear_old ksd-fs-16 ksd-ml-10" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
               </common-tip>
             </span>
             <span v-else>
@@ -1730,7 +1730,7 @@ export default class AggregateModal extends Vue {
     .left {
       min-width: 230px;
       text-align: left;
-      .el-icon-ksd-table_refresh.is-disabled {
+      .el-ksd-icon-refresh_22.is-disabled {
         color: @color-text-disabled;
       }
       .dimCap-block {
@@ -1804,7 +1804,7 @@ export default class AggregateModal extends Vue {
     .cuboid-result {
       color:@error-color-1;
       font-weight: @font-regular;
-      .el-icon-ksd-what{
+      .el-ksd-icon-more_info_16{
         color:@error-color-1;
         font-weight: @font-regular;
       }
@@ -2058,7 +2058,7 @@ export default class AggregateModal extends Vue {
         margin-bottom: 0;
       }
       .add-all-item {
-        .el-icon-ksd-what {
+        .el-ksd-icon-more_info_16 {
           // margin-left: 5px;
           color: @color-primary;
         }

@@ -448,7 +448,7 @@ export default class ModelActions extends Vue {
   handleModel (action, modelDesc, successTip) {
     return this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
       kapMessage(successTip)
-      this.$emit('loadModelsList')
+      this.$emit('loadModels')
     }, (res) => {
       handleError(res)
     })
@@ -527,6 +527,14 @@ export default class ModelActions extends Vue {
     cursor: pointer;
   }
 }
+.disabled-online {
+  color: #bbbbbb;
+  cursor: not-allowed;
+  &:hover {
+    background: none;
+    color: #bbbbbb;
+  }
+}
 .export_tds_dialog {
   .export-tds-alert {
     margin-bottom: 5px;
@@ -536,6 +544,8 @@ export default class ModelActions extends Vue {
     }
   }
   .el-radio-group {
+    display: flex;
+    flex-direction: column;
     .el-radio {
       margin-left: 0;
       margin-top: 15px;

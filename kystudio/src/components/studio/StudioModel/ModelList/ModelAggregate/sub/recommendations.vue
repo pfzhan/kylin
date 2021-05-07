@@ -328,9 +328,12 @@ import filterElements from '../../../../../../filter/index'
       add: 'Add',
       requiredName: 'Please enter alias',
       sameNameTips: 'The name already exists. Please rename and try again.',
-      bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es).',
-      onlyAcceptAdd: 'Successfully added {addLength} index(es).',
-      onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
+      bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es)',
+      onlyAcceptAdd: 'Successfully added {addLength} index(es)',
+      onlyAcceptDelete: 'Successfully deleted {delLength} index(es)',
+      bothAddAggAndTableBaseIndex: '{createBaseIndexNum} base index(es) would be added, {updatebaseIndexNum} base index(es) would be updated',
+      onlyCreateBaseIndex: '{createBaseIndexNum} base index(es) would be added',
+      onlyUpdateBaseIndex: '{updatebaseIndexNum} base index(es) would be updated',
       buildIndexTip: ' Build Index',
       buildIndex: 'Build Index',
       batchBuildSubTitle: 'Please choose which data ranges you\'d like to build with the added indexes.',
@@ -395,9 +398,12 @@ import filterElements from '../../../../../../filter/index'
       add: '确认添加',
       requiredName: '请输入别名',
       sameNameTips: '该名称已存在，请重新命名。',
-      bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引。',
-      onlyAcceptAdd: '成功新增 {addLength} 条索引。',
-      onlyAcceptDelete: '成功删除 {delLength} 条索引。',
+      bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引',
+      onlyAcceptAdd: '成功新增 {addLength} 条索引',
+      onlyAcceptDelete: '成功删除 {delLength} 条索引',
+      bothAddAggAndTableBaseIndex: '新增 {createBaseIndexNum} 个基础索引，刷新 {updatebaseIndexNum} 个基础索引',
+      onlyCreateBaseIndex: '新增 {createBaseIndexNum} 个基础索引',
+      onlyUpdateBaseIndex: '刷新 {updatebaseIndexNum} 个基础索引',
       buildIndexTip: '立即构建索引',
       buildIndex: '构建索引',
       batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
@@ -750,11 +756,8 @@ export default class IndexList extends Vue {
             }
             this.$message({
               type: 'success',
-              message: <span>{acceptIndexs().add > 0 && acceptIndexs().del > 0
-              ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs().add, delLength: acceptIndexs().del})
-                : acceptIndexs().add > 0 ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs().add})
-                : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a href="javascript:void();" onClick={() => this.buildIndex({layoutIds: result.added_layouts})}>{
-                  (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.modelDesc.segments.length ? this.$t('buildIndexTip') : ''
+              message: <span>{this.getAcceptIndexes(acceptIndexs) + this.acceptBaseIndex(result)}<a href="javascript:void();" onClick={() => this.buildIndex({layoutIds: [...result.added_layouts, ...this.getBaseIndexLayout(result)]})}>{
+                  this.canBuildIndex(acceptIndexs, result) ? this.$t('buildIndex') : ''
                 }</a></span>
             })
             this.recommendationsList.page_offset = 0
@@ -778,6 +781,51 @@ export default class IndexList extends Vue {
         })
       }
     })
+  }
+
+  // 是否需要展示构建索引内容
+  canBuildIndex (acceptIndexs, result) {
+    const {createBaseIndexNum, updateBaseIndexNum} = this.getBaseIndexCount(result.base_index_info)
+    return (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0 || createBaseIndexNum > 0 || updateBaseIndexNum > 0) && this.modelDesc.segments.length
+  }
+
+  // 获取 base index layoutId
+  getBaseIndexLayout (result) {
+    const { base_agg_index, base_table_index } = result.base_index_info
+    const list = []
+    base_agg_index && list.push(base_agg_index.layout_id)
+    base_table_index && list.push(base_table_index.layout_id)
+    return list
+  }
+
+  // 获取 base index 创建或更新的数量
+  getBaseIndexCount (result) {
+    const { base_agg_index, base_table_index } = result
+    const createBaseIndexNum = base_agg_index ? [...[base_agg_index].filter(it => it.operate_type === 'CREATE'), ...[base_table_index].filter(it => it.operate_type === 'CREATE')].length : 0
+    const updateBaseIndexNum = base_table_index ? [...[base_agg_index].filter(it => it.operate_type === 'UPDATE'), ...[base_table_index].filter(it => it.operate_type === 'UPDATE')].length : 0
+    return {createBaseIndexNum, updateBaseIndexNum}
+  }
+
+  // 是否有接受或删除的 layout
+  getAcceptIndexes (acceptIndexsFunc) {
+    const acceptIndexs = (() => acceptIndexsFunc())()
+    return acceptIndexs.add > 0 && acceptIndexs.del > 0
+      ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs.add, delLength: acceptIndexs.del})
+      : acceptIndexs.add > 0
+        ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs.add})
+        : this.$t('onlyAcceptDelete', {delLength: acceptIndexs.del})
+  }
+
+  // 是否有创建或刷新的基础索引
+  acceptBaseIndex (res) {
+    const {createBaseIndexNum, updateBaseIndexNum} = this.getBaseIndexCount(res.base_index_info)
+    return createBaseIndexNum > 0 && updateBaseIndexNum > 0
+      ? `${this.$t('kylinLang.common.comma')}${this.$t('bothAddAggAndTableBaseIndex', {createBaseIndexNum: createBaseIndexNum, updatebaseIndexNum: updateBaseIndexNum})}${this.$t('kylinLang.common.dot')}`
+      : createBaseIndexNum > 0
+        ? `${this.$t('kylinLang.common.comma')}${this.$t('onlyCreateBaseIndex', {createBaseIndexNum: createBaseIndexNum})}${this.$t('kylinLang.common.dot')}`
+        : updateBaseIndexNum > 0
+          ? `${this.$t('kylinLang.common.comma')}${this.$t('onlyUpdateBaseIndex', {updatebaseIndexNum: updateBaseIndexNum})}${this.$t('kylinLang.common.dot')}`
+          : `${this.$t('kylinLang.common.dot')}`
   }
 
   // 新增建议构建索引

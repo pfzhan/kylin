@@ -77,7 +77,8 @@ export default {
     cardinalityColumnTips: 'Total amount of unique data in this column. Could be gathered from sampling.',
     baseIndex: 'Base Index',
     unCreateBaseIndexTip: 'Base Indexes have already been added',
-    buildBaseIndexTip: 'Successfully added {baseIndexNum} base index(es). '
+    buildBaseIndexTip: 'Successfully added {baseIndexNum} base index(es). ',
+    updateBaseIndexTips: 'A base index would be added. The previous base index might be in "locked" state while still could answer queries. Are you sure you wan to update？'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -157,6 +158,7 @@ export default {
     cardinalityColumnTips: '该列不重复的数据量。该数据可通过采样获得。',
     baseIndex: '基础索引',
     unCreateBaseIndexTip: '基础索引已添加',
-    buildBaseIndexTip: '成功添加 {baseIndexNum} 个基础索引。'
+    buildBaseIndexTip: '成功添加 {baseIndexNum} 个基础索引。',
+    updateBaseIndexTips: '将新建 1 个基础索引。原基础索引可能处于“锁定”状态，但仍可服务查询。确定要更新吗？'
   }
 }

@@ -12,7 +12,7 @@
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowTableIndexActions&&!isHideEdit">
           <common-tip :content="$t('addTableIndex')">
-            <i class="el-icon-ksd-project_add" @click="(e) => confrimEditTableIndex(undefined, e)"></i>
+            <i class="el-ksd-icon-project_add_old ksd-fs-16" @click="(e) => confrimEditTableIndex(undefined, e)"></i>
           </common-tip>
         </div>
       </div>
@@ -31,14 +31,14 @@
             {{$t('tableIndexTitle', { indexId: index.id })}}
           </span><span class="index-type ksd-ml-10">
             {{$t('custom')}}</span><span class="index-time ksd-ml-15">
-            <i class="el-icon-ksd-elapsed_time"></i>
+            <i class="el-ksd-icon-time_16"></i>
             {{index.last_modified | toServerGMTDate}}
           </span>
           <span class="ksd-fright icon-group">
             <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit" @click="(e) => confrimEditTableIndex(index, e)"></i>
+              <i class="el-ksd-icon-edit_16 ksd-fs-16" @click="(e) => confrimEditTableIndex(index, e)"></i>
             </common-tip><common-tip :content="$t('kylinLang.common.delete')">
-              <i class="el-icon-ksd-table_delete ksd-ml-10" @click="removeIndex(index)"></i>
+              <i class="el-ksd-icon-table_delete_16 ksd-fs-16 ksd-ml-10" @click="removeIndex(index)"></i>
             </common-tip>
           </span>
         </div>
@@ -72,7 +72,7 @@
           align="center"
           width="70">
             <template slot-scope="scope">
-                <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.shared"></i>
+                <i class="el-ksd-icon-good_health_old ksd-fs-16 ky-success" v-show="scope.row.shared"></i>
             </template>
             </el-table-column>
           </el-table>
@@ -274,6 +274,9 @@ export default class TableIndexView extends Vue {
     padding-bottom: 15px;
     overflow-y: auto;
     position: relative;
+    .icon-group i {
+      cursor: pointer;
+    }
     .icon-group i:hover {
       color: @base-color;
     }

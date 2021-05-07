@@ -38,9 +38,7 @@
       <span class="lable-text">{{$t('tableSample')}}</span><el-switch
         class="ksd-ml-10"
         size="small"
-        v-model="openSample"
-        :active-text="$t('kylinLang.common.OFF')"
-        :inactive-text="$t('kylinLang.common.ON')">
+        v-model="openSample">
       </el-switch>
       <p v-if="!hasColumnInfluence" class="sample-sub-top">{{$t('noEffectSampingTip', {tableName: this.tableName})}}</p>
       <p v-else class="sample-sub-top">{{$t('hasEffectSampingTip')}}</p>
@@ -151,7 +149,7 @@ export default class ReloadTableModal extends Vue {
     }
   }
   get showBuildIndex () {
-    return this.checkData && Boolean((this.checkData.broken_model_count === 0) && (this.checkData.add_layouts_count || this.checkData.refresh_layouts_count))
+    return this.checkData && Boolean((this.checkData.broken_model_count === 0) && (this.checkData.add_layouts_count || this.checkData.refresh_layouts_count || this.checkData.update_base_index_count))
   }
   // 有列发生了变化
   get hasColumnInfluence () {
@@ -193,6 +191,7 @@ export default class ReloadTableModal extends Vue {
     let delDimensionCount = this.checkData.remove_dimensions_count
     let delIndexCount = this.checkData.remove_layouts_count
     let totalDelCount = delMeasureCount + delDimensionCount + delIndexCount
+    let updateBaseIndexCount = this.checkData.update_base_index_count
     let msgArr = []
     let str = ''
     if (reduceColumnCount) {
@@ -206,6 +205,9 @@ export default class ReloadTableModal extends Vue {
     }
     if (delIndexCount) {
       msgArr.push(this.$t('indexTip', {delIndexCount: delIndexCount}))
+    }
+    if (updateBaseIndexCount) {
+      msgArr.push(this.$t('updateBaseIndexTip', {updateBaseIndexCount: updateBaseIndexCount}))
     }
     return totalDelCount === 0 ? str : (str + this.$t('afterLoaded') + msgArr.join(this.$t('kylinLang.common.comma')) + this.$t('willBeDelete'))
   }
@@ -283,6 +285,9 @@ export default class ReloadTableModal extends Vue {
     }
     .el-alert__content {
       width:100%;
+    }
+    .mutiple-color-icon {
+      margin-top: 2px;
     }
     .detail-text {
       .table-title {

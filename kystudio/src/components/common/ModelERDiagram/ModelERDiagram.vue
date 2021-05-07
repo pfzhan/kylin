@@ -42,9 +42,9 @@
         </div>
       </div>
       <el-button-group class="diagram-actions" v-if="isShowActions">
-        <el-button plain icon="el-icon-ksd-zoom_in" :disabled="canvas.stage.zoom >= 2" @click="handleZoom(canvas.stage.zoom * 0.2)" />
-        <el-button plain icon="el-icon-ksd-zoom_out" :disabled="canvas.stage.zoom <= 0.25" @click="handleZoom(canvas.stage.zoom * -0.2)" />
-        <el-button plain icon="el-icon-ksd-zoom_to_default" @click="handleReset" />
+        <el-button plain icon="el-ksd-icon-zoom_in_old" :disabled="canvas.stage.zoom >= 2" @click="handleZoom(canvas.stage.zoom * 0.2)" />
+        <el-button plain icon="el-ksd-icon-zoom_out_old" :disabled="canvas.stage.zoom <= 0.25" @click="handleZoom(canvas.stage.zoom * -0.2)" />
+        <el-button plain icon="el-ksd-icon-zoom_to_default_old" @click="handleReset" />
       </el-button-group>
     </div>
   </div>

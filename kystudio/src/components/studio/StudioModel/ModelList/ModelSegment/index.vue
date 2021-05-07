@@ -367,7 +367,7 @@
           <el-checkbox v-model="isMultipleBuild">
             <span>{{$t('multipleBuild')}}</span>
             <common-tip placement="top" :content="$t('multipleBuildTip')">
-              <span class='el-icon-ksd-what'></span>
+              <span class='el-ksd-icon-more_info_16 ksd-fs-16'></span>
             </common-tip>
           </el-checkbox>
         </div>

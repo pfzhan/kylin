@@ -188,7 +188,7 @@
                   <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
                     <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
                   </common-tip>
-                  <common-tip :content="$t('update')" v-if="scope.row.needUpdate">
+                  <common-tip :content="$t('update')" v-if="scope.row.need_update">
                     <i class="action-icons el-ksd-icon-refresh_22 ksd-ml-5" @click="updateBaseIndexEvent(scope.row)"></i>
                   </common-tip>
                   <!-- <common-tip :content="$t('kylinLang.common.moreActions')">
@@ -862,7 +862,7 @@ export default class ModelAggregate extends Vue {
   updateBaseIndexEvent (row) {
     this.$msgbox({
       title: this.$t('updateBaseIndexTitle'),
-      message: '.xx',
+      message: this.$t('updateBaseIndexTips'),
       showCancelButton: true,
       confirmButtonText: this.$t('update')
     }).then(async () => {
@@ -889,13 +889,13 @@ export default class ModelAggregate extends Vue {
     }).then(async (res) => {
       const result = await handleSuccessAsync(res)
       const layoutIds = []
-      const baseAggIndexNum = result.agg_index ? result.agg_index.dimension_count + result.agg_index.measure_count : 0
-      const baseTableIndexNum = result.table_index ? result.table_index.dimension_count + result.table_index.measure_count : 0
-      result.agg_index && layoutIds.push(result.agg_index.layout_id)
-      result.table_index && layoutIds.push(result.table_index.layout_id)
+      // const baseAggIndexNum = result.agg_index ? result.agg_index.dimension_count + result.agg_index.measure_count : 0
+      // const baseTableIndexNum = result.table_index ? result.table_index.dimension_count + result.table_index.measure_count : 0
+      result.base_agg_index && layoutIds.push(result.base_agg_index.layout_id)
+      result.base_table_index && layoutIds.push(result.base_table_index.layout_id)
       this.$message({
         type: 'success',
-        message: <span>{this.$t('buildBaseIndexTip', {baseIndexNum: baseAggIndexNum + baseTableIndexNum})}<a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a></span>
+        message: <span>{this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})}<a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a></span>
       })
       this.loadAggIndices()
       // this.getIndexInfo()

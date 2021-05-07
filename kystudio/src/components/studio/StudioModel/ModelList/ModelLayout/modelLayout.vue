@@ -10,7 +10,10 @@
               <div class="no-data">{{$t('noResult')}}</div>
             </template>
             <template v-else>
-              <div class="items" v-for="item in modelList" :key="item.uuid" @click="selectModel({model: item})"><span><i class="el-icon-ksd-accept" v-if="item.alias === modelName"></i><span :class="[item.alias === modelName ? 'ksd-ml-10' : 'ksd-ml-25']">{{item.alias}}</span></span></div>
+              <div class="items" v-for="item in modelList" :key="item.uuid" @click="selectModel({model: item})">
+                <i class="el-icon-ksd-accept" v-if="item.alias === modelName"></i>
+                <span v-custom-tooltip="{text: item.alias, w: 60}" :class="[item.alias === modelName ? 'ksd-ml-5' : 'ksd-ml-25']">{{item.alias}}</span>
+              </div>
             </template>
           </div>
         </div>
@@ -19,6 +22,7 @@
         v-if="currentModelRow"
         @jump:recommendation="jumpToRecommendation"
         @rename="changeModelName"
+        @loadModelsList="reloadModel"
         @loadModels="reloadModel"
         :currentModel="currentModelRow"
         :appendToBody="true"
@@ -163,6 +167,9 @@ import ModelPartition from '../ModelPartition/index.vue'
     }),
     ...mapActions('GuideModal', {
       callGuideModal: 'CALL_MODAL'
+    }),
+    ...mapActions('ConfirmSegment', {
+      callConfirmSegmentModal: 'CALL_MODAL'
     })
   },
   components: {
@@ -210,7 +217,11 @@ export default class ModelLayout extends Vue {
     const {modelName, searchModelName, jump, tabTypes} = this.$route.params
     this.modelName = modelName
     this.searchModelName = searchModelName || ''
-    if (!this.modelList.filter(it => it.alias === this.modelName).length) return
+    if (!this.modelList.filter(it => it.alias === this.modelName).length) {
+      // 没有匹配到相应的 model
+      this.$router.replace({name: 'ModelList'})
+      return
+    }
     this.currentModelRow = {...this.modelList.filter(it => it.alias === this.modelName)[0], tabTypes: jump && jump === 'recommendation' ? 'second' : (typeof tabTypes !== 'undefined' ? tabTypes : 'overview')}
     if (jump && jump === 'recommendation') {
       this.jumpToRecommendation()
@@ -515,9 +526,14 @@ export default class ModelLayout extends Vue {
           box-sizing: border-box;
           cursor: pointer;
           overflow: hidden;
-          text-overflow: ellipsis;
+          // text-overflow: ellipsis;
           &:hover {
             background-color: @ke-background-color-secondary;
+          }
+
+          .custom-tooltip-layout {
+            line-height: 1;
+            overflow: initial;
           }
         }
       }

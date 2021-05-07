@@ -44,7 +44,7 @@
           <el-option  v-for="key in selectedTRelations" :value="key.value" :key="key.value" :label="$t(key.label)"></el-option>
         </el-select>
       </el-col>
-      <span class="precompute-check ksd-ml-5"><el-checkbox v-model="isPrecompute">{{$t('precomputeJoin')}}</el-checkbox><el-tooltip effect="dark" placement="top"><span slot="content" v-html="$t('precomputeJoinTip')"></span><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip></span>
+      <span class="precompute-check ksd-ml-5"><el-checkbox v-model="isPrecompute">{{$t('precomputeJoin')}}</el-checkbox><el-tooltip effect="dark" placement="top"><span slot="content" v-html="$t('precomputeJoinTip')"></span><i class="el-ksd-icon-more_info_22 icon ksd-ml-5"></i></el-tooltip></span>
     </el-row>
     <!-- <div class="ky-line ksd-mt-15"></div> -->
     <!-- 列的关联 -->
@@ -679,7 +679,14 @@ export default class TableJoinModal extends Vue {
     margin-bottom: 10px;
   }
   .precompute-check {
-    line-height: 30px;
+    line-height: 16px;
+    .el-checkbox {
+      margin-top: 5px;
+    }
+    .icon {
+      font-size: 22px;
+      vertical-align: text-bottom;
+    }
   }
   .el-button+.el-button {
     margin-left:5px;

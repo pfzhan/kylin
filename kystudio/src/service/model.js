@@ -272,7 +272,7 @@ export default {
     return window.kapVm.$http.post(apiUrl + 'index_plans/base_index', paras)
   },
   updateBaseIndex: (paras) => {
-    return Vue.http.put(apiUrl + 'models/base_index', paras)
+    return Vue.http.put(apiUrl + 'index_plans/base_index', paras)
   },
   deleteIndex: (para) => {
     return Vue.resource(apiUrl + `index_plans/index/${para.id}?project=${para.project}&model=${para.model}`).delete()

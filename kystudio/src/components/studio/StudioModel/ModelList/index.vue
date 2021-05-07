@@ -1,7 +1,7 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
-    <div class="ksd-title-page ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
-    <div class="ksd-title-page ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
+    <div class="ksd-title-page ksd-mt-24" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
+    <div class="ksd-title-page ksd-mt-24" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
       <div class="clearfix">
         <div class="ksd-mtb-10 ksd-fright">
@@ -1114,7 +1114,7 @@ export default class ModelList extends Vue {
       color: @text-title-color;
     }
     .model-alias-title {
-      max-width: calc(~'100% - 15px');
+      max-width: calc(~'100% - 30px');
       display: inline-block;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1134,7 +1134,7 @@ export default class ModelList extends Vue {
       }
       &:hover {
         .model-alias-title {
-          max-width: calc(~'100% - 100px');
+          max-width: calc(~'100% - 120px');
         }
         .action-items {
           display: block;
@@ -1200,14 +1200,6 @@ export default class ModelList extends Vue {
           }
         }
       }
-    }
-  }
-  .disabled-online {
-    color: #bbbbbb;
-    cursor: not-allowed;
-    &:hover {
-      background: none;
-      color: #bbbbbb;
     }
   }
   .el-tabs__nav {
@@ -1382,6 +1374,7 @@ export default class ModelList extends Vue {
 }
 .title-popover-layout {
   font-size: 14px;
+  word-break: break-all;
   .title {
     color: @text-title-color;
     font-weight: bold;

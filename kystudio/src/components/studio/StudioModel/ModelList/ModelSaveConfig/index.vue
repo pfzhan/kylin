@@ -140,7 +140,7 @@
         <div class="ksd-title-label ksd-mb-10">
           {{$t('dataFilterCond')}}
           <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
-            <i class="el-icon-ksd-what"></i>
+            <i class="icon el-ksd-icon-more_info_16"></i>
           </el-tooltip>
         </div>
         <el-alert
@@ -159,7 +159,7 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || modelInstance.mode === 'edit' && !modelInstance.has_base_index)">
+      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && modelInstance.base_index_num !== 2))">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
@@ -743,6 +743,12 @@ export default class ModelPartitionModal extends Vue {
     span {
       color:@error-color-1;
       margin-left: 7px;
+    }
+  }
+  .ksd-title-label {
+    .icon {
+      vertical-align: initial;
+      color: @text-disabled-color;
     }
   }
 }

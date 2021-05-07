@@ -484,11 +484,15 @@
       <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>
       <div class="ksd-pl-26">
         <div>{{$t('saveSuccessTip')}}</div>
-        <div>{{$t('addIndexTips')}}</div>
+        <div>
+          <span v-if="getBaseIndexCount(saveModelResponse).createBaseIndexNum > 0">{{$t('createAndBuildBaseIndexTips', {createBaseIndexNum: getBaseIndexCount(saveModelResponse).createBaseIndexNum})}}</span>
+          <span v-if="getBaseIndexCount(saveModelResponse).createBaseIndexNum === 0">{{$t('addIndexTips')}}</span>
+          <span v-else>{{$t('addIndexAndBaseIndex')}}</span>
+        </div>
       </div>
       <span slot="footer" class="dialog-footer" v-if="gotoIndexdialogVisible">
-        <el-button plain @click="ignoreAddIndex">{{$t('ignoreaddIndexTip')}}</el-button>
-        <el-button type="primary" @click="willAddIndex">{{$t('addIndex')}}</el-button>
+        <el-button plain @click="ignoreAddIndex">{{getBaseIndexCount(saveModelResponse).createBaseIndexNum > 0 ? $t('kylinLang.common.cancel') : $t('ignoreaddIndexTip')}}</el-button>
+        <el-button type="primary" @click="willAddIndex">{{getBaseIndexCount(saveModelResponse).createBaseIndexNum > 0 ? $t('viewIndexes') : $t('addIndex')}}</el-button>
       </span>
       <!-- <div class="ksd-pl-26">
         <div>{{$t('saveSuccessTip')}}</div>
@@ -586,6 +590,9 @@ import { NamedRegex, columnTypeIcon } from '../../../../config'
     }),
     ...mapActions('GuideModal', {
       callGuideModal: 'CALL_MODAL'
+    }),
+    ...mapActions('ConfirmSegment', {
+      callConfirmSegmentModal: 'CALL_MODAL'
     })
   },
   components: {
@@ -608,6 +615,7 @@ export default class ModelEdit extends Vue {
   dimensionSelectedList = []
   measureSelectedList = []
   gotoIndexdialogVisible = false // 保存成功弹窗
+  saveModelResponse = {} // 保存模型返回数据
   ccSelectedList = []
   modelInstance = null // 模型实例对象
   currentDragTable = '' // 当前拖拽的表
@@ -1642,7 +1650,7 @@ export default class ModelEdit extends Vue {
           this.isPurgeSegment = res.isPurgeSegment // 修改分区列会清空所有segment，该字段引导用户去添加segment
         }
         if (res.isSubmit) {
-          this.handleSaveModel({data, modelSaveConfigData: res.data, createBaseIndex: res.create_base_index})
+          this.handleSaveModel({data, modelSaveConfigData: res.data, createBaseIndex: this.modelInstance.base_index_num === 2 ? false : res.create_base_index})
         } else {
           this.$emit('saveRequestEnd')
         }
@@ -1871,6 +1879,14 @@ export default class ModelEdit extends Vue {
     this.$router.replace({name: 'ModelDetails', params: { modelName: this.modelInstance.alias, tabTypes: 'first', ignoreIntercept: true }})
     this.gotoIndexdialogVisible = false
   }
+
+  getBaseIndexCount (result) {
+    const { base_agg_index, base_table_index } = result
+    const createBaseIndexNum = base_agg_index ? [...[{...base_agg_index}].filter(it => it.operate_type === 'CREATE'), ...[{...base_table_index}].filter(it => it.operate_type === 'CREATE')].length : 0
+    const updateBaseIndexNum = base_table_index ? [...[{...base_agg_index}].filter(it => it.operate_type === 'UPDATE'), ...[{...base_table_index}].filter(it => it.operate_type === 'UPDATE')].length : 0
+    return {createBaseIndexNum, updateBaseIndexNum}
+  }
+
   handleSaveModel ({data, modelSaveConfigData, createBaseIndex}) {
     this.saveModelType = 'saveModel'
     let para = {...data, create_base_index: createBaseIndex}
@@ -1883,7 +1899,7 @@ export default class ModelEdit extends Vue {
       this.isFullLoad = true
     }
     this[this.saveModelType](para).then((res) => {
-      handleSuccess(res, async () => {
+      handleSuccess(res, async (result) => {
         // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
         // await handleWaiting()
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
@@ -1891,6 +1907,8 @@ export default class ModelEdit extends Vue {
           this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
           return
         }
+        this.saveModelResponse = result
+        const { createBaseIndexNum, updateBaseIndexNum } = this.getBaseIndexCount(result)
         setTimeout(() => {
           // 有可用索引数据时，保存前二次确认是否清空segment，不再弹框引导是否打开添加索引tab
           if (typeof this.modelData.available_indexes_count === 'number' && this.modelData.available_indexes_count > 0) {
@@ -1900,7 +1918,7 @@ export default class ModelEdit extends Vue {
               if (modelSaveConfigData.save_only) {
                 this.$message({
                   type: 'success',
-                  message: this.$t('kylinLang.common.saveSuccess')
+                  message: <p>{this.$t('saveSuccessTip')}<br/>{createBaseIndexNum > 0 ? this.$t('createBaseIndexTips', {createBaseNum: createBaseIndexNum}) : updateBaseIndexNum > 0 ? this.$t('updateBaseIndexTips', {updateBaseNum: updateBaseIndexNum}) : ''}{createBaseIndexNum > 0 || updateBaseIndexNum > 0 ? <a href="javascript:void();" onClick={() => this.buildBaseIndexEvent(result)}>{this.$t('buildIndex')}</a> : ''}</p>
                 })
               } else {
                 this.$message({
@@ -1953,6 +1971,21 @@ export default class ModelEdit extends Vue {
   }
   updateBetchMeasure (val) {
     this.modelInstance.all_measures = val
+  }
+
+  // 构建基础索引
+  buildBaseIndexEvent (result) {
+    const { base_agg_index, base_table_index } = result
+    const layoutIds = []
+    base_agg_index && layoutIds.push(base_agg_index.layout_id)
+    base_table_index && layoutIds.push(base_table_index.layout_id)
+    this.callConfirmSegmentModal({
+      title: this.$t('buildIndex'),
+      subTitle: this.$t('batchBuildSubTitle'),
+      indexes: layoutIds,
+      submitText: this.$t('buildIndex'),
+      model: this.modelRender
+    })
   }
 
   // 跳转至job页面

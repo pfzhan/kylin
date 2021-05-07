@@ -26,7 +26,10 @@
           width="185"
           v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc"
           show-overflow-tooltip
-          :render-header="renderSubPartitionAmountHeader">
+          :label="$t('subPratitionAmount')"
+          :info-tooltip="$t('subPratitionAmountTip')"
+          info-icon="el-ksd-icon-more_info_22"
+        >
           <template slot-scope="scope">
             <span>{{scope.row.multi_partition_count}} / {{scope.row.multi_partition_count_total}}</span>
           </template>
@@ -38,7 +41,10 @@
           sortable="custom"
           prop="indexAmount"
           show-overflow-tooltip
-          :render-header="renderIndexAmountHeader">
+          :label="$t('kylinLang.common.indexAmount')"
+          :info-tooltip="$t('kylinLang.common.indexAmountTip')"
+          info-icon="el-ksd-icon-more_info_22"
+        >
           <template slot-scope="scope">
               <span v-if="['LOADING', 'REFRESHING', 'MERGING'].indexOf(scope.row.status_to_display) !== -1">-/{{scope.row.index_count_total}}</span>
               <span v-else>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
@@ -192,14 +198,14 @@ export default class ConfirmSegmentModal extends Vue {
     return !(this.model.partition_desc && this.model.partition_desc.partition_date_column)
   }
 
-  renderSubPartitionAmountHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('subPratitionAmount')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('subPratitionAmountTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderSubPartitionAmountHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('subPratitionAmount')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('subPratitionAmountTip')}>
+  //      <span class='el-ksd-icon-more_info_16'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
   // 更改不同状态对应不同type
   getTagType (row) {
     if (row.status_to_display === 'ONLINE') {
@@ -246,14 +252,14 @@ export default class ConfirmSegmentModal extends Vue {
       this.parallel_build_by_segment = false
     }, 200)
   }
-  renderIndexAmountHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('kylinLang.common.indexAmount')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('kylinLang.common.indexAmountTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderIndexAmountHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('kylinLang.common.indexAmount')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('kylinLang.common.indexAmountTip')}>
+  //      <span class='el-ksd-icon-more_info_16'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
   @Watch('isShow')
   changeShowType (val) {
     if (val) {

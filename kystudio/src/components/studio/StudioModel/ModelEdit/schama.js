@@ -31,7 +31,7 @@ export default class SchemaModels {
     }
     this.multi_partition_desc = options.multi_partition_desc || null
     this.his_partition_desc = Object.assign({}, options.partition_desc)
-    this.has_base_index = options.has_base_index || false
+    this.base_index_num = options.base_index_num || false
     this.simplified_dimensions = options.simplified_dimensions || []
     this.simplified_dimensions.forEach((col) => {
       col.guid = sampleGuid()
@@ -126,7 +126,7 @@ export default class SchemaModels {
       this.$set(this._mount, 'hasBrokenLinkedTable', false)
       this.$set(this._mount, 'broken_reason', options.broken_reason)
       this.$set(this._mount, 'all_named_columns', options.all_named_columns || [])
-      this.$set(this._mount, 'has_base_index', this.has_base_index)
+      this.$set(this._mount, 'base_index_num', this.base_index_num)
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)

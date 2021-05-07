@@ -29,11 +29,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        :render-header="renderSegmentAmountHeader"
         header-align="right"
         align="right"
         prop="built_segment_count"
         sortable="custom"
+        :label="$t('segmentAmount')"
+        :info-tooltip="$t('segmentAmountTips')"
+        info-icon="el-ksd-icon-more_info_22"
         width="300">
         <template slot-scope="scope">
           {{scope.row.built_segment_count}} / {{scope.row.total_segment_count}}
@@ -97,10 +99,12 @@
           </template>
         </el-table-column>
         <el-table-column
-          :render-header="renderSegmentAmountHeader"
           header-align="right"
           align="right"
           prop="built_segment_count"
+          :label="$t('segmentAmount')"
+          :info-tooltip="$t('segmentAmountTips')"
+          info-icon="el-ksd-icon-more_info_22"
         >
           <template slot-scope="scope">
             {{scope.row.built_segment_count}} / {{scope.row.total_segment_count}}
@@ -248,14 +252,14 @@ export default class subPartitionValues extends Vue {
   }
   removeSelectedMultiPartition () {}
 
-  renderSegmentAmountHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('segmentAmount')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('segmentAmountTips')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderSegmentAmountHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('segmentAmount')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('segmentAmountTips')}>
+  //      <span class='el-ksd-icon-more_info_22'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
   async loadSubPartitionValues () {
     try {
       const res = await this.fetchSubPartitionValues({ project: this.currentSelectedProject, model_id: this.$route.params.modelId })

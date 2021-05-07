@@ -68,7 +68,7 @@
         <span slot="label">
           <span>{{$t('multilevelPartition')}}</span>
           <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
-            <i class="el-icon-ksd-what"></i>
+            <i class="el-ksd-icon-more_info_16"></i>
           </el-tooltip>
         </span>
         <el-row>

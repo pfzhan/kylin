@@ -20,7 +20,7 @@
       </div>
       <div class="agg-total-info-block" v-if="aggregationGroups.length">
         <div>{{$t('numTitle', {num: cuboidsInfo.total_count && cuboidsInfo.total_count.result})}}</div>
-        <div>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
+        <div>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-ksd-icon-more_info_22 ksd-fs-22 ksd-mrl-2"></i></common-tip>{{$t('colon')}}
         <span v-if="aggregationObj&&!aggregationObj.global_dim_cap" class="nolimit-dim">{{$t('noLimitation')}}</span>
         <span v-if="aggregationObj&&aggregationObj.global_dim_cap" class="global-dim">{{aggregationObj.global_dim_cap}}</span>
         </div>
@@ -43,7 +43,7 @@
             {{$t('numTitle', {num: cuboidsInfo.agg_index_counts[aggregateIdx] && cuboidsInfo.agg_index_counts[aggregateIdx].result})}}
           </span><span class="divide">
           </span><span class="dimCap-block">
-            <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
+            <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-ksd-icon-more_info_22 ksd-fs-22 ksd-mrl-2"></i></common-tip>{{$t('colon')}}
             </span>
             <span v-if="!aggregate.select_rule.dim_cap&&aggregationObj&&!aggregationObj.global_dim_cap" class="nolimit-dim">{{$t('noLimitation')}}</span>
             <span v-if="aggregate.select_rule.dim_cap&&aggregationObj">{{aggregate.select_rule.dim_cap}}</span>
