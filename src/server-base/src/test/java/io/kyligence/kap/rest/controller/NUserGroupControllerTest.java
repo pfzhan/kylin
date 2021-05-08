@@ -178,8 +178,7 @@ public class NUserGroupControllerTest {
     public void testDelGroup() throws Exception {
         Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", "g1@.h")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
         Mockito.verify(nUserGroupController).delUserGroup("g1@.h");
     }
 

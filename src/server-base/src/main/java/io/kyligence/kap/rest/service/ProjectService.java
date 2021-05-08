@@ -210,6 +210,15 @@ public class ProjectService extends BasicService {
         return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionEnum.READ);
     }
 
+    public List<String> getOwnedProjects(){
+        val config = KylinConfig.getInstanceFromEnv();
+        val epochManager = EpochManager.getInstance(config);
+        return NProjectManager.getInstance(config).listAllProjects().stream() //
+                .map(ProjectInstance::getName) //
+                .filter(epochManager::checkEpochOwner) // project owner
+                .collect(Collectors.toList());
+    }
+
     private Predicate<ProjectInstance> getRequestFilter(final String projectName, boolean exactMatch,
             AclPermissionEnum permission) {
         Predicate<ProjectInstance> filter;

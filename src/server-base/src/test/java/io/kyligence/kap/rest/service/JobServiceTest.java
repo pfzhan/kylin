@@ -109,6 +109,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @Mock
+    private ProjectService projectService = Mockito.spy(ProjectService.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -124,6 +127,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
+        ReflectionTestUtils.setField(jobService, "projectService", projectService);
     }
 
     @After
@@ -362,7 +366,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
-
+        Mockito.when(projectService.getOwnedProjects()).thenReturn(Lists.newArrayList("default"));
         jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 

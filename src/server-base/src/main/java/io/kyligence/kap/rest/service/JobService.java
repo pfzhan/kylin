@@ -503,13 +503,13 @@ public class JobService extends BasicService {
     }
 
     public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses) {
-        for (ProjectInstance project : getReadableProjects()) {
-            aclEvaluate.checkProjectOperationPermission(project.getName());
+        logger.info("Owned projects is {}", projectService.getOwnedProjects());
+        for (String project : projectService.getOwnedProjects()) {
+            aclEvaluate.checkProjectOperationPermission(project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                batchUpdateJobStatus0(jobIds, project.getName(), action, filterStatuses);
+                batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
                 return null;
-            }, project.getName());
-
+            }, project);
         }
     }
 
@@ -547,12 +547,12 @@ public class JobService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchDropGlobalJob(List<String> jobIds, List<String> filterStatuses) {
-        for (ProjectInstance project : getReadableProjects()) {
-            aclEvaluate.checkProjectOperationPermission(project.getName());
+        for (String project : projectService.getOwnedProjects()) {
+            aclEvaluate.checkProjectOperationPermission(project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                batchDropJob0(project.getName(), jobIds, filterStatuses);
+                batchDropJob0(project, jobIds, filterStatuses);
                 return null;
-            }, project.getName());
+            }, project);
         }
     }
 

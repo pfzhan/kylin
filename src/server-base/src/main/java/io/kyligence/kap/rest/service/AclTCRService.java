@@ -106,6 +106,9 @@ public class AclTCRService extends BasicService {
     @Autowired
     private AccessService accessService;
 
+    @Autowired
+    private ProjectService projectService;
+
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
         // permission already has been checked in AccessService#revokeAcl
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
@@ -118,11 +121,11 @@ public class AclTCRService extends BasicService {
     public void revokeAclTCR(String sid, boolean principal) {
         // only global admin has permission
         // permission already has been checked in UserController, UserGroupController
-        getProjectManager().listAllProjects().forEach(prj -> {
+        projectService.getOwnedProjects().forEach(prj -> {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                revokePrjAclTCR(prj.getName(), sid, principal);
+                revokePrjAclTCR(prj, sid, principal);
                 return null;
-            }, prj.getName());
+            }, prj);
         });
     }
 

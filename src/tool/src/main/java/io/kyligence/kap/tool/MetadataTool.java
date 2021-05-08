@@ -41,7 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.tool.util.ToolMainWrapper;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -286,7 +285,11 @@ public class MetadataTool extends ExecutableApplication {
                 if (projectFolders == null) {
                     return;
                 }
-                backupProjects(projectFolders, backupResourceStore, excludeTableExd);
+                UnitOfWork.doInTransactionWithRetry(()->{
+                    backupProjects(projectFolders, backupResourceStore, excludeTableExd);
+                    return null;
+                }, UnitOfWork.GLOBAL_UNIT);
+
                 val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
                 if (uuid != null) {
                     backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
@@ -331,11 +334,7 @@ public class MetadataTool extends ExecutableApplication {
                 continue;
             }
             // The "_global" directory is already included in the full backup
-            val projectName = Paths.get(projectPath).getFileName().toString();
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
-                return null;
-            }, projectName);
+            copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("metadata task is interrupt");
             }

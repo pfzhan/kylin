@@ -46,6 +46,8 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -260,6 +262,7 @@ public class NUserController extends NBasicController {
         //delete user's project ACL
         accessService.revokeProjectPermission(toBeDeleteUser.getUsername(), MetadataConstants.TYPE_USER);
         aclTCRService.revokeAclTCR(toBeDeleteUser.getUsername(), true);
+        EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(toBeDeleteUser.getUsername(), true));
         userService.deleteUser(toBeDeleteUser.getUsername());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -290,6 +293,7 @@ public class NUserController extends NBasicController {
         //delete user's project ACL
         accessService.revokeProjectPermission(username, MetadataConstants.TYPE_USER);
         aclTCRService.revokeAclTCR(username, true);
+        EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(username, true));
         userService.deleteUser(username);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

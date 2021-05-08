@@ -38,6 +38,8 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -86,7 +88,8 @@ public class NJobController extends NBasicController {
         return logger;
     }
 
-    @ApiOperation(value = "getJobList", tags = { "DW" }, notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getJobList", tags = {
+            "DW" }, notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ExecutableResponse>>> getJobList(
@@ -134,7 +137,8 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 
-    @ApiOperation(value = "dropJob dropGlobalJob", tags = { "DW" }, notes = "Update URL: {project}; Update Param: project, job_ids")
+    @ApiOperation(value = "dropJob dropGlobalJob", tags = {
+            "DW" }, notes = "Update URL: {project}; Update Param: project, job_ids")
     @DeleteMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
@@ -171,6 +175,8 @@ public class NJobController extends NBasicController {
         } else {
             jobService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
                     jobUpdateRequest.getStatuses());
+            EventBusFactory.getInstance().postAsync(new UpdateJobStatusEventNotifier(jobUpdateRequest.getJobIds(),
+                    jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses()));
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -185,7 +191,8 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
     }
 
-    @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @ApiOperation(value = "updateJobStatus", tags = {
+            "DW" }, notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output")
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getJobOutput(@PathVariable("job_id") String jobId,
@@ -198,7 +205,8 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "downloadLogFile", tags = { "DW" }, notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @ApiOperation(value = "downloadLogFile", tags = {
+            "DW" }, notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log")
     @ResponseBody
     public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,

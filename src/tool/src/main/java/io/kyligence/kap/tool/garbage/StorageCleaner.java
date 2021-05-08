@@ -151,13 +151,14 @@ public class StorageCleaner {
         for (StorageItem allFileSystem : allFileSystems) {
             collectFromHDFS(allFileSystem);
         }
-        collectDeletedProject();
-        for (ProjectInstance project : projects) {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(()->{
+        UnitOfWork.doInTransactionWithRetry(()->{
+            collectDeletedProject();
+            for (ProjectInstance project : projects) {
                 collect(project.getName());
-                return null;
-            }, project.getName());
-        }
+            }
+            return null;
+        }, UnitOfWork.GLOBAL_UNIT);
+
 
         long configSurvivalTimeThreshold = timeMachineEnabled ? kylinConfig.getStorageResourceSurvivalTimeThreshold()
                 : config.getCuboidLayoutSurvivalTimeThreshold();

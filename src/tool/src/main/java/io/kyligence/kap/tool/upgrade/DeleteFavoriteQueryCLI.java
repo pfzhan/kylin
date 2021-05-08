@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -107,13 +107,14 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication implements IKe
         printlnGreen(String.format(Locale.ROOT, "found %d recommendation metadata need to be updated.", fr));
 
         if (optionsHelper.hasOption(OPTION_EXEC)) {
-            globalFavoriteRuleList.forEach((project, frList) -> {
-                        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                            frList.forEach(tfr -> FavoriteRuleManager.getInstance(kylinConfig, project).delete(tfr));
-                            return null;
-                        }, project);
-                        printlnGreen("recommendation metadata upgrade succeeded.");
-            });
+            UnitOfWork.doInTransactionWithRetry(()->{
+                globalFavoriteRuleList.forEach((project, frList) -> {
+                    frList.forEach(tfr -> FavoriteRuleManager.getInstance(kylinConfig, project).delete(tfr));
+                    printlnGreen("recommendation metadata upgrade succeeded.");
+                });
+                return null;
+            }, UnitOfWork.GLOBAL_UNIT);
+
         }
         log.info("Succeed to truncate favorite query.");
     }

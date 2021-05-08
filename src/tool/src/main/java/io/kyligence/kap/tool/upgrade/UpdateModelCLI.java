@@ -33,7 +33,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -131,12 +131,13 @@ public class UpdateModelCLI extends ExecutableApplication implements IKeep {
 
         printlnGreen(String.format(Locale.ROOT, "found %d models need to be modified.", globalUpdateModelList.size()));
         if (optionsHelper.hasOption(OPTION_EXEC)) {
-            globalUpdateModelList.forEach(model -> {
-                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            UnitOfWork.doInTransactionWithRetry(()->{
+                globalUpdateModelList.forEach(model -> {
                     NDataModelManager.getInstance(kylinConfig, model.getProject()).updateDataModelDesc(model);
-                    return null;
-                }, model.getProject());
-            });
+                });
+                return null;
+            }, UnitOfWork.GLOBAL_UNIT);
+
         }
 
         if (optionsHelper.hasOption(OPTION_EXEC)) {

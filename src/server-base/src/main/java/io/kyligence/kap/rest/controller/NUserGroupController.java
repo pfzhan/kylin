@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -164,6 +166,7 @@ public class NUserGroupController extends NBasicController {
         String groupName = userGroupService.getGroupNameByUuid(groupUuid);
         userGroupService.deleteGroup(groupName);
         aclTCRService.revokeAclTCR(groupName, false);
+        EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(groupName, true));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del user group");
     }
 

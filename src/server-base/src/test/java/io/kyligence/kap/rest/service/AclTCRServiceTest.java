@@ -148,6 +148,9 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private OpenAccessController accessController = Mockito.spy(OpenAccessController.class);
 
+    @Mock
+    private ProjectService projectService = Mockito.spy(ProjectService.class);
+
     @Before
     public void setUp() throws IOException {
         PowerMockito.mockStatic(SpringContext.class);
@@ -165,6 +168,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
         ReflectionTestUtils.setField(accessController, "accessService", accessService);
+        ReflectionTestUtils.setField(aclTCRService, "projectService", projectService);
         initUsers();
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
@@ -415,6 +419,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
         tables = manager.getAuthorizedTables(null, Sets.newHashSet(group1));
         Assert.assertTrue(tables.contains("DEFAULT.TEST_COUNTRY"));
+        Mockito.when(projectService.getOwnedProjects()).thenReturn(Lists.newArrayList("default"));
         aclTCRService.revokeAclTCR(group1, false);
         tables = manager.getAuthorizedTables(null, Sets.newHashSet(group1));
         Assert.assertFalse(tables.contains("DEFAULT.TEST_COUNTRY"));

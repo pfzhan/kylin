@@ -29,6 +29,9 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.io.IOException;
 
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
+import io.kyligence.kap.rest.service.JobService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -79,9 +82,13 @@ public class BroadcastController extends NBasicController {
     @Autowired
     private AccessService accessService;
 
+    @Autowired
+    private JobService jobService;
+
     @PostMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<String> broadcastReceive(@RequestBody BroadcastEventReadyNotifier notifier) throws IOException {
+    public EnvelopeResponse<String> broadcastReceive(@RequestBody BroadcastEventReadyNotifier notifier)
+            throws IOException {
         if (notifier instanceof AuditLogBroadcastEventNotifier) {
             auditLogService.notifyCatchUp();
         } else if (notifier instanceof StopQueryBroadcastEventNotifier) {
@@ -102,6 +109,13 @@ public class BroadcastController extends NBasicController {
             accessService.updateAccessFromRemote(null, (AccessBatchGrantEventNotifier) notifier, null);
         } else if (notifier instanceof AccessRevokeEventNotifier) {
             accessService.updateAccessFromRemote(null, null, (AccessRevokeEventNotifier) notifier);
+        } else if (notifier instanceof UpdateJobStatusEventNotifier) {
+            UpdateJobStatusEventNotifier updateJobStatusEventNotifier = (UpdateJobStatusEventNotifier) notifier;
+            jobService.batchUpdateGlobalJobStatus(updateJobStatusEventNotifier.getJobIds(),
+                    updateJobStatusEventNotifier.getAction(), updateJobStatusEventNotifier.getStatuses());
+        } else if (notifier instanceof AclTCRRevokeEventNotifier) {
+            AclTCRRevokeEventNotifier aclTCRRevokeEventNotifier = (AclTCRRevokeEventNotifier) notifier;
+            aclTCRService.revokeAclTCR(aclTCRRevokeEventNotifier.getSid(), aclTCRRevokeEventNotifier.isPrinciple());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
