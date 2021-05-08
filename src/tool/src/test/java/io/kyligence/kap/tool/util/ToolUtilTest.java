@@ -101,9 +101,4 @@ public class ToolUtilTest extends NLocalFileMetadataTestCase {
 
     }
 
-    @Test
-    public void testGetHdfsJobTmpDir() {
-        String path = ToolUtil.getHdfsJobTmpDir("abcd");
-        Assert.assertTrue(path.endsWith("abcd/job_tmp"));
-    }
 }

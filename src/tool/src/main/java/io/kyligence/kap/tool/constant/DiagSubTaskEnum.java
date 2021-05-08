@@ -42,6 +42,5 @@ public enum DiagSubTaskEnum {
     LOG, //
     JOB_TMP, //
     JOB_EVENTLOGS, //
-    YARN,
-    CANDIDATE_LOG
+    YARN
 }
