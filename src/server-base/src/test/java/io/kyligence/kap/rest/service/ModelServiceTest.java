@@ -362,6 +362,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, models9.get(0).getAvailableIndexesCount());
         Assert.assertEquals(0, models9.get(0).getTotalIndexes());
         Assert.assertEquals(0, models9.get(0).getEmptyIndexesCount());
+        Assert.assertEquals(0, models9.get(0).getLastBuildTime());
     }
 
     @Test

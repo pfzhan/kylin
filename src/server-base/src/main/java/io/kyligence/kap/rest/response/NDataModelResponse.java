@@ -111,6 +111,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("join_tables")
     private List<SimplifiedJoinTableDesc> simplifiedJoinTableDescs;
 
+    @JsonProperty("last_build_time")
+    private long lastBuildTime;
+
     private long lastModify;
 
     public NDataModelResponse() {

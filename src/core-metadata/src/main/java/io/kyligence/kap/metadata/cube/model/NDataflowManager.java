@@ -618,6 +618,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return getDataflow(modelId).getSourceBytesSize();
     }
 
+    public long getDataflowLastBuildTime(String modelId) {
+        return getDataflow(modelId).getLastBuildTime();
+    }
+
     public void updateDataflowDetailsLayouts(final NDataSegment seg, final List<NDataLayout> layouts) {
         NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);

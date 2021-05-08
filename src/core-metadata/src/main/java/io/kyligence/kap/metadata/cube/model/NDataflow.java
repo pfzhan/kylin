@@ -585,6 +585,14 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return bytesSize;
     }
 
+    public long getLastBuildTime() {
+        long lastBuildTime = 0L;
+        for (val segment : getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
+            lastBuildTime = Math.max(lastBuildTime, segment.getLastBuildTime());
+        }
+        return lastBuildTime;
+    }
+
     public long getQueryHitCount(long layoutId) {
         if (getLayoutHitCount().get(layoutId) != null) {
             return getLayoutHitCount().get(layoutId).getFrequency(project);

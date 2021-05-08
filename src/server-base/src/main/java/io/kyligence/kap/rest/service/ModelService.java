@@ -632,6 +632,7 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setForbiddenOnline(isScd2ForbiddenOnline);
                 nDataModelResponse.setBroken(modelDesc.isBroken());
                 nDataModelResponse.setStatus(modelResponseStatus);
+                nDataModelResponse.setLastBuildTime(dfManager.getDataflowLastBuildTime(modelDesc.getUuid()));
                 nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
                 nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
                 nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
