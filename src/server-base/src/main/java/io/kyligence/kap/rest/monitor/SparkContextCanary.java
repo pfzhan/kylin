@@ -23,23 +23,32 @@
  */
 package io.kyligence.kap.rest.monitor;
 
+import java.util.ArrayList;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import org.apache.kylin.common.KapConfig;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import lombok.Getter;
 import lombok.val;
-import org.apache.kylin.common.KapConfig;
-import org.apache.spark.api.java.JavaFutureAction;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.SparderEnv;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class SparkContextCanary {
     private static final Logger logger = LoggerFactory.getLogger(SparkContextCanary.class);
@@ -47,6 +56,7 @@ public class SparkContextCanary {
 
     private static final int THRESHOLD_TO_RESTART_SPARK = KapConfig.getInstanceFromEnv().getThresholdToRestartSpark();
     private static final int PERIOD_MINUTES = KapConfig.getInstanceFromEnv().getSparkCanaryPeriodMinutes();
+    private static final String WORKING_DIR = KapConfig.getInstanceFromEnv().getWriteHdfsWorkingDirectory();
 
     @Getter
     private static volatile int errorAccumulated = 0;
@@ -83,27 +93,31 @@ public class SparkContextCanary {
                 logger.info("Spark is unavailable, need to restart immediately.");
                 errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
             } else {
+                val jsc = JavaSparkContext.fromSparkContext(SparderEnv.getSparkSession().sparkContext());
+                Future<Boolean> handler = checkWriteFile(jsc);
                 try {
-                    val jsc = JavaSparkContext.fromSparkContext(SparderEnv.getSparkSession().sparkContext());
                     jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
 
                     long t = System.currentTimeMillis();
-                    val ret = numberCount(jsc).get(KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(),
-                            TimeUnit.MILLISECONDS);
-                    logger.info("SparkContextCanary numberCount returned successfully with value {}, takes {} ms.", ret,
+                    handler.get(KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(), TimeUnit.MILLISECONDS);
+                    logger.info("SparkContextCanary checkWriteFile returned successfully, takes {} ms.",
                             (System.currentTimeMillis() - t));
                     // reset errorAccumulated once good context is confirmed
                     errorAccumulated = 0;
                 } catch (TimeoutException te) {
                     errorAccumulated++;
-                    logger.error("SparkContextCanary numberCount timeout, didn't return in {} ms, error {} times.",
-                            KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(), errorAccumulated);
-                } catch (ExecutionException ee) {
-                    logger.error("SparkContextCanary numberCount occurs exception, need to restart immediately.", ee);
+                    handler.cancel(true);
+                    logger.error("SparkContextCanary write file timeout.", te);
+                } catch (InterruptedException e) {
+                    errorAccumulated++;
+                    logger.error("Thread is interrupted.", e);
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException e) {
                     errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
+                    logger.error("SparkContextCanary numberCount occurs exception, need to restart immediately.", e);
                 } catch (Exception e) {
                     errorAccumulated++;
-                    logger.error("SparkContextCanary numberCount occurs exception.", e);
+                    logger.error("SparkContextCanary write file occurs exception.", e);
                 }
             }
 
@@ -125,16 +139,33 @@ public class SparkContextCanary {
             }
         } catch (Throwable th) {
             logger.error("Error when monitoring Spark.", th);
+            Thread.currentThread().interrupt();
         }
     }
 
     // for canary
-    private static JavaFutureAction<Long> numberCount(JavaSparkContext jsc) {
-        val list = new ArrayList<Integer>();
-        for (int i = 0; i < 100; i++) {
-            list.add(i);
-        }
+    private static Future<Boolean> checkWriteFile(JavaSparkContext jsc) {
 
-        return jsc.parallelize(list).countAsync();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        final Future<Boolean> handler = executor.submit(new Callable() {
+            @Override
+            public Boolean call() throws Exception {
+                val ss = SparderEnv.getSparkSession();
+                val list = new ArrayList<Row>();
+                for (int i = 0; i < 100; i++) {
+                    list.add(RowFactory.create(i));
+                }
+
+                val schema = new StructType(
+                        new StructField[] { DataTypes.createStructField("col", DataTypes.IntegerType, true) });
+                val df = ss.createDataFrame(jsc.parallelize(list), schema);
+                val appId = ss.sparkContext().applicationId();
+                df.write().mode(SaveMode.Overwrite).parquet(WORKING_DIR + "/" + appId);
+                return true;
+            }
+        });
+
+        return handler;
     }
 }
