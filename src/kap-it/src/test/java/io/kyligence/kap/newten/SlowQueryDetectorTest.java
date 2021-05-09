@@ -98,6 +98,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         slowQueryDetector.queryEnd();
     }
 
+    @Ignore("not timeout, need another sql")
     @Test
     public void testSparderTimeoutCancelJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -130,6 +131,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         slowQueryDetector.queryEnd();
     }
 
+    @Ignore("not timeout, need another sql")
     @Test
     public void testPushdownTimeoutCancelJob() throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
