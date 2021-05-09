@@ -101,13 +101,19 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     protected static SparkSession ss;
     private TestingServer zkTestServer;
 
+    protected static void ensureSparkConf() {
+        if (sparkConf == null) {
+            sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        }
+    }
+
     @BeforeClass
     public static void beforeClass() {
 
         if (Shell.MAC)
             overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        ensureSparkConf();
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
