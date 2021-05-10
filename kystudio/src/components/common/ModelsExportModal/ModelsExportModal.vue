@@ -55,19 +55,21 @@
       <div class="export-other">
         <p class="title">{{$t('exportOther')}}</p>
         <p class="export-tips">{{$t('exportOtherTips')}}</p>
-        <p class="mrgb15">
+        <p class="other-content mrgb15">
           <el-tooltip :content="$t('disabledRecommendationTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('rec') !== selectedModals.length">
             <el-checkbox v-model="form.exportRecommendations" :disabled="changeCheckboxType('rec') === selectedModals.length">{{$t('recommendations')}}</el-checkbox>
           </el-tooltip>
         </p>
-        <p class="mrgb15">
+        <p class="other-content mrgb15">
           <el-tooltip :content="$t('disabledOverrideTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('ops') !== selectedModals.length">
             <el-checkbox v-model="form.exportOverProps" :disabled="changeCheckboxType('ops') === selectedModals.length">{{$t('override')}}</el-checkbox>
           </el-tooltip>
         </p>
-        <el-tooltip :content="$t('disabledMultPartitionTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('mult-partition') !== selectedModals.length">
-          <el-checkbox v-model="form.exportMultiplePartitionValues" :disabled="changeCheckboxType('mult-partition') === selectedModals.length">{{$t('subPartitionValues')}}</el-checkbox>
-        </el-tooltip>
+        <p class="other-content">
+          <el-tooltip :content="$t('disabledMultPartitionTip')" effect="dark" placement="top" :disabled="selectedModals.length === 0 || changeCheckboxType('mult-partition') !== selectedModals.length">
+            <el-checkbox v-model="form.exportMultiplePartitionValues" :disabled="changeCheckboxType('mult-partition') === selectedModals.length">{{$t('subPartitionValues')}}</el-checkbox>
+          </el-tooltip>
+        </p>
       </div>
     </div>
     <div slot="footer" class="dialog-footer ky-no-br-space">
@@ -365,6 +367,11 @@ export default class ModelsExportModal extends Vue {
   }
   .export-other {
     margin-top: 15px;
+    .other-content {
+      .el-checkbox__input {
+        margin-top: -5px;
+      }
+    }
   }
   .mrgb15 {
     margin-bottom: 10px;
@@ -445,8 +452,11 @@ export default class ModelsExportModal extends Vue {
       font-size: 12px;
     }
     .el-checkbox {
-      display: block;
+      display: flex;
       margin-bottom: 10px;
+      // .el-checkbox__input {
+      //   margin-top: -5px;
+      // }
     }
     .el-checkbox+.el-checkbox {
       margin-left: 0;

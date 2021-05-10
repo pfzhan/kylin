@@ -153,7 +153,7 @@
         </el-tabs>
       </div>
       <span slot="footer" class="dialog-footer">
-        <div class="ksd-fleft">
+        <div class="ksd-fleft" v-if="uploadFlag==='step3'">
           <el-checkbox v-model="addBaseIndex">
             <span>{{$t('addBaseIndexCheckBox')}}</span>
           </el-checkbox>
@@ -164,7 +164,7 @@
             <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
             <span class="merge-sql-tip"><span class="divide">|</span><i class="el-icon-ksd-alert"></i>{{$t('mergeSqlTip')}}</span>
           </span>
-          <span class="selected-item" v-if="uploadFlag==='step3'"><i class="el-icon-ksd-alert"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommendsLength}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommendsLength})}}</span>
+          <!-- <span class="selected-item" v-if="uploadFlag==='step3'"><i class="el-icon-ksd-alert"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommendsLength}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommendsLength})}}</span> -->
           <!-- <span v-if="uploadFlag==='step1'" class="tips">
             <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span> -->

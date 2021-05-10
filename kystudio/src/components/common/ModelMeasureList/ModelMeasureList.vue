@@ -105,12 +105,12 @@ export default class ModelMeasureList extends Vue {
   .parameter-type:nth-child(2) + .parameter-label {
     margin-left: 5px;
   }
-  .el-table__body-wrapper {
-    font-size: 12px;
-  }
-  .el-table .cell {
-    line-height: 18px;
-  }
+  // .el-table__body-wrapper {
+  //   font-size: 12px;
+  // }
+  // .el-table .cell {
+  //   line-height: 18px;
+  // }
   .model-measure-table {
     .text {
       white-space: pre-wrap;

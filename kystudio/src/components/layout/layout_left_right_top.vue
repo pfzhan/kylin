@@ -107,8 +107,8 @@
                   </div>
                 </el-popover>
                 <p class="quota-info" v-popover:quotaPopover @click="showQuota = !showQuota">
-                  <span class="quota-title">{{$t('storageQuota')}}</span>
                   <span :class="['flag', getQuotaColor]"></span>
+                  <span class="quota-title">{{$t('storageQuota')}}</span>
                 </p>
               </div>
             </li>
@@ -367,7 +367,7 @@ let MessageBox = ElementUI.MessageBox
       serviceOvertip1: 'The technical support service will expire in ',
       serviceOvertip2: ' days. After the expiration date, you couldn\'t use the support service and the ticket system. Please contact the sales to extend your service time if needed.',
       serviceEndDate: 'Service End Time: ',
-      storageQuota: 'Storage Quota: ',
+      storageQuota: 'Storage Quota',
       settingTips: 'Configure',
       useageMana: 'Used Storage: ',
       trash: 'Low Usage Storage',
@@ -406,7 +406,7 @@ let MessageBox = ElementUI.MessageBox
       serviceOvertip1: '技术支持服务将在 ',
       serviceOvertip2: ' 天后到期。过期后您将无法使用该产品的技术支持服务，相应的工单系统权限也将关闭。请联系销售支持人员申请延期。',
       serviceEndDate: '服务截止日期：',
-      storageQuota: '存储配额：',
+      storageQuota: '存储配额',
       settingTips: '设置',
       useageMana: '已使用：',
       trash: '低效存储',

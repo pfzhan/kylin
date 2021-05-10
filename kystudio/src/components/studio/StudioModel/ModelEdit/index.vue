@@ -259,7 +259,7 @@
         <transition name="bounceright">
           <div class="panel-box panel-cc" @mousedown.stop="activePanel('cc')" :style="panelStyle('cc')"  v-if="panelAppear.cc.display">
             <div class="panel-title" @mousedown="activePanel('cc')" v-drag:change.right.top="panelAppear.cc">
-              <span><i class="el-icon-ksd-auto_computed_column"></i></span>
+              <span><i class="el-ksd-icon-auto_computed_column_old"></i></span>
               <span class="title">{{$t('kylinLang.model.computedColumn')}} <template v-if="modelRender.computed_columns.length">({{modelRender.computed_columns.length}})</template></span>
               <span class="close" @click="toggleMenu('cc')"><i class="el-icon-ksd-close"></i></span>
             </div>

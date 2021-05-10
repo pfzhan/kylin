@@ -28,7 +28,7 @@
                 </el-option-group>
               </el-select>
             </div>
-            <common-tip :content="$t('addCCTip')" ><el-button size="medium" @click="showCCForm" :disabled="showCC" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button></common-tip>
+            <common-tip :content="$t('addCCTip')" ><el-button size="medium" @click="showCCForm" :disabled="showCC" icon="el-ksd-icon-auto_computed_column_old" class="ksd-ml-10" type="primary" plain></el-button></common-tip>
           </div>
           <CCEditForm v-if="showCC" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccDesc" :modelInstance="modelInstance"></CCEditForm>
         </el-form-item>

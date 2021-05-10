@@ -179,20 +179,23 @@
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.fact')" width="200">
           <template slot-scope="scope">
-            <el-popover
-              :ref="`${scope.row.alias}-ERPopover`"
-              placement="top-start"
-              width="400"
-              trigger="hover"
-              @after-enter="(e) => afterPoppoverEnter(e, scope.row)"
-              popper-class="er-popover-layout"
-            >
-              <div class="model-ER-layout"><ModelERDiagram v-if="scope.row.showER" :model="dataGenerator.generateModel(scope.row)" /></div>
-            </el-popover>
-            <span class="fact-table-title" v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 20, tableClassName: 'model_list_table'}" v-if="scope.row.fact_table.split('.').length === 2">{{scope.row.fact_table.split('.')[1]}}</span>
-            <span class="model-ER">
-              <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-24" type="mult"></el-icon>
-            </span>
+            <template v-if="scope.row.status === 'BROKEN'">-</template>
+            <template v-else>
+              <el-popover
+                :ref="`${scope.row.alias}-ERPopover`"
+                placement="top-start"
+                width="400"
+                trigger="hover"
+                @after-enter="(e) => afterPoppoverEnter(e, scope.row)"
+                popper-class="er-popover-layout"
+              >
+                <div class="model-ER-layout"><ModelERDiagram v-if="scope.row.showER" :model="dataGenerator.generateModel(scope.row)" /></div>
+              </el-popover>
+              <span class="fact-table-title" v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 20, tableClassName: 'model_list_table'}" v-if="scope.row.fact_table.split('.').length === 2">{{scope.row.fact_table.split('.')[1]}}</span>
+              <span class="model-ER">
+                <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-24" type="mult"></el-icon>
+              </span>
+            </template>
           </template>
         </el-table-column>
         <el-table-column
@@ -228,6 +231,7 @@
           sortable="custom"
           prop="expansionrate"
           show-overflow-tooltip
+          width="150"
           :info-tooltip="$t('expansionRateTip')"
           :label="$t('expansionRate')"
         >
@@ -555,6 +559,7 @@ export default class ModelList extends Vue {
     const defaultFilters = getDefaultFilters(this)
 
     Object.entries(defaultFilters).map(([key, value]) => {
+      if (key === 'model_alias_or_owner') return
       this.filterArgs[key] = value
     })
 
@@ -610,9 +615,7 @@ export default class ModelList extends Vue {
     return row.alias
   }
   renderColumnClass ({row, column, rowIndex, columnIndex}) {
-    if ((row.status === 'BROKEN' || ('visible' in row && !row.visible)) && columnIndex === 0) {
-      return 'model-alias-item broken-column'
-    } else if (columnIndex === 0) {
+    if (columnIndex === 0) {
       return 'model-alias-item'
     }
     if (columnIndex === 2) {
@@ -923,6 +926,7 @@ export default class ModelList extends Vue {
   }
 
   modelRowClickEvent (row, args) {
+    if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
     this.$router.push({name: 'ModelDetails', params: {modelName: row.alias, ...args}})
   }
 
@@ -1012,6 +1016,9 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    .el-table__body td {
+      vertical-align: top;
+    }
     .custom-tooltip-layout {
       vertical-align: middle;
       // margin-top: 6px;
@@ -1021,8 +1028,7 @@ export default class ModelList extends Vue {
       position: absolute;
       right: 10px;
       cursor: pointer;
-      top: 50%;
-      transform: translate(0, -50%);
+      // transform: translate(0, -50%);
     }
     .recommendation-layout {
       display: inline-block;
@@ -1031,7 +1037,7 @@ export default class ModelList extends Vue {
       border-radius: 6px;
       color: @ke-color-primary;
     }
-    .el-icon-ksd-icon_build-index.build-disabled {
+    .build-disabled > .el-ksd-icon-build_index_22 {
       color: @color-text-disabled;
       &:hover {
         color: @color-text-disabled;

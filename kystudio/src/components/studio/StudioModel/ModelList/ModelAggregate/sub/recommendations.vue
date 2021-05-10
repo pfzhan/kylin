@@ -69,7 +69,7 @@
         </el-table-column>
         <el-table-column
           width="120"
-          prop="hit_count"
+          prop="usage"
           :label="$t('th_useCount')"
           :info-tooltip="$t('usedCountTip')"
           sortable>

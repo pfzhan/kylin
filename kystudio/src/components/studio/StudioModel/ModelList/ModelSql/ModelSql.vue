@@ -54,5 +54,8 @@ export default class modelSql extends Vue {
         height: 100%;
       }
     }
+    .edit-copy-btn {
+      right: 20px;
+    }
   }
 </style>

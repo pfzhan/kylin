@@ -108,7 +108,8 @@ export default {
     disabledConstantMeasureTip: 'Can\'t modify the default measure.',
     excludeTableCheckbox: 'Display columns excluded from recommendations',
     excludeTableCheckboxTip: 'Exclude Rules can be modified in project setting',
-    excludedTableIconTip: 'Excluded from recommendations'
+    excludedTableIconTip: 'Excluded from recommendations',
+    manyToManyAntiTableTip: 'For the tables excluded from recommendations, if the join relationship of a table is One-to-Many or Many-to-Many, dimensions from this table can\'t be used in indexes. '
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -219,6 +220,7 @@ export default {
     disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。',
     excludeTableCheckbox: '显示在优化建议中被屏蔽的列',
     excludeTableCheckboxTip: '可在项目设置中配置',
-    excludedTableIconTip: '被优化建议屏蔽的列'
+    excludedTableIconTip: '被优化建议屏蔽的列',
+    manyToManyAntiTableTip: '在优化建议中被屏蔽的表，若关联关系为一对多或多对多，则表中的维度无法在索引中使用。'
   }
 }

@@ -448,6 +448,7 @@ export default class ModelActions extends Vue {
   handleModel (action, modelDesc, successTip) {
     return this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
       kapMessage(successTip)
+      this.$emit('loadModelsList')
       this.$emit('loadModels')
     }, (res) => {
       handleError(res)

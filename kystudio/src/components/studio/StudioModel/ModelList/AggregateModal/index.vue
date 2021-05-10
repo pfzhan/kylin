@@ -424,6 +424,15 @@
     >
       <div class="action-layout">
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
+        <el-alert
+          v-if="hasManyToManyAndAntiTable"
+          class="ksd-pt-0"
+          :title="$t('manyToManyAntiTableTip')"
+          type="info"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+        </el-alert>
         <div class="filter-dimension">
           <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-model="displayExcludedTables" @change="changeExcludedTables" v-if="showExcludedTableCheckBox">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
           <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:240px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
@@ -441,7 +450,7 @@
         </el-row>
         <transition-group name="flip-list" tag="div">
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
-            <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
+            <el-col :span="1"><el-checkbox size="small" :disabled="getDisabledTableType(item)" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
             <el-col :span="6"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
             <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 40}">{{item.column}}</span><el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(item) && displayExcludedTables"></i></el-tooltip></el-col>
             <el-col :span="3">{{item.type}}</el-col>
@@ -487,7 +496,7 @@
       v-if="editMeasure"
     >
       <div class="action-measure-layout">
-        <p class="alert">{{$t('editMeasuresTip')}}</p>
+        <!-- <p class="alert">{{$t('editMeasuresTip')}}</p> -->
         <div class="filter-measure">
           <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
@@ -662,6 +671,26 @@ export default class AggregateModal extends Vue {
   // 是否展示屏蔽表 checkbox
   get showExcludedTableCheckBox () {
     return this.backUpDimensions.length ? this.backUpDimensions.filter(it => typeof it.depend_lookup_table !== 'undefined' && it.depend_lookup_table).length > 0 : false
+  }
+
+  // 是否存在多对多且被屏蔽的表
+  get hasManyToManyAndAntiTable () {
+    let flag = false
+    for (let item of this.backUpDimensions) {
+      if (this.getDisabledTableType(item)) {
+        flag = true
+        break
+      }
+    }
+    return flag
+  }
+
+  // 当表为屏蔽表且表关联关系为多对多时，不能作为维度添加到索引中
+  getDisabledTableType (col) {
+    const [currentTable] = col.column.split('.')
+    const { join_tables } = this.model
+    const manyToManyTables = join_tables.filter(it => it.join_relation_type === 'MANY_TO_MANY').map(item => item.alias)
+    return manyToManyTables.includes(currentTable) && this.isExistExcludeTable(col)
   }
 
   // 是否为屏蔽表的 column
@@ -1477,6 +1506,7 @@ export default class AggregateModal extends Vue {
   selectAllIncludes (v) {
     if (v) {
       this.includeDimensions.forEach(it => {
+        if (this.getDisabledTableType(it)) return
         it.isCheck = true
         this.collectSelectedDimensions(it, true)
       })
@@ -1673,7 +1703,7 @@ export default class AggregateModal extends Vue {
   background: @fff;
   top: 52px;
   height: 100vh;
-  width: calc(~'100% - 124px');
+  width: calc(~'100% - 184px');
   // margin: 0 -20px 0 -20px;
   // padding: 20px;
   overflow-y: auto;
@@ -1712,7 +1742,7 @@ export default class AggregateModal extends Vue {
     padding: 0 20px;
     position: fixed;
     bottom: 0px;
-    width: calc(~'100% - 124px');
+    width: calc(~'100% - 184px');
     background-color: #fff;
     z-index: 11;
     box-sizing: border-box;

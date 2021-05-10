@@ -1,8 +1,8 @@
 <template>
   <div class="model-layout">
     <div class="header-layout">
-      <span class="title"><i class="el-icon-ksd-more_01-copy ksd-mr-10" @click="jumpBack"></i>
-        <span>{{modelName}}<i class="el-icon-arrow-down el-icon--right" @click="showModelList = !showModelList"></i></span>
+      <span class="title"><i class="el-ksd-icon-arrow_left_22 ksd-fs-22" @click="jumpBack"></i>
+        <span>{{modelName}}<i class="el-ksd-icon-arrow_down_16 icon--right" @click="showModelList = !showModelList"></i></span>
         <div class="model-filter-list" v-if="showModelList">
           <div class="search-bar"><el-input class="search-model-input" v-model="searchModelName" size="small" :placeholder="$t('kylinLang.common.pleaseInput')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchModel" @clear="searchModel()"></el-input></div>
           <div class="model-list" v-loading="showSearchResult">
@@ -202,9 +202,9 @@ export default class ModelLayout extends Vue {
   showSearchResult = false
 
   created () {
-    if (!this.initData) {
-      this.initModelData()
-    }
+    // if (!this.initData) {
+    //   this.initModelData()
+    // }
     document.addEventListener('click', this.handleClick)
   }
 
@@ -256,8 +256,8 @@ export default class ModelLayout extends Vue {
   }
 
   loadModelList (name = '') {
-    const modelName = this.searchModelName || name
     return new Promise((resolve, reject) => {
+      const modelName = this.searchModelName || name
       this.showSearchResult = true
       this.loadModels({
         page_offset: 0,
@@ -282,7 +282,7 @@ export default class ModelLayout extends Vue {
   }
 
   handleClick (e) {
-    if (!e.target.closest('.model-filter-list') && !e.target.closest('.el-icon--right')) {
+    if (!e.target.closest('.model-filter-list') && !e.target.closest('.icon--right')) {
       this.showModelList = false
     }
   }
@@ -431,15 +431,19 @@ export default class ModelLayout extends Vue {
   .model-layout {
     height: 100%;
     .header-layout {
-      height: 50px;
+      height: 56px;
       width: 100%;
       padding: 0 10px;
       box-sizing: border-box;
-      line-height: 50px;
+      line-height: 56px;
       // box-shadow: 1px 1px 4px #ccc;
+      border-bottom: 1px solid #ECF0F8;
       background-color: @ke-background-color-secondary;
       .title {
-        font-weight: bold;
+        font-weight: 600;
+        i {
+          cursor: pointer;
+        }
       }
       .action-items {
         position: absolute;
@@ -453,8 +457,8 @@ export default class ModelLayout extends Vue {
         }
       }
     }
-    .model-detail-tabs {
-      .el-tabs__item {
+    .model-detail-tabs.el-tabs--left {
+      .el-tabs__item.is-left {
         padding: 0 20px;
       }
     }
@@ -465,11 +469,11 @@ export default class ModelLayout extends Vue {
       text-align: left;
     }
     .el-tabs--default {
-      height: calc(~'100% - 50px');
+      height: calc(~'100% - 56px');
       .el-tabs__header {
         margin: 0 0 16px;
         .el-tabs__nav-wrap {
-          width: 150px;
+          width: 144px;
         }
       }
       .el-tabs__content {

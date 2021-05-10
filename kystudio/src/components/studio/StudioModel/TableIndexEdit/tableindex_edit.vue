@@ -17,6 +17,7 @@
             :show-background="false"
             show-icon>
           </el-alert>
+          <p class="anit-table-tips" v-if="hasManyToManyAndAntiTable">{{$t('manyToManyAntiTableTip')}}</p>
           <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
           <el-input v-model="searchColumn" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
         </div>
@@ -31,7 +32,7 @@
           <div class="table-content table-index-layout" v-scroll.observe.reactive @scroll-bottom="scrollLoad">
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="(col, index) in searchAllColumns" :key="col.fullName" class="table-row">
-                  <el-col :span="1"><el-checkbox size="small" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
+                  <el-col :span="1"><el-checkbox size="small" :disabled="getDisabledTableType(col)" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
                   <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}<el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(col) && displayExcludedTables"></i></el-tooltip></el-col>
                   <el-col :span="3" class="cardinality-item">
                     <template v-if="col.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
@@ -240,6 +241,25 @@
       if (this.searchAllColumns && this.searchAllColumns.length !== this.filterResult.length) {
         this.currentPager += 1
       }
+    }
+    // 是否存在多对多且被屏蔽的表
+    get hasManyToManyAndAntiTable () {
+      let flag = false
+      for (let item of this.allColumns) {
+        if (this.getDisabledTableType(item)) {
+          flag = true
+          break
+        }
+      }
+      return flag
+    }
+    // 当表为屏蔽表且表关联关系为多对多时，不能作为维度添加到索引中
+    getDisabledTableType (col) {
+      if (!col) return false
+      const [currentTable] = col.fullName.split('.')
+      const { join_tables } = this.modelInstance
+      const manyToManyTables = join_tables.filter(it => it.join_relation_type === 'MANY_TO_MANY').map(item => item.alias)
+      return manyToManyTables.includes(currentTable) && this.isExistExcludeTable(col)
     }
     // 是否为屏蔽表的 column
     isExistExcludeTable (col) {
@@ -455,6 +475,7 @@
     selectAllTableIndex (v) {
       this.isSelectAllTableIndex = v
       this.allColumns.forEach(item => {
+        if (v && this.getDisabledTableType(item)) return
         item.isUsed = v
         item.isSorted = v
       })
@@ -486,6 +507,12 @@
         text-align: right;
         .el-alert--nobg {
           text-align: left;
+        }
+        .anit-table-tips {
+          font-size: 12px;
+          text-align: left;
+          margin-left: 22px;
+          margin-bottom: 10px;
         }
       }
     }

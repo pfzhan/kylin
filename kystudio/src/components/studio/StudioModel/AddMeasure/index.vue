@@ -78,7 +78,7 @@
                 </el-option>
               </el-option-group>
             </el-select>
-            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-icon-ksd-auto_computed_column" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button></common-tip>
+            <common-tip :content="$t('addCCTip')"><el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button></common-tip>
           </div>
           <el-button type="primary" size="mini" icon="el-icon-ksd-add_2" plain circle v-if="measure.expression === 'COUNT_DISTINCT'&&measure.return_type!=='bitmap'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
@@ -138,7 +138,7 @@
               </el-option>
             </el-option-group>
           </el-select>
-          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button></common-tip>
+          <common-tip :content="$t('addCCTip')"><el-button size="medium" icon="el-ksd-icon-auto_computed_column_old" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button></common-tip>
           <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :hideCancel="isEditMeasure" :isEditMeasureCC="!isEdit" :ccDesc="corrCCObject" :modelInstance="modelInstance" @resetSubmitLoading="resetSubmitType" @saveError="resetSubmitType"></CCEditForm>
         </div>
       </el-form-item>
@@ -754,7 +754,7 @@ export default class AddMeasure extends Vue {
       width: 100%;
     }
     .measures-addCC {
-      width: 390px;
+      width: 379px;
     }
     .del-margin-more {
       margin-left: 37px !important;

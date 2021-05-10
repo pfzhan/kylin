@@ -1098,7 +1098,7 @@ export default class ModelSegment extends Vue {
 .model-segment {
   height: 100%;
   background-color: @fff;
-  padding: 10px;
+  // padding: 10px;
   // border: 1px solid @line-border-color4;
   // margin: 15px;
   box-sizing: border-box;

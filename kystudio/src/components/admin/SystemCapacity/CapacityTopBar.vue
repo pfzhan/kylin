@@ -39,7 +39,7 @@
         <div class="node-details nodata" v-else>{{$t('kylinLang.common.noData')}}</div>
       </div>
     </el-popover>
-    <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes"><span class="server-status">{{$t('serverStatus')}}</span>
+    <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">
       <i v-if="showLoadingStatus" class="el-icon-loading"></i>
       <template v-else>
         <template v-if="getDataFails">
@@ -55,6 +55,7 @@
           </el-tooltip>
         </template>
       </template>
+      <span class="server-status">{{$t('serverStatus')}}</span>
     </p>
   </div>
 </template>

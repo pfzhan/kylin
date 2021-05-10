@@ -70,7 +70,8 @@ export default {
     uploadRule1: 'Please upload .txt or .sql file',
     uploadRule2: 'Valid SQLs shall be included in the file',
     uploadRule3: 'The total file size can\'t be larger than 5 MB',
-    uploadRule4: 'Up to {size} SQLs could be uploaded at a time'
+    uploadRule4: 'Up to {size} SQLs could be uploaded at a time',
+    addBaseIndexCheckBox: 'Add Base Indexes'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -143,6 +144,7 @@ export default {
     uploadRule1: '请上传 .txt 或 .sql 文件',
     uploadRule2: '文件包含有效的 SQL',
     uploadRule3: '文件大小总量不超过 5MB',
-    uploadRule4: '一次最多可上传 {size} 条 SQL'
+    uploadRule4: '一次最多可上传 {size} 条 SQL',
+    addBaseIndexCheckBox: '添加基础索引'
   }
 }

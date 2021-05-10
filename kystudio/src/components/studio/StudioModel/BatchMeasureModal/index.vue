@@ -109,7 +109,7 @@
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
               <span class="ksd-ml-2">
-                <i class="el-icon-ksd-auto_computed_column"></i>
+                <i class="el-ksd-icon-auto_computed_column_old"></i>
               </span>
               <span class="table-title">{{$t('computedColumns')}} <span>({{ccTable.meaColNum}}/{{ccTable.columns.length}})</span></span>
               <common-tip placement="top" v-if="unflattenComputedColumns.length" :content="$t('useCCBylockLookupTableTip')">

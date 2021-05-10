@@ -63,16 +63,16 @@ export default class ModelOverview extends Vue {
   > .el-tabs__header .el-tabs__item {
     border: transparent;
     color: @text-normal-color;
-    &.is-active {
-      font-weight: normal;
-    }
+    // &.is-active {
+    //   font-weight: normal;
+    // }
   }
   > .el-tabs__content {
     padding: 0;
   }
   > .el-tabs__content > .el-tab-pane {
-    padding: 20px;
-    height: 470px;
+    // padding: 20px;
+    // height: 470px;
     box-sizing: border-box;
     overflow: auto;
   }

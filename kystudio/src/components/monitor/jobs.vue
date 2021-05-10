@@ -225,7 +225,7 @@
                 <i slot="reference" class="fa"
                   :class="{
                   'el-icon-ksd-more_05' : step.step_status=='PENDING'|| step.step_status=='STOPPED',
-                  'el-ksd-icon-loading_16' : step.step_status=='WAITING' || step.step_status=='RUNNING',
+                  'el-ksd-icon-loading_22' : step.step_status=='WAITING' || step.step_status=='RUNNING',
                   'el-icon-ksd-good_health' : step.step_status=='FINISHED',
                   'el-icon-ksd-error_01' : step.step_status=='ERROR',
                   'el-icon-ksd-table_discard' : step.step_status=='DISCARDED'
@@ -1674,8 +1674,8 @@ export default class JobsList extends Vue {
             }
           }
           > span > .fa, > .fa {
-            width: 14px;
-            height: 14px;
+            // width: 14px;
+            // height: 14px;
             line-height: 20px;
             position: absolute;
             border-radius: 50%;
@@ -1688,11 +1688,11 @@ export default class JobsList extends Vue {
             &.el-icon-ksd-error_01 {
               color: @ke-color-danger-hover;
             }
-            &.el-ksd-icon-loading_16 {
+            &.el-ksd-icon-loading_22 {
               color: @color-primary;
               font-size: 14px;
-              width: 14px;
-              height: 14px;
+              // width: 14px;
+              // height: 14px;
             }
           }
         }

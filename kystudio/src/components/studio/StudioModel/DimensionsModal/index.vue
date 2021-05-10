@@ -168,7 +168,7 @@
                     <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
                     <el-checkbox v-model="ccTable.checkedAll" :indeterminate="ccTable.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, ccTable.guid)}"></el-checkbox>
                     <span class="ksd-ml-2">
-                      <i class="el-icon-ksd-auto_computed_column"></i>
+                      <i class="el-ksd-icon-auto_computed_column_old"></i>
                     </span>
                     <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}}/{{ccTable.columns.length}})</span></span>
                     <common-tip placement="top" v-if="unflattenComputedColumns.length" :content="$t('useCCBylockLookupTableTip')">
@@ -883,6 +883,7 @@ export default class DimensionsModal extends Vue {
     }
     .checkbox-all {
       float: left;
+      line-height: 45px;
     }
     .table-icon {
       float: left;

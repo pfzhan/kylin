@@ -87,9 +87,9 @@
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
                   <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                  <!-- <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout}">
+                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout}">
                     <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
-                  </el-dropdown-item> -->
+                  </el-dropdown-item>
                   
                 </el-dropdown-menu>
               </el-dropdown>
@@ -864,6 +864,7 @@ export default class ModelAggregate extends Vue {
       title: this.$t('updateBaseIndexTitle'),
       message: this.$t('updateBaseIndexTips'),
       showCancelButton: true,
+      centerButton: true,
       confirmButtonText: this.$t('update')
     }).then(async () => {
       await this.updateBaseIndex({
@@ -1114,6 +1115,7 @@ export default class ModelAggregate extends Vue {
       padding: 0px !important;
       .detail-content {
         background-color: transparent;
+        padding: 0;
         .date-range {
           color: @text-normal-color;
         }

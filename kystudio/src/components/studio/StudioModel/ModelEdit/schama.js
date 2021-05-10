@@ -29,6 +29,8 @@ export default class SchemaModels {
       partition_date_start: 0,
       partition_type: 'APPEND'
     }
+    this.anti_flatten_lookups = options.join_tables ? options.join_tables.filter(item => item.flattenable === 'normalized').map(it => it.alias) : []
+    this.anti_flatten_cc = []
     this.multi_partition_desc = options.multi_partition_desc || null
     this.his_partition_desc = Object.assign({}, options.partition_desc)
     this.base_index_num = options.base_index_num || false
@@ -126,6 +128,8 @@ export default class SchemaModels {
       this.$set(this._mount, 'hasBrokenLinkedTable', false)
       this.$set(this._mount, 'broken_reason', options.broken_reason)
       this.$set(this._mount, 'all_named_columns', options.all_named_columns || [])
+      this.$set(this._mount, 'anti_flatten_lookups', this.anti_flatten_lookups)
+      this.$set(this._mount, 'anti_flatten_cc', this.anti_flatten_cc)
       this.$set(this._mount, 'base_index_num', this.base_index_num)
     }
     if (options.renderDom) {

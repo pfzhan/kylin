@@ -16,7 +16,7 @@
         </div>
       </div>
       <el-table class="model-dimension-table" :data="dimensions.data" style="width: 100%">
-        <el-table-column :label="$t('kylinLang.dataSource.dimensionName')">
+        <el-table-column :label="$t('kylinLang.common.dimension')">
           <span slot-scope="scope" class="text">{{scope.row.name}}</span>
         </el-table-column>
         <el-table-column prop="table" :label="$t('kylinLang.common.tableName')" />
@@ -81,12 +81,12 @@ export default class ModelDimensionList extends Vue {
   .dimension-filter {
     width: 250px;
   }
-  .el-table__body-wrapper {
-    font-size: 12px;
-  }
-  .el-table .cell {
-    line-height: 18px;
-  }
+  // .el-table__body-wrapper {
+    // font-size: 12px;
+  // }
+  // .el-table .cell {
+  //   line-height: 18px;
+  // }
   .model-dimension-table {
     .text {
       white-space: pre-wrap;
