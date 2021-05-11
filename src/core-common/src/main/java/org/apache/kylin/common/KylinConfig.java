@@ -94,7 +94,7 @@ public class KylinConfig extends KylinConfigBase {
     public static final String KYLIN_CONF = "KYLIN_CONF";
 
     // static cached instances
-    private static KylinConfig SYS_ENV_INSTANCE = null;
+    private static volatile KylinConfig SYS_ENV_INSTANCE = null;
 
     // thread-local instances, will override SYS_ENV_INSTANCE
     private static transient ThreadLocal<KylinConfig> THREAD_ENV_INSTANCE = new ThreadLocal<>();
@@ -126,13 +126,15 @@ public class KylinConfig extends KylinConfigBase {
                     classes = {"StaticAuthenticationProvider", "StaticUserGroupService"})
     })
     public static KylinConfig getInstanceFromEnv() {
+        KylinConfig config = THREAD_ENV_INSTANCE.get();
+        if (config != null) {
+            logger.trace("Using thread local KylinConfig");
+            return config;
+        }
+        if (SYS_ENV_INSTANCE != null) {
+            return SYS_ENV_INSTANCE;
+        }
         synchronized (KylinConfig.class) {
-            KylinConfig config = THREAD_ENV_INSTANCE.get();
-            if (config != null) {
-                logger.trace("Using thread local KylinConfig");
-                return config;
-            }
-
             if (SYS_ENV_INSTANCE == null) {
                 SYS_ENV_INSTANCE = newKylinConfig();
                 logger.trace("Created a new KylinConfig by getInstanceFromEnv, KylinConfig Id: {}",

@@ -1623,6 +1623,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.query.calcite.extras-props.");
     }
 
+    public String getCalciteConformance() {
+        return this.getOptional("kylin.query.calcite.extras-props.conformance", "DEFAULT");
+    }
+
     public boolean isExecuteAsEnabled() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.query-with-execute-as", FALSE));
     }
