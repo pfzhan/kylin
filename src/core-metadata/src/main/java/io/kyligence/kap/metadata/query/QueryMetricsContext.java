@@ -46,6 +46,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import static org.apache.kylin.common.QueryTrace.FETCH_RESULT;
+
 public class QueryMetricsContext extends QueryMetrics {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryMetricsContext.class);
@@ -105,6 +107,10 @@ public class QueryMetricsContext extends QueryMetrics {
 
         this.server = context.getMetrics().getServer();
 
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            QueryContext.currentTrace().endLastSpan();
+            QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
+        }
         this.queryDuration = System.currentTimeMillis() - queryTime;
         this.totalScanBytes = context.getMetrics().getScannedBytes();
         this.totalScanCount = context.getMetrics().getScannedRows();

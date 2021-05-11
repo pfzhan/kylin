@@ -103,7 +103,7 @@ public class AsyncQueryJob extends NSparkExecutable {
 
     @Override
     protected String getJobNamePrefix() {
-        return "ASYNC_QUERY_JOB_";
+        return "";
     }
 
     @Override
@@ -113,7 +113,8 @@ public class AsyncQueryJob extends NSparkExecutable {
 
     public ExecuteResult submit(QueryParams queryParams) throws ExecuteException, JsonProcessingException {
         this.setLogPath(getSparkDriverLogHdfsPath(getConfig()));
-        KylinConfig config = getConfig();
+        KylinConfig originConfig = getConfig();
+        KylinConfig config = KylinConfig.createKylinConfig(originConfig);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
@@ -136,6 +137,7 @@ public class AsyncQueryJob extends NSparkExecutable {
 
         try {
             // dump kylin.properties to HDFS
+            config.setProperty("kylin.query.queryhistory.url", config.getMetadataUrl().toString());
             attachMetadataAndKylinProps(config, true);
 
             // dump metadata to HDFS
