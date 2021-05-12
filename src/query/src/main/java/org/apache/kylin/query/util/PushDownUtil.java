@@ -106,7 +106,7 @@ public class PushDownUtil {
         String project = queryParams.getProject();
         kylinConfig = prj.getConfig();
         if (!kylinConfig.isPushDownEnabled()) {
-            if (queryParams.isForced) {
+            if (queryParams.isForcedToPushDown) {
                 throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
                         "you should turn on pushdown when you want to force to pushdown");
             }
@@ -115,7 +115,7 @@ public class PushDownUtil {
         if (queryParams.isSelect()) {
             logger.info("Query:[{}] failed to utilize pre-calculation, routing to other engines",
                     QueryContext.current().getMetrics().getCorrectedSql(), queryParams.getSqlException());
-            if (!queryParams.isForced() && !isExpectedCause(queryParams.getSqlException())) {
+            if (!queryParams.isForcedToPushDown() && !isExpectedCause(queryParams.getSqlException())) {
                 logger.info("quit doPushDownQuery because prior exception thrown is unexpected");
                 return null;
             }

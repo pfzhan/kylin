@@ -67,9 +67,8 @@ public class QueryParams {
     String sparkQueue;
     boolean isSelect;
     boolean isPrepare;
-    boolean isForced;
-    boolean forcedToPushDown;
     boolean forcedToIndex;
+    boolean isForcedToPushDown;
     boolean isCCNeeded;
     boolean isPrepareStatementWithParams;
     boolean partialMatchIndex;
@@ -91,23 +90,23 @@ public class QueryParams {
     }
 
     public QueryParams(String project, String sql, String defaultSchema, boolean isPrepare, boolean isSelect,
-            boolean isForced) {
+            boolean isForcedToPushDown) {
         this.project = project;
         this.sql = sql;
         this.defaultSchema = defaultSchema;
         this.isPrepare = isPrepare;
         this.isSelect = isSelect;
-        this.isForced = isForced;
+        this.isForcedToPushDown = isForcedToPushDown;
     }
 
     public QueryParams(String project, String sql, String defaultSchema, boolean isPrepare, SQLException sqlException,
-            boolean isForced, boolean isSelect, int limit, int offset) {
+                       boolean isForcedToPushDown, boolean isSelect, int limit, int offset) {
         this.project = project;
         this.sql = sql;
         this.defaultSchema = defaultSchema;
         this.isPrepare = isPrepare;
         this.sqlException = sqlException;
-        this.isForced = isForced;
+        this.isForcedToPushDown = isForcedToPushDown;
         this.isSelect = isSelect;
         this.limit = limit;
         this.offset = offset;
@@ -135,7 +134,7 @@ public class QueryParams {
         this.offset = offset;
         this.isCCNeeded = isCCNeeded;
         this.executeAs = executeAs;
-        this.forcedToPushDown = forcedToPushDown;
+        this.isForcedToPushDown = forcedToPushDown;
         this.forcedToIndex = forcedToIndex;
         this.isPrepareStatementWithParams = isPrepareStatementWithParams;
         this.partialMatchIndex = partialMatchIndex;
