@@ -81,6 +81,8 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private Integer limit = 0;
     private boolean acceptPartial = false;
     private boolean forcedToPushDown = false;
+    @JsonProperty("forced_to_index")
+    private boolean forcedToIndex = false;
     private long queryStartTime;
     private String stopId;
     private String format = "csv";

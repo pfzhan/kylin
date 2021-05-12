@@ -266,6 +266,35 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testQueryIndexForced() throws Throwable {
+        final String sql = "select * from abc";
+        final String project = "default";
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        sqlRequest.setForcedToIndex(true);
+
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+                sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                queryExec.getSchema(), true);
+        String correctedSql = QueryUtil.massageSql(queryParams);
+
+        Mockito.when(queryExec.executeQuery(correctedSql))
+                .thenThrow(new RuntimeException("shouldnt execute queryexec"));
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
+
+        Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+
+        final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
+        Assert.assertFalse(response.isQueryPushDown());
+    }
+
+    @Test
     public void testQueryPushDownErrorMessage() throws Exception {
         final String sql = "select * from success_table_2";
         final String project = "default";

@@ -69,6 +69,7 @@ public class QueryParams {
     boolean isPrepare;
     boolean isForced;
     boolean forcedToPushDown;
+    boolean forcedToIndex;
     boolean isCCNeeded;
     boolean isPrepareStatementWithParams;
     boolean partialMatchIndex;
@@ -124,7 +125,8 @@ public class QueryParams {
     }
 
     public QueryParams(KylinConfig kylinConfig, String sql, String project, int limit, int offset, boolean isCCNeeded,
-                       String executeAs, boolean forcedToPushDown, boolean isPrepareStatementWithParams, boolean partialMatchIndex,
+                       String executeAs, boolean forcedToPushDown, boolean forcedToIndex,
+                       boolean isPrepareStatementWithParams, boolean partialMatchIndex,
                        boolean acceptPartial, boolean isSelect) {
         this.kylinConfig = kylinConfig;
         this.sql = sql;
@@ -134,6 +136,7 @@ public class QueryParams {
         this.isCCNeeded = isCCNeeded;
         this.executeAs = executeAs;
         this.forcedToPushDown = forcedToPushDown;
+        this.forcedToIndex = forcedToIndex;
         this.isPrepareStatementWithParams = isPrepareStatementWithParams;
         this.partialMatchIndex = partialMatchIndex;
         this.acceptPartial = acceptPartial;

@@ -220,7 +220,7 @@ public class QueryService extends BasicService {
 
             QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                     sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                    true, sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(),
+                    true, sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
                     isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(), sqlRequest.isAcceptPartial(), true);
             if (queryParams.isPrepareStatementWithParams()) {
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(), ((PrepareSqlRequest) sqlRequest).getParams()));
@@ -408,6 +408,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.ERROR_MSG, response.getExceptionMessage())
                 .put(LogReport.USER_TAG, request.getUser_defined_tag())
                 .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown())
+                .put(LogReport.INDEX_FORCED, request.isForcedToIndex())
                 .put(LogReport.USER_AGENT, request.getUserAgent())
                 .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles());
         String log = report.oldStyleLog();
@@ -1235,6 +1236,7 @@ public class QueryService extends BasicService {
         static final String ERROR_MSG = "error_msg";
         static final String USER_TAG = "user_defined_tag";
         static final String PUSH_DOWN_FORCED = "push_down_forced";
+        static final String INDEX_FORCED = "index_forced";
         static final String USER_AGENT = "user_agent";
         static final String BACK_DOOR_TOGGLES = "back_door_toggles";
 
