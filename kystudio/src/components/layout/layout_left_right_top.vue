@@ -25,7 +25,7 @@
                   <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
                 </template>
                 <!-- <el-menu-item-group> -->
-                  <el-menu-item :index="child.path" class="ksd-pl-55" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
+                  <el-menu-item :index="child.path" :class="{'ksd-pl-55': !briefMenuGet}" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
                     <template v-if="child.name === 'job'">
                       <span style="position:relative;" id="monitorJobs">
                         {{$t('kylinLang.menu.' + child.name)}}
@@ -1169,7 +1169,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   .alter-block {
     position: fixed;
-    top: 53px;
+    top: 48px;
     width: 100%;
     z-index: 1;
   }

@@ -402,6 +402,7 @@ i[class^=el-icon-]{
       margin-top: 8px;
       font-size: 12px;
       display: flex;
+      align-items: center;
       &:first-child {
         margin-top: 0;
       }
@@ -502,8 +503,7 @@ i[class^=el-icon-]{
 }
 .query_panel_box {
   border: 1px solid @ke-border-secondary;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  border-radius: 6px;
   .smyles_editor_wrap {
     margin: -1px;
     // .ace-chrome {
@@ -517,6 +517,8 @@ i[class^=el-icon-]{
     display: flex;
     padding: 10px 15px;
     background-color: @fff;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
   }
 }
 // 带图标警告、成功、失败提示语样式覆盖

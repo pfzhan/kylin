@@ -2,7 +2,7 @@
   <div id="jobListPage">
   <el-alert :title="$t('adminTips')" type="tip" class="admin-tips" v-if="isShowAdminTips" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20">
-    <div class="ksd-title-page ksd-mt-20">{{$t('jobsList')}}</div>
+    <div class="ksd-title-page ksd-mt-32">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="16">
         <!-- <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
@@ -31,9 +31,9 @@
     </el-row>
     <el-row class="filter-status-list" v-show="filterTags.length">
       <div class="tag-layout">
-        <el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}${$t('kylinLang.common.colon')}${$t(item.label)}`}}</el-tag>
+        <el-tag closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}${$t('kylinLang.common.colon')}${$t(item.label)}`}}</el-tag><span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
       </div>
-      <span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
+      <span class="filter-job-size">{{$t('filteredTotalSize', {totalSize: jobTotal})}}</span>
     </el-row>
     <transition name="fade">
       <div class="selectLabel" v-if="isSelectAllShow&&!$store.state.project.isAllProject&&filter.status.length">
@@ -58,12 +58,12 @@
           @cell-click="showLineSteps"
           :row-class-name="tableRowClassName"
           :key="$store.state.project.isAllProject">
-          <el-table-column type="selection" align="center" width="44"></el-table-column>
-          <el-table-column align="center" width="40" prop="icon" v-if="monitorActions.includes('jobActions')">
+          <el-table-column class-name="icon-column" type="selection" align="center" width="32"></el-table-column>
+          <el-table-column class-name="icon-column" align="center" width="32" prop="icon" v-if="monitorActions.includes('jobActions')">
             <template slot-scope="scope">
-              <i :class="{
-                'el-icon-caret-right': scope.row.id !== selectedJob.id || !showStep,
-                'el-icon-caret-bottom': scope.row.id == selectedJob.id && showStep}"></i>
+              <i class="ksd-fs-22" :class="{
+                'el-ksd-icon-arrow_table_right_22': scope.row.id !== selectedJob.id || !showStep,
+                'el-ksd-icon-arrow_table_down_22': scope.row.id == selectedJob.id && showStep}"></i>
             </template>
           </el-table-column>
           <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">
@@ -313,7 +313,7 @@
               </div>
             </li>
           </ul>
-          <div class='job-btn' @click='showStep=false'><i class='el-icon-ksd-more_02' aria-hidden='true'></i>
+          <div class='job-btn' id="jobDetailBtn" v-show="isShowBtn" :class="{'is-filter-list': filterTags.length}" @click='showStep=false'><i class='el-icon-ksd-more_02' aria-hidden='true'></i>
           </div>
         </el-card>
       </el-col>
@@ -495,7 +495,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       mergeSegmentData: 'Merge Segment Data',
       cleanUpOldSegment: 'Clean Up Old Segment',
       tableSampling: 'Table Sampling',
-      buildSnapshot: 'Build Snapshot'
+      buildSnapshot: 'Build Snapshot',
+      filteredTotalSize: '{totalSize} result(s)'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -591,7 +592,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       mergeSegmentData: '合并 Segment 数据',
       cleanUpOldSegment: '清理旧 Segment',
       tableSampling: '表抽样',
-      buildSnapshot: '构建快照'
+      buildSnapshot: '构建快照',
+      filteredTotalSize: '{totalSize} 条结果'
     }
   }
 })
@@ -657,6 +659,7 @@ export default class JobsList extends Vue {
   filterTags = []
   showDiagnostic = false
   diagnosticId = ''
+  isShowBtn = true
 
   get emptyText () {
     return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -801,18 +804,18 @@ export default class JobsList extends Vue {
   destroyed () {
     clearTimeout(this.stCycle)
   }
-  // mounted () {
-  //   if (document.getElementById('scrollContent')) {
-  //     document.getElementById('scrollContent').addEventListener('scroll', this.scrollRightBar, false)
-  //   }
-  // }
+  mounted () {
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').addEventListener('scroll', this.isShowJobBtn, false)
+    }
+  }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     // window.removeEventListener('click', this.closeIt)
-    // if (document.getElementById('scrollContent')) {
-    //   document.getElementById('scrollContent').removeEventListener('scroll', this.scrollRightBar, false)
-    // }
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').removeEventListener('scroll', this.isShowJobBtn, false)
+    }
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
@@ -900,6 +903,22 @@ export default class JobsList extends Vue {
     if (this.selectedJob.job_status === 'STOPPED') {
       return ''
     }
+  }
+  isShowJobBtn () {
+    this.$nextTick(() => {
+      // 右侧详情的高度
+      let rightStepDetailH = document.getElementById('stepList') && document.getElementById('stepList').clientHeight
+      // 当前滚动距离
+      let sTop = document.getElementById('scrollContent').scrollTop
+      this.isShowBtn = rightStepDetailH - 50 >= sTop
+      // 可视区宽度
+      let screenW = document.getElementById('jobListPage').offsetWidth
+      // jobBtn 的left 定位
+      let jobBtn = document.getElementById('jobDetailBtn')
+      if (jobBtn) {
+        jobBtn.style.left = (screenW + 158 - 345) + 'px'
+      }
+    })
   }
   // setRightBarTop () {
   //   // 默认右侧详情的位移为 0
@@ -1345,6 +1364,7 @@ export default class JobsList extends Vue {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.$set(this.selectedJob, 'details', data)
+            this.isShowJobBtn()
             // this.setRightBarTop()
           })
         }, (resError) => {
@@ -1504,7 +1524,7 @@ export default class JobsList extends Vue {
       }
         &.el-card {
           border-radius: 0;
-          box-shadow: -10px 10px 5px @ke-background-color-secondary;
+          box-shadow: -3px 3px 5px @ke-color-secondary;
           border: 0;
           padding: 16px;
           .el-card__body {
@@ -1560,7 +1580,7 @@ export default class JobsList extends Vue {
       }
       .job-btn {
         position: fixed;
-        right: 360px;
+        right: 345px;
         top: 230px;
         height: 24px;
         width: 24px;
@@ -1571,6 +1591,10 @@ export default class JobsList extends Vue {
         box-shadow: 0px 2px 8px rgba(50, 73, 107, 0.24);
         cursor: pointer;
         text-align: center;
+        background-color: @fff;
+        &.is-filter-list {
+          top: 270px;
+        }
         i {
           transform: scale(0.8);
         }
@@ -1586,7 +1610,7 @@ export default class JobsList extends Vue {
       }
       .timeline {
         position: relative;
-        margin: 0 10px 30px 10px;
+        margin: 0px 10px 30px 0px;
         list-style: none;
         font-size: 12px;
 
@@ -1645,6 +1669,9 @@ export default class JobsList extends Vue {
               }
               i {
                 color: @text-normal-color;
+                &:hover {
+                  color: @ke-color-primary;
+                }
               }
             }
             .timeline-footer {
@@ -1702,6 +1729,16 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
+      .icon-column {
+        .cell {
+          padding-left: 8px;
+          padding-right: 8px;
+        }
+      }
+      .el-ksd-icon-arrow_table_right_22,
+      .el-ksd-icon-arrow_table_down_22 {
+        color: @text-disabled-color;
+      }
       span.is-disabled {
         color: @text-disabled-color;
       }
@@ -1781,25 +1818,26 @@ export default class JobsList extends Vue {
     }
   }
   .filter-status-list {
-    background: @background-disabled-color;
-    margin-bottom: 10px;
-    padding: 0px 5px 5px;
+    margin-bottom: 8px;
     box-sizing: border-box;
     .tag-layout {
-      width: calc(~'100% - 100px');
+      width: calc(~'100% - 80px');
       display: inline-block;
       .el-tag {
-        margin-left: 5px;
+        margin-right: 5px;
         margin-top: 5px;
       }
     }
     .clear-all-tags {
+      font-size: 12px;
+      color: @base-color;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .filter-job-size {
       position: absolute;
       top: 8px;
       right: 10px;
-      font-size: 14px;
-      color: @base-color;
-      cursor: pointer;
     }
   }
 </style>

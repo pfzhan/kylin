@@ -38,7 +38,7 @@
       :closable="false">
     </el-alert>
 
-    <el-table :data="usersList" :empty-text="emptyText" class="user-table" border v-scroll-shadow>
+    <el-table :data="usersList" :empty-text="emptyText" class="user-table" v-scroll-shadow>
       <!-- 表：username列 -->
       <el-table-column :label="$t('user')" prop="username" :width="220" show-overflow-tooltip>
         <template slot-scope="scope">

@@ -49,6 +49,13 @@ export default {
 <style lang="less">
 @import '../../assets/styles/variables.less';
   .kap_progress{
+    height: 20px;
+    .el-progress-bar {
+      padding-right: 55px;
+    }
+    i {
+      font-size: 18px !important;
+    }
     &.success {
       .el-progress-bar__inner {
         background-color: @ke-color-success-hover;
