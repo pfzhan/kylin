@@ -89,7 +89,6 @@
               ref="nodeListTable"
               :data="nodes"
               size="small"
-              border
               v-scroll-shadow
               class="node-list"
               :empty-text="$t('kylinLang.common.noData')"
@@ -119,7 +118,6 @@
             <el-table
               :data="projectCapacity.list"
               size="small"
-              border
               v-scroll-shadow
               class="project-capacity"
               max-height="360"

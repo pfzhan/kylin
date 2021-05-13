@@ -1,7 +1,7 @@
 <template>
   <div class="source-management">
     <h1 class="title">{{$t('sourceManagement')}}</h1>
-    <el-table border :data="sourceArray">
+    <el-table :data="sourceArray">
       <el-table-column prop="name" :label="$t('name')" ></el-table-column>
       <el-table-column prop="type" :label="$t('type')" width="80"></el-table-column>
       <el-table-column prop="createTime" width="218" :label="$t('createTime')">

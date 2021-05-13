@@ -406,7 +406,7 @@ export default class StudioSource extends Vue {
     z-index:8;
   }
   .layout-right {
-    padding: 24px 24px 0;
+    padding: 32px 24px 0;
     min-height: 100%;
     box-sizing: border-box;
     position: relative;
@@ -442,7 +442,7 @@ export default class StudioSource extends Vue {
   .table-actions {
     position: absolute;
     top: 50%;
-    right: 0;
+    right: -12px;
     transform: translateY(-14px);
   }
   .el-tabs__nav {
