@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.BufferedLogger;
@@ -47,12 +51,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
-
-import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 public class AsyncQueryJob extends NSparkExecutable {
 
@@ -114,7 +117,11 @@ public class AsyncQueryJob extends NSparkExecutable {
     public ExecuteResult submit(QueryParams queryParams) throws ExecuteException, JsonProcessingException {
         this.setLogPath(getSparkDriverLogHdfsPath(getConfig()));
         KylinConfig originConfig = getConfig();
-        KylinConfig config = KylinConfig.createKylinConfig(originConfig);
+        HashMap<String, String> overrideCopy = Maps.newHashMap(((KylinConfigExt) originConfig).getExtendedOverrides());
+        if (StringUtils.isNotEmpty(queryParams.getSparkQueue())) {
+            overrideCopy.put("kylin.query.async-query.spark-conf.spark.yarn.queue", queryParams.getSparkQueue());
+        }
+        KylinConfig config = KylinConfigExt.createInstance(originConfig, overrideCopy);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
