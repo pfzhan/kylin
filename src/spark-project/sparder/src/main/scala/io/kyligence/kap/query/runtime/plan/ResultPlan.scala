@@ -206,8 +206,10 @@ object ResultPlan extends LogEx {
     QueryContext.currentTrace().endLastSpan()
     val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
     format match {
-      case "json" => df.write.option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).json(path)
-      case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).csv(path)
+      case "json" => df.write.option("timestampFormat", "yyyy/MM/dd HH:mm:ss ZZ").option("encoding", encode)
+        .option("charset", "utf-8").mode(SaveMode.Append).json(path)
+      case _ => df.write.option("timestampFormat", "yyyy/MM/dd HH:mm:ss ZZ").option("sep", SparderEnv.getSeparator)
+        .option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).csv(path)
     }
     AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
     jobTrace.jobFinished()
